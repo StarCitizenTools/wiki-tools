@@ -1,0 +1,8 @@
+pre-commit:
+  commands:
+    stylua:
+      glob: "*.lua"
+      run: stylua --check pages/module/
+    gale:
+      glob: "*.css"
+      run: gale 'pages/module/**/*.css'

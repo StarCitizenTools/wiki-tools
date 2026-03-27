@@ -1,0 +1,310 @@
+.t-infobox {
+	--t-infobox-background: var(--color-surface-1);
+	--t-infobox-padding-inline: var(--space-md);
+	--t-infobox-image-gradient-transition-height: 2rem;
+
+	width: 100%;
+	margin-bottom: var(--space-md);
+	font-size: var(--font-size-small);
+	line-height: var(--line-height-xx-small);
+}
+
+.t-infobox-content {
+	border: var(--border-base);
+	border-radius: var(--border-radius-medium);
+	overflow-y: clip;
+}
+
+.t-infobox-content[open] {
+	background: var(--t-infobox-background);
+}
+
+.t-infobox-header,
+.t-infobox-content
+	> .t-infobox-collapsible-content
+	> .t-infobox-section
+	> :last-child {
+	padding-bottom: var(--space-md);
+}
+
+.t-infobox-content-collapsible-button {
+	border-radius: var(--border-radius-medium);
+	padding-inline: var(--t-infobox-padding-inline);
+}
+
+.t-infobox-content[open] .t-infobox-content-collapsible-button {
+	border-bottom-left-radius: 0;
+	border-bottom-right-radius: 0;
+}
+
+.t-infobox-content-collapsible-button:hover {
+	background-color: var(--background-color-button-quiet--hover);
+}
+
+.t-infobox-content-collapsible-button:active {
+	background-color: var(--background-color-button-quiet--active);
+}
+
+/* Header Component */
+.t-infobox-image-container {
+	position: relative;
+}
+
+.t-infobox-image-overlay {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+}
+
+.t-infobox-image {
+	display: grid;
+	place-content: center;
+	min-height: 160px;
+}
+
+.t-infobox-image .mw-file-element {
+	max-width: 100%;
+	height: auto;
+}
+
+.t-infobox-header-content {
+	position: relative;
+	margin-top: var(--space-sm);
+	font-weight: var(--font-weight-medium);
+}
+
+.t-infobox-title {
+	font-size: var(--font-size-x-large);
+	font-weight: var(--font-weight-semi-bold);
+	color: var(--color-emphasized);
+}
+
+.t-infobox-images .tabber__tab {
+	flex-grow: 1;
+	text-align: center;
+}
+
+/* Section Component */
+.t-infobox-section-label {
+	border-top: var(--border-subtle);
+	padding-block: var(--space-sm);
+	font-size: var(--font-size-medium);
+	font-weight: var(--font-weight-semi-bold);
+	color: var(--color-emphasized);
+}
+
+.t-infobox-section-items {
+	--t-infobox-section-columns-span: span var(--infobox-section-columns);
+	--t-infobox-section-grid-template-columns: repeat(
+		var(--infobox-section-columns),
+		1fr
+	);
+
+	display: grid;
+	grid-template-columns: var(--t-infobox-section-grid-template-columns);
+	gap: var(--space-xs) var(--space-sm);
+}
+
+.t-infobox-section-items--single-col .t-infobox-item-label {
+	flex-basis: 30%;
+}
+
+.t-infobox-section-items--single-col .t-infobox-item-content {
+	flex-basis: 70%;
+	text-align: end;
+}
+
+.t-infobox-section-subsections {
+	margin-inline: calc(var(--t-infobox-padding-inline) * -1);
+}
+
+.t-infobox-section-subsections .tabber {
+	/* Compensate for the top padding of the tab buttons */
+	margin-top: -0.75em;
+}
+
+.t-infobox-section-subsections .tabber__header {
+	margin-inline: -0.5em; /* Compensate for the side padding of the tab buttons */
+	box-shadow: none; /* Hide the bottom border in Tabber to reduce visual clutter */
+}
+
+.t-infobox-section-subsections .tabber__header,
+.t-infobox-section-subsections .tabber__panel {
+	padding-inline: var(--t-infobox-padding-inline);
+}
+
+.t-infobox-section-subsections .tabber__tab {
+	/* Swap margin and padding so that the indicator is aligned */
+	margin-inline: 0.5em;
+	padding-inline: 0;
+}
+
+.t-infobox-section-subsections .tabber__panel > .t-infobox-section {
+	padding-inline: 0;
+}
+
+.t-infobox-section-subsections
+	.tabber__panel
+	> .t-infobox-section
+	> .t-infobox-section-items:first-child {
+	padding-top: var(--space-sm);
+}
+
+.t-infobox-section-subsections
+	.tabber__panel
+	> .t-infobox-section
+	> .t-infobox-section-items:last-child {
+	padding-bottom: var(--space-sm);
+}
+
+/* Item Component */
+.t-infobox-item-label {
+	font-weight: var(--font-weight-medium);
+	color: var(--color-subtle);
+}
+
+.t-infobox-header-content,
+.t-infobox-section {
+	padding-inline: var(--t-infobox-padding-inline);
+}
+
+.t-infobox-item {
+	display: flex;
+	flex-direction: var(--infobox-item-flex-direction);
+	gap: 2px var(--space-xxs);
+}
+
+/* Item Card Component */
+.t-infobox-item-card.t-infobox-item {
+	margin-top: calc(var(--space-xxs) * -1);
+	grid-column: var(--t-infobox-section-columns-span);
+	border: var(--border-base);
+	border-radius: var(--border-radius-medium);
+	padding: var(--space-sm);
+	background: var(--color-surface-0);
+}
+
+.t-infobox-item-card-label {
+	margin-bottom: var(--space-sm);
+	font-weight: var(--font-weight-semi-bold);
+	font-size: var(--font-size-medium);
+}
+
+.t-infobox-item-card-items {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: var(--space-sm);
+}
+
+.t-infobox-item:not(.t-infobox-item-card) + .t-infobox-item-card {
+	margin-top: var(--space-xs);
+}
+
+/* Collapsible Component */
+.t-infobox-collapsible {
+	overflow-y: clip; /* For transition effects */
+}
+
+.t-infobox-collapsible-button {
+	--size-icon: var(--font-size-small);
+	--transform-rotate-collapse: rotate3d(1, 0, 0, 180deg);
+
+	border-top: var(--border-subtle);
+	padding-block: var(--space-sm);
+	display: flex;
+	column-gap: var(--space-xs);
+	align-items: center;
+	list-style: none;
+	cursor: pointer;
+	user-select: none;
+	-webkit-user-select: none;
+}
+
+.t-infobox-collapsible-button .mw-ui-icon-wikimedia-collapse {
+	transition: var(--transition-hover);
+	transition-property: transform;
+	transform: var(--transform-rotate-collapse);
+}
+
+.t-infobox-collapsible[open]
+	> .t-infobox-collapsible-button
+	.mw-ui-icon-wikimedia-collapse {
+	transform: none;
+}
+
+.t-infobox-collapsible-button .t-infobox-section-label {
+	border-top: 0;
+	padding-block: 0;
+}
+
+/*
+ * Star Citizen Tools styles
+ *
+ * These styles are additional styles that is used on the Star Citizen Wiki to
+ * match the look and feel of the Star Citizen Wiki.
+ */
+
+.t-infobox-title,
+.t-infobox-section-label {
+	font-weight: var(--font-weight-medium);
+}
+
+/*
+ * Start of image gradient effect
+ *
+ * Blend the image into the infobox with a gradient
+ * When the image is hovered, the gradient fades out and the header content move down to reveal the image
+ */
+.t-infobox-header > .t-infobox-images,
+.t-infobox-header > .t-infobox-image-container {
+	position: relative;
+}
+
+.t-infobox-header > .t-infobox-images::after,
+.t-infobox-header > .t-infobox-image-container::after {
+	content: '';
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	height: 50%;
+	background-image: linear-gradient(
+		to bottom,
+		transparent,
+		var(--t-infobox-background) 100%
+	);
+	pointer-events: none;
+	transition-property: opacity, transform;
+}
+
+.t-infobox-header > .t-infobox-images,
+.t-infobox-header > .t-infobox-image-container {
+	margin-block-end: calc(
+		var(--t-infobox-image-gradient-transition-height) * -1
+	);
+	transition-property: margin-block-end;
+}
+
+.t-infobox-header > .t-infobox-images,
+.t-infobox-header > .t-infobox-image-container,
+.t-infobox-header > .t-infobox-images::after,
+.t-infobox-header > .t-infobox-image-container::after {
+	transition-timing-function: var(--transition-timing-function-ease);
+	transition-duration: var(--transition-duration-medium);
+}
+
+.t-infobox-header > .t-infobox-images:hover,
+.t-infobox-header > .t-infobox-image-container:hover {
+	--t-infobox-image-transform: translateY(
+		var(--t-infobox-image-gradient-transition-height)
+	);
+	margin-block-end: 0;
+}
+
+.t-infobox-header > .t-infobox-images:hover::after,
+.t-infobox-header > .t-infobox-image-container:hover::after {
+	opacity: 0;
+	transform: var(--t-infobox-image-transform);
+}
+/* End of image gradient effect */

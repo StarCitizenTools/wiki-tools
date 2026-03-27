@@ -1,0 +1,13 @@
+[tools]
+lefthook = "latest"
+rust = "latest"
+stylua = "latest"
+"cargo:gale-lint" = "latest"
+
+[tasks.lint]
+run = ["stylua --check pages/module/", "gale 'pages/module/**/*.css'"]
+description = "Check formatting"
+
+[tasks.fix]
+run = ["stylua pages/module/", "gale --fix 'pages/module/**/*.css'"]
+description = "Fix formatting"

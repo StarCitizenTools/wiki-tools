@@ -1,0 +1,185 @@
+{
+	"title": "Gladius",
+	"subtitle": "[[Aegis Dynamics]] (AEGS)",
+	"images": [
+		{
+			"label": "Space",
+			"src": "Gladius - Flying away from world through debris.jpg",
+			"overlay": "Flight ready"
+		},
+		{
+			"label": "Landed",
+			"src": "Gladius_Hangar_3.1.png",
+			"overlay": "Alpha 3.1"
+		}
+	],
+	"sections": [
+		{
+			"items": [
+				{
+					"label": "Role",
+					"content": "Light Fighter"
+				},
+				{
+					"label": "Size",
+					"content": "Small (S2/XS)"
+				},
+				{
+					"label": "Series",
+					"content": "Gladius"
+				}
+			]
+		},
+		{
+			"label": "Capacity",
+			"columns": 3,
+			"items": [
+				{
+					"label": "Crew",
+					"content": "1"
+				},
+				{
+					"label": "Cargo",
+					"content": "0 SCU"
+				},
+				{
+					"label": "Stowage",
+					"content": "1,300 KµSCU"
+				}
+			]
+		},
+		{
+			"label": "Cost",
+			"sections": [
+				{
+					"label": "Universe",
+					"columns": 2,
+					"items": [
+						{
+							"label": "Purchase",
+							"content": "2,381,400 aUEC"
+						},
+						{
+							"label": "Rental",
+							"content": "Not available"
+						}
+					]
+				},
+				{
+					"label": "Pledge",
+					"columns": 2,
+					"items": [
+						{
+							"label": "Standalone",
+							"content": "$ 90.00 ($ 80.00)"
+						},
+						{
+							"label": "Availability",
+							"content": "Always available"
+						}
+					]
+				},
+				{
+					"label": "Insurance",
+					"columns": 2,
+					"items": [
+						{
+							"label": "Claim",
+							"content": "6m"
+						},
+						{
+							"label": "Expedite",
+							"content": "2m"
+						},
+						{
+							"label": "Expedite fee",
+							"content": "2,335 aUEC"
+						}
+					]
+				}
+			]
+		},
+		{
+			"label": "Specifications",
+			"collapsible": true,
+			"sections": [
+				{
+					"label": "Dimensions",
+					"content": "HTML from the dimension template"
+				},
+				{
+					"label": "Hull",
+					"columns": 6,
+					"items": [
+						{
+							"label": "PHY",
+							"content": "-57%"
+						},
+						{
+							"label": "ENG",
+							"content": "0%"
+						},
+						{
+							"label": "DST",
+							"content": "0%"
+						},
+						{
+							"label": "THM",
+							"content": "0%"
+						},
+						{
+							"label": "BIO",
+							"content": "0%"
+						},
+						{
+							"label": "STN",
+							"content": "-100%"
+						}
+					]
+				},
+				{
+					"label": "Speed",
+					"content": "Wikitext for the speed section"
+				},
+				{
+					"label": "Fuel",
+					"content": "Wikitext for the fuel section"
+				}
+			]
+		},
+		{
+			"label": "Lore",
+			"collapsible": true,
+			"collapsed": true,
+			"items": [
+				{
+					"label": "Released",
+					"content": "2579"
+				}
+			]
+		},
+		{
+			"label": "Development",
+			"collapsible": true,
+			"collapsed": true,
+			"items": [
+				{
+					"label": "Announced",
+					"content": "11 July 2014"
+				},
+				{
+					"label": "UUID",
+					"content": "b6b59889-7226-458e-a6b0-1c9392128a3c"
+				},
+				{
+					"label": "Class name",
+					"content": "AEGS_Gladius"
+				},
+				{
+					"label": "Game version",
+					"content": "4.3.2-LIVE.10452200"
+				}
+			]
+		}
+	]
+}

@@ -1,0 +1,20 @@
+name: Lint
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: jdx/mise-action@v2
+
+      - name: Check Lua formatting
+        run: stylua --check pages/module/
+
+      - name: Check CSS formatting
+        run: gale 'pages/module/**/*.css'

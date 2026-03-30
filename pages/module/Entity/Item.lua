@@ -42,7 +42,22 @@ function p.getSections(apiData, args)
 		{
 			key = 'general',
 			items = {
+				{
+					label = 'Manufacturer',
+					content = args.manufacturer
+						or (
+							apiData.manufacturer
+							and apiData.manufacturer.code ~= 'UNKN'
+							and apiData.manufacturer.code ~= 'GENF'
+							and apiData.manufacturer.code ~= 'GEND'
+							and apiData.manufacturer.name
+						),
+				},
 				{ label = 'Size', content = apiData.size and tostring(apiData.size) },
+				{
+					label = 'Craftable',
+					content = apiData.is_craftable ~= nil and (apiData.is_craftable and 'Yes' or 'No') or nil,
+				},
 				{
 					label = 'Volume',
 					content = dim

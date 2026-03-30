@@ -60,12 +60,6 @@ function p.getSections(apiData, args)
 
 	return {
 		{
-			key = 'general',
-			items = {
-				{ label = 'Manufacturer', content = args.manufacturer },
-			},
-		},
-		{
 			key = 'drink',
 			label = 'Drink',
 			collapsible = true,

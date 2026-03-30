@@ -157,10 +157,14 @@ function p.main(frame)
 		hasSmwError = true
 	end
 
+	-- Resolve display name for type
+	local typeNames = mw.loadJsonData('Module:Entity/Item/typeNames.json')
+	local displayType = typeNames[apiType] or apiType
+
 	-- Render via InfoboxLua
 	local html = infobox.render({
 		title = apiData.name or args.name or mw.title.getCurrentTitle().text,
-		subtitle = apiData.type or args.type,
+		subtitle = displayType,
 		image = apiData.image,
 		sections = sections,
 	})

@@ -78,9 +78,9 @@ function p.getStructuredData(apiData, args)
 	end
 
 	return {
-		ndr = food.nutritional_density_rating,
-		hei = food.hydration_efficacy_index,
-		oneShotConsume = food.one_shot_consume,
+		nutritional_density_rating = food.nutritional_density_rating,
+		hydration_efficacy_index = food.hydration_efficacy_index,
+		one_shot_consume = food.one_shot_consume,
 	}
 end
 

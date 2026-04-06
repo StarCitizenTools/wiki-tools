@@ -9,6 +9,14 @@
 	line-height: var(--line-height-xx-small);
 }
 
+.t-infobox dl,
+.t-infobox dt,
+.t-infobox dd {
+	margin: 0;
+	padding: 0;
+	font-weight: inherit;
+}
+
 .t-infobox-content {
 	border: var(--border-base);
 	border-radius: var(--border-radius-medium);

@@ -138,6 +138,10 @@ function p.main(frame)
 			{ label = 'UUID', content = args.uuid },
 			{ label = 'Class name', content = apiData.class_name },
 			{ label = 'Classification', content = apiData.classification },
+			{
+				label = 'Tags',
+				content = apiData.tags and #apiData.tags > 0 and table.concat(apiData.tags, ', ') or nil,
+			},
 			{ label = 'Version', content = apiData.version },
 		},
 	})
@@ -165,7 +169,7 @@ function p.main(frame)
 	local html = infobox.render({
 		title = apiData.name or args.name or mw.title.getCurrentTitle().text,
 		subtitle = displayType,
-		image = apiData.image,
+		image = args.image,
 		sections = sections,
 	})
 

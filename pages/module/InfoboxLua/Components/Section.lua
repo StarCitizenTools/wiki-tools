@@ -8,19 +8,27 @@ local collapsibleComponent = require('Module:InfoboxLua/Components/Collapsible')
 
 local p = {}
 
+local sectionIdCounter = 0
+
 --- @param label string
---- @return mw.html
+--- @return mw.html, string
 local function getLabelHtml(label)
+	sectionIdCounter = sectionIdCounter + 1
+	local id = 't-infobox-section-' .. sectionIdCounter
+
 	local html = mw.html.create('div')
 	html:addClass('t-infobox-section-label')
+	html:attr('id', id)
+	html:attr('role', 'heading')
+	html:attr('aria-level', '3')
 	html:wikitext(label)
-	return html
+	return html, id
 end
 
 --- @param section SectionComponentData
 --- @return mw.html
 local function getItemsHtml(section)
-	local html = mw.html.create('div')
+	local html = mw.html.create('dl')
 	html:addClass('t-infobox-section-items')
 
 	if section.columns and section.columns > 1 then
@@ -113,7 +121,10 @@ local function getSimpleSectionHtml(section, contentHtml, isSubSection)
 	html:addClass(getSectionClass(section.class))
 
 	if isSubSection ~= true and util.isNonEmptyString(section.label) then
-		html:node(getLabelHtml(section.label))
+		local labelHtml, labelId = getLabelHtml(section.label)
+		html:attr('role', 'group')
+		html:attr('aria-labelledby', labelId)
+		html:node(labelHtml)
 	end
 
 	html:node(contentHtml)
@@ -125,8 +136,9 @@ end
 --- @param contentHtml mw.html|nil
 --- @return mw.html
 local function getCollapsibleSectionHtml(section, contentHtml)
+	local labelHtml = getLabelHtml(section.label)
 	return collapsibleComponent.getHtml({
-		summary = tostring(getLabelHtml(section.label)),
+		summary = tostring(labelHtml),
 		content = tostring(contentHtml),
 		class = getSectionClass(section.class),
 		open = not section.collapsed,

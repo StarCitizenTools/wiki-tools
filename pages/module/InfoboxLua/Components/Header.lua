@@ -24,7 +24,11 @@ local function getImageHtml(image)
 		:done()
 
 	if util.isNonEmptyString(imageData.overlay) then
-		root:tag('div'):addClass('t-infobox-image-overlay'):wikitext(imageData.overlay):done()
+		root:tag('div')
+			:addClass('t-infobox-image-overlay')
+			:attr('aria-hidden', 'true')
+			:wikitext(imageData.overlay)
+			:done()
 	end
 
 	return root
@@ -59,6 +63,8 @@ end
 local function getHeaderTitleHtml(title)
 	local root = mw.html.create('div')
 	root:addClass('t-infobox-title')
+	root:attr('role', 'heading')
+	root:attr('aria-level', '2')
 	root:wikitext(title)
 	return root
 end

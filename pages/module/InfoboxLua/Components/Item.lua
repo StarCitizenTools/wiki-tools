@@ -27,10 +27,10 @@ function p.getHtml(data)
 	end
 
 	if util.isNonEmptyString(item.label) then
-		root:tag('div'):addClass('t-infobox-item-label'):wikitext(item.label):done()
+		root:tag('dt'):addClass('t-infobox-item-label'):wikitext(item.label):done()
 	end
 
-	root:tag('div'):addClass('t-infobox-item-content'):wikitext(item.content):done()
+	root:tag('dd'):addClass('t-infobox-item-content'):wikitext(item.content):done()
 
 	return root
 end

@@ -91,6 +91,8 @@ local function getInfoboxHtml(data)
 	local root = mw.html.create('div')
 	root:addClass('t-infobox floatright')
 		:addClass(data.class)
+		:attr('role', 'complementary')
+		:attr('aria-label', data.title)
 		:css('max-width', INFOBOX_WIDTH .. 'px')
 		:node(getContentHtml(data))
 

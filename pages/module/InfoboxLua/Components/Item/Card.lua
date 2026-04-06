@@ -9,7 +9,7 @@ local p = {}
 --- @param items ItemComponentData[]
 --- @return mw.html
 local function getItemsHtml(items)
-	local html = mw.html.create('div'):addClass('t-infobox-item-card-items')
+	local html = mw.html.create('dl'):addClass('t-infobox-item-card-items')
 
 	for _, item in ipairs(items) do
 		local itemHtml = itemComponent.getHtml(item)
@@ -28,7 +28,11 @@ local function getContentHtml(data)
 	local html = mw.html.create()
 
 	if util.isNonEmptyString(data.label) then
-		html:tag('div'):addClass('t-infobox-item-card-label'):wikitext(data.label)
+		html:tag('div')
+			:addClass('t-infobox-item-card-label')
+			:attr('role', 'heading')
+			:attr('aria-level', '4')
+			:wikitext(data.label)
 	end
 
 	if util.isNonEmptyString(data.content) then

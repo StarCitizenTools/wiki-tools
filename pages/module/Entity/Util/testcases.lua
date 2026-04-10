@@ -230,6 +230,16 @@ function suite:testBuildSiteItemsEmpty()
 	self:assertEquals(0, #result)
 end
 
+function suite:testBuildSiteItemsEncodesSpacesInData()
+	local siteDefs = {
+		{ label = 'Example', format = 'https://example.com/search?q=%s', data = 'name' },
+	}
+	local lookup = { name = 'Foo Bar' }
+	local result = util.buildSiteItems(siteDefs, lookup)
+	self:assertEquals(1, #result)
+	self:assertEquals('[https://example.com/search?q=Foo+Bar Example]', result[1].content)
+end
+
 function suite:testBuildSiteItemsMixedTypes()
 	local siteDefs = {
 		{ label = 'Finder', format = 'https://finder.example.com/%s', data = 'uuid' },

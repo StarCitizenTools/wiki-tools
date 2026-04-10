@@ -177,7 +177,7 @@ function p.buildSiteItems(siteDefs, dataLookup)
 		elseif def.format and def.data then
 			local value = dataLookup[def.data]
 			if value then
-				url = string.format(def.format, value)
+				url = string.format(def.format, mw.uri.encode(value, 'QUERY'))
 			end
 		end
 

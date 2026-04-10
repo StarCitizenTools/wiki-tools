@@ -159,4 +159,37 @@ function p.fetchAllApis(configs, uuid)
 	return apiData, hasError
 end
 
+--- Builds infobox items from site link definitions.
+--- Each definition is either { label, format, data } or { label, arg }.
+--- Returns items where the required data is available; skips the rest.
+---
+--- @param siteDefs table[] List of site link definitions
+--- @param dataLookup table<string, string> Lookup table mapping data/arg keys to values
+--- @return EntityItemData[] List of items with label and wikitext external link content
+function p.buildSiteItems(siteDefs, dataLookup)
+	local items = {}
+
+	for _, def in ipairs(siteDefs) do
+		local url
+
+		if def.arg then
+			url = dataLookup[def.arg]
+		elseif def.format and def.data then
+			local value = dataLookup[def.data]
+			if value then
+				url = string.format(def.format, value)
+			end
+		end
+
+		if url then
+			table.insert(items, {
+				label = def.label,
+				content = '[' .. url .. ' ' .. def.label .. ']',
+			})
+		end
+	end
+
+	return items
+end
+
 return p

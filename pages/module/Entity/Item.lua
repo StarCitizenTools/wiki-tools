@@ -4,6 +4,8 @@ require('strict')
 --- Item type module. Extends Base with item-specific properties
 --- (size, mass, volume) and the shared item API endpoint.
 
+local util = require('Module:Entity/Util')
+
 local p = {}
 
 --- @type string
@@ -38,7 +40,7 @@ function p.getSections(apiData, args)
 			.. ' m'
 	end
 
-	return {
+	local sections = {
 		{
 			key = 'general',
 			items = {
@@ -72,6 +74,23 @@ function p.getSections(apiData, args)
 			},
 		},
 	}
+
+	local communitySiteDefs = mw.loadJsonData('Module:Entity/Item/communitySites.json')
+	local dataLookup = {
+		uuid = args.uuid,
+		name = args.name or apiData.name,
+	}
+	local communityItems = util.buildSiteItems(communitySiteDefs, dataLookup)
+	if #communityItems > 0 then
+		table.insert(sections, {
+			key = 'community_sites',
+			label = 'Community sites',
+			collapsible = true,
+			items = communityItems,
+		})
+	end
+
+	return sections
 end
 
 --- @param apiData table

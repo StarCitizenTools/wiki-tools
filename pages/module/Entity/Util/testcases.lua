@@ -181,4 +181,65 @@ function suite:testCollectApiConfigsCombinesChain()
 	self:assertEquals('API1', configs[1].name)
 end
 
+-- buildSiteItems
+
+function suite:testBuildSiteItemsFormatAndData()
+	local siteDefs = {
+		{ label = 'Example', format = 'https://example.com/%s', data = 'uuid' },
+	}
+	local lookup = { uuid = 'abc-123' }
+	local result = util.buildSiteItems(siteDefs, lookup)
+	self:assertEquals(1, #result)
+	self:assertEquals('Example', result[1].label)
+	self:assertEquals('[https://example.com/abc-123 Example]', result[1].content)
+end
+
+function suite:testBuildSiteItemsArg()
+	local siteDefs = {
+		{ label = 'Galactapedia', arg = 'galactapedia_url' },
+	}
+	local lookup = { galactapedia_url = 'https://galactapedia.example.com/page' }
+	local result = util.buildSiteItems(siteDefs, lookup)
+	self:assertEquals(1, #result)
+	self:assertEquals('Galactapedia', result[1].label)
+	self:assertEquals('[https://galactapedia.example.com/page Galactapedia]', result[1].content)
+end
+
+function suite:testBuildSiteItemsSkipsMissingData()
+	local siteDefs = {
+		{ label = 'Example', format = 'https://example.com/%s', data = 'uuid' },
+		{ label = 'Other', format = 'https://other.com/%s', data = 'name' },
+	}
+	local lookup = { uuid = 'abc-123' }
+	local result = util.buildSiteItems(siteDefs, lookup)
+	self:assertEquals(1, #result)
+	self:assertEquals('Example', result[1].label)
+end
+
+function suite:testBuildSiteItemsSkipsMissingArg()
+	local siteDefs = {
+		{ label = 'Galactapedia', arg = 'galactapedia_url' },
+	}
+	local lookup = {}
+	local result = util.buildSiteItems(siteDefs, lookup)
+	self:assertEquals(0, #result)
+end
+
+function suite:testBuildSiteItemsEmpty()
+	local result = util.buildSiteItems({}, {})
+	self:assertEquals(0, #result)
+end
+
+function suite:testBuildSiteItemsMixedTypes()
+	local siteDefs = {
+		{ label = 'Finder', format = 'https://finder.example.com/%s', data = 'uuid' },
+		{ label = 'Galactapedia', arg = 'galactapedia_url' },
+	}
+	local lookup = { uuid = 'abc-123', galactapedia_url = 'https://galactapedia.example.com/page' }
+	local result = util.buildSiteItems(siteDefs, lookup)
+	self:assertEquals(2, #result)
+	self:assertEquals('Finder', result[1].label)
+	self:assertEquals('Galactapedia', result[2].label)
+end
+
 return suite

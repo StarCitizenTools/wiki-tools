@@ -29,6 +29,7 @@ function p.getStructuredData(apiData, args)
 		uuid = args.uuid,
 		name = args.name or apiData.name,
 		manufacturer = apiData.manufacturer and apiData.manufacturer.name,
+		galactapedia_url = args.galactapedia_url,
 	}
 end
 

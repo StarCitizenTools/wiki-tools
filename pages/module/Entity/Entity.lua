@@ -129,6 +129,21 @@ function p.main(frame)
 	end
 	local sections = util.mergeSections(sectionsList)
 
+	-- Append official sites section (always last before metadata)
+	local officialSiteDefs = mw.loadJsonData('Module:Entity/officialSites.json')
+	local officialDataLookup = {
+		name = args.name or apiData.name,
+		galactapedia_url = args.galactapedia_url,
+	}
+	local officialItems = util.buildSiteItems(officialSiteDefs, officialDataLookup)
+	if #officialItems > 0 then
+		table.insert(sections, {
+			label = 'Official sites',
+			collapsible = true,
+			items = officialItems,
+		})
+	end
+
 	-- Append metadata section (always last)
 	table.insert(sections, {
 		label = 'Metadata',

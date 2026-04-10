@@ -1,0 +1,22 @@
+[
+	{
+		"label": "Universal Item Finder",
+		"format": "https://finder.cstone.space/search/%s",
+		"data": "uuid"
+	},
+	{
+		"label": "UEX",
+		"format": "https://uexcorp.space/items/info?name=%s",
+		"data": "name"
+	},
+	{
+		"label": "SC Trade Tools",
+		"format": "https://sc-trade.tools/item-finder/%s",
+		"data": "name"
+	},
+	{
+		"label": "Wiki API",
+		"format": "https://api.star-citizen.wiki/items/%s",
+		"data": "uuid"
+	}
+]

@@ -180,8 +180,9 @@ function p.main(frame)
 	end
 
 	-- Resolve display name for type
-	local typeNames = mw.loadJsonData('Module:Entity/Item/typeNames.json')
-	local displayType = typeNames[apiType] or apiType
+	local types = mw.loadJsonData('Module:Entity/Item/types.json')
+	local typeInfo = types[apiType]
+	local displayType = typeInfo and typeInfo.name or apiType
 
 	-- Render via InfoboxLua
 	local html = infobox.render({
@@ -191,8 +192,11 @@ function p.main(frame)
 		sections = sections,
 	})
 
-	-- Append tracking categories
+	-- Append categories
 	local categories = ''
+	if typeInfo then
+		categories = categories .. '[[Category:' .. (typeInfo.category or typeInfo.name) .. ']]'
+	end
 	if hasApiError then
 		categories = categories .. CATEGORY_API_ERROR
 	end

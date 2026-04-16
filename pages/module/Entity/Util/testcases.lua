@@ -181,75 +181,70 @@ function suite:testCollectApiConfigsCombinesChain()
 	self:assertEquals('API1', configs[1].name)
 end
 
--- buildSiteItems
+-- buildSiteLinks
 
-function suite:testBuildSiteItemsFormatAndData()
+function suite:testBuildSiteLinksFormatAndData()
 	local siteDefs = {
 		{ label = 'Example', format = 'https://example.com/%s', data = 'uuid' },
 	}
 	local lookup = { uuid = 'abc-123' }
-	local result = util.buildSiteItems(siteDefs, lookup)
-	self:assertEquals(1, #result)
-	self:assertEquals('Example', result[1].label)
-	self:assertEquals('[https://example.com/abc-123 Example]', result[1].content)
+	local result = util.buildSiteLinks(siteDefs, lookup)
+	self:assertEquals('[https://example.com/abc-123 Example]', result)
 end
 
-function suite:testBuildSiteItemsArg()
+function suite:testBuildSiteLinksArg()
 	local siteDefs = {
 		{ label = 'Galactapedia', arg = 'galactapedia_url' },
 	}
 	local lookup = { galactapedia_url = 'https://galactapedia.example.com/page' }
-	local result = util.buildSiteItems(siteDefs, lookup)
-	self:assertEquals(1, #result)
-	self:assertEquals('Galactapedia', result[1].label)
-	self:assertEquals('[https://galactapedia.example.com/page Galactapedia]', result[1].content)
+	local result = util.buildSiteLinks(siteDefs, lookup)
+	self:assertEquals('[https://galactapedia.example.com/page Galactapedia]', result)
 end
 
-function suite:testBuildSiteItemsSkipsMissingData()
+function suite:testBuildSiteLinksSkipsMissingData()
 	local siteDefs = {
 		{ label = 'Example', format = 'https://example.com/%s', data = 'uuid' },
 		{ label = 'Other', format = 'https://other.com/%s', data = 'name' },
 	}
 	local lookup = { uuid = 'abc-123' }
-	local result = util.buildSiteItems(siteDefs, lookup)
-	self:assertEquals(1, #result)
-	self:assertEquals('Example', result[1].label)
+	local result = util.buildSiteLinks(siteDefs, lookup)
+	self:assertEquals('[https://example.com/abc-123 Example]', result)
 end
 
-function suite:testBuildSiteItemsSkipsMissingArg()
+function suite:testBuildSiteLinksSkipsMissingArg()
 	local siteDefs = {
 		{ label = 'Galactapedia', arg = 'galactapedia_url' },
 	}
 	local lookup = {}
-	local result = util.buildSiteItems(siteDefs, lookup)
-	self:assertEquals(0, #result)
+	local result = util.buildSiteLinks(siteDefs, lookup)
+	self:assertEquals(nil, result)
 end
 
-function suite:testBuildSiteItemsEmpty()
-	local result = util.buildSiteItems({}, {})
-	self:assertEquals(0, #result)
+function suite:testBuildSiteLinksEmpty()
+	local result = util.buildSiteLinks({}, {})
+	self:assertEquals(nil, result)
 end
 
-function suite:testBuildSiteItemsEncodesSpacesInData()
+function suite:testBuildSiteLinksEncodesSpacesInData()
 	local siteDefs = {
 		{ label = 'Example', format = 'https://example.com/search?q=%s', data = 'name' },
 	}
 	local lookup = { name = 'Foo Bar' }
-	local result = util.buildSiteItems(siteDefs, lookup)
-	self:assertEquals(1, #result)
-	self:assertEquals('[https://example.com/search?q=Foo+Bar Example]', result[1].content)
+	local result = util.buildSiteLinks(siteDefs, lookup)
+	self:assertEquals('[https://example.com/search?q=Foo+Bar Example]', result)
 end
 
-function suite:testBuildSiteItemsMixedTypes()
+function suite:testBuildSiteLinksJoinsMultiple()
 	local siteDefs = {
 		{ label = 'Finder', format = 'https://finder.example.com/%s', data = 'uuid' },
 		{ label = 'Galactapedia', arg = 'galactapedia_url' },
 	}
 	local lookup = { uuid = 'abc-123', galactapedia_url = 'https://galactapedia.example.com/page' }
-	local result = util.buildSiteItems(siteDefs, lookup)
-	self:assertEquals(2, #result)
-	self:assertEquals('Finder', result[1].label)
-	self:assertEquals('Galactapedia', result[2].label)
+	local result = util.buildSiteLinks(siteDefs, lookup)
+	self:assertEquals(
+		'[https://finder.example.com/abc-123 Finder] · [https://galactapedia.example.com/page Galactapedia]',
+		result
+	)
 end
 
 return suite

@@ -159,15 +159,15 @@ function p.fetchAllApis(configs, uuid)
 	return apiData, hasError
 end
 
---- Builds infobox items from site link definitions.
+--- Builds a joined wikitext string of external links from site definitions.
 --- Each definition is either { label, format, data } or { label, arg }.
---- Returns items where the required data is available; skips the rest.
+--- Returns nil if no links can be built.
 ---
 --- @param siteDefs table[] List of site link definitions
 --- @param dataLookup table<string, string> Lookup table mapping data/arg keys to values
---- @return EntityItemData[] List of items with label and wikitext external link content
-function p.buildSiteItems(siteDefs, dataLookup)
-	local items = {}
+--- @return string|nil Joined wikitext (' · ' separated) or nil when empty
+function p.buildSiteLinks(siteDefs, dataLookup)
+	local links = {}
 
 	for _, def in ipairs(siteDefs) do
 		local url
@@ -182,14 +182,15 @@ function p.buildSiteItems(siteDefs, dataLookup)
 		end
 
 		if url then
-			table.insert(items, {
-				label = def.label,
-				content = '[' .. url .. ' ' .. def.label .. ']',
-			})
+			table.insert(links, '[' .. url .. ' ' .. def.label .. ']')
 		end
 	end
 
-	return items
+	if #links == 0 then
+		return nil
+	end
+
+	return table.concat(links, ' · ')
 end
 
 return p

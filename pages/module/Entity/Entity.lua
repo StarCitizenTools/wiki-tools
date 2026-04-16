@@ -129,22 +129,7 @@ function p.main(frame)
 	end
 	local sections = util.mergeSections(sectionsList)
 
-	-- Append official sites section (always last before metadata)
-	local officialSiteDefs = mw.loadJsonData('Module:Entity/officialSites.json')
-	local officialDataLookup = {
-		name = args.name or apiData.name,
-		galactapedia_url = args.galactapedia_url,
-	}
-	local officialItems = util.buildSiteItems(officialSiteDefs, officialDataLookup)
-	if #officialItems > 0 then
-		table.insert(sections, {
-			label = 'Official sites',
-			collapsible = true,
-			items = officialItems,
-		})
-	end
-
-	-- Append metadata section (always last)
+	-- Append metadata section
 	table.insert(sections, {
 		label = 'Metadata',
 		collapsible = true,
@@ -160,6 +145,24 @@ function p.main(frame)
 			{ label = 'Version', content = apiData.version },
 		},
 	})
+
+	-- Append external sites section (always last, after metadata)
+	local externalSiteItems = {}
+	for _, mod in ipairs(chain) do
+		if mod.getExternalSiteItems then
+			for _, item in ipairs(mod.getExternalSiteItems(apiData, args)) do
+				table.insert(externalSiteItems, item)
+			end
+		end
+	end
+	if #externalSiteItems > 0 then
+		table.insert(sections, {
+			label = 'External sites',
+			collapsible = true,
+			collapsed = true,
+			items = externalSiteItems,
+		})
+	end
 
 	-- Collect structured data from chain
 	local dataList = {}

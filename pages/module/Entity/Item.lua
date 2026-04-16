@@ -40,7 +40,7 @@ function p.getSections(apiData, args)
 			.. ' m'
 	end
 
-	local sections = {
+	return {
 		{
 			key = 'general',
 			items = {
@@ -74,23 +74,6 @@ function p.getSections(apiData, args)
 			},
 		},
 	}
-
-	local communitySiteDefs = mw.loadJsonData('Module:Entity/Item/communitySites.json')
-	local dataLookup = {
-		uuid = args.uuid,
-		name = args.name or apiData.name,
-	}
-	local communityItems = util.buildSiteItems(communitySiteDefs, dataLookup)
-	if #communityItems > 0 then
-		table.insert(sections, {
-			key = 'community_sites',
-			label = 'Community sites',
-			collapsible = true,
-			items = communityItems,
-		})
-	end
-
-	return sections
 end
 
 --- @param apiData table
@@ -102,6 +85,21 @@ function p.getStructuredData(apiData, args)
 		mass = apiData.mass,
 		volume = apiData.volume,
 	}
+end
+
+--- @param apiData table
+--- @param args table
+--- @return EntityItemData[] External site items contributed by this module
+function p.getExternalSiteItems(apiData, args)
+	local siteDefs = mw.loadJsonData('Module:Entity/Item/communitySites.json')
+	local links = util.buildSiteLinks(siteDefs, {
+		uuid = args.uuid,
+		name = args.name or apiData.name,
+	})
+	if not links then
+		return {}
+	end
+	return { { label = 'Community sites', content = links } }
 end
 
 return p

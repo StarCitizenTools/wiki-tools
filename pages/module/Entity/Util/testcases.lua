@@ -181,6 +181,49 @@ function suite:testCollectApiConfigsCombinesChain()
 	self:assertEquals('API1', configs[1].name)
 end
 
+-- joinAnd
+
+function suite:testJoinAndEmpty()
+	self:assertEquals(nil, util.joinAnd({}))
+end
+
+function suite:testJoinAndOne()
+	self:assertEquals('Energizing', util.joinAnd({ 'Energizing' }))
+end
+
+function suite:testJoinAndTwo()
+	self:assertEquals('Energizing and Hydrating', util.joinAnd({ 'Energizing', 'Hydrating' }))
+end
+
+function suite:testJoinAndThree()
+	self:assertEquals('Energizing, Hydrating, and Healing', util.joinAnd({ 'Energizing', 'Hydrating', 'Healing' }))
+end
+
+function suite:testJoinAndFour()
+	self:assertEquals('A, B, C, and D', util.joinAnd({ 'A', 'B', 'C', 'D' }))
+end
+
+-- buildHtmlList
+
+function suite:testBuildHtmlListEmpty()
+	self:assertEquals(nil, util.buildHtmlList({}))
+end
+
+function suite:testBuildHtmlListNil()
+	self:assertEquals(nil, util.buildHtmlList(nil))
+end
+
+function suite:testBuildHtmlListSingle()
+	self:assertEquals('Energizing', util.buildHtmlList({ 'Energizing' }))
+end
+
+function suite:testBuildHtmlListMultiple()
+	self:assertEquals(
+		'<ul><li>Energizing</li><li>Hydrating</li><li>Healing</li></ul>',
+		util.buildHtmlList({ 'Energizing', 'Hydrating', 'Healing' })
+	)
+end
+
 -- buildSiteLinks
 
 function suite:testBuildSiteLinksFormatAndData()

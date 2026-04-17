@@ -159,6 +159,42 @@ function p.fetchAllApis(configs, uuid)
 	return apiData, hasError
 end
 
+--- Joins a list of strings into natural English with Oxford comma.
+--- Examples: {} → nil; {A} → "A"; {A,B} → "A and B"; {A,B,C} → "A, B, and C".
+---
+--- @param list string[]
+--- @return string|nil
+function p.joinAnd(list)
+	local n = #list
+	if n == 0 then
+		return nil
+	end
+	if n == 1 then
+		return list[1]
+	end
+	if n == 2 then
+		return list[1] .. ' and ' .. list[2]
+	end
+	return table.concat(list, ', ', 1, n - 1) .. ', and ' .. list[n]
+end
+
+--- Builds HTML list markup from a list of strings for use in infobox values
+--- that are semantically lists. Returns the single value directly when there
+--- is only one entry (avoids list markup overhead for a single element), or
+--- nil when the list is empty.
+---
+--- @param list string[]
+--- @return string|nil
+function p.buildHtmlList(list)
+	if not list or #list == 0 then
+		return nil
+	end
+	if #list == 1 then
+		return list[1]
+	end
+	return '<ul><li>' .. table.concat(list, '</li><li>') .. '</li></ul>'
+end
+
 --- Builds a joined wikitext string of external links from site definitions.
 --- Each definition is either { label, format, data } or { label, arg }.
 --- Returns nil if no links can be built.

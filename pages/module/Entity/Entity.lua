@@ -1,5 +1,6 @@
 require('strict')
 
+local data = require('Module:Entity/Data')
 local util = require('Module:Entity/Util')
 local structuredData = require('Module:Entity/StructuredData')
 local infobox = require('Module:InfoboxLua')
@@ -8,110 +9,7 @@ local CATEGORY_API_ERROR = '[[Category:Pages with API errors]]'
 local CATEGORY_ENTITY_ERROR = '[[Category:Pages with Entity errors]]'
 local CATEGORY_STRUCTURED_DATA_ERROR = '[[Category:Pages with structured data errors]]'
 
---- Maps API type strings to module paths.
---- Add new entries here when creating new subtypes.
-local typeMapping = {
-	Food = 'Entity/Item/Food',
-	Drink = 'Entity/Item/Drink',
-	-- WeaponGun = 'Entity/Item/WeaponGun',
-	-- QuantumDrive = 'Entity/Item/QuantumDrive',
-}
-
---- Default module path when the API type is not found in typeMapping.
-local defaultModule = 'Entity/Item'
-
 local p = {}
-
---- Resolves the leaf module from the API type string.
----
---- @param apiType string|nil The type string from the API response
---- @return table The resolved leaf module
-local function resolveLeafModule(apiType)
-	local modulePath = defaultModule
-	if apiType and typeMapping[apiType] then
-		modulePath = typeMapping[apiType]
-	end
-	return require('Module:' .. modulePath)
-end
-
---- Parses frame arguments into a simple table.
----
---- @param frame table The MediaWiki frame object
---- @return table args The parsed arguments
-local function parseArgs(frame)
-	local args = {}
-	for key, value in pairs(frame.args) do
-		if value and value ~= '' then
-			args[key] = value
-		end
-	end
-	-- Also check parent frame args (template invocation)
-	if frame:getParent() then
-		for key, value in pairs(frame:getParent().args) do
-			if value and value ~= '' and not args[key] then
-				args[key] = value
-			end
-		end
-	end
-	return args
-end
-
---- Fetches API data and resolves the type chain.
---- Runs a preliminary Base+Item fetch to determine entity type, then expands
---- the chain and fetches any additional APIs the subtype needs.
----
---- @param args table
---- @return table apiData Merged API response data
---- @return table[] chain Module chain (root to leaf)
---- @return boolean hasApiError True if any fetch failed
-local function fetchApiData(args)
-	local apiData = {}
-	local fetchedEndpoints = {}
-	local hasApiError = false
-
-	-- Preliminary chain: Base + Item since Item defines the shared endpoint.
-	-- This is coupled to the Item hierarchy — Vehicle will need its own preliminary chain.
-	if args.uuid then
-		local prelimChain = { require('Module:Entity/Base'), require('Module:Entity/Item') }
-		local prelimConfigs = util.collectApiConfigs(prelimChain)
-		for _, config in ipairs(prelimConfigs) do
-			fetchedEndpoints[config.endpoint] = true
-		end
-		local data, err = util.fetchAllApis(prelimConfigs, args.uuid)
-		if err then
-			hasApiError = true
-		end
-		apiData = data
-	end
-
-	local apiType = args.type or apiData.type
-	local chain = util.buildChain(resolveLeafModule(apiType))
-
-	-- Fetch any additional APIs from subtypes not already fetched
-	local additionalConfigs = {}
-	for _, mod in ipairs(chain) do
-		if mod.getApiConfigs then
-			for _, config in ipairs(mod.getApiConfigs()) do
-				if not fetchedEndpoints[config.endpoint] then
-					table.insert(additionalConfigs, config)
-					fetchedEndpoints[config.endpoint] = true
-				end
-			end
-		end
-	end
-
-	if #additionalConfigs > 0 and args.uuid then
-		local additionalData, additionalError = util.fetchAllApis(additionalConfigs, args.uuid)
-		if additionalError then
-			hasApiError = true
-		end
-		for k, v in pairs(additionalData) do
-			apiData[k] = v
-		end
-	end
-
-	return apiData, chain, hasApiError
-end
 
 --- Builds the Metadata section.
 ---
@@ -204,17 +102,6 @@ local function storeStructuredData(chain, apiData, args)
 	return structuredData.store(util.mergeStructuredData(dataList))
 end
 
---- Resolves display metadata for an API type from Module:Entity/Item/types.json.
----
---- @param apiType string|nil
---- @return table|nil typeInfo Entry from types.json, or nil if unmapped
---- @return string displayType Display name (falls back to apiType when unmapped)
-local function resolveType(apiType)
-	local types = mw.loadJsonData('Module:Entity/Item/types.json')
-	local typeInfo = types[apiType]
-	return typeInfo, typeInfo and typeInfo.name or apiType
-end
-
 --- Sets the page's short description via the SHORTDESC parser function.
 --- Displayed under the title, in search suggestions, and related article cards.
 --- Uses the most specific getShortDescription implementation in the chain
@@ -261,32 +148,34 @@ local function buildCategories(typeInfo, hasApiError, hasStructuredDataError)
 	return categories
 end
 
---- Main entry point for the Entity module.
+--- Main entry point for the Entity module. Renders the infobox and owns
+--- page-metadata responsibilities (SMW storage, SHORTDESC, tracking
+--- categories). Sibling renderers on the same page should consume
+--- Module:Entity/Data directly and leave page metadata to this template.
 ---
 --- @param frame table The MediaWiki frame object
 --- @return string HTML output with optional tracking categories
 function p.main(frame)
-	local args = parseArgs(frame)
-	local apiData, chain, hasApiError = fetchApiData(args)
+	local args = data.parseArgs(frame)
+	local result = data.get(args)
 
-	if not args.uuid and not (args.name or apiData.name) then
+	if not args.uuid and not (args.name or result.apiData.name) then
 		return '<span class="error">Entity module error: no uuid or name provided</span>' .. CATEGORY_ENTITY_ERROR
 	end
 
-	local sections = buildSections(chain, apiData, args)
-	local storeSuccess = storeStructuredData(chain, apiData, args)
-	local typeInfo, displayType = resolveType(args.type or apiData.type)
+	local sections = buildSections(result.chain, result.apiData, args)
+	local storeSuccess = storeStructuredData(result.chain, result.apiData, args)
 
-	setShortDescription(frame, typeInfo, chain, apiData, args)
+	setShortDescription(frame, result.typeInfo, result.chain, result.apiData, args)
 
 	local html = infobox.render({
-		title = apiData.name or args.name or mw.title.getCurrentTitle().text,
-		subtitle = displayType,
+		title = result.apiData.name or args.name or mw.title.getCurrentTitle().text,
+		subtitle = result.displayType,
 		image = args.image,
 		sections = sections,
 	})
 
-	return html .. buildCategories(typeInfo, hasApiError, not storeSuccess)
+	return html .. buildCategories(result.typeInfo, result.hasApiError, not storeSuccess)
 end
 
 return p

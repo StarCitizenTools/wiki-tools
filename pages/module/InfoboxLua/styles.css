@@ -123,6 +123,11 @@
 	text-align: end;
 }
 
+.t-infobox-section-items--single-col ul {
+	margin: 0;
+	list-style: none;
+}
+
 .t-infobox-section-subsections {
 	margin-inline: calc(var(--t-infobox-padding-inline) * -1);
 }

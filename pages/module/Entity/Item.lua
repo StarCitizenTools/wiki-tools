@@ -5,11 +5,35 @@ require('strict')
 --- (size, mass, volume) and the shared item API endpoint.
 
 local util = require('Module:Entity/Util')
+local base = require('Module:Entity/Base')
 
 local p = {}
 
 --- @type string
 p.parent = 'Entity/Base'
+
+--- Formats a short description using the item-family template:
+--- "[<prefix>] <type> [by <manufacturer>]". Subtypes (Food, Drink, etc.) can
+--- call this to compose a description that matches the item aesthetic, or
+--- bypass it entirely and return a custom string from getShortDescription.
+---
+--- @param typeInfo table
+--- @param apiData table
+--- @param args table
+--- @param prefix string|nil Adjective to prepend (e.g. effect). Cased automatically.
+--- @return string
+function p.formatShortDescription(typeInfo, apiData, args, prefix)
+	local desc = typeInfo.name
+	if prefix then
+		local lowered = prefix:lower()
+		desc = lowered:sub(1, 1):upper() .. lowered:sub(2) .. ' ' .. desc:lower()
+	end
+	local manufacturer = base.resolveManufacturer(apiData, args)
+	if manufacturer then
+		desc = desc .. ' by ' .. manufacturer.short
+	end
+	return desc
+end
 
 --- @return EntityApiConfig[]
 function p.getApiConfigs()
@@ -40,20 +64,23 @@ function p.getSections(apiData, args)
 			.. ' m'
 	end
 
+	local manufacturer = base.resolveManufacturer(apiData, args)
+	local manufacturerLink = nil
+	if manufacturer then
+		if manufacturer.page == manufacturer.name then
+			manufacturerLink = '[[' .. manufacturer.name .. ']]'
+		else
+			manufacturerLink = '[[' .. manufacturer.page .. '|' .. manufacturer.name .. ']]'
+		end
+	end
+
 	return {
 		{
 			key = 'general',
 			items = {
 				{
 					label = 'Manufacturer',
-					content = args.manufacturer
-						or (
-							apiData.manufacturer
-							and apiData.manufacturer.code ~= 'UNKN'
-							and apiData.manufacturer.code ~= 'GENF'
-							and apiData.manufacturer.code ~= 'GEND'
-							and apiData.manufacturer.name
-						),
+					content = manufacturerLink,
 				},
 				{ label = 'Size', content = apiData.size and tostring(apiData.size) },
 				{
@@ -76,15 +103,15 @@ function p.getSections(apiData, args)
 	}
 end
 
+--- Default short description for items: "<type> [by <manufacturer>]".
+--- Subtypes may override this to produce a richer description.
+---
 --- @param apiData table
 --- @param args table
---- @return table<string, any>
-function p.getStructuredData(apiData, args)
-	return {
-		size = apiData.size,
-		mass = apiData.mass,
-		volume = apiData.volume,
-	}
+--- @param typeInfo table
+--- @return string
+function p.getShortDescription(apiData, args, typeInfo)
+	return p.formatShortDescription(typeInfo, apiData, args, nil)
 end
 
 --- @param apiData table

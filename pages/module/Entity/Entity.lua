@@ -6,7 +6,7 @@ local infobox = require('Module:InfoboxLua')
 
 local CATEGORY_API_ERROR = '[[Category:Pages with API errors]]'
 local CATEGORY_ENTITY_ERROR = '[[Category:Pages with Entity errors]]'
-local CATEGORY_SMW_ERROR = '[[Category:Pages with structured data errors]]'
+local CATEGORY_STRUCTURED_DATA_ERROR = '[[Category:Pages with structured data errors]]'
 
 --- Maps API type strings to module paths.
 --- Add new entries here when creating new subtypes.
@@ -56,21 +56,21 @@ local function parseArgs(frame)
 	return args
 end
 
---- Main entry point for the Entity module.
+--- Fetches API data and resolves the type chain.
+--- Runs a preliminary Base+Item fetch to determine entity type, then expands
+--- the chain and fetches any additional APIs the subtype needs.
 ---
---- @param frame table The MediaWiki frame object
---- @return string HTML output with optional tracking categories
-function p.main(frame)
-	local args = parseArgs(frame)
-	local hasApiError = false
-	local hasSmwError = false
-
-	-- Initial API fetch to determine type.
-	-- Uses Base + Item as a preliminary chain since Item defines the shared endpoint.
-	-- This is coupled to the Item hierarchy — Vehicle will need its own preliminary chain.
+--- @param args table
+--- @return table apiData Merged API response data
+--- @return table[] chain Module chain (root to leaf)
+--- @return boolean hasApiError True if any fetch failed
+local function fetchApiData(args)
 	local apiData = {}
 	local fetchedEndpoints = {}
+	local hasApiError = false
 
+	-- Preliminary chain: Base + Item since Item defines the shared endpoint.
+	-- This is coupled to the Item hierarchy — Vehicle will need its own preliminary chain.
 	if args.uuid then
 		local prelimChain = { require('Module:Entity/Base'), require('Module:Entity/Item') }
 		local prelimConfigs = util.collectApiConfigs(prelimChain)
@@ -84,18 +84,8 @@ function p.main(frame)
 		apiData = data
 	end
 
-	-- Determine entity type
 	local apiType = args.type or apiData.type
-
-	-- Validate we have minimum required data
-	local name = args.name or apiData.name
-	if not args.uuid and not name then
-		return '<span class="error">Entity module error: no uuid or name provided</span>' .. CATEGORY_ENTITY_ERROR
-	end
-
-	-- Resolve type chain
-	local leafModule = resolveLeafModule(apiType)
-	local chain = util.buildChain(leafModule)
+	local chain = util.buildChain(resolveLeafModule(apiType))
 
 	-- Fetch any additional APIs from subtypes not already fetched
 	local additionalConfigs = {}
@@ -120,17 +110,16 @@ function p.main(frame)
 		end
 	end
 
-	-- Collect sections from chain
-	local sectionsList = {}
-	for _, mod in ipairs(chain) do
-		if mod.getSections then
-			table.insert(sectionsList, mod.getSections(apiData, args))
-		end
-	end
-	local sections = util.mergeSections(sectionsList)
+	return apiData, chain, hasApiError
+end
 
-	-- Append metadata section
-	table.insert(sections, {
+--- Builds the Metadata section.
+---
+--- @param apiData table
+--- @param args table
+--- @return table section
+local function buildMetadataSection(apiData, args)
+	return {
 		label = 'Metadata',
 		collapsible = true,
 		collapsed = true,
@@ -144,55 +133,121 @@ function p.main(frame)
 			},
 			{ label = 'Version', content = apiData.version },
 		},
-	})
+	}
+end
 
-	-- Append external sites section (always last, after metadata)
-	local externalSiteItems = {}
+--- Builds the External sites section by aggregating getExternalSiteItems from
+--- every module in the chain. Returns nil when no items are available.
+---
+--- @param chain table[]
+--- @param apiData table
+--- @param args table
+--- @return table|nil section
+local function buildExternalSitesSection(chain, apiData, args)
+	local items = {}
 	for _, mod in ipairs(chain) do
 		if mod.getExternalSiteItems then
 			for _, item in ipairs(mod.getExternalSiteItems(apiData, args)) do
-				table.insert(externalSiteItems, item)
+				table.insert(items, item)
 			end
 		end
 	end
-	if #externalSiteItems > 0 then
-		table.insert(sections, {
-			label = 'External sites',
-			collapsible = true,
-			collapsed = true,
-			items = externalSiteItems,
-		})
+	if #items == 0 then
+		return nil
+	end
+	return {
+		label = 'External sites',
+		collapsible = true,
+		collapsed = true,
+		items = items,
+	}
+end
+
+--- Assembles all infobox sections: chain contributions, metadata, external sites.
+---
+--- @param chain table[]
+--- @param apiData table
+--- @param args table
+--- @return table[] sections
+local function buildSections(chain, apiData, args)
+	local sectionsList = {}
+	for _, mod in ipairs(chain) do
+		if mod.getSections then
+			table.insert(sectionsList, mod.getSections(apiData, args))
+		end
+	end
+	local sections = util.mergeSections(sectionsList)
+
+	table.insert(sections, buildMetadataSection(apiData, args))
+
+	local externalSites = buildExternalSitesSection(chain, apiData, args)
+	if externalSites then
+		table.insert(sections, externalSites)
 	end
 
-	-- Collect structured data from chain
+	return sections
+end
+
+--- Collects structured data from the chain and persists it via the backend.
+---
+--- @param chain table[]
+--- @param apiData table
+--- @param args table
+--- @return boolean success True if the backend accepted the data
+local function storeStructuredData(chain, apiData, args)
 	local dataList = {}
 	for _, mod in ipairs(chain) do
 		if mod.getStructuredData then
 			table.insert(dataList, mod.getStructuredData(apiData, args))
 		end
 	end
-	local data = util.mergeStructuredData(dataList)
+	return structuredData.store(util.mergeStructuredData(dataList))
+end
 
-	-- Store structured data (best-effort)
-	local storeSuccess = structuredData.store(data)
-	if not storeSuccess then
-		hasSmwError = true
-	end
-
-	-- Resolve display name for type
+--- Resolves display metadata for an API type from Module:Entity/Item/types.json.
+---
+--- @param apiType string|nil
+--- @return table|nil typeInfo Entry from types.json, or nil if unmapped
+--- @return string displayType Display name (falls back to apiType when unmapped)
+local function resolveType(apiType)
 	local types = mw.loadJsonData('Module:Entity/Item/types.json')
 	local typeInfo = types[apiType]
-	local displayType = typeInfo and typeInfo.name or apiType
+	return typeInfo, typeInfo and typeInfo.name or apiType
+end
 
-	-- Render via InfoboxLua
-	local html = infobox.render({
-		title = apiData.name or args.name or mw.title.getCurrentTitle().text,
-		subtitle = displayType,
-		image = args.image,
-		sections = sections,
-	})
+--- Sets the page's short description via the SHORTDESC parser function.
+--- Displayed under the title, in search suggestions, and related article cards.
+--- Uses the most specific getShortDescription implementation in the chain
+--- (leaf-first walk); falls back to the type display name.
+---
+--- @param frame table
+--- @param typeInfo table|nil
+--- @param chain table[]
+--- @param apiData table
+--- @param args table
+local function setShortDescription(frame, typeInfo, chain, apiData, args)
+	if not typeInfo then
+		return
+	end
 
-	-- Append categories
+	local desc = typeInfo.name
+	for i = #chain, 1, -1 do
+		if chain[i].getShortDescription then
+			desc = chain[i].getShortDescription(apiData, args, typeInfo)
+			break
+		end
+	end
+
+	frame:callParserFunction('SHORTDESC', desc)
+end
+
+--- Builds the trailing category wikitext: item type + tracking categories.
+---
+--- @param typeInfo table|nil
+--- @param hasApiError boolean
+--- @param hasStructuredDataError boolean
+--- @return string
+local function buildCategories(typeInfo, hasApiError, hasStructuredDataError)
 	local categories = ''
 	if typeInfo then
 		categories = categories .. '[[Category:' .. (typeInfo.category or typeInfo.name) .. ']]'
@@ -200,11 +255,38 @@ function p.main(frame)
 	if hasApiError then
 		categories = categories .. CATEGORY_API_ERROR
 	end
-	if hasSmwError then
-		categories = categories .. CATEGORY_SMW_ERROR
+	if hasStructuredDataError then
+		categories = categories .. CATEGORY_STRUCTURED_DATA_ERROR
+	end
+	return categories
+end
+
+--- Main entry point for the Entity module.
+---
+--- @param frame table The MediaWiki frame object
+--- @return string HTML output with optional tracking categories
+function p.main(frame)
+	local args = parseArgs(frame)
+	local apiData, chain, hasApiError = fetchApiData(args)
+
+	if not args.uuid and not (args.name or apiData.name) then
+		return '<span class="error">Entity module error: no uuid or name provided</span>' .. CATEGORY_ENTITY_ERROR
 	end
 
-	return html .. categories
+	local sections = buildSections(chain, apiData, args)
+	local storeSuccess = storeStructuredData(chain, apiData, args)
+	local typeInfo, displayType = resolveType(args.type or apiData.type)
+
+	setShortDescription(frame, typeInfo, chain, apiData, args)
+
+	local html = infobox.render({
+		title = apiData.name or args.name or mw.title.getCurrentTitle().text,
+		subtitle = displayType,
+		image = args.image,
+		sections = sections,
+	})
+
+	return html .. buildCategories(typeInfo, hasApiError, not storeSuccess)
 end
 
 return p

@@ -4,6 +4,8 @@ require('strict')
 --- Drink subtype. Adds drink-specific data section.
 --- Note: The API returns drink data under the 'food' key for both Food and Drink types.
 
+local util = require('Module:Entity/Util')
+
 local p = {}
 
 --- @type string
@@ -32,10 +34,11 @@ function p.getSections(apiData, args)
 			})
 		end
 
-		if food.effects then
+		local effectsContent = util.buildHtmlList(food.effects)
+		if effectsContent then
 			table.insert(items, {
 				label = 'Effects',
-				content = table.concat(food.effects, ', '),
+				content = effectsContent,
 			})
 		end
 
@@ -68,20 +71,18 @@ function p.getSections(apiData, args)
 	}
 end
 
+--- Short description for drink: "[<effects>] drink [by <manufacturer>]".
+--- All effects are joined with Oxford-comma English (e.g. "A and B", "A, B, and C").
+---
 --- @param apiData table
 --- @param args table
---- @return table<string, any>
-function p.getStructuredData(apiData, args)
-	local food = apiData.food
-	if not food then
-		return {}
-	end
-
-	return {
-		nutritional_density_rating = food.nutritional_density_rating,
-		hydration_efficacy_index = food.hydration_efficacy_index,
-		one_shot_consume = food.one_shot_consume,
-	}
+--- @param typeInfo table
+--- @return string
+function p.getShortDescription(apiData, args, typeInfo)
+	local item = require('Module:Entity/Item')
+	local effects = apiData.food and apiData.food.effects
+	local prefix = effects and util.joinAnd(effects)
+	return item.formatShortDescription(typeInfo, apiData, args, prefix)
 end
 
 return p

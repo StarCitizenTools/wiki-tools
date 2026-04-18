@@ -231,7 +231,7 @@
 
 /* Collapsible Component */
 .t-infobox-collapsible {
-    overflow-y: clip; /* For transition effects */
+    overflow: clip;
 }
 
 .t-infobox-collapsible-button {

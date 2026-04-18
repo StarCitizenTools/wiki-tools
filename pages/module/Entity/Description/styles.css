@@ -5,7 +5,6 @@
 	border: var(--border-base);
 	border-radius: var(--border-radius-medium);
 	padding: var(--space-sm);
-	background: var(--color-surface-1);
 }
 
 .t-entity-description-text,

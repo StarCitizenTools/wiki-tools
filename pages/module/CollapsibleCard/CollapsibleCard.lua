@@ -17,9 +17,10 @@ local p = {}
 --- @class CollapsibleCardProps
 --- @field title string        Header title (required).
 --- @field description? string Secondary summary text rendered under the title.
---- @field content? string     Body content. Omit/empty to render a static card.
+--- @field content? string     Body content.
 --- @field footer? string      Attribution / metadata line. Always visible.
 --- @field open? boolean       Starts expanded when true. Defaults to false.
+--- @field collapsible? boolean Render as an expandable <details>. Defaults to true. Falls back to a static card automatically when content is nil/empty.
 --- @field class? string       Extra class appended to the card root.
 
 --- @param title string
@@ -89,6 +90,11 @@ end
 local function renderStatic(props, rootClass)
 	local root = mw.html.create('div'):addClass(rootClass):addClass('t-collapsible-card--static')
 	root:tag('div'):addClass('t-collapsible-card__header'):node(buildHeaderContentHtml(props.title, props.description))
+
+	if props.content and tostring(props.content) ~= '' then
+		root:tag('div'):addClass('t-collapsible-card__content'):wikitext(tostring(props.content))
+	end
+
 	local footer = buildFooterHtml(props.footer)
 	if footer then
 		root:node(footer)
@@ -105,13 +111,14 @@ function p.render(props)
 	end
 
 	local hasContent = props.content ~= nil and tostring(props.content) ~= ''
+	local isCollapsible = props.collapsible ~= false and hasContent
 
 	local styles = mw.getCurrentFrame():extensionTag({
 		name = 'templatestyles',
 		args = { src = 'Module:CollapsibleCard/styles.css' },
 	})
 
-	if hasContent then
+	if isCollapsible then
 		return styles .. renderCollapsible(props, rootClass)
 	end
 	return styles .. renderStatic(props, rootClass)

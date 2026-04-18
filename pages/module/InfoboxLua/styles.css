@@ -93,7 +93,7 @@
 }
 
 .t-infobox-subtitle {
-	margin-bottom: var(--space-xxs);
+	margin-bottom: 2px;
 }
 
 .t-infobox-images .tabber__tab {

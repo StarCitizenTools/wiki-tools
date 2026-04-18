@@ -84,10 +84,6 @@ function p.getSections(apiData, args)
 				},
 				{ label = 'Size', content = apiData.size and tostring(apiData.size) },
 				{
-					label = 'Craftable',
-					content = apiData.is_craftable ~= nil and (apiData.is_craftable and 'Yes' or 'No') or nil,
-				},
-				{
 					label = 'Volume',
 					content = dim
 						and dim.volume_converted

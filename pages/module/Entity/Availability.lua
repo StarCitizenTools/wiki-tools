@@ -9,6 +9,7 @@ require('strict')
 local data = require('Module:Entity/Data')
 local collapsibleCard = require('Module:CollapsibleCard')
 local tableLua = require('Module:TableLua')
+local yesno = require('Module:Yesno')
 
 local p = {}
 
@@ -139,9 +140,82 @@ local function renderShopTerminalTable(prices)
 	})
 end
 
---- Main entry point. Always renders the card so readers see a
---- consistent availability block per page; missing data means UEX
---- hasn't indexed this item, not that it's unobtainable in-game.
+--- true → "Yes", false → "No", nil → "Unknown". Module:Yesno already
+--- collapses input variations to this three-state logic.
+---
+--- @param value boolean|nil
+--- @return string
+local function formatAcquirabilityStatus(value)
+	if value == true then
+		return 'Yes'
+	end
+	if value == false then
+		return 'No'
+	end
+	return 'Unknown'
+end
+
+--- If arg is true/false, honours the arg (editor override). Otherwise
+--- falls back to the apiValue (when it's a boolean) or nil (unknown).
+---
+--- @param arg string|nil
+--- @param apiValue boolean|nil
+--- @return boolean|nil
+local function resolveAcquirability(arg, apiValue)
+	local override = yesno(arg)
+	if override ~= nil then
+		return override
+	end
+	if type(apiValue) == 'boolean' then
+		return apiValue
+	end
+	return nil
+end
+
+--- Builds the ordered list of acquirability rows. "Can craft" pulls from
+--- apiData.is_craftable (with an optional args.canCraft override); the
+--- other flags are editor-supplied because no API source currently
+--- reports them reliably.
+---
+--- @param args table
+--- @param apiData table
+--- @return { label: string, value: boolean|nil }[]
+local function buildAcquirabilityRows(args, apiData)
+	return {
+		{ label = 'Can buy', value = yesno(args.canBuy) },
+		{ label = 'Can rent', value = yesno(args.canRent) },
+		{ label = 'Can loot', value = yesno(args.canLoot) },
+		{ label = 'Can pledge', value = yesno(args.canPledge) },
+		{ label = 'Can craft', value = resolveAcquirability(args.canCraft, apiData.is_craftable) },
+	}
+end
+
+--- Renders the acquirability rows as a label/value list. Always shows
+--- every row (with "Unknown" as default) so the layout stays stable
+--- across pages regardless of what data is available.
+---
+--- @param rows { label: string, value: boolean|nil }[]
+--- @return string
+local function renderAcquirabilitySummary(rows)
+	local root = mw.html.create('dl'):addClass('t-entity-availability-acquirability')
+	for _, row in ipairs(rows) do
+		local rowHtml = root:tag('div'):addClass('t-entity-availability-acquirability-row')
+		rowHtml:tag('dt'):addClass('t-entity-availability-acquirability-label'):wikitext(row.label)
+		rowHtml
+			:tag('dd')
+			:addClass('t-entity-availability-acquirability-value')
+			:wikitext(formatAcquirabilityStatus(row.value))
+	end
+	return tostring(root)
+end
+
+--- Main entry point. Renders two cards:
+---   1. Acquirability summary (static) — editor-supplied yes/no flags
+---      for can buy / rent / loot / pledge. Default Unknown.
+---   2. Shop availability (collapsible) — UEX shop terminal prices, or
+---      a static "no data" notice when UEX hasn't indexed the item.
+--- Each card stands on its own so future sibling cards (loot table,
+--- crafting recipes, etc.) can drop in alongside without reshuffling.
 ---
 --- @param frame table
 --- @return string
@@ -149,23 +223,29 @@ function p.main(frame)
 	local args = data.parseArgs(frame)
 	local result = data.get(args)
 
-	local footer = 'Data from [https://uexcorp.space UEX Corp]'
-	local prices = result.apiData.uex_prices
-
-	if type(prices) ~= 'table' or #prices == 0 then
-		return collapsibleCard.render({
-			title = 'Shop availability',
-			description = 'No shop data in UEX',
-			footer = footer,
-		})
-	end
-
-	return collapsibleCard.render({
-		title = 'Shop availability',
-		description = buildShopTerminalsDescription(prices),
-		content = renderShopTerminalTable(prices),
-		footer = footer,
+	local styles = mw.getCurrentFrame():extensionTag({
+		name = 'templatestyles',
+		args = { src = 'Module:Entity/Availability/styles.css' },
 	})
+
+	local acquirabilityCard = collapsibleCard.render({
+		title = 'Acquirability',
+		content = renderAcquirabilitySummary(buildAcquirabilityRows(args, result.apiData)),
+		collapsible = false,
+	})
+
+	local shopFooter = 'Data from [https://uexcorp.space UEX Corp]'
+	local prices = result.apiData.uex_prices
+	local hasPrices = type(prices) == 'table' and #prices > 0
+
+	local shopCard = collapsibleCard.render({
+		title = 'Shop availability',
+		description = hasPrices and buildShopTerminalsDescription(prices) or 'No shop data in UEX',
+		content = hasPrices and renderShopTerminalTable(prices) or nil,
+		footer = shopFooter,
+	})
+
+	return styles .. acquirabilityCard .. shopCard
 end
 
 return p

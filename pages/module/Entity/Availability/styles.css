@@ -1,0 +1,23 @@
+.t-entity-availability-acquirability {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-xs);
+	margin: 0;
+	padding: var(--space-sm);
+}
+
+.t-entity-availability-acquirability-row {
+	display: flex;
+	justify-content: space-between;
+	gap: var(--space-sm);
+	margin: 0;
+}
+
+.t-entity-availability-acquirability-label {
+	color: var(--color-subtle);
+	margin: 0;
+}
+
+.t-entity-availability-acquirability-value {
+	margin: 0;
+}

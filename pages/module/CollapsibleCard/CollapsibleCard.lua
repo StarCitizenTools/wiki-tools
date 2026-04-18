@@ -14,6 +14,7 @@ local p = {}
 --- @field title string        Header title (required).
 --- @field description? string Secondary summary text rendered under the title.
 --- @field content string      Body content (HTML/wikitext string, required).
+--- @field footer? string      Attribution / metadata line at the bottom.
 --- @field open? boolean       Starts expanded when true. Defaults to false.
 --- @field class? string       Extra class appended to the <details> root.
 
@@ -42,9 +43,14 @@ function p.render(props)
 		rootClass = rootClass .. ' ' .. props.class
 	end
 
+	local bodyHtml = '<div class="t-collapsible-card__content">' .. tostring(props.content) .. '</div>'
+	if props.footer and props.footer ~= '' then
+		bodyHtml = bodyHtml .. '<div class="t-collapsible-card__footer">' .. tostring(props.footer) .. '</div>'
+	end
+
 	local wikitext = details.getWikitext({
 		details = {
-			content = '<div class="t-collapsible-card__content">' .. tostring(props.content) .. '</div>',
+			content = bodyHtml,
 			class = rootClass,
 			open = props.open == true,
 		},

@@ -39,45 +39,73 @@ local function formatDate(isoDate)
 	return tostring(mw.html.create('time'):attr('datetime', isoDate):wikitext(isoDate:sub(1, 10)))
 end
 
---- Average of non-zero numeric entries for `key`. Excludes zeros because
---- UEX uses 0 to signal "not sold here" — including them would pull the
---- average down and misrepresent the actual price players see.
+--- Min and max of non-zero numeric entries for `key`. Skips zeros because
+--- UEX uses 0 to signal "not sold here" — including them would collapse
+--- the minimum to 0 and misrepresent the actual price players see.
 ---
 --- @param prices table[]
 --- @param key string
---- @return number|nil
-local function averagePrice(prices, key)
-	local sum = 0
-	local count = 0
+--- @return number|nil min, number|nil max
+local function priceRange(prices, key)
+	local min, max
 	for _, entry in ipairs(prices) do
 		local p = entry[key]
 		if type(p) == 'number' and p > 0 then
-			sum = sum + p
-			count = count + 1
+			if not min or p < min then
+				min = p
+			end
+			if not max or p > max then
+				max = p
+			end
 		end
 	end
-	if count == 0 then
-		return nil
-	end
-	return math.floor(sum / count + 0.5)
+	return min, max
 end
 
---- Builds the card's description line: "N locations · avg buy X · avg
---- sell X". Averages show "-" when no non-zero prices exist on that side
---- of the market.
+--- "7 aUEC" when min == max, "7–12 aUEC" otherwise. Returns nil when no
+--- non-zero prices exist, so callers can distinguish "no market" from
+--- "market with zero price" (which shouldn't happen but is guarded
+--- against in priceRange).
+---
+--- @param min number|nil
+--- @param max number|nil
+--- @return string|nil
+local function formatPriceRange(min, max)
+	if not min then
+		return nil
+	end
+	if min == max then
+		return tostring(min) .. ' aUEC'
+	end
+	return tostring(min) .. '–' .. tostring(max) .. ' aUEC'
+end
+
+--- Builds the card's description line: "N locations · <prices>". Format
+--- adapts to the data: unlabeled price when only one side of the market
+--- is active, labeled "Buy X · Sell Y" when both are. Sell-only items
+--- (rare) show only the sell side.
 ---
 --- @param prices table[]
 --- @return string
 local function buildShopTerminalsDescription(prices)
 	local locationCount = #prices
 	local locationLabel = locationCount == 1 and '1 location' or (locationCount .. ' locations')
-	local avgBuy = averagePrice(prices, 'price_buy')
-	local avgSell = averagePrice(prices, 'price_sell')
-	return table.concat({
-		locationLabel,
-		'avg buy ' .. (avgBuy and tostring(avgBuy) or '-'),
-		'avg sell ' .. (avgSell and tostring(avgSell) or '-'),
-	}, ' · ')
+
+	local buyText = formatPriceRange(priceRange(prices, 'price_buy'))
+	local sellText = formatPriceRange(priceRange(prices, 'price_sell'))
+
+	local parts = { locationLabel }
+	if buyText and sellText then
+		table.insert(parts, 'Buy ' .. buyText)
+		table.insert(parts, 'Sell ' .. sellText)
+	elseif buyText then
+		table.insert(parts, buyText)
+		table.insert(parts, 'Not sellable')
+	elseif sellText then
+		table.insert(parts, 'Sell ' .. sellText)
+	end
+
+	return table.concat(parts, ' · ')
 end
 
 --- @param prices table[]
@@ -126,9 +154,10 @@ function p.main(frame)
 	end
 
 	return collapsibleCard.render({
-		title = 'Shop terminals',
+		title = 'Buyable in-game',
 		description = buildShopTerminalsDescription(prices),
 		content = renderShopTerminalTable(prices),
+		footer = 'Data from [https://uexcorp.space UEX Corp]',
 	})
 end
 

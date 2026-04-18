@@ -187,10 +187,31 @@ local function inferCanBuy(prices)
 	return min ~= nil
 end
 
+--- Scans apiData.entity_tag_map (array of { uuid, name }) for a tag by
+--- name. Present → true; map exists without the tag → false; map missing
+--- or not an array → nil so the editor can override.
+---
+--- @param apiData table
+--- @param tagName string
+--- @return boolean|nil
+local function hasEntityTag(apiData, tagName)
+	local tags = apiData.entity_tag_map
+	if type(tags) ~= 'table' then
+		return nil
+	end
+	for _, tag in ipairs(tags) do
+		if tag.name == tagName then
+			return true
+		end
+	end
+	return false
+end
+
 --- Builds the ordered list of acquirability rows. "Buy" derives from UEX
---- shop data, "Craft" from apiData.is_craftable; both can be overridden
---- via args.canBuy / args.canCraft. Rent / loot / pledge are
---- editor-supplied because no API source currently reports them.
+--- shop data, "Loot"/"Pledge" from entity_tag_map, "Craft" from
+--- apiData.is_craftable. All derived values can be overridden via
+--- args.canBuy / args.canLoot / args.canPledge / args.canCraft. Rent is
+--- editor-only because no API source currently reports it.
 ---
 --- @param args table
 --- @param apiData table
@@ -200,8 +221,8 @@ local function buildAcquirabilityRows(args, apiData, prices)
 	return {
 		{ label = 'Buy', value = resolveAcquirability(args.canBuy, inferCanBuy(prices)) },
 		{ label = 'Rent', value = yesno(args.canRent) },
-		{ label = 'Loot', value = yesno(args.canLoot) },
-		{ label = 'Pledge', value = yesno(args.canPledge) },
+		{ label = 'Loot', value = resolveAcquirability(args.canLoot, hasEntityTag(apiData, 'CanGenerateAsLoot')) },
+		{ label = 'Pledge', value = resolveAcquirability(args.canPledge, hasEntityTag(apiData, 'PromotionalItem')) },
 		{ label = 'Craft', value = resolveAcquirability(args.canCraft, apiData.is_craftable) },
 	}
 end

@@ -154,14 +154,14 @@ function p.main(frame)
 
 	if type(prices) ~= 'table' or #prices == 0 then
 		return collapsibleCard.render({
-			title = 'Buyable in-game',
+			title = 'Shop availability',
 			description = 'No shop data in UEX',
 			footer = footer,
 		})
 	end
 
 	return collapsibleCard.render({
-		title = 'Buyable in-game',
+		title = 'Shop availability',
 		description = buildShopTerminalsDescription(prices),
 		content = renderShopTerminalTable(prices),
 		footer = footer,

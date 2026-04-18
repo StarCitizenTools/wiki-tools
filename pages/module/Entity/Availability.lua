@@ -139,8 +139,9 @@ local function renderShopTerminalTable(prices)
 	})
 end
 
---- Main entry point. Returns an empty string when the API has no
---- availability data so the template can be dropped on any page safely.
+--- Main entry point. Always renders the card so readers see a
+--- consistent availability block per page; missing data means UEX
+--- hasn't indexed this item, not that it's unobtainable in-game.
 ---
 --- @param frame table
 --- @return string
@@ -148,16 +149,22 @@ function p.main(frame)
 	local args = data.parseArgs(frame)
 	local result = data.get(args)
 
+	local footer = 'Data from [https://uexcorp.space UEX Corp]'
 	local prices = result.apiData.uex_prices
+
 	if type(prices) ~= 'table' or #prices == 0 then
-		return ''
+		return collapsibleCard.render({
+			title = 'Buyable in-game',
+			description = 'No shop data in UEX',
+			footer = footer,
+		})
 	end
 
 	return collapsibleCard.render({
 		title = 'Buyable in-game',
 		description = buildShopTerminalsDescription(prices),
 		content = renderShopTerminalTable(prices),
-		footer = 'Data from [https://uexcorp.space UEX Corp]',
+		footer = footer,
 	})
 end
 

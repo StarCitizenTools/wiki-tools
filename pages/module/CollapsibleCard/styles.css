@@ -78,3 +78,12 @@
 	font-size: var(--font-size-x-small);
 	line-height: var(--line-height-x-small);
 }
+
+/* Static variant: no collapsible behaviour, so suppress the interactive
+   affordances on the header. */
+.t-collapsible-card--static .t-collapsible-card__header,
+.t-collapsible-card--static .t-collapsible-card__header:hover,
+.t-collapsible-card--static .t-collapsible-card__header:active {
+	cursor: default;
+	background: var(--color-surface-1);
+}

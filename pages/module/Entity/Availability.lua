@@ -156,37 +156,53 @@ local function formatAcquirabilityStatus(value)
 end
 
 --- If arg is true/false, honours the arg (editor override). Otherwise
---- falls back to the apiValue (when it's a boolean) or nil (unknown).
+--- falls back to the derived value (when it's a boolean) or nil (unknown).
 ---
 --- @param arg string|nil
---- @param apiValue boolean|nil
+--- @param derived boolean|nil
 --- @return boolean|nil
-local function resolveAcquirability(arg, apiValue)
+local function resolveAcquirability(arg, derived)
 	local override = yesno(arg)
 	if override ~= nil then
 		return override
 	end
-	if type(apiValue) == 'boolean' then
-		return apiValue
+	if type(derived) == 'boolean' then
+		return derived
 	end
 	return nil
 end
 
---- Builds the ordered list of acquirability rows. "Can craft" pulls from
---- apiData.is_craftable (with an optional args.canCraft override); the
---- other flags are editor-supplied because no API source currently
---- reports them reliably.
+--- Infers whether the item is buyable from shop data. Present buy prices
+--- in uex_prices → Yes. Prices rows exist but all buy prices are zero →
+--- No (UEX explicitly saw no buy listings). Missing uex_prices → Unknown
+--- so the editor can supply canBuy directly.
+---
+--- @param prices table[]|nil
+--- @return boolean|nil
+local function inferCanBuy(prices)
+	if type(prices) ~= 'table' or #prices == 0 then
+		return nil
+	end
+	local min = priceRange(prices, 'price_buy')
+	return min ~= nil
+end
+
+--- Builds the ordered list of acquirability rows. "Buy" derives from UEX
+--- shop data, "Craft" from apiData.is_craftable; both can be overridden
+--- via args.canBuy / args.canCraft. Rent / loot / pledge are
+--- editor-supplied because no API source currently reports them.
 ---
 --- @param args table
 --- @param apiData table
+--- @param prices table[]|nil uex_prices passed through from the API
 --- @return { label: string, value: boolean|nil }[]
-local function buildAcquirabilityRows(args, apiData)
+local function buildAcquirabilityRows(args, apiData, prices)
 	return {
-		{ label = 'Can buy', value = yesno(args.canBuy) },
-		{ label = 'Can rent', value = yesno(args.canRent) },
-		{ label = 'Can loot', value = yesno(args.canLoot) },
-		{ label = 'Can pledge', value = yesno(args.canPledge) },
-		{ label = 'Can craft', value = resolveAcquirability(args.canCraft, apiData.is_craftable) },
+		{ label = 'Buy', value = resolveAcquirability(args.canBuy, inferCanBuy(prices)) },
+		{ label = 'Rent', value = yesno(args.canRent) },
+		{ label = 'Loot', value = yesno(args.canLoot) },
+		{ label = 'Pledge', value = yesno(args.canPledge) },
+		{ label = 'Craft', value = resolveAcquirability(args.canCraft, apiData.is_craftable) },
 	}
 end
 
@@ -228,15 +244,16 @@ function p.main(frame)
 		args = { src = 'Module:Entity/Availability/styles.css' },
 	})
 
+	local prices = result.apiData.uex_prices
+	local hasPrices = type(prices) == 'table' and #prices > 0
+
 	local acquirabilityCard = collapsibleCard.render({
 		title = 'Acquirability',
-		content = renderAcquirabilitySummary(buildAcquirabilityRows(args, result.apiData)),
+		content = renderAcquirabilitySummary(buildAcquirabilityRows(args, result.apiData, prices)),
 		collapsible = false,
 	})
 
 	local shopFooter = 'Data from [https://uexcorp.space UEX Corp]'
-	local prices = result.apiData.uex_prices
-	local hasPrices = type(prices) == 'table' and #prices > 0
 
 	local shopCard = collapsibleCard.render({
 		title = 'Shop availability',

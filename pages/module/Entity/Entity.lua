@@ -11,6 +11,26 @@ local CATEGORY_STRUCTURED_DATA_ERROR = '[[Category:Pages with structured data er
 
 local p = {}
 
+--- Renders apiData.entity_tag_map as a comma-separated list of <data>
+--- elements, so the visible text is the display name while the value
+--- attribute carries the tag UUID for scrapers / future JS hooks.
+--- Returns nil when no tags are present so the row collapses out of the
+--- infobox entirely.
+---
+--- @param apiData table
+--- @return string|nil
+local function formatEntityTags(apiData)
+	local tags = apiData.entity_tag_map
+	if type(tags) ~= 'table' or #tags == 0 then
+		return nil
+	end
+	local parts = {}
+	for _, tag in ipairs(tags) do
+		table.insert(parts, tostring(mw.html.create('data'):attr('value', tag.uuid):wikitext(tag.name)))
+	end
+	return table.concat(parts, ', ')
+end
+
 --- Builds the Metadata section.
 ---
 --- @param apiData table
@@ -29,6 +49,7 @@ local function buildMetadataSection(apiData, args)
 				label = 'Tags',
 				content = apiData.tags and #apiData.tags > 0 and table.concat(apiData.tags, ', ') or nil,
 			},
+			{ label = 'Entity tags', content = formatEntityTags(apiData) },
 			{ label = 'Version', content = apiData.version },
 		},
 	}

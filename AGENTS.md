@@ -23,6 +23,15 @@ Wiki pages, modules, and automation for [Star Citizen Wiki](https://starcitizen.
 
 Modules run in [Scribunto](https://www.mediawiki.org/wiki/Extension:Scribunto/Lua_reference_manual) and have access to the `mw` global. LuaCATS type stubs for the full API live in `types/mw/`, sourced from the [REL1_43 branch](https://github.com/wikimedia/mediawiki-extensions-Scribunto/tree/REL1_43/includes/Engines/LuaCommon/lualib).
 
+### HTML tags in wikitext
+
+MediaWiki's parser sanitizes unknown HTML tags by escaping them as literal text rather than rendering them. `mw.html` output is subject to the same allowlist. The canonical set is defined in [Sanitizer.php's `getRecognizedTagData()`](https://github.com/wikimedia/mediawiki/blob/REL1_43/includes/parser/Sanitizer.php) for MediaWiki 1.43.
+
+Key gotchas:
+
+- HTML5 structural tags — `header`, `footer`, `figure`, `figcaption`, `section`, `article`, `aside`, `nav`, `main`, `hgroup` — are **not** allowed. Use `<div>` or `<p>` with a role class instead.
+- `<details>` and `<summary>` work on this wiki because `Extension:Details` provides them; they are not in MediaWiki core.
+
 ## Testing
 
 Unit tests use `Module:ScribuntoUnit` and live alongside the module they test (e.g., `Util/testcases.lua` → `Module:InfoboxLua/Util/testcases`).

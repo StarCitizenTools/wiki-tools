@@ -49,24 +49,27 @@ local function getImageData(image)
 	return imageData
 end
 
---- @param data InfoboxLuaData
---- @return HeaderComponentData
-local function getHeaderData(data)
-	local image = getImageData(data.image)
-
-	return {
-		title = data.title,
-		subtitle = data.subtitle or nil,
-		image = image,
-		images = data.images or nil,
-	}
-end
-
+--- Builds the summary body shown when the infobox is collapsed. The image
+--- is emitted at the same size as the main header image so both render
+--- with the same thumbnail URL — the browser dedupes the request and the
+--- summary thumbnail stays in sync with whatever the header loaded.
+--- CSS sizes the thumbnail down to a small square in the collapsed state.
+---
 --- @param title string
 --- @param subtitle string
+--- @param image ImageComponentData
 --- @return mw.html
-local function getSummaryTitle(title, subtitle)
-	return mw.html.create(nil):tag('strong'):wikitext(title):done():tag('br'):done():tag('i'):wikitext(subtitle):done()
+local function getSummaryBody(title, subtitle, image)
+	local root = mw.html.create()
+	root:tag('div')
+		:addClass('t-infobox-summary-image')
+		:wikitext(string.format('[[File:%s|%dpx|class=%s]]', image.src, image.size, image.class or ''))
+	local text = root:tag('div'):addClass('t-infobox-summary-text')
+	text:tag('div'):addClass('t-infobox-summary-title'):wikitext(title)
+	if type(subtitle) == 'string' and subtitle ~= '' then
+		text:tag('div'):addClass('t-infobox-summary-subtitle'):wikitext(subtitle)
+	end
+	return root
 end
 
 --- @param data InfoboxLuaData
@@ -74,7 +77,14 @@ end
 local function getContentHtml(data)
 	local contentHtml = mw.html.create()
 
-	contentHtml:node(headerComponent.getHtml(getHeaderData(data)))
+	local image = getImageData(data.image)
+
+	contentHtml:node(headerComponent.getHtml({
+		title = data.title,
+		subtitle = data.subtitle or nil,
+		image = image,
+		images = data.images or nil,
+	}))
 
 	for _, section in ipairs(data.sections) do
 		local sectionHtml = sectionComponent.getHtml(section)
@@ -84,7 +94,7 @@ local function getContentHtml(data)
 	end
 
 	return collapsibleComponent.getHtml({
-		summary = data.summary or tostring(getSummaryTitle(data.title, data.subtitle)),
+		summary = data.summary or tostring(getSummaryBody(data.title, data.subtitle, image)),
 		content = tostring(contentHtml),
 		class = 't-infobox-content',
 		summaryClass = 't-infobox-content-collapsible-button',

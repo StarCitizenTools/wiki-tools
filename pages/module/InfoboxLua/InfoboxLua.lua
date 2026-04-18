@@ -62,6 +62,13 @@ local function getHeaderData(data)
 	}
 end
 
+--- @param title string
+--- @param subtitle string
+--- @return mw.html
+local function getSummaryTitle(title, subtitle)
+	return mw.html.create(nil):tag('strong'):wikitext(title):done():tag('br'):done():tag('i'):wikitext(subtitle):done()
+end
+
 --- @param data InfoboxLuaData
 --- @return mw.html
 local function getContentHtml(data)
@@ -77,7 +84,7 @@ local function getContentHtml(data)
 	end
 
 	return collapsibleComponent.getHtml({
-		summary = data.summary or string.format(SUMMARY_TEXT, data.title),
+		summary = data.summary or tostring(getSummaryTitle(data.title, data.subtitle)),
 		content = tostring(contentHtml),
 		class = 't-infobox-content',
 		summaryClass = 't-infobox-content-collapsible-button',

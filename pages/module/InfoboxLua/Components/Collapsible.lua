@@ -19,7 +19,13 @@ end
 local function getButtonHtml(summary)
 	local html = mw.html.create()
 
-	html:tag('div'):addClass('citizen-ui-icon mw-ui-icon-wikimedia-collapse'):done():wikitext(tostring(summary))
+	html:tag('div')
+		:addClass('t-infobox-content-collapsible-button-content')
+		:wikitext(tostring(summary))
+		:done()
+		:tag('div')
+		:addClass('citizen-ui-icon mw-ui-icon-wikimedia-collapse t-infobox-collapsible-button-element')
+		:done()
 
 	return html
 end

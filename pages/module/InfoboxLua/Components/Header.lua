@@ -84,11 +84,12 @@ end
 local function getHeaderContentHtml(title, subtitle)
 	local root = mw.html.create('div')
 	root:addClass('t-infobox-header-content')
-	root:node(getHeaderTitleHtml(title))
 
 	if util.isNonEmptyString(subtitle) then
 		root:node(getHeaderSubtitleHtml(subtitle))
 	end
+
+	root:node(getHeaderTitleHtml(title))
 
 	return root
 end

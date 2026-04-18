@@ -7,7 +7,7 @@ require('strict')
 --- templates on the page.
 
 local data = require('Module:Entity/Data')
-local details = require('Module:Details')
+local collapsibleCard = require('Module:CollapsibleCard')
 local tableLua = require('Module:TableLua')
 
 local p = {}
@@ -62,19 +62,18 @@ local function averagePrice(prices, key)
 	return math.floor(sum / count + 0.5)
 end
 
---- Builds the collapsible summary line: "Shop terminals · N locations ·
---- avg buy X · avg sell X". Averages show "-" when no non-zero prices
---- exist on that side of the market.
+--- Builds the card's description line: "N locations · avg buy X · avg
+--- sell X". Averages show "-" when no non-zero prices exist on that side
+--- of the market.
 ---
 --- @param prices table[]
 --- @return string
-local function buildShopTerminalsSummary(prices)
+local function buildShopTerminalsDescription(prices)
 	local locationCount = #prices
 	local locationLabel = locationCount == 1 and '1 location' or (locationCount .. ' locations')
 	local avgBuy = averagePrice(prices, 'price_buy')
 	local avgSell = averagePrice(prices, 'price_sell')
 	return table.concat({
-		'Shop terminals',
 		locationLabel,
 		'avg buy ' .. (avgBuy and tostring(avgBuy) or '-'),
 		'avg sell ' .. (avgSell and tostring(avgSell) or '-'),
@@ -126,16 +125,10 @@ function p.main(frame)
 		return ''
 	end
 
-	return details.getWikitext({
-		details = {
-			content = renderShopTerminalTable(prices),
-			class = 't-entity-availability',
-			open = false,
-		},
-		summary = {
-			content = buildShopTerminalsSummary(prices),
-			class = 't-entity-availability-summary',
-		},
+	return collapsibleCard.render({
+		title = 'Shop terminals',
+		description = buildShopTerminalsDescription(prices),
+		content = renderShopTerminalTable(prices),
 	})
 end
 

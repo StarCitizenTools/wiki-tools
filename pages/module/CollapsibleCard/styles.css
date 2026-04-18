@@ -30,7 +30,7 @@
 	background-color: var(--background-color-button-quiet--active);
 }
 
-.t-collapsible-card[open] .t-collapsible-card__header {
+.t-collapsible-card__body[open] .t-collapsible-card__header {
 	background: var(--color-surface-1);
 }
 
@@ -57,7 +57,7 @@
 	transform: var(--t-collapsible-card-transform-rotate-collapse);
 }
 
-.t-collapsible-card[open] > .t-collapsible-card__header .t-collapsible-card__icon {
+.t-collapsible-card__body[open] > .t-collapsible-card__header .t-collapsible-card__icon {
 	transform: none;
 }
 
@@ -73,17 +73,19 @@
 
 .t-collapsible-card__footer {
 	border-top: var(--border-subtle);
-	padding: var(--space-xs) var(--space-sm);
 	color: var(--color-subtle);
 	font-size: var(--font-size-x-small);
 	line-height: var(--line-height-x-small);
+	margin-inline: var(--space-sm);
+    padding-block: var(--space-xs) var(--space-sm);
 }
 
 /* Static variant: no collapsible behaviour, so suppress the interactive
-   affordances on the header. */
+   affordances on the header and keep the background transparent so the
+   card reads as a plain notice rather than an expandable control. */
 .t-collapsible-card--static .t-collapsible-card__header,
 .t-collapsible-card--static .t-collapsible-card__header:hover,
 .t-collapsible-card--static .t-collapsible-card__header:active {
 	cursor: default;
-	background: var(--color-surface-1);
+	background: transparent;
 }

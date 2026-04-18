@@ -1,0 +1,58 @@
+.t-collapsible-card {
+	--t-collapsible-card-transform-rotate-collapse: rotate3d(1, 0, 0, 180deg);
+
+	margin-block: var(--space-md);
+	border: var(--border-base);
+	border-radius: var(--border-radius-medium);
+	background: var(--color-surface-1);
+	overflow-y: clip;
+}
+
+.t-collapsible-card__header {
+	display: flex;
+	align-items: center;
+	column-gap: var(--space-sm);
+	padding: var(--space-sm);
+	cursor: pointer;
+	user-select: none;
+	-webkit-user-select: none;
+	list-style: none;
+}
+
+.t-collapsible-card__header:hover {
+	background-color: var(--background-color-button-quiet--hover);
+}
+
+.t-collapsible-card__header:active {
+	background-color: var(--background-color-button-quiet--active);
+}
+
+.t-collapsible-card__header-content {
+	flex-grow: 1;
+	min-width: 0;
+}
+
+.t-collapsible-card__title {
+	font-weight: var(--font-weight-medium);
+	color: var(--color-emphasized);
+}
+
+.t-collapsible-card__description {
+	color: var(--color-subtle);
+	font-size: var(--font-size-small);
+}
+
+.t-collapsible-card__icon {
+	margin-left: auto;
+	transition: var(--transition-hover);
+	transition-property: transform;
+	transform: var(--t-collapsible-card-transform-rotate-collapse);
+}
+
+.t-collapsible-card[open] > .t-collapsible-card__header .t-collapsible-card__icon {
+	transform: none;
+}
+
+.t-collapsible-card__content {
+	border-top: var(--border-subtle);
+}

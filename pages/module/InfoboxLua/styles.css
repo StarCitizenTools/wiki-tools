@@ -59,6 +59,9 @@
 
 .t-infobox-image-container {
     position: relative;
+	border-top-left-radius: var(--border-radius-medium);
+    border-top-right-radius: var(--border-radius-medium);
+    overflow: hidden;
 }
 
 .t-infobox-image-overlay {

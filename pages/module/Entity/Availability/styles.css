@@ -1,23 +1,50 @@
 .t-entity-availability-acquirability {
-	display: flex;
-	flex-direction: column;
-	gap: var(--space-xs);
-	margin: 0;
-	padding: var(--space-sm);
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+	margin: var(--space-md) 0;
+	padding: 0;
+	border: var(--border-base);
+	border-radius: var(--border-radius-medium);
 }
 
+/*
+ * Vertical divider between cells. Pseudo-element lets us inset the line
+ * from the top and bottom so it doesn't collide with the outer border.
+ * :first-child skips the leading cell; wrapped rows (rare at 80px min /
+ * five cells) will show the divider at the left of the wrapped row.
+ */
 .t-entity-availability-acquirability-row {
+	position: relative;
 	display: flex;
-	justify-content: space-between;
-	gap: var(--space-sm);
+	flex-direction: column;
+	align-items: center;
+	gap: 2px;
 	margin: 0;
+	padding: var(--space-sm);
+	min-width: 0;
+	text-align: center;
+}
+
+.t-entity-availability-acquirability-row:not(:first-child)::before {
+	content: '';
+	position: absolute;
+	top: var(--space-sm);
+	bottom: var(--space-sm);
+	left: 0;
+	width: 1px;
+	background: var(--border-color-subtle);
 }
 
 .t-entity-availability-acquirability-label {
 	color: var(--color-subtle);
+	font-size: var(--font-size-small);
+	line-height: var(--line-height-small);
+	font-weight: var(--font-weight-normal);
 	margin: 0;
 }
 
 .t-entity-availability-acquirability-value {
+	color: var(--color-emphasized);
+	font-weight: var(--font-weight-medium);
 	margin: 0;
 }

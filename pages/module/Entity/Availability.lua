@@ -246,13 +246,14 @@ local function renderAcquirabilitySummary(rows)
 	return tostring(root)
 end
 
---- Main entry point. Renders two cards:
----   1. Acquirability summary (static) — editor-supplied yes/no flags
----      for can buy / rent / loot / pledge. Default Unknown.
----   2. Shop availability (collapsible) — UEX shop terminal prices, or
----      a static "no data" notice when UEX hasn't indexed the item.
---- Each card stands on its own so future sibling cards (loot table,
---- crafting recipes, etc.) can drop in alongside without reshuffling.
+--- Main entry point. Renders:
+---   1. Acquirability summary — a plain responsive grid of buy / rent /
+---      loot / pledge / craft flags. No card wrapper because the grid
+---      already reads as a scannable header above the first card.
+---   2. Shop availability (collapsible card) — UEX shop terminal prices,
+---      or a static "no data" notice when UEX hasn't indexed the item.
+--- Future sibling cards (loot table, crafting recipes, etc.) can drop in
+--- alongside the shop card without reshuffling.
 ---
 --- @param frame table
 --- @return string
@@ -268,11 +269,7 @@ function p.main(frame)
 	local prices = result.apiData.uex_prices
 	local hasPrices = type(prices) == 'table' and #prices > 0
 
-	local acquirabilityCard = collapsibleCard.render({
-		title = 'Acquirability',
-		content = renderAcquirabilitySummary(buildAcquirabilityRows(args, result.apiData, prices)),
-		collapsible = false,
-	})
+	local acquirability = renderAcquirabilitySummary(buildAcquirabilityRows(args, result.apiData, prices))
 
 	local shopFooter = 'Data from [https://uexcorp.space UEX Corp]'
 
@@ -283,7 +280,7 @@ function p.main(frame)
 		footer = shopFooter,
 	})
 
-	return styles .. acquirabilityCard .. shopCard
+	return styles .. acquirability .. shopCard
 end
 
 return p

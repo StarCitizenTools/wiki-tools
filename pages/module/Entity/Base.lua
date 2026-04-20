@@ -66,9 +66,9 @@ end
 function p.getStructuredData(apiData, args)
 	local manufacturer = p.resolveManufacturer(apiData, args)
 	return {
-		UUID = args.uuid,
-		Name = args.name or apiData.name,
-		Manufacturer = manufacturer and manufacturer.name,
+		uuid = args.uuid,
+		name = args.name or apiData.name,
+		manufacturer = manufacturer and manufacturer.name,
 	}
 end
 

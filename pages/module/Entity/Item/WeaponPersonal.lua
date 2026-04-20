@@ -136,4 +136,19 @@ function p.getSections(apiData, args)
 	}
 end
 
+--- @param apiData table
+--- @param args table
+--- @return table<string, any>
+function p.getStructuredData(apiData, args)
+	return {
+		ammo = apiData.personal_weapon.ammunition.capacity,
+		alpha_damage = apiData.personal_weapon.damage.alpha_total,
+		dps = apiData.personal_weapon.damage.dps_total,
+		falloff_distance = apiData.personal_weapon.ammunition.damage_drop_min_distance.total,
+		falloff_damage = apiData.personal_weapon.ammunition.damage_drop_min_damage.total,
+		max_range = apiData.personal_weapon.ammunition.damage_drop_min_damage.total,
+		muzzle_velocity = apiData.personal_weapon.ammunition.speed,
+	}
+end
+
 return p

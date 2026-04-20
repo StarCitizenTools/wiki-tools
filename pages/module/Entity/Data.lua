@@ -18,6 +18,7 @@ local p = {}
 local typeMapping = {
 	Food = 'Entity/Item/Food',
 	Drink = 'Entity/Item/Drink',
+	WeaponPersonal = 'Entity/Item/WeaponPersonal',
 	-- WeaponGun = 'Entity/Item/WeaponGun',
 	-- QuantumDrive = 'Entity/Item/QuantumDrive',
 }

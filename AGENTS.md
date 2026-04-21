@@ -4,7 +4,16 @@ Guidance for LLM agents working in this repository.
 
 ## Project Overview
 
-Wiki pages, modules, and automation for [Star Citizen Wiki](https://starcitizen.tools). The `pages/` directory mirrors the wiki's namespace (e.g., `pages/module/InfoboxLua/InfoboxLua.lua` → `Module:InfoboxLua`). Lua modules run in Scribunto (Lua 5.1) with the `mw` global.
+Wiki pages, modules, and automation for [Star Citizen Wiki](https://starcitizen.tools). The `pages/` directory mirrors the wiki's namespace. Lua modules run in Scribunto (Lua 5.1) with the `mw` global.
+
+### Filesystem mirror
+
+- Each wiki namespace is a subdirectory under `pages/` (e.g., `module/`, `template/`).
+- A page that has subpages lives inside its own directory next to those subpages. Examples:
+  - `Module:InfoboxLua` → `pages/module/InfoboxLua/InfoboxLua.lua`
+  - `Module:Entity` → `pages/module/Entity/Entity.lua`, with `Module:Entity/Base` at `pages/module/Entity/Base.lua`
+  - `Template:Entity` → `pages/template/Entity/Entity.wikitext`, with `Template:Entity/Description` at `pages/template/Entity/Description.wikitext`
+- File extensions track content model: `.lua` for Scribunto modules, `.wikitext` for template/wikitext pages, `.css` for TemplateStyles.
 
 ## Architecture Patterns
 

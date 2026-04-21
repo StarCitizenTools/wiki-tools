@@ -76,28 +76,34 @@
 	transition-property: opacity;
 }
 
+/*
+ * Both label lines are single-line + ellipsis so overflow can never
+ * encroach on the image — long names truncate with `…` and readers
+ * click through for the full text.
+ */
+.t-entity-related-card-label-primary,
+.t-entity-related-card-label-secondary {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
 .t-entity-related-card-label-primary {
 	font-size: var(--font-size-small);
 	line-height: var(--line-height-xx-small);
 	font-weight: var(--font-weight-medium);
-	overflow-wrap: break-word;
 }
 
 /*
- * Secondary line carries the full item name on set-piece cards. Forced
- * to a single line with an ellipsis so long names truncate cleanly
- * instead of encroaching on the image — readers click through for the
- * full text.
+ * Secondary sits ABOVE primary as a small kicker, mirroring the Entity
+ * infobox header (subtitle above title).
  */
 .t-entity-related-card-label-secondary {
-	margin-top: 2px;
+	margin-bottom: 2px;
 	font-size: var(--font-size-x-small);
 	line-height: var(--line-height-x-small);
 	font-weight: var(--font-weight-normal);
 	opacity: 0.8;
-	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
 }
 
 .t-entity-related-card:hover .t-entity-related-card-image img {

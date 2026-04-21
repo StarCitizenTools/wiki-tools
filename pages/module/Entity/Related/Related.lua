@@ -68,12 +68,14 @@ local function buildVariantRows(relatedItems, currentUuid)
 end
 
 --- Builds the set component rows from set_items in API order. Each row
---- is `{ name, primary, secondary }`: primary is the resolved type
---- (`Helmet` / `Torso` / `Legs`) for quick scanning, secondary is the
---- full item name for disambiguation. Unlike buildVariantRows, takes no
---- currentUuid — set components are always distinct from the queried
---- entity (different items entirely, not variants of it), so there's
---- never a self-reference to filter.
+--- is `{ name, primary, secondary }`: primary is the full item name
+--- (prominent), secondary is the resolved type (`Helmet` / `Torso` /
+--- `Legs`, rendered as a small kicker above the name). Matches the
+--- Entity infobox header pattern where the subtitle sits above the
+--- title. Unlike buildVariantRows, takes no currentUuid — set
+--- components are always distinct from the queried entity (different
+--- items entirely, not variants of it), so there's never a
+--- self-reference to filter.
 ---
 --- @param relatedItems table
 --- @return { name: string, primary: string, secondary: string }[]
@@ -82,7 +84,7 @@ local function buildSetRows(relatedItems)
 	if type(relatedItems.set_items) == 'table' then
 		for _, item in ipairs(relatedItems.set_items) do
 			if item.name then
-				table.insert(rows, { name = item.name, primary = resolveTypeName(item.type), secondary = item.name })
+				table.insert(rows, { name = item.name, primary = item.name, secondary = resolveTypeName(item.type) })
 			end
 		end
 	end
@@ -146,10 +148,12 @@ local function fetchPageImages(pageNames)
 end
 
 --- Renders one card grid from pre-built rows. Each card emits the
---- fakelink wrapper, the image, and a two-tier label: primary (the
---- quick-scan identifier) and optional secondary (a muted detail line,
---- line-clamped in CSS so long text can't encroach on the image).
---- Cards with no SMW image fall back to PLACEHOLDER_IMAGE.
+--- fakelink wrapper, the image, and a two-tier label: optional
+--- secondary (a small kicker above) and primary (the prominent name
+--- below). Ordering matches the Entity infobox header (subtitle above
+--- title). Both lines are single-line + ellipsis in CSS so the label
+--- can never encroach on the image. Cards with no SMW image fall back
+--- to PLACEHOLDER_IMAGE.
 ---
 --- @param rows { name: string, primary: string, secondary: string }[]
 --- @param imageMap table<string, string>
@@ -162,10 +166,10 @@ local function renderCardGrid(rows, imageMap)
 		card:tag('div'):addClass('t-entity-related-card-link'):wikitext('[[' .. row.name .. '|' .. row.name .. ']]')
 		card:tag('div'):addClass('t-entity-related-card-image'):wikitext('[[File:' .. image .. '|320px|link=]]')
 		local label = card:tag('div'):addClass('t-entity-related-card-label')
-		label:tag('div'):addClass('t-entity-related-card-label-primary'):wikitext(row.primary)
 		if row.secondary and row.secondary ~= '' then
 			label:tag('div'):addClass('t-entity-related-card-label-secondary'):wikitext(row.secondary)
 		end
+		label:tag('div'):addClass('t-entity-related-card-label-primary'):wikitext(row.primary)
 	end
 	return tostring(grid)
 end

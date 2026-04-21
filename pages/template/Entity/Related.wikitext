@@ -1,0 +1,5 @@
+<includeonly><!--
+-->{{#invoke:Entity/Related|main}}<!--
+--></includeonly><noinclude>
+{{/doc}}
+</noinclude>

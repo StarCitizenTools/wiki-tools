@@ -1,0 +1,5 @@
+<includeonly><!--
+-->{{#invoke:Entity/Availability|main}}<!--
+--></includeonly><noinclude>
+{{/doc}}
+</noinclude>

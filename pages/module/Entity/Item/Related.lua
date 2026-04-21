@@ -16,17 +16,21 @@ local tableLua = require('Module:TableLua')
 local p = {}
 
 --- Renders a row's name cell. The current page (uuid match) becomes
---- plain text so the reader isn't given a self-link. Rows missing the
---- `link` field also degrade to plain text.
+--- plain text so the reader isn't given a self-link. Links use the
+--- item name as the wiki page title — the API's `link` field is a
+--- JSON URL, not a wiki slug, so it isn't usable here.
 ---
---- @param row table { uuid, name, link, ... }
+--- @param row table { uuid, name, ... }
 --- @param currentUuid string|nil
 --- @return string
 local function renderNameCell(row, currentUuid)
-	if (currentUuid and row.uuid == currentUuid) or not row.link or row.link == '' then
-		return row.name or ''
+	if not row.name then
+		return ''
 	end
-	return '[[' .. row.link .. '|' .. row.name .. ']]'
+	if currentUuid and row.uuid == currentUuid then
+		return row.name
+	end
+	return '[[' .. row.name .. ']]'
 end
 
 --- Builds the rows for the Variants table: base_item prepended, then

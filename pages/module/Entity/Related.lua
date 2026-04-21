@@ -146,11 +146,11 @@ function p.main(frame)
 	local setRows = buildSetRows(relatedItems, args.uuid)
 
 	local parts = {}
-	if #variantRows > 0 then
-		table.insert(parts, renderVariantsTable(variantRows))
-	end
 	if #setRows > 0 then
 		table.insert(parts, renderSetTable(setRows))
+	end
+	if #variantRows > 0 then
+		table.insert(parts, renderVariantsTable(variantRows))
 	end
 	return table.concat(parts)
 end

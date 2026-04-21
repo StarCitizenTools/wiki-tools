@@ -1,11 +1,14 @@
 require('strict')
 
---- @module Entity/Item/Related
---- Renders an item's related entries as two captioned tables: cosmetic
+--- @module Entity/Related
+--- Renders an entity's related entries as two captioned tables: cosmetic
 --- variants (base_item + variant_items) and set components (set_items).
 --- Sibling renderer parallel to Module:Entity/Availability — consumes
 --- Module:Entity/Data so it shares Apiunto's cache with the Entity
 --- infobox and other sibling templates on the same page.
+---
+--- Items only today (reads apiData.related_items, which only the items
+--- endpoint provides). Non-item entities render nothing.
 ---
 --- v1: bare TableLua tables, no card wrapper, no styles, no current-row
 --- highlight. UI polish is a follow-up.

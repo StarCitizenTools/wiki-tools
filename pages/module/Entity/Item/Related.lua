@@ -23,8 +23,8 @@ local p = {}
 --- @param currentUuid string|nil
 --- @return string
 local function renderNameCell(row, currentUuid)
-	if row.uuid == currentUuid or not row.link or row.link == '' then
-		return row.name
+	if (currentUuid and row.uuid == currentUuid) or not row.link or row.link == '' then
+		return row.name or ''
 	end
 	return '[[' .. row.link .. '|' .. row.name .. ']]'
 end

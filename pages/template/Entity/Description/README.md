@@ -21,22 +21,9 @@ When `Template:Entity` has been invoked earlier on the page, the UUID can be omi
 
 ## Parameters
 
-<templatedata>
-{
-    "description": "Renders the in-game description (lore blockquote + API capture version) for an entity. Sibling of Template:Entity.",
-    "params": {
-        "uuid": {
-            "label": "Entity UUID",
-            "description": "UUID of the entity to render. If omitted, defaults to the UUID stored in SMW on the current page (set by Template:Entity on a prior parse). Required if Template:Entity hasn't been invoked.",
-            "type": "string",
-            "required": false,
-            "example": "80ee3b95-5665-4548-9e2d-d2067895c0ac"
-        }
-    },
-    "paramOrder": ["uuid"],
-    "format": "inline"
-}
-</templatedata>
+| Name | Type | Required | Default | Description | Example |
+|------|------|----------|---------|-------------|---------|
+| `uuid` | string | No | (falls back to SMW UUID on the current page) | UUID of the entity to render. If omitted, defaults to the UUID stored in SMW (set by Template:Entity on a prior parse). Required if Template:Entity hasn't been invoked. | `80ee3b95-5665-4548-9e2d-d2067895c0ac` |
 
 ## Behavior
 

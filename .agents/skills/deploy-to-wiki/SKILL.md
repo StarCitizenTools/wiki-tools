@@ -54,23 +54,15 @@ For each non-README file:
 
 ### 5. Deploy README.md as /doc
 
-Convert the README markdown to wikitext before deploying:
+Invoke the `doc-page-from-readme` skill to convert the README to wikitext. Pass:
 
-1. **Read `module.json`** if it exists in the directory (modules only — templates don't carry one). Build the `{{documentation}}` template args:
-   - Always include `git=true`.
-   - If `module.json` has `"origin": "wikipedia"`, also include `fromWikipedia=true`.
-   - Example: `{{documentation|git=true|fromWikipedia=true}}`. For templates without `module.json`, just `{{documentation|git=true}}`.
-2. **Prepend** the `{{documentation|...}}` template followed by one blank line.
-3. **Drop** the `# <Namespace>:<Name>` H1 heading (first line) — redundant on the wiki page.
-4. **Drop** the `## Requirements` section (heading and its content) — for developers on GitHub, not wiki readers.
-5. **Drop** the `## Architecture` section (heading and its content) — for contributors on GitHub, not wiki readers.
-6. **Generate `<templatedata>` for templates with a `## Parameters` Markdown table.** Invoke the `templatedata-from-readme` skill on the README content. It returns a `<templatedata>` block. Replace the `## Parameters` section (heading + table) with the heading followed by a blank line and the `<templatedata>` block. Skip this step when deploying a Module README.
-7. **Internalize wiki links.** For every Markdown link `[Text](URL)` where URL starts with `https://starcitizen.tools/`:
-   - Strip the URL prefix to get the page name (URL-decode and replace `_` with spaces).
-   - If `Text` matches the page name → emit `[[<Page>]]`.
-   - Otherwise → emit `[[<Page>|<Text>]]`.
-   Leave non-`starcitizen.tools` URLs as-is so they render as external links.
-8. **Convert markdown to wikitext:** headings, inline code, links, bold, italic, lists, and tables (`{| class="wikitable" ... |}`). Fenced code blocks (`` ```lang ``) become `<syntaxhighlight lang="lang">...</syntaxhighlight>`. The `<templatedata>` block from step 6 must pass through verbatim — do not re-process it as Markdown.
+- `readme` — contents of the local README.md.
+- `namespace` — `"Module"` or `"Template"` based on the page being deployed.
+- `pageName` — the part after the colon (e.g. `InfoboxLua`, `Entity/Description`).
+- `moduleMeta` — parsed `module.json` if present; otherwise omit. (Templates don't carry one.)
+- `wikiDomain` — `"starcitizen.tools"`.
+
+The skill returns ready-to-push wikitext (headings dropped, links internalized, MD → wikitext, `<templatedata>` injected for templates with a Parameters table, `{{documentation|...}}` prepended). Don't apply additional transformations on top — the skill is the single source of truth for that pipeline.
 
 Then deploy to `<Namespace>:<Name>/doc` following the same exists/differs/create logic from step 4.
 

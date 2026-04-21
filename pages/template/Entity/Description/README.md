@@ -21,9 +21,9 @@ When `Template:Entity` has been invoked earlier on the page, the UUID can be omi
 
 ## Parameters
 
-| Name | Type | Required | Default | Description | Example |
-|------|------|----------|---------|-------------|---------|
-| `uuid` | string | No | (falls back to SMW UUID on the current page) | UUID of the entity to render. If omitted, defaults to the UUID stored in SMW (set by Template:Entity on a prior parse). Required if Template:Entity hasn't been invoked. | `80ee3b95-5665-4548-9e2d-d2067895c0ac` |
+| Name | Label | Type | Required | Default | Description | Example |
+|------|-------|------|----------|---------|-------------|---------|
+| `uuid` | UUID | string | No | (falls back to SMW UUID on the current page) | UUID of the entity to render. If omitted, defaults to the UUID stored in SMW (set by Template:Entity on a prior parse). Required if Template:Entity hasn't been invoked. | `80ee3b95-5665-4548-9e2d-d2067895c0ac` |
 
 ## Behavior
 

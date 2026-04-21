@@ -15,7 +15,9 @@ Pure transformation skill: takes a README.md following the wiki-tools template-d
 
 ## Input format
 
-A README.md following the wiki-tools convention:
+A README.md following the wiki-tools convention. The Parameters table can be **6 columns** (Label is derived from Name) or **7 columns** (Label provided explicitly). The skill detects column count from the header row.
+
+**6-column form (default):**
 
 ```markdown
 # Template:Foo/Bar
@@ -36,6 +38,15 @@ the TemplateData top-level `description`.
 
 ## Behavior
 ...
+```
+
+**7-column form (explicit Label, useful for acronyms/abbreviations):**
+
+```markdown
+| Name | Label | Type | Required | Default | Description | Example |
+|------|-------|------|----------|---------|-------------|---------|
+| `uuid` | UUID | string | No | (falls back to SMW) | Entity UUID. | `80ee3b95-...` |
+| `paramB` | Param B | number | No | `0` | Another desc. | `42` |
 ```
 
 ## Output format
@@ -59,18 +70,21 @@ A wikitext block:
 
 ## Conversion rules
 
+Column indices below assume the 6-column form. For the 7-column form, shift Type/Required/Default/Description/Example one cell right and read Label from cell 2.
+
 | README cell | TemplateData field | Rule |
 |-------------|--------------------|------|
-| Cell 1 (Name) | key in `params` | Strip backticks. Used verbatim. |
-| Cell 2 (Type) | `type` | Lowercase. Validate against vocabulary (see below). Fall back to `unknown` and warn if unrecognized. |
-| Cell 3 (Required) | `required` | `Yes` / `Y` / `true` → `true`; everything else → `false`. |
-| Cell 4 (Default) | `default` | Wrapped in parens (e.g. `(falls back to ...)`) → prose, omit from JSON. Wrapped in backticks → strip and use as string. Empty cell → omit. |
-| Cell 5 (Description) | `description` | Plain string. Strip surrounding whitespace. |
-| Cell 6 (Example) | `example` | Strip backticks. Empty cell → omit. |
-| Top-level | `description` | First paragraph after the H1 title. |
+| Name | key in `params` | Strip backticks. Used verbatim. |
+| Label (optional, 7-col only) | `label` | Use the cell value as-is (preserves acronym casing like "UUID"). |
+| Type | `type` | Lowercase. Validate against vocabulary (see below). Fall back to `unknown` and warn if unrecognized. |
+| Required | `required` | `Yes` / `Y` / `true` → `true`; everything else → `false`. |
+| Default | `default` | Wrapped in parens (e.g. `(falls back to ...)`) → prose, omit from JSON. Wrapped in backticks → strip and use as string. Empty cell → omit. |
+| Description | `description` | Plain string. Strip surrounding whitespace. |
+| Example | `example` | Strip backticks. Empty cell → omit. |
+| Top-level | `description` | First paragraph after the H1 title. **Strip link syntax to plain text** — both Markdown `[Text](URL)` → `Text` and wikitext `[[Page\|Text]]` → `Text`, `[[Page]]` → `Page`. TemplateData descriptions are rendered as plain text by VisualEditor; link syntax leaks through ugly. |
 | Top-level | `paramOrder` | Order of rows in the table. |
 | Top-level | `format` | Default `inline`. Override via HTML comment in the README: `<!-- templatedata: format=block -->`. |
-| Derived | `label` | Name with first letter capitalized; underscores replaced with spaces. |
+| Derived `label` (6-col only) | `label` | Name with first letter capitalized; underscores replaced with spaces. For acronyms or other custom labels, use the 7-column form. |
 
 ### Type vocabulary
 
@@ -84,7 +98,7 @@ Unrecognized types fall back to `unknown` with a warning printed to the user.
 
 1. **Locate the H1 title** (first `# ...` line). Everything after it up to the next blank line is the top-level `description`.
 2. **Find the Parameters section** — heading `## Parameters` followed by a Markdown table. If absent, return `nil` and tell the caller (the template has no params; the caller decides whether to omit the block or report an error).
-3. **Parse the table** — header row, separator (`|---|---|...`), then body rows. Validate the header matches the canonical 6 columns (`Name | Type | Required | Default | Description | Example`). Mismatch → halt with an error pointing at the offending row.
+3. **Parse the table** — header row, separator (`|---|---|...`), then body rows. Detect form by the header: `Name | Type | Required | Default | Description | Example` is 6-column; `Name | Label | Type | Required | Default | Description | Example` is 7-column. Reject other shapes — halt with an error pointing at the offending row.
 4. **Apply the conversion rules above** to each row.
 5. **Look for HTML comment overrides** anywhere in the README:
    - `<!-- templatedata: format=block -->` → `format: "block"`

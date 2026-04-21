@@ -71,7 +71,7 @@ Apply standard Markdown-to-wikitext conversions:
 
 - **Headings**: `## X` → `== X ==`, `### X` → `=== X ===`, etc.
 - **Bold**: `**X**` → `'''X'''`. **Italic**: `*X*` → `''X''`.
-- **Inline code**: `` `X` `` → `<code>X</code>`.
+- **Inline code**: `` `X` `` → `<code>X</code>`. Inside the code span, HTML-escape `<`, `>`, and `&` so MediaWiki's parser doesn't interpret them as tags. E.g. `` `<blockquote>` `` → `<code>&lt;blockquote&gt;</code>`, not `<code><blockquote></code>` (which would open a real `<blockquote>` and break layout).
 - **Fenced code blocks**: ` ```lang\n...\n``` ` → `<syntaxhighlight lang="lang">...</syntaxhighlight>`. Bare ` ``` ` (no lang) → `<syntaxhighlight>...</syntaxhighlight>`.
 - **Lists**: `-` and `*` bullets → wikitext `*`, numbered → `#`. Preserve nesting.
 - **Tables**: `| ... |` Markdown tables → `{| class="wikitable"\n|-\n! header\n! header\n|-\n| cell\n| cell\n|}` form. The `<templatedata>` block from step 4 must NOT be re-processed — pass it through untouched.

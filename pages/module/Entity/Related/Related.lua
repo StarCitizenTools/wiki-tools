@@ -39,46 +39,50 @@ end
 
 --- Builds the variant rows: base_item first (unless it's the queried
 --- page — the only self-reference case the API exposes), then
---- variant_items in API order. Each row is `{ name, subtitle }`.
---- The base_item subtitle is `(base)` when its variant_name is missing.
+--- variant_items in API order. Each row is `{ name, primary, secondary }`:
+--- primary is the variant differentiator (e.g. `Black`, or `(base)` when
+--- the base_item has no variant_name); secondary stays empty because the
+--- image + variant name are enough to identify cosmetic variants.
 ---
 --- @param relatedItems table
 --- @param currentUuid string|nil
---- @return { name: string, subtitle: string }[]
+--- @return { name: string, primary: string, secondary: string }[]
 local function buildVariantRows(relatedItems, currentUuid)
 	local rows = {}
 	local base = relatedItems.base_item
 	if type(base) == 'table' and base.name and base.uuid ~= currentUuid then
-		local subtitle = base.variant_name
-		if not subtitle or subtitle == '' then
-			subtitle = '(base)'
+		local primary = base.variant_name
+		if not primary or primary == '' then
+			primary = '(base)'
 		end
-		table.insert(rows, { name = base.name, subtitle = subtitle })
+		table.insert(rows, { name = base.name, primary = primary, secondary = '' })
 	end
 	if type(relatedItems.variant_items) == 'table' then
 		for _, item in ipairs(relatedItems.variant_items) do
 			if item.name then
-				table.insert(rows, { name = item.name, subtitle = item.variant_name or '' })
+				table.insert(rows, { name = item.name, primary = item.variant_name or '', secondary = '' })
 			end
 		end
 	end
 	return rows
 end
 
---- Builds the set component rows from set_items in API order. Subtitle
---- is the resolved type name (e.g. `Helmet` from `Char_Armor_Helmet`).
---- Unlike buildVariantRows, takes no currentUuid — set components are
---- always distinct from the queried entity (different items entirely,
---- not variants of it), so there's never a self-reference to filter.
+--- Builds the set component rows from set_items in API order. Each row
+--- is `{ name, primary, secondary }`: primary is the resolved type
+--- (`Helmet` / `Torso` / `Legs`) for quick scanning, secondary is the
+--- full item name for disambiguation. Unlike buildVariantRows, takes no
+--- currentUuid — set components are always distinct from the queried
+--- entity (different items entirely, not variants of it), so there's
+--- never a self-reference to filter.
 ---
 --- @param relatedItems table
---- @return { name: string, subtitle: string }[]
+--- @return { name: string, primary: string, secondary: string }[]
 local function buildSetRows(relatedItems)
 	local rows = {}
 	if type(relatedItems.set_items) == 'table' then
 		for _, item in ipairs(relatedItems.set_items) do
 			if item.name then
-				table.insert(rows, { name = item.name, subtitle = resolveTypeName(item.type) })
+				table.insert(rows, { name = item.name, primary = resolveTypeName(item.type), secondary = item.name })
 			end
 		end
 	end
@@ -142,10 +146,12 @@ local function fetchPageImages(pageNames)
 end
 
 --- Renders one card grid from pre-built rows. Each card emits the
---- fakelink wrapper, the image, and the subtitle label in that order.
+--- fakelink wrapper, the image, and a two-tier label: primary (the
+--- quick-scan identifier) and optional secondary (a muted detail line,
+--- line-clamped in CSS so long text can't encroach on the image).
 --- Cards with no SMW image fall back to PLACEHOLDER_IMAGE.
 ---
---- @param rows { name: string, subtitle: string }[]
+--- @param rows { name: string, primary: string, secondary: string }[]
 --- @param imageMap table<string, string>
 --- @return string
 local function renderCardGrid(rows, imageMap)
@@ -155,7 +161,11 @@ local function renderCardGrid(rows, imageMap)
 		local image = imageMap[row.name] or PLACEHOLDER_IMAGE
 		card:tag('div'):addClass('t-entity-related-card-link'):wikitext('[[' .. row.name .. '|' .. row.name .. ']]')
 		card:tag('div'):addClass('t-entity-related-card-image'):wikitext('[[File:' .. image .. '|320px|link=]]')
-		card:tag('div'):addClass('t-entity-related-card-label'):wikitext(row.subtitle)
+		local label = card:tag('div'):addClass('t-entity-related-card-label')
+		label:tag('div'):addClass('t-entity-related-card-label-primary'):wikitext(row.primary)
+		if row.secondary and row.secondary ~= '' then
+			label:tag('div'):addClass('t-entity-related-card-label-secondary'):wikitext(row.secondary)
+		end
 	end
 	return tostring(grid)
 end
@@ -167,7 +177,7 @@ end
 --- not navigable sections.
 ---
 --- @param heading string
---- @param rows { name: string, subtitle: string }[]
+--- @param rows { name: string, primary: string, secondary: string }[]
 --- @param imageMap table<string, string>
 --- @return string
 local function renderSection(heading, rows, imageMap)

@@ -72,12 +72,33 @@
 	right: var(--space-md);
 	z-index: 1;
 	color: #fff;
+	transition: var(--transition-hover);
+	transition-property: opacity;
+}
+
+.t-entity-related-card-label-primary {
 	font-size: var(--font-size-small);
 	line-height: var(--line-height-xx-small);
 	font-weight: var(--font-weight-medium);
 	overflow-wrap: break-word;
-	transition: var(--transition-hover);
-	transition-property: opacity;
+}
+
+/*
+ * Secondary line carries the full item name on set-piece cards. Line-clamp
+ * to 2 lines so long names truncate with ellipsis instead of encroaching
+ * on the image above — the user clicks through for the full text.
+ */
+.t-entity-related-card-label-secondary {
+	margin-top: 2px;
+	font-size: var(--font-size-x-small);
+	line-height: var(--line-height-x-small);
+	font-weight: var(--font-weight-normal);
+	opacity: 0.8;
+	overflow-wrap: break-word;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
 }
 
 .t-entity-related-card:hover .t-entity-related-card-image img {

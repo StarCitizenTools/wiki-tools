@@ -129,8 +129,12 @@ local function fetchPageImages(pageNames)
 	local map = {}
 	if type(results) == 'table' then
 		for _, row in ipairs(results) do
+			-- SMW's Page Image property returns values with a leading `File:`
+			-- prefix (matching the wiki file-page title). Strip it here so the
+			-- map stores bare filenames; the card renderer prepends `File:`
+			-- once when building the [[File:...]] wikitext.
 			if row.page and type(row.image) == 'string' and row.image ~= '' then
-				map[row.page] = row.image
+				map[row.page] = (row.image:gsub('^File:', ''))
 			end
 		end
 	end

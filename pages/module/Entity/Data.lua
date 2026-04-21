@@ -53,19 +53,23 @@ local function getSmwPrefix()
 	return nsText:lower():gsub(' ', '_') .. '_'
 end
 
---- Reads the entity UUID stored on the current page via SMW. Tries the
---- new lowercase `uuid` property first, then the legacy `UUID` property
---- for compatibility with pages that haven't been re-rendered since
---- the schema change. Sibling renderers can therefore omit the uuid
---- arg as long as Module:Entity was invoked earlier on the page.
+--- Reads the entity UUID stored on the current page via SMW's `#show`
+--- parser function. Tries the new lowercase `uuid` property first,
+--- then the legacy `UUID` property for compatibility with pages that
+--- haven't been re-rendered since the schema change. Sibling renderers
+--- can therefore omit the uuid arg as long as Module:Entity was
+--- invoked earlier on the page (so the SMW store has the value from
+--- the previous parse).
 ---
+--- @param frame table
 --- @return string|nil
-local function readSmwUuid()
+local function readSmwUuid(frame)
 	local prefix = getSmwPrefix()
+	local pageName = mw.title.getCurrentTitle().fullText
 	for _, propName in ipairs({ prefix .. 'uuid', prefix .. 'UUID' }) do
-		local values = mw.smw.getPropertyValues(propName)
-		if values and values[1] and values[1] ~= '' then
-			return values[1]
+		local value = frame:callParserFunction('#show', pageName, '?' .. propName)
+		if value and value ~= '' then
+			return value
 		end
 	end
 	return nil
@@ -74,7 +78,7 @@ end
 --- Parses frame arguments into a simple table, merging frame.args with
 --- parent frame args (template invocation). Empty strings become nil.
 --- When `uuid` is absent from both, falls back to the SMW-stored UUID
---- on the current page (set by Module:Entity earlier in the parse).
+--- on the current page (set by Module:Entity on a prior parse).
 ---
 --- @param frame table The MediaWiki frame object
 --- @return table args
@@ -93,7 +97,7 @@ function p.parseArgs(frame)
 		end
 	end
 	if not args.uuid then
-		args.uuid = readSmwUuid()
+		args.uuid = readSmwUuid(frame)
 	end
 	return args
 end

@@ -1,11 +1,11 @@
 ---
 name: deploy-to-wiki
-description: Use when deploying a module from the local pages/ directory to the Star Citizen Wiki. Triggered by requests like "deploy Details", "push module to wiki", or "sync InfoboxLua to wiki".
+description: Use when deploying a module or template from the local pages/ directory to the Star Citizen Wiki. Triggered by requests like "deploy Details", "push module to wiki", "sync InfoboxLua to wiki", or "deploy Template:Entity/Description".
 ---
 
-# Deploy Module to Wiki
+# Deploy Page to Wiki
 
-Deploy a single module from `pages/module/<Name>/` to the Star Citizen Wiki using the MediaWiki MCP server.
+Deploy a single module or template from `pages/<namespace>/<Name>/` to the Star Citizen Wiki using the MediaWiki MCP server.
 
 ## Steps
 
@@ -15,7 +15,9 @@ Call `set-wiki` with `https://starcitizen.tools`.
 
 ### 2. Scan Local Files
 
-Read all files in `pages/module/<Name>/`. Determine the wiki page title and content model for each file using these rules:
+Determine the namespace from the path (`pages/module/...` → `Module:`, `pages/template/...` → `Template:`). Read all files in `pages/<namespace>/<Name>/`. Map each file to a wiki page title and content model.
+
+**Module namespace (`pages/module/<Name>/`):**
 
 - `<Name>.lua` (filename matches directory name) → `Module:<Name>` — content model: `Scribunto`
 - `<Other>.lua` → `Module:<Name>/<relative path without .lua extension>` — content model: `Scribunto`
@@ -23,6 +25,14 @@ Read all files in `pages/module/<Name>/`. Determine the wiki page title and cont
 - `*.json` (except `module.json`) → `Module:<Name>/<relative path with extension>` — content model: `json`
 - `README.md` → `Module:<Name>/doc` — content model: `wikitext` (requires conversion, see step 5)
 - `module.json` → **skip** — module metadata, not deployed (see step 5 for how it's used)
+
+**Template namespace (`pages/template/<Name>/`):**
+
+- `<Name>.wikitext` (filename matches directory name) → `Template:<Name>` — content model: `wikitext`
+- `<Other>.wikitext` → `Template:<Name>/<relative path without .wikitext extension>` — content model: `wikitext`
+- `*.css` → `Template:<Name>/<relative path with extension>` — content model: `sanitized-css`
+- `README.md` → `Template:<Name>/doc` — content model: `wikitext` (requires conversion, see step 5)
+- Subdirectories (e.g. `pages/template/Entity/Description/`) recurse with the same rules — the subpath becomes part of the wiki title.
 
 ### 3. Get Git Commit Hash
 
@@ -46,17 +56,23 @@ For each non-README file:
 
 Convert the README markdown to wikitext before deploying:
 
-1. **Read `module.json`** if it exists in the module directory. Build the `{{documentation}}` template args:
+1. **Read `module.json`** if it exists in the directory (modules only — templates don't carry one). Build the `{{documentation}}` template args:
    - Always include `git=true`.
    - If `module.json` has `"origin": "wikipedia"`, also include `fromWikipedia=true`.
-   - Example: `{{documentation|git=true|fromWikipedia=true}}`
+   - Example: `{{documentation|git=true|fromWikipedia=true}}`. For templates without `module.json`, just `{{documentation|git=true}}`.
 2. **Prepend** the `{{documentation|...}}` template followed by one blank line.
-3. **Drop** the `# Module:<Name>` H1 heading (first line) — it's redundant on the wiki page.
-4. **Drop** the `## Requirements` section (heading and its content) — this is for developers on GitHub, not wiki readers.
-5. **Drop** the `## Architecture` section (heading and its content) — this is for contributors on GitHub, not wiki readers.
-6. **Convert markdown to wikitext:** headings, inline code, links, bold, italic, lists, and tables (`{| class="wikitable" ... |}`). Fenced code blocks (`` ```lang ``) become `<syntaxhighlight lang="lang">...</syntaxhighlight>`.
+3. **Drop** the `# <Namespace>:<Name>` H1 heading (first line) — redundant on the wiki page.
+4. **Drop** the `## Requirements` section (heading and its content) — for developers on GitHub, not wiki readers.
+5. **Drop** the `## Architecture` section (heading and its content) — for contributors on GitHub, not wiki readers.
+6. **Generate `<templatedata>` for templates with a `## Parameters` Markdown table.** Invoke the `templatedata-from-readme` skill on the README content. It returns a `<templatedata>` block. Replace the `## Parameters` section (heading + table) with the heading followed by a blank line and the `<templatedata>` block. Skip this step when deploying a Module README.
+7. **Internalize wiki links.** For every Markdown link `[Text](URL)` where URL starts with `https://starcitizen.tools/`:
+   - Strip the URL prefix to get the page name (URL-decode and replace `_` with spaces).
+   - If `Text` matches the page name → emit `[[<Page>]]`.
+   - Otherwise → emit `[[<Page>|<Text>]]`.
+   Leave non-`starcitizen.tools` URLs as-is so they render as external links.
+8. **Convert markdown to wikitext:** headings, inline code, links, bold, italic, lists, and tables (`{| class="wikitable" ... |}`). Fenced code blocks (`` ```lang ``) become `<syntaxhighlight lang="lang">...</syntaxhighlight>`. The `<templatedata>` block from step 6 must pass through verbatim — do not re-process it as Markdown.
 
-Then deploy to `Module:<Name>/doc` following the same exists/differs/create logic from step 4.
+Then deploy to `<Namespace>:<Name>/doc` following the same exists/differs/create logic from step 4.
 
 ### 6. Summary
 
@@ -66,3 +82,5 @@ After all files are processed, show a summary table:
 |---|---|
 | `Module:Details` | Created / Updated / Skipped (up to date) |
 | `Module:Details/doc` | Created / Updated / Skipped (up to date) |
+| `Template:Entity/Description` | Created / Updated / Skipped (up to date) |
+| `Template:Entity/Description/doc` | Created / Updated / Skipped (up to date) |

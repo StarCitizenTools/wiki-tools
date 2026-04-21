@@ -58,3 +58,7 @@ To verify behavior that depends on wiki runtime — rendered output, parser beha
 ## Formatting
 
 Linters in `.mise.toml` enforce style. Run `mise run lint` to check, `mise run fix` to auto-fix.
+
+## Project skills
+
+Project-scoped agent skills live under `.agents/skills/<name>/SKILL.md`. They encode workflows specific to wiki-tools (e.g., deploying to the wiki, converting README parameter tables to TemplateData). Always check `.agents/skills/` for an applicable skill before improvising a workflow that overlaps with one of those concerns. Personal skills under `~/.claude/skills/` are not the right place for this project's conventions.

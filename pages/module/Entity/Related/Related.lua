@@ -1,40 +1,26 @@
 require('strict')
 
 --- @module Entity/Related
---- Renders an entity's related entries as two captioned tables: cosmetic
---- variants (base_item + variant_items) and set components (set_items).
---- Sibling renderer parallel to Module:Entity/Availability — consumes
---- Module:Entity/Data so it shares Apiunto's cache with the Entity
---- infobox and other sibling templates on the same page.
+--- Renders an entity's related entries as image card grids: set components
+--- first (helmet/torso/legs etc.), then cosmetic variants. Sibling renderer
+--- parallel to Module:Entity/Availability — consumes Module:Entity/Data so
+--- it shares Apiunto's cache with the Entity infobox and other sibling
+--- templates on the same page.
+---
+--- Cards adopt the visual pattern of Module:ItemVariants: image with a
+--- small label overlay at the bottom. The whole card is clickable via a
+--- transparent absolute-positioned wikilink (the "fakelink" pattern —
+--- MediaWiki's sanitizer strips raw <a> tags, so anchors only exist when
+--- the parser generates them from [[Page|Text]] wikitext).
 ---
 --- Items only today (reads apiData.related_items, which only the items
 --- endpoint provides). Non-item entities render nothing.
----
---- v1: bare TableLua tables, no card wrapper, no styles, no current-row
---- highlight. UI polish is a follow-up.
 
 local data = require('Module:Entity/Data')
-local tableLua = require('Module:TableLua')
 
 local p = {}
 
---- Renders a row's name cell. The current page (uuid match) becomes
---- plain text so the reader isn't given a self-link. Links use the
---- item name as the wiki page title — the API's `link` field is a
---- JSON URL, not a wiki slug, so it isn't usable here.
----
---- @param row table { uuid, name, ... }
---- @param currentUuid string|nil
---- @return string
-local function renderNameCell(row, currentUuid)
-	if not row.name then
-		return ''
-	end
-	if currentUuid and row.uuid == currentUuid then
-		return row.name
-	end
-	return '[[' .. row.name .. ']]'
-end
+local PLACEHOLDER_IMAGE = 'Placeholderv2.png'
 
 --- Maps an API type string (e.g. `Char_Armor_Helmet`) to its display
 --- name via Module:Entity/Item/types.json. Falls back to the raw type
@@ -51,81 +37,136 @@ local function resolveTypeName(apiType)
 	return (typeInfo and typeInfo.name) or apiType
 end
 
---- Builds the rows for the Variants table: base_item prepended, then
---- variant_items in API order. Skips rows with no name (defensive).
---- The base_item row shows '(base)' when variant_name is missing.
+--- Builds the variant rows: base_item first (unless it's the queried
+--- page — the only self-reference case the API exposes), then
+--- variant_items in API order. Each row is `{ name, subtitle }`.
+--- The base_item subtitle is `(base)` when its variant_name is missing.
 ---
 --- @param relatedItems table
 --- @param currentUuid string|nil
---- @return any[][]
+--- @return { name: string, subtitle: string }[]
 local function buildVariantRows(relatedItems, currentUuid)
 	local rows = {}
 	local base = relatedItems.base_item
-	if type(base) == 'table' and base.name then
-		local variant = base.variant_name
-		if not variant or variant == '' then
-			variant = '(base)'
+	if type(base) == 'table' and base.name and base.uuid ~= currentUuid then
+		local subtitle = base.variant_name
+		if not subtitle or subtitle == '' then
+			subtitle = '(base)'
 		end
-		table.insert(rows, { renderNameCell(base, currentUuid), variant })
+		table.insert(rows, { name = base.name, subtitle = subtitle })
 	end
 	if type(relatedItems.variant_items) == 'table' then
 		for _, item in ipairs(relatedItems.variant_items) do
 			if item.name then
-				table.insert(rows, { renderNameCell(item, currentUuid), item.variant_name or '' })
+				table.insert(rows, { name = item.name, subtitle = item.variant_name or '' })
 			end
 		end
 	end
 	return rows
 end
 
---- Builds the rows for the Set components table from set_items in API
---- order. Skips rows with no name.
+--- Builds the set component rows from set_items in API order. Subtitle
+--- is the resolved type name (e.g. `Helmet` from `Char_Armor_Helmet`).
 ---
 --- @param relatedItems table
---- @param currentUuid string|nil
---- @return any[][]
-local function buildSetRows(relatedItems, currentUuid)
+--- @return { name: string, subtitle: string }[]
+local function buildSetRows(relatedItems)
 	local rows = {}
 	if type(relatedItems.set_items) == 'table' then
 		for _, item in ipairs(relatedItems.set_items) do
 			if item.name then
-				table.insert(rows, { renderNameCell(item, currentUuid), resolveTypeName(item.type) })
+				table.insert(rows, { name = item.name, subtitle = resolveTypeName(item.type) })
 			end
 		end
 	end
 	return rows
 end
 
---- @param rows any[][]
---- @return string
-local function renderVariantsTable(rows)
-	return tableLua.render({
-		caption = 'Variants',
-		columns = {
-			{ id = 'name', label = 'Name', textAlign = 'start' },
-			{ id = 'variant', label = 'Variant', textAlign = 'start' },
-		},
-		data = rows,
-	})
+--- Collects unique page names across any number of row lists, preserving
+--- first-seen order. Used to build a single deduplicated query for the
+--- SMW image lookup.
+---
+--- @vararg { name: string }[]
+--- @return string[]
+local function collectPageNames(...)
+	local seen = {}
+	local out = {}
+	for _, rowList in ipairs({ ... }) do
+		for _, row in ipairs(rowList) do
+			if not seen[row.name] then
+				seen[row.name] = true
+				table.insert(out, row.name)
+			end
+		end
+	end
+	return out
 end
 
---- @param rows any[][]
---- @return string
-local function renderSetTable(rows)
-	return tableLua.render({
-		caption = 'Set components',
-		columns = {
-			{ id = 'name', label = 'Name', textAlign = 'start' },
-			{ id = 'type', label = 'Type', textAlign = 'start' },
-		},
-		data = rows,
+--- Issues one mw.smw.ask query for the Page Image property across every
+--- given page name. Returns a `{ pageName -> imageFile }` map. Pages
+--- without a Page Image are absent from the map; callers fall back to
+--- the placeholder.
+---
+--- @param pageNames string[]
+--- @return table<string, string>
+local function fetchPageImages(pageNames)
+	if #pageNames == 0 then
+		return {}
+	end
+	local conditions = {}
+	for _, name in ipairs(pageNames) do
+		table.insert(conditions, '[[' .. name .. ']]')
+	end
+	local results = mw.smw.ask({
+		table.concat(conditions, ' OR '),
+		'?Page Image#-=image',
+		'?#-=page',
+		'limit=' .. tostring(#pageNames),
 	})
+	local map = {}
+	if type(results) == 'table' then
+		for _, row in ipairs(results) do
+			if row.page and row.image then
+				map[row.page] = row.image
+			end
+		end
+	end
+	return map
 end
 
---- Main entry point. Renders up to two tables (variants, set components)
---- depending on which buckets are populated. Returns an empty string when
---- the API has no related_items, both buckets are empty, or the upstream
---- fetch failed.
+--- Renders one card grid from pre-built rows. Each card emits the
+--- fakelink wrapper, the image, and the subtitle label in that order.
+--- Cards with no SMW image fall back to PLACEHOLDER_IMAGE.
+---
+--- @param rows { name: string, subtitle: string }[]
+--- @param imageMap table<string, string>
+--- @return string
+local function renderCardGrid(rows, imageMap)
+	local grid = mw.html.create('div'):addClass('t-entity-related-grid')
+	for _, row in ipairs(rows) do
+		local card = grid:tag('div'):addClass('t-entity-related-card')
+		local image = imageMap[row.name] or PLACEHOLDER_IMAGE
+		card:tag('div'):addClass('t-entity-related-card-link'):wikitext('[[' .. row.name .. '|' .. row.name .. ']]')
+		card:tag('div'):addClass('t-entity-related-card-image'):wikitext('[[File:' .. image .. '|320px|link=]]')
+		card:tag('div'):addClass('t-entity-related-card-label'):wikitext(row.subtitle)
+	end
+	return tostring(grid)
+end
+
+--- Renders a section: subheading + card grid. Subheading helps readers
+--- distinguish set components from variants when both are present.
+---
+--- @param heading string
+--- @param rows { name: string, subtitle: string }[]
+--- @param imageMap table<string, string>
+--- @return string
+local function renderSection(heading, rows, imageMap)
+	return tostring(mw.html.create('h3'):wikitext(heading)) .. renderCardGrid(rows, imageMap)
+end
+
+--- Main entry point. Renders up to two card grids (set components first,
+--- variants second). Returns an empty string when the API has no
+--- related_items, both buckets are empty, or the upstream fetch failed.
 ---
 --- @param frame table
 --- @return string
@@ -142,15 +183,26 @@ function p.main(frame)
 		return ''
 	end
 
+	local setRows = buildSetRows(relatedItems)
 	local variantRows = buildVariantRows(relatedItems, args.uuid)
-	local setRows = buildSetRows(relatedItems, args.uuid)
 
-	local parts = {}
+	if #setRows == 0 and #variantRows == 0 then
+		return ''
+	end
+
+	local imageMap = fetchPageImages(collectPageNames(setRows, variantRows))
+
+	local styles = mw.getCurrentFrame():extensionTag({
+		name = 'templatestyles',
+		args = { src = 'Module:Entity/Related/styles.css' },
+	})
+
+	local parts = { styles }
 	if #setRows > 0 then
-		table.insert(parts, renderSetTable(setRows))
+		table.insert(parts, renderSection('Set components', setRows, imageMap))
 	end
 	if #variantRows > 0 then
-		table.insert(parts, renderVariantsTable(variantRows))
+		table.insert(parts, renderSection('Variants', variantRows, imageMap))
 	end
 	return table.concat(parts)
 end

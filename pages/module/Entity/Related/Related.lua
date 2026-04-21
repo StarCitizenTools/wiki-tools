@@ -67,6 +67,9 @@ end
 
 --- Builds the set component rows from set_items in API order. Subtitle
 --- is the resolved type name (e.g. `Helmet` from `Char_Armor_Helmet`).
+--- Unlike buildVariantRows, takes no currentUuid — set components are
+--- always distinct from the queried entity (different items entirely,
+--- not variants of it), so there's never a self-reference to filter.
 ---
 --- @param relatedItems table
 --- @return { name: string, subtitle: string }[]
@@ -126,7 +129,7 @@ local function fetchPageImages(pageNames)
 	local map = {}
 	if type(results) == 'table' then
 		for _, row in ipairs(results) do
-			if row.page and row.image then
+			if row.page and type(row.image) == 'string' and row.image ~= '' then
 				map[row.page] = row.image
 			end
 		end
@@ -155,6 +158,9 @@ end
 
 --- Renders a section: subheading + card grid. Subheading helps readers
 --- distinguish set components from variants when both are present.
+--- Uses mw.html (raw <h3>) rather than wikitext === heading === so the
+--- subheadings stay out of the page TOC — they're intra-section labels,
+--- not navigable sections.
 ---
 --- @param heading string
 --- @param rows { name: string, subtitle: string }[]

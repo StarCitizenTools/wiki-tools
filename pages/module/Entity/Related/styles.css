@@ -84,9 +84,11 @@
 }
 
 /*
- * Secondary line carries the full item name on set-piece cards. Line-clamp
- * to 2 lines so long names truncate with ellipsis instead of encroaching
- * on the image above — the user clicks through for the full text.
+ * Secondary line carries the full item name on set-piece cards. Hard-cap
+ * to roughly 2 lines via max-height so long names don't encroach on the
+ * image above — readers click through for the full text. The CSS-only
+ * -webkit-box line-clamp path would give an ellipsis, but TemplateStyles'
+ * sanitizer rejects `display: -webkit-box`, so we live without one.
  */
 .t-entity-related-card-label-secondary {
 	margin-top: 2px;
@@ -95,9 +97,7 @@
 	font-weight: var(--font-weight-normal);
 	opacity: 0.8;
 	overflow-wrap: break-word;
-	display: -webkit-box;
-	-webkit-line-clamp: 2;
-	-webkit-box-orient: vertical;
+	max-height: 2.4em;
 	overflow: hidden;
 }
 

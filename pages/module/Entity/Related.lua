@@ -36,6 +36,21 @@ local function renderNameCell(row, currentUuid)
 	return '[[' .. row.name .. ']]'
 end
 
+--- Maps an API type string (e.g. `Char_Armor_Helmet`) to its display
+--- name via Module:Entity/Item/types.json. Falls back to the raw type
+--- string when unmapped so new types are still discoverable on-page.
+---
+--- @param apiType string|nil
+--- @return string
+local function resolveTypeName(apiType)
+	if not apiType or apiType == '' then
+		return ''
+	end
+	local types = mw.loadJsonData('Module:Entity/Item/types.json')
+	local typeInfo = types[apiType]
+	return (typeInfo and typeInfo.name) or apiType
+end
+
 --- Builds the rows for the Variants table: base_item prepended, then
 --- variant_items in API order. Skips rows with no name (defensive).
 --- The base_item row shows '(base)' when variant_name is missing.
@@ -74,7 +89,7 @@ local function buildSetRows(relatedItems, currentUuid)
 	if type(relatedItems.set_items) == 'table' then
 		for _, item in ipairs(relatedItems.set_items) do
 			if item.name then
-				table.insert(rows, { renderNameCell(item, currentUuid), item.sub_type or '' })
+				table.insert(rows, { renderNameCell(item, currentUuid), resolveTypeName(item.type) })
 			end
 		end
 	end
@@ -101,7 +116,7 @@ local function renderSetTable(rows)
 		caption = 'Set components',
 		columns = {
 			{ id = 'name', label = 'Name', textAlign = 'start' },
-			{ id = 'subtype', label = 'Sub-type', textAlign = 'start' },
+			{ id = 'type', label = 'Type', textAlign = 'start' },
 		},
 		data = rows,
 	})

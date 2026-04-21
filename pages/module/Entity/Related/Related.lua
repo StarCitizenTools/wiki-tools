@@ -209,7 +209,7 @@ function p.main(frame)
 
 	local parts = { styles }
 	if #setRows > 0 then
-		table.insert(parts, renderSection('Set components', setRows, imageMap))
+		table.insert(parts, renderSection('Set pieces', setRows, imageMap))
 	end
 	if #variantRows > 0 then
 		table.insert(parts, renderSection('Variants', variantRows, imageMap))

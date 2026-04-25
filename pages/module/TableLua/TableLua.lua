@@ -194,7 +194,7 @@ end
 function p.render(props)
 	props = normalizeProps(props)
 
-	if props.data == {} then
+	if #props.data == 0 then
 		props.data = getEmptyStateData(props.emptyState)
 	end
 

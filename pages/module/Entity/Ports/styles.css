@@ -1,0 +1,47 @@
+.t-entity-ports {
+    display:grid;
+    gap:var(--space-xs);
+    margin-top:var(--space-md);
+    margin-bottom:var(--space-md);
+}
+.t-entity-port {
+    display:grid;
+    grid-template-areas:"port item";
+    grid-template-columns:max-content 1fr;
+    border:1px solid var(--border-color-base);
+    border-radius:var(--border-radius-medium);
+    line-height:var(--line-height-xx-small);
+}
+.t-entity-port-size {
+    width:56px;
+    grid-area:port;
+    display:grid;
+    place-content:center;
+    border-right:1px solid var(--border-color-base);
+    border-top-left-radius:var(--border-radius-medium);
+    border-bottom-left-radius:var(--border-radius-medium);
+    text-align:center;
+}
+.t-entity-port-item {
+    grid-area:item;
+    padding:var(--space-sm)var(--space-md);
+    border-top-right-radius:var(--border-radius-medium);
+    border-bottom-right-radius:var(--border-radius-medium);
+}
+.t-entity-port-item--hasItem {
+    background-color:var(--color-surface-2);
+}
+.t-entity-port-size {
+    font-weight:var(--font-weight-medium);
+}
+.t-entity-port-subtitle {
+    color:var(--color-subtle);
+    font-size:var(--font-size-x-small);
+}
+.t-entity-port-title {
+    font-size:var(--font-size-medium);
+    font-weight:var(--font-weight-medium);
+}
+.t-entity-port-item--hasItem .t-entity-port-title {
+    color:var(--color-emphasized);
+}

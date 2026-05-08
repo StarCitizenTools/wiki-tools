@@ -27,6 +27,7 @@ Renders item and vehicle pages. Type modules link via `p.parent` (e.g., `Food �
 | [Module:Entity/Related](pages/module/Entity/Related) | Related items and set-piece cards. |
 | [Module:Entity/Ports](pages/module/Entity/Ports) | Item ports and hardpoints. |
 | [Module:Entity/Item](pages/module/Entity/Item) | Item type — `Drink`, `Food`, `WeaponPersonal` variants. |
+| [Module:Entity/Blueprints](pages/module/Entity/Blueprints) | Blueprint aspects and dismantle returns. |
 | [Template:Entity](pages/template/Entity) | Wikitext wrappers, one per renderer. |
 
 ### Layout & rendering
@@ -39,6 +40,8 @@ Reusable building blocks for modules and wikitext.
 | [Module:CollapsibleCard](pages/module/CollapsibleCard) | Card with a summary line and an expandable body. Falls back to static when no body is given. |
 | [Module:TableLua](pages/module/TableLua) | Codex-style sortable table — pass `props`, get rendered HTML. |
 | [Module:Details](pages/module/Details) | Wrapper for `<details>`/`<summary>` that survives the sanitizer. |
+| [Module:BadgeLua](pages/module/BadgeLua) | Inline pill-shaped label with semantic variants (`error`/`success`/`warning`) and an icon slot. |
+| [Template:Badge](pages/template/Badge) | Wikitext wrapper around `Module:BadgeLua`. Accepts `{{Badge\|text\|bg=…\|color=…\|variant=…}}`. |
 
 ### Data & utilities
 
@@ -77,3 +80,4 @@ Project skills under `.agents/skills/`. Describe the task in plain English; your
 | [`sync-from-wiki`](.agents/skills/sync-from-wiki/SKILL.md) | Pull recent upstream wiki edits into the local mirror — the inverse of deploy. |
 | [`doc-page-from-readme`](.agents/skills/doc-page-from-readme/SKILL.md) | Convert a `README.md` to the wikitext used for `/doc` subpages. Called by `deploy-to-wiki`. |
 | [`templatedata-from-readme`](.agents/skills/templatedata-from-readme/SKILL.md) | Convert a Markdown Parameters table to a `<templatedata>` block. Called by `deploy-to-wiki` for templates. |
+| [`sync-codex-icons`](.agents/skills/sync-codex-icons/SKILL.md) | Reconcile `Category:Codex icons` on the wiki against the upstream `wikimedia/design-codex` repo. |

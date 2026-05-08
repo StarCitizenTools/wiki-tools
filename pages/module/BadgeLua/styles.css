@@ -1,0 +1,36 @@
+.t-badge {
+	display: inline-flex;
+	align-items: center;
+	padding: var(--space-xxs) var(--space-xs);
+	border: 1px solid var(--border-color-subtle);
+	border-radius: var(--border-radius-base);
+	background-color: var(--color-surface-1);
+	color: var(--color-emphasized);
+	font-size: var(--font-size-small);
+	font-weight: var(--font-weight-medium);
+	line-height: 1;
+	column-gap: var(--space-xxs);
+	white-space: nowrap;
+}
+
+.t-badge__icon {
+	user-select: none;
+}
+
+.t-badge--error {
+	border-color: var( --border-color-destructive );
+	background-color: var( --background-color-destructive-subtle );
+	color: var( --color-destructive );
+}
+
+.t-badge--success {
+	border-color: var( --border-color-success );
+	background-color: var( --background-color-success-subtle );
+	color: var( --color-success );
+}
+
+.t-badge--warning {
+	border-color: var( --border-color-warning );
+	background-color: var( --background-color-warning-subtle );
+	color: var( --color-warning );
+}

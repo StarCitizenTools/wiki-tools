@@ -1,0 +1,5 @@
+<includeonly><!--
+-->{{#invoke:BadgeLua|main}}<!--
+--></includeonly><noinclude>
+{{/doc}}
+</noinclude>

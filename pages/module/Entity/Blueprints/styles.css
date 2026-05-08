@@ -1,0 +1,40 @@
+.t-entity-blueprint {
+
+}
+
+.t-entity-blueprint-aspect {
+    padding: var(--space-sm);
+}
+
+.t-entity-blueprint-aspect__name {
+    color: var(--color-subtle);
+    font-size: var(--font-size-small);
+    line-height: var(--line-height-small);
+    font-weight: var(--font-weight-normal);
+    margin: 0;
+}
+
+.t-entity-blueprint-material {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-sm);
+}
+
+.t-entity-blueprint-material__name, .t-entity-blueprint-material__quantity {
+    position: relative;
+    color: var(--color-emphasized);
+    font-weight: var(--font-weight-medium);
+    margin: 0;
+}
+
+.t-entity-blueprint-material__quantity {
+    text-align: end;
+}
+
+.t-entity-blueprint-aspect-modifier__red {
+    color: var(--color-destructive);
+}
+
+.t-entity-blueprint-aspect-modifier__green {
+    color: var(--color-success);
+}

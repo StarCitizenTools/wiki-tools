@@ -4,25 +4,15 @@ Renders an inline badge — a small pill-shaped label suited for status tags, ve
 
 ## Usage
 
-Minimal — first positional argument is the badge text:
+The first positional argument is the badge text. `variant` themes the badge via Citizen design tokens; `color`/`bg` override those tokens with literal CSS values; `icon` adds a 16px image before the text.
 
-```wikitext
-{{Badge|Aurora}}
-```
-
-Semantic preset via `variant`:
-
-```wikitext
-{{Badge|Genesis|variant=warning}}
-{{Badge|Caterpillar|variant=error}}
-{{Badge|Carrack|variant=success}}
-```
-
-With an icon and custom colors:
-
-```wikitext
-{{Badge|30K|icon=CdxIconError.svg|bg=#2a6df4|color=#fff}}
-```
+| Wikitext | Result |
+|---|---|
+| <syntaxhighlight inline lang="wikitext">{{Badge\|Aurora}}</syntaxhighlight> | {{Badge\|Aurora}} |
+| <syntaxhighlight inline lang="wikitext">{{Badge\|Genesis\|variant=warning}}</syntaxhighlight> | {{Badge\|Genesis\|variant=warning}} |
+| <syntaxhighlight inline lang="wikitext">{{Badge\|Caterpillar\|variant=error}}</syntaxhighlight> | {{Badge\|Caterpillar\|variant=error}} |
+| <syntaxhighlight inline lang="wikitext">{{Badge\|Carrack\|variant=success}}</syntaxhighlight> | {{Badge\|Carrack\|variant=success}} |
+| <syntaxhighlight inline lang="wikitext">{{Badge\|30K\|icon=CdxIconError.svg\|bg=#2a6df4\|color=#fff}}</syntaxhighlight> | {{Badge\|30K\|icon=CdxIconError.svg\|bg=#2a6df4\|color=#fff}} |
 
 ## Parameters
 

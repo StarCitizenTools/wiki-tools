@@ -1,6 +1,11 @@
 {
 	"title": "Gladius",
 	"subtitle": "[[Aegis Dynamics]] (AEGS)",
+	"class": "t-infobox-demo",
+	"css": {
+		"--t-infobox-demo-accent": "var(--color-primary)"
+	},
+	"image": "Gladius - Flying away from world through debris.jpg",
 	"images": [
 		{
 			"label": "Space",
@@ -102,6 +107,7 @@
 		{
 			"label": "Specifications",
 			"collapsible": true,
+			"class": "t-infobox-demo-specs",
 			"sections": [
 				{
 					"label": "Dimensions",
@@ -169,7 +175,8 @@
 				},
 				{
 					"label": "UUID",
-					"content": "b6b59889-7226-458e-a6b0-1c9392128a3c"
+					"content": "b6b59889-7226-458e-a6b0-1c9392128a3c",
+					"class": "t-infobox-demo-uuid"
 				},
 				{
 					"label": "Class name",
@@ -177,7 +184,7 @@
 				},
 				{
 					"label": "Game version",
-					"content": "4.3.2-LIVE.10452200"
+					"content": "4.7.1-LIVE.11638371"
 				}
 			]
 		}

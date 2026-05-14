@@ -16,10 +16,20 @@ end
 
 --- Checks if a value is a table and is not empty.
 ---
+--- Uses `pairs` rather than `next` so it sees through the read-only proxy
+--- returned by `mw.loadJsonData`, whose underlying table is empty and whose
+--- entries are exposed via `__index`/`__pairs`.
+---
 --- @param value any The value to check.
 --- @return boolean True if the value is a non-empty table, false otherwise.
 function p.isNonEmptyTable(value)
-	return type(value) == 'table' and next(value) ~= nil
+	if type(value) ~= 'table' then
+		return false
+	end
+	for _ in pairs(value) do
+		return true
+	end
+	return false
 end
 
 --- Validates input data against a provided schema and constructs a new object.

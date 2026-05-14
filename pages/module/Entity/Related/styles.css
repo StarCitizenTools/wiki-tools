@@ -5,6 +5,13 @@
 	margin-block: var(--space-md);
 }
 
+.t-entity-related-empty {
+	margin-block: var(--space-md);
+	color: var(--color-subtle);
+	font-size: var(--font-size-small);
+	line-height: var(--line-height-small);
+}
+
 .t-entity-related-card {
 	position: relative;
 	border: var(--border-base);

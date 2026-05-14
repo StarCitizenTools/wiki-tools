@@ -14,13 +14,17 @@ require('strict')
 --- the parser generates them from [[Page|Text]] wikitext).
 ---
 --- Items only today (reads apiData.related_items, which only the items
---- endpoint provides). Non-item entities render nothing.
+--- endpoint provides). The container always renders so the layout is
+--- stable — falls back to a muted empty-state placeholder when the
+--- entity has no related items, isn't an item at all, or the upstream
+--- fetch failed.
 
 local data = require('Module:Entity/Data')
 
 local p = {}
 
 local PLACEHOLDER_IMAGE = 'Placeholderv2.png'
+local EMPTY_STATE_MESSAGE = 'No related items available from the API.'
 
 --- Maps an API type string (e.g. `Char_Armor_Helmet`) to its display
 --- name via Module:Entity/Item/types.json. Falls back to the raw type
@@ -188,9 +192,9 @@ local function renderSection(heading, rows, imageMap)
 	return tostring(mw.html.create('h3'):wikitext(heading)) .. renderCardGrid(rows, imageMap)
 end
 
---- Main entry point. Renders up to two card grids (set components first,
---- variants second). Returns an empty string when the API has no
---- related_items, both buckets are empty, or the upstream fetch failed.
+--- Main entry point. Always renders the templatestyles block plus either
+--- the card grids or the empty-state placeholder, so the page layout
+--- stays stable whether or not the entity has related items.
 ---
 --- @param frame table
 --- @return string
@@ -198,28 +202,33 @@ function p.main(frame)
 	local args = data.parseArgs(frame)
 	local result = data.get(args)
 
+	local styles = mw.getCurrentFrame():extensionTag({
+		name = 'templatestyles',
+		args = { src = 'Module:Entity/Related/styles.css' },
+	})
+
+	local function renderEmpty()
+		local empty = mw.html.create('p'):addClass('t-entity-related-empty'):wikitext(EMPTY_STATE_MESSAGE)
+		return styles .. tostring(empty)
+	end
+
 	if result.hasApiError then
-		return ''
+		return renderEmpty()
 	end
 
 	local relatedItems = result.apiData.related_items
 	if type(relatedItems) ~= 'table' then
-		return ''
+		return renderEmpty()
 	end
 
 	local setRows = buildSetRows(relatedItems)
 	local variantRows = buildVariantRows(relatedItems, args.uuid)
 
 	if #setRows == 0 and #variantRows == 0 then
-		return ''
+		return renderEmpty()
 	end
 
 	local imageMap = fetchPageImages(collectPageNames(setRows, variantRows))
-
-	local styles = mw.getCurrentFrame():extensionTag({
-		name = 'templatestyles',
-		args = { src = 'Module:Entity/Related/styles.css' },
-	})
 
 	local parts = { styles }
 	if #setRows > 0 then

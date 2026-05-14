@@ -2,7 +2,7 @@
 
 Renders an entity's related entries as image card grids: set components first (helmet/torso/legs etc.), then cosmetic variants. Sibling renderer parallel to [Module:Entity/Availability](https://starcitizen.tools/Module:Entity/Availability) and [Module:Entity/Description](https://starcitizen.tools/Module:Entity/Description) — consumes [Module:Entity/Data](https://starcitizen.tools/Module:Entity/Data) so it shares Apiunto's cache with the Entity infobox and any other Entity-family template on the page.
 
-Items only today (reads `apiData.related_items`, which only the items endpoint provides). Non-item entities render nothing.
+Items only today (reads `apiData.related_items`, which only the items endpoint provides). The container always renders — non-item entities, API failures, and items with no set pieces or variants all fall back to a muted empty-state placeholder so the page layout stays stable.
 
 ## Usage
 
@@ -29,7 +29,7 @@ Entry point invoked from `Template:Entity/Related`.
 
 Resolves the UUID from `frame.args.uuid`, the parent frame, or SMW (in that order), fetches related items via `Module:Entity/Data`, batches a single SMW query for the `Page Image` property across every referenced page, and renders up to two card grids: **Set pieces** then **Variants**. Includes its own `templatestyles` tag, so callers don't load styles separately.
 
-Returns an empty string when the upstream fetch fails, the entity has no `related_items`, or both buckets are empty.
+Falls back to a muted empty-state placeholder ("No related items available from the API.") when the upstream fetch fails, the entity has no `related_items`, or both buckets are empty. The `templatestyles` tag still ships in this case so the placeholder's styles load.
 
 ## Data
 
@@ -72,6 +72,7 @@ Styles live in `styles.css` (loaded via `templatestyles`). Skin or sibling-templ
 | `t-entity-related-card-label` | Bottom label group. |
 | `t-entity-related-card-label-primary` | The prominent line (variant name or item name). Single-line + ellipsis. |
 | `t-entity-related-card-label-secondary` | The small kicker above primary (resolved type for set components, empty for variants). Single-line + ellipsis. |
+| `t-entity-related-empty` | The muted placeholder paragraph rendered in the empty state. |
 
 ## Architecture
 

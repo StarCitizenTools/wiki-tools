@@ -2,7 +2,7 @@
 
 Renders an entity's set components and cosmetic variants as a grid of image cards. Designed to sit further down an entity page as body content, separate from the [Template:Entity](https://starcitizen.tools/Template:Entity) infobox at the top. Reads the same upstream API data via Module:Entity/Data, so the cache is shared with any other Entity-family template on the page.
 
-Items only today — the related-items data comes from the items endpoint, so non-item entities render nothing.
+Items only today — the related-items data comes from the items endpoint. Non-item entities, API failures, and items with no set pieces or variants all render a muted "No related items available from the API." placeholder so the page layout stays stable.
 
 ## Usage
 
@@ -34,7 +34,7 @@ When `Template:Entity` has been invoked earlier on the page, the UUID can be omi
 - The whole card is clickable. MediaWiki's sanitizer strips raw `<a>` tags, so the card uses a "fakelink": a transparent absolutely-positioned `[[Page|Page]]` wikilink wrapper that stretches to fill the card.
 - The current page is filtered out of the variants list so the entity never links to itself. Set components are always distinct items, so no self-reference check is needed there.
 - Items without a `Page Image` SMW value fall back to `Placeholderv2.png` so the grid layout stays stable.
-- Renders nothing (empty string) when the upstream fetch fails, the entity has no `related_items`, or both buckets are empty.
+- Empty state: when the upstream fetch fails, the entity has no `related_items`, or both buckets are empty, the template renders a single muted line: "No related items available from the API." The container always renders, so the page layout doesn't shift between entities that have related items and entities that don't.
 
 ## See also
 

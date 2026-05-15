@@ -39,7 +39,7 @@ Reads the `related_items` block from the merged Apiunto response. Shape:
 {
     "related_items": {
         "set_items": [
-            { "name": "Helmet name", "type": "Char_Armor_Helmet" }
+            { "name": "Helmet name", "uuid": "…", "type": "Char_Armor_Helmet" }
         ],
         "base_item": { "name": "Base item name", "uuid": "…", "variant_name": "Default" },
         "variant_items": [
@@ -57,7 +57,7 @@ Reads the `related_items` block from the merged Apiunto response. Shape:
 
 Display names for set-item types come from [Module:Entity/Item/types.json](https://starcitizen.tools/Module:Entity/Item/types.json) (keyed by the API type string). Unmapped types fall through to the raw API string so new types are still discoverable on-page.
 
-Item images come from the `Page Image` SMW property, fetched in a single `mw.smw.ask` query across every referenced page. Items without a `Page Image` value fall back to `Placeholderv2.png`.
+Page titles and images are both resolved via a single `mw.smw.ask` query against the `uuid` SMW property (set on render by [Module:Entity/StructuredData](https://starcitizen.tools/Module:Entity/StructuredData)). The query matches both the canonical lowercase `uuid` and the legacy capitalized `UUID` so unmigrated pages still resolve. This decouples the link target from the API name — disambiguated page titles like `Hyperion (quantum drive)` link correctly while the card label keeps the friendly API name `Hyperion`. Items whose UUID matches no page (never rendered with `Template:Entity`, or property hasn't propagated yet) fall back to the API name for both link and image, with `Placeholderv2.png` for the missing image.
 
 ## CSS hooks
 

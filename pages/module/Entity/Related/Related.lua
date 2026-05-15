@@ -43,14 +43,16 @@ end
 
 --- Builds the variant rows: base_item first (unless it's the queried
 --- page — the only self-reference case the API exposes), then
---- variant_items in API order. Each row is `{ name, primary, secondary }`:
---- primary is the variant differentiator (e.g. `Black`, or `(base)` when
---- the base_item has no variant_name); secondary stays empty because the
---- image + variant name are enough to identify cosmetic variants.
+--- variant_items in API order. Each row is
+--- `{ name, uuid, primary, secondary }`: primary is the variant
+--- differentiator (e.g. `Black`, or `(base)` when the base_item has no
+--- variant_name); secondary stays empty because the image + variant name
+--- are enough to identify cosmetic variants. The uuid is the join key
+--- for resolving the wiki page through SMW (see resolveItemPages).
 ---
 --- @param relatedItems table
 --- @param currentUuid string|nil
---- @return { name: string, primary: string, secondary: string }[]
+--- @return { name: string, uuid: string|nil, primary: string, secondary: string }[]
 local function buildVariantRows(relatedItems, currentUuid)
 	local rows = {}
 	local base = relatedItems.base_item
@@ -59,12 +61,15 @@ local function buildVariantRows(relatedItems, currentUuid)
 		if not primary or primary == '' then
 			primary = '(base)'
 		end
-		table.insert(rows, { name = base.name, primary = primary, secondary = '' })
+		table.insert(rows, { name = base.name, uuid = base.uuid, primary = primary, secondary = '' })
 	end
 	if type(relatedItems.variant_items) == 'table' then
 		for _, item in ipairs(relatedItems.variant_items) do
 			if item.name then
-				table.insert(rows, { name = item.name, primary = item.variant_name or '', secondary = '' })
+				table.insert(
+					rows,
+					{ name = item.name, uuid = item.uuid, primary = item.variant_name or '', secondary = '' }
+				)
 			end
 		end
 	end
@@ -72,79 +77,105 @@ local function buildVariantRows(relatedItems, currentUuid)
 end
 
 --- Builds the set component rows from set_items in API order. Each row
---- is `{ name, primary, secondary }`: primary is the full item name
---- (prominent), secondary is the resolved type (`Helmet` / `Torso` /
---- `Legs`, rendered as a small kicker above the name). Matches the
---- Entity infobox header pattern where the subtitle sits above the
---- title. Unlike buildVariantRows, takes no currentUuid — set
---- components are always distinct from the queried entity (different
---- items entirely, not variants of it), so there's never a
+--- is `{ name, uuid, primary, secondary }`: primary is the full item
+--- name (prominent), secondary is the resolved type (`Helmet` /
+--- `Torso` / `Legs`, rendered as a small kicker above the name).
+--- Matches the Entity infobox header pattern where the subtitle sits
+--- above the title. Unlike buildVariantRows, takes no currentUuid —
+--- set components are always distinct from the queried entity
+--- (different items entirely, not variants of it), so there's never a
 --- self-reference to filter.
 ---
 --- @param relatedItems table
---- @return { name: string, primary: string, secondary: string }[]
+--- @return { name: string, uuid: string|nil, primary: string, secondary: string }[]
 local function buildSetRows(relatedItems)
 	local rows = {}
 	if type(relatedItems.set_items) == 'table' then
 		for _, item in ipairs(relatedItems.set_items) do
 			if item.name then
-				table.insert(rows, { name = item.name, primary = item.name, secondary = resolveTypeName(item.type) })
+				table.insert(rows, {
+					name = item.name,
+					uuid = item.uuid,
+					primary = item.name,
+					secondary = resolveTypeName(item.type),
+				})
 			end
 		end
 	end
 	return rows
 end
 
---- Collects unique page names across any number of row lists, preserving
---- first-seen order. Used to build a single deduplicated query for the
---- SMW image lookup.
+--- Collects unique uuids across any number of row lists, preserving
+--- first-seen order. Used to build a single deduplicated SMW query for
+--- both the wiki page and page image. Rows without a uuid (defensive
+--- against malformed API responses) are skipped.
 ---
---- @vararg { name: string }[]
+--- @vararg { uuid: string|nil }[]
 --- @return string[]
-local function collectPageNames(...)
+local function collectUuids(...)
 	local seen = {}
 	local out = {}
 	for _, rowList in ipairs({ ... }) do
 		for _, row in ipairs(rowList) do
-			if not seen[row.name] then
-				seen[row.name] = true
-				table.insert(out, row.name)
+			if row.uuid and not seen[row.uuid] then
+				seen[row.uuid] = true
+				table.insert(out, row.uuid)
 			end
 		end
 	end
 	return out
 end
 
---- Issues one mw.smw.ask query for the Page Image property across every
---- given page name. Returns a `{ pageName -> imageFile }` map. Pages
---- without a Page Image are absent from the map; callers fall back to
---- the placeholder.
+--- Resolves item uuids to their wiki pages and page images via a single
+--- mw.smw.ask query against the `uuid` property set by
+--- Module:Entity/StructuredData. The query matches both the canonical
+--- lowercase `uuid` and the legacy capitalized `UUID` so pages that
+--- haven't been re-rendered under the new schema still resolve — mirrors
+--- the dual-read in Module:Entity/Data.readSmwUuid.
 ---
---- @param pageNames string[]
---- @return table<string, string>
-local function fetchPageImages(pageNames)
-	if #pageNames == 0 then
+--- Decouples display name from page title so disambiguated pages
+--- (e.g. `Hyperion (quantum drive)`, while the API name is just
+--- `Hyperion`) link correctly. Uuids that match neither property —
+--- item never rendered with Template:Entity, or the property hasn't
+--- propagated yet — are absent from the returned map; callers fall back
+--- to the API name (yielding the same possibly-wrong link as the
+--- pre-resolution code, never worse).
+---
+--- @param uuids string[]
+--- @return table<string, { page: string, image: string|nil }>
+local function resolveItemPages(uuids)
+	if #uuids == 0 then
 		return {}
 	end
-	local conditions = {}
-	for _, name in ipairs(pageNames) do
-		table.insert(conditions, '[[' .. name .. ']]')
-	end
+	local uuidList = table.concat(uuids, '||')
 	local results = mw.smw.ask({
-		table.concat(conditions, ' OR '),
-		'?Page Image#-=image',
+		'[[uuid::' .. uuidList .. ']] OR [[UUID::' .. uuidList .. ']]',
+		'?uuid#-=uuid',
+		'?UUID#-=uuid_legacy',
 		'?#-=page',
-		'limit=' .. tostring(#pageNames),
+		'?Page Image#-=image',
+		'limit=' .. tostring(#uuids),
 	})
 	local map = {}
 	if type(results) == 'table' then
 		for _, row in ipairs(results) do
-			-- SMW's Page Image property returns values with a leading `File:`
-			-- prefix (matching the wiki file-page title). Strip it here so the
-			-- map stores bare filenames; the card renderer prepends `File:`
-			-- once when building the [[File:...]] wikitext.
-			if row.page and type(row.image) == 'string' and row.image ~= '' then
-				map[row.page] = (row.image:gsub('^File:', ''))
+			-- Whichever property matched, use its value as the join key —
+			-- the UUIDs themselves are identical across the two property
+			-- names, so transitional pages with both set produce the same
+			-- entry under either branch.
+			local uuid = (type(row.uuid) == 'string' and row.uuid ~= '' and row.uuid)
+				or (type(row.uuid_legacy) == 'string' and row.uuid_legacy ~= '' and row.uuid_legacy)
+				or nil
+			if uuid and row.page then
+				-- SMW's Page Image property returns values with a leading `File:`
+				-- prefix (matching the wiki file-page title). Strip it here so the
+				-- map stores bare filenames; the card renderer prepends `File:`
+				-- once when building the [[File:...]] wikitext.
+				local image = nil
+				if type(row.image) == 'string' and row.image ~= '' then
+					image = row.image:gsub('^File:', '')
+				end
+				map[uuid] = { page = row.page, image = image }
 			end
 		end
 	end
@@ -156,18 +187,27 @@ end
 --- secondary (a small kicker above) and primary (the prominent name
 --- below). Ordering matches the Entity infobox header (subtitle above
 --- title). Both lines are single-line + ellipsis in CSS so the label
---- can never encroach on the image. Cards with no SMW image fall back
---- to PLACEHOLDER_IMAGE.
+--- can never encroach on the image.
 ---
---- @param rows { name: string, primary: string, secondary: string }[]
---- @param imageMap table<string, string>
+--- Link target comes from the SMW page map (keyed by uuid). When the
+--- uuid resolves, the wikilink uses the resolved page as the target and
+--- the API name as the display text — so disambiguated wiki titles like
+--- `Hyperion (quantum drive)` link correctly while the card still reads
+--- `Hyperion`. When the uuid doesn't resolve (missing on the page, or
+--- the row lacks a uuid entirely), the link falls back to the API name.
+--- Cards with no SMW image fall back to PLACEHOLDER_IMAGE.
+---
+--- @param rows { name: string, uuid: string|nil, primary: string, secondary: string }[]
+--- @param pageMap table<string, { page: string, image: string|nil }>
 --- @return string
-local function renderCardGrid(rows, imageMap)
+local function renderCardGrid(rows, pageMap)
 	local grid = mw.html.create('div'):addClass('t-entity-related-grid')
 	for _, row in ipairs(rows) do
+		local resolved = row.uuid and pageMap[row.uuid] or nil
+		local linkPage = (resolved and resolved.page) or row.name
+		local image = (resolved and resolved.image) or PLACEHOLDER_IMAGE
 		local card = grid:tag('div'):addClass('t-entity-related-card')
-		local image = imageMap[row.name] or PLACEHOLDER_IMAGE
-		card:tag('div'):addClass('t-entity-related-card-link'):wikitext('[[' .. row.name .. '|' .. row.name .. ']]')
+		card:tag('div'):addClass('t-entity-related-card-link'):wikitext('[[' .. linkPage .. '|' .. row.name .. ']]')
 		card:tag('div'):addClass('t-entity-related-card-image'):wikitext('[[File:' .. image .. '|320px|link=]]')
 		local label = card:tag('div'):addClass('t-entity-related-card-label')
 		if row.secondary and row.secondary ~= '' then
@@ -185,11 +225,11 @@ end
 --- not navigable sections.
 ---
 --- @param heading string
---- @param rows { name: string, primary: string, secondary: string }[]
---- @param imageMap table<string, string>
+--- @param rows { name: string, uuid: string|nil, primary: string, secondary: string }[]
+--- @param pageMap table<string, { page: string, image: string|nil }>
 --- @return string
-local function renderSection(heading, rows, imageMap)
-	return tostring(mw.html.create('h3'):wikitext(heading)) .. renderCardGrid(rows, imageMap)
+local function renderSection(heading, rows, pageMap)
+	return tostring(mw.html.create('h3'):wikitext(heading)) .. renderCardGrid(rows, pageMap)
 end
 
 --- Main entry point. Always renders the templatestyles block plus either
@@ -228,14 +268,14 @@ function p.main(frame)
 		return renderEmpty()
 	end
 
-	local imageMap = fetchPageImages(collectPageNames(setRows, variantRows))
+	local pageMap = resolveItemPages(collectUuids(setRows, variantRows))
 
 	local parts = { styles }
 	if #setRows > 0 then
-		table.insert(parts, renderSection('Set pieces', setRows, imageMap))
+		table.insert(parts, renderSection('Set pieces', setRows, pageMap))
 	end
 	if #variantRows > 0 then
-		table.insert(parts, renderSection('Variants', variantRows, imageMap))
+		table.insert(parts, renderSection('Variants', variantRows, pageMap))
 	end
 	return table.concat(parts)
 end

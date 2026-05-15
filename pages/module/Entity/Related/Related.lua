@@ -69,9 +69,11 @@ end
 
 --- Builds the differentiator caption for a single variant from the
 --- dimensions that actually vary across the family. Returns
---- `'Size 1 · Grade A'`, `'Grade A'`, `'Size 1'`, or `''` depending on
---- which dimensions matter. The caller decides what's worth showing;
---- this function just formats the parts.
+--- `'S1 · Grade A'`, `'Grade A'`, `'S1'`, or `''` depending on which
+--- dimensions matter. Size uses the SC-native shorthand (`S1`, `S2`,
+--- …) — universally understood among Star Citizen readers and shorter
+--- than the long-form `Size N`. Grade stays long-form because a bare
+--- letter would be ambiguous out of context.
 ---
 --- @param item table
 --- @param showSize boolean
@@ -80,7 +82,7 @@ end
 local function buildVariantCaption(item, showSize, showGrade)
 	local parts = {}
 	if showSize and item.size ~= nil then
-		table.insert(parts, 'Size ' .. tostring(item.size))
+		table.insert(parts, 'S' .. tostring(item.size))
 	end
 	if showGrade and type(item.grade_label) == 'string' and item.grade_label ~= '' then
 		table.insert(parts, 'Grade ' .. item.grade_label)
@@ -97,9 +99,11 @@ end
 --- captions only the dimensions that actually differentiate the family
 --- — for a quantum drive family where every variant is size 1 but
 --- grades differ, secondary reads `Grade A` / `Grade B` and size is
---- omitted. When nothing varies, secondary stays empty and the image
---- + primary label do the differentiating. The uuid is the join key
---- for resolving the wiki page through SMW (see resolveItemPages).
+--- omitted; for a gimbal family that's all grade A but spans sizes,
+--- it reads `S1` / `S2` / …. When nothing varies, secondary stays
+--- empty and the image + primary label do the differentiating. The
+--- uuid is the join key for resolving the wiki page through SMW (see
+--- resolveItemPages).
 ---
 --- @param relatedItems table
 --- @param currentUuid string|nil

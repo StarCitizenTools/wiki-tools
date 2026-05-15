@@ -55,7 +55,7 @@ Reads the `related_items` block from the merged Apiunto response. Shape:
 |---|---|
 | `set_items` | Other items that make up a wearable set. Rendered first, with the resolved type (e.g. `Helmet`) as a small kicker above the name. |
 | `base_item` | The canonical base item for a variant family. Rendered at the top of the **Variants** grid. Filtered out when its UUID matches the queried entity (the only self-reference case the API exposes). |
-| `variant_items` | Cosmetic or specification variants of the base item. Rendered in API order, with `variant_name` as the primary label — falling back to `name` when the API doesn't expose a separate variant name. Tiles also surface size and grade as a small caption above the name when those dimensions vary across the family (e.g. quantum drives where every variant is size 1 but grades differ → `Grade A`, `Grade B`; if everything is the same, no caption). |
+| `variant_items` | Cosmetic or specification variants of the base item. Rendered in API order, with `variant_name` as the primary label — falling back to `name` when the API doesn't expose a separate variant name. Tiles also surface size and grade as a small caption above the name when those dimensions vary across the family — size uses the SC-native shorthand (`S1`, `S2`, …) and grade stays long-form (`Grade A`, `Grade B`). If everything is the same, no caption. |
 
 Display names for set-item types come from [Module:Entity/Item/types.json](https://starcitizen.tools/Module:Entity/Item/types.json) (keyed by the API type string). Unmapped types fall through to the raw API string so new types are still discoverable on-page.
 

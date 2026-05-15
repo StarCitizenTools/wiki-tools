@@ -91,11 +91,13 @@ function p.render(props)
 		grid:css('--t-tiles-aspect', props.aspectRatio)
 	end
 	if type(props.tileMinWidth) == 'string' and props.tileMinWidth ~= '' then
-		-- Same pattern as aspectRatio: drives the `minmax(<min>, 1fr)`
-		-- floor on the auto-fill grid so callers can widen tiles for
-		-- legibility (e.g. landscape vehicle hero shots) without
-		-- forking the stylesheet.
-		grid:css('--t-tiles-min-width', props.tileMinWidth)
+		-- Compose the full `repeat(auto-fill, minmax(<min>, 1fr))`
+		-- value here because TemplateStyles rejects nested var() inside
+		-- minmax() at the property consumer. Custom properties accept
+		-- arbitrary tokens, so we hand the assembled value through
+		-- `--t-tiles-columns` and let the stylesheet consume it via
+		-- bare `var()` on grid-template-columns.
+		grid:css('--t-tiles-columns', 'repeat(auto-fill, minmax(' .. props.tileMinWidth .. ', 1fr))')
 	end
 
 	if type(props.rows) == 'table' then

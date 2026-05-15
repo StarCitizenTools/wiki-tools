@@ -60,7 +60,14 @@ Renders the grid.
 
 ## Aspect ratio and tile width
 
-Both `aspectRatio` and `tileMinWidth` are applied inline as CSS custom properties (`--t-tiles-aspect`, `--t-tiles-min-width`) on the grid root, and the stylesheet consumes them via bare `var()` references at the tile/grid level. The grid's default declarations set `--t-tiles-aspect: 1 / 1` and `--t-tiles-min-width: 120px`, so omitting both produces square tiles in a fairly dense grid; passing either overrides the inherited custom property for that grid. (Defaults live in separate custom-property declarations rather than `var(…, default)` because TemplateStyles' sanitizer rejects the fallback form on `aspect-ratio`.) One inline style per grid is cheaper than per-tile, and per-section overrides are still possible by passing different values to multiple `render` calls.
+Both `aspectRatio` and `tileMinWidth` are applied inline as CSS custom properties on the grid root, and the stylesheet consumes them via bare `var()` references. The grid's default declarations set `--t-tiles-aspect: 1 / 1` and `--t-tiles-columns: repeat(auto-fill, minmax(120px, 1fr))`, so omitting both produces square tiles in a fairly dense grid; passing either overrides the inherited custom property for that grid.
+
+Two implementation quirks worth knowing for skin authors:
+
+- The defaults live in separate custom-property declarations rather than `var(…, default)` because TemplateStyles' sanitizer rejects the fallback form on `aspect-ratio`.
+- For `tileMinWidth` we assemble the entire `repeat(auto-fill, minmax(<min>, 1fr))` value in Lua and stash it in `--t-tiles-columns`, rather than exposing the bare `<min>` length and consuming it via `repeat(auto-fill, minmax(var(--t-tiles-min-width), 1fr))` — the sanitizer rejects nested `var()` inside `minmax()` at the property consumer, but accepts arbitrary tokens inside a custom-property declaration.
+
+One inline style per grid is cheaper than per-tile, and per-section overrides are still possible by passing different values to multiple `render` calls.
 
 Suggested combinations:
 
@@ -76,7 +83,7 @@ Styles live in `styles.css` (loaded via `templatestyles`). Skin or caller-side o
 
 | Class | Purpose |
 |---|---|
-| `t-tiles` | Grid container. Auto-fill columns at `minmax(var(--t-tiles-min-width), 1fr)`. Holds the `--t-tiles-aspect` and `--t-tiles-min-width` custom properties. |
+| `t-tiles` | Grid container. Holds the `--t-tiles-aspect` and `--t-tiles-columns` custom properties; the latter holds the full `repeat(auto-fill, minmax(<min>, 1fr))` value. |
 | `t-tiles__tile` | One tile. `position: relative` anchor for the fakelink. |
 | `t-tiles__link` | Transparent absolutely-positioned wikilink wrapper. Makes the whole tile clickable around MediaWiki's sanitizer. |
 | `t-tiles__image` | Image container with `aspect-ratio` driven by `--t-tiles-aspect`. |

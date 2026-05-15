@@ -1,15 +1,22 @@
 .t-tiles {
 	/*
 	 * Defaults for tile dimensions, overridable per-grid by inline
-	 * `--t-tiles-aspect` / `--t-tiles-min-width` on the grid root. Set
+	 * `--t-tiles-aspect` / `--t-tiles-columns` on the grid root. Set
 	 * here as separate custom-property declarations rather than as
-	 * `var(…, default)` fallbacks at the consumers because
-	 * TemplateStyles rejects the fallback form for `aspect-ratio`.
+	 * `var(…, default)` fallbacks at the consumers because TemplateStyles
+	 * rejects fallback forms (aspect-ratio) and nested var() inside
+	 * minmax() (grid-template-columns).
+	 *
+	 * `--t-tiles-columns` holds the entire `repeat(auto-fill,
+	 * minmax(<min>, 1fr))` value rather than just the `<min>` length:
+	 * sanitization is happy with arbitrary tokens inside a custom
+	 * property, but rejects `repeat(auto-fill, minmax(var(--x), 1fr))`
+	 * at the property consumer.
 	 */
 	--t-tiles-aspect: 1 / 1;
-	--t-tiles-min-width: 120px;
+	--t-tiles-columns: repeat(auto-fill, minmax(120px, 1fr));
 	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(var(--t-tiles-min-width), 1fr));
+	grid-template-columns: var(--t-tiles-columns);
 	gap: var(--space-xs);
 	margin-block: var(--space-md);
 }

@@ -59,7 +59,7 @@ Renders the grid.
 
 ## Aspect ratio
 
-`aspectRatio` is applied inline as a CSS custom property (`--t-tiles-aspect`) on the grid root, and the stylesheet reads it via `aspect-ratio: var(--t-tiles-aspect, 1 / 1)` on every tile's image. One inline style per grid is cheaper than per-tile, and per-section overrides are still possible by passing different `aspectRatio` values to multiple `render` calls.
+`aspectRatio` is applied inline as a CSS custom property (`--t-tiles-aspect`) on the grid root, and the stylesheet reads it via `aspect-ratio: var(--t-tiles-aspect)` on every tile's image. The grid's default declaration sets `--t-tiles-aspect: 1 / 1`, so omitting `aspectRatio` produces square tiles; passing it overrides the inherited custom property for that grid. (The default lives in a separate custom-property declaration rather than `var(…, 1 / 1)` because TemplateStyles' sanitizer rejects the fallback form on `aspect-ratio`.) One inline style per grid is cheaper than per-tile, and per-section overrides are still possible by passing different `aspectRatio` values to multiple `render` calls.
 
 Suggested values:
 

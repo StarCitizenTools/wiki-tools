@@ -45,30 +45,34 @@ end
 --- page — the only self-reference case the API exposes), then
 --- variant_items in API order. Each row is
 --- `{ name, uuid, primary, secondary }`: primary is the variant
---- differentiator (e.g. `Black`, or `(base)` when the base_item has no
---- variant_name); secondary stays empty because the image + variant name
---- are enough to identify cosmetic variants. The uuid is the join key
---- for resolving the wiki page through SMW (see resolveItemPages).
+--- differentiator (e.g. `Black`) when one is set, otherwise falls back
+--- to the full item name so the card is never unlabeled. Secondary
+--- stays empty because the image + label are enough to identify
+--- cosmetic variants. The uuid is the join key for resolving the wiki
+--- page through SMW (see resolveItemPages).
 ---
 --- @param relatedItems table
 --- @param currentUuid string|nil
 --- @return { name: string, uuid: string|nil, primary: string, secondary: string }[]
 local function buildVariantRows(relatedItems, currentUuid)
+	local function variantPrimary(item)
+		if item.variant_name and item.variant_name ~= '' then
+			return item.variant_name
+		end
+		return item.name
+	end
+
 	local rows = {}
 	local base = relatedItems.base_item
 	if type(base) == 'table' and base.name and base.uuid ~= currentUuid then
-		local primary = base.variant_name
-		if not primary or primary == '' then
-			primary = '(base)'
-		end
-		table.insert(rows, { name = base.name, uuid = base.uuid, primary = primary, secondary = '' })
+		table.insert(rows, { name = base.name, uuid = base.uuid, primary = variantPrimary(base), secondary = '' })
 	end
 	if type(relatedItems.variant_items) == 'table' then
 		for _, item in ipairs(relatedItems.variant_items) do
 			if item.name then
 				table.insert(
 					rows,
-					{ name = item.name, uuid = item.uuid, primary = item.variant_name or '', secondary = '' }
+					{ name = item.name, uuid = item.uuid, primary = variantPrimary(item), secondary = '' }
 				)
 			end
 		end

@@ -30,7 +30,7 @@ When `Template:Entity` has been invoked earlier on the page, the UUID can be omi
 ## Behavior
 
 - Renders up to two card grids in this order: **Set pieces** (other items that make up a wearable set, e.g. helmet/torso/legs) and **Variants** (cosmetic variants of the same base item, e.g. different colorways).
-- Each card shows the item's page image (resolved via the SMW `Page Image` property in a single batched query) with the item name overlaid at the bottom. Variant cards add the variant differentiator (e.g. `Black`, or `(base)` when the base item has no variant name) as the primary label; set cards add the resolved type (e.g. `Helmet`) as a small kicker above the name.
+- Each card shows the item's page image (resolved via the SMW `Page Image` property in a single batched query) with the item name overlaid at the bottom. Variant cards show the variant differentiator (e.g. `Black`) as the primary label, falling back to the full item name when the API doesn't expose a separate variant name; set cards add the resolved type (e.g. `Helmet`) as a small kicker above the name.
 - The whole card is clickable. MediaWiki's sanitizer strips raw `<a>` tags, so the card uses a "fakelink": a transparent absolutely-positioned `[[Page|Page]]` wikilink wrapper that stretches to fill the card.
 - The current page is filtered out of the variants list so the entity never links to itself. Set components are always distinct items, so no self-reference check is needed there.
 - Items without a `Page Image` SMW value fall back to `Placeholderv2.png` so the grid layout stays stable.

@@ -137,9 +137,20 @@ end
 --- haven't been re-rendered under the new schema still resolve — mirrors
 --- the dual-read in Module:Entity/Data.readSmwUuid.
 ---
+--- Results are filtered to mainspace, non-subobject pages only:
+---  * Subobjects (`PageName#subobjectId`) would otherwise link to a
+---    template-data anchor rather than the canonical article.
+---  * Non-mainspace stores (User:, Template: test pages) already go
+---    under prefixed property names in StructuredData, but legacy
+---    `UUID` values and ad-hoc edits could leak through; the explicit
+---    namespace check is cheap insurance.
+--- We over-fetch (5× the UUID count) so a UUID that matches both a
+--- subobject and its mainspace page isn't truncated to only the
+--- subobject by the SMW limit.
+---
 --- Decouples display name from page title so disambiguated pages
 --- (e.g. `Hyperion (quantum drive)`, while the API name is just
---- `Hyperion`) link correctly. Uuids that match neither property —
+--- `Hyperion`) link correctly. Uuids that match no mainspace page —
 --- item never rendered with Template:Entity, or the property hasn't
 --- propagated yet — are absent from the returned map; callers fall back
 --- to the API name (yielding the same possibly-wrong link as the
@@ -158,7 +169,7 @@ local function resolveItemPages(uuids)
 		'?UUID#-=uuid_legacy',
 		'?#-=page',
 		'?Page Image#-=image',
-		'limit=' .. tostring(#uuids),
+		'limit=' .. tostring(#uuids * 5),
 	})
 	local map = {}
 	if type(results) == 'table' then
@@ -170,16 +181,24 @@ local function resolveItemPages(uuids)
 			local uuid = (type(row.uuid) == 'string' and row.uuid ~= '' and row.uuid)
 				or (type(row.uuid_legacy) == 'string' and row.uuid_legacy ~= '' and row.uuid_legacy)
 				or nil
-			if uuid and row.page then
-				-- SMW's Page Image property returns values with a leading `File:`
-				-- prefix (matching the wiki file-page title). Strip it here so the
-				-- map stores bare filenames; the card renderer prepends `File:`
-				-- once when building the [[File:...]] wikitext.
-				local image = nil
-				if type(row.image) == 'string' and row.image ~= '' then
-					image = row.image:gsub('^File:', '')
+			if uuid and type(row.page) == 'string' and row.page ~= '' and not row.page:find('#', 1, true) then
+				local title = mw.title.new(row.page)
+				if title and title.namespace == 0 then
+					-- SMW's Page Image property returns values with a leading `File:`
+					-- prefix (matching the wiki file-page title). Strip it here so the
+					-- map stores bare filenames; the card renderer prepends `File:`
+					-- once when building the [[File:...]] wikitext.
+					local image = nil
+					if type(row.image) == 'string' and row.image ~= '' then
+						image = row.image:gsub('^File:', '')
+					end
+					-- First mainspace match wins. If a UUID somehow appears on more
+					-- than one mainspace page, we keep the earliest result and ignore
+					-- the rest rather than letting later rows clobber the canonical hit.
+					if not map[uuid] then
+						map[uuid] = { page = row.page, image = image }
+					end
 				end
-				map[uuid] = { page = row.page, image = image }
 			end
 		end
 	end

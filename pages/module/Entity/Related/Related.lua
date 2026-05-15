@@ -1,17 +1,19 @@
 require('strict')
 
 --- @module Entity/Related
---- Renders an entity's related entries as image card grids: set components
+--- Renders an entity's related entries as image tile grids: set components
 --- first (helmet/torso/legs etc.), then cosmetic variants. Sibling renderer
 --- parallel to Module:Entity/Availability — consumes Module:Entity/Data so
 --- it shares Apiunto's cache with the Entity infobox and other sibling
 --- templates on the same page.
 ---
---- Cards adopt the visual pattern of Module:ItemVariants: image with a
---- small label overlay at the bottom. The whole card is clickable via a
---- transparent absolute-positioned wikilink (the "fakelink" pattern —
---- MediaWiki's sanitizer strips raw <a> tags, so anchors only exist when
---- the parser generates them from [[Page|Text]] wikitext).
+--- Tile rendering is delegated to Module:Tiles (image + label + fakelink
+--- wikilink). This module's job is to:
+---  1. Pull related_items off the merged API response.
+---  2. Resolve each item's wiki page + image via the SMW `uuid` property
+---     so disambiguated titles (e.g. `Hyperion (quantum drive)`) link
+---     correctly.
+---  3. Shape rows into the Tiles row schema and call Tiles.render.
 ---
 --- Items only today (reads apiData.related_items, which only the items
 --- endpoint provides). The container always renders so the layout is
@@ -20,11 +22,14 @@ require('strict')
 --- fetch failed.
 
 local data = require('Module:Entity/Data')
+local Tiles = require('Module:Tiles')
 
 local p = {}
 
-local PLACEHOLDER_IMAGE = 'Placeholderv2.png'
 local EMPTY_STATE_MESSAGE = 'No related items available from the API.'
+-- Star Citizen item renders are usually portrait 3D product shots;
+-- 3:4 keeps them roughly proportional across all column widths.
+local TILE_ASPECT_RATIO = '3 / 4'
 
 --- Maps an API type string (e.g. `Char_Armor_Helmet`) to its display
 --- name via Module:Entity/Item/types.json. Falls back to the raw type
@@ -186,8 +191,8 @@ local function resolveItemPages(uuids)
 				if title and title.namespace == 0 then
 					-- SMW's Page Image property returns values with a leading `File:`
 					-- prefix (matching the wiki file-page title). Strip it here so the
-					-- map stores bare filenames; the card renderer prepends `File:`
-					-- once when building the [[File:...]] wikitext.
+					-- map stores bare filenames; Tiles prepends `File:` once when
+					-- building the [[File:...]] wikitext.
 					local image = nil
 					if type(row.image) == 'string' and row.image ~= '' then
 						image = row.image:gsub('^File:', '')
@@ -205,75 +210,65 @@ local function resolveItemPages(uuids)
 	return map
 end
 
---- Renders one card grid from pre-built rows. Each card emits the
---- fakelink wrapper, the image, and a two-tier label: optional
---- secondary (a small kicker above) and primary (the prominent name
---- below). Ordering matches the Entity infobox header (subtitle above
---- title). Both lines are single-line + ellipsis in CSS so the label
---- can never encroach on the image.
----
---- Link target comes from the SMW page map (keyed by uuid). When the
---- uuid resolves, the wikilink uses the resolved page as the target and
---- the API name as the display text — so disambiguated wiki titles like
---- `Hyperion (quantum drive)` link correctly while the card still reads
---- `Hyperion`. When the uuid doesn't resolve (missing on the page, or
---- the row lacks a uuid entirely), the link falls back to the API name.
---- Cards with no SMW image fall back to PLACEHOLDER_IMAGE.
+--- Shapes internal rows into the Tiles row schema. When the SMW lookup
+--- resolved a row's uuid, the wikilink target is the canonical page and
+--- the image is the SMW Page Image. When it didn't resolve, both fall
+--- back to the API name (same possibly-wrong link as the
+--- pre-resolution code) and Tiles applies its placeholder image.
 ---
 --- @param rows { name: string, uuid: string|nil, primary: string, secondary: string }[]
 --- @param pageMap table<string, { page: string, image: string|nil }>
---- @return string
-local function renderCardGrid(rows, pageMap)
-	local grid = mw.html.create('div'):addClass('t-entity-related-grid')
+--- @return TilesRow[]
+local function toTilesRows(rows, pageMap)
+	local tilesRows = {}
 	for _, row in ipairs(rows) do
 		local resolved = row.uuid and pageMap[row.uuid] or nil
-		local linkPage = (resolved and resolved.page) or row.name
-		local image = (resolved and resolved.image) or PLACEHOLDER_IMAGE
-		local card = grid:tag('div'):addClass('t-entity-related-card')
-		card:tag('div'):addClass('t-entity-related-card-link'):wikitext('[[' .. linkPage .. '|' .. row.name .. ']]')
-		card:tag('div'):addClass('t-entity-related-card-image'):wikitext('[[File:' .. image .. '|320px|link=]]')
-		local label = card:tag('div'):addClass('t-entity-related-card-label')
-		if row.secondary and row.secondary ~= '' then
-			label:tag('div'):addClass('t-entity-related-card-label-secondary'):wikitext(row.secondary)
-		end
-		label:tag('div'):addClass('t-entity-related-card-label-primary'):wikitext(row.primary)
+		table.insert(tilesRows, {
+			page = (resolved and resolved.page) or row.name,
+			linkLabel = row.name,
+			image = resolved and resolved.image or nil,
+			primary = row.primary,
+			secondary = row.secondary,
+		})
 	end
-	return tostring(grid)
+	return tilesRows
 end
 
---- Renders a section: subheading + card grid. Subheading helps readers
---- distinguish set components from variants when both are present.
---- Uses mw.html (raw <h3>) rather than wikitext === heading === so the
---- subheadings stay out of the page TOC — they're intra-section labels,
---- not navigable sections.
+--- Renders the empty-state placeholder: a muted single-line `<p>` with
+--- this module's own templatestyles tag (Tiles styles aren't needed
+--- when no tiles will render).
+---
+--- @return string
+local function renderEmpty()
+	local styles = mw.getCurrentFrame():extensionTag({
+		name = 'templatestyles',
+		args = { src = 'Module:Entity/Related/styles.css' },
+	})
+	local empty = mw.html.create('p'):addClass('t-entity-related-empty'):wikitext(EMPTY_STATE_MESSAGE)
+	return styles .. tostring(empty)
+end
+
+--- Renders one labeled section: a raw `<h3>` subheading followed by a
+--- Tiles grid. Uses mw.html for the heading rather than wikitext
+--- `=== … ===` so the subheading stays out of the page TOC — they're
+--- intra-section labels, not navigable sections.
 ---
 --- @param heading string
---- @param rows { name: string, uuid: string|nil, primary: string, secondary: string }[]
---- @param pageMap table<string, { page: string, image: string|nil }>
+--- @param tilesRows TilesRow[]
 --- @return string
-local function renderSection(heading, rows, pageMap)
-	return tostring(mw.html.create('h3'):wikitext(heading)) .. renderCardGrid(rows, pageMap)
+local function renderSection(heading, tilesRows)
+	local h3 = tostring(mw.html.create('h3'):wikitext(heading))
+	return h3 .. Tiles.render({ rows = tilesRows, aspectRatio = TILE_ASPECT_RATIO })
 end
 
---- Main entry point. Always renders the templatestyles block plus either
---- the card grids or the empty-state placeholder, so the page layout
---- stays stable whether or not the entity has related items.
+--- Main entry point. Returns either two tile grids (set components +
+--- variants) or the empty-state placeholder.
 ---
 --- @param frame table
 --- @return string
 function p.main(frame)
 	local args = data.parseArgs(frame)
 	local result = data.get(args)
-
-	local styles = mw.getCurrentFrame():extensionTag({
-		name = 'templatestyles',
-		args = { src = 'Module:Entity/Related/styles.css' },
-	})
-
-	local function renderEmpty()
-		local empty = mw.html.create('p'):addClass('t-entity-related-empty'):wikitext(EMPTY_STATE_MESSAGE)
-		return styles .. tostring(empty)
-	end
 
 	if result.hasApiError then
 		return renderEmpty()
@@ -293,12 +288,12 @@ function p.main(frame)
 
 	local pageMap = resolveItemPages(collectUuids(setRows, variantRows))
 
-	local parts = { styles }
+	local parts = {}
 	if #setRows > 0 then
-		table.insert(parts, renderSection('Set pieces', setRows, pageMap))
+		table.insert(parts, renderSection('Set pieces', toTilesRows(setRows, pageMap)))
 	end
 	if #variantRows > 0 then
-		table.insert(parts, renderSection('Variants', variantRows, pageMap))
+		table.insert(parts, renderSection('Variants', toTilesRows(variantRows, pageMap)))
 	end
 	return table.concat(parts)
 end

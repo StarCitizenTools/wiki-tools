@@ -1,0 +1,116 @@
+.t-tiles {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+	gap: var(--space-xs);
+	margin-block: var(--space-md);
+}
+
+.t-tiles__tile {
+	position: relative;
+	border: var(--border-base);
+	border-radius: var(--border-radius-medium);
+	overflow: hidden;
+}
+
+.t-tiles__tile:hover {
+	background: var(--background-color-button-quiet--hover);
+}
+
+.t-tiles__tile:active {
+	background: var(--background-color-button-quiet--active);
+}
+
+/*
+ * Fakelink: MediaWiki's sanitizer strips raw <a> tags, so we wrap a
+ * [[Page|Page]] wikilink in an absolutely-positioned, transparent div.
+ * The parser-generated <a> stretches to fill the tile so clicking
+ * anywhere navigates.
+ */
+.t-tiles__link {
+	position: absolute;
+	inset: 0;
+	opacity: 0;
+	z-index: 2;
+}
+
+.t-tiles__link a {
+	display: block;
+	height: 100%;
+}
+
+.t-tiles__image {
+	position: relative;
+	z-index: 0;
+	aspect-ratio: var(--t-tiles-aspect, 1 / 1);
+}
+
+.t-tiles__image img {
+	height: 100%;
+	width: 100%;
+	object-fit: cover;
+	transition: var(--transition-hover);
+	transition-property: transform;
+}
+
+/*
+ * Dark gradient overlay so the white label stays legible over any image.
+ */
+.t-tiles__image::before {
+	position: absolute;
+	content: '';
+	inset: 0;
+	background: linear-gradient(transparent 50%, #000 100%);
+	z-index: 1;
+	transition: var(--transition-hover);
+	transition-property: opacity;
+}
+
+.t-tiles__label {
+	position: absolute;
+	bottom: var(--space-sm);
+	left: var(--space-md);
+	right: var(--space-md);
+	z-index: 1;
+	color: #fff;
+	transition: var(--transition-hover);
+	transition-property: opacity;
+}
+
+/*
+ * Both label lines are single-line + ellipsis so overflow can never
+ * encroach on the image — long names truncate with `…` and readers
+ * click through for the full text.
+ */
+.t-tiles__primary,
+.t-tiles__secondary {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.t-tiles__primary {
+	font-size: var(--font-size-small);
+	line-height: var(--line-height-xx-small);
+	font-weight: var(--font-weight-medium);
+}
+
+/*
+ * Secondary sits ABOVE primary as a small kicker, mirroring the Entity
+ * infobox header (subtitle above title).
+ */
+.t-tiles__secondary {
+	margin-bottom: 2px;
+	font-size: var(--font-size-x-small);
+	line-height: var(--line-height-x-small);
+	font-weight: var(--font-weight-normal);
+	opacity: 0.8;
+}
+
+.t-tiles__tile:hover .t-tiles__image img {
+	transform: scale(1.1);
+}
+
+.t-tiles__tile:hover .t-tiles__image::before,
+.t-tiles__tile:hover .t-tiles__label {
+	opacity: 0;
+}

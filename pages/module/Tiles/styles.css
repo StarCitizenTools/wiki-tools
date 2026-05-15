@@ -115,7 +115,6 @@
  * infobox header (subtitle above title).
  */
 .t-tiles__secondary {
-	margin-bottom: 2px;
 	font-size: var(--font-size-x-small);
 	line-height: var(--line-height-x-small);
 	font-weight: var(--font-weight-normal);

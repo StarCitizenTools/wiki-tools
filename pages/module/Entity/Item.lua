@@ -41,7 +41,7 @@ function p.getApiConfigs()
 		{
 			name = 'StarCitizenWikiAPI',
 			endpoint = 'items/%s',
-			params = { locale = 'en_EN', include = 'related_items,blueprints' },
+			params = { locale = 'en_EN', include = 'related_items,blueprints,vehicles' },
 			responseDataPath = 'data',
 		},
 	}

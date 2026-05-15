@@ -46,15 +46,60 @@ local function resolveTypeName(apiType)
 	return (typeInfo and typeInfo.name) or apiType
 end
 
+--- Returns true when `key` takes more than one distinct value across
+--- the items. Used to decide whether a dimension (size, grade) is
+--- worth surfacing as a differentiator — if every variant in the
+--- family is size 1, there's no point captioning the tiles with it.
+---
+--- @param items table[]
+--- @param key string
+--- @return boolean
+local function variantDimensionDiffers(items, key)
+	if #items < 2 then
+		return false
+	end
+	local first = items[1][key]
+	for i = 2, #items do
+		if items[i][key] ~= first then
+			return true
+		end
+	end
+	return false
+end
+
+--- Builds the differentiator caption for a single variant from the
+--- dimensions that actually vary across the family. Returns
+--- `'Size 1 · Grade A'`, `'Grade A'`, `'Size 1'`, or `''` depending on
+--- which dimensions matter. The caller decides what's worth showing;
+--- this function just formats the parts.
+---
+--- @param item table
+--- @param showSize boolean
+--- @param showGrade boolean
+--- @return string
+local function buildVariantCaption(item, showSize, showGrade)
+	local parts = {}
+	if showSize and item.size ~= nil then
+		table.insert(parts, 'Size ' .. tostring(item.size))
+	end
+	if showGrade and type(item.grade_label) == 'string' and item.grade_label ~= '' then
+		table.insert(parts, 'Grade ' .. item.grade_label)
+	end
+	return table.concat(parts, ' · ')
+end
+
 --- Builds the variant rows: base_item first (unless it's the queried
 --- page — the only self-reference case the API exposes), then
 --- variant_items in API order. Each row is
 --- `{ name, uuid, primary, secondary }`: primary is the variant
 --- differentiator (e.g. `Black`) when one is set, otherwise falls back
---- to the full item name so the card is never unlabeled. Secondary
---- stays empty because the image + label are enough to identify
---- cosmetic variants. The uuid is the join key for resolving the wiki
---- page through SMW (see resolveItemPages).
+--- to the full item name so the tile is never unlabeled. Secondary
+--- captions only the dimensions that actually differentiate the family
+--- — for a quantum drive family where every variant is size 1 but
+--- grades differ, secondary reads `Grade A` / `Grade B` and size is
+--- omitted. When nothing varies, secondary stays empty and the image
+--- + primary label do the differentiating. The uuid is the join key
+--- for resolving the wiki page through SMW (see resolveItemPages).
 ---
 --- @param relatedItems table
 --- @param currentUuid string|nil
@@ -67,20 +112,36 @@ local function buildVariantRows(relatedItems, currentUuid)
 		return item.name
 	end
 
-	local rows = {}
+	-- Collect raw items in display order: base first (when distinct
+	-- from current page), then variant_items in API order. Holding
+	-- onto the raw records lets us look up size/grade in the caption
+	-- step without re-walking the API response.
+	local rawItems = {}
 	local base = relatedItems.base_item
 	if type(base) == 'table' and base.name and base.uuid ~= currentUuid then
-		table.insert(rows, { name = base.name, uuid = base.uuid, primary = variantPrimary(base), secondary = '' })
+		table.insert(rawItems, base)
 	end
 	if type(relatedItems.variant_items) == 'table' then
 		for _, item in ipairs(relatedItems.variant_items) do
 			if item.name then
-				table.insert(
-					rows,
-					{ name = item.name, uuid = item.uuid, primary = variantPrimary(item), secondary = '' }
-				)
+				table.insert(rawItems, item)
 			end
 		end
+	end
+
+	-- Decide which dimensions are worth captioning. Only the ones that
+	-- vary across the family carry useful information for the reader.
+	local showSize = variantDimensionDiffers(rawItems, 'size')
+	local showGrade = variantDimensionDiffers(rawItems, 'grade_label')
+
+	local rows = {}
+	for _, item in ipairs(rawItems) do
+		table.insert(rows, {
+			name = item.name,
+			uuid = item.uuid,
+			primary = variantPrimary(item),
+			secondary = buildVariantCaption(item, showSize, showGrade),
+		})
 	end
 	return rows
 end

@@ -1,14 +1,15 @@
 .t-tiles {
 	/*
-	 * Default aspect ratio for tile images, overridable per-grid by an
-	 * inline `--t-tiles-aspect: …` on the grid root. Setting the default
-	 * via a custom property declaration rather than `var(…, 1 / 1)` in
-	 * the consumer because TemplateStyles rejects the fallback form for
-	 * `aspect-ratio` values.
+	 * Defaults for tile dimensions, overridable per-grid by inline
+	 * `--t-tiles-aspect` / `--t-tiles-min-width` on the grid root. Set
+	 * here as separate custom-property declarations rather than as
+	 * `var(…, default)` fallbacks at the consumers because
+	 * TemplateStyles rejects the fallback form for `aspect-ratio`.
 	 */
 	--t-tiles-aspect: 1 / 1;
+	--t-tiles-min-width: 120px;
 	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+	grid-template-columns: repeat(auto-fill, minmax(var(--t-tiles-min-width), 1fr));
 	gap: var(--space-xs);
 	margin-block: var(--space-md);
 }

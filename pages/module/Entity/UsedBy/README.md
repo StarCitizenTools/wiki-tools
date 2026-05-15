@@ -29,7 +29,7 @@ The `uuid` parameter falls back to the SMW UUID set by `Template:Entity` on a pr
 
 Entry point invoked from `Template:Entity/UsedBy`.
 
-Resolves the UUID from `frame.args.uuid`, the parent frame, or SMW (in that order), fetches the entity's vehicles list via `Module:Entity/Data`, sorts by manufacturer code then by name, batches a single SMW query to resolve each vehicle's canonical wiki page and `Page Image`, and renders a single tile grid via `Module:Tiles`. The tile grid uses a `16 / 9` aspect ratio because vehicle hero shots are typically landscape.
+Resolves the UUID from `frame.args.uuid`, the parent frame, or SMW (in that order), fetches the entity's vehicles list via `Module:Entity/Data`, sorts by manufacturer code then by name, batches a single SMW query to resolve each vehicle's canonical wiki page and `Page Image`, and renders a single tile grid via `Module:Tiles`. The tile grid uses a `16 / 9` aspect ratio with a `200px` minimum tile width — vehicle hero shots are landscape, so widening the auto-fill floor keeps each tile tall enough (~113px) for the name overlay to stay legible.
 
 Falls back to a muted empty-state placeholder ("No vehicles known to use this item.") when the upstream fetch fails, the entity isn't an item, or no vehicle equips it.
 

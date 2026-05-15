@@ -31,7 +31,7 @@ When `Template:Entity` has been invoked earlier on the page, the UUID can be omi
 
 - Renders a single tile grid sorted by manufacturer code then by name, so vehicles from the same brand (e.g. all Anvil Hornets) cluster naturally without needing explicit sub-headings.
 - Each tile shows the vehicle's page image (resolved via the SMW `Page Image` property) with the vehicle name overlaid at the bottom and the in-game role (e.g. `Medium Fighter`) as a small kicker above the name.
-- Tile aspect ratio is `16 / 9` — vehicle hero shots are typically landscape, so the wider crop suits them better than the `3 / 4` ratio Related uses for portrait item renders.
+- Tile aspect ratio is `16 / 9` with a `200px` minimum tile width — vehicle hero shots are landscape, so widening the auto-fill floor keeps each tile tall enough for the name overlay to stay legible. Related uses the narrower `3 / 4` ratio with the default `120px` floor for portrait item renders.
 - The whole tile is clickable. MediaWiki's sanitizer strips raw `<a>` tags, so each tile uses a "fakelink": a transparent absolutely-positioned `[[Page|Page]]` wikilink wrapper that stretches to fill the tile.
 - Link target is resolved via the SMW `uuid` property so disambiguated wiki titles (e.g. `Hyperion (quantum drive)` for variants in the Related template, or any vehicle whose API name collides with another article) link to the canonical article rather than the disambiguation hit.
 - Vehicles without a `Page Image` SMW value fall back to the Tiles placeholder so the grid layout stays stable.

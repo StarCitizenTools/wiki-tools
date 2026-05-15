@@ -27,6 +27,11 @@ local EMPTY_STATE_MESSAGE = 'No vehicles known to use this item.'
 -- Vehicle hero shots are typically landscape; 16:9 keeps them in the
 -- right shape across all column widths.
 local TILE_ASPECT_RATIO = '16 / 9'
+-- 16:9 at the Tiles default 120px floor gives 67px-tall tiles — too
+-- small to read the vehicle name. 200px lifts the floor so each tile
+-- stays at ~113px tall while still fitting 4–6 columns at typical
+-- desktop widths.
+local TILE_MIN_WIDTH = '200px'
 
 --- Builds rows from the API's vehicles array. Each row is
 --- `{ name, uuid, primary, secondary, sortKey }` where primary is the
@@ -181,6 +186,7 @@ function p.main(frame)
 	return Tiles.render({
 		rows = toTilesRows(rows, pageMap),
 		aspectRatio = TILE_ASPECT_RATIO,
+		tileMinWidth = TILE_MIN_WIDTH,
 	})
 end
 

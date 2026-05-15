@@ -23,6 +23,7 @@ require('strict')
 --- @class TilesProps
 --- @field rows TilesRow[]              Rows to render, in order.
 --- @field aspectRatio string|nil       CSS `aspect-ratio` value (e.g. `'16 / 9'`, `'3 / 4'`). Defaults to `'1 / 1'` (square).
+--- @field tileMinWidth string|nil      CSS length used as the `minmax(<min>, 1fr)` floor for the grid's auto-fill columns. Larger values push each tile wider before another column wraps in. Defaults to `'120px'` — bump it (e.g. `'200px'`) when tiles need to stay legible at a tall aspect ratio.
 --- @field placeholderImage string|nil  Fallback image filename when a row has none. Defaults to `'Placeholderv2.png'`.
 --- @field imageWidth string|nil        Thumbnail width hint passed to `[[File:…|<width>|link=]]`. Defaults to `'320px'` — large enough to stay crisp on the largest column.
 
@@ -83,11 +84,18 @@ function p.render(props)
 
 	local grid = mw.html.create('div'):addClass('t-tiles')
 	if type(props.aspectRatio) == 'string' and props.aspectRatio ~= '' then
-		-- Inline CSS custom property on the grid; styles.css reads it
-		-- via `aspect-ratio: var(--t-tiles-aspect, 1 / 1)`. One inline
-		-- style per grid is cheaper than per-tile, and skin overrides
-		-- can target the grid selector to theme globally.
+		-- Inline CSS custom property on the grid; styles.css consumes
+		-- it via `aspect-ratio: var(--t-tiles-aspect)` on every tile's
+		-- image. One inline style per grid is cheaper than per-tile,
+		-- and skin overrides can target the grid selector to theme.
 		grid:css('--t-tiles-aspect', props.aspectRatio)
+	end
+	if type(props.tileMinWidth) == 'string' and props.tileMinWidth ~= '' then
+		-- Same pattern as aspectRatio: drives the `minmax(<min>, 1fr)`
+		-- floor on the auto-fill grid so callers can widen tiles for
+		-- legibility (e.g. landscape vehicle hero shots) without
+		-- forking the stylesheet.
+		grid:css('--t-tiles-min-width', props.tileMinWidth)
 	end
 
 	if type(props.rows) == 'table' then

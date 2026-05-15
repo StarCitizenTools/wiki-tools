@@ -44,6 +44,7 @@ Renders the grid.
 |---|---|---|---|---|
 | `rows` | `TilesRow[]` | Yes | | Rows to render, in order. |
 | `aspectRatio` | `string` | No | `'1 / 1'` | CSS `aspect-ratio` value applied to every tile's image (e.g. `'16 / 9'` for landscape vehicle shots, `'3 / 4'` for portrait item renders). |
+| `tileMinWidth` | `string` | No | `'120px'` | CSS length used as the `minmax(<min>, 1fr)` floor for the grid's auto-fill columns. Wider tiles wrap in fewer columns per row but stay legible at tall or landscape aspect ratios; combine with `aspectRatio` when changing tile shape (e.g. `'200px'` + `'16 / 9'` for vehicle hero shots). |
 | `placeholderImage` | `string` | No | `'Placeholderv2.png'` | Image filename used when a row has no `image`. |
 | `imageWidth` | `string` | No | `'320px'` | Thumbnail width hint passed to `[[File:…|<width>|link=]]`. Set larger when tiles render wider than ~320px in your layout to avoid blurring; smaller when wider just means more bandwidth. |
 
@@ -57,17 +58,17 @@ Renders the grid.
 | `primary` | `string` | No | | Prominent label at the bottom of the tile. Omit for an image-only tile. |
 | `secondary` | `string` | No | | Smaller kicker rendered above `primary` (subtitle style). |
 
-## Aspect ratio
+## Aspect ratio and tile width
 
-`aspectRatio` is applied inline as a CSS custom property (`--t-tiles-aspect`) on the grid root, and the stylesheet reads it via `aspect-ratio: var(--t-tiles-aspect)` on every tile's image. The grid's default declaration sets `--t-tiles-aspect: 1 / 1`, so omitting `aspectRatio` produces square tiles; passing it overrides the inherited custom property for that grid. (The default lives in a separate custom-property declaration rather than `var(…, 1 / 1)` because TemplateStyles' sanitizer rejects the fallback form on `aspect-ratio`.) One inline style per grid is cheaper than per-tile, and per-section overrides are still possible by passing different `aspectRatio` values to multiple `render` calls.
+Both `aspectRatio` and `tileMinWidth` are applied inline as CSS custom properties (`--t-tiles-aspect`, `--t-tiles-min-width`) on the grid root, and the stylesheet consumes them via bare `var()` references at the tile/grid level. The grid's default declarations set `--t-tiles-aspect: 1 / 1` and `--t-tiles-min-width: 120px`, so omitting both produces square tiles in a fairly dense grid; passing either overrides the inherited custom property for that grid. (Defaults live in separate custom-property declarations rather than `var(…, default)` because TemplateStyles' sanitizer rejects the fallback form on `aspect-ratio`.) One inline style per grid is cheaper than per-tile, and per-section overrides are still possible by passing different values to multiple `render` calls.
 
-Suggested values:
+Suggested combinations:
 
-| Use case | Ratio |
-|---|---|
-| Square crops (default) | `'1 / 1'` |
-| Item renders (helmets, weapons, drives) | `'3 / 4'` (portrait) |
-| Vehicle hero shots | `'16 / 9'` or `'3 / 2'` (landscape) |
+| Use case | `aspectRatio` | `tileMinWidth` |
+|---|---|---|
+| Square crops (default) | `'1 / 1'` | `'120px'` |
+| Item renders (helmets, weapons, drives) | `'3 / 4'` (portrait) | `'120px'` |
+| Vehicle hero shots | `'16 / 9'` or `'3 / 2'` (landscape) | `'200px'` or wider |
 
 ## CSS hooks
 
@@ -75,7 +76,7 @@ Styles live in `styles.css` (loaded via `templatestyles`). Skin or caller-side o
 
 | Class | Purpose |
 |---|---|
-| `t-tiles` | Grid container. Auto-fill columns at `minmax(120px, 1fr)`. Holds the `--t-tiles-aspect` custom property. |
+| `t-tiles` | Grid container. Auto-fill columns at `minmax(var(--t-tiles-min-width), 1fr)`. Holds the `--t-tiles-aspect` and `--t-tiles-min-width` custom properties. |
 | `t-tiles__tile` | One tile. `position: relative` anchor for the fakelink. |
 | `t-tiles__link` | Transparent absolutely-positioned wikilink wrapper. Makes the whole tile clickable around MediaWiki's sanitizer. |
 | `t-tiles__image` | Image container with `aspect-ratio` driven by `--t-tiles-aspect`. |

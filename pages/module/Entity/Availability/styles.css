@@ -66,8 +66,8 @@
 }
 
 .t-entity-availability-summary-item--no {
-	color: var(--color-subtle);
-	border-color: var(--border-color-subtle);
+	color: var(--color-disabled);
+	border-color: var(--border-color-disabled);
 }
 
 .t-entity-availability-summary-item--no .t-entity-availability-summary-value {

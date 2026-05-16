@@ -268,8 +268,15 @@ end
 --- method. "Buy" derives from UEX shop data, "Loot"/"Pledge" from
 --- entity_tag_map, "Craft" from apiData.is_craftable. All derived
 --- values can be overridden via args.canBuy / args.canLoot /
---- args.canPledge / args.canCraft. Rent is editor-only because no API
---- source currently reports it.
+--- args.canPledge / args.canCraft.
+---
+--- Rent is structurally different: items aren't rentable as a class
+--- (only vehicles are), and items are the only entity type wired
+--- through Availability today. So Rent is omitted entirely unless
+--- the editor explicitly sets canRent — better than always rendering
+--- "Rent: Unknown" as visual junk that adds no information. When
+--- Module:Entity/Vehicle lands the default flips, and vehicles will
+--- always show Rent with a derived value.
 ---
 --- The `icon` field is a category-level decorative glyph (emoji for
 --- now — no Codex icons feel right for these specific concepts). Each
@@ -281,21 +288,32 @@ end
 --- @param prices table[]|nil uex_prices passed through from the API
 --- @return { label: string, icon: string, value: boolean|nil }[]
 local function buildSummaryRows(args, apiData, prices)
-	return {
+	local rows = {
 		{ label = 'Buy', icon = '🛒', value = resolveFlag(args.canBuy, inferCanBuy(prices)) },
-		{ label = 'Rent', icon = '⏳', value = yesno(args.canRent) },
-		{
-			label = 'Loot',
-			icon = '📦',
-			value = resolveFlag(args.canLoot, hasEntityTag(apiData, 'CanGenerateAsLoot')),
-		},
-		{
-			label = 'Pledge',
-			icon = '💵',
-			value = resolveFlag(args.canPledge, hasEntityTag(apiData, 'PromotionalItem')),
-		},
-		{ label = 'Craft', icon = '🔨', value = resolveFlag(args.canCraft, apiData.is_craftable) },
 	}
+
+	local rentValue = yesno(args.canRent)
+	if rentValue ~= nil then
+		table.insert(rows, { label = 'Rent', icon = '⏳', value = rentValue })
+	end
+
+	table.insert(rows, {
+		label = 'Loot',
+		icon = '📦',
+		value = resolveFlag(args.canLoot, hasEntityTag(apiData, 'CanGenerateAsLoot')),
+	})
+	table.insert(rows, {
+		label = 'Craft',
+		icon = '🔨',
+		value = resolveFlag(args.canCraft, apiData.is_craftable),
+	})
+	table.insert(rows, {
+		label = 'Pledge',
+		icon = '💵',
+		value = resolveFlag(args.canPledge, hasEntityTag(apiData, 'PromotionalItem')),
+	})
+
+	return rows
 end
 
 --- Renders the summary rows as a grid of label/value items. Each item

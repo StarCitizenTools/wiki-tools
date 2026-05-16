@@ -100,21 +100,28 @@ local function formatPriceRange(min, max)
 	return lang:formatNum(min) .. '–' .. lang:formatNum(max) .. ' aUEC'
 end
 
---- Builds the card's description line: "N locations · <prices>". Format
---- adapts to the data: unlabeled price when only one side of the market
---- is active, labeled "Buy X · Sell Y" when both are. Sell-only items
---- (rare) show only the sell side.
+--- "N locations" or "1 location". Pulled out so both description
+--- builders share the same phrasing.
+---
+--- @param prices table[]
+--- @return string
+local function locationCountLabel(prices)
+	local n = #prices
+	return n == 1 and '1 location' or (n .. ' locations')
+end
+
+--- Items shop description: "N locations · <prices>". Format adapts to
+--- the data — unlabeled when only one side of the market is active,
+--- labeled "Buy X · Sell Y" when both are. Sell-only items (rare) show
+--- only the sell side.
 ---
 --- @param prices table[]
 --- @return string
 local function buildShopTerminalsDescription(prices)
-	local locationCount = #prices
-	local locationLabel = locationCount == 1 and '1 location' or (locationCount .. ' locations')
-
 	local buyText = formatPriceRange(priceRange(prices, 'price_buy'))
 	local sellText = formatPriceRange(priceRange(prices, 'price_sell'))
 
-	local parts = { locationLabel }
+	local parts = { locationCountLabel(prices) }
 	if buyText and sellText then
 		table.insert(parts, 'Buy ' .. buyText)
 		table.insert(parts, 'Sell ' .. sellText)
@@ -125,6 +132,23 @@ local function buildShopTerminalsDescription(prices)
 		table.insert(parts, 'Sell ' .. sellText)
 	end
 
+	return table.concat(parts, ' · ')
+end
+
+--- Vehicle (and any other single-axis market) description:
+--- "N locations · <range>". The label is dropped because there's only
+--- one price column to talk about — no ambiguity for the reader to
+--- resolve.
+---
+--- @param prices table[]
+--- @param key string price field on each entry (`price_buy`, `price_rent`)
+--- @return string
+local function buildSinglePriceDescription(prices, key)
+	local rangeText = formatPriceRange(priceRange(prices, key))
+	local parts = { locationCountLabel(prices) }
+	if rangeText then
+		table.insert(parts, rangeText)
+	end
 	return table.concat(parts, ' · ')
 end
 
@@ -170,33 +194,42 @@ local function formatLocationCell(entry)
 	return '[[' .. linkTarget .. '|' .. terminalName .. ']]'
 end
 
---- @param prices table[]
+--- Renders a UEX terminal table. The columns System / Location /
+--- Updated / Version are fixed (every terminal row carries those);
+--- callers supply the price columns that apply to their market —
+--- `{ id = 'buy', key = 'price_buy', label = 'Buy' }` for items'
+--- buy side, `{ id = 'rent', key = 'price_rent', label = 'Rent' }`
+--- for vehicle rentals, etc.
+---
+--- @param opts { prices: table[], caption: string, priceColumns: { id: string, key: string, label: string }[] }
 --- @return string
-local function renderShopTerminalTable(prices)
+local function renderTerminalTable(opts)
+	local columns = {
+		{ id = 'system', label = 'System', textAlign = 'start' },
+		{ id = 'location', label = 'Location', textAlign = 'start' },
+	}
+	for _, col in ipairs(opts.priceColumns) do
+		table.insert(columns, { id = col.id, label = col.label, textAlign = 'number' })
+	end
+	table.insert(columns, { id = 'updated', label = 'Updated', textAlign = 'end' })
+	table.insert(columns, { id = 'version', label = 'Version', textAlign = 'end' })
+
 	local rows = {}
-	for _, entry in ipairs(prices) do
-		table.insert(rows, {
-			formatSystemCell(entry),
-			formatLocationCell(entry),
-			formatPrice(entry.price_buy),
-			formatPrice(entry.price_sell),
-			formatDate(entry.date_updated),
-			formatVersion(entry.game_version),
-		})
+	for _, entry in ipairs(opts.prices) do
+		local row = { formatSystemCell(entry), formatLocationCell(entry) }
+		for _, col in ipairs(opts.priceColumns) do
+			table.insert(row, formatPrice(entry[col.key]))
+		end
+		table.insert(row, formatDate(entry.date_updated))
+		table.insert(row, formatVersion(entry.game_version))
+		table.insert(rows, row)
 	end
 
 	return tableLua.render({
-		caption = 'Shop terminals',
+		caption = opts.caption,
 		hideCaption = true,
 		class = 'wikitable--fluid',
-		columns = {
-			{ id = 'system', label = 'System', textAlign = 'start' },
-			{ id = 'location', label = 'Location', textAlign = 'start' },
-			{ id = 'buy', label = 'Buy', textAlign = 'number' },
-			{ id = 'sell', label = 'Sell', textAlign = 'number' },
-			{ id = 'updated', label = 'Updated', textAlign = 'end' },
-			{ id = 'version', label = 'Version', textAlign = 'end' },
-		},
+		columns = columns,
 		data = rows,
 		-- UEX prices are player-reported, so sort by freshness (newest first).
 		-- The ISO date string sorts lexicographically the same way as a real
@@ -259,18 +292,20 @@ local function resolveFlag(arg, derived)
 	return nil
 end
 
---- Infers whether the item is buyable from shop data. Present buy prices
---- in uex_prices → Yes. Prices rows exist but all buy prices are zero →
---- No (UEX explicitly saw no buy listings). Missing uex_prices → Unknown
---- so the editor can supply canBuy directly.
+--- Infers whether the entity can be acquired through a given UEX price
+--- channel. Present non-zero prices for `key` → Yes; rows exist but all
+--- are zero → No (UEX explicitly saw no listings on that side); the
+--- array is missing or empty → nil (Unknown), so the editor can supply
+--- a direct override via the matching `canX` arg.
 ---
 --- @param prices table[]|nil
+--- @param key string price field on each entry (`price_buy`, `price_rent`)
 --- @return boolean|nil
-local function inferCanBuy(prices)
+local function inferCanAcquire(prices, key)
 	if type(prices) ~= 'table' or #prices == 0 then
 		return nil
 	end
-	local min = priceRange(prices, 'price_buy')
+	local min = priceRange(prices, key)
 	return min ~= nil
 end
 
@@ -294,32 +329,42 @@ local function hasEntityTag(apiData, tagName)
 	return false
 end
 
---- Builds the ordered list of summary rows — one flag per acquisition
---- method. "Buy" derives from UEX shop data, "Loot"/"Pledge" from
---- entity_tag_map, "Craft" from apiData.is_craftable. All derived
---- values can be overridden via args.canBuy / args.canLoot /
---- args.canPledge / args.canCraft.
+--- Two signals that the entity is a vehicle rather than an item:
+---   1. `uex_prices` arrives as a dict with `purchase`/`rental` buckets
+---      instead of a flat array.
+---   2. `msrp` is set at the top level (pledge-store price in USD).
+--- Either one is sufficient — vehicles without UEX data yet still
+--- carry msrp, and pre-pledge live-service vehicles still get the
+--- dict-shaped uex_prices.
 ---
---- Rent is structurally different: items aren't rentable as a class
---- (only vehicles are), and items are the only entity type wired
---- through Availability today. So Rent is omitted entirely unless
---- the editor explicitly sets canRent — better than always rendering
---- "Rent: Unknown" as visual junk that adds no information. When
---- Module:Entity/Vehicle lands the default flips, and vehicles will
---- always show Rent with a derived value.
----
---- The `icon` field is a category-level decorative glyph (emoji for
---- now — no Codex icons feel right for these specific concepts). Each
---- card renders it before the label; `aria-hidden` keeps screen
---- readers from announcing it on top of the already-clear label text.
+--- @param apiData table
+--- @return boolean
+local function isVehicleApiData(apiData)
+	if type(apiData) ~= 'table' then
+		return false
+	end
+	local prices = apiData.uex_prices
+	if type(prices) == 'table' and (prices.purchase ~= nil or prices.rental ~= nil) then
+		return true
+	end
+	return apiData.msrp ~= nil
+end
+
+--- Builds the ordered list of summary rows for an item entity:
+--- Buy, Loot, Craft, Pledge (Rent only when the editor explicitly
+--- sets canRent — items aren't structurally rentable). All derived
+--- values can be overridden via the matching `canX` arg.
 ---
 --- @param args table
 --- @param apiData table
---- @param prices table[]|nil uex_prices passed through from the API
 --- @return { label: string, icon: string, value: boolean|nil }[]
-local function buildSummaryRows(args, apiData, prices)
+local function buildItemSummaryRows(args, apiData)
 	local rows = {
-		{ label = 'Buy', icon = '🛒', value = resolveFlag(args.canBuy, inferCanBuy(prices)) },
+		{
+			label = 'Buy',
+			icon = '🛒',
+			value = resolveFlag(args.canBuy, inferCanAcquire(apiData.uex_prices, 'price_buy')),
+		},
 	}
 
 	local rentValue = yesno(args.canRent)
@@ -344,6 +389,53 @@ local function buildSummaryRows(args, apiData, prices)
 	})
 
 	return rows
+end
+
+--- Builds the ordered list of summary rows for a vehicle entity:
+--- Buy, Rent, Pledge. Loot and Craft are omitted — neither concept
+--- applies to vehicles in the live game today, and rendering them as
+--- "Unknown" forever is noise. Pledge derives from `msrp` presence
+--- (vehicle pledge prices are at the top level, not in entity tags).
+---
+--- @param args table
+--- @param apiData table
+--- @return { label: string, icon: string, value: boolean|nil }[]
+local function buildVehicleSummaryRows(args, apiData)
+	local prices = type(apiData.uex_prices) == 'table' and apiData.uex_prices or {}
+	return {
+		{
+			label = 'Buy',
+			icon = '🛒',
+			value = resolveFlag(args.canBuy, inferCanAcquire(prices.purchase, 'price_buy')),
+		},
+		{
+			label = 'Rent',
+			icon = '⏳',
+			value = resolveFlag(args.canRent, inferCanAcquire(prices.rental, 'price_rent')),
+		},
+		{
+			label = 'Pledge',
+			icon = '💵',
+			value = resolveFlag(args.canPledge, apiData.msrp ~= nil),
+		},
+	}
+end
+
+--- Dispatches to the item or vehicle summary builder. The `icon`
+--- field on each row is a category-level decorative glyph (emoji
+--- for now — no Codex icons feel right for these specific concepts).
+--- Each card renders it before the label; `aria-hidden` on the icon
+--- span keeps screen readers from announcing it on top of the
+--- already-clear label text.
+---
+--- @param args table
+--- @param apiData table
+--- @return { label: string, icon: string, value: boolean|nil }[]
+local function buildSummaryRows(args, apiData)
+	if isVehicleApiData(apiData) then
+		return buildVehicleSummaryRows(args, apiData)
+	end
+	return buildItemSummaryRows(args, apiData)
 end
 
 --- Renders the summary rows as a grid of label/value items. Each item
@@ -392,41 +484,100 @@ local function renderSummary(rows)
 	return tostring(root)
 end
 
+local UEX_FOOTER = 'Data from [https://uexcorp.space UEX Corp]'
+
+--- Items render a single Shops card with both Buy and Sell columns —
+--- items have a two-sided market on the same terminal, so one row per
+--- terminal carries both prices.
+---
+--- @param apiData table
+--- @return string
+local function renderItemDetail(apiData)
+	local prices = apiData.uex_prices
+	local hasPrices = type(prices) == 'table' and #prices > 0
+	return collapsibleCard.render({
+		title = '<span aria-hidden="true">🛒</span> Shops',
+		description = hasPrices and buildShopTerminalsDescription(prices) or 'No shop data in UEX',
+		content = hasPrices and renderTerminalTable({
+			prices = prices,
+			caption = 'Shop terminals',
+			priceColumns = {
+				{ id = 'buy', key = 'price_buy', label = 'Buy' },
+				{ id = 'sell', key = 'price_sell', label = 'Sell' },
+			},
+		}) or nil,
+		footer = UEX_FOOTER,
+	})
+end
+
+--- Vehicles split detail into two cards — purchase terminals (🛒
+--- Shops) and rental terminals (⏳ Rentals) — mirroring the summary
+--- grid's Buy/Rent split. UEX models them as separate arrays under
+--- `uex_prices.purchase` and `uex_prices.rental`; vehicles never have
+--- a Sell side, so each card carries one price column.
+---
+--- @param apiData table
+--- @return string
+local function renderVehicleDetail(apiData)
+	local prices = type(apiData.uex_prices) == 'table' and apiData.uex_prices or {}
+	local purchasePrices = type(prices.purchase) == 'table' and prices.purchase or {}
+	local rentalPrices = type(prices.rental) == 'table' and prices.rental or {}
+	local hasPurchase = #purchasePrices > 0
+	local hasRental = #rentalPrices > 0
+
+	local shopCard = collapsibleCard.render({
+		title = '<span aria-hidden="true">🛒</span> Shops',
+		description = hasPurchase and buildSinglePriceDescription(purchasePrices, 'price_buy')
+			or 'No purchase data in UEX',
+		content = hasPurchase and renderTerminalTable({
+			prices = purchasePrices,
+			caption = 'Vehicle purchase terminals',
+			priceColumns = { { id = 'buy', key = 'price_buy', label = 'Buy' } },
+		}) or nil,
+		footer = UEX_FOOTER,
+	})
+
+	local rentalCard = collapsibleCard.render({
+		title = '<span aria-hidden="true">⏳</span> Rentals',
+		description = hasRental and buildSinglePriceDescription(rentalPrices, 'price_rent') or 'No rental data in UEX',
+		content = hasRental and renderTerminalTable({
+			prices = rentalPrices,
+			caption = 'Vehicle rental terminals',
+			priceColumns = { { id = 'rent', key = 'price_rent', label = 'Rent' } },
+		}) or nil,
+		footer = UEX_FOOTER,
+	})
+
+	return shopCard .. rentalCard
+end
+
 --- Main entry point. Renders:
----   1. Summary — a plain responsive grid of buy / rent / loot /
----      pledge / craft flags. No card wrapper because the grid already
----      reads as a scannable header above the first card.
----   2. Shop availability (collapsible card) — UEX shop terminal prices,
----      or a static "no data" notice when UEX hasn't indexed the item.
+---   1. Summary — a plain responsive grid of acquisition flags. For
+---      items: Buy / Loot / Craft / Pledge (+ Rent when editor sets it).
+---      For vehicles: Buy / Rent / Pledge. No card wrapper because the
+---      grid already reads as a scannable header above the first card.
+---   2. Detail — collapsible card(s) of UEX terminal prices. Items get
+---      one Shops card with Buy/Sell columns; vehicles get a Shops card
+---      (purchase) plus a Rentals card.
 --- Future sibling cards (loot table, crafting recipes, etc.) can drop in
---- alongside the shop card without reshuffling.
+--- alongside the detail cards without reshuffling.
 ---
 --- @param frame table
 --- @return string
 function p.main(frame)
 	local args = data.parseArgs(frame)
 	local result = data.get(args)
+	local apiData = result.apiData
 
 	local styles = mw.getCurrentFrame():extensionTag({
 		name = 'templatestyles',
 		args = { src = 'Module:Entity/Availability/styles.css' },
 	})
 
-	local prices = result.apiData.uex_prices
-	local hasPrices = type(prices) == 'table' and #prices > 0
+	local summary = renderSummary(buildSummaryRows(args, apiData))
+	local detail = isVehicleApiData(apiData) and renderVehicleDetail(apiData) or renderItemDetail(apiData)
 
-	local summary = renderSummary(buildSummaryRows(args, result.apiData, prices))
-
-	local shopFooter = 'Data from [https://uexcorp.space UEX Corp]'
-
-	local shopCard = collapsibleCard.render({
-		title = '<span aria-hidden="true">🛒</span> Shops',
-		description = hasPrices and buildShopTerminalsDescription(prices) or 'No shop data in UEX',
-		content = hasPrices and renderShopTerminalTable(prices) or nil,
-		footer = shopFooter,
-	})
-
-	return styles .. summary .. shopCard
+	return styles .. summary .. detail
 end
 
 return p

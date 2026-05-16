@@ -37,6 +37,11 @@
 .t-collapsible-card__header-content {
 	flex-grow: 1;
 	min-width: 0;
+	display: flex;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	align-items: center;
+	column-gap: var(--space-sm);
 }
 
 .t-collapsible-card__title {

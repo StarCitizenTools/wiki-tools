@@ -28,6 +28,15 @@ Wiki pages, modules, and automation for [Star Citizen Wiki](https://starcitizen.
 - CSS class prefix follows the owning component (e.g., `t-infobox-` for InfoboxLua).
 - CSS uses design tokens from the Citizen skin (`--space-md`, `--color-surface-1`, etc.).
 
+## Wiki URL paths
+
+Star Citizen Wiki runs with `$wgArticlePath = "/$1"` — articles live at the **root**, not under `/wiki/`. When you build URLs in wikitext, Lua, or CSS, use:
+
+- `/Special:FilePath/<File>` — canonical redirect to a file's CDN URL (e.g. for `mask-image: url(...)` and similar). `/wiki/Special:FilePath/…` 404s.
+- `/<Page name>` — internal links you compose manually (most of the time prefer `[[Page name]]` and let MediaWiki build the URL).
+
+The wiki's CDN host (`media.starcitizen.tools`) is the eventual target for file URLs after the `Special:FilePath` redirect chain. Don't hard-code the CDN host; the redirect path is what's stable.
+
 ## Scribunto API
 
 Modules run in [Scribunto](https://www.mediawiki.org/wiki/Extension:Scribunto/Lua_reference_manual) and have access to the `mw` global. LuaCATS type stubs for the full API live in `types/mw/`, sourced from the [REL1_43 branch](https://github.com/wikimedia/mediawiki-extensions-Scribunto/tree/REL1_43/includes/Engines/LuaCommon/lualib).

@@ -141,7 +141,9 @@ local function renderShopTerminalTable(prices)
 end
 
 --- true → "Yes", false → "No", nil → "Unknown". Module:Yesno already
---- collapses input variations to this three-state logic.
+--- collapses input variations to this three-state logic. Used as the
+--- aria-label on the summary value cell — sighted readers see the
+--- icon, assistive tech reads this text.
 ---
 --- @param value boolean|nil
 --- @return string
@@ -153,6 +155,22 @@ local function formatFlag(value)
 		return 'No'
 	end
 	return 'Unknown'
+end
+
+--- Maps the flag value to a state slug used as the BEM modifier
+--- suffix on the value cell (`…-value--yes` etc.). The CSS picks the
+--- right Codex icon and color from this class.
+---
+--- @param value boolean|nil
+--- @return string
+local function flagState(value)
+	if value == true then
+		return 'yes'
+	end
+	if value == false then
+		return 'no'
+	end
+	return 'unknown'
 end
 
 --- If arg is true/false, honours the arg (editor override). Otherwise
@@ -228,9 +246,12 @@ local function buildSummaryRows(args, apiData, prices)
 	}
 end
 
---- Renders the summary rows as a label/value list. Always shows every
---- row (with "Unknown" as default) so the layout stays stable across
---- pages regardless of what data is available.
+--- Renders the summary rows as a grid of label/value cards. Each card
+--- has the label on the left and an empty value `<dd>` on the right
+--- styled as a 16×16 icon via `mask-image` in CSS. The aria-label on
+--- the value cell carries the human-readable state ("Yes" / "No" /
+--- "Unknown") for assistive tech. Always shows every row so the layout
+--- stays stable across pages regardless of what data is available.
 ---
 --- @param rows { label: string, value: boolean|nil }[]
 --- @return string
@@ -239,7 +260,11 @@ local function renderSummary(rows)
 	for _, row in ipairs(rows) do
 		local rowHtml = root:tag('div'):addClass('t-entity-availability-summary-row')
 		rowHtml:tag('dt'):addClass('t-entity-availability-summary-label'):wikitext(row.label)
-		rowHtml:tag('dd'):addClass('t-entity-availability-summary-value'):wikitext(formatFlag(row.value))
+		rowHtml
+			:tag('dd')
+			:addClass('t-entity-availability-summary-value')
+			:addClass('t-entity-availability-summary-value--' .. flagState(row.value))
+			:attr('aria-label', formatFlag(row.value))
 	end
 	return tostring(root)
 end

@@ -67,7 +67,7 @@
 
 .t-entity-availability-summary-item--no {
 	color: var(--color-subtle);
-    border-color: var(--border-color-subtle);
+	border-color: var(--border-color-subtle);
 }
 
 .t-entity-availability-summary-item--no .t-entity-availability-summary-value {
@@ -77,7 +77,7 @@
 .t-entity-availability-summary-item--unknown {
 	color: var(--color-warning);
 	background-color: var(--background-color-warning-subtle);
-    border-color: var(--border-color-warning);
+	border-color: var(--border-color-warning);
 }
 
 .t-entity-availability-summary-item--unknown .t-entity-availability-summary-value {

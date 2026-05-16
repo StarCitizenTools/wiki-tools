@@ -145,7 +145,7 @@ end
 ---
 --- @param value boolean|nil
 --- @return string
-local function formatAcquirabilityStatus(value)
+local function formatFlag(value)
 	if value == true then
 		return 'Yes'
 	end
@@ -161,7 +161,7 @@ end
 --- @param arg string|nil
 --- @param derived boolean|nil
 --- @return boolean|nil
-local function resolveAcquirability(arg, derived)
+local function resolveFlag(arg, derived)
 	local override = yesno(arg)
 	if override ~= nil then
 		return override
@@ -207,49 +207,47 @@ local function hasEntityTag(apiData, tagName)
 	return false
 end
 
---- Builds the ordered list of acquirability rows. "Buy" derives from UEX
---- shop data, "Loot"/"Pledge" from entity_tag_map, "Craft" from
---- apiData.is_craftable. All derived values can be overridden via
---- args.canBuy / args.canLoot / args.canPledge / args.canCraft. Rent is
---- editor-only because no API source currently reports it.
+--- Builds the ordered list of summary rows — one flag per acquisition
+--- method. "Buy" derives from UEX shop data, "Loot"/"Pledge" from
+--- entity_tag_map, "Craft" from apiData.is_craftable. All derived
+--- values can be overridden via args.canBuy / args.canLoot /
+--- args.canPledge / args.canCraft. Rent is editor-only because no API
+--- source currently reports it.
 ---
 --- @param args table
 --- @param apiData table
 --- @param prices table[]|nil uex_prices passed through from the API
 --- @return { label: string, value: boolean|nil }[]
-local function buildAcquirabilityRows(args, apiData, prices)
+local function buildSummaryRows(args, apiData, prices)
 	return {
-		{ label = 'Buy', value = resolveAcquirability(args.canBuy, inferCanBuy(prices)) },
+		{ label = 'Buy', value = resolveFlag(args.canBuy, inferCanBuy(prices)) },
 		{ label = 'Rent', value = yesno(args.canRent) },
-		{ label = 'Loot', value = resolveAcquirability(args.canLoot, hasEntityTag(apiData, 'CanGenerateAsLoot')) },
-		{ label = 'Pledge', value = resolveAcquirability(args.canPledge, hasEntityTag(apiData, 'PromotionalItem')) },
-		{ label = 'Craft', value = resolveAcquirability(args.canCraft, apiData.is_craftable) },
+		{ label = 'Loot', value = resolveFlag(args.canLoot, hasEntityTag(apiData, 'CanGenerateAsLoot')) },
+		{ label = 'Pledge', value = resolveFlag(args.canPledge, hasEntityTag(apiData, 'PromotionalItem')) },
+		{ label = 'Craft', value = resolveFlag(args.canCraft, apiData.is_craftable) },
 	}
 end
 
---- Renders the acquirability rows as a label/value list. Always shows
---- every row (with "Unknown" as default) so the layout stays stable
---- across pages regardless of what data is available.
+--- Renders the summary rows as a label/value list. Always shows every
+--- row (with "Unknown" as default) so the layout stays stable across
+--- pages regardless of what data is available.
 ---
 --- @param rows { label: string, value: boolean|nil }[]
 --- @return string
-local function renderAcquirabilitySummary(rows)
-	local root = mw.html.create('dl'):addClass('t-entity-availability-acquirability')
+local function renderSummary(rows)
+	local root = mw.html.create('dl'):addClass('t-entity-availability-summary')
 	for _, row in ipairs(rows) do
-		local rowHtml = root:tag('div'):addClass('t-entity-availability-acquirability-row')
-		rowHtml:tag('dt'):addClass('t-entity-availability-acquirability-label'):wikitext(row.label)
-		rowHtml
-			:tag('dd')
-			:addClass('t-entity-availability-acquirability-value')
-			:wikitext(formatAcquirabilityStatus(row.value))
+		local rowHtml = root:tag('div'):addClass('t-entity-availability-summary-row')
+		rowHtml:tag('dt'):addClass('t-entity-availability-summary-label'):wikitext(row.label)
+		rowHtml:tag('dd'):addClass('t-entity-availability-summary-value'):wikitext(formatFlag(row.value))
 	end
 	return tostring(root)
 end
 
 --- Main entry point. Renders:
----   1. Acquirability summary — a plain responsive grid of buy / rent /
----      loot / pledge / craft flags. No card wrapper because the grid
----      already reads as a scannable header above the first card.
+---   1. Summary — a plain responsive grid of buy / rent / loot /
+---      pledge / craft flags. No card wrapper because the grid already
+---      reads as a scannable header above the first card.
 ---   2. Shop availability (collapsible card) — UEX shop terminal prices,
 ---      or a static "no data" notice when UEX hasn't indexed the item.
 --- Future sibling cards (loot table, crafting recipes, etc.) can drop in
@@ -269,7 +267,7 @@ function p.main(frame)
 	local prices = result.apiData.uex_prices
 	local hasPrices = type(prices) == 'table' and #prices > 0
 
-	local acquirability = renderAcquirabilitySummary(buildAcquirabilityRows(args, result.apiData, prices))
+	local summary = renderSummary(buildSummaryRows(args, result.apiData, prices))
 
 	local shopFooter = 'Data from [https://uexcorp.space UEX Corp]'
 
@@ -280,7 +278,7 @@ function p.main(frame)
 		footer = shopFooter,
 	})
 
-	return styles .. acquirability .. shopCard
+	return styles .. summary .. shopCard
 end
 
 return p

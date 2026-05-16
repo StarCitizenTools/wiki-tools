@@ -1,4 +1,4 @@
-.t-entity-availability-acquirability {
+.t-entity-availability-summary {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
 	margin: var(--space-md) 0;
@@ -13,7 +13,7 @@
  * :first-child skips the leading cell; wrapped rows (rare at 80px min /
  * five cells) will show the divider at the left of the wrapped row.
  */
-.t-entity-availability-acquirability-row {
+.t-entity-availability-summary-row {
 	position: relative;
 	display: flex;
 	flex-direction: column;
@@ -25,7 +25,7 @@
 	text-align: center;
 }
 
-.t-entity-availability-acquirability-row:not(:first-child)::before {
+.t-entity-availability-summary-row:not(:first-child)::before {
 	content: '';
 	position: absolute;
 	top: var(--space-sm);
@@ -35,7 +35,7 @@
 	background: var(--border-color-subtle);
 }
 
-.t-entity-availability-acquirability-label {
+.t-entity-availability-summary-label {
 	color: var(--color-subtle);
 	font-size: var(--font-size-small);
 	line-height: var(--line-height-small);
@@ -43,7 +43,7 @@
 	margin: 0;
 }
 
-.t-entity-availability-acquirability-value {
+.t-entity-availability-summary-value {
 	color: var(--color-emphasized);
 	font-weight: var(--font-weight-medium);
 	margin: 0;

@@ -141,9 +141,10 @@ local function renderShopTerminalTable(prices)
 end
 
 --- true → "Yes", false → "No", nil → "Unknown". Module:Yesno already
---- collapses input variations to this three-state logic. Used as the
---- aria-label on the summary value cell — sighted readers see the
---- icon, assistive tech reads this text.
+--- collapses input variations to this three-state logic. Rendered as
+--- visually-hidden text inside the summary value cell — sighted
+--- readers see the icon, assistive tech / reader modes / translators
+--- read this text.
 ---
 --- @param value boolean|nil
 --- @return string
@@ -247,11 +248,17 @@ local function buildSummaryRows(args, apiData, prices)
 end
 
 --- Renders the summary rows as a grid of label/value cards. Each card
---- has the label on the left and an empty value `<dd>` on the right
---- styled as a 16×16 icon via `mask-image` in CSS. The aria-label on
---- the value cell carries the human-readable state ("Yes" / "No" /
---- "Unknown") for assistive tech. Always shows every row so the layout
---- stays stable across pages regardless of what data is available.
+--- has the label on the left and a value `<dd>` on the right styled as
+--- a 16×16 icon via `mask-image` in CSS. The state ("yes" / "no" /
+--- "unknown") is exposed twice for different consumers:
+---  * `data-state` on the `<dd>` is the canonical machine-readable
+---    target — scrapers and AI agents query `[data-state]` rather than
+---    parsing class modifiers.
+---  * A visually-hidden `<span>` inside the `<dd>` carries the
+---    human-readable text ("Yes" / "No" / "Unknown"). Screen readers
+---    announce it as the `<dd>`'s content; translation tools and reader
+---    modes pick it up too (both of which can ignore `aria-label`).
+--- Always shows every row so the layout stays stable across pages.
 ---
 --- @param rows { label: string, value: boolean|nil }[]
 --- @return string
@@ -260,11 +267,15 @@ local function renderSummary(rows)
 	for _, row in ipairs(rows) do
 		local rowHtml = root:tag('div'):addClass('t-entity-availability-summary-row')
 		rowHtml:tag('dt'):addClass('t-entity-availability-summary-label'):wikitext(row.label)
+		local state = flagState(row.value)
 		rowHtml
 			:tag('dd')
 			:addClass('t-entity-availability-summary-value')
-			:addClass('t-entity-availability-summary-value--' .. flagState(row.value))
-			:attr('aria-label', formatFlag(row.value))
+			:addClass('t-entity-availability-summary-value--' .. state)
+			:attr('data-state', state)
+			:tag('span')
+			:addClass('t-entity-availability-summary-value-text')
+			:wikitext(formatFlag(row.value))
 	end
 	return tostring(root)
 end

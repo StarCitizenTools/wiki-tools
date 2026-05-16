@@ -26,11 +26,20 @@ local typeMapping = {
 --- Default module path when the API type is not found in typeMapping.
 local defaultModule = 'Entity/Item'
 
---- Resolves the leaf module from the API type string.
+--- Resolves the leaf module from the API type string and response.
+---
+--- Vehicles dispatch via the `is_vehicle` boolean rather than the type
+--- string — vehicle "type" in the API is the role taxonomy ("multi",
+--- "freight", …), not a top-level entity kind, so it can't be added to
+--- typeMapping the same way item subtypes are.
 ---
 --- @param apiType string|nil The type string from the API response
+--- @param apiData table|nil The merged API response (for non-string dispatch signals)
 --- @return table The resolved leaf module
-local function resolveLeafModule(apiType)
+local function resolveLeafModule(apiType, apiData)
+	if apiData and apiData.is_vehicle then
+		return require('Module:Entity/Vehicle')
+	end
 	local modulePath = defaultModule
 	if apiType and typeMapping[apiType] then
 		modulePath = typeMapping[apiType]
@@ -115,10 +124,16 @@ local function fetchApiData(args)
 	local fetchedEndpoints = {}
 	local hasApiError = false
 
-	-- Preliminary chain: Base + Item since Item defines the shared endpoint.
-	-- Coupled to the Item hierarchy — Vehicle will need its own preliminary chain.
+	-- Preliminary chain hits both the items and vehicles endpoints in
+	-- parallel so a UUID can resolve regardless of which kind it is. Each
+	-- endpoint 404s for the other kind, so only the right one contributes
+	-- data; the Apiunto cache absorbs the cost of the failing fetch.
 	if args.uuid then
-		local prelimChain = { require('Module:Entity/Base'), require('Module:Entity/Item') }
+		local prelimChain = {
+			require('Module:Entity/Base'),
+			require('Module:Entity/Item'),
+			require('Module:Entity/Vehicle'),
+		}
 		local prelimConfigs = util.collectApiConfigs(prelimChain)
 		for _, config in ipairs(prelimConfigs) do
 			fetchedEndpoints[config.endpoint] = true
@@ -131,7 +146,7 @@ local function fetchApiData(args)
 	end
 
 	local apiType = args.type or apiData.type
-	local chain = util.buildChain(resolveLeafModule(apiType))
+	local chain = util.buildChain(resolveLeafModule(apiType, apiData))
 
 	local additionalConfigs = {}
 	for _, mod in ipairs(chain) do

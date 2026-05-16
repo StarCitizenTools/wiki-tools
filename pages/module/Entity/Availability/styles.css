@@ -6,7 +6,7 @@
 	padding: 0;
 }
 
-.t-entity-availability-summary-row {
+.t-entity-availability-summary-item {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -27,11 +27,11 @@
 }
 
 /*
- * The value cell is purely visual — the actual yes/no/unknown state is
- * announced to assistive tech via aria-label on the element. The icon
+ * The value cell is purely visual — its yes/no/unknown text lives in
+ * a visually-hidden `<span>` child (see `-value-text` below). The icon
  * is a mask-image filled by `background-color: currentColor`, with the
- * state-specific color set on the modifier class so the same icon
- * template recolors automatically.
+ * state-specific color set on the parent item so the same value
+ * element recolors automatically through CSS inheritance.
  *
  * Codex icons (CdxIconSuccess / CdxIconClear / CdxIconHelpNotice) are
  * uploaded as SVG files on the wiki; the `/Special:FilePath/…` redirect
@@ -50,18 +50,33 @@
 	mask-position: center;
 }
 
-.t-entity-availability-summary-value--yes {
+/*
+ * State modifiers on the item. Color cascades to the value via
+ * `currentColor` (the label has its own explicit color so it stays
+ * neutral); the mask-image is set on the descendant value element so
+ * the right Codex icon is picked up by the same selector.
+ */
+.t-entity-availability-summary-item--yes {
 	color: var(--color-success);
+}
+
+.t-entity-availability-summary-item--yes .t-entity-availability-summary-value {
 	mask-image: url(/Special:FilePath/CdxIconSuccess.svg);
 }
 
-.t-entity-availability-summary-value--no {
+.t-entity-availability-summary-item--no {
 	color: var(--color-destructive);
+}
+
+.t-entity-availability-summary-item--no .t-entity-availability-summary-value {
 	mask-image: url(/Special:FilePath/CdxIconClear.svg);
 }
 
-.t-entity-availability-summary-value--unknown {
+.t-entity-availability-summary-item--unknown {
 	color: var(--color-subtle);
+}
+
+.t-entity-availability-summary-item--unknown .t-entity-availability-summary-value {
 	mask-image: url(/Special:FilePath/CdxIconHelpNotice.svg);
 }
 
@@ -83,4 +98,3 @@
 	white-space: nowrap;
 	border: 0;
 }
-

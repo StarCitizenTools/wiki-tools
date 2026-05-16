@@ -159,8 +159,11 @@ local function formatFlag(value)
 end
 
 --- Maps the flag value to a state slug used as the BEM modifier
---- suffix on the value cell (`…-value--yes` etc.). The CSS picks the
---- right Codex icon and color from this class.
+--- suffix on the summary item (`…-item--yes` etc.) and as the
+--- canonical `data-state` attribute. CSS uses a descendant selector
+--- to set the value icon and color from the item's state, so any
+--- future card-level treatment (background tint, etc.) can target the
+--- item directly without reaching in.
 ---
 --- @param value boolean|nil
 --- @return string
@@ -247,13 +250,15 @@ local function buildSummaryRows(args, apiData, prices)
 	}
 end
 
---- Renders the summary rows as a grid of label/value cards. Each card
+--- Renders the summary rows as a grid of label/value items. Each item
 --- has the label on the left and a value `<dd>` on the right styled as
 --- a 16×16 icon via `mask-image` in CSS. The state ("yes" / "no" /
---- "unknown") is exposed twice for different consumers:
----  * `data-state` on the `<dd>` is the canonical machine-readable
----    target — scrapers and AI agents query `[data-state]` rather than
----    parsing class modifiers.
+--- "unknown") lives on the item element (the dt/dd pair's wrapper)
+--- rather than the value cell, so card-level treatment (background
+--- tint, border accent, etc.) can target the item directly:
+---  * `data-state` on the item `<div>` is the canonical
+---    machine-readable target — scrapers and AI agents query
+---    `[data-state]` rather than parsing class modifiers.
 ---  * A visually-hidden `<span>` inside the `<dd>` carries the
 ---    human-readable text ("Yes" / "No" / "Unknown"). Screen readers
 ---    announce it as the `<dd>`'s content; translation tools and reader
@@ -265,14 +270,15 @@ end
 local function renderSummary(rows)
 	local root = mw.html.create('dl'):addClass('t-entity-availability-summary')
 	for _, row in ipairs(rows) do
-		local rowHtml = root:tag('div'):addClass('t-entity-availability-summary-row')
-		rowHtml:tag('dt'):addClass('t-entity-availability-summary-label'):wikitext(row.label)
 		local state = flagState(row.value)
-		rowHtml
+		local itemHtml = root:tag('div')
+			:addClass('t-entity-availability-summary-item')
+			:addClass('t-entity-availability-summary-item--' .. state)
+			:attr('data-state', state)
+		itemHtml:tag('dt'):addClass('t-entity-availability-summary-label'):wikitext(row.label)
+		itemHtml
 			:tag('dd')
 			:addClass('t-entity-availability-summary-value')
-			:addClass('t-entity-availability-summary-value--' .. state)
-			:attr('data-state', state)
 			:tag('span')
 			:addClass('t-entity-availability-summary-value-text')
 			:wikitext(formatFlag(row.value))

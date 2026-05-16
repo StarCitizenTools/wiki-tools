@@ -382,10 +382,20 @@ local function buildItemSummaryRows(args, apiData)
 		icon = '🔨',
 		value = resolveFlag(args.canCraft, apiData.is_craftable),
 	})
+	-- Pledge derivation covers two tag families:
+	--   PromotionalItem — generic pledge-store items
+	--   SubscriberFlair — subscriber-exclusive monthly flair (only
+	--                     acquirable through pledge subscriptions)
+	-- Either tag makes the item pledge-acquirable. `or` works correctly
+	-- because both calls inspect the same entity_tag_map — they both
+	-- return nil together when the map is missing.
 	table.insert(rows, {
 		label = 'Pledge',
 		icon = '💵',
-		value = resolveFlag(args.canPledge, hasEntityTag(apiData, 'PromotionalItem')),
+		value = resolveFlag(
+			args.canPledge,
+			hasEntityTag(apiData, 'PromotionalItem') or hasEntityTag(apiData, 'SubscriberFlair')
+		),
 	})
 
 	return rows

@@ -390,7 +390,7 @@ function p.main(frame)
 	local shopFooter = 'Data from [https://uexcorp.space UEX Corp]'
 
 	local shopCard = collapsibleCard.render({
-		title = 'Shop availability',
+		title = '<span aria-hidden="true">🛒</span> Shops',
 		description = hasPrices and buildShopTerminalsDescription(prices) or 'No shop data in UEX',
 		content = hasPrices and renderShopTerminalTable(prices) or nil,
 		footer = shopFooter,

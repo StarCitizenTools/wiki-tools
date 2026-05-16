@@ -109,13 +109,47 @@ local function buildShopTerminalsDescription(prices)
 	return table.concat(parts, ' · ')
 end
 
+--- Wikilink to the parent star system, e.g. `[[Stanton system|Stanton]]`.
+--- Falls back to `-` when the API didn't enrich the entry with a
+--- starmap_location (older terminals haven't been mapped yet).
+---
+--- @param entry table
+--- @return string
+local function formatSystemCell(entry)
+	local loc = entry.starmap_location
+	if type(loc) == 'table' and type(loc.star_system_name) == 'string' and loc.star_system_name ~= '' then
+		local system = loc.star_system_name
+		return '[[' .. system .. ' system|' .. system .. ']]'
+	end
+	return '-'
+end
+
+--- Wraps the terminal name in a wikilink to its parent location (e.g.
+--- "Juice Bar - Seraphim Station" → `[[Seraphim Station|Juice Bar - Seraphim Station]]`).
+--- The link target is `starmap_location.name`; most of those names map
+--- directly to wiki pages, and red links act as a polite invitation to
+--- create them. When starmap_location is missing entirely, falls back
+--- to the plain terminal name.
+---
+--- @param entry table
+--- @return string
+local function formatLocationCell(entry)
+	local terminalName = entry.terminal_name or '-'
+	local loc = entry.starmap_location
+	if type(loc) == 'table' and type(loc.name) == 'string' and loc.name ~= '' then
+		return '[[' .. loc.name .. '|' .. terminalName .. ']]'
+	end
+	return terminalName
+end
+
 --- @param prices table[]
 --- @return string
 local function renderShopTerminalTable(prices)
 	local rows = {}
 	for _, entry in ipairs(prices) do
 		table.insert(rows, {
-			entry.terminal_name,
+			formatSystemCell(entry),
+			formatLocationCell(entry),
 			formatPrice(entry.price_buy),
 			formatPrice(entry.price_sell),
 			formatDate(entry.date_updated),
@@ -127,6 +161,7 @@ local function renderShopTerminalTable(prices)
 		hideCaption = true,
 		class = 'wikitable--fluid',
 		columns = {
+			{ id = 'system', label = 'System', textAlign = 'start' },
 			{ id = 'location', label = 'Location', textAlign = 'start' },
 			{ id = 'buy', label = 'Buy', textAlign = 'number' },
 			{ id = 'sell', label = 'Sell', textAlign = 'number' },

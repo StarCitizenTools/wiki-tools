@@ -20,7 +20,7 @@
 .t-entity-availability-summary-label {
 	display: flex;
 	align-items: center;
-	gap: var(--space-xs);
+	gap: var(--space-xxs);
 	margin: 0;
 	color: inherit;
 	font-size: var(--font-size-small);

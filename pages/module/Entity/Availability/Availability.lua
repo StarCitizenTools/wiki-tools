@@ -150,15 +150,24 @@ end
 --- create them. When starmap_location is missing entirely, falls back
 --- to the plain terminal name.
 ---
+--- Gateway stations get the system appended as a disambiguator
+--- ("Stanton Gateway" → "Stanton Gateway (Pyro)") because their bare
+--- name collides with the destination system's name on the wiki. The
+--- visible cell text stays the bare terminal name.
+---
 --- @param entry table
 --- @return string
 local function formatLocationCell(entry)
 	local terminalName = entry.terminal_name or '-'
 	local loc = entry.starmap_location
-	if type(loc) == 'table' and type(loc.name) == 'string' and loc.name ~= '' then
-		return '[[' .. loc.name .. '|' .. terminalName .. ']]'
+	if type(loc) ~= 'table' or type(loc.name) ~= 'string' or loc.name == '' then
+		return terminalName
 	end
-	return terminalName
+	local linkTarget = loc.name
+	if linkTarget:match(' Gateway$') and type(loc.star_system_name) == 'string' and loc.star_system_name ~= '' then
+		linkTarget = linkTarget .. ' (' .. loc.star_system_name .. ')'
+	end
+	return '[[' .. linkTarget .. '|' .. terminalName .. ']]'
 end
 
 --- @param prices table[]

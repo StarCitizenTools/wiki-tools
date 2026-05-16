@@ -44,6 +44,21 @@ local function formatDate(isoDate)
 	return tostring(mw.html.create('time'):attr('datetime', isoDate):wikitext(isoDate:sub(1, 10)))
 end
 
+--- Trims the full UEX `game_version` ("4.7.2-LIVE.11674325") down to
+--- just the marketing version ("4.7.2"). The `-LIVE.build` suffix is
+--- internal CIG release metadata that doesn't help a player judge
+--- whether the price is current — knowing it was reported in 4.7.2 is
+--- enough context.
+---
+--- @param version string|nil
+--- @return string
+local function formatVersion(version)
+	if type(version) ~= 'string' or version == '' then
+		return '-'
+	end
+	return version:match('^[^-]+') or '-'
+end
+
 --- Min and max of non-zero numeric entries for `key`. Skips zeros because
 --- UEX uses 0 to signal "not sold here" — including them would collapse
 --- the minimum to 0 and misrepresent the actual price players see.
@@ -157,6 +172,7 @@ local function renderShopTerminalTable(prices)
 			formatPrice(entry.price_buy),
 			formatPrice(entry.price_sell),
 			formatDate(entry.date_updated),
+			formatVersion(entry.game_version),
 		})
 	end
 
@@ -170,6 +186,7 @@ local function renderShopTerminalTable(prices)
 			{ id = 'buy', label = 'Buy', textAlign = 'number' },
 			{ id = 'sell', label = 'Sell', textAlign = 'number' },
 			{ id = 'updated', label = 'Updated', textAlign = 'end' },
+			{ id = 'version', label = 'Version', textAlign = 'end' },
 		},
 		data = rows,
 		-- UEX prices are player-reported, so sort by freshness (newest first).

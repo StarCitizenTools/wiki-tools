@@ -13,8 +13,12 @@ local yesno = require('Module:Yesno')
 
 local p = {}
 
+local lang = mw.language.getContentLanguage()
+
 --- Zero prices render as `-` (UEX uses 0 rather than null for "not sold
---- here"). Returns the raw number otherwise.
+--- here"). Returns the locale-grouped number otherwise (e.g.
+--- 123456 → "123,456"). MediaWiki's tablesorter parses grouped
+--- numbers natively, so the table sort stays numerically correct.
 ---
 --- @param price number|nil
 --- @return string
@@ -22,7 +26,7 @@ local function formatPrice(price)
 	if not price or price == 0 then
 		return '-'
 	end
-	return tostring(price)
+	return lang:formatNum(price)
 end
 
 --- Wraps the Apiunto ISO 8601 timestamp in a <time> element. The visible
@@ -76,9 +80,9 @@ local function formatPriceRange(min, max)
 		return nil
 	end
 	if min == max then
-		return tostring(min) .. ' aUEC'
+		return lang:formatNum(min) .. ' aUEC'
 	end
-	return tostring(min) .. '–' .. tostring(max) .. ' aUEC'
+	return lang:formatNum(min) .. '–' .. lang:formatNum(max) .. ' aUEC'
 end
 
 --- Builds the card's description line: "N locations · <prices>". Format

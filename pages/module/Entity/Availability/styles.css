@@ -18,11 +18,26 @@
 }
 
 .t-entity-availability-summary-label {
+	display: flex;
+	align-items: center;
+	gap: var(--space-xs);
 	margin: 0;
 	color: inherit;
 	font-size: var(--font-size-small);
 	line-height: var(--line-height-small);
 	font-weight: var(--font-weight-medium);
+}
+
+/*
+ * Decorative category glyph rendered before the label text. Emoji
+ * for now — when first-party icons exist we can swap to mask-image
+ * the same way the value cell does. `aria-hidden` on the span keeps
+ * screen readers from double-announcing it alongside the label.
+ */
+.t-entity-availability-summary-icon {
+	flex-shrink: 0;
+	font-size: var(--font-size-medium);
+	line-height: 1;
 }
 
 /*

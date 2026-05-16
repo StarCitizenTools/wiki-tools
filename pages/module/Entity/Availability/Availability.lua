@@ -236,23 +236,36 @@ end
 --- args.canPledge / args.canCraft. Rent is editor-only because no API
 --- source currently reports it.
 ---
+--- The `icon` field is a category-level decorative glyph (emoji for
+--- now — no Codex icons feel right for these specific concepts). Each
+--- card renders it before the label; `aria-hidden` keeps screen
+--- readers from announcing it on top of the already-clear label text.
+---
 --- @param args table
 --- @param apiData table
 --- @param prices table[]|nil uex_prices passed through from the API
---- @return { label: string, value: boolean|nil }[]
+--- @return { label: string, icon: string, value: boolean|nil }[]
 local function buildSummaryRows(args, apiData, prices)
 	return {
-		{ label = 'Buy', value = resolveFlag(args.canBuy, inferCanBuy(prices)) },
-		{ label = 'Rent', value = yesno(args.canRent) },
-		{ label = 'Loot', value = resolveFlag(args.canLoot, hasEntityTag(apiData, 'CanGenerateAsLoot')) },
-		{ label = 'Pledge', value = resolveFlag(args.canPledge, hasEntityTag(apiData, 'PromotionalItem')) },
-		{ label = 'Craft', value = resolveFlag(args.canCraft, apiData.is_craftable) },
+		{ label = 'Buy', icon = '🛒', value = resolveFlag(args.canBuy, inferCanBuy(prices)) },
+		{ label = 'Rent', icon = '⏳', value = yesno(args.canRent) },
+		{
+			label = 'Loot',
+			icon = '📦',
+			value = resolveFlag(args.canLoot, hasEntityTag(apiData, 'CanGenerateAsLoot')),
+		},
+		{
+			label = 'Pledge',
+			icon = '💵',
+			value = resolveFlag(args.canPledge, hasEntityTag(apiData, 'PromotionalItem')),
+		},
+		{ label = 'Craft', icon = '🔨', value = resolveFlag(args.canCraft, apiData.is_craftable) },
 	}
 end
 
 --- Renders the summary rows as a grid of label/value items. Each item
---- has the label on the left and a value `<dd>` on the right styled as
---- a 16×16 icon via `mask-image` in CSS. The state ("yes" / "no" /
+--- has a category icon + label on the left and a value `<dd>` on the
+--- right styled as a 16×16 mask-image icon. The state ("yes" / "no" /
 --- "unknown") lives on the item element (the dt/dd pair's wrapper)
 --- rather than the value cell, so card-level treatment (background
 --- tint, border accent, etc.) can target the item directly:
@@ -263,9 +276,11 @@ end
 ---    human-readable text ("Yes" / "No" / "Unknown"). Screen readers
 ---    announce it as the `<dd>`'s content; translation tools and reader
 ---    modes pick it up too (both of which can ignore `aria-label`).
+--- The category icon span carries `aria-hidden="true"` so screen
+--- readers don't double-announce it on top of the visible label text.
 --- Always shows every row so the layout stays stable across pages.
 ---
---- @param rows { label: string, value: boolean|nil }[]
+--- @param rows { label: string, icon: string|nil, value: boolean|nil }[]
 --- @return string
 local function renderSummary(rows)
 	local root = mw.html.create('dl'):addClass('t-entity-availability-summary')
@@ -275,7 +290,15 @@ local function renderSummary(rows)
 			:addClass('t-entity-availability-summary-item')
 			:addClass('t-entity-availability-summary-item--' .. state)
 			:attr('data-state', state)
-		itemHtml:tag('dt'):addClass('t-entity-availability-summary-label'):wikitext(row.label)
+		local labelHtml = itemHtml:tag('dt'):addClass('t-entity-availability-summary-label')
+		if row.icon and row.icon ~= '' then
+			labelHtml
+				:tag('span')
+				:addClass('t-entity-availability-summary-icon')
+				:attr('aria-hidden', 'true')
+				:wikitext(row.icon)
+		end
+		labelHtml:wikitext(row.label)
 		itemHtml
 			:tag('dd')
 			:addClass('t-entity-availability-summary-value')

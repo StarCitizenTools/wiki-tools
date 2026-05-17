@@ -27,4 +27,14 @@ function p.getApiConfigs()
 	}
 end
 
+--- Positive identification: vehicles set `is_vehicle = true` at the
+--- top level of the API response. Items don't have this field.
+--- Safe on nil / empty / malformed apiData (returns false, never throws).
+---
+--- @param apiData table|nil
+--- @return boolean
+function p.matches(apiData)
+	return apiData ~= nil and apiData.is_vehicle == true
+end
+
 return p

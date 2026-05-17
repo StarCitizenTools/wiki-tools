@@ -27,14 +27,19 @@ function p.getApiConfigs()
 	}
 end
 
---- Positive identification: vehicles set `is_vehicle = true` at the
---- top level of the API response. Items don't have this field.
+--- Positive identification: vehicles always carry the `is_vehicle`
+--- key at the top level alongside `is_spaceship` and `is_gravlev`.
+--- The value is the family flag (`is_vehicle=true` for ground vehicles,
+--- `is_spaceship=true` for spaceships, `is_gravlev=true` for hover
+--- bikes — a Cutlass Black has `is_vehicle=false, is_spaceship=true`),
+--- so we check **presence** rather than value. Items don't have any
+--- of these keys.
 --- Safe on nil / empty / malformed apiData (returns false, never throws).
 ---
 --- @param apiData table|nil
 --- @return boolean
 function p.matches(apiData)
-	return apiData ~= nil and apiData.is_vehicle == true
+	return apiData ~= nil and apiData.is_vehicle ~= nil
 end
 
 return p

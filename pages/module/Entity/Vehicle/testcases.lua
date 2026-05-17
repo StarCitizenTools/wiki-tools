@@ -21,12 +21,16 @@ function suite:testMatchesUuidWithoutIsVehicleReturnsFalse()
 	self:assertEquals(false, Vehicle.matches({ uuid = 'abc-123' }))
 end
 
-function suite:testMatchesVehicleShapedDataReturnsTrue()
+function suite:testMatchesGroundVehicleReturnsTrue()
 	self:assertEquals(true, Vehicle.matches({ uuid = 'abc-123', is_vehicle = true }))
 end
 
-function suite:testMatchesIsVehicleFalseReturnsFalse()
-	self:assertEquals(false, Vehicle.matches({ uuid = 'abc-123', is_vehicle = false }))
+-- is_vehicle is a family discriminator (ground vehicle vs spaceship vs
+-- gravlev), not a generic vehicle flag. Spaceships carry is_vehicle=false
+-- but still belong to the vehicle kind — presence of the key is what
+-- discriminates a vehicle response from an item response.
+function suite:testMatchesSpaceshipReturnsTrue()
+	self:assertEquals(true, Vehicle.matches({ uuid = 'abc-123', is_vehicle = false, is_spaceship = true }))
 end
 
 return suite

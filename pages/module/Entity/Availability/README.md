@@ -1,10 +1,12 @@
 # Module:Entity/Availability
 
-Renders an entity's acquisition summary and shop terminal data. Sibling renderer parallel to [Module:Entity/Related](https://starcitizen.tools/Module:Entity/Related) and [Module:Entity/Description](https://starcitizen.tools/Module:Entity/Description) — consumes [Module:Entity/Data](https://starcitizen.tools/Module:Entity/Data) so it shares Apiunto's cache with the Entity infobox and any other Entity-family template on the page.
+Renders an entity's acquisition summary and UEX terminal data for items and vehicles. Sibling renderer parallel to [Module:Entity/Related](https://starcitizen.tools/Module:Entity/Related) and [Module:Entity/Description](https://starcitizen.tools/Module:Entity/Description) — consumes [Module:Entity/Data](https://starcitizen.tools/Module:Entity/Data) so it shares Apiunto's cache with the Entity infobox and any other Entity-family template on the page.
 
-Two sections, top-to-bottom: a 5-card **summary grid** showing buy/rent/loot/craft/pledge flags, then a collapsible **🛒 Shops** card with UEX-sourced terminal prices. The summary grid always renders so the page layout stays stable; the shop card falls back to a static "No shop data in UEX" header when UEX has no prices for the item.
+The summary grid is always rendered (layout stays stable across pages); the detail card(s) below it fall back to a static "No … data in UEX" header when UEX has no prices for the entity.
 
-Items only today — only the items endpoint returns `uex_prices`. The summary grid renders with API-derived flags where possible and `Unknown` otherwise.
+## Kind dispatch
+
+`Module:Entity/Data` resolves the entity kind through its kind registry and surfaces a kind-shaped `apiData` to this module. Availability detects the kind directly (`isVehicleApiData`) by sniffing the `uex_prices` shape — array (items, with `price_buy`/`price_sell` per terminal row) versus dict with `purchase` and `rental` buckets (vehicles, single-sided markets) — falling back to `apiData.msrp` for vehicles that have no UEX coverage yet. Item rendering and vehicle rendering then take separate code paths.
 
 ## Usage
 
@@ -23,50 +25,77 @@ The `uuid` parameter falls back to the SMW UUID set by `Template:Entity` on a pr
 {{Entity/Availability}}
 ```
 
+The same invocation works for vehicles — kind dispatch is transparent.
+
 ## API
 
 ### `p.main( frame )`
 
 Entry point invoked from `Template:Entity/Availability`.
 
-Resolves the UUID from `frame.args.uuid`, the parent frame, or SMW (in that order), fetches entity data via `Module:Entity/Data`, then renders:
+Resolves the UUID, fetches entity data via `Module:Entity/Data`, then branches on kind:
 
-1. **Summary grid** — a `<dl>` of 5 `<div>` items, each a label/value pair. Each item gets a `data-state` attribute (`yes`/`no`/`unknown`) for machine-readable consumption and a BEM-style class modifier (`…-item--yes` etc.) for state-coloured visual treatment. The value cell uses a Codex SVG (`CdxIconSuccess` / `CdxIconClear` / `CdxIconHelpNotice`) as a `mask-image`, recoloured via `currentColor`, with a visually-hidden `<span>` carrying the text "Yes" / "No" / "Unknown" for screen readers, translation tools, and reader modes.
-2. **🛒 Shops card** — a [CollapsibleCard](https://starcitizen.tools/Module:CollapsibleCard) rendering. The header shows a subtitle (`N locations · Buy <range> · Sell <range>`); the body is a sortable [TableLua](https://starcitizen.tools/Module:TableLua) wikitable; the footer credits UEX.
+- **Item path** — 4-card summary (Buy / Loot / Craft / Pledge; Rent inserted only when the editor sets `canRent` explicitly) + one **🛒 Shops** detail card with Buy and Sell columns side by side.
+- **Vehicle path** — 3-card summary (Buy / Rent / Pledge — Loot and Craft are omitted because the concepts don't apply to vehicles in the live game) + two detail cards: **🛒 Shops** (purchase terminals, Buy column) and **⏳ Rentals** (rental terminals, Rent column).
+
+Both paths share the same summary HTML structure: a `<dl>` of `<div>` items, each carrying a `data-state` attribute (`yes`/`no`/`unknown`) for machine-readable consumption and a BEM-style class modifier (`…-item--yes` etc.) for state-coloured visual treatment. The value cell uses a Codex SVG (`CdxIconSuccess` / `CdxIconClear` / `CdxIconHelpNotice`) as a `mask-image`, recoloured via `currentColor`, with a visually-hidden `<span>` carrying the text "Yes" / "No" / "Unknown" for screen readers, translation tools, and reader modes.
+
+Both paths share the same terminal-table renderer ([TableLua](https://starcitizen.tools/Module:TableLua)) and collapsible card wrapper ([CollapsibleCard](https://starcitizen.tools/Module:CollapsibleCard)). Columns shared across kinds: System, Location, Updated, Version. Each kind's detail card supplies its own price column spec (`Buy`/`Sell` for items, just `Buy` for vehicle purchase, just `Rent` for vehicle rental).
 
 ## Data
 
-Reads two fields from the merged Apiunto response:
+### Items
+
+Read from the merged Apiunto response:
 
 | Field | Description |
 |---|---|
-| `uex_prices` | Array of UEX shop terminal entries. Drives the Shops table. Each entry has `terminal_name`, `starmap_location` (with `name` and `star_system_name`), `price_buy`, `price_sell`, `date_updated` (ISO 8601), and `game_version`. Missing or empty → "No shop data in UEX" notice. |
-| `entity_tag_map` | Array of `{ uuid, name }` entries. Scanned for `CanGenerateAsLoot` (drives Loot) and `PromotionalItem` (drives Pledge). |
+| `uex_prices` | **Array** of UEX shop terminal entries. Each entry has `terminal_name`, `starmap_location` (with `name` and `star_system_name`), `price_buy`, `price_sell`, `date_updated` (ISO 8601), and `game_version`. Missing or empty → "No shop data in UEX" notice. |
+| `entity_tag_map` | Array of `{ uuid, name }` entries. Scanned for `CanGenerateAsLoot` (drives Loot), `PromotionalItem` and `SubscriberFlair` (either drives Pledge — subscriber-exclusive monthly flair is pledge-only). |
 | `is_craftable` | Boolean. Drives the Craft summary card. |
 
-The Buy summary card derives from `uex_prices` directly: any present buy price → Yes, all-zero buy prices with rows present → No, missing `uex_prices` entirely → Unknown. UEX uses `0` rather than null for "not sold here", so the price-range computation also filters zeros to avoid collapsing the minimum.
+Buy derives from `uex_prices` directly: any present non-zero buy price → Yes, all-zero buy prices with rows present → No, missing `uex_prices` → Unknown.
+
+### Vehicles
+
+Read from the merged Apiunto response:
+
+| Field | Description |
+|---|---|
+| `uex_prices` | **Dict** with two buckets: `purchase` (array of terminals with `price_buy`) and `rental` (array of terminals with `price_rent`). Either bucket may be empty independently. Vehicles never have a Sell side. |
+| `msrp` | Top-level number (USD pledge price). Presence drives the Pledge summary card. |
+
+Buy derives from `uex_prices.purchase`, Rent from `uex_prices.rental` — same inference logic as items, just on the appropriate sub-array. Pledge is `apiData.msrp ~= nil`.
+
+### Shared
+
+UEX uses `0` rather than null for "not sold here", so the price-range computation filters zeros to avoid collapsing the minimum.
 
 ### Editor overrides
 
 Every derived summary flag can be overridden by an editor-supplied wikitext argument:
 
-| Argument | Card | Default source |
-|---|---|---|
-| `canBuy` | Buy | Derived from `uex_prices` |
-| `canRent` | Rent | None — card is hidden unless this is set (items aren't structurally rentable; vehicles will default-on once `Module:Entity/Vehicle` lands) |
-| `canLoot` | Loot | Derived from the `CanGenerateAsLoot` entity tag |
-| `canCraft` | Craft | Derived from `is_craftable` |
-| `canPledge` | Pledge | Derived from the `PromotionalItem` entity tag |
+| Argument | Card | Item default | Vehicle default |
+|---|---|---|---|
+| `canBuy` | Buy | Derived from `uex_prices` | Derived from `uex_prices.purchase` |
+| `canRent` | Rent | None — card is hidden unless this is set (items aren't structurally rentable) | Derived from `uex_prices.rental` |
+| `canLoot` | Loot | Derived from the `CanGenerateAsLoot` entity tag | (card omitted for vehicles) |
+| `canCraft` | Craft | Derived from `is_craftable` | (card omitted for vehicles) |
+| `canPledge` | Pledge | Derived from the `PromotionalItem` or `SubscriberFlair` entity tag | Derived from `msrp ~= nil` |
 
-Override values pass through [Module:Yesno](https://starcitizen.tools/Module:Yesno), so any of `yes`/`no`/`1`/`0`/`true`/`false` etc. are accepted. Setting `canRent=no` explicitly will render the card with a "No" state — only `nil`/missing hides the card.
+Override values pass through [Module:Yesno](https://starcitizen.tools/Module:Yesno), so any of `yes`/`no`/`1`/`0`/`true`/`false` etc. are accepted. Setting `canRent=no` explicitly on an item will render the card with a "No" state — only `nil`/missing hides it.
 
 ### Game version formatting
 
 UEX's `game_version` strings look like `4.7.2-LIVE.11674325`. The trailing `-LIVE.<build>` is internal CIG release metadata that doesn't help a player judge data freshness, so the column shows just the marketing portion (`4.7.2`) extracted with the `^[^-]+` Lua pattern.
 
+### Location wikilinks
+
+Both kinds wrap the terminal name in a wikilink to the parent location (`starmap_location.name`). Gateway stations get the destination system appended as a disambiguator (`Stanton Gateway` → `Stanton Gateway (Pyro)`) because their bare names collide with the destination system's wiki page.
+
 ## CSS hooks
 
-The module ships its own TemplateStyles in `Module:Entity/Availability/styles.css` — only the summary grid is styled here; the shop card delegates to [Module:CollapsibleCard](https://starcitizen.tools/Module:CollapsibleCard) and the table to [Module:TableLua](https://starcitizen.tools/Module:TableLua).
+The module ships its own TemplateStyles in `Module:Entity/Availability/styles.css` — only the summary grid is styled here; the detail cards delegate to [Module:CollapsibleCard](https://starcitizen.tools/Module:CollapsibleCard) and the tables to [Module:TableLua](https://starcitizen.tools/Module:TableLua).
 
 | Class | Purpose |
 |---|---|
@@ -83,6 +112,6 @@ State styling lives on the item modifiers: Yes uses success-subtle background an
 
 ```
 Entity/Availability/
-├── Availability.lua    # Data shaping, summary grid, shop card composition
+├── Availability.lua    # Data shaping, summary grid, item/vehicle detail composition
 └── styles.css          # Summary grid styling (state colors, mask-image icons)
 ```

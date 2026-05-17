@@ -12,6 +12,18 @@ local p = {}
 --- @type string
 p.parent = 'Entity/Base'
 
+--- Maps API type strings to item subtype module paths. Lives in Item
+--- (not in Data.lua) because subtype dispatch is an item-internal
+--- concern — Data.lua only needs to know "ask the kind to resolve its
+--- own subtype". Add new entries here when creating new item subtypes.
+local itemSubtypeMapping = {
+	Food = 'Entity/Item/Food',
+	Drink = 'Entity/Item/Drink',
+	WeaponPersonal = 'Entity/Item/WeaponPersonal',
+	-- WeaponGun = 'Entity/Item/WeaponGun',
+	-- QuantumDrive = 'Entity/Item/QuantumDrive',
+}
+
 --- Formats a short description using the item-family template:
 --- "[<prefix>] <type> [by <manufacturer>]". Subtypes (Food, Drink, etc.) can
 --- call this to compose a description that matches the item aesthetic, or
@@ -45,6 +57,35 @@ function p.getApiConfigs()
 			responseDataPath = 'data',
 		},
 	}
+end
+
+--- Positive identification for items. Items don't carry an explicit
+--- type-kind flag at the top level the way vehicles carry
+--- `is_vehicle`, so we identify by "the items endpoint returned a
+--- record with a uuid." This is safe because Apiunto doesn't follow
+--- the items→vehicles 302 redirect, so a vehicle UUID via the items
+--- endpoint returns empty/nil data.
+---
+--- @param apiData table|nil
+--- @return boolean
+function p.matches(apiData)
+	return apiData ~= nil and apiData.uuid ~= nil
+end
+
+--- Refines the leaf module from the kind module to a subtype leaf
+--- (Food / Drink / WeaponPersonal) when the API `type` matches a
+--- known mapping. Returns nil for unknown or missing types, which
+--- means "no refinement — use the Item module itself as the leaf."
+--- Module:Entity/Data invokes this after kind dispatch.
+---
+--- @param apiData table|nil
+--- @return table|nil The resolved subtype module, or nil
+function p.resolveSubtype(apiData)
+	local subtype = apiData and apiData.type
+	if subtype and itemSubtypeMapping[subtype] then
+		return require('Module:' .. itemSubtypeMapping[subtype])
+	end
+	return nil
 end
 
 --- @param apiData table

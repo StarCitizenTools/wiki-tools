@@ -13,39 +13,22 @@ local util = require('Module:Entity/Util')
 
 local p = {}
 
---- Maps API type strings to module paths. Add new entries here when creating
---- new subtypes.
-local typeMapping = {
-	Food = 'Entity/Item/Food',
-	Drink = 'Entity/Item/Drink',
-	WeaponPersonal = 'Entity/Item/WeaponPersonal',
-	-- WeaponGun = 'Entity/Item/WeaponGun',
-	-- QuantumDrive = 'Entity/Item/QuantumDrive',
+--- Ordered registry of top-level entity kinds. Sequential probing walks
+--- this list, calling each module's `getApiConfigs()[1]` endpoint and
+--- `matches()` predicate. First match wins.
+---
+--- Order is probe precedence — Item first because items dominate the
+--- page mix (matches on the first fetch, short-circuits before the
+--- vehicles endpoint is touched). Vehicle pages pay one cold-cache
+--- failed-fetch on the items endpoint, which Apiunto caches.
+---
+--- Adding a new kind (e.g. Location) is a single entry here, plus a
+--- module file exposing `matches`, `getApiConfigs`, and optionally
+--- `resolveSubtype`.
+local kindModules = {
+	require('Module:Entity/Item'),
+	require('Module:Entity/Vehicle'),
 }
-
---- Default module path when the API type is not found in typeMapping.
-local defaultModule = 'Entity/Item'
-
---- Resolves the leaf module from the API type string and response.
----
---- Vehicles dispatch via the `is_vehicle` boolean rather than the type
---- string — vehicle "type" in the API is the role taxonomy ("multi",
---- "freight", …), not a top-level entity kind, so it can't be added to
---- typeMapping the same way item subtypes are.
----
---- @param apiType string|nil The type string from the API response
---- @param apiData table|nil The merged API response (for non-string dispatch signals)
---- @return table The resolved leaf module
-local function resolveLeafModule(apiType, apiData)
-	if apiData and apiData.is_vehicle then
-		return require('Module:Entity/Vehicle')
-	end
-	local modulePath = defaultModule
-	if apiType and typeMapping[apiType] then
-		modulePath = typeMapping[apiType]
-	end
-	return require('Module:' .. modulePath)
-end
 
 --- Returns the SMW property prefix for the current page's namespace.
 --- Mirrors Module:Entity/StructuredData so reads round-trip with writes:
@@ -111,9 +94,9 @@ function p.parseArgs(frame)
 	return args
 end
 
---- Fetches API data and resolves the type chain. Runs a preliminary Base+Item
---- fetch to determine entity type, then expands the chain and fetches any
---- additional APIs the subtype needs.
+--- Probes the kind registry for the entity's kind, fetches its primary
+--- data, then expands the chain and fetches any additional APIs the
+--- leaf needs.
 ---
 --- @param args table
 --- @return table apiData Merged API response data
@@ -123,31 +106,51 @@ local function fetchApiData(args)
 	local apiData = {}
 	local fetchedEndpoints = {}
 	local hasApiError = false
+	local matchedKind = nil
 
-	-- Preliminary chain hits both the items and vehicles endpoints in
-	-- parallel so a UUID can resolve regardless of which kind it is. Each
-	-- endpoint 404s for the other kind, so only the right one contributes
-	-- data; the Apiunto cache absorbs the cost of the failing fetch.
 	if args.uuid then
-		local prelimChain = {
-			require('Module:Entity/Base'),
-			require('Module:Entity/Item'),
-			require('Module:Entity/Vehicle'),
-		}
-		local prelimConfigs = util.collectApiConfigs(prelimChain)
-		for _, config in ipairs(prelimConfigs) do
-			fetchedEndpoints[config.endpoint] = true
+		-- Sequential probing: fetch each kind's primary endpoint, ask the
+		-- kind if the response matches. First match wins; short-circuit so
+		-- common-case items pay one fetch.
+		for _, mod in ipairs(kindModules) do
+			local primaryConfig = mod.getApiConfigs()[1]
+			local data, err = util.fetchApi(primaryConfig, args.uuid)
+			fetchedEndpoints[primaryConfig.endpoint] = true
+			if err then
+				hasApiError = true
+			end
+			if mod.matches(data) then
+				apiData = data
+				matchedKind = mod
+				break
+			end
 		end
-		local data, err = util.fetchAllApis(prelimConfigs, args.uuid)
-		if err then
-			hasApiError = true
-		end
-		apiData = data
 	end
 
-	local apiType = args.type or apiData.type
-	local chain = util.buildChain(resolveLeafModule(apiType, apiData))
+	-- Resolve the leaf module:
+	-- - Matched kind: refine via the kind's resolveSubtype if it has one.
+	-- - No match (but a UUID was given): fall back to Item so siblings get
+	--   a usable chain; surface as hasApiError so callers can render
+	--   "no data" placeholders.
+	-- - No UUID at all: same Item fallback, no error.
+	local leafMod
+	if matchedKind then
+		if matchedKind.resolveSubtype then
+			leafMod = matchedKind.resolveSubtype(apiData) or matchedKind
+		else
+			leafMod = matchedKind
+		end
+	else
+		leafMod = require('Module:Entity/Item')
+		if args.uuid then
+			hasApiError = true
+		end
+	end
 
+	local chain = util.buildChain(leafMod)
+
+	-- Pull any extra endpoints the chain declares, skipping anything we
+	-- already fetched during kind probing.
 	local additionalConfigs = {}
 	for _, mod in ipairs(chain) do
 		if mod.getApiConfigs then

@@ -22,9 +22,17 @@ local p = {}
 --- vehicles endpoint is touched). Vehicle pages pay one cold-cache
 --- failed-fetch on the items endpoint, which Apiunto caches.
 ---
+--- Kind module contract:
+---  * `getApiConfigs()` must return at least one config; index [1] is
+---    the identification endpoint.
+---  * `matches(apiData)` must accept nil/empty/garbage without throwing
+---    and return a strict boolean.
+---  * Optional `resolveSubtype(apiData)` returns a more-specific leaf
+---    module (e.g. Food/Drink/WeaponPersonal under Item), or nil for
+---    "no refinement".
+---
 --- Adding a new kind (e.g. Location) is a single entry here, plus a
---- module file exposing `matches`, `getApiConfigs`, and optionally
---- `resolveSubtype`.
+--- module file exposing the contract above.
 local kindModules = {
 	require('Module:Entity/Item'),
 	require('Module:Entity/Vehicle'),
@@ -108,20 +116,30 @@ local function fetchApiData(args)
 	local hasApiError = false
 	local matchedKind = nil
 
+	-- Note: args.type no longer influences kind selection (it did under the
+	-- old item-only typeMapping dispatch). It still flows through `p.get`'s
+	-- `resolveType` call for typeInfo / displayType, but the kind is
+	-- determined entirely by the API response shape via matches().
+
 	if args.uuid then
 		-- Sequential probing: fetch each kind's primary endpoint, ask the
 		-- kind if the response matches. First match wins; short-circuit so
 		-- common-case items pay one fetch.
+		--
+		-- Probe failures on a non-matching kind don't count toward
+		-- hasApiError — a 404 on the items endpoint for a vehicle UUID is
+		-- expected, not an error. Only the matched kind's fetch (and the
+		-- "no kind matched" case below) sets the flag.
 		for _, mod in ipairs(kindModules) do
 			local primaryConfig = mod.getApiConfigs()[1]
 			local data, err = util.fetchApi(primaryConfig, args.uuid)
 			fetchedEndpoints[primaryConfig.endpoint] = true
-			if err then
-				hasApiError = true
-			end
 			if mod.matches(data) then
 				apiData = data
 				matchedKind = mod
+				if err then
+					hasApiError = true
+				end
 				break
 			end
 		end

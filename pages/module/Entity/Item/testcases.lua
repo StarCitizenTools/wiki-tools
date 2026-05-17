@@ -23,6 +23,15 @@ function suite:testMatchesUuidWithItemTypeReturnsTrue()
 	self:assertEquals(true, Item.matches({ uuid = 'abc-123', type = 'Food' }))
 end
 
+-- Documents current permissive behavior: Item.matches doesn't check
+-- `is_vehicle`. The items endpoint never returns is_vehicle in practice
+-- (Apiunto doesn't follow the items→vehicles redirect), so this is
+-- safe. If Apiunto ever changes to follow the redirect, tighten matches
+-- to also check `not apiData.is_vehicle` and flip this assertion.
+function suite:testMatchesVehicleShapedDataCurrentlyReturnsTrue()
+	self:assertEquals(true, Item.matches({ uuid = 'abc-123', is_vehicle = true }))
+end
+
 -- resolveSubtype()
 
 function suite:testResolveSubtypeFoodReturnsFoodModule()

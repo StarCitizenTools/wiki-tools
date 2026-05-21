@@ -110,10 +110,10 @@ local function locationCountLabel(prices)
 	return n == 1 and '1 location' or (n .. ' locations')
 end
 
---- Items shop description: "N locations · <prices>". Format adapts to
---- the data — unlabeled when only one side of the market is active,
---- labeled "Buy X · Sell Y" when both are. Sell-only items (rare) show
---- only the sell side.
+--- Two-sided market description: "N locations · Buy X · Sell Y".
+--- Only called when at least one row has a non-zero `price_sell`
+--- (the caller in renderDetail gates on this), so the sell side is
+--- always present here. Buy may be absent on sell-only listings.
 ---
 --- @param prices table[]
 --- @return string
@@ -122,15 +122,10 @@ local function buildShopTerminalsDescription(prices)
 	local sellText = formatPriceRange(priceRange(prices, 'price_sell'))
 
 	local parts = { locationCountLabel(prices) }
-	if buyText and sellText then
+	if buyText then
 		table.insert(parts, 'Buy ' .. buyText)
-		table.insert(parts, 'Sell ' .. sellText)
-	elseif buyText then
-		table.insert(parts, buyText)
-		table.insert(parts, 'Not sellable')
-	elseif sellText then
-		table.insert(parts, 'Sell ' .. sellText)
 	end
+	table.insert(parts, 'Sell ' .. sellText)
 
 	return table.concat(parts, ' · ')
 end
@@ -329,25 +324,16 @@ local function hasEntityTag(apiData, tagName)
 	return false
 end
 
---- Two signals that the entity is a vehicle rather than an item:
----   1. `uex_prices` arrives as a dict with `purchase`/`rental` buckets
----      instead of a flat array.
----   2. `msrp` is set at the top level (pledge-store price in USD).
---- Either one is sufficient — vehicles without UEX data yet still
---- carry msrp, and pre-pledge live-service vehicles still get the
---- dict-shaped uex_prices.
+--- Mirrors Module:Entity/Vehicle.matches() — vehicles always carry the
+--- `is_vehicle` key at the top level, items never do. Both endpoints
+--- now share the same `uex_prices` dict shape, so the prior dict-vs-array
+--- discriminator no longer works; using the kind-canonical signal keeps
+--- Availability aligned with the kind registry's idea of "vehicle".
 ---
 --- @param apiData table
 --- @return boolean
-local function isVehicleApiData(apiData)
-	if type(apiData) ~= 'table' then
-		return false
-	end
-	local prices = apiData.uex_prices
-	if type(prices) == 'table' and (prices.purchase ~= nil or prices.rental ~= nil) then
-		return true
-	end
-	return apiData.msrp ~= nil
+local function isVehicle(apiData)
+	return type(apiData) == 'table' and apiData.is_vehicle ~= nil
 end
 
 --- Builds the ordered list of summary rows for an item entity:
@@ -359,11 +345,12 @@ end
 --- @param apiData table
 --- @return { label: string, icon: string, value: boolean|nil }[]
 local function buildItemSummaryRows(args, apiData)
+	local prices = type(apiData.uex_prices) == 'table' and apiData.uex_prices or {}
 	local rows = {
 		{
 			label = 'Buy',
 			icon = '🛒',
-			value = resolveFlag(args.canBuy, inferCanAcquire(apiData.uex_prices, 'price_buy')),
+			value = resolveFlag(args.canBuy, inferCanAcquire(prices.purchase, 'price_buy')),
 		},
 	}
 
@@ -442,7 +429,7 @@ end
 --- @param apiData table
 --- @return { label: string, icon: string, value: boolean|nil }[]
 local function buildSummaryRows(args, apiData)
-	if isVehicleApiData(apiData) then
+	if isVehicle(apiData) then
 		return buildVehicleSummaryRows(args, apiData)
 	end
 	return buildItemSummaryRows(args, apiData)
@@ -496,57 +483,55 @@ end
 
 local UEX_FOOTER = 'Data from [https://uexcorp.space UEX Corp]'
 
---- Items render a single Shops card with both Buy and Sell columns —
---- items have a two-sided market on the same terminal, so one row per
---- terminal carries both prices.
+--- Renders the Shops card from `uex_prices.purchase` and, for vehicles
+--- only, a Rentals card from `uex_prices.rental`. Items and vehicles
+--- now share the same `uex_prices` dict shape, so a single path covers
+--- both kinds:
+---  * Sell column is added when any purchase row has a non-zero
+---    `price_sell` — items pass this check, vehicles don't, so the
+---    column appears or disappears without a kind branch.
+---  * The Rentals card is gated on kind: rentals aren't structurally
+---    available for items today, so the "No rental data in UEX"
+---    placeholder would be misleading noise.
 ---
 --- @param apiData table
 --- @return string
-local function renderItemDetail(apiData)
-	local prices = apiData.uex_prices
-	local hasPrices = type(prices) == 'table' and #prices > 0
-	return collapsibleCard.render({
-		title = '<span aria-hidden="true">🛒</span> Shops',
-		description = hasPrices and buildShopTerminalsDescription(prices) or 'No shop data in UEX',
-		content = hasPrices and renderTerminalTable({
-			prices = prices,
-			caption = 'Shop terminals',
-			priceColumns = {
-				{ id = 'buy', key = 'price_buy', label = 'Buy' },
-				{ id = 'sell', key = 'price_sell', label = 'Sell' },
-			},
-		}) or nil,
-		footer = UEX_FOOTER,
-	})
-end
-
---- Vehicles split detail into two cards — purchase terminals (🛒
---- Shops) and rental terminals (⏳ Rentals) — mirroring the summary
---- grid's Buy/Rent split. UEX models them as separate arrays under
---- `uex_prices.purchase` and `uex_prices.rental`; vehicles never have
---- a Sell side, so each card carries one price column.
----
---- @param apiData table
---- @return string
-local function renderVehicleDetail(apiData)
-	local prices = type(apiData.uex_prices) == 'table' and apiData.uex_prices or {}
-	local purchasePrices = type(prices.purchase) == 'table' and prices.purchase or {}
-	local rentalPrices = type(prices.rental) == 'table' and prices.rental or {}
+local function renderDetail(apiData)
+	local uexPrices = type(apiData.uex_prices) == 'table' and apiData.uex_prices or {}
+	local purchasePrices = type(uexPrices.purchase) == 'table' and uexPrices.purchase or {}
 	local hasPurchase = #purchasePrices > 0
-	local hasRental = #rentalPrices > 0
+	local hasSellSide = hasPurchase and priceRange(purchasePrices, 'price_sell') ~= nil
+
+	local priceColumns = { { id = 'buy', key = 'price_buy', label = 'Buy' } }
+	if hasSellSide then
+		table.insert(priceColumns, { id = 'sell', key = 'price_sell', label = 'Sell' })
+	end
+
+	local shopDescription
+	if hasPurchase then
+		shopDescription = hasSellSide and buildShopTerminalsDescription(purchasePrices)
+			or buildSinglePriceDescription(purchasePrices, 'price_buy')
+	else
+		shopDescription = 'No shop data in UEX'
+	end
 
 	local shopCard = collapsibleCard.render({
 		title = '<span aria-hidden="true">🛒</span> Shops',
-		description = hasPurchase and buildSinglePriceDescription(purchasePrices, 'price_buy')
-			or 'No purchase data in UEX',
+		description = shopDescription,
 		content = hasPurchase and renderTerminalTable({
 			prices = purchasePrices,
-			caption = 'Vehicle purchase terminals',
-			priceColumns = { { id = 'buy', key = 'price_buy', label = 'Buy' } },
+			caption = 'Shop terminals',
+			priceColumns = priceColumns,
 		}) or nil,
 		footer = UEX_FOOTER,
 	})
 
+	if not isVehicle(apiData) then
+		return shopCard
+	end
+
+	local rentalPrices = type(uexPrices.rental) == 'table' and uexPrices.rental or {}
+	local hasRental = #rentalPrices > 0
 	local rentalCard = collapsibleCard.render({
 		title = '<span aria-hidden="true">⏳</span> Rentals',
 		description = hasRental and buildSinglePriceDescription(rentalPrices, 'price_rent') or 'No rental data in UEX',
@@ -566,9 +551,9 @@ end
 ---      items: Buy / Loot / Craft / Pledge (+ Rent when editor sets it).
 ---      For vehicles: Buy / Rent / Pledge. No card wrapper because the
 ---      grid already reads as a scannable header above the first card.
----   2. Detail — collapsible card(s) of UEX terminal prices. Items get
----      one Shops card with Buy/Sell columns; vehicles get a Shops card
----      (purchase) plus a Rentals card.
+---   2. Detail — a 🛒 Shops card from `uex_prices.purchase` (with a
+---      Sell column when the entity has a two-sided market), plus a
+---      ⏳ Rentals card for vehicles.
 --- Future sibling cards (loot table, crafting recipes, etc.) can drop in
 --- alongside the detail cards without reshuffling.
 ---
@@ -585,7 +570,7 @@ function p.main(frame)
 	})
 
 	local summary = renderSummary(buildSummaryRows(args, apiData))
-	local detail = isVehicleApiData(apiData) and renderVehicleDetail(apiData) or renderItemDetail(apiData)
+	local detail = renderDetail(apiData)
 
 	return styles .. summary .. detail
 end

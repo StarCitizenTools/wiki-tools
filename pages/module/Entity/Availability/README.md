@@ -6,7 +6,7 @@ The summary grid is always rendered (layout stays stable across pages); the deta
 
 ## Kind dispatch
 
-`Module:Entity/Data` resolves the entity kind through its kind registry and surfaces a kind-shaped `apiData` to this module. Availability detects the kind directly (`isVehicleApiData`) by sniffing the `uex_prices` shape — array (items, with `price_buy`/`price_sell` per terminal row) versus dict with `purchase` and `rental` buckets (vehicles, single-sided markets) — falling back to `apiData.msrp` for vehicles that have no UEX coverage yet. Item rendering and vehicle rendering then take separate code paths.
+`Module:Entity/Data` resolves the entity kind through its kind registry and surfaces a kind-shaped `apiData` to this module. Availability identifies vehicles by the same canonical signal `Module:Entity/Vehicle.matches()` uses upstream — presence of the `is_vehicle` key at the top level. The kind drives the summary builder (item vs vehicle row sets) and gates the Rentals detail card; the Shops card is unified across kinds and reads `uex_prices.purchase` regardless.
 
 ## Usage
 
@@ -33,14 +33,14 @@ The same invocation works for vehicles — kind dispatch is transparent.
 
 Entry point invoked from `Template:Entity/Availability`.
 
-Resolves the UUID, fetches entity data via `Module:Entity/Data`, then branches on kind:
+Resolves the UUID, fetches entity data via `Module:Entity/Data`, then renders:
 
-- **Item path** — 4-card summary (Buy / Loot / Craft / Pledge; Rent inserted only when the editor sets `canRent` explicitly) + one **🛒 Shops** detail card with Buy and Sell columns side by side.
-- **Vehicle path** — 3-card summary (Buy / Rent / Pledge — Loot and Craft are omitted because the concepts don't apply to vehicles in the live game) + two detail cards: **🛒 Shops** (purchase terminals, Buy column) and **⏳ Rentals** (rental terminals, Rent column).
+- **Summary** — item summary (Buy / Loot / Craft / Pledge; Rent inserted only when the editor sets `canRent` explicitly) or vehicle summary (Buy / Rent / Pledge — Loot and Craft are omitted because the concepts don't apply to vehicles in the live game).
+- **Detail** — always a **🛒 Shops** card from `uex_prices.purchase`; vehicles get an additional **⏳ Rentals** card from `uex_prices.rental`. The Shops card's Sell column is data-driven: it appears when at least one row has a non-zero `price_sell` (items pass, vehicles don't), so the column toggles without a kind branch in the renderer.
 
-Both paths share the same summary HTML structure: a `<dl>` of `<div>` items, each carrying a `data-state` attribute (`yes`/`no`/`unknown`) for machine-readable consumption and a BEM-style class modifier (`…-item--yes` etc.) for state-coloured visual treatment. The value cell uses a Codex SVG (`CdxIconSuccess` / `CdxIconClear` / `CdxIconHelpNotice`) as a `mask-image`, recoloured via `currentColor`, with a visually-hidden `<span>` carrying the text "Yes" / "No" / "Unknown" for screen readers, translation tools, and reader modes.
+Summary HTML structure: a `<dl>` of `<div>` items, each carrying a `data-state` attribute (`yes`/`no`/`unknown`) for machine-readable consumption and a BEM-style class modifier (`…-item--yes` etc.) for state-coloured visual treatment. The value cell uses a Codex SVG (`CdxIconSuccess` / `CdxIconClear` / `CdxIconHelpNotice`) as a `mask-image`, recoloured via `currentColor`, with a visually-hidden `<span>` carrying the text "Yes" / "No" / "Unknown" for screen readers, translation tools, and reader modes.
 
-Both paths share the same terminal-table renderer ([TableLua](https://starcitizen.tools/Module:TableLua)) and collapsible card wrapper ([CollapsibleCard](https://starcitizen.tools/Module:CollapsibleCard)). Columns shared across kinds: System, Location, Updated, Version. Each kind's detail card supplies its own price column spec (`Buy`/`Sell` for items, just `Buy` for vehicle purchase, just `Rent` for vehicle rental).
+Terminal tables go through [TableLua](https://starcitizen.tools/Module:TableLua) wrapped in [CollapsibleCard](https://starcitizen.tools/Module:CollapsibleCard). Fixed columns: System, Location, Updated, Version. Price columns are appended per card: `Buy` (always), `Sell` (Shops card when applicable), `Rent` (Rentals card).
 
 ## Data
 
@@ -50,11 +50,11 @@ Read from the merged Apiunto response:
 
 | Field | Description |
 |---|---|
-| `uex_prices` | **Array** of UEX shop terminal entries. Each entry has `terminal_name`, `starmap_location` (with `name` and `star_system_name`), `price_buy`, `price_sell`, `date_updated` (ISO 8601), and `game_version`. Missing or empty → "No shop data in UEX" notice. |
+| `uex_prices.purchase` | Array of UEX shop terminal entries. Each entry has `terminal_name`, `starmap_location` (with `name` and `star_system_name`), `price_buy`, `price_sell`, `date_updated` (ISO 8601), and `game_version`. Missing or empty → "No shop data in UEX" notice. Items currently never have a `rental` bucket. |
 | `entity_tag_map` | Array of `{ uuid, name }` entries. Scanned for `CanGenerateAsLoot` (drives Loot), `PromotionalItem` and `SubscriberFlair` (either drives Pledge — subscriber-exclusive monthly flair is pledge-only). |
 | `is_craftable` | Boolean. Drives the Craft summary card. |
 
-Buy derives from `uex_prices` directly: any present non-zero buy price → Yes, all-zero buy prices with rows present → No, missing `uex_prices` → Unknown.
+Buy derives from `uex_prices.purchase`: any present non-zero buy price → Yes, all-zero buy prices with rows present → No, missing/empty → Unknown.
 
 ### Vehicles
 
@@ -62,10 +62,11 @@ Read from the merged Apiunto response:
 
 | Field | Description |
 |---|---|
-| `uex_prices` | **Dict** with two buckets: `purchase` (array of terminals with `price_buy`) and `rental` (array of terminals with `price_rent`). Either bucket may be empty independently. Vehicles never have a Sell side. |
+| `uex_prices` | Dict with two buckets: `purchase` (array of terminals with `price_buy`) and `rental` (array of terminals with `price_rent`). Either bucket may be empty independently. Vehicles never have a Sell side. |
+| `is_vehicle` | Top-level key. Presence (regardless of value — `true` for ground vehicles, `false` for spaceships) identifies the response as a vehicle and gates the Rentals detail card. |
 | `msrp` | Top-level number (USD pledge price). Presence drives the Pledge summary card. |
 
-Buy derives from `uex_prices.purchase`, Rent from `uex_prices.rental` — same inference logic as items, just on the appropriate sub-array. Pledge is `apiData.msrp ~= nil`.
+Buy derives from `uex_prices.purchase`, Rent from `uex_prices.rental` — same inference logic as items. Pledge is `apiData.msrp ~= nil`.
 
 ### Shared
 
@@ -77,7 +78,7 @@ Every derived summary flag can be overridden by an editor-supplied wikitext argu
 
 | Argument | Card | Item default | Vehicle default |
 |---|---|---|---|
-| `canBuy` | Buy | Derived from `uex_prices` | Derived from `uex_prices.purchase` |
+| `canBuy` | Buy | Derived from `uex_prices.purchase` | Derived from `uex_prices.purchase` |
 | `canRent` | Rent | None — card is hidden unless this is set (items aren't structurally rentable) | Derived from `uex_prices.rental` |
 | `canLoot` | Loot | Derived from the `CanGenerateAsLoot` entity tag | (card omitted for vehicles) |
 | `canCraft` | Craft | Derived from `is_craftable` | (card omitted for vehicles) |

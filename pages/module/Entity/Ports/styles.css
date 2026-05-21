@@ -1,47 +1,174 @@
 .t-entity-ports {
-    display:grid;
-    gap:var(--space-xs);
-    margin-top:var(--space-md);
-    margin-bottom:var(--space-md);
+	color: var(--color-base);
 }
-.t-entity-port {
-    display:grid;
-    grid-template-areas:"port item";
-    grid-template-columns:max-content 1fr;
-    border:1px solid var(--border-color-base);
-    border-radius:var(--border-radius-medium);
-    line-height:var(--line-height-xx-small);
+
+.t-entity-ports-empty {
+	color: var(--color-subtle);
+	font-style: italic;
 }
-.t-entity-port-size {
-    width:56px;
-    grid-area:port;
-    display:grid;
-    place-content:center;
-    border-right:1px solid var(--border-color-base);
-    border-top-left-radius:var(--border-radius-medium);
-    border-bottom-left-radius:var(--border-radius-medium);
-    text-align:center;
+
+/* Body inside each Module:CollapsibleCard. The card itself supplies
+ * its own header chrome; we just need padding around the row stack.
+ * Smaller block (vertical) padding than inline — rows already carry
+ * their own top/bottom padding, so var(--space-sm) on top of that
+ * leaves too much whitespace; var(--space-xs) sits closer to the
+ * card border without crowding. */
+.t-entity-ports-cat-body {
+	padding: var(--space-xs) var(--space-sm);
 }
-.t-entity-port-item {
-    grid-area:item;
-    padding:var(--space-sm)var(--space-md);
-    border-top-right-radius:var(--border-radius-medium);
-    border-bottom-right-radius:var(--border-radius-medium);
+
+/* Sub-category heading inside the "Other" card. The Other card
+ * pools every collapsed-category port together; this heading lets
+ * the reader still see which bucket (Controllers / Crew Stations /
+ * Doors & Hatches / …) a row came from after expanding. Uses
+ * role="heading" aria-level="4" on a div, NOT an h-tag, so the
+ * MediaWiki parser doesn't generate TOC / edit-section anchors.
+ * The first sub-heading drops its top margin so it sits flush with
+ * the card body's own padding. */
+.t-entity-ports-subcat {
+	color: var(--color-subtle);
+	font-family: var(--font-family-overline);
+	font-size: var(--font-size-overline);
+	font-weight: var(--font-weight-overline);
+	line-height: var(--line-height-overline);
+	text-transform: var(--text-transform-overline);
+	letter-spacing: var(--letter-spacing-overline);
+	margin: var(--space-sm) 0 var(--space-xxs);
+	padding-bottom: var(--space-xxs);
+	border-bottom: 1px solid var(--border-color-subtle);
 }
-.t-entity-port-item--hasItem {
-    background-color:var(--color-surface-2);
+.t-entity-ports-subcat:first-child {
+	margin-top: 0;
 }
-.t-entity-port-size {
-    font-weight:var(--font-weight-medium);
+
+/* Aggregated port row. Headline (optional count + pill + label) plus
+ * an optional structure pattern tail (the inline "── 2× X ── 2× Y"). */
+.t-entity-ports-row {
+	display: flex;
+	gap: var(--space-xs);
+	align-items: center;
+	flex-wrap: wrap;
+	padding: var(--space-xxs) 0;
+	font-size: var(--font-size-small);
+	line-height: var(--line-height-x-small);
 }
-.t-entity-port-subtitle {
-    color:var(--color-subtle);
-    font-size:var(--font-size-x-small);
+
+.t-entity-ports-head {
+	display: inline-flex;
+	gap: var(--space-xs);
+	align-items: center;
 }
-.t-entity-port-title {
-    font-size:var(--font-size-medium);
-    font-weight:var(--font-weight-medium);
+
+/* Count cell renders for every row in a sibling group whenever ANY
+ * row in that group has count > 1 — including `01×` for solo rows so
+ * the size pills line up vertically. Lua zero-pads to two digits,
+ * so every count is exactly 3 characters in monospace ("01×", "04×",
+ * "13×") and cells naturally align without an explicit min-width.
+ * Letter-spacing widens the gaps between glyphs for a more readout-y
+ * feel. Revisit if real data ever exceeds two-digit counts (a 100+
+ * row would render wider than its siblings; the simplest fix would
+ * be to bump the pad to three digits or add `min-width: 4ch` back).
+ * When every row in the group is solo, Lua omits the cell entirely
+ * and the pill sits at the natural start. */
+.t-entity-ports-count {
+	color: var(--color-emphasized);
+	font-weight: var(--font-weight-medium);
+	font-family: var(--font-family-monospace);
+	letter-spacing: 0.125em;
 }
-.t-entity-port-item--hasItem .t-entity-port-title {
-    color:var(--color-emphasized);
+
+/* Leading zero from zero-padding ("0" in "04×") is muted so it reads
+ * as alignment, not data. Always subtle regardless of solo state. */
+.t-entity-ports-count__pad {
+	color: var(--color-subtle);
+}
+
+/* Solo rows (count = 1) mute the entire count cell. The "01×" is
+ * really just structural filler keeping pills aligned with the real
+ * counts above; making it subtle lets the reader's eye skip it. */
+.t-entity-ports-count--solo {
+	color: var(--color-subtle);
+}
+
+/* Wrap long unbreakable port / item names (e.g.
+ * `RSI_Aurora_Mk2_Thruster_Main_Right`) inside the row on narrow
+ * viewports. `min-width: 0` overrides the flex-item default of
+ * `min-width: auto` so the label can shrink below its intrinsic
+ * content width; `overflow-wrap: anywhere` then lets the text break
+ * inside the underscored token instead of pushing the whole row
+ * out past the container. */
+.t-entity-ports-label {
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+/* Layout overrides on top of Module:BadgeLua's .t-badge — monospace
+ * for size legibility, min-width + centered content so single- and
+ * double-digit sizes line up across rows. The chrome (padding, border,
+ * border-radius, background, --success variant) all come from BadgeLua. */
+.t-entity-ports-pill {
+	font-family: var(--font-family-monospace);
+	min-width: 32px;
+	justify-content: center;
+}
+
+/* Hardware-locked: thin diagonal stripe overlay on top of whatever
+ * background BadgeLua applied (--color-surface-1 default or
+ * --background-color-success-subtle when equipped). Uses light-dark()
+ * so the stripe is dark in light mode and light in dark mode, both
+ * translucent. Citizen sets color-scheme on its theme classes so this
+ * resolves correctly. */
+.t-entity-ports-pill--locked {
+	background-image: repeating-linear-gradient(
+		-45deg,
+		light-dark(rgba(0, 0, 0, 0.05), rgba(255, 255, 255, 0.1)),
+		light-dark(rgba(0, 0, 0, 0.05), rgba(255, 255, 255, 0.1)) 2px,
+		transparent 2px,
+		transparent 6px
+	);
+}
+
+/* Child tree — rendered below a row when the port has children. Each
+ * <li> draws its own L-shaped connector via pseudo-elements: a vertical
+ * trunk (::before) and a horizontal branch (::after). The trunk runs
+ * top→bottom on every <li> except the last, where it's clamped to the
+ * elbow height so it stops at the join. flex-basis:100% lets the tree
+ * occupy its own row inside the parent .t-entity-ports-row flex. */
+.t-entity-ports-tree {
+	list-style: none;
+	margin: 0;
+	padding: 0 0 0 12px;
+	flex-basis: 100%;
+}
+/* Nested <ul>s inside an <li> use block flow, not flex — so the parent
+ * row's flex row-gap doesn't apply here. Re-establish the same gap
+ * with margin-top so L2→L3 matches L1→L2 visually. */
+.t-entity-ports-tree ul {
+	list-style: none;
+	margin: var(--space-xs) 0 0;
+	padding: 0 0 0 12px;
+}
+.t-entity-ports-tree li {
+	position: relative;
+	padding: 0 0 0 20px;
+}
+.t-entity-ports-tree li::before {
+	content: '';
+	position: absolute;
+	left: 4px;
+	top: 0;
+	bottom: 0;
+	border-left: 1px solid var(--border-color-base);
+}
+.t-entity-ports-tree li:last-child::before {
+	height: 12px;
+	bottom: auto;
+}
+.t-entity-ports-tree li::after {
+	content: '';
+	position: absolute;
+	left: 4px;
+	top: 12px;
+	width: 14px;
+	border-top: 1px solid var(--border-color-base);
 }

@@ -7,6 +7,23 @@
 	font-style: italic;
 }
 
+/* Visually-hidden text for AT consumers. Used inside the row head
+ * to surface state the visual stripe overlay can't convey ("hardware-
+ * locked"). Standard recipe — clip the element to a 1x1 box so sighted
+ * users never see it but screen readers, translation tools, and reader
+ * modes still pick it up. */
+.t-entity-ports-sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
+
 /* Body inside each Module:CollapsibleCard. The card itself supplies
  * its own header chrome; we just need padding around the row stack.
  * Smaller block (vertical) padding than inline — rows already carry

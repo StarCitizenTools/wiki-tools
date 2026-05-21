@@ -96,6 +96,12 @@ end
 --- up vertically. When false, the count cell is omitted and the
 --- pill sits at the natural start.
 ---
+--- A11y: the pad zero is `aria-hidden` (alignment, not data); solo
+--- count cells are entirely `aria-hidden` (the "1×" is structural
+--- filler); a visually-hidden "hardware-locked" suffix is appended
+--- for non-editable ports since the visual stripe overlay is invisible
+--- to AT.
+---
 --- @param agg table  aggregated port node
 --- @param showCount boolean
 --- @return string  wikitext
@@ -110,10 +116,13 @@ local function renderHead(agg, showCount)
 		-- structural "01×" relative to the real counts above it.
 		local cell = head:tag('span'):addClass('t-entity-ports-count')
 		if agg.count == 1 then
-			cell:addClass('t-entity-ports-count--solo')
+			-- Solo cell is purely visual alignment; AT users get nothing
+			-- meaningful from "1×". Hide the whole cell from AT instead of
+			-- letting it leak into the row's read-aloud.
+			cell:addClass('t-entity-ports-count--solo'):attr('aria-hidden', 'true')
 		end
 		if agg.count < 10 then
-			cell:tag('span'):addClass('t-entity-ports-count__pad'):wikitext('0')
+			cell:tag('span'):addClass('t-entity-ports-count__pad'):attr('aria-hidden', 'true'):wikitext('0')
 		end
 		cell:wikitext(tostring(agg.count) .. '×')
 	end
@@ -123,7 +132,40 @@ local function renderHead(agg, showCount)
 	-- `RSI_Aurora_Mk2_Thruster_Main_Right` wrap inside the row on
 	-- narrow viewports.
 	head:tag('span'):addClass('t-entity-ports-label'):wikitext(renderLabel(rep))
+	if not rep.editable then
+		-- The pill's `--locked` modifier draws a visual diagonal stripe;
+		-- screen-reader users get nothing without this. Reads as a
+		-- parenthetical after the label: "...VariPuck, hardware-locked".
+		head:tag('span'):addClass('t-entity-ports-sr-only'):wikitext('hardware-locked')
+	end
 	return tostring(head)
+end
+
+--- Stamps the standard machine-readable + a11y data attrs on a row or
+--- L-tree `<li>` element. Shared between `renderRow` and
+--- `renderChildTree` so every port — top-level OR nested — is
+--- self-describing for the future interactive topology gadget and any
+--- other DOM scraper. Only emits attrs that have meaningful values
+--- (skips equipped-name / equipped-uuid for empty ports).
+---
+--- @param node table  the underlying mw.html builder (row div or <li>)
+--- @param agg table  aggregated port node
+local function stampPortAttrs(node, agg)
+	local rep = agg.representative
+	node:attr('data-port-type', rep.type)
+	node:attr('data-port-subtype', rep.subType)
+	node:attr('data-port-size-min', tostring(rep.sizeMin))
+	node:attr('data-port-size-max', tostring(rep.sizeMax))
+	node:attr('data-port-count', tostring(agg.count))
+	if rep.category and rep.category.label then
+		node:attr('data-port-category', rep.category.label)
+	end
+	if rep.equippedItem and rep.equippedItem.name then
+		node:attr('data-equipped-name', rep.equippedItem.name)
+	end
+	if rep._equippedUuid then
+		node:attr('data-equipped-uuid', rep._equippedUuid)
+	end
 end
 
 --- Recursively renders the child tree for an aggregated port.
@@ -143,6 +185,9 @@ local function renderChildTree(children)
 	local showCount = siblingsNeedCount(children)
 	for _, child in ipairs(children) do
 		local li = ul:tag('li')
+		-- Same data attrs as top-level rows so every port in the L-tree is
+		-- self-describing to scrapers / the future topology gadget.
+		stampPortAttrs(li, child)
 		li:wikitext(renderHead(child, showCount))
 		if child.expandable and #child.children > 0 then
 			li:wikitext(renderChildTree(child.children))
@@ -160,16 +205,8 @@ end
 --- @param showCount boolean
 --- @return string  wikitext
 local function renderRow(agg, showCount)
-	local rep = agg.representative
 	local row = mw.html.create('div'):addClass('t-entity-ports-row')
-	row:attr('data-port-type', rep.type)
-	row:attr('data-port-subtype', rep.subType)
-	row:attr('data-port-size-min', tostring(rep.sizeMin))
-	row:attr('data-port-size-max', tostring(rep.sizeMax))
-	if rep._equippedUuid then
-		row:attr('data-equipped-uuid', rep._equippedUuid)
-	end
-
+	stampPortAttrs(row, agg)
 	row:wikitext(renderHead(agg, showCount))
 	if agg.expandable and #agg.children > 0 then
 		row:wikitext(renderChildTree(agg.children))
@@ -224,11 +261,17 @@ end
 --- Renders the full ports section: a vertical stack of category
 --- cards, each containing one row per aggregated port group.
 ---
+--- Wrapper carries `role="region"` + `aria-label="Port loadout"` so
+--- AT users get a named landmark; the empty-state notice (rendered
+--- by the coordinator, not here) intentionally skips the role since
+--- it's a status message, not a region.
+---
 --- @param groups table[]  output of pipeline.process()
 --- @return string  wikitext (does NOT include the templatestyles tag —
 ---                 the coordinator emits that)
 function p.fromGroups(groups)
-	local root = mw.html.create('div'):addClass('t-entity-ports')
+	local root =
+		mw.html.create('div'):addClass('t-entity-ports'):attr('role', 'region'):attr('aria-label', 'Port loadout')
 	for _, group in ipairs(groups) do
 		root:wikitext(renderCategory(group))
 	end

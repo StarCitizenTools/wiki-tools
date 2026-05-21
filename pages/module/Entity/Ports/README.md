@@ -139,20 +139,51 @@ If every top-level port lands in a collapsed category, the module renders only t
 
 TemplateStyles is emitted on every path so the empty notice picks up its muted-italic styling.
 
+## Accessibility and machine readability
+
+The DOM is designed to work for both screen-reader users and DOM-scraping consumers (the future topology gadget, external tools).
+
+**A11y:**
+
+- The root wrapper carries `role="region" aria-label="Port loadout"` so AT users land in a named landmark.
+- The "Other" card's sub-category headings use `role="heading" aria-level="4"` on a `<div>` (not an `<h*>`) so the MediaWiki parser doesn't generate TOC anchors but AT still picks up the heading structure.
+- The zero-pad span (`0` in `04×`) carries `aria-hidden="true"` — it's alignment, not data.
+- Solo count cells (`01×` when no sibling has count > 1) carry `aria-hidden="true"` on the whole cell — the "1×" is structural filler, not information.
+- Hardware-locked ports get a visually-hidden `<span class="t-entity-ports-sr-only">hardware-locked</span>` after the label. The pill's diagonal stripe overlay is invisible to AT without this.
+
+**Machine readability:**
+
+Every port — top-level row AND every `<li>` in the L-tree — carries the same set of `data-port-*` attrs so any DOM scraper can identify it without parsing the visible text:
+
+| Attribute | Value |
+|---|---|
+| `data-port-type` | API `type` (e.g. `Turret`, `WeaponGun`, `MissileLauncher`) |
+| `data-port-subtype` | API `sub_type` / `subtype` (e.g. `GunTurret`) |
+| `data-port-size-min` | Lower bound of accepted size range |
+| `data-port-size-max` | Upper bound of accepted size range |
+| `data-port-count` | Aggregated count (e.g. `4` for a row of 4 identical turrets) |
+| `data-port-category` | The resolved category label (e.g. `Manned Turrets`) |
+| `data-equipped-name` | Equipped item name (omitted when port is empty) |
+| `data-equipped-uuid` | Equipped item UUID (omitted when port is empty or the API didn't surface one) |
+
 ## CSS hooks
 
 All visible elements are class-targeted; no inline styles. Rows flex-wrap naturally at narrow widths and the child tree always renders as its own block underneath.
 
 | Class | Purpose |
 |---|---|
-| `t-entity-ports` | Wrapper. Cards stack via Module:CollapsibleCard's own `margin-block`. |
+| `t-entity-ports` | Wrapper. Cards stack via Module:CollapsibleCard's own `margin-block`. Carries `role="region" aria-label="Port loadout"`. |
 | `t-entity-ports-empty` | The fallback `<p>` for the empty paths. Muted italic. |
+| `t-entity-ports-sr-only` | Visually-hidden utility (clipped 1×1 box). Used inside the row head to surface "hardware-locked" state that the visual stripe can't convey to AT. |
 | `t-entity-ports-cat-body` | Padded body inside each Module:CollapsibleCard, holding the row stack. CollapsibleCard supplies the card chrome and the toggle header. |
-| `t-entity-ports-row` | Aggregated port row. Flex-wrap so the structure pattern wraps at narrow widths. Forward-compat data attrs: `data-port-type`, `data-port-subtype`, `data-port-size-min`, `data-port-size-max`, `data-equipped-uuid`. |
-| `t-entity-ports-head` | Inline-flex containing the headline (optional count + pill + label). Stays together; never wraps mid-headline. |
-| `t-entity-ports-count` | Count prefix (`7×`, `4×`, `16×`) — monospace, accent color. Omitted entirely when count = 1. |
+| `t-entity-ports-subcat` | Sub-category heading inside the "Other" card. Uses Citizen overline tokens. `role="heading" aria-level="4"` on a `<div>` (not an `<h*>`) so the MW parser doesn't generate TOC anchors. |
+| `t-entity-ports-row` | Aggregated port row. Flex-wrap so the structure pattern wraps at narrow widths. Carries the full `data-port-*` attr set (see Accessibility section above). |
+| `t-entity-ports-head` | Inline-flex containing the headline (optional count + pill + label + sr-only locked marker). Stays together; never wraps mid-headline. |
+| `t-entity-ports-count` | Count prefix (`7×`, `4×`, `16×`) — monospace, accent color. Omitted entirely when no row in the sibling group exceeds count = 1; aria-hidden when solo. |
+| `t-entity-ports-count__pad` | Leading zero span on single-digit counts. Always `aria-hidden`. |
+| `t-entity-ports-label` | Port / equipped item label. `min-width: 0` + `overflow-wrap: anywhere` so long unbreakable names wrap inside the row on narrow viewports. |
 | `t-entity-ports-pill` | Layout add-on for size badges (monospace + min-width + centered). Pills render via [Module:BadgeLua](https://starcitizen.tools/Module:BadgeLua) with the `success` variant when equipped. The `--locked` modifier adds a diagonal stripe overlay on top of whatever bg BadgeLua applied. |
-| `t-entity-ports-tree` | Recursive `<ul>` below a row when the port has children. Each `<li>` draws its own L-line via `::before` (vertical trunk) and `::after` (horizontal branch). Nested `<ul>`s indent via `padding-left` so deeper layers step further in. |
+| `t-entity-ports-tree` | Recursive `<ul>` below a row when the port has children. Each `<li>` draws its own L-line via `::before` (vertical trunk) and `::after` (horizontal branch). Nested `<ul>`s indent via `padding-left` so deeper layers step further in. Each `<li>` also carries the full `data-port-*` attr set so nested ports are equally self-describing. |
 
 ## Deferred / open
 

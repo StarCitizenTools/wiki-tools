@@ -91,7 +91,7 @@
 	color: var(--color-emphasized);
 	font-weight: var(--font-weight-medium);
 	font-family: var(--font-family-monospace);
-	letter-spacing: 0.125em;
+	letter-spacing: var(--letter-spacing-overline);
 }
 
 /* Leading zero from zero-padding ("0" in "04×") is muted so it reads

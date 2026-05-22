@@ -48,13 +48,39 @@ local function renderPill(node)
 	})
 end
 
+--- Strips a trailing space-separated index from a port displayName so
+--- aggregated rows don't surface the first port's instance number
+--- ("Spare Weapon Magazine 1" with count=8 reads as "Spare Weapon
+--- Magazine"). Only applied when the result is non-empty; degenerate
+--- inputs like "1" pass through unchanged.
+---
+--- @param name string|nil
+--- @return string|nil
+local function stripTrailingIndex(name)
+	if type(name) ~= 'string' or name == '' then
+		return name
+	end
+	local stripped = (name:gsub('%s+%d+$', ''))
+	if stripped == '' then
+		return name
+	end
+	return stripped
+end
+
 --- Returns the port's label: equipped item wikilink when present
 --- (with fallback to plain name when the wikilink was suppressed
 --- for a placeholder name), otherwise the port displayName.
 ---
+--- When `count` > 1 AND we're falling back to displayName (the port is
+--- empty), strip the trailing instance number — "Spare Weapon Magazine
+--- 1" aggregated over 8 ports reads as "Spare Weapon Magazine", not
+--- "Spare Weapon Magazine 1" with a confusing 8×. Solo rows keep their
+--- index since each one is distinct.
+---
 --- @param node table  representative port node
+--- @param count integer|nil  aggregated sibling count (1 if unset)
 --- @return string  wikitext (may include [[link]])
-local function renderLabel(node)
+local function renderLabel(node, count)
 	if node.equippedItem then
 		if node.equippedItem.pageLink and node.equippedItem.pageLink ~= '' then
 			return node.equippedItem.pageLink
@@ -62,6 +88,9 @@ local function renderLabel(node)
 		return node.equippedItem.name
 	end
 	if node.displayName and node.displayName ~= '' then
+		if count and count > 1 then
+			return stripTrailingIndex(node.displayName)
+		end
 		return node.displayName
 	end
 	return node.name or ''
@@ -131,7 +160,7 @@ local function renderHead(agg, showCount)
 	-- + `overflow-wrap: anywhere`, letting long unbreakable names like
 	-- `RSI_Aurora_Mk2_Thruster_Main_Right` wrap inside the row on
 	-- narrow viewports.
-	head:tag('span'):addClass('t-entity-ports-label'):wikitext(renderLabel(rep))
+	head:tag('span'):addClass('t-entity-ports-label'):wikitext(renderLabel(rep, agg.count))
 	if not rep.editable then
 		-- The pill's `--locked` modifier draws a visual diagonal stripe;
 		-- screen-reader users get nothing without this. Reads as a

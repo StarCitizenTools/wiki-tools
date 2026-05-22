@@ -20,6 +20,33 @@ function suite:testSplitCamelEmpty()
 	self:assertEquals('', helpers.splitCamel(nil))
 end
 
+function suite:testSplitCamelHandlesUnderscores()
+	-- Snake_Case slugs (like the Char_Armor_* family) get underscore→space
+	-- humanisation, then camelCase splitting. Used as the last-resort
+	-- fallback when types.json doesn't have the slug.
+	self:assertEquals('Char Armor Backpack', helpers.splitCamel('Char_Armor_Backpack'))
+	self:assertEquals('FPS Deployable', helpers.splitCamel('FPS_Deployable'))
+end
+
+-- itemTypeCategory (internal — Module:Entity/Item/types.json lookup)
+
+function suite:testItemTypeCategoryHit()
+	-- A type slug catalogued in Module:Entity/Item/types.json. Returns
+	-- the canonical plural category label.
+	self:assertEquals('Backpacks', helpers.itemTypeCategory('Char_Armor_Backpack'))
+	self:assertEquals('Personal weapons', helpers.itemTypeCategory('WeaponPersonal'))
+	self:assertEquals('Gadgets', helpers.itemTypeCategory('Gadget'))
+end
+
+function suite:testItemTypeCategoryMiss()
+	self:assertEquals(nil, helpers.itemTypeCategory('SomeNewTypeCIGAdded'))
+end
+
+function suite:testItemTypeCategoryNilSafe()
+	self:assertEquals(nil, helpers.itemTypeCategory(nil))
+	self:assertEquals(nil, helpers.itemTypeCategory(''))
+end
+
 -- categories.lookup
 
 function suite:testLookupPrimaryLabel()
@@ -78,10 +105,34 @@ function suite:testDeriveLabelFallsBackToCompatAlias()
 	self:assertEquals('Weapon attachments', label)
 end
 
+function suite:testDeriveLabelFallsBackToItemTypeCategory()
+	-- Item endpoint, no category_label, no typeAlias — falls through to
+	-- the canonical wiki vocabulary (Module:Entity/Item/types.json).
+	-- This is the fix for the "Char_Armor_Backpack appeared as a card
+	-- title" bug.
+	self:assertEquals('Backpacks', categories.deriveLabel({ type = 'Char_Armor_Backpack' }, {}))
+	-- Same via bareCompat extraction (type=null, first compat is dotted).
+	self:assertEquals('Personal weapons', categories.deriveLabel({}, { 'WeaponPersonal.Medium' }))
+end
+
+function suite:testDeriveLabelTypeAliasBeatsItemTypeCategory()
+	-- typeAliases in categories.json wins over types.json so the
+	-- vehicle-routing overrides stand. WeaponGun: types.json says "Guns",
+	-- typeAlias says "Weapons" — alias wins.
+	self:assertEquals('Weapons', categories.deriveLabel({ type = 'WeaponGun' }, {}))
+end
+
 function suite:testDeriveLabelFallsBackToSplitCamel()
-	-- Unaliased type — synthesize a primary label from the type itself.
+	-- Type not in typeAliases AND not in types.json — synthesize a primary
+	-- label from the type slug itself.
 	local label = categories.deriveLabel({ type = 'SomeNewThing' }, {})
 	self:assertEquals('Some New Thing', label)
+end
+
+function suite:testDeriveLabelSplitCamelHandlesSnakeCase()
+	-- Truly unknown snake_Case slug — splitCamel humanises underscores too.
+	local label = categories.deriveLabel({ type = 'Char_Helmet_Visor' }, {})
+	self:assertEquals('Char Helmet Visor', label)
 end
 
 function suite:testDeriveLabelOther()

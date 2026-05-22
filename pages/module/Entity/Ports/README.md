@@ -99,8 +99,17 @@ Keyed by the API's `category_label` string. Mirrors the upstream Apiunto layout 
 - **`order`** (primary card) controls sort position; lower first. Ties break on `label` alphabetically.
 - **`collapsed: true`** routes every port carrying that category label into the single "Other" card at the bottom (rendered closed by default).
 - **`expandIntoTypes`** (optional, vehicle-only) is the per-parent allowlist of child types kept in the L-tree under that category. Used to drop cockpit panels / displays from turret children.
-- **`typeAliases`** maps an API `type` string to a category label, for ports that lack `category_label` (typically items). M4A Cannon's `WeaponAttachment` ports use this to land in the "Weapon attachments" card. Items with unaliased types fall through to a CamelCase-split label rendered as their own primary card.
+- **`typeAliases`** maps an API `type` string to a category label, for ports that lack `category_label` (typically children of vehicle ports, where Apiunto only sets `category_label` at the top level). Curated overrides that intentionally diverge from the item-type vocabulary for vehicle-side routing — e.g. `WeaponGun → "Weapons"` (the item vocabulary calls them "Guns"), `MissileLauncher → "Missile & Bomb Racks"` (item vocabulary: "Missile racks"), `JumpDrive → "Quantum Drives"` (so jump drives render under the quantum drive's L-tree instead of their own card).
 - Unknown labels (a category we haven't catalogued yet) default to a primary card with `order: 999` — fail-open, so new CIG categories render until we sync.
+
+### Label cascade for ports without `category_label`
+
+When the API doesn't set `category_label` (every item port, every child port), `deriveLabel` cascades:
+
+1. **`typeAliases` in `categories.json`** — curated overrides (above).
+2. **[Module:Entity/Item/types.json](https://starcitizen.tools/Module:Entity/Item/types.json)** — canonical wiki vocabulary for item types (`Char_Armor_Backpack → "Backpacks"`, `WeaponPersonal → "Personal weapons"`, `Gadget → "Gadgets"`, etc.). Owned by Entity/Item; Ports reads `.category` for the card title.
+3. **`splitCamel(slug)`** — last-resort humanisation. Replaces underscores with spaces and inserts spaces at camelCase boundaries, so an uncatalogued slug renders as words instead of `Char_Helmet_Visor`.
+4. **"Other"** when there's no slug to work with.
 
 ## Aggregation rules
 

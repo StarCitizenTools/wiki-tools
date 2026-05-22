@@ -21,8 +21,22 @@ local CATEGORIES_DATA = mw.loadJsonData('Module:Entity/Ports/categories.json')
 local CATEGORIES = CATEGORIES_DATA.categories or {}
 local TYPE_ALIASES = CATEGORIES_DATA.typeAliases or {}
 
---- Inserts a space before each capital letter after the first.
---- "ManneuverThruster" → "Manneuver Thruster". "X" → "X".
+-- Canonical wiki vocabulary for raw item-type slugs, owned by Entity/Item.
+-- Used as the second-tier fallback in `deriveLabel` so unmapped item-port
+-- types (Char_Armor_Backpack, WeaponPersonal, Gadget, FPS_*, …) render with
+-- their proper wiki names instead of the raw camelCase / snake_case slug.
+-- Format per entry: `{ name = singular, category = plural }`. We read
+-- `.category` for the card title.
+local ITEM_TYPES = mw.loadJsonData('Module:Entity/Item/types.json')
+
+--- Humanises a type slug for display when nothing in the curated tables
+--- matches: replaces `_` with space, then inserts a space before each
+--- camelCase boundary. "Char_Armor_Backpack" → "Char Armor Backpack";
+--- "ManneuverThruster" → "Manneuver Thruster"; "X" → "X".
+---
+--- Strictly a last-resort fallback — the curated tables (typeAliases in
+--- categories.json, then Module:Entity/Item/types.json) should cover all
+--- production slugs.
 ---
 --- @param str string|nil
 --- @return string
@@ -30,7 +44,25 @@ local function splitCamel(str)
 	if type(str) ~= 'string' or str == '' then
 		return str or ''
 	end
-	return (str:gsub('(%l)(%u)', '%1 %2'))
+	local s = str:gsub('_', ' ')
+	return (s:gsub('(%l)(%u)', '%1 %2'))
+end
+
+--- Looks up a raw type slug in the canonical item-type vocabulary
+--- (Module:Entity/Item/types.json). Returns the `.category` field
+--- (plural — "Backpacks", "Personal weapons") when present, nil otherwise.
+---
+--- @param slug string|nil  raw type slug
+--- @return string|nil
+local function itemTypeCategory(slug)
+	if type(slug) ~= 'string' or slug == '' then
+		return nil
+	end
+	local entry = ITEM_TYPES[slug]
+	if entry and type(entry.category) == 'string' and entry.category ~= '' then
+		return entry.category
+	end
+	return nil
 end
 
 --- Resolves an API `category_label` string to a category descriptor.
@@ -59,11 +91,24 @@ function p.lookup(label)
 	return { label = label, order = 999, collapsed = false, expandIntoTypes = nil }
 end
 
---- Picks the category label for a port. Prefers the API's own
---- `category_label` (set on vehicle ports from Apiunto). Items
---- typically lack `category_label`, so fall back to the type-aliases
---- table; finally fall back to a CamelCase split of the type itself.
---- Returns "Other" when nothing usable is available.
+--- Picks the category label for a port. Cascade:
+---
+---   1. API `category_label` (vehicle ports only — Apiunto resolves it
+---      server-side from CIG metadata). Wins outright when present.
+---   2. `typeAliases` in `categories.json` — curated overrides for
+---      vehicle-side routing (TurretBase → "Manned Turrets",
+---      MissileLauncher → "Missile & Bomb Racks", etc.) that
+---      intentionally diverge from the item-type vocabulary.
+---   3. `Module:Entity/Item/types.json` — canonical wiki item-type
+---      vocabulary, owned by Entity/Item. Covers the rest
+---      (Char_Armor_*, FPS_*, Gadget, WeaponPersonal, …).
+---   4. `splitCamel(slug)` — last-resort humanisation for slugs not
+---      catalogued anywhere. Renders snake_case + camelCase as words.
+---   5. "Other" — when there's literally no slug to work with.
+---
+--- Each step tries `rawPort.type` first, then the bare type extracted
+--- from `compatibleTypes[1]` (the part before the first dot in slugs
+--- like `WeaponPersonal.Medium`).
 ---
 --- @param rawPort table
 --- @param compatibleTypes string[]  already-flattened compat slugs
@@ -74,16 +119,23 @@ function p.deriveLabel(rawPort, compatibleTypes)
 		return apiLabel
 	end
 	local rawType = type(rawPort.type) == 'string' and rawPort.type ~= '' and rawPort.type or nil
-	if rawType and TYPE_ALIASES[rawType] then
-		return TYPE_ALIASES[rawType]
-	end
 	local bareCompat
 	if #compatibleTypes > 0 then
 		bareCompat = compatibleTypes[1]:match('^[^.]+')
-		if bareCompat and TYPE_ALIASES[bareCompat] then
-			return TYPE_ALIASES[bareCompat]
-		end
 	end
+	-- Curated overrides (vehicle-side routing).
+	if rawType and TYPE_ALIASES[rawType] then
+		return TYPE_ALIASES[rawType]
+	end
+	if bareCompat and TYPE_ALIASES[bareCompat] then
+		return TYPE_ALIASES[bareCompat]
+	end
+	-- Canonical wiki item-type vocabulary.
+	local itemLabel = itemTypeCategory(rawType) or itemTypeCategory(bareCompat)
+	if itemLabel then
+		return itemLabel
+	end
+	-- Last-resort humanisation.
 	if rawType then
 		return splitCamel(rawType)
 	end
@@ -96,6 +148,7 @@ end
 -- Test-only export. Not part of the public API.
 p._internal = {
 	splitCamel = splitCamel,
+	itemTypeCategory = itemTypeCategory,
 }
 
 return p

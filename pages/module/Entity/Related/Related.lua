@@ -22,6 +22,7 @@ require('strict')
 --- fetch failed.
 
 local data = require('Module:Entity/Data')
+local PageResolver = require('Module:Entity/PageResolver')
 local Tiles = require('Module:Tiles')
 
 local p = {}
@@ -103,7 +104,7 @@ end
 --- it reads `S1` / `S2` / …. When nothing varies, secondary stays
 --- empty and the image + primary label do the differentiating. The
 --- uuid is the join key for resolving the wiki page through SMW (see
---- resolveItemPages).
+--- PageResolver.resolve).
 ---
 --- @param relatedItems table
 --- @param currentUuid string|nil
@@ -200,81 +201,6 @@ local function collectUuids(...)
 	return out
 end
 
---- Resolves item uuids to their wiki pages and page images via a single
---- mw.smw.ask query against the `uuid` property set by
---- Module:Entity/StructuredData. The query matches both the canonical
---- lowercase `uuid` and the legacy capitalized `UUID` so pages that
---- haven't been re-rendered under the new schema still resolve — mirrors
---- the dual-read in Module:Entity/Data.readSmwUuid.
----
---- Results are filtered to mainspace, non-subobject pages only:
----  * Subobjects (`PageName#subobjectId`) would otherwise link to a
----    template-data anchor rather than the canonical article.
----  * Non-mainspace stores (User:, Template: test pages) already go
----    under prefixed property names in StructuredData, but legacy
----    `UUID` values and ad-hoc edits could leak through; the explicit
----    namespace check is cheap insurance.
---- We over-fetch (5× the UUID count) so a UUID that matches both a
---- subobject and its mainspace page isn't truncated to only the
---- subobject by the SMW limit.
----
---- Decouples display name from page title so disambiguated pages
---- (e.g. `Hyperion (quantum drive)`, while the API name is just
---- `Hyperion`) link correctly. Uuids that match no mainspace page —
---- item never rendered with Template:Entity, or the property hasn't
---- propagated yet — are absent from the returned map; callers fall back
---- to the API name (yielding the same possibly-wrong link as the
---- pre-resolution code, never worse).
----
---- @param uuids string[]
---- @return table<string, { page: string, image: string|nil }>
-local function resolveItemPages(uuids)
-	if #uuids == 0 then
-		return {}
-	end
-	local uuidList = table.concat(uuids, '||')
-	local results = mw.smw.ask({
-		'[[uuid::' .. uuidList .. ']] OR [[UUID::' .. uuidList .. ']]',
-		'?uuid#-=uuid',
-		'?UUID#-=uuid_legacy',
-		'?#-=page',
-		'?Page Image#-=image',
-		'limit=' .. tostring(#uuids * 5),
-	})
-	local map = {}
-	if type(results) == 'table' then
-		for _, row in ipairs(results) do
-			-- Whichever property matched, use its value as the join key —
-			-- the UUIDs themselves are identical across the two property
-			-- names, so transitional pages with both set produce the same
-			-- entry under either branch.
-			local uuid = (type(row.uuid) == 'string' and row.uuid ~= '' and row.uuid)
-				or (type(row.uuid_legacy) == 'string' and row.uuid_legacy ~= '' and row.uuid_legacy)
-				or nil
-			if uuid and type(row.page) == 'string' and row.page ~= '' and not row.page:find('#', 1, true) then
-				local title = mw.title.new(row.page)
-				if title and title.namespace == 0 then
-					-- SMW's Page Image property returns values with a leading `File:`
-					-- prefix (matching the wiki file-page title). Strip it here so the
-					-- map stores bare filenames; Tiles prepends `File:` once when
-					-- building the [[File:...]] wikitext.
-					local image = nil
-					if type(row.image) == 'string' and row.image ~= '' then
-						image = row.image:gsub('^File:', '')
-					end
-					-- First mainspace match wins. If a UUID somehow appears on more
-					-- than one mainspace page, we keep the earliest result and ignore
-					-- the rest rather than letting later rows clobber the canonical hit.
-					if not map[uuid] then
-						map[uuid] = { page = row.page, image = image }
-					end
-				end
-			end
-		end
-	end
-	return map
-end
-
 --- Shapes internal rows into the Tiles row schema. When the SMW lookup
 --- resolved a row's uuid, the wikilink target is the canonical page and
 --- the image is the SMW Page Image. When it didn't resolve, both fall
@@ -351,7 +277,7 @@ function p.main(frame)
 		return renderEmpty()
 	end
 
-	local pageMap = resolveItemPages(collectUuids(setRows, variantRows))
+	local pageMap = PageResolver.resolve(collectUuids(setRows, variantRows))
 
 	local parts = {}
 	if #setRows > 0 then

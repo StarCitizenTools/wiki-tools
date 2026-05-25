@@ -19,6 +19,7 @@ require('strict')
 --- page layout stays stable.
 
 local data = require('Module:Entity/Data')
+local PageResolver = require('Module:Entity/PageResolver')
 local Tiles = require('Module:Tiles')
 
 local p = {}
@@ -87,52 +88,6 @@ local function collectUuids(rows)
 	return out
 end
 
---- Resolves vehicle uuids to their wiki pages and page images via a
---- single mw.smw.ask query against the `uuid` property. Matches both
---- the canonical lowercase `uuid` and the legacy capitalized `UUID`
---- for compatibility with pages that haven't been re-rendered under
---- the new schema. Results filtered to mainspace, non-subobject pages.
---- See Module:Entity/Related.resolveItemPages for the same pattern;
---- duplicated here pending extraction of a shared resolver helper.
----
---- @param uuids string[]
---- @return table<string, { page: string, image: string|nil }>
-local function resolveVehiclePages(uuids)
-	if #uuids == 0 then
-		return {}
-	end
-	local uuidList = table.concat(uuids, '||')
-	local results = mw.smw.ask({
-		'[[uuid::' .. uuidList .. ']] OR [[UUID::' .. uuidList .. ']]',
-		'?uuid#-=uuid',
-		'?UUID#-=uuid_legacy',
-		'?#-=page',
-		'?Page Image#-=image',
-		'limit=' .. tostring(#uuids * 5),
-	})
-	local map = {}
-	if type(results) == 'table' then
-		for _, row in ipairs(results) do
-			local uuid = (type(row.uuid) == 'string' and row.uuid ~= '' and row.uuid)
-				or (type(row.uuid_legacy) == 'string' and row.uuid_legacy ~= '' and row.uuid_legacy)
-				or nil
-			if uuid and type(row.page) == 'string' and row.page ~= '' and not row.page:find('#', 1, true) then
-				local title = mw.title.new(row.page)
-				if title and title.namespace == 0 then
-					local image = nil
-					if type(row.image) == 'string' and row.image ~= '' then
-						image = row.image:gsub('^File:', '')
-					end
-					if not map[uuid] then
-						map[uuid] = { page = row.page, image = image }
-					end
-				end
-			end
-		end
-	end
-	return map
-end
-
 --- Shapes internal rows into the Tiles row schema.
 ---
 --- @param rows { name: string, uuid: string|nil, primary: string, secondary: string }[]
@@ -182,7 +137,7 @@ function p.main(frame)
 		return renderEmpty()
 	end
 
-	local pageMap = resolveVehiclePages(collectUuids(rows))
+	local pageMap = PageResolver.resolve(collectUuids(rows))
 	return Tiles.render({
 		rows = toTilesRows(rows, pageMap),
 		aspectRatio = TILE_ASPECT_RATIO,

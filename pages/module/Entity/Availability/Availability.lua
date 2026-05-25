@@ -481,7 +481,40 @@ local function renderSummary(rows)
 	return tostring(root)
 end
 
-local UEX_FOOTER = 'Data from [https://uexcorp.space UEX Corp]'
+-- Home page, used when no terminal carries a deep `uex_link`.
+local UEX_FALLBACK_URL = 'https://uexcorp.space'
+
+--- Returns the first non-empty `uex_link` among the given price rows, or
+--- nil when none carry one. UEX exposes `uex_link` per terminal (a deep
+--- link into that terminal's listing), not per entity; the footer uses
+--- the first as a representative entry point into UEX for this data.
+---
+--- @param prices table[]|nil
+--- @return string|nil
+local function firstUexLink(prices)
+	if type(prices) ~= 'table' then
+		return nil
+	end
+	for _, entry in ipairs(prices) do
+		local link = entry.uex_link
+		if type(link) == 'string' and link ~= '' then
+			return link
+		end
+	end
+	return nil
+end
+
+--- Builds the attribution footer: just the UEX logo (no leading text),
+--- linking to `url`. `class=metadata` keeps PageImages from selecting
+--- this attribution logo as the page image. "powered by UEX" goes in both
+--- `alt` (assistive tech) and the unnamed caption, which MediaWiki maps to
+--- the `title` attribute (hover tooltip) for an inline image.
+---
+--- @param url string
+--- @return string
+local function uexFooter(url)
+	return '[[File:UEX logo.svg|class=metadata|link=' .. url .. '|alt=powered by UEX|x12px|powered by UEX]]'
+end
 
 --- Renders the Shops card from `uex_prices.purchase` and, for vehicles
 --- only, a Rentals card from `uex_prices.rental`. Items and vehicles
@@ -523,7 +556,7 @@ local function renderDetail(apiData)
 			caption = 'Shop terminals',
 			priceColumns = priceColumns,
 		}) or nil,
-		footer = UEX_FOOTER,
+		footer = uexFooter(firstUexLink(purchasePrices) or UEX_FALLBACK_URL),
 	})
 
 	if not isVehicle(apiData) then
@@ -540,7 +573,7 @@ local function renderDetail(apiData)
 			caption = 'Vehicle rental terminals',
 			priceColumns = { { id = 'rent', key = 'price_rent', label = 'Rent' } },
 		}) or nil,
-		footer = UEX_FOOTER,
+		footer = uexFooter(firstUexLink(rentalPrices) or UEX_FALLBACK_URL),
 	})
 
 	return shopCard .. rentalCard

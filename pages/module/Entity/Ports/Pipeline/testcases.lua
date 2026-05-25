@@ -703,10 +703,13 @@ function suite:testProcessEndToEndAuroraShape()
 end
 
 function suite:testProcessItemPathSkipsNarrow()
-	-- Items don't run narrowChildren. Build a Turret-like top-level
-	-- with a Display child + a WeaponGun child; with isVehicle=false
-	-- both children survive (the Display is type-noise, not category-
-	-- noise — narrow is the only thing that drops it).
+	-- Items don't run narrowChildren. Build a Turret top-level with a
+	-- WeaponAttachment child + a WeaponGun child. The attachment maps to
+	-- the primary "Weapon attachments" category, so filterPorts keeps it;
+	-- its type is outside the Turret allowlist
+	-- [Turret, WeaponGun, MissileLauncher], so narrow — and only narrow —
+	-- drops it. (A collapsed-category child like a Display would be dropped
+	-- by filterPorts on both paths, so it can't isolate narrow's effect.)
 	local rawPorts = {
 		{
 			name = 'turret',
@@ -716,10 +719,10 @@ function suite:testProcessItemPathSkipsNarrow()
 			equipped_item = { name = 'Turret' },
 			ports = {
 				{
-					name = 'screen',
-					type = 'Display',
-					compatible_types = { { type = 'Display' } },
-					equipped_item = { name = 'Status Screen' },
+					name = 'attach',
+					type = 'WeaponAttachment',
+					compatible_types = { { type = 'WeaponAttachment', sub_types = { 'Barrel' } } },
+					equipped_item = { name = 'Sawtooth Barrel' },
 				},
 				{
 					name = 'gun',
@@ -732,12 +735,12 @@ function suite:testProcessItemPathSkipsNarrow()
 	}
 
 	local vehicleGroups = pipeline.process(rawPorts, { isVehicle = true })
-	-- Vehicle path: narrowChildren drops the Display.
+	-- Vehicle path: narrowChildren drops the WeaponAttachment (not in the allowlist).
 	self:assertEquals(1, #vehicleGroups[1].rows[1].children)
 	self:assertEquals('gun', vehicleGroups[1].rows[1].children[1].representative.name)
 
 	local itemGroups = pipeline.process(rawPorts, { isVehicle = false })
-	-- Item path: narrow is skipped, so the Display survives alongside the gun.
+	-- Item path: narrow is skipped, so the attachment survives alongside the gun.
 	self:assertEquals(2, #itemGroups[1].rows[1].children)
 end
 

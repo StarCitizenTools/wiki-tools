@@ -150,11 +150,15 @@ local function setShortDescription(frame, typeInfo, chain, apiData, args)
 	frame:callParserFunction('SHORTDESC', desc)
 end
 
---- Derives the content category names for an entity — pure, with no
---- namespace logic and no [[Category:]] markup — so the rules are
---- unit-testable in isolation (see Module:Entity/testcases). Currently the
---- item type category plus the manufacturer; Size/Grade/Subtype
---- subcategories are intentionally not emitted yet.
+--- Derives the content category names for an entity — pure (no namespace
+--- logic, no [[Category:]] markup) so the rules are unit-testable in
+--- isolation (see Module:Entity/testcases). Emits, when available:
+---  * the broad type category (from types.json via typeInfo, e.g. "Guns"),
+---  * the item-type category (from itemTypeCategories.json, e.g. "Laser
+---    repeaters") when the in-game label is mapped — unmapped labels are
+---    silently skipped, so a partial mapping is safe,
+---  * the manufacturer category.
+--- Size/grade/class are facets, not categories — they live in structured data.
 ---
 --- @param typeInfo table|nil
 --- @param apiData table
@@ -162,13 +166,24 @@ end
 --- @return string[] Ordered list of category names
 function p.deriveCategories(typeInfo, apiData, args)
 	local names = {}
+
 	if typeInfo then
 		table.insert(names, typeInfo.category or typeInfo.name)
 	end
+
+	local itemType = util.getItemType(apiData)
+	if itemType then
+		local itemTypeCategories = mw.loadJsonData('Module:Entity/Item/itemTypeCategories.json')
+		if itemTypeCategories[itemType] then
+			table.insert(names, itemTypeCategories[itemType])
+		end
+	end
+
 	local manufacturer = base.resolveManufacturer(apiData, args)
 	if manufacturer and manufacturer.page then
 		table.insert(names, manufacturer.page)
 	end
+
 	return names
 end
 

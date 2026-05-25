@@ -175,6 +175,26 @@ function p.formatNum(value)
 	return lang:formatNum(number)
 end
 
+--- Extracts the in-game "Item Type" label from an entity's description_data
+--- (e.g. "Laser Repeater"). This is the specific item type as shown in-game,
+--- distinct from the API `type` (WeaponGun) and `sub_type` (Gun) fields.
+--- Returns nil when absent.
+---
+--- @param apiData table|nil
+--- @return string|nil
+function p.getItemType(apiData)
+	local descData = apiData and apiData.description_data
+	if type(descData) ~= 'table' then
+		return nil
+	end
+	for _, entry in ipairs(descData) do
+		if entry.name == 'Item Type' or entry.name == 'Type' then
+			return entry.value or entry.type
+		end
+	end
+	return nil
+end
+
 --- Joins a list of strings into natural English with Oxford comma.
 --- Examples: {} → nil; {A} → "A"; {A,B} → "A and B"; {A,B,C} → "A, B, and C".
 ---

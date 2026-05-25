@@ -40,6 +40,25 @@ function suite:testManufacturerCategoryFromApiFallback()
 	self:assertEquals(true, hasValue(names, 'Test Manufacturer'))
 end
 
+function suite:testItemTypeCategoryEmittedWhenMapped()
+	local names = Entity.deriveCategories(
+		{ name = 'Gun', category = 'Guns' },
+		{ description_data = { { name = 'Item Type', value = 'Laser Repeater' } } },
+		{}
+	)
+	self:assertEquals(true, hasValue(names, 'Laser repeaters'))
+end
+
+function suite:testItemTypeCategoryOmittedWhenUnmapped()
+	local names = Entity.deriveCategories(
+		{ name = 'Gun', category = 'Guns' },
+		{ description_data = { { name = 'Item Type', value = 'Totally Bogus Type' } } },
+		{}
+	)
+	self:assertEquals(false, hasValue(names, 'Totally Bogus Type'))
+	self:assertEquals(true, hasValue(names, 'Guns'))
+end
+
 function suite:testEmptyWhenNoTypeInfoOrManufacturer()
 	self:assertEquals(0, #Entity.deriveCategories(nil, {}, {}))
 end

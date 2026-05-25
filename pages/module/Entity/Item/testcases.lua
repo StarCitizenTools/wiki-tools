@@ -83,4 +83,17 @@ function suite:testGetSectionsFormatsVolumeAndMass()
 	self:assertEquals('150 kg', findItem(general, 'Mass').content)
 end
 
+-- getStructuredData
+
+function suite:testGetStructuredData()
+	local result = Item.getStructuredData({
+		size = 3,
+		grade = 'A',
+		description_data = { { name = 'Item Type', value = 'Laser Repeater' } },
+	}, {})
+	self:assertEquals(3, result.size)
+	self:assertEquals('A', result.grade)
+	self:assertEquals('Laser Repeater', result.item_type)
+end
+
 return suite

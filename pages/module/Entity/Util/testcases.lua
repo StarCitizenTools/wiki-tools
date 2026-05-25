@@ -316,4 +316,25 @@ function suite:testFormatNumNonNumericPassthrough()
 	self:assertEquals('N/A', util.formatNum('N/A'))
 end
 
+-- getItemType
+
+function suite:testGetItemTypeReturnsLabel()
+	self:assertEquals(
+		'Laser Repeater',
+		util.getItemType({ description_data = { { name = 'Item Type', value = 'Laser Repeater' } } })
+	)
+end
+
+function suite:testGetItemTypeFallsBackToTypeField()
+	self:assertEquals(
+		'Laser Repeater',
+		util.getItemType({ description_data = { { name = 'Item Type', type = 'Laser Repeater' } } })
+	)
+end
+
+function suite:testGetItemTypeNilWhenAbsent()
+	self:assertEquals(nil, util.getItemType({}))
+	self:assertEquals(nil, util.getItemType(nil))
+end
+
 return suite

@@ -151,6 +151,23 @@ function p.getShortDescription(apiData, args, typeInfo)
 	return p.formatShortDescription(typeInfo, apiData, args, nil)
 end
 
+--- Contributes item-level facet values to structured data: size, grade,
+--- class, and the in-game item type. Stored backend-agnostically via
+--- Module:Entity/StructuredData. These are facets for querying/tooling;
+--- only some (e.g. item_type) are also surfaced as browse categories.
+---
+--- @param apiData table
+--- @param args table
+--- @return table<string, any>
+function p.getStructuredData(apiData, args)
+	return {
+		size = apiData.size,
+		grade = apiData.grade,
+		class = apiData.class,
+		item_type = util.getItemType(apiData),
+	}
+end
+
 --- @param apiData table
 --- @param args table
 --- @return EntityItemData[] External site items contributed by this module

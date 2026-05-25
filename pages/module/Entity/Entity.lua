@@ -150,9 +150,31 @@ local function setShortDescription(frame, typeInfo, chain, apiData, args)
 	frame:callParserFunction('SHORTDESC', desc)
 end
 
---- Builds the trailing category wikitext. Content categories (item type +
---- manufacturer) apply only on article (mainspace) pages so test and User:
---- pages don't pollute the canonical category tree — verify category
+--- Derives the content category names for an entity — pure, with no
+--- namespace logic and no [[Category:]] markup — so the rules are
+--- unit-testable in isolation (see Module:Entity/testcases). Currently the
+--- item type category plus the manufacturer; Size/Grade/Subtype
+--- subcategories are intentionally not emitted yet.
+---
+--- @param typeInfo table|nil
+--- @param apiData table
+--- @param args table
+--- @return string[] Ordered list of category names
+function p.deriveCategories(typeInfo, apiData, args)
+	local names = {}
+	if typeInfo then
+		table.insert(names, typeInfo.category or typeInfo.name)
+	end
+	local manufacturer = base.resolveManufacturer(apiData, args)
+	if manufacturer and manufacturer.page then
+		table.insert(names, manufacturer.page)
+	end
+	return names
+end
+
+--- Builds the trailing category wikitext. Content categories (from the pure
+--- p.deriveCategories) apply only on article (mainspace) pages so test and
+--- User: pages don't pollute the canonical category tree — verify category
 --- behavior by parsing wikitext with a mainspace title. Tracking categories
 --- apply in every namespace so errors surface wherever the module runs.
 ---
@@ -166,12 +188,8 @@ local function buildCategories(typeInfo, apiData, args, hasApiError, hasStructur
 	local categories = ''
 
 	if mw.title.getCurrentTitle():inNamespace(0) then
-		if typeInfo then
-			categories = categories .. '[[Category:' .. (typeInfo.category or typeInfo.name) .. ']]'
-		end
-		local manufacturer = base.resolveManufacturer(apiData, args)
-		if manufacturer and manufacturer.page then
-			categories = categories .. '[[Category:' .. manufacturer.page .. ']]'
+		for _, name in ipairs(p.deriveCategories(typeInfo, apiData, args)) do
+			categories = categories .. '[[Category:' .. name .. ']]'
 		end
 	end
 

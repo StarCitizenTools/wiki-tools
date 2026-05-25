@@ -2,6 +2,7 @@ require('strict')
 
 local data = require('Module:Entity/Data')
 local util = require('Module:Entity/Util')
+local base = require('Module:Entity/Base')
 local structuredData = require('Module:Entity/StructuredData')
 local infobox = require('Module:InfoboxLua')
 
@@ -149,17 +150,31 @@ local function setShortDescription(frame, typeInfo, chain, apiData, args)
 	frame:callParserFunction('SHORTDESC', desc)
 end
 
---- Builds the trailing category wikitext: item type + tracking categories.
+--- Builds the trailing category wikitext. Content categories (item type +
+--- manufacturer) apply only on article (mainspace) pages so test and User:
+--- pages don't pollute the canonical category tree — verify category
+--- behavior by parsing wikitext with a mainspace title. Tracking categories
+--- apply in every namespace so errors surface wherever the module runs.
 ---
 --- @param typeInfo table|nil
+--- @param apiData table
+--- @param args table
 --- @param hasApiError boolean
 --- @param hasStructuredDataError boolean
 --- @return string
-local function buildCategories(typeInfo, hasApiError, hasStructuredDataError)
+local function buildCategories(typeInfo, apiData, args, hasApiError, hasStructuredDataError)
 	local categories = ''
-	if typeInfo then
-		categories = categories .. '[[Category:' .. (typeInfo.category or typeInfo.name) .. ']]'
+
+	if mw.title.getCurrentTitle():inNamespace(0) then
+		if typeInfo then
+			categories = categories .. '[[Category:' .. (typeInfo.category or typeInfo.name) .. ']]'
+		end
+		local manufacturer = base.resolveManufacturer(apiData, args)
+		if manufacturer and manufacturer.page then
+			categories = categories .. '[[Category:' .. manufacturer.page .. ']]'
+		end
 	end
+
 	if hasApiError then
 		categories = categories .. CATEGORY_API_ERROR
 	end
@@ -196,7 +211,7 @@ function p.main(frame)
 		sections = sections,
 	})
 
-	return html .. buildCategories(result.typeInfo, result.hasApiError, not storeSuccess)
+	return html .. buildCategories(result.typeInfo, result.apiData, args, result.hasApiError, not storeSuccess)
 end
 
 return p

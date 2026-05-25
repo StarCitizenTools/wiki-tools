@@ -19,6 +19,7 @@ p.parent = 'Entity/Base'
 local itemSubtypeMapping = {
 	Food = 'Entity/Item/Food',
 	Drink = 'Entity/Item/Drink',
+	Turret = 'Entity/Item/Turret',
 	WeaponPersonal = 'Entity/Item/WeaponPersonal',
 	WeaponGun = 'Entity/Item/WeaponGun',
 	-- QuantumDrive = 'Entity/Item/QuantumDrive',

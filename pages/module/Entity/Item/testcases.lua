@@ -49,6 +49,11 @@ function suite:testResolveSubtypeWeaponPersonalReturnsModule()
 	self:assertEquals(require('Module:Entity/Item/WeaponPersonal'), result)
 end
 
+function suite:testResolveSubtypeTurretReturnsTurretModule()
+	local result = Item.resolveSubtype({ type = 'Turret' })
+	self:assertEquals(require('Module:Entity/Item/Turret'), result)
+end
+
 function suite:testResolveSubtypeUnknownTypeReturnsNil()
 	self:assertEquals(nil, Item.resolveSubtype({ type = 'BogusUnknownType' }))
 end

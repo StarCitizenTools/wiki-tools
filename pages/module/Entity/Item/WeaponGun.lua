@@ -61,7 +61,6 @@ function p.getVehicleWeaponSections(vehicleWeapon)
 			key = 'vehicle_weapon',
 			label = 'Weapon',
 			collapsible = true,
-			columns = 2,
 			items = overview,
 		},
 	}
@@ -77,7 +76,6 @@ function p.getVehicleWeaponSections(vehicleWeapon)
 			if mode.mode and #modeItems > 0 then
 				table.insert(modeSections, {
 					label = mode.mode,
-					columns = 3,
 					items = modeItems,
 				})
 			end

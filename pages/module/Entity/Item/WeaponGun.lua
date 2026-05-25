@@ -52,12 +52,12 @@ function p.getVehicleWeaponSections(vehicleWeapon)
 
 	local overview = {}
 	pushItem(overview, 'Type', vehicleWeapon.type and tostring(vehicleWeapon.type))
-	pushItem(overview, 'Alpha damage', damage.alpha_total and tostring(damage.alpha_total))
+	pushItem(overview, 'Damage', damage.alpha_total and tostring(damage.alpha_total))
 	pushItem(overview, 'DPS', damage.burst and tostring(damage.burst))
 	pushItem(overview, 'Fire rate', vehicleWeapon.rpm and (tostring(vehicleWeapon.rpm) .. ' RPM'))
 	pushItem(overview, 'Fire mode', #modeNames > 0 and table.concat(modeNames, ', ') or nil)
-	pushItem(overview, 'Max range', vehicleWeapon.range and (tostring(vehicleWeapon.range) .. ' m'))
-	pushItem(overview, 'Muzzle velocity', ammunition.speed and (tostring(ammunition.speed) .. ' m/s'))
+	pushItem(overview, 'Range', vehicleWeapon.range and (tostring(vehicleWeapon.range) .. ' m'))
+	pushItem(overview, 'Speed', ammunition.speed and (tostring(ammunition.speed) .. ' m/s'))
 	-- Ammo only for magazine-fed (ballistic) weapons; energy weapons report 0.
 	-- tonumber() guards against a string value (comparing string > number throws
 	-- in Lua 5.1) and keeps the row hidden for 0/nil/non-numeric capacity.

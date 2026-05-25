@@ -97,6 +97,48 @@ function suite:testNormalizeOmitsMissingEquippedUuid()
 	self:assertEquals(nil, r._equippedUuid)
 end
 
+function suite:testNormalizeAttachedVehicleOverridesEquipped()
+	-- A docking collar with a craft docked: show the docked vehicle
+	-- (clean name, size_class, uuid for link resolution) instead of the
+	-- placeholder docking-tube hardware, and drop the collar's internal
+	-- child ports.
+	local r = helpers.normalizePort({
+		name = 'hardpoint_docking_module',
+		type = 'DockingCollar',
+		category_label = 'Docked Vehicles',
+		compatible_types = { { type = 'DockingCollar' } },
+		equipped_item = { name = '<= PLACEHOLDER =>', class_name = 'DRAK_Caterpillar_Command_Module_DockingTube' },
+		attached_vehicle = { name = 'Command Module', uuid = 'bdeb88d1-c003-4dfa-942d-5043988e1c68', size_class = 2 },
+		ports = {
+			{
+				name = 'itemport_vehicle_attach',
+				type = 'NOITEM_Vehicle',
+				compatible_types = { { type = 'NOITEM_Vehicle' } },
+				equipped_item = { name = '<= PLACEHOLDER =>' },
+			},
+		},
+	}, 1)
+	self:assertEquals('Command Module', r.equippedItem.name)
+	self:assertEquals('[[Command Module]]', r.equippedItem.pageLink)
+	self:assertEquals(2, r.equippedItem.size)
+	self:assertEquals('bdeb88d1-c003-4dfa-942d-5043988e1c68', r._equippedUuid)
+	self:assertEquals(0, #r.children)
+end
+
+function suite:testNormalizeAttachedVehicleWithoutNameFallsBack()
+	-- attached_vehicle present but empty (no craft docked) → normal
+	-- equipped-item display, children retained.
+	local r = helpers.normalizePort({
+		name = 'p',
+		type = 'DockingCollar',
+		compatible_types = { { type = 'DockingCollar' } },
+		equipped_item = { name = 'Docking Collar' },
+		attached_vehicle = {},
+	}, 1)
+	self:assertEquals('Docking Collar', r.equippedItem.name)
+	self:assertEquals(nil, r._equippedUuid)
+end
+
 function suite:testNormalizeUsesSizeFallback()
 	local r = helpers.normalizePort({
 		name = 'p',

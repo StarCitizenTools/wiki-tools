@@ -45,6 +45,30 @@ local function equippedItemDisplay(equipped)
 	return { name = raw, pageLink = '[[' .. raw .. ']]', size = size }
 end
 
+--- A docking port (a `DockingCollar` with a craft docked) carries the
+--- docked vehicle in `attached_vehicle`, while its own `equipped_item` is
+--- the docking-tube hardware — whose name is a placeholder, so the plain
+--- equipped display would surface a raw class_name like
+--- `DRAK_Caterpillar_Command_Module_DockingTube`. Render the docked
+--- vehicle instead: its clean name, size from `size_class`, and its uuid
+--- for canonical-page resolution. Returns nil when no craft is docked.
+---
+--- @param rawPort table
+--- @return ({ name: string, pageLink: string, size: number|nil }|nil) display
+--- @return string|nil uuid  the docked vehicle's uuid, for link resolution
+local function attachedVehicleDisplay(rawPort)
+	local av = rawPort.attached_vehicle
+	if type(av) ~= 'table' then
+		return nil, nil
+	end
+	local name = av.name
+	if type(name) ~= 'string' or name == '' then
+		return nil, nil
+	end
+	local uuid = type(av.uuid) == 'string' and av.uuid or nil
+	return { name = name, pageLink = '[[' .. name .. ']]', size = tonumber(av.size_class) }, uuid
+end
+
 --- Picks the best display label for a port: prefer `display_name`
 --- when it's a real string (not the engine's `@LOC_EMPTY` sentinel),
 --- otherwise fall back to the raw `name`. No prettification — the raw
@@ -106,7 +130,8 @@ local function normalizePort(rawPort, depth)
 	end
 	local compatibleTypes = collectCompatibleTypes(rawPort)
 	local equipped = rawPort.equipped_item
-	if #compatibleTypes == 0 and equipped == nil then
+	local attachedItem, attachedUuid = attachedVehicleDisplay(rawPort)
+	if #compatibleTypes == 0 and equipped == nil and not attachedItem then
 		return nil
 	end
 
@@ -132,8 +157,12 @@ local function normalizePort(rawPort, depth)
 		childPorts = equipped.ports
 	end
 
+	-- A docked vehicle's own ports (the collar's `attached_vehicle`
+	-- internals: fuel/relay/screen mounts) are noise on the carrier's
+	-- page — the docked craft has its own page for its loadout. Skip
+	-- them so the Docked Vehicles row is a clean leaf.
 	local children = {}
-	if depth < MAX_DEPTH and type(childPorts) == 'table' then
+	if not attachedItem and depth < MAX_DEPTH and type(childPorts) == 'table' then
 		for _, child in ipairs(childPorts) do
 			local n = normalizePort(child, depth + 1)
 			if n then
@@ -161,10 +190,12 @@ local function normalizePort(rawPort, depth)
 		category = categories.lookup(categories.deriveLabel(rawPort, compatibleTypes)),
 		compatibleTypes = compatibleTypes,
 		editable = editable,
-		equippedItem = equippedItemDisplay(equipped),
+		equippedItem = attachedItem or equippedItemDisplay(equipped),
 		children = children,
 	}
-	if type(rawPort.equipped_item_uuid) == 'string' then
+	if attachedUuid then
+		node._equippedUuid = attachedUuid
+	elseif type(rawPort.equipped_item_uuid) == 'string' then
 		node._equippedUuid = rawPort.equipped_item_uuid
 	end
 	return node

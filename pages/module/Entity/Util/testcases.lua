@@ -332,6 +332,14 @@ function suite:testGetItemTypeFallsBackToTypeField()
 	)
 end
 
+function suite:testGetItemTypeFromTypeEntryName()
+	-- Some items label it "Type" rather than "Item Type" (e.g. Exodus-10 Laser Beam).
+	self:assertEquals(
+		'Laser Beam',
+		util.getItemType({ description_data = { { name = 'Type', value = 'Laser Beam' } } })
+	)
+end
+
 function suite:testGetItemTypeNilWhenAbsent()
 	self:assertEquals(nil, util.getItemType({}))
 	self:assertEquals(nil, util.getItemType(nil))

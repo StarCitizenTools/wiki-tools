@@ -40,11 +40,22 @@ function p.getVehicleWeaponSections(vehicleWeapon)
 	local damage = vehicleWeapon.damage or {}
 	local ammunition = vehicleWeapon.ammunition or {}
 
+	-- Fire mode names only (e.g. "Single", "Burst"); per-mode stats omitted for now.
+	local modeNames = {}
+	if type(vehicleWeapon.modes) == 'table' then
+		for _, mode in ipairs(vehicleWeapon.modes) do
+			if mode.mode then
+				table.insert(modeNames, tostring(mode.mode))
+			end
+		end
+	end
+
 	local overview = {}
 	pushItem(overview, 'Type', vehicleWeapon.type and tostring(vehicleWeapon.type))
 	pushItem(overview, 'Alpha damage', damage.alpha_total and tostring(damage.alpha_total))
-	pushItem(overview, 'Damage per second', damage.burst and tostring(damage.burst))
+	pushItem(overview, 'DPS', damage.burst and tostring(damage.burst))
 	pushItem(overview, 'Fire rate', vehicleWeapon.rpm and (tostring(vehicleWeapon.rpm) .. ' RPM'))
+	pushItem(overview, 'Fire mode', #modeNames > 0 and table.concat(modeNames, ', ') or nil)
 	pushItem(overview, 'Max range', vehicleWeapon.range and (tostring(vehicleWeapon.range) .. ' m'))
 	pushItem(overview, 'Muzzle velocity', ammunition.speed and (tostring(ammunition.speed) .. ' m/s'))
 	-- Ammo only for magazine-fed (ballistic) weapons; energy weapons report 0.
@@ -59,7 +70,7 @@ function p.getVehicleWeaponSections(vehicleWeapon)
 		return {}
 	end
 
-	local sections = {
+	return {
 		{
 			key = 'vehicle_weapon',
 			label = 'Weapon',
@@ -67,34 +78,6 @@ function p.getVehicleWeaponSections(vehicleWeapon)
 			items = overview,
 		},
 	}
-
-	local modeSections = {}
-	if type(vehicleWeapon.modes) == 'table' then
-		for _, mode in ipairs(vehicleWeapon.modes) do
-			local modeItems = {}
-			pushItem(modeItems, 'Damage per second', mode.damage_per_second and tostring(mode.damage_per_second))
-			pushItem(modeItems, 'Fire rate', mode.rpm and (tostring(mode.rpm) .. ' RPM'))
-			pushItem(modeItems, 'Projectiles', mode.pellets_per_shot and tostring(mode.pellets_per_shot))
-			pushItem(modeItems, 'Ammo per shot', mode.ammo_per_shot and tostring(mode.ammo_per_shot))
-			if mode.mode and #modeItems > 0 then
-				table.insert(modeSections, {
-					label = mode.mode,
-					items = modeItems,
-				})
-			end
-		end
-	end
-
-	if #modeSections > 0 then
-		table.insert(sections, {
-			key = 'modes',
-			label = 'Modes',
-			collapsible = true,
-			sections = modeSections,
-		})
-	end
-
-	return sections
 end
 
 --- @param apiData table

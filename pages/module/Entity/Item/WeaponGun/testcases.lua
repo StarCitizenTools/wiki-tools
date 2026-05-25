@@ -56,8 +56,9 @@ function suite:testWeaponSectionPresent()
 	self:assertEquals('Weapon', weapon.label)
 	self:assertEquals('Laser Repeater', findItem(weapon.items, 'Type').content)
 	self:assertEquals('86', findItem(weapon.items, 'Alpha damage').content)
-	self:assertEquals('501.7', findItem(weapon.items, 'Damage per second').content)
+	self:assertEquals('501.7', findItem(weapon.items, 'DPS').content)
 	self:assertEquals('350 RPM', findItem(weapon.items, 'Fire rate').content)
+	self:assertEquals('Single', findItem(weapon.items, 'Fire mode').content)
 	self:assertEquals('1924 m', findItem(weapon.items, 'Max range').content)
 	self:assertEquals('1480 m/s', findItem(weapon.items, 'Muzzle velocity').content)
 end
@@ -87,19 +88,21 @@ function suite:testPartialDataOmitsMissingRows()
 	self:assertEquals(nil, findItem(weapon.items, 'Muzzle velocity'))
 end
 
-function suite:testModesNestedSection()
-	local sections = WeaponGun.getVehicleWeaponSections(fixture())
-	local modes = findSection(sections, 'modes')
-	self:assertNotEquals(nil, modes)
-	self:assertEquals(1, #modes.sections)
-	self:assertEquals('Single', modes.sections[1].label)
-	self:assertEquals('501.7', findItem(modes.sections[1].items, 'Damage per second').content)
+function suite:testMultipleFireModesJoined()
+	local vw = fixture()
+	vw.modes = { { mode = 'Single' }, { mode = 'Burst' } }
+	local sections = WeaponGun.getVehicleWeaponSections(vw)
+	local weapon = findSection(sections, 'vehicle_weapon')
+	self:assertEquals('Single, Burst', findItem(weapon.items, 'Fire mode').content)
 end
 
-function suite:testNoModesSectionWhenAbsent()
+function suite:testNoFireModeRowWhenAbsent()
 	local vw = fixture()
 	vw.modes = nil
 	local sections = WeaponGun.getVehicleWeaponSections(vw)
+	local weapon = findSection(sections, 'vehicle_weapon')
+	self:assertEquals(nil, findItem(weapon.items, 'Fire mode'))
+	-- Fire modes are a row in the Weapon section, not a separate section.
 	self:assertEquals(nil, findSection(sections, 'modes'))
 end
 

@@ -106,6 +106,14 @@ function suite:testNoFireModeRowWhenAbsent()
 	self:assertEquals(nil, findSection(sections, 'modes'))
 end
 
+function suite:testFormatsLargeNumbersWithSeparator()
+	local vw = fixture()
+	vw.range = 12500
+	local sections = WeaponGun.getVehicleWeaponSections(vw)
+	local weapon = findSection(sections, 'vehicle_weapon')
+	self:assertEquals('12,500 m', findItem(weapon.items, 'Range').content)
+end
+
 function suite:testGetSectionsForwardsToVehicleWeapon()
 	local result = WeaponGun.getSections({ vehicle_weapon = fixture() }, {})
 	self:assertNotEquals(nil, findSection(result, 'vehicle_weapon'))

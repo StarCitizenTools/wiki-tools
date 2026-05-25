@@ -59,8 +59,8 @@ function suite:testWeaponSectionPresent()
 	self:assertEquals('501.7', findItem(weapon.items, 'DPS').content)
 	self:assertEquals('350 RPM', findItem(weapon.items, 'Fire rate').content)
 	self:assertEquals('Single', findItem(weapon.items, 'Fire mode').content)
-	self:assertEquals('1924 m', findItem(weapon.items, 'Range').content)
-	self:assertEquals('1480 m/s', findItem(weapon.items, 'Speed').content)
+	self:assertEquals('1,924 m', findItem(weapon.items, 'Range').content)
+	self:assertEquals('1,480 m/s', findItem(weapon.items, 'Speed').content)
 end
 
 function suite:testNoAmmoWhenCapacityZero()

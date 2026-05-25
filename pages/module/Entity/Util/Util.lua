@@ -2,6 +2,8 @@ require('strict')
 
 local p = {}
 
+local lang = mw.getContentLanguage()
+
 --- Merges a list of ordered section lists into a single ordered list of sections.
 --- For matching keys, items are appended. First definition's metadata (label, collapsible, etc.) wins.
 --- Display order is determined by the order entries appear across the input lists.
@@ -157,6 +159,20 @@ function p.fetchAllApis(configs, uuid)
 	end
 
 	return apiData, hasError
+end
+
+--- Formats a numeric value with content-language digit grouping
+--- (e.g. 1480 -> "1,480"). Returns nil for nil so callers can collapse
+--- empty rows; passes non-numeric values through unchanged.
+---
+--- @param value number|string|nil
+--- @return string|nil
+function p.formatNum(value)
+	local number = tonumber(value)
+	if number == nil then
+		return value ~= nil and tostring(value) or nil
+	end
+	return lang:formatNum(number)
 end
 
 --- Joins a list of strings into natural English with Oxford comma.

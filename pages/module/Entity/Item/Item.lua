@@ -128,11 +128,11 @@ function p.getSections(apiData, args)
 					label = 'Volume',
 					content = dim
 						and dim.volume_converted
-						and (tostring(dim.volume_converted) .. ' ' .. (dim.volume_converted_unit or 'SCU')),
+						and (util.formatNum(dim.volume_converted) .. ' ' .. (dim.volume_converted_unit or 'SCU')),
 				},
 				{
 					label = 'Mass',
-					content = apiData.mass and (tostring(apiData.mass) .. ' kg'),
+					content = apiData.mass and (util.formatNum(apiData.mass) .. ' kg'),
 				},
 				{ label = 'Dimension', content = dimensionContent },
 			},

@@ -50,15 +50,37 @@ function suite:testResolveSubtypeWeaponPersonalReturnsModule()
 end
 
 function suite:testResolveSubtypeUnknownTypeReturnsNil()
-	self:assertNil(Item.resolveSubtype({ type = 'BogusUnknownType' }))
+	self:assertEquals(nil, Item.resolveSubtype({ type = 'BogusUnknownType' }))
 end
 
 function suite:testResolveSubtypeMissingTypeReturnsNil()
-	self:assertNil(Item.resolveSubtype({}))
+	self:assertEquals(nil, Item.resolveSubtype({}))
 end
 
 function suite:testResolveSubtypeNilApiDataReturnsNil()
-	self:assertNil(Item.resolveSubtype(nil))
+	self:assertEquals(nil, Item.resolveSubtype(nil))
+end
+
+-- getSections (number formatting)
+
+function suite:testGetSectionsFormatsVolumeAndMass()
+	local sections = Item.getSections({
+		mass = 150,
+		dimension = { volume_converted = 756000, volume_converted_unit = 'µSCU' },
+	}, {})
+
+	local function findItem(items, label)
+		for _, item in ipairs(items or {}) do
+			if item.label == label then
+				return item
+			end
+		end
+		return nil
+	end
+
+	local general = sections[1].items
+	self:assertEquals('756,000 µSCU', findItem(general, 'Volume').content)
+	self:assertEquals('150 kg', findItem(general, 'Mass').content)
 end
 
 return suite

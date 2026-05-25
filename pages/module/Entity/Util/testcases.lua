@@ -290,4 +290,30 @@ function suite:testBuildSiteLinksJoinsMultiple()
 	)
 end
 
+-- formatNum
+
+function suite:testFormatNumGroupsThousands()
+	self:assertEquals('756,000', util.formatNum(756000))
+end
+
+function suite:testFormatNumSmallNumberUnchanged()
+	self:assertEquals('86', util.formatNum(86))
+end
+
+function suite:testFormatNumDecimal()
+	self:assertEquals('501.7', util.formatNum(501.7))
+end
+
+function suite:testFormatNumNilReturnsNil()
+	self:assertEquals(nil, util.formatNum(nil))
+end
+
+function suite:testFormatNumNumericStringGrouped()
+	self:assertEquals('1,480', util.formatNum('1480'))
+end
+
+function suite:testFormatNumNonNumericPassthrough()
+	self:assertEquals('N/A', util.formatNum('N/A'))
+end
+
 return suite

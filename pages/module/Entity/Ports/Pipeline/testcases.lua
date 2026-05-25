@@ -741,4 +741,64 @@ function suite:testProcessItemPathSkipsNarrow()
 	self:assertEquals(2, #itemGroups[1].rows[1].children)
 end
 
+-- collectEquippedUuids / applyResolvedLinks
+
+local function fakeGroups()
+	return {
+		{
+			label = 'Weapons',
+			rows = {
+				{
+					representative = {
+						_equippedUuid = 'uuid-a',
+						equippedItem = { name = 'M2C "Swarm"', pageLink = '[[M2C "Swarm"]]' },
+					},
+					children = {
+						{
+							representative = {
+								_equippedUuid = 'uuid-b',
+								equippedItem = { name = 'BEHR Gun', pageLink = '' },
+							},
+							children = {},
+						},
+						{
+							representative = {
+								_equippedUuid = 'uuid-a',
+								equippedItem = { name = 'M2C "Swarm"', pageLink = '[[M2C "Swarm"]]' },
+							},
+							children = {},
+						},
+					},
+				},
+			},
+		},
+	}
+end
+
+function suite:testCollectEquippedUuidsDistinct()
+	local uuids = pipeline.collectEquippedUuids(fakeGroups())
+	table.sort(uuids)
+	self:assertEquals(2, #uuids)
+	self:assertEquals('uuid-a', uuids[1])
+	self:assertEquals('uuid-b', uuids[2])
+end
+
+function suite:testApplyResolvedLinksRewritesWithNameLabel()
+	local groups = fakeGroups()
+	pipeline.applyResolvedLinks(groups, { ['uuid-a'] = { page = 'Mauler PDC Turret' } })
+	self:assertEquals('[[Mauler PDC Turret|M2C "Swarm"]]', groups[1].rows[1].representative.equippedItem.pageLink)
+end
+
+function suite:testApplyResolvedLinksUnresolvedUntouched()
+	local groups = fakeGroups()
+	pipeline.applyResolvedLinks(groups, {})
+	self:assertEquals('[[M2C "Swarm"]]', groups[1].rows[1].representative.equippedItem.pageLink)
+end
+
+function suite:testApplyResolvedLinksPlaceholderUsesPageLabel()
+	local groups = fakeGroups()
+	pipeline.applyResolvedLinks(groups, { ['uuid-b'] = { page = 'BEHR Repeater' } })
+	self:assertEquals('[[BEHR Repeater]]', groups[1].rows[1].children[1].representative.equippedItem.pageLink)
+end
+
 return suite

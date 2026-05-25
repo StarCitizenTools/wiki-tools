@@ -481,6 +481,66 @@ function p.process(rawPorts, opts)
 	return groupByCategory(aggregateSiblings(cleaned))
 end
 
+--- Collects the distinct equipped-item UUIDs from a processed group tree
+--- (the output of p.process), for batch page resolution. Walks each group's
+--- rows and their nested children. The "Other" group's subGroups reference
+--- the same row objects, so walking `rows` alone covers them.
+---
+--- @param groups table[]  output of p.process
+--- @return string[]  distinct equipped UUIDs, in first-seen order
+function p.collectEquippedUuids(groups)
+	local out, seen = {}, {}
+	local function walk(entry)
+		local node = entry.representative
+		local uuid = node and node._equippedUuid
+		if type(uuid) == 'string' and not seen[uuid] then
+			seen[uuid] = true
+			table.insert(out, uuid)
+		end
+		for _, child in ipairs(entry.children or {}) do
+			walk(child)
+		end
+	end
+	for _, group in ipairs(groups or {}) do
+		for _, row in ipairs(group.rows or {}) do
+			walk(row)
+		end
+	end
+	return out
+end
+
+--- Rewrites equipped-item links in place from a {uuid -> {page}} map (from
+--- PageResolver.resolve). For a resolved UUID, links to the canonical page
+--- with the friendly item name as the label; when the name was a placeholder
+--- (link previously suppressed to ''), uses the page as the label. Unresolved
+--- UUIDs are left untouched, keeping the existing name-based fallback link.
+---
+--- @param groups table[]  output of p.process (mutated in place)
+--- @param map table<string, { page: string, image: string|nil }>
+function p.applyResolvedLinks(groups, map)
+	local function walk(entry)
+		local node = entry.representative
+		local item = node and node.equippedItem
+		local uuid = node and node._equippedUuid
+		if item and type(uuid) == 'string' and map[uuid] and map[uuid].page then
+			local page = map[uuid].page
+			if item.pageLink == '' then
+				item.pageLink = '[[' .. page .. ']]'
+			else
+				item.pageLink = '[[' .. page .. '|' .. item.name .. ']]'
+			end
+		end
+		for _, child in ipairs(entry.children or {}) do
+			walk(child)
+		end
+	end
+	for _, group in ipairs(groups or {}) do
+		for _, row in ipairs(group.rows or {}) do
+			walk(row)
+		end
+	end
+end
+
 -- Test-only exports. Not part of the public API.
 -- Only helpers actually exercised by Pipeline/testcases.lua. Add to
 -- this list when a new test demands access — don't widen pre-emptively.

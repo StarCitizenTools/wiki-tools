@@ -12,6 +12,7 @@ local data = require('Module:Entity/Data')
 local Vehicle = require('Module:Entity/Vehicle')
 local pipeline = require('Module:Entity/Ports/Pipeline')
 local render = require('Module:Entity/Ports/Render')
+local PageResolver = require('Module:Entity/PageResolver')
 
 local p = {}
 
@@ -40,6 +41,7 @@ function p.main(frame)
 	end
 
 	local groups = pipeline.process(rawPorts, { isVehicle = Vehicle.matches(result.apiData) })
+	pipeline.applyResolvedLinks(groups, PageResolver.resolve(pipeline.collectEquippedUuids(groups)))
 	return styles .. render.fromGroups(groups)
 end
 

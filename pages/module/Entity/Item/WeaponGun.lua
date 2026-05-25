@@ -48,8 +48,11 @@ function p.getVehicleWeaponSections(vehicleWeapon)
 	pushItem(overview, 'Max range', vehicleWeapon.range and (tostring(vehicleWeapon.range) .. ' m'))
 	pushItem(overview, 'Muzzle velocity', ammunition.speed and (tostring(ammunition.speed) .. ' m/s'))
 	-- Ammo only for magazine-fed (ballistic) weapons; energy weapons report 0.
-	if type(vehicleWeapon.capacity) == 'number' and vehicleWeapon.capacity > 0 then
-		pushItem(overview, 'Ammo', tostring(vehicleWeapon.capacity))
+	-- tonumber() guards against a string value (comparing string > number throws
+	-- in Lua 5.1) and keeps the row hidden for 0/nil/non-numeric capacity.
+	local capacity = tonumber(vehicleWeapon.capacity)
+	if capacity and capacity > 0 then
+		pushItem(overview, 'Ammo', tostring(capacity))
 	end
 
 	if #overview == 0 then

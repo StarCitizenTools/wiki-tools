@@ -76,6 +76,17 @@ function suite:testAmmoShownWhenCapacityPositive()
 	self:assertEquals('200', findItem(weapon.items, 'Ammo').content)
 end
 
+function suite:testPartialDataOmitsMissingRows()
+	local sections = WeaponGun.getVehicleWeaponSections({
+		type = 'Laser Cannon',
+		damage = { alpha_total = 200 },
+	})
+	local weapon = findSection(sections, 'vehicle_weapon')
+	self:assertEquals('Laser Cannon', findItem(weapon.items, 'Type').content)
+	self:assertEquals('200', findItem(weapon.items, 'Alpha damage').content)
+	self:assertEquals(nil, findItem(weapon.items, 'Muzzle velocity'))
+end
+
 function suite:testModesNestedSection()
 	local sections = WeaponGun.getVehicleWeaponSections(fixture())
 	local modes = findSection(sections, 'modes')

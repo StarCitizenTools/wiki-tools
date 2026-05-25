@@ -360,6 +360,30 @@ function suite:testNarrowPassesThroughChildrenWhenNoAllowlist()
 	self:assertEquals('sub', narrowed[1].children[1].name)
 end
 
+function suite:testNarrowKeepsTractorBeamInTurret()
+	-- A turret holding a tractor beam (e.g. Command Module's remote
+	-- tractor turret): the TractorBeam child must survive narrowChildren,
+	-- so "TractorBeam" is in the turret categories' expandIntoTypes.
+	local turret = helpers.normalizePort({
+		name = 'hardpoint_tractor_beam',
+		type = 'Turret',
+		category_label = 'Remote Turrets',
+		compatible_types = { { type = 'Turret' } },
+		equipped_item = { name = 'Tractor Beam' },
+		ports = {
+			{
+				name = 'turret_weapon',
+				type = 'TractorBeam',
+				compatible_types = { { type = 'TractorBeam' } },
+				equipped_item = { name = 'SureGrip S2 Tractor Beam' },
+			},
+		},
+	}, 1)
+	local narrowed = helpers.narrowChildren({ turret })
+	self:assertEquals(1, #narrowed[1].children)
+	self:assertEquals('SureGrip S2 Tractor Beam', narrowed[1].children[1].equippedItem.name)
+end
+
 function suite:testFilterRecursesIntoChildren()
 	local input = helpers.normalizePort({
 		name = 'turret',

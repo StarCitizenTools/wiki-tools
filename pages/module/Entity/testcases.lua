@@ -59,6 +59,28 @@ function suite:testItemTypeCategoryOmittedWhenUnmapped()
 	self:assertEquals(true, hasValue(names, 'Guns'))
 end
 
+function suite:testItemTypeCategoryFromTagFallback()
+	-- No explicit Item Type label (e.g. 'WARLORD' Cannon): derive from the
+	-- CamelCase weapon-type tag.
+	local names = Entity.deriveCategories(
+		{ name = 'Gun', category = 'Guns' },
+		{ tags = { 'VNCL', 'PlasmaCannon', 'flightReady' } },
+		{}
+	)
+	self:assertEquals(true, hasValue(names, 'Plasma cannons'))
+end
+
+function suite:testTagFallbackSkippedWhenLabelPresent()
+	-- A present-but-unmapped label (PDC guns' "Laser Turret") must NOT fall
+	-- back to tags, so PDC guns stay uncategorized until the Turret work.
+	local names = Entity.deriveCategories(
+		{ name = 'Gun', category = 'Guns' },
+		{ description_data = { { name = 'Item Type', value = 'Laser Turret' } }, tags = { 'LaserRepeater' } },
+		{}
+	)
+	self:assertEquals(false, hasValue(names, 'Laser repeaters'))
+end
+
 function suite:testEmptyWhenNoTypeInfoOrManufacturer()
 	self:assertEquals(0, #Entity.deriveCategories(nil, {}, {}))
 end

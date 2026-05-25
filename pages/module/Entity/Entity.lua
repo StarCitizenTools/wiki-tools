@@ -156,7 +156,8 @@ end
 ---  * the broad type category (from types.json via typeInfo, e.g. "Guns"),
 ---  * the item-type category (from itemTypeCategories.json, e.g. "Laser
 ---    repeaters") when the in-game label is mapped — unmapped labels are
----    silently skipped, so a partial mapping is safe,
+---    silently skipped, so a partial mapping is safe; items with no label
+---    fall back to a weapon-type tag (see below),
 ---  * the manufacturer category.
 --- Size/grade/class are facets, not categories — they live in structured data.
 ---
@@ -171,11 +172,31 @@ function p.deriveCategories(typeInfo, apiData, args)
 		table.insert(names, typeInfo.category or typeInfo.name)
 	end
 
+	-- Item-type browse category. Prefer the explicit "Item Type"/"Type" label;
+	-- when an item carries no such label (e.g. 'WARLORD' Cannon, empty
+	-- description_data), fall back to a weapon-type tag — the CamelCase tag
+	-- ("PlasmaCannon") split on case boundaries matches a label key in the same
+	-- map ("Plasma Cannon"). A present-but-unmapped label (e.g. the PDC guns'
+	-- "Laser Turret") deliberately does NOT fall back, so those stay
+	-- uncategorized until the Turret/PDC work decides how to group them.
 	local itemType = util.getItemType(apiData)
-	if itemType then
+	local tags = type(apiData.tags) == 'table' and apiData.tags or nil
+	if itemType or tags then
 		local itemTypeCategories = mw.loadJsonData('Module:Entity/Item/itemTypeCategories.json')
-		if itemTypeCategories[itemType] then
-			table.insert(names, itemTypeCategories[itemType])
+		local itemTypeCategory
+		if itemType then
+			itemTypeCategory = itemTypeCategories[itemType]
+		else
+			for _, tag in ipairs(tags) do
+				local spaced = (tag:gsub('(%l)(%u)', '%1 %2'))
+				if itemTypeCategories[spaced] then
+					itemTypeCategory = itemTypeCategories[spaced]
+					break
+				end
+			end
+		end
+		if itemTypeCategory then
+			table.insert(names, itemTypeCategory)
 		end
 	end
 

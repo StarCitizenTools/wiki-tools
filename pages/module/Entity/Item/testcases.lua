@@ -101,4 +101,32 @@ function suite:testGetStructuredData()
 	self:assertEquals('Laser Repeater', result.item_type)
 end
 
+-- classContent / gradeContent (graded-component rows)
+
+function suite:testClassContentPresent()
+	self:assertEquals('Military', Item._internal.classContent({ class = 'Military' }))
+end
+
+function suite:testClassContentAbsentOrEmpty()
+	self:assertEquals(nil, Item._internal.classContent({}))
+	self:assertEquals(nil, Item._internal.classContent({ class = '' }))
+end
+
+function suite:testGradeContentComponent()
+	self:assertEquals('B', Item._internal.gradeContent({ class = 'Military', grade = 'B' }))
+end
+
+function suite:testGradeContentWeaponNoClassReturnsNil()
+	-- Vehicle gun: constant grade 'A' but no class -> no grade row.
+	self:assertEquals(nil, Item._internal.gradeContent({ grade = 'A' }))
+end
+
+function suite:testGradeContentComponentNoGradeReturnsNil()
+	self:assertEquals(nil, Item._internal.gradeContent({ class = 'Military' }))
+end
+
+function suite:testGradeContentFpsReturnsNil()
+	self:assertEquals(nil, Item._internal.gradeContent({}))
+end
+
 return suite

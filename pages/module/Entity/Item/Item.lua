@@ -93,6 +93,38 @@ function p.resolveSubtype(apiData)
 	return nil
 end
 
+--- Class (Military / Civilian / Industrial / Competition / ...) is populated
+--- only on graded vehicle components; vehicle weapons and FPS items have
+--- none. Returns nil when absent so the row collapses.
+---
+--- @param apiData table
+--- @return string|nil
+local function classContent(apiData)
+	local class = apiData.class
+	if type(class) == 'string' and class ~= '' then
+		return class
+	end
+	return nil
+end
+
+--- Grade (A-D) is meaningful only on graded vehicle components - those the
+--- API marks with a `class`. Vehicle weapons report a constant grade 'A'
+--- with no class, and FPS items have no grade; both get no row. Gating on
+--- `class` keeps the constant 'A' off every weapon.
+---
+--- @param apiData table
+--- @return string|nil
+local function gradeContent(apiData)
+	if classContent(apiData) == nil then
+		return nil
+	end
+	local grade = apiData.grade
+	if grade == nil or grade == '' then
+		return nil
+	end
+	return tostring(grade)
+end
+
 --- @param apiData table
 --- @param args table
 --- @return table[] Ordered list of section entries with key field
@@ -129,6 +161,8 @@ function p.getSections(apiData, args)
 					content = manufacturerLink,
 				},
 				{ label = 'Size', content = apiData.size and tostring(apiData.size) },
+				{ label = 'Class', content = classContent(apiData) },
+				{ label = 'Grade', content = gradeContent(apiData) },
 				{
 					label = 'Volume',
 					content = dim
@@ -187,5 +221,11 @@ function p.getExternalSiteItems(apiData, args)
 	end
 	return { { label = 'Community sites', content = links } }
 end
+
+-- Test-only exports. Not part of the public API.
+p._internal = {
+	classContent = classContent,
+	gradeContent = gradeContent,
+}
 
 return p

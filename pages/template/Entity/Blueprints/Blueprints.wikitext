@@ -1,0 +1,5 @@
+<includeonly><!--
+-->{{#invoke:Entity/Blueprints|main}}<!--
+--></includeonly><noinclude>
+{{/doc}}
+</noinclude>

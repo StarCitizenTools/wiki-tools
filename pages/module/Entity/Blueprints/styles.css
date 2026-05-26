@@ -2,6 +2,15 @@
 
 }
 
+.t-entity-blueprint-grade {
+    margin-inline-start: var(--space-xs);
+}
+
+.t-entity-blueprint-empty {
+    color: var(--color-subtle);
+    font-style: italic;
+}
+
 .t-entity-blueprint-aspect {
     padding: var(--space-sm);
 }

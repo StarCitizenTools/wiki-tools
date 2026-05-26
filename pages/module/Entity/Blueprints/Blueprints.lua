@@ -8,13 +8,35 @@ require('strict')
 --- An interactive implementation requires the creation of a MediaWiki extension.
 
 local data = require('Module:Entity/Data')
+local badgeLua = require('Module:BadgeLua')
 local collapsibleCard = require('Module:CollapsibleCard')
 local tableLua = require('Module:TableLua')
 
 local p = {}
 
-local function formatSCU(val)
-	return val .. ' SCU'
+--- Formats a blueprint material's quantity. Resource materials are measured
+--- in SCU (`quantity_scu`); item materials are discrete and carry a `quantity`
+--- count with no SCU value. Returns '' when neither is present so callers
+--- never concatenate a nil.
+---
+--- @param material table A blueprint input/return (has quantity_scu and/or quantity)
+--- @return string
+local function formatQuantity(material)
+	if material.quantity_scu ~= nil then
+		return material.quantity_scu .. ' SCU'
+	end
+	if material.quantity ~= nil then
+		return tostring(material.quantity)
+	end
+	return ''
+end
+
+local function buildDescription(blueprint)
+	local badge = badgeLua.render({
+		text = 'Grade ' .. (blueprint.grade or '1'),
+		class = 't-entity-blueprint-grade',
+	})
+	return blueprint.key .. badge
 end
 
 local function getBlueprints(apiData)
@@ -23,6 +45,10 @@ local function getBlueprints(apiData)
 		return blueprints
 	end
 	return nil
+end
+
+local function renderEmpty(message)
+	return tostring(mw.html.create('p'):addClass('t-entity-blueprint-empty'):wikitext(message))
 end
 
 local function renderAspect(aspect)
@@ -37,7 +63,7 @@ local function renderAspect(aspect)
 		:done()
 		:tag('div')
 		:addClass('t-entity-blueprint-material__quantity')
-		:wikitext(formatSCU(aspect.input.quantity_scu))
+		:wikitext(formatQuantity(aspect.input))
 		:done()
 		:done()
 
@@ -93,7 +119,7 @@ local function renderBlueprint(blueprint)
 
 	return collapsibleCard.render({
 		title = blueprint.output_name,
-		description = blueprint.key .. ' | Grade ' .. (blueprint.grade or '1'),
+		description = buildDescription(blueprint),
 		content = content,
 		open = true,
 	})
@@ -106,7 +132,7 @@ local function renderDismantle(blueprint)
 	for _, entry in ipairs(blueprint.dismantle_returns) do
 		table.insert(rows, {
 			'[[' .. entry.name .. ']]',
-			formatSCU(entry.quantity_scu),
+			formatQuantity(entry),
 		})
 	end
 
@@ -123,7 +149,7 @@ local function renderDismantle(blueprint)
 
 	return collapsibleCard.render({
 		title = blueprint.output_name,
-		description = blueprint.key .. ' | Grade ' .. (blueprint.grade or '1'),
+		description = buildDescription(blueprint),
 		content = content,
 		open = true,
 	})
@@ -143,29 +169,38 @@ function p.main(frame)
 	local root = mw.html.create(nil)
 	local blueprints = getBlueprints(result.apiData)
 
+	local craftable, dismantlable = {}, {}
+	if not result.hasApiError and blueprints then
+		for _, bp in ipairs(blueprints) do
+			if bp.aspects and bp.aspects.aspects then
+				table.insert(craftable, bp)
+			end
+			if bp.dismantle_returns then
+				table.insert(dismantlable, bp)
+			end
+		end
+	end
+
 	root:tag('h3'):wikitext('Blueprints')
-	if blueprints and blueprints[1].aspects then
-		for _, blueprint in ipairs(blueprints) do
+	if result.hasApiError then
+		root:wikitext(renderEmpty('Blueprint data unavailable.'))
+	elseif #craftable == 0 then
+		root:wikitext(renderEmpty('No blueprints found for this item.'))
+	else
+		for _, blueprint in ipairs(craftable) do
 			root:tag('div'):addClass('t-entity-blueprint'):wikitext(renderBlueprint(blueprint))
 		end
-	else
-		root:tag('div')
-			:addClass('t-entity-blueprint')
-			:tag('div')
-			:addClass('t-entity-blueprint-subtitle')
-			:wikitext('No blueprints found for this item.')
 	end
+
 	root:tag('h3'):wikitext('Dismantle')
-	if blueprints and blueprints[1].dismantle_returns then
-		for _, blueprint in ipairs(blueprints) do
+	if result.hasApiError then
+		root:wikitext(renderEmpty('Dismantle data unavailable.'))
+	elseif #dismantlable == 0 then
+		root:wikitext(renderEmpty('No dismantle returns for this item.'))
+	else
+		for _, blueprint in ipairs(dismantlable) do
 			root:tag('div'):addClass('t-entity-dismantle'):wikitext(renderDismantle(blueprint))
 		end
-	else
-		root:tag('div')
-			:addClass('t-entity-blueprint')
-			:tag('div')
-			:addClass('t-entity-blueprint-subtitle')
-			:wikitext('No blueprints found for this item.')
 	end
 
 	return styles .. tostring(root)

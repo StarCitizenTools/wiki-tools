@@ -54,7 +54,11 @@ function p.getApiConfigs()
 		{
 			name = 'StarCitizenWikiAPI',
 			endpoint = 'items/%s',
-			params = { locale = 'en_EN', include = 'related_items,blueprints,vehicles' },
+			-- `ports` is required so turret / weapon-mount items carry the embedded
+			-- equipped gun's `vehicle_weapon` (Entity/Item/Turret reads it) and so
+			-- Entity/Ports gets full port detail on item pages. Without it the API
+			-- returns a shallow ports array (no port `type`, no `vehicle_weapon`).
+			params = { locale = 'en_EN', include = 'related_items,blueprints,vehicles,ports' },
 			responseDataPath = 'data',
 		},
 	}

@@ -154,6 +154,9 @@ end
 --- logic, no [[Category:]] markup) so the rules are unit-testable in
 --- isolation (see Module:Entity/testcases). Emits, when available:
 ---  * the broad type category (from types.json via typeInfo, e.g. "Guns"),
+---  * the sub_type category (from subTypeCategories.json, e.g. PDCTurret ->
+---    "PDCs") — a bucket finer than the type category, keyed by the API
+---    `sub_type` enum,
 ---  * the item-type category (from itemTypeCategories.json, e.g. "Laser
 ---    repeaters") when the in-game label is mapped — unmapped labels are
 ---    silently skipped, so a partial mapping is safe; items with no label
@@ -172,13 +175,27 @@ function p.deriveCategories(typeInfo, apiData, args)
 		table.insert(names, typeInfo.category or typeInfo.name)
 	end
 
+	-- Sub_type browse category: a bucket finer than the type category for
+	-- sub_types that warrant one (e.g. PDCTurret -> "PDCs", a refinement of
+	-- the "Turrets" type category). Keyed by the API `sub_type` enum, so it
+	-- groups all PDCs regardless of their damage-type "Item Type" label.
+	local subType = type(apiData.sub_type) == 'string' and apiData.sub_type ~= '' and apiData.sub_type or nil
+	if subType then
+		local subTypeCategories = mw.loadJsonData('Module:Entity/Item/subTypeCategories.json')
+		local subTypeCategory = subTypeCategories[subType]
+		if subTypeCategory then
+			table.insert(names, subTypeCategory)
+		end
+	end
+
 	-- Item-type browse category. Prefer the explicit "Item Type"/"Type" label;
 	-- when an item carries no such label (e.g. 'WARLORD' Cannon, empty
 	-- description_data), fall back to a weapon-type tag — the CamelCase tag
 	-- ("PlasmaCannon") split on case boundaries matches a label key in the same
-	-- map ("Plasma Cannon"). A present-but-unmapped label (e.g. the PDC guns'
-	-- "Laser Turret") deliberately does NOT fall back, so those stay
-	-- uncategorized until the Turret/PDC work decides how to group them.
+	-- map ("Plasma Cannon"). A present-but-unmapped label (e.g. the PDC's
+	-- damage-type "Laser Turret") deliberately does NOT fall back to tags;
+	-- PDCs are instead grouped by sub_type ("PDCs") above, since the label
+	-- varies by damage type while the sub_type does not.
 	local itemType = util.getItemType(apiData)
 	local tags = type(apiData.tags) == 'table' and apiData.tags or nil
 	if itemType or tags then

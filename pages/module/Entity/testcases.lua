@@ -81,6 +81,31 @@ function suite:testTagFallbackSkippedWhenLabelPresent()
 	self:assertEquals(false, hasValue(names, 'Laser repeaters'))
 end
 
+function suite:testSubTypeCategoryEmittedForPdc()
+	-- PDC turrets group under "PDCs" (from sub_type), in addition to the
+	-- broad "Turrets" type category.
+	local names = Entity.deriveCategories(
+		{ name = 'Turret', category = 'Turrets' },
+		{ sub_type = 'PDCTurret', description_data = { { name = 'Item Type', value = 'Laser Turret' } } },
+		{}
+	)
+	self:assertEquals(true, hasValue(names, 'Turrets'))
+	self:assertEquals(true, hasValue(names, 'PDCs'))
+end
+
+function suite:testSubTypeCategoryOmittedForOtherTurret()
+	-- A non-PDC turret sub_type (gimbal mount / remote turret) gets the
+	-- broad "Turrets" category but no "PDCs".
+	local names = Entity.deriveCategories({ name = 'Turret', category = 'Turrets' }, { sub_type = 'GunTurret' }, {})
+	self:assertEquals(true, hasValue(names, 'Turrets'))
+	self:assertEquals(false, hasValue(names, 'PDCs'))
+end
+
+function suite:testSubTypeCategoryOmittedWhenNoSubType()
+	local names = Entity.deriveCategories({ name = 'Gun', category = 'Guns' }, {}, {})
+	self:assertEquals(false, hasValue(names, 'PDCs'))
+end
+
 function suite:testEmptyWhenNoTypeInfoOrManufacturer()
 	self:assertEquals(0, #Entity.deriveCategories(nil, {}, {}))
 end

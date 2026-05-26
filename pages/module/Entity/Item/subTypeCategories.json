@@ -1,0 +1,4 @@
+{
+	"%description": "Maps an item's API `sub_type` enum to a browse category name, for sub_types that warrant a bucket finer than their `type` category (types.json). Module:Entity emits [[Category:<value>]] when sub_type matches; unmapped sub_types get no sub_type category. Sibling to types.json (keys the `type` enum) and itemTypeCategories.json (keys the freeform in-game 'Item Type' label); this keys the `sub_type` enum. Extend as new sub_types need finer grouping.",
+	"PDCTurret": "PDCs"
+}

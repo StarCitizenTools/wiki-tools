@@ -55,7 +55,6 @@ end
 | `subtitle` | `string` | No | | Subtitle below the title. |
 | `image` | `string` or `table` | No | Placeholder | Single image. Pass a filename string or an Image table. |
 | `images` | `table` | No | | Multiple images, rendered as tabs. Array of Image tables. |
-| `summary` | `string` | No | `"Quick facts: <title>"` | Toggle label for the collapsible infobox wrapper. |
 | `sections` | `table` | No | | Array of Section tables. |
 | `class` | `string` | No | | CSS class on the infobox container. |
 | `css` | `table` | No | | Inline CSS as `{ property = value }` pairs. |

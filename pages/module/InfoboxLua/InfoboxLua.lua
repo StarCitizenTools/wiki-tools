@@ -3,16 +3,13 @@ require('strict')
 local PLACEHOLDER_IMAGE = 'Placeholderv2.png'
 local PLACEHOLDER_IMAGE_SIZE = 400
 local INFOBOX_WIDTH = 400
-local SUMMARY_TEXT = "'''Quick facts:''' %s"
 
 local headerComponent = require('Module:InfoboxLua/Components/Header')
 local sectionComponent = require('Module:InfoboxLua/Components/Section')
-local collapsibleComponent = require('Module:InfoboxLua/Components/Collapsible')
 
 --- @class InfoboxLuaData
 --- @field class string|nil An additional HTML class for the infobox's container. Optional.
 --- @field css table<string, string>|nil Additional CSS rules for the infobox. Optional.
---- @field summary string|nil The summary of the infobox. Optional.
 --- @field title string The title of the infobox.
 --- @field subtitle string|nil The subtitle of the infobox. Optional.
 --- @field image ImageComponentData|string|nil The main image of the infobox. Optional.
@@ -49,40 +46,15 @@ local function getImageData(image)
 	return imageData
 end
 
---- Builds the summary body shown when the infobox is collapsed. The image
---- is emitted at the same size as the main header image so both render
---- with the same thumbnail URL — the browser dedupes the request and the
---- summary thumbnail stays in sync with whatever the header loaded.
---- CSS sizes the thumbnail down to a small square in the collapsed state.
----
---- @param title string
---- @param subtitle string
---- @param image ImageComponentData
---- @return mw.html
-local function getSummaryBody(title, subtitle, image)
-	local root = mw.html.create()
-	root:tag('div')
-		:addClass('t-infobox-summary-image')
-		:wikitext(string.format('[[File:%s|%dpx|class=%s]]', image.src, image.size, image.class or ''))
-	local text = root:tag('div'):addClass('t-infobox-summary-text')
-	text:tag('div'):addClass('t-infobox-summary-title'):wikitext(title)
-	if type(subtitle) == 'string' and subtitle ~= '' then
-		text:tag('div'):addClass('t-infobox-summary-subtitle'):wikitext(subtitle)
-	end
-	return root
-end
-
 --- @param data InfoboxLuaData
 --- @return mw.html
 local function getContentHtml(data)
-	local contentHtml = mw.html.create()
-
-	local image = getImageData(data.image)
+	local contentHtml = mw.html.create('div'):addClass('t-infobox-content')
 
 	contentHtml:node(headerComponent.getHtml({
 		title = data.title,
 		subtitle = data.subtitle or nil,
-		image = image,
+		image = getImageData(data.image),
 		images = data.images or nil,
 	}))
 
@@ -93,13 +65,7 @@ local function getContentHtml(data)
 		end
 	end
 
-	return collapsibleComponent.getHtml({
-		summary = data.summary or tostring(getSummaryBody(data.title, data.subtitle, image)),
-		content = tostring(contentHtml),
-		class = 't-infobox-content',
-		summaryClass = 't-infobox-content-collapsible-button',
-		open = true,
-	})
+	return contentHtml
 end
 
 --- @param data InfoboxLuaData

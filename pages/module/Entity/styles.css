@@ -1,0 +1,20 @@
+/* Footer section: a label-less infobox section holding a full-width action
+   button (the "View on Wiki API" link). The footer uses InfoboxLua's generic
+   section-variant hook (a passed-through `class`), but the styling is
+   entity-specific, so it lives here rather than in InfoboxLua. */
+.t-infobox-section--footer {
+    padding-top: var(--space-md);
+}
+
+/* Direct child only: the outer ButtonLua wrapper. The inner Codex button also
+   carries .t-button, so > keeps this off it (it gets full-width below). */
+.t-infobox-section--footer > .t-button,
+.t-infobox-section--footer > .t-button > a {
+    display: block;
+}
+
+.t-infobox-section--footer .cdx-button {
+    display: flex;
+    width: 100%;
+    justify-content: center;
+}

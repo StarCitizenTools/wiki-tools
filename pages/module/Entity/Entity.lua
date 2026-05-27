@@ -310,6 +310,11 @@ function p.main(frame)
 
 	setShortDescription(frame, result.typeInfo, result.chain, result.apiData, args)
 
+	local styles = mw.getCurrentFrame():extensionTag({
+		name = 'templatestyles',
+		args = { src = 'Module:Entity/styles.css' },
+	})
+
 	local html = infobox.render({
 		title = result.apiData.name or args.name or mw.title.getCurrentTitle().text,
 		subtitle = result.displayType,
@@ -317,7 +322,9 @@ function p.main(frame)
 		sections = sections,
 	})
 
-	return html .. buildCategories(result.typeInfo, result.apiData, args, result.hasApiError, not storeSuccess)
+	return styles
+		.. html
+		.. buildCategories(result.typeInfo, result.apiData, args, result.hasApiError, not storeSuccess)
 end
 
 return p

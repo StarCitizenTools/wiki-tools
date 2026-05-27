@@ -6,6 +6,11 @@
 	filter: var(--filter-invert);
 }
 
+.t-button > a {
+	/* Disable link underline for button */
+	text-decoration: none !important;
+}
+
 /* Fix Citizen incorrect CSS override */
 .t-button.cdx-button .cdx-icon {
 	padding: 0;

@@ -162,25 +162,6 @@
     padding-bottom: var(--space-sm);
 }
 
-/* Footer section variant — a label-less section holding a full-width action button. */
-.t-infobox-section--footer {
-    border-top: var(--border-subtle);
-    padding-top: var(--space-md);
-}
-
-/* Direct child only: the outer ButtonLua wrapper. The inner Codex button also
-   carries .t-button, so > keeps this off it (it gets full-width below). */
-.t-infobox-section--footer > .t-button,
-.t-infobox-section--footer > .t-button > a {
-    display: block;
-}
-
-.t-infobox-section--footer .cdx-button {
-    display: flex;
-    width: 100%;
-    justify-content: center;
-}
-
 /* Item Component */
 .t-infobox-item-label {
     font-weight: var(--font-weight-medium);

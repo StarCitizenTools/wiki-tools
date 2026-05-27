@@ -13,10 +13,5 @@
 		"label": "SC Trade Tools",
 		"format": "https://sc-trade.tools/item-finder/%s",
 		"data": "name"
-	},
-	{
-		"label": "Wiki API",
-		"format": "https://api.star-citizen.wiki/items/%s",
-		"data": "uuid"
 	}
 ]

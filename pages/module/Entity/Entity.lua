@@ -5,10 +5,12 @@ local util = require('Module:Entity/Util')
 local base = require('Module:Entity/Base')
 local structuredData = require('Module:Entity/StructuredData')
 local infobox = require('Module:InfoboxLua')
+local button = require('Module:ButtonLua')
 
 local CATEGORY_API_ERROR = '[[Category:Pages with API errors]]'
 local CATEGORY_ENTITY_ERROR = '[[Category:Pages with Entity errors]]'
 local CATEGORY_STRUCTURED_DATA_ERROR = '[[Category:Pages with structured data errors]]'
+local WIKI_API_SEARCH_URL = 'https://api.star-citizen.wiki/search/'
 
 local p = {}
 
@@ -83,7 +85,35 @@ local function buildExternalSitesSection(chain, apiData, args)
 	}
 end
 
---- Assembles all infobox sections: chain contributions, metadata, external sites.
+--- Builds the footer section: a label-less section holding a full-width
+--- button linking to the entity's page on the Star Citizen Wiki API
+--- (api.star-citizen.wiki). The /search/<uuid> path resolves any entity by
+--- UUID regardless of type, so this works for items, vehicles, and any future
+--- type. Returns nil when no UUID is available so the section collapses out.
+---
+--- @param apiData table
+--- @param args table
+--- @return table|nil section
+local function buildFooterSection(apiData, args)
+	local uuid = args.uuid or apiData.uuid
+	if not uuid or uuid == '' then
+		return nil
+	end
+
+	local buttonHtml = button.render({
+		label = 'View on Wiki API',
+		url = WIKI_API_SEARCH_URL .. uuid,
+		icon = 'CdxIconDatabase.svg',
+		weight = 'normal',
+	})
+
+	return {
+		content = buttonHtml,
+		class = 't-infobox-section--footer',
+	}
+end
+
+--- Assembles all infobox sections: chain contributions, metadata, external sites, footer.
 ---
 --- @param chain table[]
 --- @param apiData table
@@ -103,6 +133,11 @@ local function buildSections(chain, apiData, args)
 	local externalSites = buildExternalSitesSection(chain, apiData, args)
 	if externalSites then
 		table.insert(sections, externalSites)
+	end
+
+	local footer = buildFooterSection(apiData, args)
+	if footer then
+		table.insert(sections, footer)
 	end
 
 	return sections

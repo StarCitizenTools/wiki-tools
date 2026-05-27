@@ -103,7 +103,7 @@ local function buildFooterSection(apiData, args)
 	local buttonHtml = button.render({
 		label = 'View on Wiki API',
 		url = WIKI_API_SEARCH_URL .. uuid,
-		icon = 'CdxIconDatabase.svg',
+		icon = 'Star Citizen Wiki API - Logo.svg',
 		weight = 'normal',
 	})
 

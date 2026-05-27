@@ -1,0 +1,11 @@
+{
+	"%description": "Curated map of an item's `classification` path to { name (singular display label), category (plural browse category) }, curated like types.json — the API's generated classification_label is NOT used. Module:Entity/Data.resolveType resolves items to the most-specific matching Ship.* prefix; unmapped paths (FPS.*, absent, or unknown) fall back to types.json[type]. Grouping levels (Ship.Weapon, Ship.Turret) are listed so finer entries nest under them on-wiki. There is intentionally no top-level `Ship` key, so an unmapped single-segment path (e.g. `Ship.SomethingNew`) falls back to types.json rather than landing in a catch-all bucket. Extend with new distinct Ship.* classifications as they appear; fallback makes partial coverage safe.",
+	"Ship.Weapon":           { "name": "Weapon", "category": "Weapons" },
+	"Ship.Weapon.Gun":       { "name": "Gun", "category": "Guns" },
+	"Ship.Weapon.Rocket":    { "name": "Rocket pod", "category": "Rocket pods" },
+	"Ship.Turret":           { "name": "Turret", "category": "Turrets" },
+	"Ship.Turret.PDCTurret": { "name": "PDC", "category": "PDCs" },
+	"Ship.Turret.GunTurret": { "name": "Weapon mount", "category": "Weapon mounts" },
+	"Ship.Cooler":           { "name": "Cooler", "category": "Coolers" },
+	"Ship.QuantumDrive":     { "name": "Quantum drive", "category": "Quantum drives" }
+}

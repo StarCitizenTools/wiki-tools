@@ -186,19 +186,16 @@ local function setShortDescription(frame, typeInfo, chain, apiData, args)
 	frame:callParserFunction('SHORTDESC', desc)
 end
 
---- Derives the content category names for an entity — pure (no namespace
---- logic, no [[Category:]] markup) so the rules are unit-testable in
---- isolation (see Module:Entity/testcases). Emits, when available:
----  * the broad type category (from types.json via typeInfo, e.g. "Guns"),
----  * the sub_type category (from subTypeCategories.json, e.g. PDCTurret ->
----    "PDCs") — a bucket finer than the type category, keyed by the API
----    `sub_type` enum,
----  * the item-type category (from itemTypeCategories.json, e.g. "Laser
----    repeaters") when the in-game label is mapped — unmapped labels are
----    silently skipped, so a partial mapping is safe; items with no label
----    fall back to a weapon-type tag (see below),
----  * the manufacturer category.
---- Size/grade/class are facets, not categories — they live in structured data.
+--- Derives the content category names for an entity — pure (no namespace logic,
+--- no [[Category:]] markup) so the rules are unit-testable in isolation (see
+--- Module:Entity/testcases). Emits, when available:
+---  * the structural category, from the resolved `typeInfo.category` — for items
+---    this is the most-specific classification bucket (e.g. PDCs, Rocket pods,
+---    Coolers), resolved in Module:Entity/Data; for other kinds it's the type-map
+---    category. Damage type / firing class / size / grade / class are facets
+---    (structured data), NOT categories.
+---  * the manufacturer category (cross-cutting; a brand's catalogue is a useful
+---    standalone browse). Generic across kinds.
 ---
 --- @param typeInfo table|nil
 --- @param apiData table
@@ -209,48 +206,6 @@ function p.deriveCategories(typeInfo, apiData, args)
 
 	if typeInfo then
 		table.insert(names, typeInfo.category or typeInfo.name)
-	end
-
-	-- Sub_type browse category: a bucket finer than the type category for
-	-- sub_types that warrant one (e.g. PDCTurret -> "PDCs", a refinement of
-	-- the "Turrets" type category). Keyed by the API `sub_type` enum, so it
-	-- groups all PDCs regardless of their damage-type "Item Type" label.
-	local subType = type(apiData.sub_type) == 'string' and apiData.sub_type ~= '' and apiData.sub_type or nil
-	if subType then
-		local subTypeCategories = mw.loadJsonData('Module:Entity/Item/subTypeCategories.json')
-		local subTypeCategory = subTypeCategories[subType]
-		if subTypeCategory then
-			table.insert(names, subTypeCategory)
-		end
-	end
-
-	-- Item-type browse category. Prefer the explicit "Item Type"/"Type" label;
-	-- when an item carries no such label (e.g. 'WARLORD' Cannon, empty
-	-- description_data), fall back to a weapon-type tag — the CamelCase tag
-	-- ("PlasmaCannon") split on case boundaries matches a label key in the same
-	-- map ("Plasma Cannon"). A present-but-unmapped label (e.g. the PDC's
-	-- damage-type "Laser Turret") deliberately does NOT fall back to tags;
-	-- PDCs are instead grouped by sub_type ("PDCs") above, since the label
-	-- varies by damage type while the sub_type does not.
-	local itemType = util.getItemType(apiData)
-	local tags = type(apiData.tags) == 'table' and apiData.tags or nil
-	if itemType or tags then
-		local itemTypeCategories = mw.loadJsonData('Module:Entity/Item/itemTypeCategories.json')
-		local itemTypeCategory
-		if itemType then
-			itemTypeCategory = itemTypeCategories[itemType]
-		else
-			for _, tag in ipairs(tags) do
-				local spaced = (tag:gsub('(%l)(%u)', '%1 %2'))
-				if itemTypeCategories[spaced] then
-					itemTypeCategory = itemTypeCategories[spaced]
-					break
-				end
-			end
-		end
-		if itemTypeCategory then
-			table.insert(names, itemTypeCategory)
-		end
 	end
 
 	local manufacturer = base.resolveManufacturer(apiData, args)

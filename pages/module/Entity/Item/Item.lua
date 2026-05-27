@@ -192,8 +192,9 @@ end
 
 --- Contributes item-level facet values to structured data: size, grade,
 --- class, and the in-game item type. Stored backend-agnostically via
---- Module:Entity/StructuredData. These are facets for querying/tooling;
---- only some (e.g. item_type) are also surfaced as browse categories.
+--- Module:Entity/StructuredData. These are facets for querying/tooling,
+--- not browse categories — the structural category is classification-driven
+--- (Module:Entity/Data.resolveClassification → classifications.json).
 ---
 --- @param apiData table
 --- @param args table

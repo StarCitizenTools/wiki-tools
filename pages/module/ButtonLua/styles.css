@@ -1,9 +1,19 @@
 .t-button .cdx-icon {
-	/* HACK: This is a hack to bypass the CSS sanitizer */
-	--t-button-icon-background: image-set(var(--t-button-icon-url) 1x);
-	background: var(--t-button-icon-background);
-	background-size: contain;
-	filter: var(--filter-invert);
+	/*
+	 * Render the icon as a CSS mask filled with the button's text color
+	 * (currentColor), so it matches the label and follows theme/hover. Use a
+	 * mask rather than filter so any color works, not just black/white.
+	 *
+	 * HACK: stash the image-set in a custom property and consume it bare — the
+	 * sanitizer rejects url(var()) inline but allows image-set() and bare var().
+	 */
+	--t-button-icon-mask: image-set(var(--t-button-icon-url) 1x);
+	mask-image: var(--t-button-icon-mask);
+	-webkit-mask-image: var(--t-button-icon-mask);
+	mask-size: contain;
+	mask-repeat: no-repeat;
+	mask-position: center;
+	background-color: currentColor;
 }
 
 .t-button > a {

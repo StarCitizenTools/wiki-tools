@@ -105,6 +105,7 @@ local function buildFooterSection(apiData, args)
 		url = WIKI_API_SEARCH_URL .. uuid,
 		icon = 'Star Citizen Wiki API - Logo.svg',
 		weight = 'normal',
+		class = 't-button--wiki-api',
 	})
 
 	return {

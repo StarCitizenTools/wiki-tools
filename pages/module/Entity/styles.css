@@ -18,3 +18,15 @@
     width: 100%;
     justify-content: center;
 }
+
+/* Wiki API footer button: themed with the Star Citizen Wiki API brand colors.
+   The compound selector outweighs Codex's .cdx-button defaults, and the mask
+   icon follows `color`, so it picks up the brand content color too. */
+.t-button--wiki-api.cdx-button {
+    background-color: oklch(19.314% 0.037 265.754);
+    color: oklch(84.153% 0.007 265.754);
+}
+
+.t-button--wiki-api.cdx-button:hover {
+    background-color: oklch(17.86% 0.034 265.754);
+}

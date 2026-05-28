@@ -1,0 +1,5 @@
+<includeonly><!--
+-->{{#invoke:DataTableLua|main}}<!--
+--></includeonly><noinclude>
+{{/doc}}
+</noinclude>

@@ -125,6 +125,26 @@ local function acquisitionLabel(raw, kind)
 	return verb:gsub('^%l', string.upper)
 end
 
+-- Public alias so sibling renderers (Module:Entity/Availability) can title the
+-- Mining card with the same method-aware label the infobox uses.
+p.acquisitionLabel = acquisitionLabel
+
+-- Methods that use the laser-mining minigame, where signature / instability /
+-- resistance are meaningful. FPS and harvestable acquisition don't, so those
+-- stats (all zero / nil there) are suppressed for them.
+local LASER_METHODS = { ['Ship'] = true, ['Ground Vehicle'] = true }
+
+--- @param raw table|nil
+--- @return boolean
+local function isLaserMining(raw)
+	for _, m in ipairs(raw and raw.methods or {}) do
+		if LASER_METHODS[m] then
+			return true
+		end
+	end
+	return false
+end
+
 --- Min/max quality across the raw record's locations, as "min–max".
 --- @param raw table|nil
 --- @return string|nil
@@ -148,7 +168,12 @@ local function qualityRange(raw)
 	return tostring(lo) .. '–' .. tostring(hi)
 end
 
-p._internal = { resolveRoles = resolveRoles, acquisitionLabel = acquisitionLabel, qualityRange = qualityRange }
+p._internal = {
+	resolveRoles = resolveRoles,
+	acquisitionLabel = acquisitionLabel,
+	qualityRange = qualityRange,
+	isLaserMining = isLaserMining,
+}
 
 --- Resolves display metadata (subtitle name + browse category) from the
 --- curated family map. The commodities API exposes no type/classification,
@@ -197,16 +222,36 @@ function p.getSections(apiData, args)
 	local sections = { overview }
 
 	if raw and raw.is_mineable then
+		-- Laser-minigame stats (signature / instability / resistance) only apply
+		-- to ship and ground-vehicle mining. FPS mining and harvesting report
+		-- them as zero / nil, so they're suppressed there; Quality always shows.
+		local items = {}
+		if isLaserMining(raw) then
+			items[#items + 1] = { label = 'Signature', content = util.formatNum(raw.signature) }
+			items[#items + 1] = {
+				label = 'Instability',
+				content = raw.instability and raw.instability > 0 and util.formatNum(raw.instability) or nil,
+			}
+			items[#items + 1] = {
+				label = 'Resistance',
+				content = raw.resistance and raw.resistance > 0 and tostring(raw.resistance) or nil,
+			}
+		end
+		items[#items + 1] = { label = 'Quality', content = qualityRange(raw) }
+
+		local kind = raw.kind or apiData.kind
+		local label = 'Mining'
+		if kind == 'harvestable' then
+			label = 'Harvesting'
+		elseif kind == 'remains' then
+			label = 'Collection'
+		end
+
 		sections[#sections + 1] = {
 			key = 'mining',
-			label = 'Mining',
+			label = label,
 			collapsible = true,
-			items = {
-				{ label = 'Signature', content = util.formatNum(raw.signature) },
-				{ label = 'Instability', content = raw.instability and util.formatNum(raw.instability) },
-				{ label = 'Resistance', content = raw.resistance and tostring(raw.resistance) },
-				{ label = 'Quality', content = qualityRange(raw) },
-			},
+			items = items,
 		}
 	end
 

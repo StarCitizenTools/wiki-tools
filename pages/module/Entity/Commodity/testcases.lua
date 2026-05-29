@@ -34,6 +34,70 @@ function suite:testAcquisitionLabelRemainsReturnsNil()
 	self:assertEquals(nil, Commodity._internal.acquisitionLabel({ methods = { 'Ship' } }, 'remains'))
 end
 
+function suite:testIsLaserMiningShipTrue()
+	self:assertEquals(true, Commodity._internal.isLaserMining({ methods = { 'Ship' } }))
+end
+
+function suite:testIsLaserMiningGroundVehicleTrue()
+	self:assertEquals(true, Commodity._internal.isLaserMining({ methods = { 'Ground Vehicle' } }))
+end
+
+function suite:testIsLaserMiningFpsFalse()
+	self:assertEquals(false, Commodity._internal.isLaserMining({ methods = { 'FPS' } }))
+end
+
+function suite:testGetSectionsFpsSuppressesLaserStats()
+	-- FPS mining: signature nil, instability/resistance 0 → only Quality shows,
+	-- and the group is still labelled "Mining".
+	local raw = {
+		is_mineable = true,
+		kind = 'mineable',
+		methods = { 'FPS' },
+		signature = nil,
+		instability = 0,
+		resistance = 0,
+		locations = { { quality_min = 201, quality_max = 1000 } },
+	}
+	local apiData = { key = 'Aphorite', _rawRecord = raw, _refinedRecord = { key = 'Aphorite' } }
+	local sections = Commodity.getSections(apiData, {})
+	local mining
+	for _, s in ipairs(sections) do
+		if s.key == 'mining' then
+			mining = s
+		end
+	end
+	self:assertEquals('Mining', mining.label)
+	local function item(label)
+		for _, i in ipairs(mining.items) do
+			if i.label == label then
+				return i.content
+			end
+		end
+	end
+	self:assertEquals(nil, item('Signature'))
+	self:assertEquals(nil, item('Instability'))
+	self:assertEquals(nil, item('Resistance'))
+	self:assertEquals('201–1000', item('Quality'))
+end
+
+function suite:testGetSectionsHarvestableLabel()
+	local raw = {
+		is_mineable = true,
+		kind = 'harvestable',
+		methods = { 'Harvestable' },
+		locations = { { quality_min = 1, quality_max = 100 } },
+	}
+	local apiData = { key = 'BluemoonFungus', _rawRecord = raw, _refinedRecord = { key = 'BluemoonFungus' } }
+	local sections = Commodity.getSections(apiData, {})
+	local mining
+	for _, s in ipairs(sections) do
+		if s.key == 'mining' then
+			mining = s
+		end
+	end
+	self:assertEquals('Harvesting', mining.label)
+end
+
 function suite:testMatchesNilReturnsFalse()
 	self:assertEquals(false, Commodity.matches(nil))
 end

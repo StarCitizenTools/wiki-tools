@@ -12,6 +12,7 @@ local data = require('Module:Entity/Data')
 local collapsibleCard = require('Module:CollapsibleCard')
 local tableLua = require('Module:TableLua')
 local yesno = require('Module:Yesno')
+local commodity = require('Module:Entity/Commodity')
 
 local p = {}
 
@@ -626,19 +627,27 @@ local function renderMiningCard(raw)
 
 	local depositLabel = total == 1 and '1 deposit' or (total .. ' deposits')
 	local systemLabel = #groups == 1 and '1 system' or (#groups .. ' systems')
+
+	-- Method-aware title so ship / FPS / vehicle mining and harvesting read
+	-- distinctly (e.g. "Ship mining", "FPS mining", "Harvesting"). Falls back
+	-- to a generic noun for kinds acquisitionLabel returns nil for (remains).
+	local kind = raw.kind
+	local title = commodity.acquisitionLabel(raw, kind) or (kind == 'remains' and 'Collection') or 'Mining'
+	local icon = kind == 'harvestable' and '🌿' or '⛏️'
+
 	return collapsibleCard.render({
-		title = '<span aria-hidden="true">⛏️</span> Mining',
+		title = '<span aria-hidden="true">' .. icon .. '</span> ' .. title,
 		description = depositLabel .. ' · ' .. systemLabel,
 		content = table.concat(parts, '\n'),
 	})
 end
 
 --- Renders commodity acquisition detail: the Mining card (deposit locations)
---- plus a Trade card from `uex_prices` (buy/sell terminals). Commodity
---- `uex_prices` is empty for every commodity today, so the Trade card shows
---- the "No trade data in UEX" placeholder with the UEX entry-point footer; it
---- fills in automatically once the API populates commodity prices (the entry
---- shape is assumed to match the item/vehicle terminal shape).
+--- plus a Trade card. Commodity `uex_prices` is empty for every commodity
+--- today, so the Trade card is, for now, a pointer to SC Trade Tools (which
+--- carries live commodity prices), keyed on the commodity slug. If/when the
+--- API populates commodity prices, the buy/sell terminal table renders too
+--- (the entry shape is assumed to match the item/vehicle terminal shape).
 ---
 --- @param apiData table
 --- @return string
@@ -661,13 +670,17 @@ local function renderCommodityDetail(apiData)
 		table.insert(priceColumns, { id = 'sell', key = 'price_sell', label = 'Sell' })
 	end
 
-	local tradeDescription
-	if hasPurchase then
-		tradeDescription = hasSellSide and buildShopTerminalsDescription(purchasePrices)
-			or buildSinglePriceDescription(purchasePrices, 'price_buy')
-	else
-		tradeDescription = 'No trade data in UEX'
-	end
+	local tradeDescription = hasPurchase
+			and (hasSellSide and buildShopTerminalsDescription(purchasePrices) or buildSinglePriceDescription(
+				purchasePrices,
+				'price_buy'
+			))
+		or 'Live prices on SC Trade Tools'
+
+	local slug = refined.slug or apiData.slug
+	local tradeFooter = slug
+			and ('[https://sc-trade.tools/commodities/' .. mw.uri.encode(slug, 'PATH') .. ' View live prices on SC Trade Tools]')
+		or nil
 
 	out[#out + 1] = collapsibleCard.render({
 		title = '<span aria-hidden="true">🛒</span> Trade',
@@ -677,7 +690,7 @@ local function renderCommodityDetail(apiData)
 			caption = 'Trade terminals',
 			priceColumns = priceColumns,
 		}) or nil,
-		footer = uexFooter(firstUexLink(purchasePrices) or UEX_FALLBACK_URL),
+		footer = tradeFooter,
 	})
 
 	return table.concat(out, '\n')

@@ -10,6 +10,7 @@ require('strict')
 
 local data = require('Module:Entity/Data')
 local collapsibleCard = require('Module:CollapsibleCard')
+local cardLua = require('Module:CardLua')
 local tableLua = require('Module:TableLua')
 local yesno = require('Module:Yesno')
 local commodity = require('Module:Entity/Commodity')
@@ -662,36 +663,38 @@ local function renderCommodityDetail(apiData)
 	local refined = apiData._refinedRecord or apiData
 	local uexPrices = type(refined.uex_prices) == 'table' and refined.uex_prices or {}
 	local purchasePrices = type(uexPrices.purchase) == 'table' and uexPrices.purchase or {}
-	local hasPurchase = #purchasePrices > 0
-	local hasSellSide = hasPurchase and priceRange(purchasePrices, 'price_sell') ~= nil
 
-	local priceColumns = { { id = 'buy', key = 'price_buy', label = 'Buy' } }
-	if hasSellSide then
-		table.insert(priceColumns, { id = 'sell', key = 'price_sell', label = 'Sell' })
+	if #purchasePrices > 0 then
+		-- Live terminal prices exist (future-proofing — empty for all
+		-- commodities today): a collapsible buy/sell terminal table.
+		local hasSellSide = priceRange(purchasePrices, 'price_sell') ~= nil
+		local priceColumns = { { id = 'buy', key = 'price_buy', label = 'Buy' } }
+		if hasSellSide then
+			table.insert(priceColumns, { id = 'sell', key = 'price_sell', label = 'Sell' })
+		end
+		out[#out + 1] = collapsibleCard.render({
+			title = '<span aria-hidden="true">🛒</span> Trade',
+			description = hasSellSide and buildShopTerminalsDescription(purchasePrices)
+				or buildSinglePriceDescription(purchasePrices, 'price_buy'),
+			content = renderTerminalTable({
+				prices = purchasePrices,
+				caption = 'Trade terminals',
+				priceColumns = priceColumns,
+			}),
+		})
+	else
+		-- No embedded prices: a link-out card to SC Trade Tools (the live
+		-- commodity price source), keyed on slug.
+		local slug = refined.slug or apiData.slug
+		out[#out + 1] = cardLua.renderLinkCard({
+			title = '<span aria-hidden="true">🛒</span> Trade',
+			button = {
+				label = 'SC Trade Tools',
+				url = 'https://sc-trade.tools/commodities/' .. mw.uri.encode(slug or '', 'PATH'),
+				weight = 'normal',
+			},
+		})
 	end
-
-	local tradeDescription = hasPurchase
-			and (hasSellSide and buildShopTerminalsDescription(purchasePrices) or buildSinglePriceDescription(
-				purchasePrices,
-				'price_buy'
-			))
-		or 'Live prices on SC Trade Tools'
-
-	local slug = refined.slug or apiData.slug
-	local tradeFooter = slug
-			and ('[https://sc-trade.tools/commodities/' .. mw.uri.encode(slug, 'PATH') .. ' View live prices on SC Trade Tools]')
-		or nil
-
-	out[#out + 1] = collapsibleCard.render({
-		title = '<span aria-hidden="true">🛒</span> Trade',
-		description = tradeDescription,
-		content = hasPurchase and renderTerminalTable({
-			prices = purchasePrices,
-			caption = 'Trade terminals',
-			priceColumns = priceColumns,
-		}) or nil,
-		footer = tradeFooter,
-	})
 
 	return table.concat(out, '\n')
 end

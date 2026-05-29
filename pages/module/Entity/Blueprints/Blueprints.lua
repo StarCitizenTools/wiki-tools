@@ -10,6 +10,7 @@ require('strict')
 local data = require('Module:Entity/Data')
 local badgeLua = require('Module:BadgeLua')
 local collapsibleCard = require('Module:CollapsibleCard')
+local cardLua = require('Module:CardLua')
 local tableLua = require('Module:TableLua')
 local util = require('Module:Entity/Util')
 
@@ -207,16 +208,18 @@ local function renderCommodityUsedIn(apiData)
 		return renderEmpty('Not used as an ingredient in any known crafting recipe.')
 	end
 
-	local label = count == 1 and 'Used as an ingredient in 1 crafting recipe.'
-		or ('Used as an ingredient in ' .. util.formatNum(count) .. ' crafting recipes.')
-	-- Brackets in the query are %-encoded so they don't terminate the
-	-- [url text] external-link wikitext early.
+	local title = count == 1 and 'Used in 1 recipe' or ('Used in ' .. util.formatNum(count) .. ' recipes')
+	-- Brackets in the query are %-encoded so they don't break the link target.
 	local url = 'https://api.star-citizen.wiki/blueprints?filter%5Bingredient%5D=' .. mw.uri.encode(name, 'QUERY')
-	return collapsibleCard.render({
-		title = 'Used in crafting',
-		description = label,
-		footer = '[' .. url .. ' Browse all recipes on the Star Citizen Wiki API]',
-		collapsible = false,
+	return cardLua.renderLinkCard({
+		title = title,
+		button = {
+			label = 'Browse recipes',
+			url = url,
+			icon = 'Star Citizen Wiki API - Logo.svg',
+			weight = 'normal',
+			class = 't-button--wiki-api',
+		},
 	})
 end
 

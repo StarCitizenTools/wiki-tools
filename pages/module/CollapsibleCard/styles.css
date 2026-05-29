@@ -1,29 +1,20 @@
+/* Collapse-specific styling only. The card shell, header row, title /
+ * description, content border and footer live in Module:CardLua/styles.css —
+ * this component composes that shell and adds the interactive <summary>
+ * affordances and the chevron rotate-on-open. */
+
 .t-collapsible-card {
 	--t-collapsible-card-transform-rotate-collapse: rotate3d(1, 0, 0, 180deg);
-
-	margin-block: var(--space-md);
-	border: var(--border-base);
-	border-radius: var(--border-radius-medium);
-	/* `overflow: clip` (both axes) so the header's hover / active /
-	 * open background colours stay inside the card's rounded corners.
-	 * `overflow-y: clip` alone left horizontal overflow at `visible`,
-	 * letting the header background bleed past the rounded edges. */
-	overflow: clip;
-	display: flex;
-    flex-direction: column;
 }
 
+/* Interactive header: the summary is clickable, so add cursor + hover/active
+   feedback and drop the native disclosure marker. Layout (flex, padding) comes
+   from .t-card__header. */
 .t-collapsible-card__header {
-	display: flex;
-	align-items: center;
-	column-gap: var(--space-sm);
-	padding: var(--space-sm);
 	cursor: pointer;
 	user-select: none;
 	-webkit-user-select: none;
 	list-style: none;
-	font-size: var(--font-size-small);
-    line-height: var(--line-height-small);
 }
 
 .t-collapsible-card__header:hover {
@@ -38,30 +29,8 @@
 	background: var(--color-surface-1);
 }
 
-.t-collapsible-card__header-content {
-	flex-grow: 1;
-	min-width: 0;
-	display: flex;
-	justify-content: space-between;
-	flex-wrap: wrap;
-	align-items: center;
-	column-gap: var(--space-sm);
-}
-
-.t-collapsible-card__title {
-	font-weight: var(--font-weight-medium);
-	color: var(--color-emphasized);
-}
-
-.t-collapsible-card__description {
-	color: var(--color-subtle);
-	font-size: var(--font-size-small);
-	line-height: var(--line-height-small);
-}
-
 .t-collapsible-card__icon {
 	--size-icon: var(--font-size-small);
-	margin-left: auto;
 	transition: var(--transition-hover);
 	transition-property: transform;
 	transform: var(--t-collapsible-card-transform-rotate-collapse);
@@ -69,33 +38,4 @@
 
 .t-collapsible-card__body[open] > .t-collapsible-card__header .t-collapsible-card__icon {
 	transform: none;
-}
-
-.t-collapsible-card__content {
-	border-top: var(--border-subtle);
-}
-
-.t-collapsible-card__content > .citizen-overflow-wrapper,
-.t-collapsible-card__content > .wikitable {
-	margin-block: 0;
-	box-shadow: none; /* Remove the border from the overflow wrapper */
-}
-
-.t-collapsible-card__footer {
-	border-top: var(--border-subtle);
-	color: var(--color-subtle);
-	font-size: var(--font-size-x-small);
-	line-height: var(--line-height-x-small);
-	margin-inline: var(--space-sm);
-    padding-block: var(--space-xs) var(--space-sm);
-}
-
-/* Static variant: no collapsible behaviour, so suppress the interactive
-   affordances on the header and keep the background transparent so the
-   card reads as a plain notice rather than an expandable control. */
-.t-collapsible-card--static .t-collapsible-card__header,
-.t-collapsible-card--static .t-collapsible-card__header:hover,
-.t-collapsible-card--static .t-collapsible-card__header:active {
-	cursor: default;
-	background: transparent;
 }

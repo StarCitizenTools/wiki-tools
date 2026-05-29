@@ -1,0 +1,64 @@
+.t-card {
+	margin-block: var(--space-md);
+	border: var(--border-base);
+	border-radius: var(--border-radius-medium);
+	/* `overflow: clip` (both axes) so child header hover / open background
+	 * colours stay inside the card's rounded corners. */
+	overflow: clip;
+	display: flex;
+	flex-direction: column;
+}
+
+.t-card__header {
+	display: flex;
+	align-items: center;
+	column-gap: var(--space-sm);
+	padding: var(--space-sm);
+	font-size: var(--font-size-small);
+	line-height: var(--line-height-small);
+}
+
+.t-card__header-content {
+	flex-grow: 1;
+	min-width: 0;
+	display: flex;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	align-items: center;
+	column-gap: var(--space-sm);
+}
+
+.t-card__title {
+	font-weight: var(--font-weight-medium);
+	color: var(--color-emphasized);
+}
+
+.t-card__description {
+	color: var(--color-subtle);
+	font-size: var(--font-size-small);
+	line-height: var(--line-height-small);
+}
+
+/* Right-aligned trailing slot (chevron, button, …). */
+.t-card__trailing {
+	margin-left: auto;
+}
+
+.t-card__content {
+	border-top: var(--border-subtle);
+}
+
+.t-card__content > .citizen-overflow-wrapper,
+.t-card__content > .wikitable {
+	margin-block: 0;
+	box-shadow: none; /* Remove the border from the overflow wrapper */
+}
+
+.t-card__footer {
+	border-top: var(--border-subtle);
+	color: var(--color-subtle);
+	font-size: var(--font-size-x-small);
+	line-height: var(--line-height-x-small);
+	margin-inline: var(--space-sm);
+	padding-block: var(--space-xs) var(--space-sm);
+}

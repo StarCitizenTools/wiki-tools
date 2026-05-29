@@ -39,4 +39,15 @@ function suite:testBuildCargoRowsEmpty()
 	self:assertEquals(0, #Related._internal.buildCargoRows(nil, 1))
 end
 
+-- boxDimensions()
+
+function suite:testBoxDimensionsStandardSizes()
+	self:assertEquals('1.25 × 1.25 × 1.25 m', Related._internal.boxDimensions(1))
+	self:assertEquals('10 × 2.5 × 2.5 m', Related._internal.boxDimensions(32))
+end
+
+function suite:testBoxDimensionsNonStandardSizeReturnsNil()
+	self:assertEquals(nil, Related._internal.boxDimensions(0.125))
+end
+
 return suite

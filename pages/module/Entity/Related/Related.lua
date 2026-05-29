@@ -15,15 +15,18 @@ require('strict')
 ---     correctly.
 ---  3. Shape rows into the Tiles row schema and call Tiles.render.
 ---
---- Items only today (reads apiData.related_items, which only the items
---- endpoint provides). The container always renders so the layout is
---- stable — falls back to a muted empty-state placeholder when the
---- entity has no related items, isn't an item at all, or the upstream
---- fetch failed.
+--- Items read apiData.related_items (set pieces + cosmetic variants, tiles).
+--- Commodities instead render their cargo-box packaging variants (the SCU
+--- ladder) as a table — those "related entities" share one image and have no
+--- own pages, so tiles don't fit. The container always renders so the layout
+--- is stable — falls back to a muted empty-state placeholder when the entity
+--- has no related entries, isn't a supported kind, or the upstream fetch failed.
 
 local data = require('Module:Entity/Data')
 local PageResolver = require('Module:Entity/PageResolver')
 local Tiles = require('Module:Tiles')
+local tableLua = require('Module:TableLua')
+local util = require('Module:Entity/Util')
 
 local p = {}
 
@@ -252,8 +255,68 @@ local function renderSection(heading, tilesRows)
 	return h3 .. Tiles.render({ rows = tilesRows, aspectRatio = TILE_ASPECT_RATIO })
 end
 
---- Main entry point. Returns either two tile grids (set components +
---- variants) or the empty-state placeholder.
+--- Mirrors Module:Entity/Commodity.matches() — commodities carry the
+--- `box_sizes_scu` ladder. Their related entities are the physical cargo-box
+--- instances of the substance, rendered as a table rather than tiles (the
+--- boxes share one image and have no own pages).
+---
+--- @param apiData table
+--- @return boolean
+local function isCommodity(apiData)
+	return type(apiData) == 'table' and apiData.box_sizes_scu ~= nil
+end
+
+--- Cargo packaging variants as table rows { scu, mass_kg } (mass = SCU ×
+--- density × 1000), ascending. Safe on nil/non-table boxSizes (returns {}).
+---
+--- @param boxSizes number[]|nil
+--- @param density number|nil
+--- @return table[]
+local function buildCargoRows(boxSizes, density)
+	local rows = {}
+	if type(boxSizes) ~= 'table' then
+		return rows
+	end
+	local d = tonumber(density) or 0
+	for _, scu in ipairs(boxSizes) do
+		rows[#rows + 1] = { scu = scu, mass_kg = scu * d * 1000 }
+	end
+	table.sort(rows, function(a, b)
+		return a.scu < b.scu
+	end)
+	return rows
+end
+
+--- Renders the commodity's cargo-box variants as a sortable table (SCU / Mass),
+--- read from the refined record's box ladder + density. Falls back to the
+--- empty-state when there are no box sizes.
+---
+--- @param apiData table
+--- @return string
+local function renderCargoVariants(apiData)
+	local rec = apiData._refinedRecord or apiData
+	local rows = buildCargoRows(rec.box_sizes_scu, rec.density_g_per_cc)
+	if #rows == 0 then
+		return renderEmpty()
+	end
+	local tableRows = {}
+	for _, r in ipairs(rows) do
+		tableRows[#tableRows + 1] = { util.formatNum(r.scu), util.formatNum(r.mass_kg) .. ' kg' }
+	end
+	return tableLua.render({
+		caption = 'Cargo variants',
+		class = 'wikitable--fluid',
+		columns = {
+			{ id = 'scu', label = 'SCU', textAlign = 'start' },
+			{ id = 'mass', label = 'Mass', textAlign = 'number' },
+		},
+		data = tableRows,
+	})
+end
+
+--- Main entry point. For commodities, renders the cargo-variants table; for
+--- items, returns up to two tile grids (set components + variants); otherwise
+--- the empty-state placeholder.
 ---
 --- @param frame table
 --- @return string
@@ -263,6 +326,10 @@ function p.main(frame)
 
 	if result.hasApiError then
 		return renderEmpty()
+	end
+
+	if isCommodity(result.apiData) then
+		return renderCargoVariants(result.apiData)
 	end
 
 	local relatedItems = result.apiData.related_items
@@ -288,5 +355,11 @@ function p.main(frame)
 	end
 	return table.concat(parts)
 end
+
+-- Test-only exports. Not part of the public API.
+p._internal = {
+	isCommodity = isCommodity,
+	buildCargoRows = buildCargoRows,
+}
 
 return p

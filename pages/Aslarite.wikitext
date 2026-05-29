@@ -1,18 +1,22 @@
-{{Entity|uuid=fde0cd65-8827-4b23-804d-cc8845dfa7ac|name=Aslarite}}
-'''Aslarite''' is a naturally-occurring mineral most commonly found on asteroids. Sought for its natural thermal insulation properties, it can be processed and used in the construction of personal armor.
+{{Entity
+|uuid = fde0cd65-8827-4b23-804d-cc8845dfa7ac
+|name = Aslarite
+|image =
+}}
+
+'''Aslarite''' is a [[Commodity|mineral]] mined from asteroids and refined for use in [[Armor|personal armor]] manufacturing.
 
 == Description ==
-{{Entity/Description|uuid=fde0cd65-8827-4b23-804d-cc8845dfa7ac}}
+{{Entity/Description}}
 
 == Acquisition ==
-{{Entity/Availability|uuid=fde0cd65-8827-4b23-804d-cc8845dfa7ac}}
+{{Entity/Availability}}
+
+== Crafting ==
+{{Entity/Blueprints}}
 
 == Related ==
-{{Entity/Related|uuid=fde0cd65-8827-4b23-804d-cc8845dfa7ac}}
-
-== See also ==
-* [[Mining]]
-* [[Refining]]
+{{Entity/Related}}
 
 == References ==
 <references/>

@@ -3,7 +3,7 @@
 	"_doc": "Categories are keyed by the API's `category_label` string. Mirrors HardpointCategory.php's column/collapsed split — primary categories carry `order` (lower = earlier); collapsed categories carry `collapsed:true` and route into the single 'Other' card at the bottom. `expandIntoTypes` is the vehicle-only per-parent child-type allowlist for the L-tree. typeAliases maps API `type` strings to category labels for ports that lack a category_label (typically item-endpoint responses).",
 	"categories": {
 		"Docked Vehicles":     { "order": 1 },
-		"Weapons":             { "order": 5 },
+		"Weapons":             { "order": 5, "expandIntoTypes": ["WeaponGun"] },
 		"Weapon attachments":  { "order": 6 },
 		"Manned Turrets":      { "order": 10, "expandIntoTypes": ["Turret", "WeaponGun", "MissileLauncher", "TractorBeam"] },
 		"Remote Turrets":      { "order": 11, "expandIntoTypes": ["Turret", "WeaponGun", "MissileLauncher", "TractorBeam"] },

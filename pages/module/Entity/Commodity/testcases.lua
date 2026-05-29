@@ -115,4 +115,27 @@ function suite:testGetSectionsNonMineableHasNoMiningGroup()
 	end
 end
 
+function suite:testGetStructuredData()
+	local apiData = {
+		key = 'Aslarite',
+		tier = 'uncommon',
+		kind = 'mineable',
+		_rawRecord = { is_mineable = true, density_g_per_cc = 2.3, signature = 4000, systems = { 'Pyro System' } },
+	}
+	local sd = Commodity.getStructuredData(apiData, {})
+	self:assertEquals('Mineral', sd.family)
+	self:assertEquals('uncommon', sd.tier)
+	self:assertEquals(true, sd.mineable)
+	self:assertEquals(2.3, sd.density)
+end
+
+function suite:testGetShortDescriptionFull()
+	local apiData = { key = 'Aslarite', tier = 'uncommon', kind = 'mineable' }
+	self:assertEquals('Uncommon mineable mineral', Commodity.getShortDescription(apiData, {}, { name = 'Mineral' }))
+end
+
+function suite:testGetShortDescriptionBare()
+	self:assertEquals('Mineral', Commodity.getShortDescription({ key = 'Aslarite' }, {}, { name = 'Mineral' }))
+end
+
 return suite

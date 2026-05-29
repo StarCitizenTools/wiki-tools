@@ -197,4 +197,42 @@ function p.getSections(apiData, args)
 	return sections
 end
 
+--- @param apiData table
+--- @param args table
+--- @return table<string, any>
+function p.getStructuredData(apiData, args)
+	local raw = apiData._rawRecord
+	local typeInfo = p.getTypeInfo(apiData, args)
+	return {
+		family = typeInfo and typeInfo.name,
+		tier = apiData.tier or (raw and raw.tier),
+		mineable = (raw and raw.is_mineable) or false,
+		acquisition_kind = apiData.kind or (raw and raw.kind),
+		density = raw and raw.density_g_per_cc,
+		signature = raw and raw.signature,
+		systems = (raw and raw.systems) or apiData.systems,
+	}
+end
+
+--- "<Tier> <kind> <family>", any component optional. e.g. "Uncommon mineable mineral".
+---
+--- @param apiData table
+--- @param args table
+--- @param typeInfo table
+--- @return string
+function p.getShortDescription(apiData, args, typeInfo)
+	local parts = {}
+	local tier = apiData.tier or (apiData._rawRecord and apiData._rawRecord.tier)
+	if tier then
+		parts[#parts + 1] = tier:gsub('^%l', string.upper)
+	end
+	local kind = apiData.kind or (apiData._rawRecord and apiData._rawRecord.kind)
+	if kind and kind ~= 'remains' then
+		parts[#parts + 1] = kind
+	end
+	parts[#parts + 1] = (typeInfo and typeInfo.name and typeInfo.name:lower()) or 'commodity'
+	local desc = table.concat(parts, ' ')
+	return desc:gsub('^%l', string.upper)
+end
+
 return p

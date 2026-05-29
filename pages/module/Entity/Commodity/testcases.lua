@@ -74,10 +74,10 @@ function suite:testGetSectionsOverviewAndMining()
 		key = 'Aslarite',
 		kind = 'mineable',
 		tier = 'uncommon',
-		_rawRecord = raw,
-		_refinedRecord = { key = 'Aslarite' },
 		raw_versions = { { uuid = 'x' } },
+		_rawRecord = raw,
 	}
+	apiData._refinedRecord = apiData
 	local sections = Commodity.getSections(apiData, {})
 
 	local function group(key)

@@ -11,8 +11,38 @@ local data = require('Module:Entity/Data')
 local badgeLua = require('Module:BadgeLua')
 local collapsibleCard = require('Module:CollapsibleCard')
 local tableLua = require('Module:TableLua')
+local util = require('Module:Entity/Util')
 
 local p = {}
+
+--- Mirrors Module:Entity/Commodity.matches(). Commodities aren't craftable
+--- and carry no own `blueprint`; instead they're crafting *ingredients*, so
+--- this module renders a "used in crafting" summary for them.
+---
+--- @param apiData table
+--- @return boolean
+local function isCommodity(apiData)
+	return type(apiData) == 'table' and apiData.box_sizes_scu ~= nil
+end
+
+--- How many crafting blueprints use `name` as an ingredient, via the
+--- blueprints endpoint's `filter[ingredient]` (matched by name) — a single
+--- cheap fetch reading `meta.total` (page size 1). Returns nil on fetch
+--- failure. The %s arg is the only format directive; the encoded name is
+--- passed as data (its `%XX` escapes are not reinterpreted), so this is safe.
+---
+--- @param name string
+--- @return number|nil
+local function usedInBlueprintCount(name)
+	local resp = util.fetchApi({
+		name = 'StarCitizenWikiAPI',
+		endpoint = 'blueprints?filter[ingredient]=%s&page[size]=1',
+	}, mw.uri.encode(name, 'QUERY'))
+	if type(resp) == 'table' and resp.meta and type(resp.meta.total) == 'number' then
+		return resp.meta.total
+	end
+	return nil
+end
 
 --- Formats a blueprint material's quantity. Resource materials are measured
 --- in SCU (`quantity_scu`); item materials are discrete and carry a `quantity`
@@ -155,6 +185,41 @@ local function renderDismantle(blueprint)
 	})
 end
 
+--- Commodity branch: a static "Used in crafting" card with the count of
+--- blueprints that use this commodity as an ingredient + a link to the full
+--- filtered list. Commodities are used in hundreds of recipes (Aslarite: 830),
+--- so a count + link scales where an enumerated table would not.
+---
+--- @param apiData table
+--- @return string
+local function renderCommodityUsedIn(apiData)
+	local rec = apiData._refinedRecord or apiData
+	local name = rec.name or apiData.name
+	if not name then
+		return renderEmpty('No crafting data available.')
+	end
+
+	local count = usedInBlueprintCount(name)
+	if count == nil then
+		return renderEmpty('Crafting usage data unavailable.')
+	end
+	if count == 0 then
+		return renderEmpty('Not used as an ingredient in any known crafting recipe.')
+	end
+
+	local label = count == 1 and 'Used as an ingredient in 1 crafting recipe.'
+		or ('Used as an ingredient in ' .. util.formatNum(count) .. ' crafting recipes.')
+	-- Brackets in the query are %-encoded so they don't terminate the
+	-- [url text] external-link wikitext early.
+	local url = 'https://api.star-citizen.wiki/blueprints?filter%5Bingredient%5D=' .. mw.uri.encode(name, 'QUERY')
+	return collapsibleCard.render({
+		title = 'Used in crafting',
+		description = label,
+		footer = '[' .. url .. ' Browse all recipes on the Star Citizen Wiki API]',
+		collapsible = false,
+	})
+end
+
 --- @param apiData table
 --- @return string|nil
 function p.main(frame)
@@ -165,6 +230,10 @@ function p.main(frame)
 		name = 'templatestyles',
 		args = { src = 'Module:Entity/Blueprints/styles.css' },
 	})
+
+	if isCommodity(result.apiData) then
+		return styles .. renderCommodityUsedIn(result.apiData)
+	end
 
 	local root = mw.html.create(nil)
 	local blueprints = getBlueprints(result.apiData)

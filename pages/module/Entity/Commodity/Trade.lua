@@ -1,8 +1,11 @@
 require('strict')
 
 --- @module Entity/Commodity/Trade
---- Body renderer: trade prices from uex_prices (when populated) plus an
---- always-present external link to sc-trade.tools. Consumes Module:Entity/Data.
+--- Body renderer: a trade-price table from uex_prices, shown only when prices
+--- are populated. Returns empty otherwise so the section collapses out — the
+--- live-data external links (UEX, SC Trade Tools) live in the infobox External
+--- sites section (see Module:Entity/Commodity.getExternalSiteItems), not here.
+--- Consumes Module:Entity/Data.
 
 local data = require('Module:Entity/Data')
 local collapsibleCard = require('Module:CollapsibleCard')
@@ -30,35 +33,27 @@ end
 function p.render(frame)
 	local result = data.get(data.parseArgs(frame))
 	local rec = result.apiData._refinedRecord or result.apiData
-	local name = result.apiData.name or rec.name or mw.title.getCurrentTitle().text
-
-	local out = {}
 	local rows = flattenPrices(rec.uex_prices)
-	if #rows > 0 then
-		local tbl = mw.html.create('table'):addClass('wikitable sortable')
-		local head = tbl:tag('tr')
-		head:tag('th'):wikitext('Location')
-		head:tag('th'):wikitext('Action')
-		head:tag('th'):wikitext('Price')
-		for _, r in ipairs(rows) do
-			local tr = tbl:tag('tr')
-			tr:tag('td'):wikitext(r.location or '')
-			tr:tag('td'):wikitext(r.action)
-			tr:tag('td'):wikitext(r.price and tostring(r.price) or '')
-		end
-		out[#out + 1] = collapsibleCard.render({
-			title = 'Trade prices',
-			description = #rows .. (#rows == 1 and ' terminal' or ' terminals'),
-			content = tostring(tbl),
-		})
+	if #rows == 0 then
+		return ''
 	end
 
-	local url = 'https://sc-trade.tools/commodities/' .. mw.uri.encode(name, 'PATH')
-	out[#out + 1] = mw.getCurrentFrame():expandTemplate({
-		title = 'Note',
-		args = { '[' .. url .. ' Search ' .. name .. ' on SC Trade Tools] for live trade data.' },
+	local tbl = mw.html.create('table'):addClass('wikitable sortable')
+	local head = tbl:tag('tr')
+	head:tag('th'):wikitext('Location')
+	head:tag('th'):wikitext('Action')
+	head:tag('th'):wikitext('Price')
+	for _, r in ipairs(rows) do
+		local tr = tbl:tag('tr')
+		tr:tag('td'):wikitext(r.location or '')
+		tr:tag('td'):wikitext(r.action)
+		tr:tag('td'):wikitext(r.price and tostring(r.price) or '')
+	end
+	return collapsibleCard.render({
+		title = 'Trade prices',
+		description = #rows .. (#rows == 1 and ' terminal' or ' terminals'),
+		content = tostring(tbl),
 	})
-	return table.concat(out, '\n')
 end
 
 p._internal = { flattenPrices = flattenPrices }

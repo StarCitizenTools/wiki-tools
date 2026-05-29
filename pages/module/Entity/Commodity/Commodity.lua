@@ -237,4 +237,23 @@ function p.getShortDescription(apiData, args, typeInfo)
 	return desc:gsub('^%l', string.upper)
 end
 
+--- Contributes commodity community-site links (UEX, SC Trade Tools) to the
+--- infobox External sites section, mirroring Module:Entity/Item. Keyed on the
+--- commodity `slug` (url-safe; both sites resolve commodities by slug).
+---
+--- @param apiData table
+--- @param args table
+--- @return EntityItemData[]
+function p.getExternalSiteItems(apiData, args)
+	local siteDefs = mw.loadJsonData('Module:Entity/Commodity/communitySites.json')
+	local links = util.buildSiteLinks(siteDefs, {
+		name = args.name or apiData.name,
+		slug = apiData.slug,
+	})
+	if not links then
+		return {}
+	end
+	return { { label = 'Community sites', content = links } }
+end
+
 return p

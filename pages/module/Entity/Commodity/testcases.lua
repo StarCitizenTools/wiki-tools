@@ -46,4 +46,18 @@ function suite:testResolveRolesRefinedOnlyNoCounterpart()
 	self:assertEquals('GoldOnly', refined.name)
 end
 
+function suite:testGetTypeInfoMineral()
+	local ti = Commodity.getTypeInfo({ key = 'Aslarite' })
+	self:assertEquals('Mineral', ti.name)
+	self:assertEquals('Minerals', ti.category)
+end
+
+function suite:testGetTypeInfoRawMaps()
+	self:assertEquals('Mineral', Commodity.getTypeInfo({ key = 'Raw_Aslarite' }).name)
+end
+
+function suite:testGetTypeInfoUnknownReturnsNil()
+	self:assertEquals(nil, Commodity.getTypeInfo({ key = 'UnknownJunk' }))
+end
+
 return suite

@@ -250,7 +250,17 @@ end
 --- @return { args: table, apiData: table, chain: table[], typeInfo: table|nil, displayType: string|nil, hasApiError: boolean }
 function p.get(args)
 	local apiData, chain, hasApiError = fetchApiData(args)
-	local typeInfo, displayType = resolveType(args.type or apiData.type, apiData.classification)
+
+	local leaf = chain[#chain]
+	local typeInfo, displayType
+	if leaf and leaf.getTypeInfo then
+		typeInfo = leaf.getTypeInfo(apiData, args)
+		displayType = typeInfo and typeInfo.name
+	end
+	if not typeInfo then
+		typeInfo, displayType = resolveType(args.type or apiData.type, apiData.classification)
+	end
+
 	return {
 		args = args,
 		apiData = apiData,

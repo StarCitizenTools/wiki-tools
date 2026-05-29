@@ -95,4 +95,22 @@ end
 
 p._internal = { resolveRoles = resolveRoles }
 
+--- Resolves display metadata (subtitle name + browse category) from the
+--- curated family map. The commodities API exposes no type/classification,
+--- so this leaf hook (preferred by Module:Entity/Data over resolveType)
+--- supplies it. Returns nil for unmapped/junk keys so the subtitle and
+--- category collapse out.
+---
+--- @param apiData table
+--- @return table|nil { name, category }
+function p.getTypeInfo(apiData)
+	local map = mw.loadJsonData('Module:Entity/Commodity/families.json')
+	local family = apiData.key and map[apiData.key]
+	if type(family) ~= 'string' then
+		return nil
+	end
+	local categories = map['%categories'] or {}
+	return { name = family, category = categories[family] or family }
+end
+
 return p

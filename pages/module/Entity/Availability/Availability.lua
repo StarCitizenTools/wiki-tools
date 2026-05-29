@@ -697,7 +697,6 @@ local function renderCommodityDetail(apiData)
 				{
 					label = 'UEX',
 					url = 'https://uexcorp.space/commodities/info/name/' .. slug,
-					icon = 'UEX logo.svg',
 					weight = 'normal',
 				},
 			},

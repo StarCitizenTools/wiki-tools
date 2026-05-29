@@ -27,6 +27,7 @@ local PageResolver = require('Module:Entity/PageResolver')
 local Tiles = require('Module:Tiles')
 local tableLua = require('Module:TableLua')
 local util = require('Module:Entity/Util')
+local collapsibleCard = require('Module:CollapsibleCard')
 
 local p = {}
 
@@ -303,14 +304,20 @@ local function renderCargoVariants(apiData)
 	for _, r in ipairs(rows) do
 		tableRows[#tableRows + 1] = { util.formatNum(r.scu), util.formatNum(r.mass_kg) .. ' kg' }
 	end
-	return tableLua.render({
+	local table_ = tableLua.render({
 		caption = 'Cargo variants',
+		hideCaption = true,
 		class = 'wikitable--fluid',
 		columns = {
 			{ id = 'scu', label = 'SCU', textAlign = 'start' },
 			{ id = 'mass', label = 'Mass', textAlign = 'number' },
 		},
 		data = tableRows,
+	})
+	return collapsibleCard.render({
+		title = 'Cargo variants',
+		description = #rows == 1 and '1 size' or (#rows .. ' sizes'),
+		content = table_,
 	})
 end
 

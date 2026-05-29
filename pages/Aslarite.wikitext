@@ -4,7 +4,7 @@
 |image =
 }}
 
-'''Aslarite''' is a [[Commodity|mineral]] mined from [[asteroid]]s and refined for use in [[Armor|personal armor]] manufacturing.
+'''Aslarite''' is a [[Commodity|mineral]] [[Mining|mined]] from [[asteroid]]s and [[Refining|refined]] for use in [[Armor|personal armor]] manufacturing.
 
 == Description ==
 {{Entity/Description}}

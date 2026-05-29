@@ -4,7 +4,7 @@
 |image =
 }}
 
-'''Aslarite''' is a [[Commodity|mineral]] [[Mining|mined]] from [[asteroid]]s and [[Refining|refined]] for use in [[personal armor]] manufacturing.
+'''Aslarite''' is a [[Commodity|mineral]] [[Mining|mined]] from [[asteroid]]s and [[Refining|refined]] for use in [[personal armor]] manufacturing.<ref name="ig480">{{Cite game|build=[[Star Citizen Alpha 4.8.0|Alpha 4.8.0]]|accessdate=2026-05-29}}</ref>
 
 == Description ==
 {{Entity/Description}}

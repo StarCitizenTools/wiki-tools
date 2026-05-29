@@ -195,6 +195,37 @@ function p.getItemType(apiData)
 	return nil
 end
 
+--- Extracts an item's volume from `apiData.dimension`, normalized to µSCU
+--- (microSCU) as a number. Reads `volume_converted` + `volume_converted_unit`
+--- (the precision-preserving pair the API uses for display) rather than the
+--- raw `dimension.volume` field — that one rounds to 0 for sub-SCU items
+--- like a 1 µSCU PDC. Returns nil when there's no volume data or when the
+--- unit is something we don't recognize (refuse rather than guess).
+---
+--- Matches Item.lua's display code in treating a missing `volume_converted_unit`
+--- as SCU.
+---
+--- @param apiData table|nil
+--- @return number|nil  volume in µSCU
+function p.getVolume(apiData)
+	local dim = apiData and apiData.dimension
+	if type(dim) ~= 'table' then
+		return nil
+	end
+	local v = tonumber(dim.volume_converted)
+	if not v then
+		return nil
+	end
+	local unit = dim.volume_converted_unit or 'SCU'
+	if unit == 'SCU' then
+		return math.floor(v * 1000000 + 0.5)
+	end
+	if unit == 'µSCU' then
+		return v
+	end
+	return nil
+end
+
 --- Joins a list of strings into natural English with Oxford comma.
 --- Examples: {} → nil; {A} → "A"; {A,B} → "A and B"; {A,B,C} → "A, B, and C".
 ---

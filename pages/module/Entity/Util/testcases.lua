@@ -345,4 +345,45 @@ function suite:testGetItemTypeNilWhenAbsent()
 	self:assertEquals(nil, util.getItemType(nil))
 end
 
+-- getVolume
+
+function suite:testGetVolumeMicroScuPassthrough()
+	-- Common item case: API delivers volume_converted already in µSCU.
+	self:assertEquals(
+		756000,
+		util.getVolume({ dimension = { volume_converted = 756000, volume_converted_unit = 'µSCU' } })
+	)
+end
+
+function suite:testGetVolumeScuConvertsToMicroScu()
+	-- Larger items come back in SCU; normalize to µSCU for queryable consistency.
+	self:assertEquals(500000, util.getVolume({ dimension = { volume_converted = 0.5, volume_converted_unit = 'SCU' } }))
+end
+
+function suite:testGetVolumeTinyItemPreservesPrecision()
+	-- M2C PDC: dimension.volume rounds to 0 SCU, but volume_converted preserves
+	-- the real value as 1 µSCU. Reading volume_converted (not raw volume) is
+	-- what protects sub-SCU items from being stored as 0.
+	self:assertEquals(1, util.getVolume({ dimension = { volume_converted = 1, volume_converted_unit = 'µSCU' } }))
+end
+
+function suite:testGetVolumeNilWhenAbsent()
+	self:assertEquals(nil, util.getVolume(nil))
+	self:assertEquals(nil, util.getVolume({}))
+	self:assertEquals(nil, util.getVolume({ dimension = {} }))
+	self:assertEquals(nil, util.getVolume({ dimension = { volume_converted_unit = 'µSCU' } }))
+end
+
+function suite:testGetVolumeUnknownUnitReturnsNil()
+	-- Refuse rather than guess: a unit we don't recognize would silently store
+	-- the wrong magnitude.
+	self:assertEquals(nil, util.getVolume({ dimension = { volume_converted = 5, volume_converted_unit = 'mSCU' } }))
+end
+
+function suite:testGetVolumeMissingUnitTreatedAsScu()
+	-- Mirrors Item.lua's display fallback: when volume_converted_unit is absent,
+	-- treat the value as SCU.
+	self:assertEquals(1000000, util.getVolume({ dimension = { volume_converted = 1 } }))
+end
+
 return suite

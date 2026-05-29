@@ -36,6 +36,7 @@ local p = {}
 local kindModules = {
 	require('Module:Entity/Item'),
 	require('Module:Entity/Vehicle'),
+	require('Module:Entity/Commodity'),
 }
 
 --- Returns the SMW property prefix for the current page's namespace.

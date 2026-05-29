@@ -1,9 +1,11 @@
 require('strict')
 
 --- @module Entity/Availability
---- Renders where an entity can be acquired in-game. Currently limited to
---- shop terminals sourced from apiData.uex_prices. Consumes
---- Module:Entity/Data so it shares Apiunto's cache with other Entity
+--- Renders where/how an entity can be acquired in-game, dispatched by kind:
+---  * items / vehicles — UEX shop (and rental) terminals from apiData.uex_prices
+---  * commodities — a Mining card (deposit locations) + a Trade card (UEX
+---    terminals; empty for all commodities today, so it shows a placeholder).
+--- Consumes Module:Entity/Data so it shares Apiunto's cache with other Entity
 --- templates on the page.
 
 local data = require('Module:Entity/Data')
@@ -336,6 +338,52 @@ local function isVehicle(apiData)
 	return type(apiData) == 'table' and apiData.is_vehicle ~= nil
 end
 
+--- Mirrors Module:Entity/Commodity.matches() — commodity records carry the
+--- `box_sizes_scu` ladder, a field neither items nor vehicles return. Lets
+--- Availability host commodity acquisition (mining + trade) alongside the
+--- item/vehicle paths.
+---
+--- @param apiData table
+--- @return boolean
+local function isCommodity(apiData)
+	return type(apiData) == 'table' and apiData.box_sizes_scu ~= nil
+end
+
+--- Groups a commodity's raw mining `locations[]` by star system, in first-seen
+--- order, normalizing each entry to the cells the Mining table renders. Safe on
+--- nil / non-table input (returns {}).
+---
+--- @param locations table[]|nil
+--- @return table[] groups of { system, rows = { { body, type, spawn_pct, quality } } }
+local function groupBySystem(locations)
+	local order, bySystem = {}, {}
+	if type(locations) ~= 'table' then
+		return {}
+	end
+	for _, l in ipairs(locations) do
+		local sys = l.system or 'Unknown'
+		if not bySystem[sys] then
+			bySystem[sys] = { system = sys, rows = {} }
+			order[#order + 1] = sys
+		end
+		local quality = nil
+		if l.quality_min and l.quality_max then
+			quality = tostring(l.quality_min) .. '–' .. tostring(l.quality_max)
+		end
+		table.insert(bySystem[sys].rows, {
+			body = l.display_name or l.name,
+			type = l.type,
+			spawn_pct = l.relative_probability_percent,
+			quality = quality,
+		})
+	end
+	local groups = {}
+	for _, sys in ipairs(order) do
+		groups[#groups + 1] = bySystem[sys]
+	end
+	return groups
+end
+
 --- Builds the ordered list of summary rows for an item entity:
 --- Buy, Loot, Craft, Pledge (Rent only when the editor explicitly
 --- sets canRent — items aren't structurally rentable). All derived
@@ -418,6 +466,26 @@ local function buildVehicleSummaryRows(args, apiData)
 	}
 end
 
+--- Builds the ordered summary rows for a commodity entity: Mine, Harvest,
+--- Buy. Mine/Harvest derive from the raw record's mineability flags; Buy
+--- derives from UEX purchase listings (empty for all commodities today, so
+--- it reads "Unknown" until the API populates commodity prices). All
+--- overridable via canMine / canHarvest / canBuy.
+---
+--- @param args table
+--- @param apiData table
+--- @return { label: string, icon: string, value: boolean|nil }[]
+local function buildCommoditySummaryRows(args, apiData)
+	local raw = apiData._rawRecord or apiData
+	local refined = apiData._refinedRecord or apiData
+	local purchase = type(refined.uex_prices) == 'table' and refined.uex_prices.purchase or nil
+	return {
+		{ label = 'Mine', icon = '⛏️', value = resolveFlag(args.canMine, raw.is_mineable) },
+		{ label = 'Harvest', icon = '🌿', value = resolveFlag(args.canHarvest, raw.has_harvestables) },
+		{ label = 'Buy', icon = '🛒', value = resolveFlag(args.canBuy, inferCanAcquire(purchase, 'price_buy')) },
+	}
+end
+
 --- Dispatches to the item or vehicle summary builder. The `icon`
 --- field on each row is a category-level decorative glyph (emoji
 --- for now — no Codex icons feel right for these specific concepts).
@@ -429,6 +497,9 @@ end
 --- @param apiData table
 --- @return { label: string, icon: string, value: boolean|nil }[]
 local function buildSummaryRows(args, apiData)
+	if isCommodity(apiData) then
+		return buildCommoditySummaryRows(args, apiData)
+	end
 	if isVehicle(apiData) then
 		return buildVehicleSummaryRows(args, apiData)
 	end
@@ -516,6 +587,102 @@ local function uexFooter(url)
 	return '[[File:UEX logo.svg|class=metadata|link=' .. url .. '|alt=powered by UEX|x12px|powered by UEX]]'
 end
 
+--- Renders the commodity Mining card: the raw record's deposit `locations[]`,
+--- one sortable table per star system inside a single collapsible card.
+--- Returns nil when there are no locations so the card collapses out.
+---
+--- @param raw table|nil
+--- @return string|nil
+local function renderMiningCard(raw)
+	local groups = groupBySystem(raw and raw.locations)
+	if #groups == 0 then
+		return nil
+	end
+
+	local parts, total = {}, 0
+	for _, g in ipairs(groups) do
+		local rows = {}
+		for _, r in ipairs(g.rows) do
+			rows[#rows + 1] = {
+				r.body or '-',
+				r.type or '-',
+				r.spawn_pct and (tostring(r.spawn_pct) .. '%') or '-',
+				r.quality or '-',
+			}
+		end
+		total = total + #g.rows
+		parts[#parts + 1] = tableLua.render({
+			caption = g.system,
+			class = 'wikitable--fluid',
+			columns = {
+				{ id = 'body', label = 'Body', textAlign = 'start' },
+				{ id = 'type', label = 'Type', textAlign = 'start' },
+				{ id = 'spawn', label = 'Spawn %', textAlign = 'number' },
+				{ id = 'quality', label = 'Quality', textAlign = 'end' },
+			},
+			data = rows,
+		})
+	end
+
+	local depositLabel = total == 1 and '1 deposit' or (total .. ' deposits')
+	local systemLabel = #groups == 1 and '1 system' or (#groups .. ' systems')
+	return collapsibleCard.render({
+		title = '<span aria-hidden="true">⛏️</span> Mining',
+		description = depositLabel .. ' · ' .. systemLabel,
+		content = table.concat(parts, '\n'),
+	})
+end
+
+--- Renders commodity acquisition detail: the Mining card (deposit locations)
+--- plus a Trade card from `uex_prices` (buy/sell terminals). Commodity
+--- `uex_prices` is empty for every commodity today, so the Trade card shows
+--- the "No trade data in UEX" placeholder with the UEX entry-point footer; it
+--- fills in automatically once the API populates commodity prices (the entry
+--- shape is assumed to match the item/vehicle terminal shape).
+---
+--- @param apiData table
+--- @return string
+local function renderCommodityDetail(apiData)
+	local out = {}
+
+	local mining = renderMiningCard(apiData._rawRecord)
+	if mining then
+		out[#out + 1] = mining
+	end
+
+	local refined = apiData._refinedRecord or apiData
+	local uexPrices = type(refined.uex_prices) == 'table' and refined.uex_prices or {}
+	local purchasePrices = type(uexPrices.purchase) == 'table' and uexPrices.purchase or {}
+	local hasPurchase = #purchasePrices > 0
+	local hasSellSide = hasPurchase and priceRange(purchasePrices, 'price_sell') ~= nil
+
+	local priceColumns = { { id = 'buy', key = 'price_buy', label = 'Buy' } }
+	if hasSellSide then
+		table.insert(priceColumns, { id = 'sell', key = 'price_sell', label = 'Sell' })
+	end
+
+	local tradeDescription
+	if hasPurchase then
+		tradeDescription = hasSellSide and buildShopTerminalsDescription(purchasePrices)
+			or buildSinglePriceDescription(purchasePrices, 'price_buy')
+	else
+		tradeDescription = 'No trade data in UEX'
+	end
+
+	out[#out + 1] = collapsibleCard.render({
+		title = '<span aria-hidden="true">🛒</span> Trade',
+		description = tradeDescription,
+		content = hasPurchase and renderTerminalTable({
+			prices = purchasePrices,
+			caption = 'Trade terminals',
+			priceColumns = priceColumns,
+		}) or nil,
+		footer = uexFooter(firstUexLink(purchasePrices) or UEX_FALLBACK_URL),
+	})
+
+	return table.concat(out, '\n')
+end
+
 --- Renders the Shops card from `uex_prices.purchase` and, for vehicles
 --- only, a Rentals card from `uex_prices.rental`. Items and vehicles
 --- now share the same `uex_prices` dict shape, so a single path covers
@@ -530,6 +697,10 @@ end
 --- @param apiData table
 --- @return string
 local function renderDetail(apiData)
+	if isCommodity(apiData) then
+		return renderCommodityDetail(apiData)
+	end
+
 	local uexPrices = type(apiData.uex_prices) == 'table' and apiData.uex_prices or {}
 	local purchasePrices = type(uexPrices.purchase) == 'table' and uexPrices.purchase or {}
 	local hasPurchase = #purchasePrices > 0
@@ -607,5 +778,12 @@ function p.main(frame)
 
 	return styles .. summary .. detail
 end
+
+-- Test-only exports. Not part of the public API.
+p._internal = {
+	isCommodity = isCommodity,
+	groupBySystem = groupBySystem,
+	buildCommoditySummaryRows = buildCommoditySummaryRows,
+}
 
 return p

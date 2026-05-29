@@ -79,22 +79,27 @@ end
 --- @class LinkCardProps
 --- @field title string
 --- @field description? string
---- @field button ButtonProps  Module:ButtonLua props for the trailing action.
+--- @field buttons ButtonProps[]  One or more Module:ButtonLua props; rendered as trailing link-out actions.
 --- @field class? string
 
---- A static card whose only body is a header row with a link-out button on the
---- right — for summaries backed by an external source rather than on-page data
---- (e.g. "Used in 830 recipes" → browse, "Trade" → SC Trade Tools).
+--- A static card whose body is a header row with one or more link-out buttons
+--- on the right — for summaries backed by external sources rather than on-page
+--- data (e.g. "Browse 830 recipes" → Wiki API; "Browse trade data" → SC Trade
+--- Tools + UEX).
 ---
 --- @param props LinkCardProps
 --- @return string
 function p.renderLinkCard(props)
+	local rendered = {}
+	for _, b in ipairs(props.buttons or {}) do
+		rendered[#rendered + 1] = button.render(b)
+	end
 	return p.render({
 		class = props.class,
 		content = p.renderHeader({
 			title = props.title,
 			description = props.description,
-			trailing = button.render(props.button),
+			trailing = table.concat(rendered),
 		}),
 	})
 end

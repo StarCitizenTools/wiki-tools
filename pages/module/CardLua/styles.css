@@ -39,9 +39,14 @@
 	line-height: var(--line-height-small);
 }
 
-/* Right-aligned trailing slot (chevron, button, …). */
+/* Right-aligned trailing slot (chevron, one or more buttons, …). */
 .t-card__trailing {
 	margin-left: auto;
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	column-gap: var(--space-xs);
+	row-gap: var(--space-xs);
 }
 
 .t-card__content {

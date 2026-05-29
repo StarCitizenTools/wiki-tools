@@ -208,17 +208,19 @@ local function renderCommodityUsedIn(apiData)
 		return renderEmpty('Not used as an ingredient in any known crafting recipe.')
 	end
 
-	local title = count == 1 and 'Used in 1 recipe' or ('Used in ' .. util.formatNum(count) .. ' recipes')
+	local title = count == 1 and 'Browse 1 recipe' or ('Browse ' .. util.formatNum(count) .. ' recipes')
 	-- Brackets in the query are %-encoded so they don't break the link target.
 	local url = 'https://api.star-citizen.wiki/blueprints?filter%5Bingredient%5D=' .. mw.uri.encode(name, 'QUERY')
 	return cardLua.renderLinkCard({
 		title = title,
-		button = {
-			label = 'Browse recipes',
-			url = url,
-			icon = 'Star Citizen Wiki API - Logo.svg',
-			weight = 'normal',
-			class = 't-button--wiki-api',
+		buttons = {
+			{
+				label = 'Wiki API',
+				url = url,
+				icon = 'Star Citizen Wiki API - Logo.svg',
+				weight = 'normal',
+				class = 't-button--wiki-api',
+			},
 		},
 	})
 end

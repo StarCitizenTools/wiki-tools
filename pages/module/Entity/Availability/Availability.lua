@@ -683,15 +683,23 @@ local function renderCommodityDetail(apiData)
 			}),
 		})
 	else
-		-- No embedded prices: a link-out card to SC Trade Tools (the live
-		-- commodity price source), keyed on slug.
-		local slug = refined.slug or apiData.slug
+		-- No embedded prices: a link-out card to the live commodity price
+		-- sources (SC Trade Tools + UEX), keyed on slug.
+		local slug = mw.uri.encode(refined.slug or apiData.slug or '', 'PATH')
 		out[#out + 1] = cardLua.renderLinkCard({
-			title = '<span aria-hidden="true">🛒</span> Trade',
-			button = {
-				label = 'SC Trade Tools',
-				url = 'https://sc-trade.tools/commodities/' .. mw.uri.encode(slug or '', 'PATH'),
-				weight = 'normal',
+			title = 'Browse trade data',
+			buttons = {
+				{
+					label = 'SC Trade Tools',
+					url = 'https://sc-trade.tools/commodities/' .. slug,
+					weight = 'normal',
+				},
+				{
+					label = 'UEX',
+					url = 'https://uexcorp.space/commodities/info/name/' .. slug,
+					icon = 'UEX logo.svg',
+					weight = 'normal',
+				},
 			},
 		})
 	end

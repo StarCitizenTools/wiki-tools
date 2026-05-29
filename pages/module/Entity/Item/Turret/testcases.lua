@@ -19,29 +19,12 @@ local function gunVehicleWeapon()
 	}
 end
 
--- humanizeRotation
-
-function suite:testHumanizeRotationSplitsCamel()
-	self:assertEquals('Single Axis', helpers.humanizeRotation('SingleAxis'))
-end
-
-function suite:testHumanizeRotationDualAxis()
-	self:assertEquals('Dual Axis', helpers.humanizeRotation('DualAxis'))
-end
-
-function suite:testHumanizeRotationNoBoundary()
-	self:assertEquals('Fixed', helpers.humanizeRotation('Fixed'))
-end
-
-function suite:testHumanizeRotationNilEmpty()
-	self:assertEquals(nil, helpers.humanizeRotation(nil))
-	self:assertEquals(nil, helpers.humanizeRotation(''))
-end
-
 -- buildTurretSection
 
 function suite:testBuildTurretSectionPdc()
-	-- M2C shape: rotation + mounts, axis speeds null.
+	-- M2C shape: rotation_style is present in the API but intentionally not
+	-- surfaced (the SingleAxis value doesn't correspond to whether a turret
+	-- has one or two functional axes). Only Mounts renders when speeds null.
 	local section = helpers.buildTurretSection({
 		rotation_style = 'SingleAxis',
 		mounts = 1,
@@ -51,11 +34,9 @@ function suite:testBuildTurretSectionPdc()
 	self:assertEquals('turret', section.key)
 	self:assertEquals('Turret', section.label)
 	self:assertEquals(true, section.collapsible)
-	self:assertEquals(2, #section.items)
-	self:assertEquals('Rotation', section.items[1].label)
-	self:assertEquals('Single Axis', section.items[1].content)
-	self:assertEquals('Mounts', section.items[2].label)
-	self:assertEquals('1', section.items[2].content)
+	self:assertEquals(1, #section.items)
+	self:assertEquals('Mounts', section.items[1].label)
+	self:assertEquals('1', section.items[1].content)
 end
 
 function suite:testBuildTurretSectionWithSpeeds()
@@ -65,11 +46,12 @@ function suite:testBuildTurretSectionWithSpeeds()
 		yaw_axis = { speed = 20 },
 		pitch_axis = { speed = 15 },
 	})
-	self:assertEquals(4, #section.items)
-	self:assertEquals('Yaw speed', section.items[3].label)
-	self:assertEquals('20 °/s', section.items[3].content)
-	self:assertEquals('Pitch speed', section.items[4].label)
-	self:assertEquals('15 °/s', section.items[4].content)
+	self:assertEquals(3, #section.items)
+	self:assertEquals('Mounts', section.items[1].label)
+	self:assertEquals('Yaw speed', section.items[2].label)
+	self:assertEquals('20 °/s', section.items[2].content)
+	self:assertEquals('Pitch speed', section.items[3].label)
+	self:assertEquals('15 °/s', section.items[3].content)
 end
 
 function suite:testBuildTurretSectionEmpty()
@@ -145,6 +127,44 @@ end
 function suite:testGetSectionsNoTurretBlockReturnsEmpty()
 	-- No turret block and no locked gun → the module contributes no sections.
 	self:assertEquals(0, #Turret.getSections({}, {}))
+end
+
+-- getStructuredData
+
+function suite:testGetStructuredDataWithBothSpeeds()
+	-- Standalone gimbal mount (VariPuck) shape: outer turret block has the speeds.
+	local data = Turret.getStructuredData({
+		turret = { yaw_axis = { speed = 80 }, pitch_axis = { speed = 60 } },
+	}, {})
+	self:assertEquals(80, data.yaw_speed)
+	self:assertEquals(60, data.pitch_speed)
+end
+
+function suite:testGetStructuredDataNullSpeedsAreNil()
+	-- Housing turrets (TMSB-5, Anvil ball/nose, PDCs): outer speeds are null;
+	-- we do NOT fall back to the inner equipped gimbal mount, per the
+	-- "store only outer" policy. Partial coverage is honest.
+	local data = Turret.getStructuredData({
+		turret = { yaw_axis = { speed = nil }, pitch_axis = { speed = nil } },
+	}, {})
+	self:assertEquals(nil, data.yaw_speed)
+	self:assertEquals(nil, data.pitch_speed)
+end
+
+function suite:testGetStructuredDataMissingTurretBlock()
+	local data = Turret.getStructuredData({}, {})
+	self:assertEquals(nil, data.yaw_speed)
+	self:assertEquals(nil, data.pitch_speed)
+end
+
+function suite:testGetStructuredDataMissingOneAxis()
+	-- Defensive: if the API ever ships only one axis populated, the other
+	-- comes back nil without erroring.
+	local data = Turret.getStructuredData({
+		turret = { yaw_axis = { speed = 80 } },
+	}, {})
+	self:assertEquals(80, data.yaw_speed)
+	self:assertEquals(nil, data.pitch_speed)
 end
 
 return suite

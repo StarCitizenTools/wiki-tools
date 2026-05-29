@@ -26,23 +26,12 @@ local function pushItem(items, label, content)
 	end
 end
 
---- Humanises a PascalCase rotation style into spaced words:
---- "SingleAxis" -> "Single Axis". Returns nil for nil/empty so the row
---- collapses.
----
---- @param style string|nil
---- @return string|nil
-local function humanizeRotation(style)
-	if type(style) ~= 'string' or style == '' then
-		return nil
-	end
-	return (style:gsub('(%l)(%u)', '%1 %2'))
-end
-
---- Builds the Turret stats section from `apiData.turret`: rotation style,
---- mount count, and yaw/pitch traverse speeds (when the API reports them;
---- many turrets leave the axis speeds null). Returns nil when no row has a
---- value so the section collapses cleanly.
+--- Builds the Turret stats section from `apiData.turret`: mount count and
+--- yaw/pitch traverse speeds (when the API reports them; many turrets leave
+--- the axis speeds null). Returns nil when no row has a value so the section
+--- collapses cleanly. `rotation_style` is intentionally not surfaced — the
+--- value (always "SingleAxis" in observed data) doesn't correspond to whether
+--- a turret has one or two functional axes.
 ---
 --- @param turret table|nil
 --- @return EntitySectionEntry|nil
@@ -54,7 +43,6 @@ local function buildTurretSection(turret)
 	local pitch = type(turret.pitch_axis) == 'table' and turret.pitch_axis or {}
 
 	local items = {}
-	pushItem(items, 'Rotation', humanizeRotation(turret.rotation_style))
 	pushItem(items, 'Mounts', turret.mounts and util.formatNum(turret.mounts))
 	pushItem(items, 'Yaw speed', yaw.speed and (util.formatNum(yaw.speed) .. ' °/s'))
 	pushItem(items, 'Pitch speed', pitch.speed and (util.formatNum(pitch.speed) .. ' °/s'))
@@ -115,9 +103,30 @@ function p.getSections(apiData, args)
 	return sections
 end
 
+--- Contributes turret-specific structured-data facets: yaw and pitch traverse
+--- speeds in degrees per second. Honest reads of the outer entity only — we
+--- intentionally don't fall back to ports[].equipped_item for housings
+--- (TMSB-5, Anvil ball/nose turrets, PDCs) where the API leaves the outer
+--- speeds null and the real values live on the inner equipped gimbal mount.
+--- Falling back would conflate two entities' data on one page; partial
+--- coverage is more honest. Standalone gimbal mounts (VariPuck etc.) populate
+--- these directly.
+---
+--- @param apiData table
+--- @param args table
+--- @return table<string, any>
+function p.getStructuredData(apiData, args)
+	local turret = apiData.turret
+	local yawAxis = type(turret) == 'table' and turret.yaw_axis or nil
+	local pitchAxis = type(turret) == 'table' and turret.pitch_axis or nil
+	return {
+		yaw_speed = type(yawAxis) == 'table' and yawAxis.speed or nil,
+		pitch_speed = type(pitchAxis) == 'table' and pitchAxis.speed or nil,
+	}
+end
+
 -- Test-only exports. Not part of the public API.
 p._internal = {
-	humanizeRotation = humanizeRotation,
 	buildTurretSection = buildTurretSection,
 	findLockedWeapon = findLockedWeapon,
 }

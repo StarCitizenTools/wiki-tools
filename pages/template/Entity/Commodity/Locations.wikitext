@@ -1,0 +1,1 @@
+<includeonly>{{#invoke:Entity/Commodity/Locations|render}}</includeonly><noinclude>{{documentation}}</noinclude>

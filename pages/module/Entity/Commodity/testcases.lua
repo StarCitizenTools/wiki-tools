@@ -23,4 +23,27 @@ function suite:testGetApiConfigsEndpoint()
 	self:assertEquals('data', cfg.responseDataPath)
 end
 
+function suite:testResolveRolesSelfIsRaw()
+	local self_ = { name = 'Aslarite (Raw)', is_mineable = true, refined_version = { uuid = 'ref-1' } }
+	local counterpart = { name = 'Aslarite' }
+	local raw, refined = Commodity._internal.resolveRoles(self_, counterpart)
+	self:assertEquals('Aslarite (Raw)', raw.name)
+	self:assertEquals('Aslarite', refined.name)
+end
+
+function suite:testResolveRolesSelfIsRefined()
+	local self_ = { name = 'Aslarite', raw_versions = { { uuid = 'raw-1' } } }
+	local counterpart = { name = 'Aslarite (Raw)' }
+	local raw, refined = Commodity._internal.resolveRoles(self_, counterpart)
+	self:assertEquals('Aslarite (Raw)', raw.name)
+	self:assertEquals('Aslarite', refined.name)
+end
+
+function suite:testResolveRolesRefinedOnlyNoCounterpart()
+	local self_ = { name = 'GoldOnly', raw_versions = {} }
+	local raw, refined = Commodity._internal.resolveRoles(self_, nil)
+	self:assertEquals(nil, raw)
+	self:assertEquals('GoldOnly', refined.name)
+end
+
 return suite

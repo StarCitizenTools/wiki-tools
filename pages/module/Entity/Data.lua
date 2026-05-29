@@ -194,6 +194,10 @@ local function fetchApiData(args)
 		end
 	end
 
+	if matchedKind and matchedKind.enrich then
+		apiData = matchedKind.enrich(apiData)
+	end
+
 	return apiData, chain, hasApiError
 end
 

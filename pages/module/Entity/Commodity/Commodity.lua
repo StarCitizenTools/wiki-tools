@@ -93,7 +93,48 @@ function p.enrich(apiData)
 	return apiData
 end
 
-p._internal = { resolveRoles = resolveRoles }
+local KIND_LABELS = { mineable = 'mining', harvestable = 'harvesting', salvage = 'salvage' }
+
+--- "Ship mining" / "FPS harvesting" / "Salvage" from kind + methods.
+--- @param raw table|nil
+--- @param kind string|nil
+--- @return string|nil
+local function acquisitionLabel(raw, kind)
+	if not kind or kind == 'remains' then
+		return nil
+	end
+	local verb = KIND_LABELS[kind] or kind
+	local methods = raw and raw.methods
+	if methods and methods[1] then
+		return methods[1] .. ' ' .. verb -- e.g. "Ship mining"
+	end
+	return verb:gsub('^%l', string.upper)
+end
+
+--- Min/max quality across the raw record's locations, as "min–max".
+--- @param raw table|nil
+--- @return string|nil
+local function qualityRange(raw)
+	local locs = raw and raw.locations
+	if type(locs) ~= 'table' or not locs[1] then
+		return nil
+	end
+	local lo, hi
+	for _, l in ipairs(locs) do
+		if l.quality_min and (not lo or l.quality_min < lo) then
+			lo = l.quality_min
+		end
+		if l.quality_max and (not hi or l.quality_max > hi) then
+			hi = l.quality_max
+		end
+	end
+	if not lo or not hi then
+		return nil
+	end
+	return tostring(lo) .. '–' .. tostring(hi)
+end
+
+p._internal = { resolveRoles = resolveRoles, acquisitionLabel = acquisitionLabel, qualityRange = qualityRange }
 
 --- Resolves display metadata (subtitle name + browse category) from the
 --- curated family map. The commodities API exposes no type/classification,
@@ -111,6 +152,49 @@ function p.getTypeInfo(apiData)
 	end
 	local categories = map['%categories'] or {}
 	return { name = family, category = categories[family] or family }
+end
+
+--- @param apiData table
+--- @param args table
+--- @return table[]
+function p.getSections(apiData, args)
+	local raw = apiData._rawRecord
+	local refined = apiData._refinedRecord or apiData
+	local typeInfo = p.getTypeInfo(apiData, args)
+
+	local tier = apiData.tier or (raw and raw.tier)
+	local systems = (raw and raw.systems) or apiData.systems
+	local refinable = (apiData.refined_version and apiData.refined_version.uuid)
+		or (refined and refined.raw_versions and refined.raw_versions[1])
+
+	local overview = {
+		key = 'overview',
+		items = {
+			{ label = 'Family', content = typeInfo and typeInfo.name },
+			{ label = 'Rarity', content = tier and (tier:gsub('^%l', string.upper)) },
+			{ label = 'Acquisition', content = acquisitionLabel(raw, apiData.kind or (raw and raw.kind)) },
+			{ label = 'Refinable', content = refinable ~= nil and (refinable and 'Yes' or 'No') or nil },
+			{ label = 'Found in', content = systems and systems[1] and table.concat(systems, ', ') or nil },
+		},
+	}
+
+	local sections = { overview }
+
+	if raw and raw.is_mineable then
+		sections[#sections + 1] = {
+			key = 'mining',
+			label = 'Mining',
+			collapsible = true,
+			items = {
+				{ label = 'Signature', content = util.formatNum(raw.signature) },
+				{ label = 'Instability', content = raw.instability and util.formatNum(raw.instability) },
+				{ label = 'Resistance', content = raw.resistance and tostring(raw.resistance) },
+				{ label = 'Quality', content = qualityRange(raw) },
+			},
+		}
+	end
+
+	return sections
 end
 
 return p

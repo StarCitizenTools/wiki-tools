@@ -60,4 +60,59 @@ function suite:testGetTypeInfoUnknownReturnsNil()
 	self:assertEquals(nil, Commodity.getTypeInfo({ key = 'UnknownJunk' }))
 end
 
+function suite:testGetSectionsOverviewAndMining()
+	local raw = {
+		is_mineable = true,
+		signature = 4000,
+		instability = 700,
+		resistance = 0.5,
+		methods = { 'Ship' },
+		systems = { 'Pyro System', 'Stanton System' },
+		locations = { { quality_min = 245, quality_max = 1000 }, { quality_min = 300, quality_max = 980 } },
+	}
+	local apiData = {
+		key = 'Aslarite',
+		kind = 'mineable',
+		tier = 'uncommon',
+		_rawRecord = raw,
+		_refinedRecord = { key = 'Aslarite' },
+		raw_versions = { { uuid = 'x' } },
+	}
+	local sections = Commodity.getSections(apiData, {})
+
+	local function group(key)
+		for _, s in ipairs(sections) do
+			if s.key == key then
+				return s
+			end
+		end
+	end
+	local function item(items, label)
+		for _, i in ipairs(items or {}) do
+			if i.label == label then
+				return i.content
+			end
+		end
+	end
+
+	local overview = group('overview')
+	self:assertEquals('Mineral', item(overview.items, 'Family'))
+	self:assertEquals('Uncommon', item(overview.items, 'Rarity'))
+	self:assertEquals('Ship mining', item(overview.items, 'Acquisition'))
+	self:assertEquals('Yes', item(overview.items, 'Refinable'))
+	self:assertEquals('Pyro System, Stanton System', item(overview.items, 'Found in'))
+
+	local mining = group('mining')
+	self:assertEquals('4,000', item(mining.items, 'Signature'))
+	self:assertEquals('245–1000', item(mining.items, 'Quality'))
+end
+
+function suite:testGetSectionsNonMineableHasNoMiningGroup()
+	local apiData = { key = 'Aslarite', _refinedRecord = { key = 'Aslarite' }, _rawRecord = nil }
+	local sections = Commodity.getSections(apiData, {})
+	for _, s in ipairs(sections) do
+		self:assertEquals(true, s.key ~= 'mining')
+	end
+end
+
 return suite

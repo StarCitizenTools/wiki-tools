@@ -93,9 +93,17 @@ function p.enrich(apiData)
 	return apiData
 end
 
-local KIND_LABELS = { mineable = 'mining', harvestable = 'harvesting', salvage = 'salvage' }
+local KIND_VERBS = { mineable = 'mining', harvestable = 'harvesting', salvage = 'salvage' }
 
---- "Ship mining" / "FPS harvesting" / "Salvage" from kind + methods.
+-- API `methods` tokens → display label. `Harvestable` is intentionally absent:
+-- it merely restates the harvesting verb, so it's dropped (a harvestable then
+-- reads as plain "Harvesting"). Unknown tokens pass through unchanged.
+local METHOD_LABELS = { ['Ship'] = 'Ship', ['FPS'] = 'FPS', ['Ground Vehicle'] = 'Vehicle' }
+
+--- Acquisition label from kind + the raw record's `methods` list, e.g.
+--- "Ship mining", "FPS mining", "Vehicle mining", "Harvesting". All methods are
+--- joined (commodities are single-method today, but the data permits more).
+---
 --- @param raw table|nil
 --- @param kind string|nil
 --- @return string|nil
@@ -103,10 +111,16 @@ local function acquisitionLabel(raw, kind)
 	if not kind or kind == 'remains' then
 		return nil
 	end
-	local verb = KIND_LABELS[kind] or kind
-	local methods = raw and raw.methods
-	if methods and methods[1] then
-		return methods[1] .. ' ' .. verb -- e.g. "Ship mining"
+	local verb = KIND_VERBS[kind] or kind
+	local labels = {}
+	for _, m in ipairs(raw and raw.methods or {}) do
+		local label = METHOD_LABELS[m] or (m ~= 'Harvestable' and m or nil)
+		if label then
+			labels[#labels + 1] = label
+		end
+	end
+	if #labels > 0 then
+		return table.concat(labels, ', ') .. ' ' .. verb
 	end
 	return verb:gsub('^%l', string.upper)
 end

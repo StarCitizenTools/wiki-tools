@@ -52,7 +52,7 @@ function p.render(frame)
 
 	local out = {}
 	for _, g in ipairs(groups) do
-		local tbl = mw.html.create('table'):addClass('wikitable sortable')
+		local tbl = mw.html.create('table'):addClass('wikitable wikitable--fluid sortable')
 		local head = tbl:tag('tr')
 		head:tag('th'):wikitext('Body')
 		head:tag('th'):wikitext('Type')

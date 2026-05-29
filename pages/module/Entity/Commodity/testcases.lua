@@ -5,6 +5,35 @@ local Commodity = require('Module:Entity/Commodity')
 
 local suite = ScribuntoUnit:new()
 
+function suite:testAcquisitionLabelShipMining()
+	self:assertEquals('Ship mining', Commodity._internal.acquisitionLabel({ methods = { 'Ship' } }, 'mineable'))
+end
+
+function suite:testAcquisitionLabelGroundVehicleMapsToVehicle()
+	self:assertEquals(
+		'Vehicle mining',
+		Commodity._internal.acquisitionLabel({ methods = { 'Ground Vehicle' } }, 'mineable')
+	)
+end
+
+function suite:testAcquisitionLabelHarvestableDropsRedundantToken()
+	self:assertEquals(
+		'Harvesting',
+		Commodity._internal.acquisitionLabel({ methods = { 'Harvestable' } }, 'harvestable')
+	)
+end
+
+function suite:testAcquisitionLabelJoinsMultipleMethods()
+	self:assertEquals(
+		'Ship, FPS mining',
+		Commodity._internal.acquisitionLabel({ methods = { 'Ship', 'FPS' } }, 'mineable')
+	)
+end
+
+function suite:testAcquisitionLabelRemainsReturnsNil()
+	self:assertEquals(nil, Commodity._internal.acquisitionLabel({ methods = { 'Ship' } }, 'remains'))
+end
+
 function suite:testMatchesNilReturnsFalse()
 	self:assertEquals(false, Commodity.matches(nil))
 end

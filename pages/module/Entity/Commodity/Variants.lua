@@ -39,7 +39,7 @@ function p.render(frame)
 		return ''
 	end
 
-	local tbl = mw.html.create('table'):addClass('wikitable')
+	local tbl = mw.html.create('table'):addClass('wikitable wikitable--fluid')
 	local head = tbl:tag('tr')
 	head:tag('th'):wikitext('SCU')
 	head:tag('th'):wikitext('Mass')

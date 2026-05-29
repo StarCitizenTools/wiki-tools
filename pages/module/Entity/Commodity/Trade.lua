@@ -38,7 +38,7 @@ function p.render(frame)
 		return ''
 	end
 
-	local tbl = mw.html.create('table'):addClass('wikitable sortable')
+	local tbl = mw.html.create('table'):addClass('wikitable wikitable--fluid sortable')
 	local head = tbl:tag('tr')
 	head:tag('th'):wikitext('Location')
 	head:tag('th'):wikitext('Action')

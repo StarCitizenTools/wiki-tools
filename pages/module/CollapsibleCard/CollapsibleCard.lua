@@ -83,10 +83,18 @@ function p.render(props)
 	local hasContent = props.content ~= nil and tostring(props.content) ~= ''
 	local isCollapsible = props.collapsible ~= false and hasContent
 
+	-- CardLua.render injects the shell styles; this component must also inject
+	-- its own collapse-specific styles (interactive header hover, chevron size +
+	-- rotate-on-open), which CardLua doesn't know about.
+	local styles = mw.getCurrentFrame():extensionTag({
+		name = 'templatestyles',
+		args = { src = 'Module:CollapsibleCard/styles.css' },
+	})
+
 	if isCollapsible then
-		return renderCollapsible(props, rootClass)
+		return styles .. renderCollapsible(props, rootClass)
 	end
-	return renderStatic(props, rootClass)
+	return styles .. renderStatic(props, rootClass)
 end
 
 return p

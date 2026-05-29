@@ -60,9 +60,11 @@ Unit tests use `Module:ScribuntoUnit` and live alongside the module they test (e
 
 ### Browser Testing
 
-To verify behavior that depends on wiki runtime — rendered output, parser behavior, extension APIs, cross-`#invoke` state, visual QA, automated UI flows — deploy a scratch module to `Module:Sandbox/<Username>/<TestName>` and a wikitext harness to `User:<Username>/sandbox/<test-name>`. Inspect via HTML fetch, browser, or an automation tool (Playwright, Chrome DevTools MCP). Delete both pages once the question is answered.
+To verify behavior that depends on wiki runtime — rendered output, parser behavior, extension APIs, cross-`#invoke` state, visual QA, automated UI flows — deploy a scratch module to `Module:Sandbox/<Username>/<TestName>` and a wikitext harness to `User:<Username>/sandbox/<test-name>`. Delete both pages once the question is answered.
 
 - When creating a module page, always pass `contentModel: Scribunto` — the default `wikitext` silently produces "No such module" errors.
+- **Use Playwright CLI (the `playwright-cli` skill) for any visual, CSS, or interaction check** — anything to do with how a thing *looks* or *behaves*. Parsing the page HTML (via `action=parse` or `get-page`) only proves the markup/classes are emitted; it cannot tell you whether styles loaded, an icon is the right size, hover states fire, or a `<details>` actually toggles. Those regressions are invisible to HTML inspection (e.g. a card that emits the right classes but renders unstyled because its TemplateStyles weren't injected). Drive a real browser: `playwright-cli open <url>`, then assert on **computed styles** and live interactions, e.g. `playwright-cli eval "() => getComputedStyle(document.querySelector('.t-collapsible-card__icon')).width"` and `playwright-cli click` to toggle. Reserve HTML-fetch checks for data/structure assertions (row counts, presence of a value), not for look-and-feel.
+- Remember the live MediaWiki **parser cache**: after deploying a module change, `?action=purge` the test page (POST) before re-inspecting, or you will read a stale render.
 
 ## Formatting
 

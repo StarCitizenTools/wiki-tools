@@ -1,11 +1,11 @@
 ---
 name: migrate-category-to-entity
-description: Use when migrating all article pages in a Category:<Type> from the legacy {{Item}} template to {{Entity}}, normalizing page structure, updating the type's index article, and cleaning up legacy size-based subcategories. Triggered by requests like "migrate Weapon mounts to Entity", "do a Coolers sweep", "convert Quantum drives pages to the Entity template".
+description: Use when migrating all article pages in a Category:<Type> from the legacy {{Item}} template to {{Entity}}, normalizing page structure, updating the type's index article, and cleaning up legacy size-based subcategories. Triggered by requests like "migrate Gun mounts to Entity", "do a Coolers sweep", "convert Quantum drives pages to the Entity template".
 ---
 
 # Migrate a Category to Entity
 
-End-to-end sweep that takes every article page in `Category:<Type>` from the legacy `{{Item}}` infobox to `{{Entity}}`, normalizes the page structure to the canonical layout, swaps the index article's `#ask` for `{{Data table}}`, and deletes the now-empty legacy `Weapon mounts (Size N)`-style subcategories that the old `{{Item}}` template autocategorized into.
+End-to-end sweep that takes every article page in `Category:<Type>` from the legacy `{{Item}}` infobox to `{{Entity}}`, normalizes the page structure to the canonical layout, swaps the index article's `#ask` for `{{Data table}}`, and deletes the now-empty legacy `<Type> (Size N)`-style subcategories that the old `{{Item}}` template autocategorized into.
 
 ## When to use vs not
 
@@ -26,7 +26,7 @@ Set wiki to `https://starcitizen.tools`. Call `get-category-members` on the targ
 - Mainspace article pages (the migration targets).
 - Subcategory entries named like `Category:<Type> (Size N)` for N = 1..10 — legacy autocategories from the old `{{Item}}` template, to be deleted at the end.
 
-Report the article-page count to the user before starting. Real ranges seen so far: PDCs ~7, Weapon mounts 26.
+Report the article-page count to the user before starting. Real ranges seen so far: PDCs ~7, Gun mounts 26.
 
 ### 2. Sample before batching
 
@@ -93,14 +93,14 @@ Default is **light polish** that fixes obvious clunkers (typos, awkward "It allo
 **Hard prose rules** (learned the hard way):
 
 - **No jargon nouns**: avoid constructions like "gimballed size 1 station", "gimbal articulation", "two gimballed positions". They sound machine-written.
-- **Let wikilinks do the explaining**: the page links to `[[gimbal mount]]` / `[[weapon mount]]` — those articles cover what the mechanism does. The lead doesn't need to re-explain.
-- **Pipe-link category-level terms to the type's index article.** Example: in a ball-turret page lead, write `[[Weapon mount|ball turret]]` rather than bare `ball turret`. Same for `[[Weapon mount|nose turret]]`, `[[Weapon mount|turret mount]]`, etc. Apply only to the **first occurrence** in the lead. Terms that already have their own article (e.g. `[[gimbal mount]]`) keep their bare link.
+- **Let wikilinks do the explaining**: the page links to `[[gimbal mount]]` / `[[gun mount]]` — those articles cover what the mechanism does. The lead doesn't need to re-explain.
+- **Pipe-link category-level terms to the type's index article.** Example: in a ball-turret page lead, write `[[Gun mount|ball turret]]` rather than bare `ball turret`. Same for `[[Gun mount|nose turret]]`, `[[Gun mount|turret mount]]`, etc. Apply only to the **first occurrence** in the lead. Terms that already have their own article (e.g. `[[gimbal mount]]`) keep their bare link.
 - **No em-dashes** in article body prose (project rule from `feedback_no_em_dash`).
 - **Don't fabricate facts.** If the original is silent on weapon capacity or specs (some Reliant pages), keep the lead minimal — `"is a size N turret mount manufactured by [[X]] for the [[Y series]]."` is fine.
 
 **Lead template that has held up:**
 
-> *"The '''<Page name>''' is a [[Manufacturer]] size N [[Weapon mount|<kind>]] fitted to the [[Series]], carrying N size M vehicle weapons."*
+> *"The '''<Page name>''' is a [[Manufacturer]] size N [[Gun mount|<kind>]] fitted to the [[Series]], carrying N size M vehicle weapons."*
 
 For converter mounts (VariPuck-style 1:1 adapters), even tighter:
 
@@ -108,13 +108,13 @@ For converter mounts (VariPuck-style 1:1 adapters), even tighter:
 
 For dual-position mounts (PC2-style splitters):
 
-> *"The '''<Page name>''' is a [[Manufacturer]] size [N+2] dual [[weapon mount]] that holds two size N vehicle weapons on a single fixed hardpoint, each on its own gimbal."*
+> *"The '''<Page name>''' is a [[Manufacturer]] size [N+2] dual [[gun mount]] that holds two size N vehicle weapons on a single fixed hardpoint, each on its own gimbal."*
 
 ### 6. Deploy article updates
 
 Fire all `update-page` calls in parallel in a single message — they're independent and the wiki handles concurrent edits fine. Edit summary pattern: `"Migrate {{Item}} → {{Entity}}; add Crafting section; normalize headings; lead polish"` (adjust for what actually changed on the page — e.g. "fix copy-paste bug in lead" or "preserve Development section").
 
-### 7. Update the index article (`<Type singular>`, e.g. `Weapon mount`)
+### 7. Update the index article (`<Type singular>`, e.g. `Gun mount`)
 
 Fetch the page. If it has a `#ask` query, replace it with `{{Data table}}` matching the PDC pattern at `Point Defense Turret`:
 
@@ -129,14 +129,14 @@ Fetch the page. If it has a `#ask` query, replace it with `{{Data table}}` match
 ```
 
 Other rules for the index article:
-- Lead and `{{Short description}}` must honor the **full breadth** of the category, not just the common case. E.g. `Category:Weapon mounts` contains both converters (VariPucks) and turret housings (Anvil nose/ball turrets); a lead that describes only converters is wrong.
+- Lead and `{{Short description}}` must honor the **full breadth** of the category, not just the common case. E.g. `Category:Gun mounts` contains both gimbal adapters (VariPucks) and turret housings (Anvil nose/ball turrets); a lead that describes only converters is wrong.
 - Ensure `[[Category:Ship components]]` (or the appropriate root category) is present.
 - Ensure `{{Short description|...}}` is present and accurate.
 - Preserve `{{stub}}` if it was there — adding `{{Data table}}` is content but doesn't unilaterally retire the stub marker.
 
 ### 8. Update the category page (`Category:<Type plural>`)
 
-Set the header to `{{Category header|pages|[[<Type singular>]]s}}` (note: capital first letter on the link, matching the article title). Preserve the parent category link (e.g. `[[Category:Turrets]]` for Weapon mounts). If the page had an `#ask`/table, remove it — that lives on the article now.
+Set the header to `{{Category header|pages|[[<Type singular>]]s}}` (note: capital first letter on the link, matching the article title). Preserve the parent category link (e.g. `[[Category:Turrets]]` for Gun mounts). If the page had an `#ask`/table, remove it — that lives on the article now.
 
 ### 9. Delete legacy size subcategories
 

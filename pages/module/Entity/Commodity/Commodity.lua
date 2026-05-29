@@ -163,10 +163,13 @@ function p.getSections(apiData, args)
 	local typeInfo = p.getTypeInfo(apiData, args)
 
 	local tier = apiData.tier or (raw and raw.tier)
-	local systems = (raw and raw.systems) or apiData.systems
 	local refinable = (apiData.refined_version and apiData.refined_version.uuid)
 		or (refined and refined.raw_versions and refined.raw_versions[1])
 
+	-- `systems` is intentionally NOT an infobox row: the set of star systems
+	-- grows as the game expands, so an enumerated list doesn't scale. The
+	-- per-system Deposit-locations tables are the scalable home for "where",
+	-- and `systems` is still persisted to structured data for querying.
 	local overview = {
 		key = 'overview',
 		items = {
@@ -174,7 +177,6 @@ function p.getSections(apiData, args)
 			{ label = 'Rarity', content = tier and (tier:gsub('^%l', string.upper)) },
 			{ label = 'Acquisition', content = acquisitionLabel(raw, apiData.kind or (raw and raw.kind)) },
 			{ label = 'Refinable', content = refinable ~= nil and (refinable and 'Yes' or 'No') or nil },
-			{ label = 'Found in', content = systems and systems[1] and table.concat(systems, ', ') or nil },
 		},
 	}
 

@@ -7,6 +7,7 @@ require('strict')
 
 local data = require('Module:Entity/Data')
 local util = require('Module:Entity/Util')
+local collapsibleCard = require('Module:CollapsibleCard')
 
 local p = {}
 
@@ -38,8 +39,7 @@ function p.render(frame)
 		return ''
 	end
 
-	local tbl = mw.html.create('table'):addClass('wikitable mw-collapsible mw-collapsed')
-	tbl:tag('caption'):wikitext('Cargo variants')
+	local tbl = mw.html.create('table'):addClass('wikitable')
 	local head = tbl:tag('tr')
 	head:tag('th'):wikitext('SCU')
 	head:tag('th'):wikitext('Mass')
@@ -48,7 +48,11 @@ function p.render(frame)
 		tr:tag('td'):wikitext(util.formatNum(r.scu))
 		tr:tag('td'):wikitext(util.formatNum(r.mass_kg) .. ' kg')
 	end
-	return tostring(tbl)
+	return collapsibleCard.render({
+		title = 'Cargo variants',
+		description = #rows .. ' sizes',
+		content = tostring(tbl),
+	})
 end
 
 p._internal = { buildRows = buildRows }

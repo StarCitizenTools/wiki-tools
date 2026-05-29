@@ -100,7 +100,9 @@ function suite:testGetSectionsOverviewAndMining()
 	self:assertEquals('Uncommon', item(overview.items, 'Rarity'))
 	self:assertEquals('Ship mining', item(overview.items, 'Acquisition'))
 	self:assertEquals('Yes', item(overview.items, 'Refinable'))
-	self:assertEquals('Pyro System, Stanton System', item(overview.items, 'Found in'))
+	-- `systems` is deliberately not an infobox row (unscalable); it lives in
+	-- structured data instead. Confirm no "Found in" row is emitted.
+	self:assertEquals(nil, item(overview.items, 'Found in'))
 
 	local mining = group('mining')
 	self:assertEquals('4,000', item(mining.items, 'Signature'))

@@ -5,6 +5,7 @@ require('strict')
 --- always-present external link to sc-trade.tools. Consumes Module:Entity/Data.
 
 local data = require('Module:Entity/Data')
+local collapsibleCard = require('Module:CollapsibleCard')
 
 local p = {}
 
@@ -45,7 +46,11 @@ function p.render(frame)
 			tr:tag('td'):wikitext(r.action)
 			tr:tag('td'):wikitext(r.price and tostring(r.price) or '')
 		end
-		out[#out + 1] = tostring(tbl)
+		out[#out + 1] = collapsibleCard.render({
+			title = 'Trade prices',
+			description = #rows .. (#rows == 1 and ' terminal' or ' terminals'),
+			content = tostring(tbl),
+		})
 	end
 
 	local url = 'https://sc-trade.tools/commodities/' .. mw.uri.encode(name, 'PATH')

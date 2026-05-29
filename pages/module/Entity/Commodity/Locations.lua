@@ -5,6 +5,7 @@ require('strict')
 --- commodity record's locations[]. Consumes Module:Entity/Data.
 
 local data = require('Module:Entity/Data')
+local collapsibleCard = require('Module:CollapsibleCard')
 
 local p = {}
 
@@ -51,8 +52,7 @@ function p.render(frame)
 
 	local out = {}
 	for _, g in ipairs(groups) do
-		local tbl = mw.html.create('table'):addClass('wikitable sortable mw-collapsible')
-		tbl:tag('caption'):wikitext(g.system)
+		local tbl = mw.html.create('table'):addClass('wikitable sortable')
 		local head = tbl:tag('tr')
 		head:tag('th'):wikitext('Body')
 		head:tag('th'):wikitext('Type')
@@ -65,7 +65,12 @@ function p.render(frame)
 			tr:tag('td'):wikitext(r.spawn_pct and (tostring(r.spawn_pct) .. '%') or '')
 			tr:tag('td'):wikitext(r.quality or '')
 		end
-		out[#out + 1] = tostring(tbl)
+		local count = #g.rows
+		out[#out + 1] = collapsibleCard.render({
+			title = g.system,
+			description = count .. (count == 1 and ' deposit' or ' deposits'),
+			content = tostring(tbl),
+		})
 	end
 	return table.concat(out, '\n')
 end

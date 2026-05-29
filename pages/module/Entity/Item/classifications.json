@@ -5,10 +5,10 @@
 	"Ship.Weapon.Rocket":    { "name": "Rocket pod", "category": "Rocket pods" },
 	"Ship.Turret":              { "name": "Turret", "category": "Turrets" },
 	"Ship.Turret.PDCTurret":    { "name": "PDC", "category": "PDCs" },
-	"Ship.Turret.GunTurret":    { "name": "Gun mount", "category": "Gun mounts" },
-	"Ship.Turret.BallTurret":   { "name": "Gun mount", "category": "Gun mounts" },
-	"Ship.Turret.NoseMounted":  { "name": "Gun mount", "category": "Gun mounts" },
-	"Ship.Turret.CanardTurret": { "name": "Gun mount", "category": "Gun mounts" },
+	"Ship.Turret.GunTurret":    { "name": "Weapon mount", "category": "Weapon mounts" },
+	"Ship.Turret.BallTurret":   { "name": "Weapon mount", "category": "Weapon mounts" },
+	"Ship.Turret.NoseMounted":  { "name": "Weapon mount", "category": "Weapon mounts" },
+	"Ship.Turret.CanardTurret": { "name": "Weapon mount", "category": "Weapon mounts" },
 	"Ship.Cooler":           { "name": "Cooler", "category": "Coolers" },
 	"Ship.QuantumDrive":     { "name": "Quantum drive", "category": "Quantum drives" }
 }

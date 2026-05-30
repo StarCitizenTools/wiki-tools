@@ -50,18 +50,6 @@ end
 
 --- @param apiData table
 --- @param args table
---- @return table[] Ordered list of section entries with key field
-function p.getSections(apiData, args)
-	return {
-		{
-			key = 'general',
-			items = {},
-		},
-	}
-end
-
---- @param apiData table
---- @param args table
 --- @return table<string, any>
 function p.getStructuredData(apiData, args)
 	local manufacturer = p.resolveManufacturer(apiData, args)

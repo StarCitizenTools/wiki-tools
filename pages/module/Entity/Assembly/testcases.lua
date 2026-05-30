@@ -136,4 +136,21 @@ function suite:testBuildChainSingleModule()
 	self:assertEquals(1, #chain)
 end
 
+function suite:testMergeSectionsDropsFullyEmptySection()
+	-- A section with no items, no content, no sub-sections is dropped entirely
+	-- (the old Base 'general' scaffold bug).
+	local result = assembly.mergeSections({
+		{ { key = 'general', items = {} } },
+	})
+	self:assertEquals(0, #result)
+end
+
+function suite:testMergeSectionsKeepsContentOnlySection()
+	local result = assembly.mergeSections({
+		{ { key = 'footer', content = 'X' } },
+	})
+	self:assertEquals(1, #result)
+	self:assertEquals('X', result[1].content)
+end
+
 return suite

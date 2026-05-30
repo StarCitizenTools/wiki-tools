@@ -54,7 +54,12 @@ function p.mergeSections(sectionsList)
 		if #section.items == 0 then
 			section.items = nil
 		end
-		table.insert(result, section)
+		-- Drop sections with nothing to show (e.g. Base's old empty 'general'
+		-- scaffold on a kind that uses a different section key) so they don't
+		-- render as a stray empty section block.
+		if section.items or section.content or section.sections then
+			table.insert(result, section)
+		end
 	end
 
 	return result

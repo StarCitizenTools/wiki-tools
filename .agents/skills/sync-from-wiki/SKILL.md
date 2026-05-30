@@ -9,9 +9,9 @@ Pull recent changes from the Star Citizen Wiki and reconcile them against the lo
 
 ## Steps
 
-### 1. Set Wiki
+### 1. Target the Wiki
 
-Call `set-wiki` with `https://starcitizen.tools`.
+Pass `wiki: "starcitizen.tools"` explicitly on every MCP call in this workflow. The server is stateless — there is no persistent "current wiki", and omitting `wiki` falls back to the configured default (not necessarily Star Citizen Wiki).
 
 ### 2. Determine "since" Timestamp
 

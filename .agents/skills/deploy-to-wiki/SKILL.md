@@ -9,9 +9,9 @@ Deploy a single module or template from `pages/<namespace>/<Name>/` to the Star 
 
 ## Steps
 
-### 1. Set Wiki
+### 1. Target the Wiki
 
-Call `set-wiki` with `https://starcitizen.tools`.
+Pass `wiki: "starcitizen.tools"` explicitly on **every** MCP call in this workflow. The server is stateless — there is no persistent "current wiki", and omitting `wiki` falls back to the configured default, which may be a different wiki. For writes (`create-page` / `update-page`), that means a missing `wiki` can silently edit the wrong wiki, so always name it.
 
 ### 2. Scan Local Files
 
@@ -34,23 +34,30 @@ Determine the namespace from the path (`pages/module/...` → `Module:`, `pages/
 - `README.md` → `Template:<Name>/doc` — content model: `wikitext` (requires conversion, see step 5)
 - Subdirectories (e.g. `pages/template/Entity/Description/`) recurse with the same rules — the subpath becomes part of the wiki title.
 
-### 3. Get Git Commit Hash
+### 3. Choose the Edit Summary
 
-Run `git log --oneline -1` to get the short commit hash for the edit summary. If no commits exist, use `Sync from Git` as the edit summary. Otherwise use `Sync from Git (<hash>)`.
+Run `git status --porcelain` and `git log --oneline -1`.
+
+- **Working tree clean** (local files match the last commit) → use `Sync from Git (<hash>)`.
+- **Working tree dirty** (uncommitted local changes — the deploy wouldn't correspond to that hash) → use a short descriptive summary of what actually changed instead. Never cite a commit hash that doesn't reflect what's being pushed.
+- **No commits exist** → use `Sync from Git`.
 
 ### 4. Deploy Each File (except README.md)
 
 For each non-README file:
 
 1. Read the local file content.
-2. Call `get-page` with `metadata: true` to fetch the wiki page.
+2. Call `get-page` with `content: "none", metadata: true` to check existence and capture `latestRevisionId` (the `latestId` for conflict-safe updates). Don't pull full page source for comparison — use `compare-pages` (step 4) instead. When several pages need checking at once, use `get-pages` to batch the existence/metadata reads in one call.
 3. **Page does not exist** → call `create-page` with the content, title, content model, and edit summary. Note: only `create-page` needs `contentModel`; `update-page` inherits from the existing page.
-4. **Page exists, content matches local** → skip, tell the user it's up to date. Note: trim trailing whitespace/newlines when comparing, as local files may have a trailing newline.
-5. **Page exists, content differs** → follow the diff confirmation flow:
-   - Call `get-page-history` to find who last edited and when.
-   - Explain the differences to the user in plain language (what changed, what was added/removed).
+4. **Page exists** → detect whether it differs from local with a server-side diff instead of pulling content into context:
+   - Call `compare-pages` with `fromTitle: <wiki title>`, `toText: <local content>`, `includeDiff: false` — a cheap change-detection response (just the change flag + size delta, no diff body). A trailing-newline-only difference is not a real change; MediaWiki normalizes trailing whitespace on save.
+   - **No change** → skip, tell the user it's up to date.
+   - **Differs** → follow the diff confirmation flow below.
+5. **Diff confirmation flow** (page exists and differs):
+   - Call `compare-pages` again with `includeDiff: true` (same `fromTitle` + `toText`) to get the compact diff over the wire — this is both the change explanation and a dry-run preview of exactly what the update will write. Summarize it for the user in plain language.
+   - Call `get-page-history` to find who last edited and when (drift guard: if the latest editor isn't the deployer account, surface it before overwriting).
    - Ask the user to confirm before updating.
-   - If confirmed, call `update-page` with the local content, the `latestId` from `get-page` metadata (required to prevent edit conflicts), and the edit summary.
+   - If confirmed, call `update-page` with the local content, the `latestId` from step 2 (required to prevent edit conflicts), and the edit summary.
 
 ### 5. Deploy README.md as /doc
 

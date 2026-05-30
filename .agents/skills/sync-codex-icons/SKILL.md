@@ -46,9 +46,9 @@ The wiki file page itself is the sync ledger: the `|date=` field on each `File:C
 
 ## Steps
 
-### 1. Set Wiki
+### 1. Target the Wiki
 
-Call `set-wiki` with `mcp://wikis/starcitizen.tools`. Always do this first — the MCP server resets to its `defaultWiki` (`localhost:8080` in this setup) on every connection, and silently routing uploads at the local Docker wiki produces a confusing `ECONNREFUSED 127.0.0.1:8080` error mid-batch.
+Pass `wiki: "starcitizen.tools"` explicitly on every MCP call in this workflow — especially the `upload-file` / `update-file` calls. The server is stateless (no persistent "current wiki"); omitting `wiki` falls back to the configured `defaultWiki` (`localhost:8080` in this setup), which silently routes uploads at the local Docker wiki and produces a confusing `ECONNREFUSED 127.0.0.1:8080` error mid-batch.
 
 ### 2. List Upstream Icons
 

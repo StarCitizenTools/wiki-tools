@@ -12,6 +12,7 @@ require('strict')
 local api = require('Module:Entity/Api')
 local assembly = require('Module:Entity/Assembly')
 local registry = require('Module:Entity/Registry')
+local typeResolver = require('Module:Entity/TypeResolver')
 
 local p = {}
 
@@ -94,36 +95,24 @@ function p.parseArgs(frame)
 	return args
 end
 
---- Probes the kind registry for the entity's kind, fetches its primary
---- data, then expands the chain and fetches any additional APIs the
---- leaf needs.
+--- Probes the kind registry: fetches each kind's identity endpoint and asks
+--- matches(); first match wins, short-circuiting so common-case items pay one
+--- fetch. Probe failures on a NON-matching kind don't count toward hasApiError
+--- (a 404 on the items endpoint for a vehicle UUID is expected) — only the
+--- matched kind's own fetch error does. With no uuid, nothing is probed.
 ---
 --- @param args table
---- @return table apiData Merged API response data
---- @return table[] chain Module chain (root to leaf)
---- @return boolean hasApiError True if any fetch failed
-local function fetchApiData(args)
+--- @return table|nil matchedKind
+--- @return table apiData  ({} when nothing matched)
+--- @return table<string, boolean> fetchedEndpoints  endpoints already fetched
+--- @return boolean hasApiError
+local function probeKind(args)
 	local apiData = {}
 	local fetchedEndpoints = {}
-	local hasApiError = false
 	local matchedKind = nil
-
-	-- Note: args.type no longer influences kind selection (it did under the
-	-- old item-only typeMapping dispatch). It still flows through `p.get`'s
-	-- `resolveType` call, but only as the type-map fallback key for
-	-- typeInfo / displayType — for items, a mapped `Ship.*` classification
-	-- takes precedence over it. The kind is still determined entirely by the
-	-- API response shape via matches().
+	local hasApiError = false
 
 	if args.uuid then
-		-- Sequential probing: fetch each kind's primary endpoint, ask the
-		-- kind if the response matches. First match wins; short-circuit so
-		-- common-case items pay one fetch.
-		--
-		-- Probe failures on a non-matching kind don't count toward
-		-- hasApiError — a 404 on the items endpoint for a vehicle UUID is
-		-- expected, not an error. Only the matched kind's fetch (and the
-		-- "no kind matched" case below) sets the flag.
 		for _, mod in ipairs(registry.kinds) do
 			local primaryConfig = mod.getApiConfigs()[1]
 			local data, err = api.fetchApi(primaryConfig, args.uuid)
@@ -139,30 +128,39 @@ local function fetchApiData(args)
 		end
 	end
 
-	-- Resolve the leaf module:
-	-- - Matched kind: refine via the kind's resolveSubtype if it has one.
-	-- - No match (but a UUID was given): fall back to Item so siblings get
-	--   a usable chain; surface as hasApiError so callers can render
-	--   "no data" placeholders.
-	-- - No UUID at all: same Item fallback, no error.
-	local leafMod
+	return matchedKind, apiData, fetchedEndpoints, hasApiError
+end
+
+--- Resolves the leaf module from the matched kind: the kind's resolveSubtype
+--- refinement when present, else the kind itself. No match falls back to Item so
+--- sibling renderers still get a usable chain; a given-but-unmatched uuid is
+--- surfaced as an error.
+---
+--- @param matchedKind table|nil
+--- @param apiData table
+--- @param hasUuid boolean
+--- @return table leafMod
+--- @return boolean hasApiError
+local function resolveLeaf(matchedKind, apiData, hasUuid)
 	if matchedKind then
 		if matchedKind.resolveSubtype then
-			leafMod = matchedKind.resolveSubtype(apiData) or matchedKind
-		else
-			leafMod = matchedKind
+			return matchedKind.resolveSubtype(apiData) or matchedKind, false
 		end
-	else
-		leafMod = require('Module:Entity/Item')
-		if args.uuid then
-			hasApiError = true
-		end
+		return matchedKind, false
 	end
+	return require('Module:Entity/Item'), hasUuid
+end
 
-	local chain = assembly.buildChain(leafMod)
-
-	-- Pull any extra endpoints the chain declares, skipping anything we
-	-- already fetched during kind probing.
+--- Fetches the chain's additional API endpoints (those not already fetched
+--- during kind probing), merging them into one table. Marks each fetched
+--- endpoint. Returns {}, false when the chain declares no new endpoints.
+---
+--- @param chain table[]
+--- @param uuid string
+--- @param fetchedEndpoints table<string, boolean>
+--- @return table extraData
+--- @return boolean hasError
+local function fetchChainExtras(chain, uuid, fetchedEndpoints)
 	local additionalConfigs = {}
 	for _, mod in ipairs(chain) do
 		if mod.getApiConfigs then
@@ -174,13 +172,31 @@ local function fetchApiData(args)
 			end
 		end
 	end
+	if #additionalConfigs == 0 then
+		return {}, false
+	end
+	return api.fetchAllApis(additionalConfigs, uuid)
+end
 
-	if #additionalConfigs > 0 and args.uuid then
-		local additionalData, additionalError = api.fetchAllApis(additionalConfigs, args.uuid)
-		if additionalError then
-			hasApiError = true
-		end
-		for k, v in pairs(additionalData) do
+--- Probes the kind, resolves the leaf, builds the chain, fetches the chain's
+--- extra endpoints, and runs the matched kind's enrich hook.
+---
+--- @param args table
+--- @return table apiData Merged API response data
+--- @return table[] chain Module chain (root to leaf)
+--- @return boolean hasApiError True if any fetch failed
+local function fetchApiData(args)
+	local matchedKind, apiData, fetchedEndpoints, hasApiError = probeKind(args)
+
+	local leafMod, leafErr = resolveLeaf(matchedKind, apiData, args.uuid ~= nil)
+	hasApiError = hasApiError or leafErr
+
+	local chain = assembly.buildChain(leafMod)
+
+	if args.uuid then
+		local extraData, extraErr = fetchChainExtras(chain, args.uuid, fetchedEndpoints)
+		hasApiError = hasApiError or extraErr
+		for k, v in pairs(extraData) do
 			apiData[k] = v
 		end
 	end
@@ -190,48 +206,6 @@ local function fetchApiData(args)
 	end
 
 	return apiData, chain, hasApiError
-end
-
---- Resolves an item's `classification` path (item-endpoint only) to curated
---- display metadata via Module:Entity/Item/classifications.json, by most-specific
---- matching prefix: try the full path, then drop trailing `.segment`s. Only
---- `Ship.*` paths are consulted; returns nil otherwise (callers fall back to the
---- type map). The API's generated `classification_label` is intentionally unused.
----
---- @param classification string|nil
---- @return table|nil { name, category }
-local function resolveClassification(classification)
-	if type(classification) ~= 'string' or classification:sub(1, 5) ~= 'Ship.' then
-		return nil
-	end
-	local map = mw.loadJsonData('Module:Entity/Item/classifications.json')
-	local path = classification
-	while path and path ~= '' do
-		local entry = map[path]
-		if type(entry) == 'table' then
-			return entry
-		end
-		path = path:match('^(.*)%.[^.]+$')
-	end
-	return nil
-end
-
---- Resolves display metadata (typeInfo + display name). For items the curated
---- classification map wins (most-specific Ship.* prefix); otherwise falls back to
---- the type map (types.json) — which covers FPS items and any kind without a
---- mapped classification (e.g. vehicles, whose endpoint has no `classification`).
----
---- @param apiType string|nil
---- @param classification string|nil
---- @return table|nil typeInfo
---- @return string|nil displayType Display name (falls back to apiType when unmapped)
-local function resolveType(apiType, classification)
-	local typeInfo = resolveClassification(classification)
-	if not typeInfo then
-		local types = mw.loadJsonData('Module:Entity/Item/types.json')
-		typeInfo = types[apiType]
-	end
-	return typeInfo, typeInfo and typeInfo.name or apiType
 end
 
 --- Primary entry point for sibling renderers. Fetches API data, resolves the
@@ -249,7 +223,7 @@ function p.get(args)
 		displayType = typeInfo and typeInfo.name
 	end
 	if not typeInfo then
-		typeInfo, displayType = resolveType(args.type or apiData.type, apiData.classification)
+		typeInfo, displayType = typeResolver.resolve(args.type or apiData.type, apiData.classification)
 	end
 
 	return {
@@ -265,9 +239,8 @@ end
 
 -- Test-only exports. Not part of the public API.
 p._internal = {
-	resolveClassification = resolveClassification,
-	resolveType = resolveType,
 	detectFacets = detectFacets,
+	resolveLeaf = resolveLeaf,
 }
 
 return p

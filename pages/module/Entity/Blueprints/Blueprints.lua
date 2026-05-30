@@ -12,7 +12,8 @@ local badgeLua = require('Module:BadgeLua')
 local collapsibleCard = require('Module:CollapsibleCard')
 local cardLua = require('Module:CardLua')
 local tableLua = require('Module:TableLua')
-local util = require('Module:Entity/Util')
+local format = require('Module:Entity/Format')
+local api = require('Module:Entity/Api')
 
 local p = {}
 
@@ -35,7 +36,7 @@ end
 --- @param name string
 --- @return number|nil
 local function usedInBlueprintCount(name)
-	local resp = util.fetchApi({
+	local resp = api.fetchApi({
 		name = 'StarCitizenWikiAPI',
 		endpoint = 'blueprints?filter[ingredient]=%s&page[size]=1',
 	}, mw.uri.encode(name, 'QUERY'))
@@ -208,7 +209,7 @@ local function renderCommodityUsedIn(apiData)
 		return renderEmpty('Not used as an ingredient in any known crafting recipe.')
 	end
 
-	local title = count == 1 and 'Browse 1 recipe' or ('Browse ' .. util.formatNum(count) .. ' recipes')
+	local title = count == 1 and 'Browse 1 recipe' or ('Browse ' .. format.formatNum(count) .. ' recipes')
 	-- Brackets in the query are %-encoded so they don't break the link target.
 	local url = 'https://api.star-citizen.wiki/blueprints?filter%5Bingredient%5D=' .. mw.uri.encode(name, 'QUERY')
 	return cardLua.renderLinkCard({

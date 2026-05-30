@@ -6,7 +6,7 @@ require('strict')
 --- Turret module can render an equipped gun with the identical layout
 --- (turret ports carry the same `vehicle_weapon` shape as a standalone gun).
 
-local util = require('Module:Entity/Util')
+local format = require('Module:Entity/Format')
 
 local p = {}
 
@@ -54,18 +54,18 @@ function p.getVehicleWeaponSections(vehicleWeapon)
 
 	local overview = {}
 	pushItem(overview, 'Type', vehicleWeapon.type and tostring(vehicleWeapon.type))
-	pushItem(overview, 'Damage', util.formatNum(damage.alpha_total))
-	pushItem(overview, 'DPS', util.formatNum(damage.burst))
-	pushItem(overview, 'Fire rate', vehicleWeapon.rpm and (util.formatNum(vehicleWeapon.rpm) .. ' RPM'))
+	pushItem(overview, 'Damage', format.formatNum(damage.alpha_total))
+	pushItem(overview, 'DPS', format.formatNum(damage.burst))
+	pushItem(overview, 'Fire rate', vehicleWeapon.rpm and (format.formatNum(vehicleWeapon.rpm) .. ' RPM'))
 	pushItem(overview, 'Fire mode', #modeNames > 0 and table.concat(modeNames, ', ') or nil)
-	pushItem(overview, 'Range', vehicleWeapon.range and (util.formatNum(vehicleWeapon.range) .. ' m'))
-	pushItem(overview, 'Speed', ammunition.speed and (util.formatNum(ammunition.speed) .. ' m/s'))
+	pushItem(overview, 'Range', vehicleWeapon.range and (format.formatNum(vehicleWeapon.range) .. ' m'))
+	pushItem(overview, 'Speed', ammunition.speed and (format.formatNum(ammunition.speed) .. ' m/s'))
 	-- Ammo only for magazine-fed (ballistic) weapons; energy weapons report 0.
 	-- tonumber() guards against a string value (comparing string > number throws
 	-- in Lua 5.1) and keeps the row hidden for 0/nil/non-numeric capacity.
 	local capacity = tonumber(vehicleWeapon.capacity)
 	if capacity and capacity > 0 then
-		pushItem(overview, 'Ammo', util.formatNum(capacity))
+		pushItem(overview, 'Ammo', format.formatNum(capacity))
 	end
 
 	if #overview == 0 then

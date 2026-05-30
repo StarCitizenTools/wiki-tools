@@ -4,7 +4,7 @@ require('strict')
 --- Root type module. Provides properties common to all entity types:
 --- name, UUID, and manufacturer.
 
-local util = require('Module:Entity/Util')
+local format = require('Module:Entity/Format')
 local manufacturers = require('Module:Manufacturers')
 
 local p = {}
@@ -77,7 +77,7 @@ end
 --- @return EntityItemData[] External site items contributed by this module
 function p.getExternalSiteItems(apiData, args)
 	local siteDefs = mw.loadJsonData('Module:Entity/officialSites.json')
-	local links = util.buildSiteLinks(siteDefs, {
+	local links = format.buildSiteLinks(siteDefs, {
 		name = args.name or apiData.name,
 		galactapedia_url = args.galactapedia_url,
 	})

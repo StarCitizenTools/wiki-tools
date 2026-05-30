@@ -3,8 +3,6 @@ require('strict')
 --- @module Entity/Item/WeaponPersonal
 --- WeaponPersonal subtype.
 
-local util = require('Module:Entity/Util')
-
 local p = {}
 
 --- @type string

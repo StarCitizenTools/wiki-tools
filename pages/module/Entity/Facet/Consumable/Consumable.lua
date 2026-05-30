@@ -8,7 +8,7 @@ require('strict')
 --- difference between them was Drink's `can_be_reclosed` row, now rendered
 --- data-driven below.
 
-local util = require('Module:Entity/Util')
+local format = require('Module:Entity/Format')
 
 local p = {}
 
@@ -40,7 +40,7 @@ function p.getSections(apiData, args)
 		table.insert(items, { label = 'HEI', content = tostring(food.hydration_efficacy_index) })
 	end
 
-	local effectsContent = util.buildHtmlList(food.effects)
+	local effectsContent = format.buildHtmlList(food.effects)
 	if effectsContent then
 		table.insert(items, { label = 'Effects', content = effectsContent })
 	end
@@ -79,7 +79,7 @@ end
 --- @return string|nil
 function p.getShortDescriptionPrefix(apiData, args)
 	local effects = apiData.food and apiData.food.effects
-	return effects and util.joinAnd(effects) or nil
+	return effects and format.joinAnd(effects) or nil
 end
 
 return p

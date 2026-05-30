@@ -1,7 +1,7 @@
 require('strict')
 
 local data = require('Module:Entity/Data')
-local util = require('Module:Entity/Util')
+local assembly = require('Module:Entity/Assembly')
 local base = require('Module:Entity/Base')
 local structuredData = require('Module:Entity/StructuredData')
 local infobox = require('Module:InfoboxLua')
@@ -137,7 +137,7 @@ local function buildSections(chain, facets, apiData, args)
 			table.insert(sectionsList, facet.getSections(apiData, args))
 		end
 	end
-	local sections = util.mergeSections(sectionsList)
+	local sections = assembly.mergeSections(sectionsList)
 
 	table.insert(sections, buildMetadataSection(apiData, args))
 
@@ -173,7 +173,7 @@ local function storeStructuredData(chain, facets, apiData, args)
 			table.insert(dataList, facet.getStructuredData(apiData, args))
 		end
 	end
-	return structuredData.store(util.mergeStructuredData(dataList))
+	return structuredData.store(assembly.mergeStructuredData(dataList))
 end
 
 --- Sets the page's short description via the SHORTDESC parser function.

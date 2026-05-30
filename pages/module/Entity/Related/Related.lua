@@ -26,7 +26,7 @@ local data = require('Module:Entity/Data')
 local PageResolver = require('Module:Entity/PageResolver')
 local Tiles = require('Module:Tiles')
 local tableLua = require('Module:TableLua')
-local util = require('Module:Entity/Util')
+local format = require('Module:Entity/Format')
 local collapsibleCard = require('Module:CollapsibleCard')
 
 local p = {}
@@ -325,17 +325,17 @@ local function renderCargoVariants(apiData)
 		return renderEmpty()
 	end
 	local function metres(v)
-		return v and (util.formatNum(v) .. ' m') or '-'
+		return v and (format.formatNum(v) .. ' m') or '-'
 	end
 	local tableRows = {}
 	for _, r in ipairs(rows) do
 		local dims = boxDimensions(r.scu)
 		tableRows[#tableRows + 1] = {
-			util.formatNum(r.scu),
+			format.formatNum(r.scu),
 			metres(dims and dims[1]),
 			metres(dims and dims[2]),
 			metres(dims and dims[3]),
-			util.formatNum(r.mass_kg) .. ' kg',
+			format.formatNum(r.mass_kg) .. ' kg',
 		}
 	end
 	local table_ = tableLua.render({

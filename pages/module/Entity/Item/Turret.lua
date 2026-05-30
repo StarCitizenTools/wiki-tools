@@ -6,7 +6,7 @@ require('strict')
 --- a Weapon section for a *locked* equipped gun (the PDC case), reusing
 --- Module:Entity/Item/WeaponGun's section builder.
 
-local util = require('Module:Entity/Util')
+local format = require('Module:Entity/Format')
 local weaponGun = require('Module:Entity/Item/WeaponGun')
 
 local p = {}
@@ -43,9 +43,9 @@ local function buildTurretSection(turret)
 	local pitch = type(turret.pitch_axis) == 'table' and turret.pitch_axis or {}
 
 	local items = {}
-	pushItem(items, 'Mounts', turret.mounts and util.formatNum(turret.mounts))
-	pushItem(items, 'Yaw speed', yaw.speed and (util.formatNum(yaw.speed) .. ' °/s'))
-	pushItem(items, 'Pitch speed', pitch.speed and (util.formatNum(pitch.speed) .. ' °/s'))
+	pushItem(items, 'Mounts', turret.mounts and format.formatNum(turret.mounts))
+	pushItem(items, 'Yaw speed', yaw.speed and (format.formatNum(yaw.speed) .. ' °/s'))
+	pushItem(items, 'Pitch speed', pitch.speed and (format.formatNum(pitch.speed) .. ' °/s'))
 
 	if #items == 0 then
 		return nil

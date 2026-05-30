@@ -7,7 +7,8 @@ require('strict')
 --- hook (see p.enrich). Material family is curated in families.json — the API
 --- has no family field.
 
-local util = require('Module:Entity/Util')
+local format = require('Module:Entity/Format')
+local api = require('Module:Entity/Api')
 
 local p = {}
 
@@ -116,7 +117,7 @@ function p.enrich(apiData)
 	local counterpart = nil
 	local cpUuid = counterpartUuid(apiData)
 	if cpUuid then
-		local data = util.fetchApi(p.getApiConfigs()[1], cpUuid)
+		local data = api.fetchApi(p.getApiConfigs()[1], cpUuid)
 		if data and data.box_sizes_scu then
 			counterpart = data
 		end
@@ -132,7 +133,7 @@ function p.enrich(apiData)
 	if not apiData.food then
 		local harvestableUuid = findHarvestableUuid(apiData.items)
 		if harvestableUuid then
-			local item = util.fetchApi(HARVESTABLE_ITEM_CONFIG, harvestableUuid)
+			local item = api.fetchApi(HARVESTABLE_ITEM_CONFIG, harvestableUuid)
 			if item and item.food then
 				apiData.food = item.food
 			end
@@ -276,13 +277,13 @@ function p.getSections(apiData, args)
 		-- Signature is a scan/detectability stat that applies to any acquisition
 		-- method (ship, vehicle, FPS, harvesting), so it shows whenever present.
 		if raw.signature then
-			items[#items + 1] = { label = 'Signature', content = util.formatNum(raw.signature) }
+			items[#items + 1] = { label = 'Signature', content = format.formatNum(raw.signature) }
 		end
 		-- Instability / resistance are laser-mining mechanics (ship & ground
 		-- vehicle only); FPS and harvesting report them as zero / nil.
 		if isLaserMining(raw) then
 			if raw.instability and raw.instability > 0 then
-				items[#items + 1] = { label = 'Instability', content = util.formatNum(raw.instability) }
+				items[#items + 1] = { label = 'Instability', content = format.formatNum(raw.instability) }
 			end
 			if raw.resistance and raw.resistance > 0 then
 				items[#items + 1] = { label = 'Resistance', content = tostring(raw.resistance) }
@@ -363,7 +364,7 @@ end
 --- @return EntityItemData[]
 function p.getExternalSiteItems(apiData, args)
 	local siteDefs = mw.loadJsonData('Module:Entity/Commodity/communitySites.json')
-	local links = util.buildSiteLinks(siteDefs, {
+	local links = format.buildSiteLinks(siteDefs, {
 		name = args.name or apiData.name,
 		slug = apiData.slug,
 	})

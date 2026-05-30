@@ -9,7 +9,8 @@ require('strict')
 --- calls within a page parse rely on the Apiunto HTTP cache to stay cheap,
 --- so each sibling template can call p.get independently without coordination.
 
-local util = require('Module:Entity/Util')
+local api = require('Module:Entity/Api')
+local assembly = require('Module:Entity/Assembly')
 local registry = require('Module:Entity/Registry')
 
 local p = {}
@@ -125,7 +126,7 @@ local function fetchApiData(args)
 		-- "no kind matched" case below) sets the flag.
 		for _, mod in ipairs(registry.kinds) do
 			local primaryConfig = mod.getApiConfigs()[1]
-			local data, err = util.fetchApi(primaryConfig, args.uuid)
+			local data, err = api.fetchApi(primaryConfig, args.uuid)
 			fetchedEndpoints[primaryConfig.endpoint] = true
 			if mod.matches(data) then
 				apiData = data
@@ -158,7 +159,7 @@ local function fetchApiData(args)
 		end
 	end
 
-	local chain = util.buildChain(leafMod)
+	local chain = assembly.buildChain(leafMod)
 
 	-- Pull any extra endpoints the chain declares, skipping anything we
 	-- already fetched during kind probing.
@@ -175,7 +176,7 @@ local function fetchApiData(args)
 	end
 
 	if #additionalConfigs > 0 and args.uuid then
-		local additionalData, additionalError = util.fetchAllApis(additionalConfigs, args.uuid)
+		local additionalData, additionalError = api.fetchAllApis(additionalConfigs, args.uuid)
 		if additionalError then
 			hasApiError = true
 		end

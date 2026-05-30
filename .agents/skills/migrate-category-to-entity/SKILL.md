@@ -149,6 +149,15 @@ For each `Category:<Type plural> (Size N)`:
 2. If empty → `delete-page` with reason: *"Legacy autocategory from {{Item}} template; drained after Entity migration (size is now a structured-data facet, not a category)"*.
 3. If NOT empty → investigate the remaining members before deleting. A non-Entity page hardcoded into the subcat would be lost. Don't delete on faith.
 
+### 9b. Galactapedia link sweep (post-migration enrichment)
+
+`{{Entity}}` renders a Galactapedia link in its External-sites row from the `|galactapedia_url=` param (via `Module:Entity/officialSites.json`). After migrating, sweep the [Galactapedia API](https://api.star-citizen.wiki/api/galactapedia) and add the param wherever an entity has a matching article:
+
+1. Page through `/api/galactapedia` (paginate `page[number]` — it caps at ~200/page) into a map of `normalize(title) → [{title, url}]`, where `url = "https://robertsspaceindustries.com" + rsi_url`.
+2. For each migrated page lacking `galactapedia_url`, look up `normalize(entity name)`. Add the param **only on an exact single-title match** (skip if 0 or >1 — avoids linking a same-named ship/place). Insert it into the `{{Entity}}` block; preserve all other content.
+3. When a legacy `== See also ==` holds the entity's OWN Galactapedia article (slug matches the entity), promote it to `galactapedia_url` and drop that bullet; keep *related-but-different* Galactapedia links (e.g. "Hydrogen Fuel Refinery" on the Hydrogen Fuel page) as a See-also.
+4. Most entries have no article — that's expected; verify a couple of "no match" names really are absent (substring-scan the title map) so you trust the exact-match approach.
+
 ### 10. Summary table
 
 After everything, show:
@@ -166,6 +175,10 @@ After everything, show:
 - **Mainspace title required to test categories**: when verifying renders via `parse-wikitext`, pass a mainspace `title` parameter. `Module:Entity` guards content-category emission to namespace 0.
 - **The wiki uses `$wgArticlePath = "/$1"`**: articles live at the root, not under `/wiki/`. `Special:FilePath/<File>` resolves files; `/wiki/Special:FilePath/...` 404s. Don't hardcode the CDN host.
 - **Param compatibility is verbatim for items so far**, but other types may carry extra `{{Item}}` params (no examples yet). If you see a param `{{Entity}}` doesn't know, stop and ask whether to drop it or extend `{{Entity}}`.
+- **Enumerate the API by paging `page[number]`, never trust one list call.** `/api/commodities?page[size]=500` returns only ~200 rows while `meta.total` says more — the page size is capped server-side. A worklist built from a single list call silently misses records. Page through `page[number]` until `last_page`, and resolve any specific record by direct `/{uuid}` fetch (the list omits some that the direct endpoint returns).
+- **An empty-array field still `matches()`.** `box_sizes_scu: []` decodes to an empty Lua table, which is `~= nil`, so `Module:Entity/Commodity.matches()` fires and the page renders fine. Records with `[]` here (Oxygen, Biological Samples, Virus Cultures) are real commodities that were simply never given a wiki page — create them; no code change needed.
+- **Name collisions need a disambiguated title or a hands-off.** A canonical game-data name may already be a `{{Disambig}}` (e.g. `Mercury`) or a rich non-commodity article (e.g. `Molina Mold`, a `{{Infobox Species}}` page). Create the entity at `<Name> (commodity)` and add a disambig entry, or leave the existing article alone — don't overwrite it.
+- **Create-bucket pages still need the lead pass.** Pages created (not migrated) tend to get a bare templated lead like `"'''X''' is a [[Commodity|processed]] commodity."`. Give them the same grounded-lead pass as migrated pages (pull the API `description`, write a real one-sentence lead + game cite); audit for the `"is an? … commodity\.?$"` pattern to find them.
 - **Don't touch `{{Entity}}` template internals from this skill.** This is a content-migration skill; template changes belong in a separate session.
 - **The `{{Item}}` template still exists wiki-side** during migration — it's not breaking, just legacy. Other categories may still rely on it. Don't delete the template.
 

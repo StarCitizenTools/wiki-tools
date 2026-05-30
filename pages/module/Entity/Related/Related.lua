@@ -267,29 +267,28 @@ local function isCommodity(apiData)
 	return type(apiData) == 'table' and apiData.box_sizes_scu ~= nil
 end
 
--- Standard CIG cargo-container external dimensions (Length × Width × Height,
--- metres) keyed by SCU. These are a game constant — identical for every
+-- Standard CIG cargo-container external dimensions { length, width, height }
+-- in metres, keyed by SCU. These are a game constant — identical for every
 -- commodity, confirmed against the items endpoint's true_dimension. The
 -- sub-SCU hand-carryable (0.125) is an irregular mined chunk, not a standard
--- box, so it has no entry and renders '-'.
+-- box, so it has no entry.
 local BOX_DIMENSIONS = {
-	[1] = '1.25 × 1.25 × 1.25',
-	[2] = '2.5 × 1.25 × 1.25',
-	[4] = '2.5 × 2.5 × 1.25',
-	[8] = '2.5 × 2.5 × 2.5',
-	[16] = '5 × 2.5 × 2.5',
-	[24] = '7.5 × 2.5 × 2.5',
-	[32] = '10 × 2.5 × 2.5',
+	[1] = { 1.25, 1.25, 1.25 },
+	[2] = { 2.5, 1.25, 1.25 },
+	[4] = { 2.5, 2.5, 1.25 },
+	[8] = { 2.5, 2.5, 2.5 },
+	[16] = { 5, 2.5, 2.5 },
+	[24] = { 7.5, 2.5, 2.5 },
+	[32] = { 10, 2.5, 2.5 },
 }
 
---- Standard box dimensions for an SCU size as "L × W × H m", or nil for
---- non-standard sizes (e.g. the 0.125 hand-carryable).
+--- Standard box dimensions { length, width, height } (metres) for an SCU size,
+--- or nil for non-standard sizes (e.g. the 0.125 hand-carryable).
 ---
 --- @param scu number
---- @return string|nil
+--- @return number[]|nil
 local function boxDimensions(scu)
-	local dims = BOX_DIMENSIONS[scu]
-	return dims and (dims .. ' m') or nil
+	return BOX_DIMENSIONS[scu]
 end
 
 --- Cargo packaging variants as table rows { scu, mass_kg } (mass = SCU ×
@@ -325,11 +324,17 @@ local function renderCargoVariants(apiData)
 	if #rows == 0 then
 		return renderEmpty()
 	end
+	local function metres(v)
+		return v and (util.formatNum(v) .. ' m') or '-'
+	end
 	local tableRows = {}
 	for _, r in ipairs(rows) do
+		local dims = boxDimensions(r.scu)
 		tableRows[#tableRows + 1] = {
 			util.formatNum(r.scu),
-			boxDimensions(r.scu) or '-',
+			metres(dims and dims[1]),
+			metres(dims and dims[2]),
+			metres(dims and dims[3]),
 			util.formatNum(r.mass_kg) .. ' kg',
 		}
 	end
@@ -338,10 +343,13 @@ local function renderCargoVariants(apiData)
 		hideCaption = true,
 		class = 'wikitable--fluid',
 		columns = {
-			{ id = 'scu', label = 'SCU', textAlign = 'start' },
-			{ id = 'dimensions', label = 'Dimensions', textAlign = 'start' },
+			{ id = 'scu', label = 'SCU', textAlign = 'number' },
+			{ id = 'length', label = 'Length', textAlign = 'number' },
+			{ id = 'width', label = 'Width', textAlign = 'number' },
+			{ id = 'height', label = 'Height', textAlign = 'number' },
 			{ id = 'mass', label = 'Mass', textAlign = 'number' },
 		},
+		sort = { scu = 'asc' },
 		data = tableRows,
 	})
 	return collapsibleCard.render({

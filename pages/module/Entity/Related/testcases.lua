@@ -42,8 +42,14 @@ end
 -- boxDimensions()
 
 function suite:testBoxDimensionsStandardSizes()
-	self:assertEquals('1.25 × 1.25 × 1.25 m', Related._internal.boxDimensions(1))
-	self:assertEquals('10 × 2.5 × 2.5 m', Related._internal.boxDimensions(32))
+	local d1 = Related._internal.boxDimensions(1)
+	self:assertEquals(1.25, d1[1])
+	self:assertEquals(1.25, d1[2])
+	self:assertEquals(1.25, d1[3])
+	local d32 = Related._internal.boxDimensions(32)
+	self:assertEquals(10, d32[1])
+	self:assertEquals(2.5, d32[2])
+	self:assertEquals(2.5, d32[3])
 end
 
 function suite:testBoxDimensionsNonStandardSizeReturnsNil()

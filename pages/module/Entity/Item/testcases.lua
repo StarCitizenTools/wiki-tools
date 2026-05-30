@@ -129,4 +129,73 @@ function suite:testGradeContentFpsReturnsNil()
 	self:assertEquals(nil, Item._internal.gradeContent({}))
 end
 
+-- getItemType (relocated from Util)
+
+function suite:testGetItemTypeReturnsLabel()
+	self:assertEquals(
+		'Laser Repeater',
+		Item._internal.getItemType({ description_data = { { name = 'Item Type', value = 'Laser Repeater' } } })
+	)
+end
+
+function suite:testGetItemTypeFallsBackToTypeField()
+	self:assertEquals(
+		'Laser Repeater',
+		Item._internal.getItemType({ description_data = { { name = 'Item Type', type = 'Laser Repeater' } } })
+	)
+end
+
+function suite:testGetItemTypeFromTypeEntryName()
+	self:assertEquals(
+		'Laser Beam',
+		Item._internal.getItemType({ description_data = { { name = 'Type', value = 'Laser Beam' } } })
+	)
+end
+
+function suite:testGetItemTypeNilWhenAbsent()
+	self:assertEquals(nil, Item._internal.getItemType({}))
+	self:assertEquals(nil, Item._internal.getItemType(nil))
+end
+
+-- getVolume (relocated from Util)
+
+function suite:testGetVolumeMicroScuPassthrough()
+	self:assertEquals(
+		756000,
+		Item._internal.getVolume({ dimension = { volume_converted = 756000, volume_converted_unit = 'µSCU' } })
+	)
+end
+
+function suite:testGetVolumeScuConvertsToMicroScu()
+	self:assertEquals(
+		500000,
+		Item._internal.getVolume({ dimension = { volume_converted = 0.5, volume_converted_unit = 'SCU' } })
+	)
+end
+
+function suite:testGetVolumeTinyItemPreservesPrecision()
+	self:assertEquals(
+		1,
+		Item._internal.getVolume({ dimension = { volume_converted = 1, volume_converted_unit = 'µSCU' } })
+	)
+end
+
+function suite:testGetVolumeNilWhenAbsent()
+	self:assertEquals(nil, Item._internal.getVolume(nil))
+	self:assertEquals(nil, Item._internal.getVolume({}))
+	self:assertEquals(nil, Item._internal.getVolume({ dimension = {} }))
+	self:assertEquals(nil, Item._internal.getVolume({ dimension = { volume_converted_unit = 'µSCU' } }))
+end
+
+function suite:testGetVolumeUnknownUnitReturnsNil()
+	self:assertEquals(
+		nil,
+		Item._internal.getVolume({ dimension = { volume_converted = 5, volume_converted_unit = 'mSCU' } })
+	)
+end
+
+function suite:testGetVolumeMissingUnitTreatedAsScu()
+	self:assertEquals(1000000, Item._internal.getVolume({ dimension = { volume_converted = 1 } }))
+end
+
 return suite

@@ -4,7 +4,7 @@ require('strict')
 --- Item type module. Extends Base with item-specific properties
 --- (size, mass, volume) and the shared item API endpoint.
 
-local util = require('Module:Entity/Util')
+local format = require('Module:Entity/Format')
 local base = require('Module:Entity/Base')
 
 local p = {}
@@ -127,6 +127,56 @@ local function gradeContent(apiData)
 	return tostring(grade)
 end
 
+--- Extracts the in-game "Item Type" label from an entity's description_data
+--- (e.g. "Laser Repeater"). This is the specific item type as shown in-game,
+--- distinct from the API `type` (WeaponGun) and `sub_type` (Gun) fields.
+--- Returns nil when absent.
+---
+--- @param apiData table|nil
+--- @return string|nil
+local function getItemType(apiData)
+	local descData = apiData and apiData.description_data
+	if type(descData) ~= 'table' then
+		return nil
+	end
+	for _, entry in ipairs(descData) do
+		if entry.name == 'Item Type' or entry.name == 'Type' then
+			return entry.value or entry.type
+		end
+	end
+	return nil
+end
+
+--- Extracts an item's volume from `apiData.dimension`, normalized to µSCU
+--- (microSCU) as a number. Reads `volume_converted` + `volume_converted_unit`
+--- (the precision-preserving pair the API uses for display) rather than the
+--- raw `dimension.volume` field — that one rounds to 0 for sub-SCU items
+--- like a 1 µSCU PDC. Returns nil when there's no volume data or when the
+--- unit is something we don't recognize (refuse rather than guess).
+---
+--- Matches the display code in treating a missing `volume_converted_unit` as SCU.
+---
+--- @param apiData table|nil
+--- @return number|nil  volume in µSCU
+local function getVolume(apiData)
+	local dim = apiData and apiData.dimension
+	if type(dim) ~= 'table' then
+		return nil
+	end
+	local v = tonumber(dim.volume_converted)
+	if not v then
+		return nil
+	end
+	local unit = dim.volume_converted_unit or 'SCU'
+	if unit == 'SCU' then
+		return math.floor(v * 1000000 + 0.5)
+	end
+	if unit == 'µSCU' then
+		return v
+	end
+	return nil
+end
+
 --- @param apiData table
 --- @param args table
 --- @return table[] Ordered list of section entries with key field
@@ -169,11 +219,11 @@ function p.getSections(apiData, args)
 					label = 'Volume',
 					content = dim
 						and dim.volume_converted
-						and (util.formatNum(dim.volume_converted) .. ' ' .. (dim.volume_converted_unit or 'SCU')),
+						and (format.formatNum(dim.volume_converted) .. ' ' .. (dim.volume_converted_unit or 'SCU')),
 				},
 				{
 					label = 'Mass',
-					content = apiData.mass and (util.formatNum(apiData.mass) .. ' kg'),
+					content = apiData.mass and (format.formatNum(apiData.mass) .. ' kg'),
 				},
 				{ label = 'Dimension', content = dimensionContent },
 			},
@@ -209,8 +259,8 @@ function p.getStructuredData(apiData, args)
 		size = apiData.size,
 		grade = apiData.grade,
 		class = apiData.class,
-		item_type = util.getItemType(apiData),
-		volume = util.getVolume(apiData),
+		item_type = getItemType(apiData),
+		volume = getVolume(apiData),
 	}
 end
 
@@ -219,7 +269,7 @@ end
 --- @return EntityItemData[] External site items contributed by this module
 function p.getExternalSiteItems(apiData, args)
 	local siteDefs = mw.loadJsonData('Module:Entity/Item/communitySites.json')
-	local links = util.buildSiteLinks(siteDefs, {
+	local links = format.buildSiteLinks(siteDefs, {
 		uuid = args.uuid,
 		name = args.name or apiData.name,
 	})
@@ -233,6 +283,8 @@ end
 p._internal = {
 	classContent = classContent,
 	gradeContent = gradeContent,
+	getItemType = getItemType,
+	getVolume = getVolume,
 }
 
 return p

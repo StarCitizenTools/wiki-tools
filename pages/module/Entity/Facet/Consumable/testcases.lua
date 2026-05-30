@@ -40,4 +40,14 @@ function suite:testPrefixNilWhenNoFood()
 	self:assertEquals(nil, Consumable.getShortDescriptionPrefix({}))
 end
 
+-- getSections (empty-result branches; populated rendering is verified by QA)
+
+function suite:testGetSectionsEmptyWhenNoFood()
+	self:assertEquals(0, #Consumable.getSections({}))
+end
+
+function suite:testGetSectionsEmptyWhenFoodHasNoRows()
+	self:assertEquals(0, #Consumable.getSections({ food = {} }))
+end
+
 return suite

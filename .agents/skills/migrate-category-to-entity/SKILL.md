@@ -97,6 +97,9 @@ Default is **light polish** that fixes obvious clunkers (typos, awkward "It allo
 - **Pipe-link category-level terms to the type's index article.** Example: in a ball-turret page lead, write `[[Weapon mount|ball turret]]` rather than bare `ball turret`. Same for `[[Weapon mount|nose turret]]`, `[[Weapon mount|turret mount]]`, etc. Apply only to the **first occurrence** in the lead. Terms that already have their own article (e.g. `[[gimbal mount]]`) keep their bare link.
 - **No em-dashes** in article body prose (project rule from `feedback_no_em_dash`).
 - **Don't fabricate facts.** If the original is silent on weapon capacity or specs (some Reliant pages), keep the lead minimal — `"is a size N turret mount manufactured by [[X]] for the [[Y series]]."` is fine.
+- **Cite the game build.** These pages are `{{Entity}}`-rendered, i.e. sourced from game/API data, and usually have no other citation. End the lead sentence with one game-data ref:
+  `<ref name="ig<patch digits>">{{Cite game|build=[[Star Citizen Alpha <patch>|Alpha <patch>]]|accessdate=<edit date>}}</ref>`
+  e.g. `<ref name="ig480">{{Cite game|build=[[Star Citizen Alpha 4.8.0|Alpha 4.8.0]]|accessdate=2026-05-29}}</ref>`. Use the **current live patch** (the API's `game_version` tells you — 4.8.0 at time of writing) and the **edit date** for `accessdate`; name the ref `ig<patch digits>` and reuse via `<ref name="ig480" />` if cited again. This is the baseline cite for otherwise-uncited game-data prose — it does **not** replace `{{Cite RSI}}` where a real RSI/Spectrum/Galactapedia source exists. The canonical structure (step 4) already carries `== References ==` + `<references />` to render it.
 
 **Lead template that has held up:**
 

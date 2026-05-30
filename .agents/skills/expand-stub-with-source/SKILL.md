@@ -103,6 +103,12 @@ For patch notes: extract from RSI itself (2a–2d) and cite the RSI URL. For non
 
 `{{Cite RSI}}` param order (per `Template:Cite RSI/doc`): `url`, `text`, `accessdate`. All three should be filled. `int` is deprecated — don't use.
 
+`{{Cite game}}` conventions:
+- `build` is the **current live patch** at edit time — read it from the API's `game_version` field (e.g. `4.8.0-LIVE.…` → `Alpha 4.8.0`). Don't hardcode an old version.
+- `accessdate` is the **edit date**.
+- Name the ref `ig<patch digits>` (e.g. `<ref name="ig480">`) and reuse it via `<ref name="ig480" />`.
+- For a page whose lead is pure game/API data with no URL source (e.g. an `{{Entity}}`-generated commodity/item), the baseline is a single `{{Cite game}}` on the lead sentence — omit `text` there; reserve `text=Datamine` for a specific datamined claim inside a sourced expansion.
+
 When unsure, **look at how the article currently cites things** — match existing convention rather than introducing a new pattern.
 
 ### 4. Compose the draft

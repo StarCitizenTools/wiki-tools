@@ -53,6 +53,11 @@ p.CHAIN_LINK = {
 --- not flagged (modules expose legitimate public helpers), so a misspelled
 --- optional hook is not caught — required hooks are.
 ---
+--- "Required" means the role is inert without that hook (the conformance gate),
+--- NOT that a caller throws — Entity.lua still guards each call with `if mod.x`.
+--- The contract is deliberately stricter than the lenient runtime: a facet with
+--- no getSections wouldn't crash, but it would do nothing, so it's a wiring bug.
+---
 --- @param component table The module to check
 --- @param spec table<string, boolean> A role spec (p.KIND / p.FACET / p.CHAIN_LINK)
 --- @return boolean ok True when there are no errors

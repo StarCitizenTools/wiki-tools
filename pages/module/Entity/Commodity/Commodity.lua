@@ -222,37 +222,45 @@ function p.getSections(apiData, args)
 	local sections = { overview }
 
 	if raw and raw.is_mineable then
-		-- Laser-minigame stats (signature / instability / resistance) only apply
-		-- to ship and ground-vehicle mining. FPS mining and harvesting report
-		-- them as zero / nil, so they're suppressed there; Quality always shows.
 		local items = {}
-		if isLaserMining(raw) then
+		-- Signature is a scan/detectability stat that applies to any acquisition
+		-- method (ship, vehicle, FPS, harvesting), so it shows whenever present.
+		if raw.signature then
 			items[#items + 1] = { label = 'Signature', content = util.formatNum(raw.signature) }
-			items[#items + 1] = {
-				label = 'Instability',
-				content = raw.instability and raw.instability > 0 and util.formatNum(raw.instability) or nil,
-			}
-			items[#items + 1] = {
-				label = 'Resistance',
-				content = raw.resistance and raw.resistance > 0 and tostring(raw.resistance) or nil,
-			}
 		end
-		items[#items + 1] = { label = 'Quality', content = qualityRange(raw) }
-
-		local kind = raw.kind or apiData.kind
-		local label = 'Mining'
-		if kind == 'harvestable' then
-			label = 'Harvesting'
-		elseif kind == 'remains' then
-			label = 'Collection'
+		-- Instability / resistance are laser-mining mechanics (ship & ground
+		-- vehicle only); FPS and harvesting report them as zero / nil.
+		if isLaserMining(raw) then
+			if raw.instability and raw.instability > 0 then
+				items[#items + 1] = { label = 'Instability', content = util.formatNum(raw.instability) }
+			end
+			if raw.resistance and raw.resistance > 0 then
+				items[#items + 1] = { label = 'Resistance', content = tostring(raw.resistance) }
+			end
+		end
+		local quality = qualityRange(raw)
+		if quality then
+			items[#items + 1] = { label = 'Quality', content = quality }
 		end
 
-		sections[#sections + 1] = {
-			key = 'mining',
-			label = label,
-			collapsible = true,
-			items = items,
-		}
+		-- Only render the group when it has at least one stat — otherwise a
+		-- stat-less acquisition (e.g. a harvestable with no signature/quality)
+		-- would leave a labelled-but-empty section.
+		if #items > 0 then
+			local kind = raw.kind or apiData.kind
+			local label = 'Mining'
+			if kind == 'harvestable' then
+				label = 'Harvesting'
+			elseif kind == 'remains' then
+				label = 'Collection'
+			end
+			sections[#sections + 1] = {
+				key = 'mining',
+				label = label,
+				collapsible = true,
+				items = items,
+			}
+		end
 	end
 
 	return sections

@@ -98,6 +98,42 @@ function suite:testGetSectionsHarvestableLabel()
 	self:assertEquals('Harvesting', mining.label)
 end
 
+function suite:testGetSectionsHarvestableShowsSignatureNotEmpty()
+	-- Harvestable with a signature but no quality / laser stats: the group must
+	-- show Signature, not render label-only (regression: empty Harvesting group).
+	local raw = {
+		is_mineable = true,
+		kind = 'harvestable',
+		methods = {},
+		signature = 1700,
+		instability = nil,
+		resistance = nil,
+		locations = { { quality_min = nil, quality_max = nil } },
+	}
+	local apiData = { key = 'AmioshiPlague', _rawRecord = raw, _refinedRecord = { key = 'AmioshiPlague' } }
+	local sections = Commodity.getSections(apiData, {})
+	local mining
+	for _, s in ipairs(sections) do
+		if s.key == 'mining' then
+			mining = s
+		end
+	end
+	self:assertEquals('Harvesting', mining.label)
+	self:assertEquals(1, #mining.items)
+	self:assertEquals('Signature', mining.items[1].label)
+	self:assertEquals('1,700', mining.items[1].content)
+end
+
+function suite:testGetSectionsNoStatsOmitsMiningGroup()
+	-- Mineable but no signature, not laser, no quality → no mining group at all.
+	local raw = { is_mineable = true, kind = 'mineable', methods = { 'FPS' }, locations = {} }
+	local apiData = { key = 'X', _rawRecord = raw, _refinedRecord = { key = 'X' } }
+	local sections = Commodity.getSections(apiData, {})
+	for _, s in ipairs(sections) do
+		self:assertEquals(true, s.key ~= 'mining')
+	end
+end
+
 function suite:testMatchesNilReturnsFalse()
 	self:assertEquals(false, Commodity.matches(nil))
 end

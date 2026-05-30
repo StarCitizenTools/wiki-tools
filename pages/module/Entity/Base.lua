@@ -67,7 +67,6 @@ function p.getExternalSiteItems(apiData, args)
 	local siteDefs = mw.loadJsonData('Module:Entity/officialSites.json')
 	local links = format.buildSiteLinks(siteDefs, {
 		name = args.name or apiData.name,
-		galactapedia_url = args.galactapedia_url,
 	})
 	if not links then
 		return {}

@@ -1,9 +1,5 @@
 [
 	{
-		"label": "Galactapedia",
-		"arg": "galactapedia_url"
-	},
-	{
 		"label": "Issue Council",
 		"format": "https://issue-council.robertsspaceindustries.com/projects/STAR-CITIZEN/issues?search=%s&limit=50&sort=reproduction&statuses=confirmed,open,underinvestigation",
 		"data": "name"

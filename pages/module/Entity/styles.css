@@ -1,15 +1,27 @@
-/* Footer section: a label-less infobox section holding a full-width action
-   button (the "View on Wiki API" link). The footer uses InfoboxLua's generic
+/* Footer section: a label-less infobox section holding a flex row of action
+   buttons (Galactapedia / Wiki API). The footer uses InfoboxLua's generic
    section-variant hook (a passed-through `class`), but the styling is
    entity-specific, so it lives here rather than in InfoboxLua. */
 .t-infobox-section--footer {
     padding-top: var(--space-md);
 }
 
-/* Direct child only: the outer ButtonLua wrapper. The inner Codex button also
-   carries .t-button, so > keeps this off it (it gets full-width below). */
-.t-infobox-section--footer > .t-button,
-.t-infobox-section--footer > .t-button > a {
+/* Action buttons share a wrapping flex row: side by side when they fit, each
+   growing to fill its share, wrapping to stacked rows on narrow infoboxes.
+   No flex-direction — the default row is what we want. */
+.t-infobox-footer-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+}
+
+.t-infobox-footer-actions > .t-button {
+    flex-grow: 1;
+}
+
+/* Let each ButtonLua wrapper's anchor fill its flex cell so the inner Codex
+   button can stretch to full width and center its content. */
+.t-infobox-footer-actions > .t-button > a {
     display: block;
 }
 
@@ -29,4 +41,15 @@
 
 .t-button--wiki-api.cdx-button:hover {
     background-color: oklch(17.86% 0.034 265.754);
+}
+
+/* Galactapedia footer button: themed with the Galactapedia brand colors.
+   Same compound-selector / mask-icon-follows-color treatment as the API button. */
+.t-button--galactapedia.cdx-button {
+    background-color: #162535;
+    color: #bae4f2;
+}
+
+.t-button--galactapedia.cdx-button:hover {
+    background-color: #111d29;
 }

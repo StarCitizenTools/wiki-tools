@@ -85,31 +85,60 @@ local function buildExternalSitesSection(chain, apiData, args)
 	}
 end
 
---- Builds the footer section: a label-less section holding a full-width
---- button linking to the entity's page on the Star Citizen Wiki API
---- (api.star-citizen.wiki). The /search/<uuid> path resolves any entity by
---- UUID regardless of type, so this works for items, vehicles, and any future
---- type. Returns nil when no UUID is available so the section collapses out.
+--- Builds the footer section: a flex row of action buttons. The Galactapedia
+--- button (when the page supplies a galactapedia_url) comes first; the Wiki API
+--- button links to the entity on the Star Citizen Wiki API
+--- (api.star-citizen.wiki) — its /search/<uuid> path resolves any entity by
+--- UUID regardless of type. They sit side by side and wrap to stacked rows on
+--- narrow infoboxes (see Module:Entity/styles.css). Each button is independent:
+--- a page with only one of (galactapedia_url, uuid) shows just that button, and
+--- the whole section collapses out when neither is present.
 ---
 --- @param apiData table
 --- @param args table
 --- @return table|nil section
 local function buildFooterSection(apiData, args)
+	local buttons = {}
+
+	local galactapediaUrl = args.galactapedia_url
+	if galactapediaUrl and galactapediaUrl ~= '' then
+		table.insert(
+			buttons,
+			button.render({
+				label = 'Galactapedia',
+				url = galactapediaUrl,
+				icon = 'Sc-icon-galactapedia.svg',
+				weight = 'normal',
+				class = 't-button--galactapedia',
+			})
+		)
+	end
+
 	local uuid = args.uuid or apiData.uuid
-	if not uuid or uuid == '' then
+	if uuid and uuid ~= '' then
+		table.insert(
+			buttons,
+			button.render({
+				label = 'Wiki API',
+				url = WIKI_API_SEARCH_URL .. uuid,
+				icon = 'Star Citizen Wiki API - Logo.svg',
+				weight = 'normal',
+				class = 't-button--wiki-api',
+			})
+		)
+	end
+
+	if #buttons == 0 then
 		return nil
 	end
 
-	local buttonHtml = button.render({
-		label = 'View on Wiki API',
-		url = WIKI_API_SEARCH_URL .. uuid,
-		icon = 'Star Citizen Wiki API - Logo.svg',
-		weight = 'normal',
-		class = 't-button--wiki-api',
-	})
+	-- Wrap the buttons in a flex row (Module:Entity/styles.css) so they sit
+	-- side by side, each growing to fill its share, and wrap to stacked rows
+	-- when the infobox is too narrow to hold them.
+	local actions = mw.html.create('div'):addClass('t-infobox-footer-actions'):wikitext(table.concat(buttons))
 
 	return {
-		content = buttonHtml,
+		content = tostring(actions),
 		class = 't-infobox-section--footer',
 	}
 end

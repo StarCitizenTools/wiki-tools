@@ -23,10 +23,31 @@ local p = {}
 --- @field sections table<EntitySectionEntry>|nil Nested sub-sections
 --- @field items EntityItemData[]|nil List of label/content items
 
---- @class EntityTypeModule
---- @field parent string|nil Module path of the parent type (e.g. 'Entity/Item')
---- @field getApiConfigs fun(): EntityApiConfig[]|nil Returns additional API configs
---- @field getSections fun(apiData: table, args: table): EntitySectionEntry[] Returns ordered section entries
---- @field getStructuredData fun(apiData: table, args: table): table<string, any> Returns flat key-value data
+--- @class EntityChainLink
+--- A p.parent-linked contributor (Base → Item → subtype). Every hook optional;
+--- a link implements only what it contributes.
+--- @field parent string|nil Module path of the parent link (e.g. 'Entity/Item')
+--- @field getApiConfigs nil|fun(): EntityApiConfig[] Extra API endpoints this link needs
+--- @field getSections nil|fun(apiData: table, args: table): EntitySectionEntry[] Ordered section entries
+--- @field getStructuredData nil|fun(apiData: table, args: table): table<string, any> Flat key-value data
+--- @field getShortDescription nil|fun(apiData: table, args: table, typeInfo: table, prefix: string|nil): string Page short description
+--- @field getExternalSiteItems nil|fun(apiData: table, args: table): EntityItemData[] External-site links
+--- @field getTypeInfo nil|fun(apiData: table, args: table): table|nil Display metadata { name, category }
+
+--- @class EntityKind : EntityChainLink
+--- A top-level entity with its own API endpoint and a mutually-exclusive
+--- identity (Item / Vehicle / Commodity). Registered in Module:Entity/Registry.
+--- @field matches fun(apiData: table|nil): boolean REQUIRED. Strict, nil-safe identity predicate
+--- @field getApiConfigs fun(): EntityApiConfig[] REQUIRED. [1] is the identity probe endpoint
+--- @field resolveSubtype nil|fun(apiData: table|nil): table|nil Refine to a subtype leaf module, or nil
+--- @field enrich nil|fun(apiData: table): table Post-fetch mutation hook (returns apiData)
+
+--- @class EntityFacet
+--- A cross-cutting additive aspect matched on a data field, independent of kind.
+--- Registered in Module:Entity/Registry.
+--- @field matches fun(apiData: table|nil): boolean REQUIRED. Strict, nil-safe data-presence predicate
+--- @field getSections fun(apiData: table, args: table): EntitySectionEntry[] REQUIRED. Ordered section entries
+--- @field getStructuredData nil|fun(apiData: table, args: table): table<string, any> Flat key-value data
+--- @field getShortDescriptionPrefix nil|fun(apiData: table, args: table): string|nil Adjective composed into the kind's short description
 
 return p

@@ -6,7 +6,6 @@ require('strict')
 --- Owns the whole "produce the infobox HTML" responsibility so Module:Entity's
 --- p.main stays orchestration-only.
 
-local base = require('Module:Entity/Base')
 local button = require('Module:ButtonLua')
 local assembly = require('Module:Entity/Assembly')
 local infobox = require('Module:InfoboxLua')

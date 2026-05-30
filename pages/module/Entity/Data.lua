@@ -10,45 +10,9 @@ require('strict')
 --- so each sibling template can call p.get independently without coordination.
 
 local util = require('Module:Entity/Util')
+local registry = require('Module:Entity/Registry')
 
 local p = {}
-
---- Ordered registry of top-level entity kinds. Sequential probing walks
---- this list, calling each module's `getApiConfigs()[1]` endpoint and
---- `matches()` predicate. First match wins.
----
---- Order is probe precedence — Item first because items dominate the
---- page mix (matches on the first fetch, short-circuits before the
---- vehicles endpoint is touched). Vehicle pages pay one cold-cache
---- failed-fetch on the items endpoint, which Apiunto caches.
----
---- Kind module contract:
----  * `getApiConfigs()` must return at least one config; index [1] is
----    the identification endpoint.
----  * `matches(apiData)` must accept nil/empty/garbage without throwing
----    and return a strict boolean.
----  * Optional `resolveSubtype(apiData)` returns a more-specific leaf
----    module (e.g. Food/Drink/WeaponPersonal under Item), or nil for
----    "no refinement".
----
---- Adding a new kind (e.g. Location) is a single entry here, plus a
---- module file exposing the contract above.
-local kindModules = {
-	require('Module:Entity/Item'),
-	require('Module:Entity/Vehicle'),
-	require('Module:Entity/Commodity'),
-}
-
---- Ordered registry of facets. Unlike kinds (mutually exclusive, selected by
---- endpoint probing), every facet whose matches() predicate is true contributes
---- additively, regardless of which primary kind matched.
----
---- Adding a facet is a single entry here plus a module exposing
---- matches()/getSections() (and optionally getStructuredData() /
---- getShortDescriptionPrefix()).
-local facetModules = {
-	require('Module:Entity/Facet/Consumable'),
-}
 
 --- Returns the list of facet modules whose matches(apiData) is true. Pure and
 --- nil-safe so it is unit-testable against the real registry.
@@ -57,7 +21,7 @@ local facetModules = {
 --- @return table[]
 local function detectFacets(apiData)
 	local matched = {}
-	for _, facet in ipairs(facetModules) do
+	for _, facet in ipairs(registry.facets) do
 		if facet.matches(apiData) then
 			table.insert(matched, facet)
 		end
@@ -159,7 +123,7 @@ local function fetchApiData(args)
 		-- hasApiError — a 404 on the items endpoint for a vehicle UUID is
 		-- expected, not an error. Only the matched kind's fetch (and the
 		-- "no kind matched" case below) sets the flag.
-		for _, mod in ipairs(kindModules) do
+		for _, mod in ipairs(registry.kinds) do
 			local primaryConfig = mod.getApiConfigs()[1]
 			local data, err = util.fetchApi(primaryConfig, args.uuid)
 			fetchedEndpoints[primaryConfig.endpoint] = true

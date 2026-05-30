@@ -150,6 +150,40 @@ function suite:testGetApiConfigsEndpoint()
 	local cfg = Commodity.getApiConfigs()[1]
 	self:assertEquals('commodities/%s', cfg.endpoint)
 	self:assertEquals('data', cfg.responseDataPath)
+	-- include=items populates the items relation that enrich reads to attach
+	-- food from the linked harvestable (edible-commodity facet).
+	self:assertEquals('items', cfg.params.include)
+end
+
+-- findHarvestableUuid (edible-commodity enrichment)
+
+function suite:testFindHarvestableUuidPicksHarvestable()
+	local items = {
+		{ uuid = 'cargo-1', sub_type = 'Cargo' },
+		{ uuid = 'harv-1', sub_type = 'Harvestable' },
+	}
+	self:assertEquals('harv-1', Commodity._internal.findHarvestableUuid(items))
+end
+
+function suite:testFindHarvestableUuidIgnoresCargoOnly()
+	local items = {
+		{ uuid = 'cargo-1', sub_type = 'Cargo' },
+		{ uuid = 'cargo-2', sub_type = 'Cargo' },
+	}
+	self:assertEquals(nil, Commodity._internal.findHarvestableUuid(items))
+end
+
+function suite:testFindHarvestableUuidFirstWhenMultiple()
+	local items = {
+		{ uuid = 'harv-1', sub_type = 'Harvestable' },
+		{ uuid = 'harv-2', sub_type = 'Harvestable' },
+	}
+	self:assertEquals('harv-1', Commodity._internal.findHarvestableUuid(items))
+end
+
+function suite:testFindHarvestableUuidNilOrEmpty()
+	self:assertEquals(nil, Commodity._internal.findHarvestableUuid(nil))
+	self:assertEquals(nil, Commodity._internal.findHarvestableUuid({}))
 end
 
 function suite:testResolveRolesSelfIsRaw()

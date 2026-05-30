@@ -20,10 +20,42 @@ function p.getApiConfigs()
 		{
 			name = 'StarCitizenWikiAPI',
 			endpoint = 'commodities/%s',
-			params = { locale = 'en_EN' },
+			-- `items` links the substance to its in-game item records (cargo boxes
+			-- and, for edible commodities, a Harvestable item that carries the
+			-- `food` object). p.enrich reads it to light up the consumable facet.
+			params = { locale = 'en_EN', include = 'items' },
 			responseDataPath = 'data',
 		},
 	}
+end
+
+-- Config for fetching a linked harvestable item's full record (the commodity
+-- `items` relation only returns stubs). The `food` object is on the plain item
+-- record, so no `include` is needed here.
+local HARVESTABLE_ITEM_CONFIG = {
+	name = 'StarCitizenWikiAPI',
+	endpoint = 'items/%s',
+	params = { locale = 'en_EN' },
+	responseDataPath = 'data',
+}
+
+--- Finds the uuid of the first linked item with `sub_type == 'Harvestable'` in
+--- the commodity's `items` relation (populated by include=items). That item's
+--- record carries the `food` object for edible commodities. Returns nil when
+--- there is no items list or no harvestable entry.
+---
+--- @param items table[]|nil
+--- @return string|nil
+local function findHarvestableUuid(items)
+	if type(items) ~= 'table' then
+		return nil
+	end
+	for _, item in ipairs(items) do
+		if item.sub_type == 'Harvestable' and item.uuid then
+			return item.uuid
+		end
+	end
+	return nil
 end
 
 --- Positive identification: commodity records carry `box_sizes_scu` (the SCU
@@ -90,6 +122,22 @@ function p.enrich(apiData)
 		end
 	end
 	apiData._rawRecord, apiData._refinedRecord = resolveRoles(apiData, counterpart)
+
+	-- Edible commodities (e.g. Blue Bilva) carry no food data on the substance
+	-- record; it lives on the linked Harvestable item. Attach it so the
+	-- consumable facet (matches apiData.food) lights up on the commodity page.
+	-- Only fetches when a Harvestable item is present, so non-edible commodities
+	-- pay nothing.
+	if not apiData.food then
+		local harvestableUuid = findHarvestableUuid(apiData.items)
+		if harvestableUuid then
+			local item = util.fetchApi(HARVESTABLE_ITEM_CONFIG, harvestableUuid)
+			if item and item.food then
+				apiData.food = item.food
+			end
+		end
+	end
+
 	return apiData
 end
 
@@ -173,6 +221,7 @@ p._internal = {
 	acquisitionLabel = acquisitionLabel,
 	qualityRange = qualityRange,
 	isLaserMining = isLaserMining,
+	findHarvestableUuid = findHarvestableUuid,
 }
 
 --- Resolves display metadata (subtitle name + browse category) from the

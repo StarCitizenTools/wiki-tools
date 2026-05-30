@@ -127,7 +127,8 @@ function p.enrich(apiData)
 	-- record; it lives on the linked Harvestable item. Attach it so the
 	-- consumable facet (matches apiData.food) lights up on the commodity page.
 	-- Only fetches when a Harvestable item is present, so non-edible commodities
-	-- pay nothing.
+	-- pay nothing. Reads the invoked record's `items` (not the counterpart's) —
+	-- the food belongs to this substance, not its raw/refined sibling.
 	if not apiData.food then
 		local harvestableUuid = findHarvestableUuid(apiData.items)
 		if harvestableUuid then

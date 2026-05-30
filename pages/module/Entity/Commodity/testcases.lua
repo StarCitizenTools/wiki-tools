@@ -186,6 +186,15 @@ function suite:testFindHarvestableUuidNilOrEmpty()
 	self:assertEquals(nil, Commodity._internal.findHarvestableUuid({}))
 end
 
+function suite:testFindHarvestableUuidSkipsHarvestableWithoutUuid()
+	-- A harvestable stub missing its uuid is skipped; iteration continues.
+	local items = {
+		{ sub_type = 'Harvestable' },
+		{ uuid = 'harv-2', sub_type = 'Harvestable' },
+	}
+	self:assertEquals('harv-2', Commodity._internal.findHarvestableUuid(items))
+end
+
 function suite:testResolveRolesSelfIsRaw()
 	local self_ = { name = 'Aslarite (Raw)', is_mineable = true, refined_version = { uuid = 'ref-1' } }
 	local counterpart = { name = 'Aslarite' }

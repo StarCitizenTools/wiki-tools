@@ -110,10 +110,6 @@
     text-align: end;
 }
 
-.t-infobox-item-content a {
-    white-space: pre;
-}
-
 .t-infobox-section-items--single-col ul {
     margin: 0;
     list-style: none;

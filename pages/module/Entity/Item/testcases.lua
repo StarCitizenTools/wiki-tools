@@ -34,14 +34,14 @@ end
 
 -- resolveSubtype()
 
-function suite:testResolveSubtypeFoodReturnsFoodModule()
-	local result = Item.resolveSubtype({ type = 'Food' })
-	self:assertEquals(require('Module:Entity/Item/Food'), result)
+-- Food / Drink are handled by the consumable facet, not a subtype leaf.
+-- resolveSubtype must return nil for both so the facet path is taken.
+function suite:testResolveSubtypeFoodReturnsNil()
+	self:assertEquals(nil, Item.resolveSubtype({ type = 'Food' }))
 end
 
-function suite:testResolveSubtypeDrinkReturnsDrinkModule()
-	local result = Item.resolveSubtype({ type = 'Drink' })
-	self:assertEquals(require('Module:Entity/Item/Drink'), result)
+function suite:testResolveSubtypeDrinkReturnsNil()
+	self:assertEquals(nil, Item.resolveSubtype({ type = 'Drink' }))
 end
 
 function suite:testResolveSubtypeWeaponPersonalReturnsModule()

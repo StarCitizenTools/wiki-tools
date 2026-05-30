@@ -16,9 +16,11 @@ p.parent = 'Entity/Base'
 --- (not in Data.lua) because subtype dispatch is an item-internal
 --- concern — Data.lua only needs to know "ask the kind to resolve its
 --- own subtype". Add new entries here when creating new item subtypes.
+---
+--- Food / Drink are intentionally absent: they are handled by the
+--- data-driven consumable facet (Module:Entity/Facet/Consumable), not a
+--- subtype leaf. Their subtitle + category still resolve via types.json.
 local itemSubtypeMapping = {
-	Food = 'Entity/Item/Food',
-	Drink = 'Entity/Item/Drink',
 	Turret = 'Entity/Item/Turret',
 	WeaponPersonal = 'Entity/Item/WeaponPersonal',
 	WeaponGun = 'Entity/Item/WeaponGun',
@@ -179,15 +181,17 @@ function p.getSections(apiData, args)
 	}
 end
 
---- Default short description for items: "<type> [by <manufacturer>]".
---- Subtypes may override this to produce a richer description.
+--- Default short description for items: "[<prefix>] <type> [by <manufacturer>]".
+--- The optional prefix is supplied by a matching facet (e.g. the consumable
+--- facet's effects adjective) and composed by formatShortDescription.
 ---
 --- @param apiData table
 --- @param args table
 --- @param typeInfo table
+--- @param prefix string|nil
 --- @return string
-function p.getShortDescription(apiData, args, typeInfo)
-	return p.formatShortDescription(typeInfo, apiData, args, nil)
+function p.getShortDescription(apiData, args, typeInfo, prefix)
+	return p.formatShortDescription(typeInfo, apiData, args, prefix)
 end
 
 --- Contributes item-level facet values to structured data: size, grade,

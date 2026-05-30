@@ -39,6 +39,32 @@ local kindModules = {
 	require('Module:Entity/Commodity'),
 }
 
+--- Ordered registry of facets. Unlike kinds (mutually exclusive, selected by
+--- endpoint probing), every facet whose matches() predicate is true contributes
+--- additively, regardless of which primary kind matched.
+---
+--- Adding a facet is a single entry here plus a module exposing
+--- matches()/getSections() (and optionally getStructuredData() /
+--- getShortDescriptionPrefix()).
+local facetModules = {
+	require('Module:Entity/Facet/Consumable'),
+}
+
+--- Returns the list of facet modules whose matches(apiData) is true. Pure and
+--- nil-safe so it is unit-testable against the real registry.
+---
+--- @param apiData table|nil
+--- @return table[]
+local function detectFacets(apiData)
+	local matched = {}
+	for _, facet in ipairs(facetModules) do
+		if facet.matches(apiData) then
+			table.insert(matched, facet)
+		end
+	end
+	return matched
+end
+
 --- Returns the SMW property prefix for the current page's namespace.
 --- Mirrors Module:Entity/StructuredData so reads round-trip with writes:
 --- mainspace uses no prefix, other namespaces are prefixed (e.g.
@@ -265,6 +291,7 @@ function p.get(args)
 		args = args,
 		apiData = apiData,
 		chain = chain,
+		facets = detectFacets(apiData),
 		typeInfo = typeInfo,
 		displayType = displayType,
 		hasApiError = hasApiError,
@@ -275,6 +302,7 @@ end
 p._internal = {
 	resolveClassification = resolveClassification,
 	resolveType = resolveType,
+	detectFacets = detectFacets,
 }
 
 return p

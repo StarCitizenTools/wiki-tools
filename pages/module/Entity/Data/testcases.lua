@@ -50,4 +50,20 @@ function suite:testResolveTypeFallsBackToTypeMap()
 	self:assertEquals('Personal weapon', displayType)
 end
 
+-- detectFacets (facet registry detection)
+
+function suite:testDetectFacetsConsumable()
+	local facets = helpers.detectFacets({ food = {} })
+	self:assertEquals(1, #facets)
+	self:assertTrue(facets[1].matches({ food = {} }))
+end
+
+function suite:testDetectFacetsNoneWhenNoFood()
+	self:assertEquals(0, #helpers.detectFacets({}))
+end
+
+function suite:testDetectFacetsNilSafe()
+	self:assertEquals(0, #helpers.detectFacets(nil))
+end
+
 return suite

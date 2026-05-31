@@ -40,7 +40,13 @@ function p.getSections(apiData, args)
 		table.insert(items, { label = 'HEI', content = tostring(food.hydration_efficacy_index) })
 	end
 
-	local effectsContent = format.buildHtmlList(food.effects)
+	-- Each effect has a wiki page at its own name, so link them. A missing page
+	-- redlinks, which is the normal wiki signal to create it.
+	local effectLinks = {}
+	for _, effect in ipairs(food.effects or {}) do
+		table.insert(effectLinks, '[[' .. effect .. ']]')
+	end
+	local effectsContent = format.buildHtmlList(effectLinks)
 	if effectsContent then
 		table.insert(items, { label = 'Effects', content = effectsContent })
 	end
@@ -66,6 +72,32 @@ function p.getSections(apiData, args)
 			collapsible = true,
 			items = items,
 		},
+	}
+end
+
+--- Contributes consumable facets to structured data so edible entities (food /
+--- drink items and edible commodities) are queryable uniformly: nutritional
+--- density rating, hydration efficacy index, and effects. NDR / HEI arrive as
+--- strings from the API and are coerced to numbers for range / sort queries;
+--- effects stays a list (stored as a multi-valued property). Each field is
+--- omitted when absent so the stored set stays clean. Nil-safe even though the
+--- facet only runs when matches() is true.
+---
+--- @param apiData table
+--- @param args table
+--- @return table<string, any>
+function p.getStructuredData(apiData, args)
+	local food = apiData.food
+	if not food then
+		return {}
+	end
+	local effects = food.effects
+	return {
+		ndr = tonumber(food.nutritional_density_rating),
+		hei = tonumber(food.hydration_efficacy_index),
+		-- effects[1] check (not #) sidesteps the frozen-table length quirk and
+		-- drops empty lists.
+		effects = (type(effects) == 'table' and effects[1]) and effects or nil,
 	}
 end
 

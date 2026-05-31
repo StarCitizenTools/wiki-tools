@@ -50,4 +50,42 @@ function suite:testGetSectionsEmptyWhenFoodHasNoRows()
 	self:assertEquals(0, #Consumable.getSections({ food = {} }))
 end
 
+-- getStructuredData
+
+function suite:testStructuredDataReadsNdrHeiEffects()
+	local sd = Consumable.getStructuredData({
+		food = {
+			nutritional_density_rating = '23',
+			hydration_efficacy_index = '10',
+			effects = { 'Hydrating', 'Energizing' },
+		},
+	})
+	self:assertEquals(23, sd.ndr)
+	self:assertEquals(10, sd.hei)
+	self:assertEquals('Hydrating', sd.effects[1])
+	self:assertEquals('Energizing', sd.effects[2])
+end
+
+function suite:testStructuredDataCoercesNdrHeiToNumbers()
+	-- NDR / HEI arrive as strings; stored as numbers so range / sort queries work.
+	local sd = Consumable.getStructuredData({ food = { nutritional_density_rating = '80' } })
+	self:assertEquals(80, sd.ndr)
+	self:assertEquals('number', type(sd.ndr))
+end
+
+function suite:testStructuredDataOmitsAbsentFields()
+	local sd = Consumable.getStructuredData({ food = {} })
+	self:assertEquals(nil, sd.ndr)
+	self:assertEquals(nil, sd.hei)
+	self:assertEquals(nil, sd.effects)
+end
+
+function suite:testStructuredDataOmitsEmptyEffects()
+	self:assertEquals(nil, Consumable.getStructuredData({ food = { effects = {} } }).effects)
+end
+
+function suite:testStructuredDataEmptyWhenNoFood()
+	self:assertEquals(nil, next(Consumable.getStructuredData({})))
+end
+
 return suite

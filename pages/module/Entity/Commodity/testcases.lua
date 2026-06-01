@@ -114,18 +114,48 @@ function suite:testGetApiConfigsEndpoint()
 	self:assertEquals('items', cfg.params.include)
 end
 
-function suite:testGetTypeInfoMineral()
-	local ti = Commodity.getTypeInfo({ key = 'Aslarite' })
-	self:assertEquals('Mineral', ti.name)
-	self:assertEquals('Minerals', ti.category)
+function suite:testResolveGroupsDepthOne()
+	local ti = Commodity.getTypeInfo({ commodity_groups = { 'Metal' } })
+	self:assertEquals('Metal', ti.name)
+	self:assertEquals('Metals', ti.category)
+	self:assertEquals('Commodities', ti.categories[1])
 end
 
-function suite:testGetTypeInfoRawMaps()
-	self:assertEquals('Mineral', Commodity.getTypeInfo({ key = 'Raw_Aslarite' }).name)
+function suite:testResolveGroupsDepthTwo()
+	local ti = Commodity.getTypeInfo({ commodity_groups = { 'ProcessedGoods', 'Vice' } })
+	self:assertEquals('Vice', ti.name)
+	self:assertEquals('Processed goods', ti.category)
 end
 
-function suite:testGetTypeInfoUnknownReturnsNil()
-	self:assertEquals(nil, Commodity.getTypeInfo({ key = 'UnknownJunk' }))
+function suite:testGetTypeInfoPlaceholderParentReturnsNil()
+	self:assertEquals(nil, Commodity.getTypeInfo({ commodity_groups = { 'HeatPlaceholder' } }))
+end
+
+function suite:testGetTypeInfoMissingGroupsReturnsNil()
+	self:assertEquals(nil, Commodity.getTypeInfo({}))
+	self:assertEquals(nil, Commodity.getTypeInfo({ commodity_groups = {} }))
+end
+
+function suite:testGetStructuredDataGroupAndType()
+	local apiData = {
+		commodity_groups = { 'ProcessedGoods', 'Vice' },
+		tier = 'uncommon',
+		kind = 'mineable',
+		_rawRecord = { is_mineable = true, density_g_per_cc = 2.3 },
+	}
+	local sd = Commodity.getStructuredData(apiData, {})
+	self:assertEquals('Processed goods', sd.commodity_group)
+	self:assertEquals('Vice', sd.commodity_type)
+	self:assertEquals(nil, sd.family)
+	self:assertEquals('uncommon', sd.tier)
+	self:assertEquals(true, sd.mineable)
+	self:assertEquals(2.3, sd.density)
+end
+
+function suite:testGetStructuredDataNoGroupOmitsFields()
+	local sd = Commodity.getStructuredData({ commodity_groups = { 'CleanAir' } }, {})
+	self:assertEquals(nil, sd.commodity_group)
+	self:assertEquals(nil, sd.commodity_type)
 end
 
 function suite:testGetSectionsOverviewAndMining()
@@ -142,6 +172,7 @@ function suite:testGetSectionsOverviewAndMining()
 		key = 'Aslarite',
 		kind = 'mineable',
 		tier = 'uncommon',
+		commodity_groups = { 'Mineral' },
 		raw_versions = { { uuid = 'x' } },
 		_rawRecord = raw,
 	}
@@ -164,7 +195,7 @@ function suite:testGetSectionsOverviewAndMining()
 	end
 
 	local overview = group('overview')
-	self:assertEquals('Mineral', item(overview.items, 'Family'))
+	self:assertEquals('Mineral', item(overview.items, 'Type'))
 	self:assertEquals('Uncommon', item(overview.items, 'Rarity'))
 	self:assertEquals('Ship mining', item(overview.items, 'Acquisition'))
 	self:assertEquals('Yes', item(overview.items, 'Refinable'))
@@ -188,12 +219,15 @@ end
 function suite:testGetStructuredData()
 	local apiData = {
 		key = 'Aslarite',
+		commodity_groups = { 'Mineral' },
 		tier = 'uncommon',
 		kind = 'mineable',
 		_rawRecord = { is_mineable = true, density_g_per_cc = 2.3, signature = 4000, systems = { 'Pyro System' } },
 	}
 	local sd = Commodity.getStructuredData(apiData, {})
-	self:assertEquals('Mineral', sd.family)
+	self:assertEquals('Minerals', sd.commodity_group)
+	self:assertEquals('Mineral', sd.commodity_type)
+	self:assertEquals(nil, sd.family)
 	self:assertEquals('uncommon', sd.tier)
 	self:assertEquals(true, sd.mineable)
 	self:assertEquals(2.3, sd.density)

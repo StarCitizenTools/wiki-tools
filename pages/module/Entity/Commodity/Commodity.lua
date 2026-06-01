@@ -4,13 +4,68 @@ require('strict')
 --- Commodity kind. Backed by the /api/commodities endpoint (a substance-level
 --- entity), distinct from the per-cargo-box /items records. Renders one unified
 --- page per substance; the raw and refined records are merged via the enrich
---- hook (record assembly lives in Module:Entity/Commodity/Records). Material
---- family is curated in families.json — the API has no family field.
+--- hook (record assembly lives in Module:Entity/Commodity/Records).
+--- Type/group come from the API `commodity_groups` taxonomy (parent + finest
+--- leaf); see the LABELS / CATEGORIES maps below.
 --- Mining-stat formatting lives in Module:Entity/Commodity/Mining.
 
 local format = require('Module:Entity/Format')
 local mining = require('Module:Entity/Commodity/Mining')
 local records = require('Module:Entity/Commodity/Records')
+
+-- API commodity_groups token → singular display label. Drives the infobox Type
+-- row, the short description, and the stored Commodity group / Commodity type
+-- SMW values (so the Data table facets read in plain English).
+local LABELS = {
+	ProcessedGoods = 'Processed goods',
+	Vice = 'Vice',
+	SyntheticMaterials = 'Synthetic materials',
+	Bulk_Supplies = 'Bulk supplies',
+	Metal = 'Metal',
+	Alloy = 'Alloy',
+	UnrefinedOres = 'Unrefined ores',
+	Organic = 'Organic',
+	Food = 'Food',
+	Mineral = 'Mineral',
+	Raw_Minerals = 'Raw minerals',
+	Gas = 'Gas',
+	Nonmetal = 'Non-metal',
+	Halogen = 'Halogen',
+	Waste = 'Waste',
+}
+
+-- Parent (first commodity_groups element) → group category page name. A parent
+-- absent here is a placeholder / unknown (HeatPlaceholder, PowerPlaceholder,
+-- LifeSupportPlaceholder, CleanAir) → no group, no category. Doubles as the
+-- valid-parent allowlist.
+local CATEGORIES = {
+	ProcessedGoods = 'Processed goods',
+	Metal = 'Metals',
+	Organic = 'Organic commodities',
+	Mineral = 'Minerals',
+	Gas = 'Gases',
+	Nonmetal = 'Non-metals',
+	Waste = 'Waste',
+}
+
+--- Parses apiData.commodity_groups (ordered parent→child; last = finest type)
+--- into its parent + leaf tokens. Returns nil when the array is absent/empty or
+--- the parent is a placeholder/unknown (not in CATEGORIES), so unmapped
+--- commodities collapse cleanly (no Type row, no group, no group category).
+---
+--- @param apiData table
+--- @return { parent: string, leaf: string }|nil
+local function resolveGroups(apiData)
+	local groups = apiData.commodity_groups
+	if type(groups) ~= 'table' or groups[1] == nil then
+		return nil
+	end
+	local parent = groups[1]
+	if CATEGORIES[parent] == nil then
+		return nil
+	end
+	return { parent = parent, leaf = groups[#groups] }
+end
 
 local p = {}
 
@@ -56,22 +111,25 @@ end
 -- Mining card with the same method-aware label the infobox uses.
 p.acquisitionLabel = mining.acquisitionLabel
 
---- Resolves display metadata (subtitle name + browse category) from the
---- curated family map. The commodities API exposes no type/classification,
---- so this leaf hook (preferred by Module:Entity/Data over resolveType)
---- supplies it. Returns nil for unmapped/junk keys so the subtitle and
---- category collapse out.
+--- Resolves display metadata from the API commodity_groups taxonomy. `name` is
+--- the finest type (leaf) label → infobox subtitle + Type row. `category` is the
+--- parent group category (Metals, …). `categories` carries the extra Commodities
+--- membership so the index Data table can query every commodity in one category
+--- (Module:Entity/Categories honours typeInfo.categories). Returns nil for
+--- placeholder/unmapped parents so the subtitle and categories collapse out.
 ---
 --- @param apiData table
---- @return table|nil { name, category }
+--- @return table|nil { name, category, categories }
 function p.getTypeInfo(apiData)
-	local map = mw.loadJsonData('Module:Entity/Commodity/families.json')
-	local family = apiData.key and map[apiData.key]
-	if type(family) ~= 'string' then
+	local g = resolveGroups(apiData)
+	if not g then
 		return nil
 	end
-	local categories = map['%categories'] or {}
-	return { name = family, category = categories[family] or family }
+	return {
+		name = LABELS[g.leaf],
+		category = CATEGORIES[g.parent],
+		categories = { 'Commodities' },
+	}
 end
 
 --- @param apiData table
@@ -93,7 +151,7 @@ function p.getSections(apiData, args)
 	local overview = {
 		key = 'overview',
 		items = {
-			{ label = 'Family', content = typeInfo and typeInfo.name },
+			{ label = 'Type', content = typeInfo and typeInfo.name },
 			{ label = 'Rarity', content = tier and (tier:gsub('^%l', string.upper)) },
 			{ label = 'Acquisition', content = mining.acquisitionLabel(raw, apiData.kind or (raw and raw.kind)) },
 			{ label = 'Refinable', content = refinable ~= nil and (refinable and 'Yes' or 'No') or nil },
@@ -152,14 +210,18 @@ end
 --- @return table<string, any>
 function p.getStructuredData(apiData, args)
 	local raw = apiData._rawRecord
-	local typeInfo = p.getTypeInfo(apiData, args)
+	local g = resolveGroups(apiData)
 	return {
-		family = typeInfo and typeInfo.name,
+		commodity_group = g and LABELS[g.parent] or nil,
+		commodity_type = g and LABELS[g.leaf] or nil,
 		tier = apiData.tier or (raw and raw.tier),
 		mineable = (raw and raw.is_mineable) or false,
 		acquisition_kind = apiData.kind or (raw and raw.kind),
 		density = raw and raw.density_g_per_cc,
 		signature = raw and raw.signature,
+		-- `systems` is intentionally NOT an infobox row: the set of star systems
+		-- grows as the game expands, so an enumerated list doesn't scale. It is
+		-- persisted to structured data for querying.
 		systems = (raw and raw.systems) or apiData.systems,
 	}
 end

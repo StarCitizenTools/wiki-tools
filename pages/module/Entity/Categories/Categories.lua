@@ -20,6 +20,8 @@ local p = {}
 ---    Coolers), resolved in Module:Entity/Data; for other kinds it's the type-map
 ---    category. Damage type / firing class / size / grade / class are facets
 ---    (structured data), NOT categories.
+---  * optional extra categories from `typeInfo.categories` (e.g. a commodity also
+---    lands in Category:Commodities), appended after the structural category.
 ---  * the manufacturer category (cross-cutting; a brand's catalogue is a useful
 ---    standalone browse). Generic across kinds.
 ---
@@ -32,6 +34,12 @@ function p.deriveCategories(typeInfo, apiData, args)
 
 	if typeInfo then
 		table.insert(names, typeInfo.category or typeInfo.name)
+		-- Optional extra categories a kind wants to join beyond its primary
+		-- structural bucket (e.g. a commodity also lands in Category:Commodities
+		-- so the index Data table can query every commodity in one category).
+		for _, extra in ipairs(typeInfo.categories or {}) do
+			table.insert(names, extra)
+		end
 	end
 
 	local manufacturer = base.resolveManufacturer(apiData, args)

@@ -58,4 +58,28 @@ function suite:testEmptyWhenNoTypeInfoOrManufacturer()
 	self:assertEquals(0, #Categories.deriveCategories(nil, {}, {}))
 end
 
+function suite:testExtraCategoriesAppendedAfterPrimary()
+	local names = Categories.deriveCategories({ category = 'Metals', categories = { 'Commodities' } }, {}, {})
+	self:assertEquals(true, hasValue(names, 'Metals'))
+	self:assertEquals(true, hasValue(names, 'Commodities'))
+	-- primary group category comes before the extra
+	local iMetals, iComm
+	for i, v in ipairs(names) do
+		if v == 'Metals' then
+			iMetals = i
+		end
+		if v == 'Commodities' then
+			iComm = i
+		end
+	end
+	self:assertEquals(true, iMetals < iComm)
+end
+
+function suite:testNoExtraCategoriesWhenAbsent()
+	-- typeInfo without a `categories` field must behave exactly as before.
+	local names = Categories.deriveCategories({ name = 'Gun', category = 'Guns' }, {}, {})
+	self:assertEquals(true, hasValue(names, 'Guns'))
+	self:assertEquals(false, hasValue(names, 'Commodities'))
+end
+
 return suite

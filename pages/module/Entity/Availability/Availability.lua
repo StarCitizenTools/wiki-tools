@@ -4,7 +4,7 @@ require('strict')
 --- Renders where/how an entity can be acquired in-game, dispatched by kind:
 ---  * items / vehicles — UEX shop (and rental) terminals from apiData.uex_prices
 ---  * commodities — a Mining card (deposit locations) + a Trade card (UEX
----    terminals; empty for all commodities today, so it shows a placeholder).
+---    terminals when priced, else a link-out to external price sources).
 --- Consumes Module:Entity/Data so it shares Apiunto's cache with other Entity
 --- templates on the page.
 
@@ -470,9 +470,8 @@ end
 
 --- Builds the ordered summary rows for a commodity entity: Mine, Harvest,
 --- Buy. Mine/Harvest derive from the raw record's mineability flags; Buy
---- derives from UEX purchase listings (empty for all commodities today, so
---- it reads "Unknown" until the API populates commodity prices). All
---- overridable via canMine / canHarvest / canBuy.
+--- derives from UEX purchase listings (Unknown when the record carries no
+--- price rows). All overridable via canMine / canHarvest / canBuy.
 ---
 --- @param args table
 --- @param apiData table
@@ -644,11 +643,11 @@ local function renderMiningCard(raw)
 end
 
 --- Renders commodity acquisition detail: the Mining card (deposit locations)
---- plus a Trade card. Commodity `uex_prices` is empty for every commodity
---- today, so the Trade card is, for now, a pointer to SC Trade Tools (which
---- carries live commodity prices), keyed on the commodity slug. If/when the
---- API populates commodity prices, the buy/sell terminal table renders too
---- (the entry shape is assumed to match the item/vehicle terminal shape).
+--- plus a Trade card. When the API carries UEX commodity prices, the Trade
+--- card is a buy/sell terminal table (same entry shape as the item/vehicle
+--- terminals) with the UEX attribution footer. When prices are absent, it
+--- falls back to a link-out card pointing at SC Trade Tools and UEX, keyed on
+--- the commodity slug.
 ---
 --- @param apiData table
 --- @return string
@@ -665,8 +664,8 @@ local function renderCommodityDetail(apiData)
 	local purchasePrices = type(uexPrices.purchase) == 'table' and uexPrices.purchase or {}
 
 	if #purchasePrices > 0 then
-		-- Live terminal prices exist (future-proofing — empty for all
-		-- commodities today): a collapsible buy/sell terminal table.
+		-- Live UEX terminal prices: a collapsible buy/sell terminal table with
+		-- the UEX attribution footer (the data is supplied by UEX).
 		local hasSellSide = priceRange(purchasePrices, 'price_sell') ~= nil
 		local priceColumns = { { id = 'buy', key = 'price_buy', label = 'Buy' } }
 		if hasSellSide then
@@ -681,6 +680,7 @@ local function renderCommodityDetail(apiData)
 				caption = 'Trade terminals',
 				priceColumns = priceColumns,
 			}),
+			footer = uexFooter(firstUexLink(purchasePrices) or UEX_FALLBACK_URL),
 		})
 	else
 		-- No embedded prices: a link-out card to the live commodity price

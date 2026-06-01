@@ -225,7 +225,7 @@ function suite:testGetStructuredData()
 		_rawRecord = { is_mineable = true, density_g_per_cc = 2.3, signature = 4000, systems = { 'Pyro System' } },
 	}
 	local sd = Commodity.getStructuredData(apiData, {})
-	self:assertEquals('Minerals', sd.commodity_group)
+	self:assertEquals('Mineral', sd.commodity_group)
 	self:assertEquals('Mineral', sd.commodity_type)
 	self:assertEquals(nil, sd.family)
 	self:assertEquals('uncommon', sd.tier)

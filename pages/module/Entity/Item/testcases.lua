@@ -44,6 +44,11 @@ function suite:testResolveSubtypeDrinkReturnsNil()
 	self:assertEquals(nil, Item.resolveSubtype({ type = 'Drink' }))
 end
 
+function suite:testResolveSubtypeModuleReturnsModuleSubtype()
+	local result = Item.resolveSubtype({ type = 'Module' })
+	self:assertEquals(require('Module:Entity/Item/Module'), result)
+end
+
 function suite:testResolveSubtypeWeaponPersonalReturnsModule()
 	local result = Item.resolveSubtype({ type = 'WeaponPersonal' })
 	self:assertEquals(require('Module:Entity/Item/WeaponPersonal'), result)

@@ -21,6 +21,7 @@ p.parent = 'Entity/Base'
 --- data-driven consumable facet (Module:Entity/Facet/Consumable), not a
 --- subtype leaf. Their subtitle + category still resolve via types.json.
 local itemSubtypeMapping = {
+	Module = 'Entity/Item/Module',
 	Turret = 'Entity/Item/Turret',
 	WeaponPersonal = 'Entity/Item/WeaponPersonal',
 	WeaponGun = 'Entity/Item/WeaponGun',

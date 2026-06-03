@@ -45,12 +45,14 @@ function suite:testGetTypeInfoWithSet()
 	local info = Module.getTypeInfo(moduleWithSet(), {})
 	self:assertEquals('Vehicle module', info.name)
 	self:assertEquals('Aurora Mk II', info.category)
+	self:assertEquals(1, #info.categories)
+	self:assertEquals('Vehicle modules', info.categories[1])
 end
 
 function suite:testGetTypeInfoWithoutSet()
 	local info = Module.getTypeInfo({ type = 'Module' }, {})
-	self:assertEquals('Module', info.name)
-	self:assertEquals('Modules', info.category)
+	self:assertEquals('Vehicle module', info.name)
+	self:assertEquals('Vehicle modules', info.category)
 end
 
 -- getSections

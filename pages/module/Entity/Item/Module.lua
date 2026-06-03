@@ -5,8 +5,9 @@ require('strict')
 --- vehicle to change its function (e.g. Aurora Mk II combat/cargo modules,
 --- Retaliator front/rear modules). Resolves the owning vehicle from
 --- related_items.set_name and contributes the vehicle link, the vehicle
---- category (replacing the flat Modules bucket), a "for the <vehicle>" short
---- description, and a queryable `vehicle` structured-data property.
+--- category (the most-specific structural bucket) plus a shared
+--- `Vehicle modules` type bucket, a "for the <vehicle>" short description,
+--- and a queryable `vehicle` structured-data property.
 ---
 --- JumpDrive / MiningModifier display as "Jump module" / "Mining module" but
 --- carry their own distinct API `type` strings, so only Aurora/Retaliator-style
@@ -36,21 +37,23 @@ local function resolveSetName(apiData)
 end
 
 --- Display metadata. When the module belongs to a vehicle set, the vehicle's
---- eponymous category becomes the module's structural category (its only
---- structural bucket, matching the hand-built module pages) — we trust
+--- eponymous category is the module's primary structural bucket — we trust
 --- set_name directly for now, deferring the wiki's category-naming
---- inconsistency (e.g. `Aegis Dynamics Retaliator` vs `Aurora Mk II`). Falls
---- back to the generic Modules bucket otherwise.
+--- inconsistency (e.g. `Aegis Dynamics Retaliator` vs `Aurora Mk II`). Every
+--- vehicle module also joins the shared `Vehicle modules` category (the
+--- type-level browse bucket), contributed as a `categories` extra so it sits
+--- alongside the vehicle category rather than replacing it. A module with no
+--- resolvable set falls back to `Vehicle modules` as its primary bucket.
 ---
 --- @param apiData table
 --- @param args table
---- @return table { name, category }
+--- @return table { name, category, categories }
 function p.getTypeInfo(apiData, args)
 	local setName = resolveSetName(apiData)
 	if setName then
-		return { name = 'Vehicle module', category = setName }
+		return { name = 'Vehicle module', category = setName, categories = { 'Vehicle modules' } }
 	end
-	return { name = 'Module', category = 'Modules' }
+	return { name = 'Vehicle module', category = 'Vehicle modules' }
 end
 
 --- Adds a Vehicle row linking the owning vehicle to the General section

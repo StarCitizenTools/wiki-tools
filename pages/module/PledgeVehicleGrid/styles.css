@@ -1,0 +1,36 @@
+/* PledgeVehicleGrid: presentation tweaks layered over the AGGrid extension's
+   own theme. Scoped to the .t-pledge-grid wrapper the module emits. */
+
+/* The grid shows every vehicle and scrolls internally; rows are virtualised, so
+   a taller viewport does not grow the DOM. Override the extension's 400px. */
+.t-pledge-grid .ext-aggrid {
+	height: 70vh;
+}
+
+/* Image column formatting */
+.t-pledge-grid .ag-column-first {
+	padding: 0;
+	font-size: 0;
+}
+
+.t-pledge-grid .ag-column-first > a {
+	width: 100%;
+	height: 100%;
+}
+
+.t-pledge-grid .ag-column-first img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+/* Vertically centre cell content within the row. */
+.t-pledge-grid .ag-cell {
+	display: flex;
+	align-items: center;
+}
+
+/* Keep numeric columns right-aligned now that the cell is a flex container. */
+.t-pledge-grid .ag-cell.ag-right-aligned-cell {
+	justify-content: flex-end;
+}

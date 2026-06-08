@@ -133,13 +133,29 @@ local function buildLinkList(value)
 	return aggrid.linkList(targets)
 end
 
+-- Numeric display formats. The extension applies these client-side via Intl on
+-- the real number, so the underlying value (and thus sort / filter / set-filter
+-- / CSV export) stays numeric -- only the rendered text gains grouping and a
+-- unit. `style` is always 'number'; `useGrouping` defaults to true, so thousands
+-- separators come for free. Decimals are left unset to preserve each value's
+-- natural precision.
+local FMT_DOLLARS = { style = 'number', prefix = '$' } -- real-money pledge store
+local FMT_AUEC = { style = 'number', suffix = ' aUEC' } -- in-game currency
+local FMT_METERS = { style = 'number', suffix = ' m' }
+local FMT_KG = { style = 'number', suffix = ' kg' }
+local FMT_SCU = { style = 'number', suffix = ' SCU' }
+local FMT_SPEED = { style = 'number', suffix = ' m/s' }
+local FMT_RATE = { style = 'number', suffix = ' °/s' }
+local FMT_PLAIN = { style = 'number' } -- grouping only; SMW stores no unit
+
 -- Column set mirroring the live List of pledge vehicles #ask. `label` is the SMW
 -- printout label the result row is keyed by; `field` is the AG Grid field.
--- `kind` selects a rich renderer; `num` marks numeric. `filter` overrides the
--- default column filter -- the low-cardinality categorical columns use the
--- extension's checkbox set filter ('aggridSet'). `w` is an explicit width
--- (currently UNUSED -- the grid auto-sizes via autoSizeStrategy; retained so
--- buildColumnDefs can switch back to fixed widths if needed).
+-- `kind` selects a rich renderer; `num` marks numeric; `format` is its numeric
+-- display spec (see above). `filter` overrides the default column filter -- the
+-- low-cardinality categorical columns use the extension's checkbox set filter
+-- ('aggridSet'). `w` is an explicit width (currently UNUSED -- the grid
+-- auto-sizes via autoSizeStrategy; retained so buildColumnDefs can switch back
+-- to fixed widths if needed).
 local COLUMNS = {
 	{ field = 'image', label = 'Image', header = 'Image', kind = 'image', w = 135 },
 	{ field = 'name', label = 'Name', header = 'Name', kind = 'link', w = 150 },
@@ -155,26 +171,40 @@ local COLUMNS = {
 		filter = 'aggridSet',
 		w = 140,
 	},
-	{ field = 'pledge', label = 'Pledge', header = 'Pledge $', num = true, w = 85 },
-	{ field = 'origPledge', label = 'Orig pledge', header = 'Orig pledge $', num = true, w = 90 },
-	{ field = 'warbond', label = 'Warbond', header = 'Warbond $', num = true, w = 90 },
-	{ field = 'origWarbond', label = 'Orig warbond', header = 'Orig warbond $', num = true, w = 95 },
+	{ field = 'pledge', label = 'Pledge', header = 'Pledge', num = true, format = FMT_DOLLARS, w = 85 },
+	{ field = 'origPledge', label = 'Orig pledge', header = 'Orig pledge', num = true, format = FMT_DOLLARS, w = 90 },
+	{ field = 'warbond', label = 'Warbond', header = 'Warbond', num = true, format = FMT_DOLLARS, w = 90 },
+	{
+		field = 'origWarbond',
+		label = 'Orig warbond',
+		header = 'Orig warbond',
+		num = true,
+		format = FMT_DOLLARS,
+		w = 95,
+	},
 	{ field = 'loaner', label = 'Loaner', header = 'Loaner', kind = 'linkList', w = 160 },
-	{ field = 'avgPrice', label = 'Avg purchase', header = 'Avg purchase', num = true, w = 105 },
-	{ field = 'avgRental', label = 'Avg daily rental', header = 'Avg daily rental', num = true, w = 105 },
-	{ field = 'length', label = 'Length', header = 'Length', num = true, w = 80 },
-	{ field = 'width', label = 'Width', header = 'Width', num = true, w = 80 },
-	{ field = 'height', label = 'Height', header = 'Height', num = true, w = 80 },
-	{ field = 'mass', label = 'Mass', header = 'Mass', num = true, w = 90 },
+	{ field = 'avgPrice', label = 'Avg purchase', header = 'Avg purchase', num = true, format = FMT_AUEC, w = 105 },
+	{
+		field = 'avgRental',
+		label = 'Avg daily rental',
+		header = 'Avg daily rental',
+		num = true,
+		format = FMT_AUEC,
+		w = 105,
+	},
+	{ field = 'length', label = 'Length', header = 'Length', num = true, format = FMT_METERS, w = 80 },
+	{ field = 'width', label = 'Width', header = 'Width', num = true, format = FMT_METERS, w = 80 },
+	{ field = 'height', label = 'Height', header = 'Height', num = true, format = FMT_METERS, w = 80 },
+	{ field = 'mass', label = 'Mass', header = 'Mass', num = true, format = FMT_KG, w = 90 },
 	{ field = 'minCrew', label = 'Min crew', header = 'Min crew', num = true, w = 80 },
 	{ field = 'maxCrew', label = 'Max crew', header = 'Max crew', num = true, w = 80 },
-	{ field = 'stowage', label = 'Stowage', header = 'Stowage', num = true, w = 95 },
-	{ field = 'cargo', label = 'Cargo', header = 'Cargo', num = true, w = 80 },
-	{ field = 'scm', label = 'SCM speed', header = 'SCM speed', num = true, w = 85 },
-	{ field = 'maxSpeed', label = 'Max speed', header = 'Max speed', num = true, w = 90 },
-	{ field = 'roll', label = 'Roll', header = 'Roll', num = true, w = 75 },
-	{ field = 'pitch', label = 'Pitch', header = 'Pitch', num = true, w = 75 },
-	{ field = 'yaw', label = 'Yaw', header = 'Yaw', num = true, w = 75 },
+	{ field = 'stowage', label = 'Stowage', header = 'Stowage', num = true, format = FMT_PLAIN, w = 95 },
+	{ field = 'cargo', label = 'Cargo', header = 'Cargo', num = true, format = FMT_SCU, w = 80 },
+	{ field = 'scm', label = 'SCM speed', header = 'SCM speed', num = true, format = FMT_SPEED, w = 85 },
+	{ field = 'maxSpeed', label = 'Max speed', header = 'Max speed', num = true, format = FMT_SPEED, w = 90 },
+	{ field = 'roll', label = 'Roll', header = 'Roll', num = true, format = FMT_RATE, w = 75 },
+	{ field = 'pitch', label = 'Pitch', header = 'Pitch', num = true, format = FMT_RATE, w = 75 },
+	{ field = 'yaw', label = 'Yaw', header = 'Yaw', num = true, format = FMT_RATE, w = 75 },
 	{ field = 'conceptDate', label = 'Concept date', header = 'Concept date', w = 110 },
 }
 
@@ -241,6 +271,21 @@ local function buildRowData(results)
 	return rows
 end
 
+-- Shallow-copy a format spec. The FMT_* constants are shared by several columns,
+-- but Scribunto's PHP serializer rejects the same table appearing more than once
+-- in a structure ("Cannot pass circular reference to PHP"), so each colDef needs
+-- its own instance. Values are scalars, so a shallow copy is enough.
+local function cloneFormat(fmt)
+	if fmt == nil then
+		return nil
+	end
+	local copy = {}
+	for k, v in pairs(fmt) do
+		copy[k] = v
+	end
+	return copy
+end
+
 local function buildColumnDefs()
 	local defs = {}
 	for _, col in ipairs(COLUMNS) do
@@ -270,6 +315,7 @@ local function buildColumnDefs()
 				headerName = col.header,
 				filter = col.filter or 'agNumberColumnFilter',
 				type = 'numericColumn',
+				format = cloneFormat(col.format),
 			}
 		else
 			def = { field = col.field, headerName = col.header, filter = col.filter or 'agTextColumnFilter' }

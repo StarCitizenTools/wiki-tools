@@ -149,13 +149,16 @@
 			cellRenderer: function ( params ) {
 				return buildCard( params.value );
 			},
-			// v1: the extension's set filter derives its values from valueFormatter
-			// output, so return the eyebrow to make the filter list those values
-			// (e.g. manufacturers). Sort (comparator) keys on the title and display
-			// (cellRenderer) is independent. Decoupling the filter scalar from the
-			// display/sort scalar awaits AGGrid#17 (set-filter filterValueGetter).
+			// Sort / quick-search / CSV export key on the title (ship name); the set
+			// filter lists the eyebrow (e.g. manufacturer) via filterValueGetter,
+			// decoupled from the display scalar (AGGrid#17). cellRenderer is
+			// independent of both.
 			valueFormatter: function ( params ) {
-				return ( params.value && params.value.eyebrow ) || '';
+				return ( params.value && params.value.title ) || '';
+			},
+			filterValueGetter: function ( params ) {
+				var v = params.data && params.data[ params.colDef.field ];
+				return ( v && v.eyebrow ) || null;
 			},
 			comparator: function ( a, b ) {
 				return String( ( a && a.title ) || '' )

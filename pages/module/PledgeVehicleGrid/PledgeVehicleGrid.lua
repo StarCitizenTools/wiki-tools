@@ -230,12 +230,13 @@ local FMT_RATE = { style = 'number', suffix = ' °/s' }
 local FMT_PLAIN = { style = 'number' } -- grouping only; SMW stores no unit
 
 -- Production state -> BadgeLua variant. Flight ready is done (success); active /
--- long-term production is in progress (warning); concept and SQ42-only states get
--- the neutral base badge (no variant).
+-- long-term production is in progress (warning); concept is not yet flyable
+-- (error). SQ42-only and any unmapped state get the neutral base badge.
 local PRODUCTION_VARIANT = {
 	['Flight ready'] = 'success',
 	['Active production'] = 'warning',
 	['Long term production'] = 'warning',
+	['In concept'] = 'error',
 }
 
 -- Column set mirroring the live List of pledge vehicles #ask. `label` is the SMW

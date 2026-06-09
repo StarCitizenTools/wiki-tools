@@ -209,7 +209,6 @@ end
 -- unit. `style` is always 'number'; `useGrouping` defaults to true, so thousands
 -- separators come for free. Decimals are left unset to preserve each value's
 -- natural precision.
-local FMT_DOLLARS = { style = 'number', prefix = '$' } -- real-money pledge store
 local FMT_AUEC = { style = 'number', suffix = ' aUEC' } -- in-game currency
 local FMT_METERS = { style = 'number', suffix = ' m' }
 local FMT_KG = { style = 'number', suffix = ' kg' }
@@ -431,9 +430,8 @@ function p.main(frame)
 		pagination = false,
 		-- Row height tuned to the card cell (thumbnail + two text lines).
 		rowHeight = 64,
-		-- Auto-size each column to its content. (Columns also carry an explicit
-		-- `w` in COLUMNS, currently unused; switch buildColumnDefs back to it for
-		-- deterministic widths.)
+		-- Auto-size plain columns to their content. The custom-rendered columns
+		-- (card, stacked prices) opt out via suppressAutoSize and use their `w`.
 		autoSizeStrategy = { type = 'fitCellContents' },
 		defaultColDef = {
 			sortable = true,

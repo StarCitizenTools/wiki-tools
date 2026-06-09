@@ -205,6 +205,16 @@ local function buildPriceStack(current, original)
 	return stack
 end
 
+-- Build a badge cell for the scwBadge renderer (BadgeLua-style pill): the text
+-- plus an optional BadgeLua variant ('success'/'warning'/'error') looked up from
+-- `variants`. Unmapped values render a neutral base badge; an empty value -> nil.
+local function buildBadge(text, variants)
+	if text == nil or text == '' then
+		return nil
+	end
+	return { text = text, variant = variants and variants[text] }
+end
+
 -- Numeric display formats. The extension applies these client-side via Intl on
 -- the real number, so the underlying value (and thus sort / filter / set-filter
 -- / CSV export) stays numeric -- only the rendered text gains grouping and a
@@ -218,6 +228,15 @@ local FMT_SCU = { style = 'number', suffix = ' SCU' }
 local FMT_SPEED = { style = 'number', suffix = ' m/s' }
 local FMT_RATE = { style = 'number', suffix = ' °/s' }
 local FMT_PLAIN = { style = 'number' } -- grouping only; SMW stores no unit
+
+-- Production state -> BadgeLua variant. Flight ready is done (success); active /
+-- long-term production is in progress (warning); concept and SQ42-only states get
+-- the neutral base badge (no variant).
+local PRODUCTION_VARIANT = {
+	['Flight ready'] = 'success',
+	['Active production'] = 'warning',
+	['Long term production'] = 'warning',
+}
 
 -- Column set mirroring the live List of pledge vehicles #ask. `label` is the SMW
 -- printout label the result row is keyed by; `field` is the AG Grid field.
@@ -236,7 +255,15 @@ local COLUMNS = {
 	{ field = 'career', label = 'Career', header = 'Career', filter = 'aggridSet', w = 110 },
 	{ field = 'role', label = 'Role', header = 'Role', filter = 'aggridSet', w = 180 },
 	{ field = 'size', label = 'Size', header = 'Size', filter = 'aggridSet', w = 80 },
-	{ field = 'production', label = 'Production state', header = 'Production state', filter = 'aggridSet', w = 120 },
+	{
+		field = 'production',
+		label = 'Production state',
+		header = 'Production state',
+		kind = 'badge',
+		variants = PRODUCTION_VARIANT,
+		filter = 'aggridSet',
+		w = 200,
+	},
 	{
 		field = 'availability',
 		label = 'Pledge availability',
@@ -334,6 +361,8 @@ local function buildRowData(results)
 				row[col.field] = buildCard(result)
 			elseif col.kind == 'priceStack' then
 				row[col.field] = buildPriceStack(toNumber(result[col.curLabel]), toNumber(result[col.origLabel]))
+			elseif col.kind == 'badge' then
+				row[col.field] = buildBadge(toText(result[col.label]), col.variants)
 			elseif col.num then
 				row[col.field] = toNumber(result[col.label])
 			elseif col.kind == 'linkList' then
@@ -393,6 +422,18 @@ local function buildColumnDefs()
 				width = col.w,
 				suppressAutoSize = true,
 			}
+		elseif col.kind == 'badge' then
+			-- scwBadge (SCW gadget) renders the BadgeLua-style pill; the set filter
+			-- and sort key on the badge text via valueFormatter / comparator.
+			def = {
+				field = col.field,
+				headerName = col.header,
+				type = 'scwBadge',
+				filter = col.filter or 'aggridSet',
+				sortable = true,
+				width = col.w,
+				suppressAutoSize = true,
+			}
 		elseif col.kind == 'linkList' then
 			def = aggrid.linkListColumn({
 				field = col.field,
@@ -433,7 +474,7 @@ function p.main(frame)
 		-- Row height tuned to the card cell (thumbnail + two text lines).
 		rowHeight = 64,
 		-- Auto-size plain columns to their content. The custom-rendered columns
-		-- (card, stacked prices) opt out via suppressAutoSize and use their `w`.
+		-- (card, stacked prices, badges) opt out via suppressAutoSize and use their `w`.
 		autoSizeStrategy = { type = 'fitCellContents' },
 		defaultColDef = {
 			sortable = true,

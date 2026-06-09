@@ -24,6 +24,8 @@
  *  - scwStackedValue: a primary line over an optional muted secondary line, with
  *    a raw number for sort / the number filter. Value shape:
  *      { value: <number>, text: <primary string>, sub: <secondary string>|null }
+ *  - scwBadge: a BadgeLua-style pill. Value shape:
+ *      { text, variant: 'error'|'success'|'warning'|null }
  */
 ( function () {
 	'use strict';
@@ -149,6 +151,26 @@
 		return v && typeof v.value === 'number' ? v.value : null;
 	}
 
+	// Badge cell, styled to match Module:BadgeLua (.t-badge). Value: { text,
+	// variant } where variant is 'error' | 'success' | 'warning' (else a neutral
+	// base badge). An absent value renders an empty cell.
+	var BADGE_VARIANTS = { error: true, success: true, warning: true };
+	function buildBadge( v ) {
+		if ( !v || !v.text ) {
+			return document.createTextNode( '' );
+		}
+		var badge = document.createElement( 'span' );
+		badge.className = 't-badge';
+		if ( v.variant && BADGE_VARIANTS[ v.variant ] ) {
+			badge.classList.add( 't-badge--' + v.variant );
+		}
+		var text = document.createElement( 'span' );
+		text.className = 't-badge__text';
+		text.textContent = v.text;
+		badge.appendChild( text );
+		return badge;
+	}
+
 	// eyebrow label -> resolved eyebrow-icon src, harvested from scwEntityCard rows
 	// on mount. The card's set-filter itemRenderer reads it to show the glyph beside
 	// each value. Global (icons are the same across grids); merged per mount.
@@ -252,6 +274,20 @@
 					return 1;
 				}
 				return an - bn;
+			}
+		};
+
+		reg.columnTypes.scwBadge = {
+			cellRenderer: function ( params ) {
+				return buildBadge( params.value );
+			},
+			// Sort / set filter key on the badge text.
+			valueFormatter: function ( params ) {
+				return ( params.value && params.value.text ) || '';
+			},
+			comparator: function ( a, b ) {
+				return String( ( a && a.text ) || '' )
+					.localeCompare( String( ( b && b.text ) || '' ) );
 			}
 		};
 	} );

@@ -95,8 +95,8 @@
 
 .scw-entitycard-filter__icon {
 	flex: none;
-	width: 1em;
-	height: 1em;
+	width: 20px;
+	height: 20px;
 	background-color: currentColor;
 	-webkit-mask-image: var( --scw-entitycard-icon );
 	mask-image: var( --scw-entitycard-icon );

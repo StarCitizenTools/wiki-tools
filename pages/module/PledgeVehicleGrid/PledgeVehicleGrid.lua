@@ -173,8 +173,10 @@ local function buildCard(result)
 		local mfrName = mfrDisplay or mfrTarget
 		local info = MANUFACTURER[mfrName]
 		-- Compact eyebrow label: the manufacturer's short name, falling back to the
-		-- full name. The link still targets the full manufacturer page.
+		-- full name. The link still targets the full manufacturer page. The full
+		-- name (eyebrowFull) is the set-filter value, so the filter reads in full.
 		card.eyebrow = (info and info.short) or mfrName
+		card.eyebrowFull = mfrName
 		local mfrLink = aggrid.link(mfrTarget, mfrName)
 		card.eyebrowHref = mfrLink and mfrLink.href
 		-- Brand glyph: best-effort. The renderer paints it as a CSS mask; the media
@@ -366,7 +368,7 @@ local function buildColumnDefs()
 		local def
 		if col.kind == 'card' then
 			-- The scwEntityCard column type (SCW gadget) supplies the cellRenderer,
-			-- the name comparator, and the manufacturer valueFormatter the set
+			-- the name comparator, and the manufacturer filterValueGetter the set
 			-- filter reads. Pin a width and skip auto-sizing: the custom card DOM
 			-- does not measure meaningfully under fitCellContents.
 			def = {

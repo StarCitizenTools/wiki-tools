@@ -10,15 +10,20 @@
  * MediaWiki:Gadgets-definition by a category condition. Its companion stylesheet
  * MediaWiki:Gadget-aggridRenderers.css styles the cells these renderers build.
  *
+ * The Lua side packs one value object per row and resolves every file/URL target
+ * server-side; these renderers only build safe DOM from the resolved value.
+ *
  * Column types
- *  - scwEntityCard: a compact "entity" cell combining a thumbnail, an eyebrow
- *    (optional icon + text) and a title. The Lua side packs one value object per
- *    row and resolves every file/URL target server-side; this renderer only
- *    builds safe DOM from the resolved value. Value shape:
- *      { image:   {src,width,alt,href}|null,  // thumbnail
- *        title, titleHref,                     // primary line (sort key)
- *        eyebrow, eyebrowHref,                 // small line above the title
- *        eyebrowIcon: {src,...}|null }         // monochrome glyph for the eyebrow
+ *  - scwEntityCard: a compact "entity" cell — thumbnail + eyebrow + title, with
+ *    the eyebrow glyph rendered as a decorative right-edge watermark and beside
+ *    each value in the set filter. Value shape:
+ *      { image: {src,width,alt,href}|null, title, titleHref,
+ *        eyebrow, eyebrowFull, eyebrowHref, eyebrowIcon: {src,...}|null }
+ *    eyebrow = display label; eyebrowFull = the set-filter value (falls back to
+ *    eyebrow); eyebrowIcon = the brand glyph.
+ *  - scwStackedValue: a primary line over an optional muted secondary line, with
+ *    a raw number for sort / the number filter. Value shape:
+ *      { value: <number>, text: <primary string>, sub: <secondary string>|null }
  */
 ( function () {
 	'use strict';
@@ -167,8 +172,9 @@
 			}
 			fields.forEach( function ( f ) {
 				var v = d[ f ];
-				if ( v && v.eyebrow && v.eyebrowIcon && v.eyebrowIcon.src ) {
-					eyebrowIcons[ v.eyebrow ] = v.eyebrowIcon.src;
+				var label = v && ( v.eyebrowFull || v.eyebrow );
+				if ( label && v.eyebrowIcon && v.eyebrowIcon.src ) {
+					eyebrowIcons[ label ] = v.eyebrowIcon.src;
 				}
 			} );
 		} );
@@ -211,7 +217,7 @@
 			},
 			filterValueGetter: function ( params ) {
 				var v = params.data && params.data[ params.colDef.field ];
-				return ( v && v.eyebrow ) || null;
+				return ( v && ( v.eyebrowFull || v.eyebrow ) ) || null;
 			},
 			// Show the eyebrow glyph beside each value in the set filter.
 			filterParams: {

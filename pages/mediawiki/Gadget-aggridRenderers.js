@@ -144,6 +144,59 @@
 		return v && typeof v.value === 'number' ? v.value : null;
 	}
 
+	// eyebrow label -> resolved eyebrow-icon src, harvested from scwEntityCard rows
+	// on mount. The card's set-filter itemRenderer reads it to show the glyph beside
+	// each value. Global (icons are the same across grids); merged per mount.
+	var eyebrowIcons = Object.create( null );
+
+	// Record each scwEntityCard column's eyebrow -> icon src from the loaded rows.
+	function harvestEyebrowIcons( api, gridOptions ) {
+		var fields = ( gridOptions.columnDefs || [] ).filter( function ( c ) {
+			var t = c && c.type;
+			return t === 'scwEntityCard' || ( Array.isArray( t ) && t.indexOf( 'scwEntityCard' ) !== -1 );
+		} ).map( function ( c ) {
+			return c.field;
+		} ).filter( Boolean );
+		if ( !fields.length ) {
+			return;
+		}
+		api.forEachNode( function ( node ) {
+			var d = node.data;
+			if ( !d ) {
+				return;
+			}
+			fields.forEach( function ( f ) {
+				var v = d[ f ];
+				if ( v && v.eyebrow && v.eyebrowIcon && v.eyebrowIcon.src ) {
+					eyebrowIcons[ v.eyebrow ] = v.eyebrowIcon.src;
+				}
+			} );
+		} );
+	}
+
+	// Set-filter itemRenderer for a card column: the eyebrow's glyph (when known)
+	// beside the value label, painted as a currentColor mask like the card itself.
+	function eyebrowFilterItem( params ) {
+		var row = document.createElement( 'span' );
+		row.className = 'scw-entitycard-filter';
+		var src = eyebrowIcons[ params.label ];
+		if ( src && SAFE_HREF.test( src ) && !/["')]/.test( src ) ) {
+			var icon = document.createElement( 'span' );
+			icon.className = 'scw-entitycard-filter__icon';
+			icon.style.setProperty( '--scw-entitycard-icon', 'url("' + src + '")' );
+			row.appendChild( icon );
+		}
+		var label = document.createElement( 'span' );
+		label.className = 'scw-entitycard-filter__label';
+		label.textContent = params.label != null ? params.label : '';
+		row.appendChild( label );
+		return row;
+	}
+
+	mw.hook( 'ext.aggrid.gridReady' ).add( function ( api, el, gridOptions ) {
+		harvestEyebrowIcons( api, gridOptions );
+	} );
+
 	mw.hook( 'ext.aggrid.register' ).add( function ( reg ) {
 		reg.columnTypes.scwEntityCard = {
 			cellRenderer: function ( params ) {
@@ -159,6 +212,10 @@
 			filterValueGetter: function ( params ) {
 				var v = params.data && params.data[ params.colDef.field ];
 				return ( v && v.eyebrow ) || null;
+			},
+			// Show the eyebrow glyph beside each value in the set filter.
+			filterParams: {
+				itemRenderer: eyebrowFilterItem
 			},
 			comparator: function ( a, b ) {
 				return String( ( a && a.title ) || '' )

@@ -85,6 +85,29 @@
 	white-space: nowrap;
 }
 
+/* Set-filter row for a card column: the eyebrow glyph beside the value label,
+   painted in the popup's currentColor (full opacity, unlike the watermark). */
+.scw-entitycard-filter {
+	display: inline-flex;
+	align-items: center;
+	gap: var( --space-xxs );
+}
+
+.scw-entitycard-filter__icon {
+	flex: none;
+	width: 1em;
+	height: 1em;
+	background-color: currentColor;
+	-webkit-mask-image: var( --scw-entitycard-icon );
+	mask-image: var( --scw-entitycard-icon );
+	-webkit-mask-repeat: no-repeat;
+	mask-repeat: no-repeat;
+	-webkit-mask-position: center;
+	mask-position: center;
+	-webkit-mask-size: contain;
+	mask-size: contain;
+}
+
 /* Stacked value: a primary line over an optional muted secondary (e.g. the
    current price over the original). Right-aligned to match numeric columns. */
 .scw-stackedvalue {

@@ -17,9 +17,28 @@ local aggrid = require('mw.ext.aggrid')
 
 local p = {}
 
--- Source thumbnail width in px. The display height is fixed to 56px by
--- styles.css (width:auto), so this only governs image resolution.
+-- Source thumbnail width in px. The display size is fixed by styles.css, so this
+-- only governs image resolution.
 local IMAGE_WIDTH = 120
+
+-- Source width in px for the manufacturer brand glyph in the card eyebrow.
+local GLYPH_WIDTH = 40
+
+-- Manufacturer display name -> { code, short }, from the maintained
+-- Module:Manufacturers/data.json (keyed CODE -> { name, short }). `code` resolves
+-- the brand glyph (File:Sc-icon-brand-<code>.svg); `short` is the compact label
+-- shown in the card eyebrow. Built once at module load.
+local MANUFACTURER = {}
+do
+	local ok, data = pcall(mw.loadJsonData, 'Module:Manufacturers/data.json')
+	if ok and type(data) == 'table' then
+		for code, entry in pairs(data) do
+			if type(entry) == 'table' and entry.name then
+				MANUFACTURER[entry.name] = { code = tostring(code):lower(), short = entry.short }
+			end
+		end
+	end
+end
 
 -- Decode a single scalar SMW value to clean text.
 local function decodeScalar(value)
@@ -133,6 +152,57 @@ local function buildLinkList(value)
 	return aggrid.linkList(targets)
 end
 
+-- Build the structured value for the combined "Vehicle" card cell consumed by the
+-- scwEntityCard renderer (SCW gadget): a thumbnail (image), the ship name as the
+-- title, and the manufacturer as the eyebrow (text + brand glyph icon). Every
+-- file/URL target is resolved server-side here; the renderer only builds DOM from
+-- this value. Returns nil when the row has no resolvable page.
+local function buildCard(result)
+	local nameTarget, nameDisplay = parseLink(result['Name'])
+	if not nameTarget then
+		return nil
+	end
+	local nameLink = aggrid.link(nameTarget, nameDisplay)
+	local card = {
+		title = (nameLink and nameLink.text) or nameDisplay or nameTarget,
+		titleHref = nameLink and nameLink.href,
+		image = buildThumb(result['Image'], nameTarget),
+	}
+	local mfrTarget, mfrDisplay = parseLink(result['Manufacturer'])
+	if mfrTarget then
+		local mfrName = mfrDisplay or mfrTarget
+		local info = MANUFACTURER[mfrName]
+		-- Compact eyebrow label: the manufacturer's short name, falling back to the
+		-- full name. The link still targets the full manufacturer page.
+		card.eyebrow = (info and info.short) or mfrName
+		local mfrLink = aggrid.link(mfrTarget, mfrName)
+		card.eyebrowHref = mfrLink and mfrLink.href
+		-- Brand glyph: best-effort. The renderer paints it as a CSS mask; the media
+		-- host sends CORS headers, so the resolved (cross-origin) URL works. A nil
+		-- code or missing file yields a text-only eyebrow (aggrid.thumb returns nil).
+		if info and info.code then
+			card.eyebrowIcon = aggrid.thumb('File:Sc-icon-brand-' .. info.code .. '.svg', GLYPH_WIDTH)
+		end
+	end
+	return card
+end
+
+-- Build a stacked-value cell for the scwStackedValue renderer: a primary number
+-- over an optional muted secondary (the original price), shown only when it
+-- differs from the current. `value` is the raw current number, kept for sort and
+-- the number filter; `text`/`sub` are the formatted display lines.
+local function buildPriceStack(current, original)
+	if current == nil then
+		return nil
+	end
+	local lang = mw.getContentLanguage()
+	local stack = { value = current, text = '$' .. lang:formatNum(current) }
+	if original ~= nil and original ~= current then
+		stack.sub = '$' .. lang:formatNum(original)
+	end
+	return stack
+end
+
 -- Numeric display formats. The extension applies these client-side via Intl on
 -- the real number, so the underlying value (and thus sort / filter / set-filter
 -- / CSV export) stays numeric -- only the rendered text gains grouping and a
@@ -153,13 +223,15 @@ local FMT_PLAIN = { style = 'number' } -- grouping only; SMW stores no unit
 -- `kind` selects a rich renderer; `num` marks numeric; `format` is its numeric
 -- display spec (see above). `filter` overrides the default column filter -- the
 -- low-cardinality categorical columns use the extension's checkbox set filter
--- ('aggridSet'). `w` is an explicit width (currently UNUSED -- the grid
--- auto-sizes via autoSizeStrategy; retained so buildColumnDefs can switch back
--- to fixed widths if needed).
+-- ('aggridSet'). `w` is an explicit width: the auto-sizing columns ignore it
+-- (the grid auto-sizes via autoSizeStrategy; retained so buildColumnDefs can
+-- switch back to fixed widths), but the card column uses it because its custom
+-- DOM does not auto-size meaningfully.
 local COLUMNS = {
-	{ field = 'image', label = 'Image', header = 'Image', kind = 'image', w = 135 },
-	{ field = 'name', label = 'Name', header = 'Name', kind = 'link', w = 150 },
-	{ field = 'manufacturer', label = 'Manufacturer', header = 'Manufacturer', filter = 'aggridSet', w = 175 },
+	-- One card cell replaces the former Image + Name + Manufacturer columns:
+	-- thumbnail + manufacturer eyebrow + ship name. Rendered by the scwEntityCard
+	-- column type (SCW gadget); sorts by name, set filter lists manufacturers.
+	{ field = 'vehicle', header = 'Vehicle', kind = 'card', filter = 'aggridSet', w = 300 },
 	{ field = 'career', label = 'Career', header = 'Career', filter = 'aggridSet', w = 110 },
 	{ field = 'role', label = 'Role', header = 'Role', filter = 'aggridSet', w = 180 },
 	{ field = 'size', label = 'Size', header = 'Size', filter = 'aggridSet', w = 80 },
@@ -171,16 +243,23 @@ local COLUMNS = {
 		filter = 'aggridSet',
 		w = 140,
 	},
-	{ field = 'pledge', label = 'Pledge', header = 'Pledge', num = true, format = FMT_DOLLARS, w = 85 },
-	{ field = 'origPledge', label = 'Orig pledge', header = 'Orig pledge', num = true, format = FMT_DOLLARS, w = 90 },
-	{ field = 'warbond', label = 'Warbond', header = 'Warbond', num = true, format = FMT_DOLLARS, w = 90 },
+	-- Pledge / Warbond each stack the current price over the original (when the
+	-- original differs), rendered by the scwStackedValue column type.
 	{
-		field = 'origWarbond',
-		label = 'Orig warbond',
-		header = 'Orig warbond',
-		num = true,
-		format = FMT_DOLLARS,
-		w = 95,
+		field = 'pledge',
+		header = 'Pledge',
+		kind = 'priceStack',
+		curLabel = 'Pledge',
+		origLabel = 'Orig pledge',
+		w = 90,
+	},
+	{
+		field = 'warbond',
+		header = 'Warbond',
+		kind = 'priceStack',
+		curLabel = 'Warbond',
+		origLabel = 'Orig warbond',
+		w = 90,
 	},
 	{ field = 'loaner', label = 'Loaner', header = 'Loaner', kind = 'linkList', w = 160 },
 	{ field = 'avgPrice', label = 'Avg purchase', header = 'Avg purchase', num = true, format = FMT_AUEC, w = 105 },
@@ -248,22 +327,18 @@ end
 local function buildRowData(results)
 	local rows = {}
 	for _, result in ipairs(results) do
-		-- Resolve the row's own page title once; it links the Name cell and is
-		-- the click target for the thumbnail.
-		local nameTarget, nameDisplay = parseLink(result['Name'])
 		local row = {}
 		for _, col in ipairs(COLUMNS) do
-			local raw = result[col.label]
-			if col.num then
-				row[col.field] = toNumber(raw)
-			elseif col.kind == 'link' then
-				row[col.field] = nameTarget and aggrid.link(nameTarget, nameDisplay) or nil
-			elseif col.kind == 'image' then
-				row[col.field] = buildThumb(raw, nameTarget)
+			if col.kind == 'card' then
+				row[col.field] = buildCard(result)
+			elseif col.kind == 'priceStack' then
+				row[col.field] = buildPriceStack(toNumber(result[col.curLabel]), toNumber(result[col.origLabel]))
+			elseif col.num then
+				row[col.field] = toNumber(result[col.label])
 			elseif col.kind == 'linkList' then
-				row[col.field] = buildLinkList(raw)
+				row[col.field] = buildLinkList(result[col.label])
 			else
-				row[col.field] = toText(raw)
+				row[col.field] = toText(result[col.label])
 			end
 		end
 		rows[#rows + 1] = row
@@ -290,19 +365,33 @@ local function buildColumnDefs()
 	local defs = {}
 	for _, col in ipairs(COLUMNS) do
 		local def
-		if col.kind == 'image' then
-			def = aggrid.imageColumn({
+		if col.kind == 'card' then
+			-- The scwEntityCard column type (SCW gadget) supplies the cellRenderer,
+			-- the name comparator, and the manufacturer valueFormatter the set
+			-- filter reads. Pin a width and skip auto-sizing: the custom card DOM
+			-- does not measure meaningfully under fitCellContents.
+			def = {
 				field = col.field,
-				header = col.header,
-				sortable = false,
-				filter = false,
-			})
-		elseif col.kind == 'link' then
-			def = aggrid.linkColumn({
+				headerName = col.header,
+				type = 'scwEntityCard',
+				filter = col.filter or 'aggridSet',
+				sortable = true,
+				width = col.w,
+				suppressAutoSize = true,
+			}
+		elseif col.kind == 'priceStack' then
+			-- scwStackedValue (SCW gadget) renders the stack and supplies the
+			-- comparator + filterValueGetter that key on the current price.
+			def = {
 				field = col.field,
-				header = col.header,
-				filter = col.filter or 'agTextColumnFilter',
-			})
+				headerName = col.header,
+				type = 'scwStackedValue',
+				filter = 'agNumberColumnFilter',
+				cellClass = 'ag-right-aligned-cell',
+				headerClass = 'ag-right-aligned-header',
+				width = col.w,
+				suppressAutoSize = true,
+			}
 		elseif col.kind == 'linkList' then
 			def = aggrid.linkListColumn({
 				field = col.field,
@@ -340,8 +429,8 @@ function p.main(frame)
 		-- No pagination: all vehicles in one virtualised, internally-scrolling
 		-- grid. Only the visible rows are ever in the DOM.
 		pagination = false,
-		-- Match the 56px thumbnail height (set in styles.css).
-		rowHeight = 56,
+		-- Row height tuned to the card cell (thumbnail + two text lines).
+		rowHeight = 64,
 		-- Auto-size each column to its content. (Columns also carry an explicit
 		-- `w` in COLUMNS, currently unused; switch buildColumnDefs back to it for
 		-- deterministic widths.)

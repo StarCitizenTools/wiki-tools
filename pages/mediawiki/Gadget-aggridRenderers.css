@@ -1,0 +1,103 @@
+/*
+ * Styles for the cells built by MediaWiki:Gadget-aggridRenderers.js.
+ *
+ * Site CSS (not TemplateStyles), so it can use mask-image + currentColor to tint
+ * monochrome glyphs to the theme. Uses Citizen design tokens. Loaded with the
+ * gadget, only on grid pages.
+ *
+ *  scwEntityCard: thumbnail + eyebrow over a title, with a decorative brand
+ *  watermark on the right.
+ */
+.scw-entitycard {
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: var( --space-sm );
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+}
+
+/* Decorative brand glyph: a faint watermark hugging the cell's right edge,
+   vertically centred and behind the content. Painted as a currentColor mask so it
+   adapts to the theme. The file URL is supplied by the renderer as the
+   --scw-entitycard-icon custom property. */
+.scw-entitycard__watermark {
+	position: absolute;
+	inset-block: 0;
+	right: 0;
+	z-index: 0; /* keep the content (positioned, no z-index) painting above it */
+	width: 3rem;
+	opacity: 0.2;
+	background-color: currentColor;
+	-webkit-mask-image: var( --scw-entitycard-icon );
+	mask-image: var( --scw-entitycard-icon );
+	-webkit-mask-repeat: no-repeat;
+	mask-repeat: no-repeat;
+	-webkit-mask-position: center;
+	mask-position: center;
+	-webkit-mask-size: contain;
+	mask-size: contain;
+	pointer-events: none;
+}
+
+.scw-entitycard__media {
+	position: relative;
+	flex: none;
+	display: block;
+	width: 56px;
+	height: 56px;
+}
+
+.scw-entitycard__image {
+	width: 56px;
+	height: 56px;
+	object-fit: cover;
+	border-radius: var( --border-radius-base );
+}
+
+.scw-entitycard__body {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	min-width: 0;
+	line-height: 1;
+	row-gap: var( --space-xxs );
+}
+
+.scw-entitycard__eyebrow {
+	display: block;
+	overflow: hidden;
+	color: var( --color-subtle );
+	font-size: var( --font-size-x-small );
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.scw-entitycard__title {
+	display: block;
+	overflow: hidden;
+	color: var( --color-emphasized );
+	font-size: var( --font-size-small );
+	font-weight: var( --font-weight-medium );
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* Stacked value: a primary line over an optional muted secondary (e.g. the
+   current price over the original). Right-aligned to match numeric columns. */
+.scw-stackedvalue {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: flex-end;
+	width: 100%;
+	line-height: 1;
+	row-gap: var( --space-xxs );
+}
+
+.scw-stackedvalue__secondary {
+	color: var( --color-subtle );
+	font-size: var( --font-size-x-small );
+}

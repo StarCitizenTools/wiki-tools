@@ -331,6 +331,13 @@
 	transform: translateY( -50% );
 }
 
+/* The alt parenthetical stacks under the value here: as one nowrap line it
+   grows rightward off the diagram's widest corner with the user's font size
+   and can clip at larger font preferences (e.g. "30.5 m (8.75 m)") */
+.t-dimensions-text--height .t-dimensions-value-subtle {
+	display: block;
+}
+
 /* Footer: mass + reference legend */
 .t-dimensions-footer {
 	display: flex;

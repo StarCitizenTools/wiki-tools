@@ -9,9 +9,29 @@ require('strict')
 --- reference, mass in the footer). Cargo leads because it has gameplay
 --- implication. The section hides entirely when an item has neither box.
 ---
---- Reads the non-deprecated `dimensions` field, never `true_dimension`.
+--- This is a thin Star Citizen adapter over the domain-agnostic
+--- Module:Dimensions: it owns the SC-specific cargo reference (the SCU box) and
+--- the metric formatting (Volume in SCU, Mass in kg), and borrows the generic
+--- human/banana references from Module:Dimensions/presets. Reads the
+--- non-deprecated `dimensions` field, never `true_dimension`.
 
 local dimensions = require('Module:Dimensions')
+local presets = require('Module:Dimensions/presets')
+
+local lang = mw.getContentLanguage()
+
+--- The standard CIG 1 SCU cargo container, the unit cube of cargo. SC-specific,
+--- so it lives here rather than in the generic presets.
+--- @type table
+local SCU_BOX = {
+	length = 1.25,
+	width = 1.25,
+	height = 1.25,
+	label = '1 SCU box · 1.25 m',
+	color = '#c8742d',
+	colorLight = '#e0a25c',
+	colorDark = '#8a4e1d',
+}
 
 local p = {}
 
@@ -48,13 +68,20 @@ local function cargoBox(dim)
 		return nil
 	end
 	local box = dim.cargo_dimension
+	local metrics = {}
+	local volume = tonumber(dim.volume_converted)
+	if volume then
+		metrics[1] = {
+			label = 'Volume',
+			value = lang:formatNum(volume) .. ' ' .. (dim.volume_converted_unit or 'SCU'),
+		}
+	end
 	return dimensions._main({
 		length = box.length,
 		width = box.width,
 		height = box.height,
-		referenceType = 'scuBox',
-		volume = dim.volume_converted,
-		volumeUnit = dim.volume_converted_unit or 'SCU',
+		reference = SCU_BOX,
+		metrics = metrics,
 	})
 end
 
@@ -70,12 +97,16 @@ local function physicalBox(dim, mass)
 		return nil
 	end
 	local box = dim.dimensions
+	local metrics = {}
+	if mass then
+		metrics[1] = { label = 'Mass', value = lang:formatNum(mass) .. ' kg' }
+	end
 	return dimensions._main({
 		length = box.length,
 		width = box.width,
 		height = box.height,
-		referenceType = 'auto',
-		mass = mass,
+		reference = presets.resolveAuto(math.max(box.length, box.width, box.height)),
+		metrics = metrics,
 	})
 end
 

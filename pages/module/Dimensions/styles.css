@@ -20,9 +20,10 @@
 	--t-dimensions-ref-clear: 0px;
 
 	/* Reference color trio, consumed by the cuboid faces AND the legend
-	   swatch; override the three in a .t-dimensions--ref-<type> block to
-	   recolor a reference type in one place. Light/dark would ideally be
-	   color-mix() of the base, but the sanitizer rejects color-mix. */
+	   swatch; this is the default, overridden per render by the inline
+	   --t-dimensions-ref-color* custom properties the module sets from the
+	   caller's reference.color. Light/dark would ideally be color-mix() of the
+	   base, but the sanitizer rejects color-mix. */
 	--t-dimensions-ref-color: var( --color-progressive );
 	--t-dimensions-ref-color-light: #5c9ad4;
 	--t-dimensions-ref-color-dark: #1a4d7a;
@@ -190,20 +191,6 @@
 
 .t-dimensions-box--reference .t-dimensions-face--right {
 	background-color: var( --t-dimensions-ref-color );
-}
-
-/* Banana: yellow, as nature intended */
-.t-dimensions--ref-banana {
-	--t-dimensions-ref-color: #d9b73e;
-	--t-dimensions-ref-color-light: #ecd06c;
-	--t-dimensions-ref-color-dark: #8f7722;
-}
-
-/* SCU cargo box: industrial-crate amber */
-.t-dimensions--ref-scuBox {
-	--t-dimensions-ref-color: #c8742d;
-	--t-dimensions-ref-color-light: #e0a25c;
-	--t-dimensions-ref-color-dark: #8a4e1d;
 }
 
 /* Measurement lines */

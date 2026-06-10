@@ -19,6 +19,14 @@
 	--t-dimensions-ref-height: 0px;
 	--t-dimensions-ref-clear: 0px;
 
+	/* Reference color trio, consumed by the cuboid faces AND the legend
+	   swatch; override the three in a .t-dimensions--ref-<type> block to
+	   recolor a reference type in one place. Light/dark would ideally be
+	   color-mix() of the base, but the sanitizer rejects color-mix. */
+	--t-dimensions-ref-color: var( --color-progressive );
+	--t-dimensions-ref-color-light: #5c9ad4;
+	--t-dimensions-ref-color-dark: #1a4d7a;
+
 	/* The ref term budgets a reference taller than the object: its top rises (ref-h - box-h/2) above center, so the symmetric budget needs 2*ref-h - box-h. Collapses to box-h when ref <= box.
 	   The space-md * 5 allowance covers the in-plane labels overhanging below the diamond (offset + up to three text rows, font-scaled since the token is rem-based). */
 	--t-dimensions-stage-height: calc(
@@ -168,22 +176,27 @@
 }
 
 .t-dimensions-box--reference .t-dimensions-face {
-	box-shadow: 0 0 0 1px var( --color-progressive );
+	box-shadow: 0 0 0 1px var( --t-dimensions-ref-color );
 	opacity: 0.75;
 }
 
-/* Static tints: the TemplateStyles sanitizer hard-rejects color-mix(), so
-   these approximate --color-progressive mixed 75% with white/black */
 .t-dimensions-box--reference .t-dimensions-face--top {
-	background-color: #5c9ad4;
+	background-color: var( --t-dimensions-ref-color-light );
 }
 
 .t-dimensions-box--reference .t-dimensions-face--front {
-	background-color: #1a4d7a;
+	background-color: var( --t-dimensions-ref-color-dark );
 }
 
 .t-dimensions-box--reference .t-dimensions-face--right {
-	background-color: var( --color-progressive );
+	background-color: var( --t-dimensions-ref-color );
+}
+
+/* Banana: yellow, as nature intended */
+.t-dimensions--ref-banana {
+	--t-dimensions-ref-color: #d9b73e;
+	--t-dimensions-ref-color-light: #ecd06c;
+	--t-dimensions-ref-color-dark: #8f7722;
 }
 
 /* Measurement lines */
@@ -377,7 +390,7 @@
 	width: 9px;
 	height: 9px;
 	border-radius: var( --border-radius-base );
-	background: var( --color-progressive );
+	background: var( --t-dimensions-ref-color );
 	opacity: 0.8;
 }
 

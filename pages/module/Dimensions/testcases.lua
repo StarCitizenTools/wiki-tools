@@ -47,6 +47,12 @@ function suite:testParseArgsKnownReference()
 	self:assertEquals(1.8, data.reference.height)
 end
 
+function suite:testParseArgsBananaReference()
+	local data = internal.parseArgs({ length = '1', width = '1', height = '1', referenceType = 'banana' })
+	self:assertEquals('banana', data.referenceType)
+	self:assertEquals(0.2, data.reference.length)
+end
+
 function suite:testParseArgsUnknownReferenceIgnored()
 	local data = internal.parseArgs({ length = '18', width = '8', height = '4', referenceType = 'dragon' })
 	self:assertEquals(nil, data.reference)
@@ -81,6 +87,12 @@ function suite:testMainEmitsAltDataAttributes()
 	local html = Dimensions._main({ length = '26', width = '4', height = '5', lengthAlt = '22' })
 	self:assertStringContains('data-length-alt="22"', html, true)
 	self:assertEquals(nil, string.find(html, 'data-width-alt', 1, true))
+end
+
+function suite:testMainEmitsReferenceModifierClass()
+	local html = Dimensions._main({ length = '1', width = '1', height = '1', referenceType = 'banana' })
+	self:assertStringContains('t-dimensions--ref-banana', html, true)
+	self:assertStringContains('data-reference="banana"', html, true)
 end
 
 function suite:testMainOmitsAbsentDataAttributes()

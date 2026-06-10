@@ -29,6 +29,12 @@ local REFERENCE_TYPES = {
 		height = 1.8,
 		legend = 'Human · 1.8 m',
 	},
+	banana = {
+		length = 0.2,
+		width = 0.05,
+		height = 0.05,
+		legend = 'Banana · 0.2 m',
+	},
 }
 
 --- Format a number with thousands separators and a unit.
@@ -193,11 +199,18 @@ local function getHtml(data)
 		container:attr('data-mass', tostring(data.mass))
 	end
 	if data.reference then
-		container:addClass('t-dimensions--has-reference'):attr('data-reference', data.referenceType):css({
-			['--t-dimensions-reference-length'] = tostring(data.reference.length),
-			['--t-dimensions-reference-width'] = tostring(data.reference.width),
-			['--t-dimensions-reference-height'] = tostring(data.reference.height),
-		})
+		container
+			:addClass('t-dimensions--has-reference')
+			-- Per-type styling hook, e.g. the banana's yellow tint
+			:addClass(
+				't-dimensions--ref-' .. data.referenceType
+			)
+			:attr('data-reference', data.referenceType)
+			:css({
+				['--t-dimensions-reference-length'] = tostring(data.reference.length),
+				['--t-dimensions-reference-width'] = tostring(data.reference.width),
+				['--t-dimensions-reference-height'] = tostring(data.reference.height),
+			})
 	end
 
 	-- Screen-reader summary; the visual scene is aria-hidden

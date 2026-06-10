@@ -182,19 +182,6 @@ end
 --- @param args table
 --- @return table[] Ordered list of section entries with key field
 function p.getSections(apiData, args)
-	local dim = apiData.dimension
-	local trueDim = dim and dim.true_dimension
-
-	local dimensionContent = nil
-	if trueDim then
-		dimensionContent = tostring(trueDim.length)
-			.. ' x '
-			.. tostring(trueDim.width)
-			.. ' x '
-			.. tostring(trueDim.height)
-			.. ' m'
-	end
-
 	local manufacturer = base.resolveManufacturer(apiData, args)
 	local manufacturerLink = nil
 	if manufacturer then
@@ -205,6 +192,8 @@ function p.getSections(apiData, args)
 		end
 	end
 
+	-- Volume, mass, and the dimension diagram are now rendered by the dimension
+	-- facet (Module:Entity/Facet/Dimensions) as a section above Metadata.
 	return {
 		{
 			key = 'general',
@@ -216,17 +205,6 @@ function p.getSections(apiData, args)
 				{ label = 'Size', content = apiData.size and tostring(apiData.size) },
 				{ label = 'Class', content = classContent(apiData) },
 				{ label = 'Grade', content = gradeContent(apiData) },
-				{
-					label = 'Volume',
-					content = dim
-						and dim.volume_converted
-						and (format.formatNum(dim.volume_converted) .. ' ' .. (dim.volume_converted_unit or 'SCU')),
-				},
-				{
-					label = 'Mass',
-					content = apiData.mass and (format.formatNum(apiData.mass) .. ' kg'),
-				},
-				{ label = 'Dimension', content = dimensionContent },
 			},
 		},
 	}

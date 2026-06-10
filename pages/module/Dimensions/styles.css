@@ -199,6 +199,13 @@
 	--t-dimensions-ref-color-dark: #8f7722;
 }
 
+/* SCU cargo box: industrial-crate amber */
+.t-dimensions--ref-scuBox {
+	--t-dimensions-ref-color: #c8742d;
+	--t-dimensions-ref-color-light: #e0a25c;
+	--t-dimensions-ref-color-dark: #8a4e1d;
+}
+
 /* Measurement lines */
 .t-dimensions-line {
 	position: absolute;

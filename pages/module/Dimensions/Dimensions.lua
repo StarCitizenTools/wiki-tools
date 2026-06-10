@@ -20,7 +20,8 @@ local p = {}
 local lang = mw.getContentLanguage()
 
 --- Reference objects selectable via the referenceType argument.
---- Dimensions are metres. Adding a type is one entry here, nothing else.
+--- Dimensions are metres. Adding a type is one entry here plus a slot in
+--- REFERENCE_LADDER below.
 --- @type table<string, { length: number, width: number, height: number, legend: string }>
 local REFERENCE_TYPES = {
 	human = {
@@ -39,6 +40,27 @@ local REFERENCE_TYPES = {
 		legend = 'Banana · 0.2 m',
 	},
 }
+
+--- Size ladder for referenceType = 'auto', ordered largest first.
+--- @type string[]
+local REFERENCE_LADDER = { 'human', 'banana' }
+
+--- Pick the largest reference that does not exceed the object's longest
+--- dimension, so the reference informs without dominating. Objects smaller
+--- than every reference get the smallest one: being dwarfed by a banana IS
+--- the scale story.
+---
+--- @param longest number the object's longest dimension in metres
+--- @return string key into REFERENCE_TYPES
+local function resolveAutoReference(longest)
+	for _, key in ipairs(REFERENCE_LADDER) do
+		local ref = REFERENCE_TYPES[key]
+		if math.max(ref.length, ref.width, ref.height) <= longest then
+			return key
+		end
+	end
+	return REFERENCE_LADDER[#REFERENCE_LADDER]
+end
 
 --- Format a number with thousands separators and a unit.
 ---
@@ -97,9 +119,13 @@ local function parseArgs(args)
 		data.heightAlt = nil
 	end
 
-	if args.referenceType and REFERENCE_TYPES[args.referenceType] then
-		data.referenceType = args.referenceType
-		data.reference = REFERENCE_TYPES[args.referenceType]
+	local referenceType = args.referenceType
+	if referenceType == 'auto' then
+		referenceType = resolveAutoReference(math.max(length, width, height))
+	end
+	if referenceType and REFERENCE_TYPES[referenceType] then
+		data.referenceType = referenceType
+		data.reference = REFERENCE_TYPES[referenceType]
 	end
 
 	return data

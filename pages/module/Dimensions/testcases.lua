@@ -58,6 +58,28 @@ function suite:testParseArgsUnknownReferenceIgnored()
 	self:assertEquals(nil, data.reference)
 end
 
+-- referenceType = 'auto' (size ladder)
+
+function suite:testAutoPicksHumanForLargeObjects()
+	local data = internal.parseArgs({ length = '18', width = '8', height = '4', referenceType = 'auto' })
+	self:assertEquals('human', data.referenceType)
+end
+
+function suite:testAutoPicksHumanAtExactThreshold()
+	local data = internal.parseArgs({ length = '0.5', width = '0.5', height = '1.8', referenceType = 'auto' })
+	self:assertEquals('human', data.referenceType)
+end
+
+function suite:testAutoPicksBananaForMediumObjects()
+	local data = internal.parseArgs({ length = '1', width = '0.5', height = '0.3', referenceType = 'auto' })
+	self:assertEquals('banana', data.referenceType)
+end
+
+function suite:testAutoFallsBackToSmallestForTinyObjects()
+	local data = internal.parseArgs({ length = '0.1', width = '0.1', height = '0.1', referenceType = 'auto' })
+	self:assertEquals('banana', data.referenceType)
+end
+
 -- formatValue()
 
 function suite:testFormatValuePlain()

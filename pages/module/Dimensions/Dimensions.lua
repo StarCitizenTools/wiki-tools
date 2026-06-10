@@ -2,78 +2,37 @@ require('strict')
 
 --- Module:Dimensions
 --- Renders an isometric CSS-3D diagram of an object's bounding box at honest
---- scale: measurement lines with end ticks on every axis, an optional
---- reference object standing on the same ground plane, and a footer bar
---- carrying the mass and the reference legend.
+--- scale: measurement lines with end ticks on every axis, an optional reference
+--- object on the same ground plane, and a footer bar carrying caller-supplied
+--- metrics and the reference legend.
+---
+--- Domain-agnostic: the module knows nothing about what it is measuring. The
+--- caller supplies the reference cuboid and any footer metrics; there are no
+--- built-in reference objects and no unit assumptions beyond metres for the
+--- geometry labels. Reusable outside any particular wiki. Common scale
+--- references live in the companion Module:Dimensions/presets.
 ---
 --- Machine-readable contract: the root element exposes raw SI values via
 --- data-length / data-width / data-height (+ data-*-alt when an alternate
---- value renders), data-mass, data-volume (+ data-volume-unit) and
---- data-reference.
+--- value renders).
 ---
 --- Public interface:
---- { length, width, height, lengthAlt, widthAlt, heightAlt, mass, volume,
---- volumeUnit, referenceType } in, HTML string (or nil on invalid required
---- args) out. volume + volumeUnit render a footer metric in place of mass
---- (cargo diagrams); volumeUnit defaults to SCU.
---- Consumers: Module:Vehicle, Module:Item.
+--- {
+---   length, width, height,           -- required, metres
+---   lengthAlt, widthAlt, heightAlt,  -- optional, metres
+---   reference = {                    -- optional, a single resolved reference
+---     length, width, height,         -- metres
+---     label,                         -- legend text, e.g. 'Human · 1.8 m'
+---     color, colorLight, colorDark,  -- optional colour trio; CSS default else
+---   },
+---   metrics = {                      -- optional, ordered footer metrics
+---     { label = string, value = string },  -- value is a pre-formatted display string
+---   },
+--- } in, HTML string (or nil on invalid required args) out.
 
 local p = {}
 
 local lang = mw.getContentLanguage()
-
---- Reference objects selectable via the referenceType argument.
---- Dimensions are metres. Adding a type is one entry here plus a slot in
---- REFERENCE_LADDER below.
---- @type table<string, { length: number, width: number, height: number, legend: string }>
-local REFERENCE_TYPES = {
-	human = {
-		length = 0.3,
-		width = 0.5,
-		height = 1.8,
-		legend = 'Human · 1.8 m',
-	},
-	-- Standing upright: the slim footprint keeps it from dominating the
-	-- ground plane next to small items, and the 0.2 m height reads directly
-	-- against the object's height
-	banana = {
-		length = 0.05,
-		width = 0.05,
-		height = 0.2,
-		legend = 'Banana · 0.2 m',
-	},
-	-- The standard CIG 1 SCU cargo container, the unit cube of cargo. Selected
-	-- only via an explicit referenceType='scuBox' (cargo diagrams); deliberately
-	-- absent from REFERENCE_LADDER so physical-object auto-selection never picks
-	-- it.
-	scuBox = {
-		length = 1.25,
-		width = 1.25,
-		height = 1.25,
-		legend = '1 SCU box · 1.25 m',
-	},
-}
-
---- Size ladder for referenceType = 'auto', ordered largest first.
---- @type string[]
-local REFERENCE_LADDER = { 'human', 'banana' }
-
---- Pick the largest reference that does not exceed the object's longest
---- dimension, so the reference informs without dominating. Objects smaller
---- than every reference get the smallest one: being dwarfed by a banana IS
---- the scale story.
----
---- @param longest number the object's longest dimension in metres
---- @return string key into REFERENCE_TYPES
-local function resolveAutoReference(longest)
-	for _, key in ipairs(REFERENCE_LADDER) do
-		local ref = REFERENCE_TYPES[key]
-		if math.max(ref.length, ref.width, ref.height) <= longest then
-			return key
-		end
-	end
-	return REFERENCE_LADDER[#REFERENCE_LADDER]
-end
 
 --- Format a number with thousands separators and a unit.
 ---
@@ -98,6 +57,19 @@ local function formatValue(num, unit, altNum)
 	return string.format('%s <span class="t-dimensions-value-subtle">(%s)</span>', value, formatPlain(altNum, unit))
 end
 
+--- True when t is a {length, width, height} table whose three values are all
+--- positive numbers (a drawable cuboid). Nil-safe.
+---
+--- @param t table|nil
+--- @return boolean
+local function isBox(t)
+	if type(t) ~= 'table' then
+		return false
+	end
+	local l, w, h = tonumber(t.length), tonumber(t.width), tonumber(t.height)
+	return l ~= nil and w ~= nil and h ~= nil and l > 0 and w > 0 and h > 0
+end
+
 --- Parse and validate raw arguments.
 ---
 --- @param args table
@@ -118,9 +90,10 @@ local function parseArgs(args)
 		lengthAlt = tonumber(args.lengthAlt),
 		widthAlt = tonumber(args.widthAlt),
 		heightAlt = tonumber(args.heightAlt),
-		mass = tonumber(args.mass),
-		volume = tonumber(args.volume),
-		volumeUnit = args.volumeUnit,
+		-- Pass-through, Lua-caller only (no wikitext path): a single resolved
+		-- reference cuboid and an ordered list of footer metrics.
+		reference = isBox(args.reference) and args.reference or nil,
+		metrics = type(args.metrics) == 'table' and args.metrics or nil,
 	}
 
 	-- An alternate equal to the main value carries no information
@@ -132,15 +105,6 @@ local function parseArgs(args)
 	end
 	if data.heightAlt == data.height then
 		data.heightAlt = nil
-	end
-
-	local referenceType = args.referenceType
-	if referenceType == 'auto' then
-		referenceType = resolveAutoReference(math.max(length, width, height))
-	end
-	if referenceType and REFERENCE_TYPES[referenceType] then
-		data.referenceType = referenceType
-		data.reference = REFERENCE_TYPES[referenceType]
 	end
 
 	return data
@@ -239,26 +203,24 @@ local function getHtml(data)
 	if data.heightAlt then
 		container:attr('data-height-alt', tostring(data.heightAlt))
 	end
-	if data.mass then
-		container:attr('data-mass', tostring(data.mass))
-	end
-	if data.volume then
-		container:attr('data-volume', tostring(data.volume))
-		container:attr('data-volume-unit', data.volumeUnit or 'SCU')
-	end
 	if data.reference then
-		container
-			:addClass('t-dimensions--has-reference')
-			-- Per-type styling hook, e.g. the banana's yellow tint
-			:addClass(
-				't-dimensions--ref-' .. data.referenceType
-			)
-			:attr('data-reference', data.referenceType)
-			:css({
-				['--t-dimensions-reference-length'] = tostring(data.reference.length),
-				['--t-dimensions-reference-width'] = tostring(data.reference.width),
-				['--t-dimensions-reference-height'] = tostring(data.reference.height),
-			})
+		container:addClass('t-dimensions--has-reference'):css({
+			['--t-dimensions-reference-length'] = tostring(data.reference.length),
+			['--t-dimensions-reference-width'] = tostring(data.reference.width),
+			['--t-dimensions-reference-height'] = tostring(data.reference.height),
+		})
+		-- Optional per-reference colour trio, applied inline so the stylesheet
+		-- stays free of any specific reference. Each falls back to the CSS
+		-- default when the caller omits it.
+		if data.reference.color then
+			container:css('--t-dimensions-ref-color', data.reference.color)
+		end
+		if data.reference.colorLight then
+			container:css('--t-dimensions-ref-color-light', data.reference.colorLight)
+		end
+		if data.reference.colorDark then
+			container:css('--t-dimensions-ref-color-dark', data.reference.colorDark)
+		end
 	end
 
 	-- Screen-reader summary; the visual scene is aria-hidden
@@ -275,11 +237,8 @@ local function getHtml(data)
 		summaryPart('width', data.width, data.widthAlt),
 		summaryPart('height', data.height, data.heightAlt),
 	}
-	if data.mass then
-		table.insert(summaryParts, string.format('mass %s', formatPlain(data.mass, 'kg')))
-	end
-	if data.volume then
-		table.insert(summaryParts, string.format('volume %s', formatPlain(data.volume, data.volumeUnit or 'SCU')))
+	for _, metric in ipairs(data.metrics or {}) do
+		table.insert(summaryParts, string.format('%s %s', lang:lc(metric.label), metric.value))
 	end
 	container
 		:tag('span')
@@ -316,30 +275,22 @@ local function getHtml(data)
 	layerBottom:node(buildLine('width'))
 	layerBottom:node(buildText('width', 'Width', formatValue(data.width, 'm', data.widthAlt)))
 
-	-- Footer: primary metric (volume or mass) + reference legend; omitted when
-	-- all are absent. Normal use passes exactly one metric per render (cargo
-	-- diagrams pass volume, physical diagrams pass mass).
-	if data.volume or data.mass or data.reference then
+	-- Footer: caller-supplied metrics + reference legend (omitted when both are
+	-- absent). Each metric is a { label, value } pair with a pre-formatted value.
+	local hasMetrics = data.metrics ~= nil and data.metrics[1] ~= nil
+	if hasMetrics or data.reference then
 		local footer = container:tag('div'):addClass('t-dimensions-footer')
 
-		local function addMetric(label, valueHtml)
+		for _, metric in ipairs(data.metrics or {}) do
 			local item = footer:tag('div'):addClass('t-dimensions-footer-item')
-			item:tag('span'):addClass('t-dimensions-footer-label'):wikitext(label):done()
-			item:tag('span'):addClass('t-dimensions-footer-value'):wikitext(valueHtml):done()
-		end
-
-		if data.volume then
-			addMetric('Volume', formatPlain(data.volume, data.volumeUnit or 'SCU'))
-		end
-
-		if data.mass then
-			addMetric('Mass', formatPlain(data.mass, 'kg'))
+			item:tag('span'):addClass('t-dimensions-footer-label'):wikitext(metric.label):done()
+			item:tag('span'):addClass('t-dimensions-footer-value'):wikitext(metric.value):done()
 		end
 
 		if data.reference then
 			local legend = footer:tag('div'):addClass('t-dimensions-legend')
 			legend:tag('span'):addClass('t-dimensions-swatch'):done()
-			legend:tag('span'):wikitext(data.reference.legend):done()
+			legend:tag('span'):wikitext(data.reference.label):done()
 		end
 	end
 
@@ -368,7 +319,8 @@ function p._main(args, frame)
 	}) .. tostring(getHtml(data))
 end
 
---- Wikitext entry point
+--- Wikitext entry point. Renders a bare box (reference and metrics are
+--- Lua-only, table-valued arguments).
 ---
 --- @param frame mw.frame
 --- @return string|nil
@@ -382,7 +334,7 @@ p._internal = {
 	parseArgs = parseArgs,
 	formatValue = formatValue,
 	formatPlain = formatPlain,
-	REFERENCE_TYPES = REFERENCE_TYPES,
+	isBox = isBox,
 }
 
 return p

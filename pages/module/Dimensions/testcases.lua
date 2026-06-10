@@ -41,43 +41,36 @@ function suite:testParseArgsAltKept()
 	self:assertEquals(22, data.lengthAlt)
 end
 
-function suite:testParseArgsKnownReference()
-	local data = internal.parseArgs({ length = '18', width = '8', height = '4', referenceType = 'human' })
-	self:assertEquals('human', data.referenceType)
-	self:assertEquals(1.8, data.reference.height)
+function suite:testParseArgsReferencePassthrough()
+	local ref = { length = 1.25, width = 1.25, height = 1.25, label = '1 SCU box · 1.25 m' }
+	local data = internal.parseArgs({ length = '2', width = '1', height = '1', reference = ref })
+	self:assertEquals(ref, data.reference)
 end
 
-function suite:testParseArgsBananaReference()
-	local data = internal.parseArgs({ length = '1', width = '1', height = '1', referenceType = 'banana' })
-	self:assertEquals('banana', data.referenceType)
-	self:assertEquals(0.2, data.reference.height)
-end
-
-function suite:testParseArgsUnknownReferenceIgnored()
-	local data = internal.parseArgs({ length = '18', width = '8', height = '4', referenceType = 'dragon' })
+function suite:testParseArgsInvalidReferenceDropped()
+	-- A reference missing a dimension is not a drawable box, so it is ignored.
+	local data = internal.parseArgs({ length = '2', width = '1', height = '1', reference = { length = 1, width = 1 } })
 	self:assertEquals(nil, data.reference)
 end
 
--- referenceType = 'auto' (size ladder)
-
-function suite:testAutoPicksHumanForLargeObjects()
-	local data = internal.parseArgs({ length = '18', width = '8', height = '4', referenceType = 'auto' })
-	self:assertEquals('human', data.referenceType)
+function suite:testParseArgsMetricsPassthrough()
+	local metrics = { { label = 'Mass', value = '2,000 kg' } }
+	local data = internal.parseArgs({ length = '2', width = '1', height = '1', metrics = metrics })
+	self:assertEquals(metrics, data.metrics)
 end
 
-function suite:testAutoPicksHumanAtExactThreshold()
-	local data = internal.parseArgs({ length = '0.5', width = '0.5', height = '1.8', referenceType = 'auto' })
-	self:assertEquals('human', data.referenceType)
+-- isBox()
+
+function suite:testIsBoxValid()
+	self:assertEquals(true, internal.isBox({ length = 1.25, width = 1.25, height = 1.25 }))
 end
 
-function suite:testAutoPicksBananaForMediumObjects()
-	local data = internal.parseArgs({ length = '1', width = '0.5', height = '0.3', referenceType = 'auto' })
-	self:assertEquals('banana', data.referenceType)
+function suite:testIsBoxZeroRejected()
+	self:assertEquals(false, internal.isBox({ length = 0, width = 1, height = 1 }))
 end
 
-function suite:testAutoFallsBackToSmallestForTinyObjects()
-	local data = internal.parseArgs({ length = '0.1', width = '0.1', height = '0.1', referenceType = 'auto' })
-	self:assertEquals('banana', data.referenceType)
+function suite:testIsBoxNilRejected()
+	self:assertEquals(false, internal.isBox(nil))
 end
 
 -- formatValue()
@@ -97,12 +90,10 @@ end
 -- _main()
 
 function suite:testMainEmitsDataAttributes()
-	local html = Dimensions._main({ length = '18', width = '8', height = '4', mass = '25172', referenceType = 'human' })
+	local html = Dimensions._main({ length = '18', width = '8', height = '4' })
 	self:assertStringContains('data-length="18"', html, true)
 	self:assertStringContains('data-width="8"', html, true)
 	self:assertStringContains('data-height="4"', html, true)
-	self:assertStringContains('data-mass="25172"', html, true)
-	self:assertStringContains('data-reference="human"', html, true)
 end
 
 function suite:testMainEmitsAltDataAttributes()
@@ -111,68 +102,56 @@ function suite:testMainEmitsAltDataAttributes()
 	self:assertEquals(nil, string.find(html, 'data-width-alt', 1, true))
 end
 
-function suite:testMainEmitsReferenceModifierClass()
-	local html = Dimensions._main({ length = '1', width = '1', height = '1', referenceType = 'banana' })
-	self:assertStringContains('t-dimensions--ref-banana', html, true)
-	self:assertStringContains('data-reference="banana"', html, true)
-end
-
-function suite:testMainOmitsAbsentDataAttributes()
-	local html = Dimensions._main({ length = '18', width = '8', height = '4' })
-	self:assertEquals(nil, string.find(html, 'data-mass', 1, true))
-	self:assertEquals(nil, string.find(html, 'data-volume', 1, true))
-	self:assertEquals(nil, string.find(html, 'data-reference', 1, true))
-	self:assertEquals(nil, string.find(html, 't-dimensions-footer', 1, true))
-end
-
-function suite:testMainInvalidReturnsNil()
-	self:assertEquals(nil, Dimensions._main({ length = '18' }))
-end
-
--- volume + scuBox (cargo additions)
-
-function suite:testParseArgsVolume()
-	local data = internal.parseArgs({ length = '1', width = '1', height = '1', volume = '84000', volumeUnit = 'µSCU' })
-	self:assertEquals(84000, data.volume)
-	self:assertEquals('µSCU', data.volumeUnit)
-end
-
-function suite:testParseArgsVolumeNonNumericDropped()
-	local data = internal.parseArgs({ length = '1', width = '1', height = '1', volume = 'lots' })
-	self:assertEquals(nil, data.volume)
-end
-
-function suite:testParseArgsScuBoxReference()
-	local data = internal.parseArgs({ length = '2', width = '1', height = '1', referenceType = 'scuBox' })
-	self:assertEquals('scuBox', data.referenceType)
-	self:assertEquals(1.25, data.reference.height)
-end
-
-function suite:testAutoNeverPicksScuBox()
-	-- A 1.25 m object's longest dim equals the SCU box, but scuBox is not in
-	-- the ladder, so auto resolves to a ladder reference (here banana).
-	local data = internal.parseArgs({ length = '1.25', width = '1.25', height = '1.25', referenceType = 'auto' })
-	self:assertEquals('banana', data.referenceType)
-end
-
-function suite:testMainEmitsVolumeDataAttributes()
+function suite:testMainRendersReference()
 	local html = Dimensions._main({
 		length = '2',
 		width = '1',
 		height = '1',
-		volume = '84000',
-		volumeUnit = 'µSCU',
-		referenceType = 'scuBox',
+		reference = {
+			length = 1.25,
+			width = 1.25,
+			height = 1.25,
+			label = '1 SCU box · 1.25 m',
+			color = '#c8742d',
+		},
 	})
-	self:assertStringContains('data-volume="84000"', html, true)
-	self:assertStringContains('data-volume-unit="µSCU"', html, true)
-	self:assertStringContains('t-dimensions--ref-scuBox', html, true)
+	self:assertStringContains('t-dimensions--has-reference', html, true)
+	self:assertStringContains('1 SCU box · 1.25 m', html, true)
+	-- The caller's colour is applied inline.
+	self:assertStringContains('#c8742d', html, true)
 end
 
-function suite:testMainVolumeFooter()
-	local html = Dimensions._main({ length = '2', width = '1', height = '1', volume = '84000', volumeUnit = 'µSCU' })
+function suite:testMainRendersMetrics()
+	local html = Dimensions._main({
+		length = '2',
+		width = '1',
+		height = '1',
+		metrics = { { label = 'Volume', value = '84,000 µSCU' } },
+	})
 	self:assertStringContains('t-dimensions-footer', html, true)
+	self:assertStringContains('Volume', html, true)
 	self:assertStringContains('84,000 µSCU', html, true)
+end
+
+function suite:testMainRendersMultipleMetrics()
+	local html = Dimensions._main({
+		length = '2',
+		width = '1',
+		height = '1',
+		metrics = { { label = 'Mass', value = '2,000 kg' }, { label = 'Volume', value = '2 SCU' } },
+	})
+	self:assertStringContains('2,000 kg', html, true)
+	self:assertStringContains('2 SCU', html, true)
+end
+
+function suite:testMainOmitsFooterWhenBare()
+	local html = Dimensions._main({ length = '18', width = '8', height = '4' })
+	self:assertEquals(nil, string.find(html, 't-dimensions-footer', 1, true))
+	self:assertEquals(nil, string.find(html, 't-dimensions--has-reference', 1, true))
+end
+
+function suite:testMainInvalidReturnsNil()
+	self:assertEquals(nil, Dimensions._main({ length = '18' }))
 end
 
 return suite

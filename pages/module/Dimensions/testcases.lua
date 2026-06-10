@@ -120,12 +120,59 @@ end
 function suite:testMainOmitsAbsentDataAttributes()
 	local html = Dimensions._main({ length = '18', width = '8', height = '4' })
 	self:assertEquals(nil, string.find(html, 'data-mass', 1, true))
+	self:assertEquals(nil, string.find(html, 'data-volume', 1, true))
 	self:assertEquals(nil, string.find(html, 'data-reference', 1, true))
 	self:assertEquals(nil, string.find(html, 't-dimensions-footer', 1, true))
 end
 
 function suite:testMainInvalidReturnsNil()
 	self:assertEquals(nil, Dimensions._main({ length = '18' }))
+end
+
+-- volume + scuBox (cargo additions)
+
+function suite:testParseArgsVolume()
+	local data = internal.parseArgs({ length = '1', width = '1', height = '1', volume = '84000', volumeUnit = 'µSCU' })
+	self:assertEquals(84000, data.volume)
+	self:assertEquals('µSCU', data.volumeUnit)
+end
+
+function suite:testParseArgsVolumeNonNumericDropped()
+	local data = internal.parseArgs({ length = '1', width = '1', height = '1', volume = 'lots' })
+	self:assertEquals(nil, data.volume)
+end
+
+function suite:testParseArgsScuBoxReference()
+	local data = internal.parseArgs({ length = '2', width = '1', height = '1', referenceType = 'scuBox' })
+	self:assertEquals('scuBox', data.referenceType)
+	self:assertEquals(1.25, data.reference.height)
+end
+
+function suite:testAutoNeverPicksScuBox()
+	-- A 1.25 m object's longest dim equals the SCU box, but scuBox is not in
+	-- the ladder, so auto resolves to a ladder reference (here banana).
+	local data = internal.parseArgs({ length = '1.25', width = '1.25', height = '1.25', referenceType = 'auto' })
+	self:assertEquals('banana', data.referenceType)
+end
+
+function suite:testMainEmitsVolumeDataAttributes()
+	local html = Dimensions._main({
+		length = '2',
+		width = '1',
+		height = '1',
+		volume = '84000',
+		volumeUnit = 'µSCU',
+		referenceType = 'scuBox',
+	})
+	self:assertStringContains('data-volume="84000"', html, true)
+	self:assertStringContains('data-volume-unit="µSCU"', html, true)
+	self:assertStringContains('t-dimensions--ref-scuBox', html, true)
+end
+
+function suite:testMainVolumeFooter()
+	local html = Dimensions._main({ length = '2', width = '1', height = '1', volume = '84000', volumeUnit = 'µSCU' })
+	self:assertStringContains('t-dimensions-footer', html, true)
+	self:assertStringContains('84,000 µSCU', html, true)
 end
 
 return suite

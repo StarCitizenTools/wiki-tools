@@ -8,11 +8,14 @@ require('strict')
 ---
 --- Machine-readable contract: the root element exposes raw SI values via
 --- data-length / data-width / data-height (+ data-*-alt when an alternate
---- value renders), data-mass and data-reference.
+--- value renders), data-mass, data-volume (+ data-volume-unit) and
+--- data-reference.
 ---
---- Public interface is unchanged from the previous implementation:
---- { length, width, height, lengthAlt, widthAlt, heightAlt, mass,
---- referenceType } in, HTML string (or nil on invalid required args) out.
+--- Public interface:
+--- { length, width, height, lengthAlt, widthAlt, heightAlt, mass, volume,
+--- volumeUnit, referenceType } in, HTML string (or nil on invalid required
+--- args) out. volume + volumeUnit render a footer metric in place of mass
+--- (cargo diagrams); volumeUnit defaults to SCU.
 --- Consumers: Module:Vehicle, Module:Item.
 
 local p = {}
@@ -38,6 +41,16 @@ local REFERENCE_TYPES = {
 		width = 0.05,
 		height = 0.2,
 		legend = 'Banana · 0.2 m',
+	},
+	-- The standard CIG 1 SCU cargo container, the unit cube of cargo. Selected
+	-- only via an explicit referenceType='scuBox' (cargo diagrams); deliberately
+	-- absent from REFERENCE_LADDER so physical-object auto-selection never picks
+	-- it.
+	scuBox = {
+		length = 1.25,
+		width = 1.25,
+		height = 1.25,
+		legend = '1 SCU box · 1.25 m',
 	},
 }
 
@@ -106,6 +119,8 @@ local function parseArgs(args)
 		widthAlt = tonumber(args.widthAlt),
 		heightAlt = tonumber(args.heightAlt),
 		mass = tonumber(args.mass),
+		volume = tonumber(args.volume),
+		volumeUnit = args.volumeUnit,
 	}
 
 	-- An alternate equal to the main value carries no information
@@ -227,6 +242,10 @@ local function getHtml(data)
 	if data.mass then
 		container:attr('data-mass', tostring(data.mass))
 	end
+	if data.volume then
+		container:attr('data-volume', tostring(data.volume))
+		container:attr('data-volume-unit', data.volumeUnit or 'SCU')
+	end
 	if data.reference then
 		container
 			:addClass('t-dimensions--has-reference')
@@ -258,6 +277,9 @@ local function getHtml(data)
 	}
 	if data.mass then
 		table.insert(summaryParts, string.format('mass %s', formatPlain(data.mass, 'kg')))
+	end
+	if data.volume then
+		table.insert(summaryParts, string.format('volume %s', formatPlain(data.volume, data.volumeUnit or 'SCU')))
 	end
 	container
 		:tag('span')
@@ -294,14 +316,24 @@ local function getHtml(data)
 	layerBottom:node(buildLine('width'))
 	layerBottom:node(buildText('width', 'Width', formatValue(data.width, 'm', data.widthAlt)))
 
-	-- Footer: mass + reference legend (omitted when both are absent)
-	if data.mass or data.reference then
+	-- Footer: primary metric (volume or mass) + reference legend; omitted when
+	-- all are absent. Normal use passes exactly one metric per render (cargo
+	-- diagrams pass volume, physical diagrams pass mass).
+	if data.volume or data.mass or data.reference then
 		local footer = container:tag('div'):addClass('t-dimensions-footer')
 
+		local function addMetric(label, valueHtml)
+			local item = footer:tag('div'):addClass('t-dimensions-footer-item')
+			item:tag('span'):addClass('t-dimensions-footer-label'):wikitext(label):done()
+			item:tag('span'):addClass('t-dimensions-footer-value'):wikitext(valueHtml):done()
+		end
+
+		if data.volume then
+			addMetric('Volume', formatPlain(data.volume, data.volumeUnit or 'SCU'))
+		end
+
 		if data.mass then
-			local massItem = footer:tag('div'):addClass('t-dimensions-footer-item')
-			massItem:tag('span'):addClass('t-dimensions-footer-label'):wikitext('Mass'):done()
-			massItem:tag('span'):addClass('t-dimensions-footer-value'):wikitext(formatPlain(data.mass, 'kg')):done()
+			addMetric('Mass', formatPlain(data.mass, 'kg'))
 		end
 
 		if data.reference then

@@ -41,15 +41,21 @@ local LADDER = { p.human, p.banana }
 --- Objects smaller than every reference get the smallest one: being dwarfed by
 --- a banana IS the scale story.
 ---
+--- The ladder defaults to the built-in human/banana set, but a consumer can
+--- pass its own ladder (ordered largest first) to auto-pick from a domain set,
+--- e.g. Star Citizen SCU cargo boxes.
+---
 --- @param longest number the object's longest dimension in metres
+--- @param ladder table[]|nil ordered largest first; defaults to human/banana
 --- @return table reference one of the ladder entries
-function p.resolveAuto(longest)
-	for _, ref in ipairs(LADDER) do
+function p.resolveAuto(longest, ladder)
+	ladder = ladder or LADDER
+	for _, ref in ipairs(ladder) do
 		if math.max(ref.length, ref.width, ref.height) <= longest then
 			return ref
 		end
 	end
-	return LADDER[#LADDER]
+	return ladder[#ladder]
 end
 
 return p

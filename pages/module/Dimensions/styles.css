@@ -19,10 +19,11 @@
 	--t-dimensions-ref-height: 0px;
 	--t-dimensions-ref-clear: 0px;
 
-	/* The ref term budgets a reference taller than the object: its top rises (ref-h - box-h/2) above center, so the symmetric budget needs 2*ref-h - box-h. Collapses to box-h when ref <= box. */
+	/* The ref term budgets a reference taller than the object: its top rises (ref-h - box-h/2) above center, so the symmetric budget needs 2*ref-h - box-h. Collapses to box-h when ref <= box.
+	   The space-md * 5 allowance covers the in-plane labels overhanging below the diamond (offset + up to three text rows, font-scaled since the token is rem-based). */
 	--t-dimensions-stage-height: calc(
 		max( var( --t-dimensions-box-height ), 2 * var( --t-dimensions-ref-height ) - var( --t-dimensions-box-height ) ) / 2 +
-			hypot( var( --t-dimensions-box-length ), var( --t-dimensions-box-width ) ) + var( --space-md ) * 2
+			hypot( var( --t-dimensions-box-length ), var( --t-dimensions-box-width ) ) + var( --space-md ) * 5
 	);
 
 	position: relative;

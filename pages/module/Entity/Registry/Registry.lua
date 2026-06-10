@@ -26,6 +26,7 @@ p.kinds = {
 --- @type EntityFacet[]
 p.facets = {
 	require('Module:Entity/Facet/Consumable'),
+	require('Module:Entity/Facet/Dimensions'),
 }
 
 return p

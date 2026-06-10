@@ -46,7 +46,7 @@ From wikitext:
 | `widthAlt` | number (m) | no | Alternate width |
 | `heightAlt` | number (m) | no | Alternate height |
 | `mass` | number (kg) | no | Shown in the footer bar, not on the geometry |
-| `referenceType` | string | no | Key into the reference table; currently `human` (0.3 × 0.5 × 1.8 m) or `banana` (0.2 × 0.05 × 0.05 m). Unknown values render no reference |
+| `referenceType` | string | no | Key into the reference table; currently `human` (0.3 × 0.5 × 1.8 m) or `banana` (0.05 × 0.05 × 0.2 m, standing upright). Unknown values render no reference |
 
 ## Machine-readable output
 

@@ -29,10 +29,13 @@ local REFERENCE_TYPES = {
 		height = 1.8,
 		legend = 'Human · 1.8 m',
 	},
+	-- Standing upright: the slim footprint keeps it from dominating the
+	-- ground plane next to small items, and the 0.2 m height reads directly
+	-- against the object's height
 	banana = {
-		length = 0.2,
+		length = 0.05,
 		width = 0.05,
-		height = 0.05,
+		height = 0.2,
 		legend = 'Banana · 0.2 m',
 	},
 }

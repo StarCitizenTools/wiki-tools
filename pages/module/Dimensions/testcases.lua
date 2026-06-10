@@ -50,7 +50,7 @@ end
 function suite:testParseArgsBananaReference()
 	local data = internal.parseArgs({ length = '1', width = '1', height = '1', referenceType = 'banana' })
 	self:assertEquals('banana', data.referenceType)
-	self:assertEquals(0.2, data.reference.length)
+	self:assertEquals(0.2, data.reference.height)
 end
 
 function suite:testParseArgsUnknownReferenceIgnored()

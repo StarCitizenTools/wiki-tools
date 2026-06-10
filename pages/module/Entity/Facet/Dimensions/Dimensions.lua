@@ -44,12 +44,30 @@ local function scuLabel(scu)
 	return scu == 0.125 and '1/8' or tostring(scu)
 end
 
---- The cargo reference, auto-picked for a cargo footprint: the largest SCU box
---- whose longest dimension fits, as a Module:Dimensions reference object.
+--- Pick the largest SCU box whose longest dimension fits within the cargo's
+--- longest dimension, or nil when the cargo is smaller than every box (smaller
+--- than the 1/8 box). Sub-box cargo gets no reference: a box would only dwarf
+--- it, and the volume footer already conveys the cargo size.
 --- @param longest number the cargo's longest dimension in metres
---- @return table reference
+--- @return table|nil one of SCU_BOXES
+local function pickScuBox(longest)
+	for _, box in ipairs(SCU_BOXES) do
+		if math.max(box.length, box.width, box.height) <= longest then
+			return box
+		end
+	end
+	return nil
+end
+
+--- The cargo reference as a Module:Dimensions reference object, or nil when no
+--- SCU box fits (sub-box cargo renders without a reference).
+--- @param longest number the cargo's longest dimension in metres
+--- @return table|nil reference
 local function scuReference(longest)
-	local box = presets.resolveAuto(longest, SCU_BOXES)
+	local box = pickScuBox(longest)
+	if not box then
+		return nil
+	end
 	local boxLongest = math.max(box.length, box.width, box.height)
 	return {
 		length = box.length,
@@ -178,6 +196,7 @@ end
 --- Exposed for testcases only; not a public interface.
 p._internal = {
 	hasBox = hasBox,
+	pickScuBox = pickScuBox,
 }
 
 return p

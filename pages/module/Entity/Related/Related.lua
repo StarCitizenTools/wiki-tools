@@ -268,11 +268,12 @@ local function isCommodity(apiData)
 end
 
 -- Standard CIG cargo-container external dimensions { length, width, height }
--- in metres, keyed by SCU. These are a game constant — identical for every
--- commodity, confirmed against the items endpoint's true_dimension. The
--- sub-SCU hand-carryable (0.125) is an irregular mined chunk, not a standard
--- box, so it has no entry.
+-- in metres, keyed by SCU. A game constant, identical for every commodity,
+-- verified against the items endpoint's cargo_dimension (the Stor*All container
+-- line for 1/8 to 8 SCU; official RSI material for 16 to 32). The 0.125 box is
+-- the smallest standard container (a "1/8 SCU" box, 0.5 m cube).
 local BOX_DIMENSIONS = {
+	[0.125] = { 0.5, 0.5, 0.5 },
 	[1] = { 1.25, 1.25, 1.25 },
 	[2] = { 2.5, 1.25, 1.25 },
 	[4] = { 2.5, 2.5, 1.25 },
@@ -283,12 +284,24 @@ local BOX_DIMENSIONS = {
 }
 
 --- Standard box dimensions { length, width, height } (metres) for an SCU size,
---- or nil for non-standard sizes (e.g. the 0.125 hand-carryable).
+--- or nil for non-standard sizes.
 ---
 --- @param scu number
 --- @return number[]|nil
 local function boxDimensions(scu)
 	return BOX_DIMENSIONS[scu]
+end
+
+--- Display label for an SCU box size: the sub-SCU box reads as a fraction
+--- (1/8), whole sizes as their number.
+---
+--- @param scu number
+--- @return string
+local function scuLabel(scu)
+	if scu == 0.125 then
+		return '1/8'
+	end
+	return format.formatNum(scu)
 end
 
 --- Cargo packaging variants as table rows { scu, mass_kg } (mass = SCU ×
@@ -331,7 +344,7 @@ local function renderCargoVariants(apiData)
 	for _, r in ipairs(rows) do
 		local dims = boxDimensions(r.scu)
 		tableRows[#tableRows + 1] = {
-			format.formatNum(r.scu),
+			scuLabel(r.scu),
 			metres(dims and dims[1]),
 			metres(dims and dims[2]),
 			metres(dims and dims[3]),

@@ -324,17 +324,20 @@
 }
 
 /* 0.35355 = sin(45°)/2: midpoint of the projected height edge at the
-   default camera. Only positions the label; the line is geometry-true. */
+   default camera. Only positions the label; the line is geometry-true.
+   top is transitioned alongside transform so the hover reposition glides. */
 .t-dimensions-text--height {
 	left: 20px;
 	top: calc( var( --t-dimensions-box-height ) * 0.35355 );
 	transform: translateY( -50% );
+	transition-property: transform, top;
 }
 
-/* The alt parenthetical stacks under the value here: as one nowrap line it
-   grows rightward off the diagram's widest corner with the user's font size
-   and can clip at larger font preferences (e.g. "30.5 m (8.75 m)") */
-.t-dimensions-text--height .t-dimensions-value-subtle {
+/* The alt parentheticals stack under the value in the height and width
+   labels: as one nowrap line they grow with the user's font size (e.g.
+   "30.5 m (8.75 m)") and can clip at the container edges */
+.t-dimensions-text--height .t-dimensions-value-subtle,
+.t-dimensions-text--width .t-dimensions-value-subtle {
 	display: block;
 }
 
@@ -377,12 +380,23 @@
 	opacity: 0.8;
 }
 
-/* Hover: rotate to the top-down plan view. Ground-plane lines/labels become
-   a flat drawing; width label reads as vertical text (drawing convention). */
+/* Hover: rotate to the top-down plan view. Ground-plane lines become a flat
+   drawing; the width label un-rotates to read horizontally, and the height
+   label (its edge now points at the viewer) lifts to the vertical center of
+   the footprint's right side so it stays inside the container. */
 @media ( hover: hover ) {
 	.t-dimensions-stage:hover .t-dimensions-scene {
 		--t-dimensions-rotate-x: 0deg;
 		--t-dimensions-rotate-z: 0deg;
+	}
+
+	.t-dimensions-stage:hover .t-dimensions-text--height {
+		top: calc( var( --t-dimensions-box-width ) / -2 );
+	}
+
+	.t-dimensions-stage:hover .t-dimensions-text--width {
+		transform: translate( -100%, -50% );
+		text-align: right;
 	}
 }
 

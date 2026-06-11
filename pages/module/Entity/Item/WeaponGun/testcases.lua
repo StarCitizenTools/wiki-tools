@@ -134,6 +134,110 @@ function suite:testStructuredDataNilSafe()
 	self:assertEquals('table', type(WeaponGun.getStructuredData({})))
 end
 
+function suite:testStructuredDataIncludesWeaponClass()
+	local result = WeaponGun.getStructuredData({
+		class_name = 'KBAR_BallisticCannon_S2',
+		vehicle_weapon = { type = 'Ballistic Cannon', damage = {}, ammunition = {} },
+	})
+	self:assertEquals('Ballistic', result.damage_type)
+	self:assertEquals('Cannon', result.firing_type)
+end
+
+function suite:testStructuredDataAmmoWhenPositive()
+	local result = WeaponGun.getStructuredData({
+		vehicle_weapon = { capacity = 492, damage = {}, ammunition = {} },
+	})
+	self:assertEquals(492, result.ammo)
+end
+
+function suite:testStructuredDataNoAmmoWhenZero()
+	local result = WeaponGun.getStructuredData({
+		vehicle_weapon = { capacity = 0, damage = {}, ammunition = {} },
+	})
+	self:assertEquals(nil, result.ammo)
+end
+
+function suite:testStructuredDataAmmoStringCapacity()
+	local result = WeaponGun.getStructuredData({
+		vehicle_weapon = { capacity = '492', damage = {}, ammunition = {} },
+	})
+	self:assertEquals(492, result.ammo)
+end
+
+-- parseWeaponClass()
+
+function suite:testParseCleanLabel()
+	local r = WeaponGun._internal.parseWeaponClass({
+		class_name = 'KBAR_BallisticCannon_S2',
+		vehicle_weapon = { type = 'Ballistic Cannon' },
+	})
+	self:assertEquals('Ballistic', r.damage_type)
+	self:assertEquals('Cannon', r.firing_type)
+end
+
+function suite:testParseVnclRepeaterTrap()
+	-- class_name says "LaserCannon" but the weapon is a Laser Repeater.
+	-- Mechanism must come from the label, not class_name.
+	local r = WeaponGun._internal.parseWeaponClass({
+		class_name = 'VNCL_LaserCannon_S2',
+		vehicle_weapon = { type = 'Laser Repeater' },
+	})
+	self:assertEquals('Laser', r.damage_type)
+	self:assertEquals('Repeater', r.firing_type)
+end
+
+function suite:testParseGapGunFromClassName()
+	-- Upstream gap: no label. Recover both axes from class_name.
+	local r = WeaponGun._internal.parseWeaponClass({
+		class_name = 'VNCL_PlasmaCannon_S3',
+		vehicle_weapon = {},
+	})
+	self:assertEquals('Plasma', r.damage_type)
+	self:assertEquals('Cannon', r.firing_type)
+end
+
+function suite:testParseTypoCanon()
+	local r = WeaponGun._internal.parseWeaponClass({
+		class_name = 'VNCL_PlasmaCannon_S1',
+		vehicle_weapon = { type = 'Plasma Canon' },
+	})
+	self:assertEquals('Plasma', r.damage_type)
+	self:assertEquals('Cannon', r.firing_type)
+end
+
+function suite:testParseJunkSuffix()
+	local r = WeaponGun._internal.parseWeaponClass({
+		class_name = 'BEHR_BallisticGatling_S4',
+		vehicle_weapon = { type = 'Ballistic Gatling (x2)' },
+	})
+	self:assertEquals('Ballistic', r.damage_type)
+	self:assertEquals('Gatling', r.firing_type)
+end
+
+function suite:testParseMassDriver()
+	local r = WeaponGun._internal.parseWeaponClass({
+		class_name = 'GATS_MassDriverCannon_S3',
+		vehicle_weapon = { type = 'Mass Driver Cannon' },
+	})
+	self:assertEquals('Mass Driver', r.damage_type)
+	self:assertEquals('Cannon', r.firing_type)
+end
+
+function suite:testParseRocketPodUnsplit()
+	local r = WeaponGun._internal.parseWeaponClass({
+		class_name = 'APAR_RocketPod_S3',
+		vehicle_weapon = { type = 'Rocket Pod' },
+	})
+	self:assertEquals(nil, r.damage_type)
+	self:assertEquals(nil, r.firing_type)
+end
+
+function suite:testParseEmpty()
+	local r = WeaponGun._internal.parseWeaponClass({})
+	self:assertEquals(nil, r.damage_type)
+	self:assertEquals(nil, r.firing_type)
+end
+
 -- wiring
 
 function suite:testResolveSubtypeReturnsWeaponGun()

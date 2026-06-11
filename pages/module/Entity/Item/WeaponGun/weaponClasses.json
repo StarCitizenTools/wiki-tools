@@ -1,0 +1,6 @@
+{
+	"%description": "Curated sets for parsing a vehicle gun's blended item_type / class_name into two facets. Hand-curated like classifications.json; the API's generated labels are not trusted. damageTypes match the class_name type segment (prefix, space-stripped) or the label's leading token. mechanisms match a token/substring of the player-facing label (firing authority); aliases fix the 'Canon' typo (ScatterGun is already handled by case-folding). Keep damageTypes free of entries that prefix another (e.g. avoid adding 'Mass' alongside 'Mass Driver'), since damage matching is a leading-prefix match.",
+	"damageTypes": ["Ballistic", "Laser", "Distortion", "Neutron", "Plasma", "Tachyon", "Mass Driver"],
+	"mechanisms": ["Cannon", "Repeater", "Gatling", "Scattergun", "Beam"],
+	"aliases": { "Canon": "Cannon" }
+}

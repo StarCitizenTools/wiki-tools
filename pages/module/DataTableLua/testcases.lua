@@ -157,4 +157,22 @@ function suite:testBuildAskArgsNoFacets()
 	end
 end
 
+function suite:testBuildAskArgsAppendsConditions()
+	local cols = dt.parseColumns('Size ; filter')
+	local args = dt.buildAskArgs('Guns', cols, '[[Damage type::Laser]][[Firing type::Cannon]]')
+	self:assertEquals('[[:+]] [[Category:Guns]] [[Damage type::Laser]][[Firing type::Cannon]]', args[1])
+end
+
+function suite:testBuildAskArgsNilConditionsUnchanged()
+	local cols = dt.parseColumns('Size')
+	local args = dt.buildAskArgs('Guns', cols, nil)
+	self:assertEquals('[[:+]] [[Category:Guns]]', args[1])
+end
+
+function suite:testBuildAskArgsEmptyConditionsUnchanged()
+	local cols = dt.parseColumns('Size')
+	local args = dt.buildAskArgs('Guns', cols, '')
+	self:assertEquals('[[:+]] [[Category:Guns]]', args[1])
+end
+
 return suite

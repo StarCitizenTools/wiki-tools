@@ -116,12 +116,17 @@ end
 ---
 --- @param category string
 --- @param columns DataTableColumn[]
+--- @param conditions? string  Extra raw SMW query conditions (e.g. property filters)
 --- @return string[]
-function p.buildAskArgs(category, columns)
+function p.buildAskArgs(category, columns, conditions)
 	-- `[[:+]]` restricts the query to the main namespace (leading `:` is the
 	-- main-namespace prefix, `+` the wildcard). Without it, File/Category pages
 	-- tagged into the same category leak into the table as rows.
-	local args = { '[[:+]] [[Category:' .. category .. ']]' }
+	local condition = '[[:+]] [[Category:' .. category .. ']]'
+	if conditions and conditions ~= '' then
+		condition = condition .. ' ' .. conditions
+	end
+	local args = { condition }
 
 	for _, printout in ipairs(LEAD_PRINTOUTS) do
 		args[#args + 1] = printout
@@ -162,8 +167,10 @@ function p.main(frame)
 		return '<strong class="error">Module:DataTableLua: no columns defined.</strong>'
 	end
 
+	local conditions = mw.text.trim(args.conditions or '')
+
 	local styles = frame:expandTemplate({ title = 'Datatable styles' })
-	local table_ = frame:callParserFunction('#ask', p.buildAskArgs(category, columns))
+	local table_ = frame:callParserFunction('#ask', p.buildAskArgs(category, columns, conditions))
 
 	return styles .. table_
 end

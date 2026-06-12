@@ -469,6 +469,9 @@ function p.main(frame)
 	local gridOptions = {
 		columnDefs = buildColumnDefs(),
 		rowData = buildRowData(results),
+		-- Themed global search box wired to AG Grid's quick filter (client-side over
+		-- the loaded rows).
+		quickSearch = true,
 		-- No pagination: all vehicles in one virtualised, internally-scrolling
 		-- grid. Only the visible rows are ever in the DOM.
 		pagination = false,

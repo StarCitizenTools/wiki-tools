@@ -28,7 +28,7 @@ local itemSubtypeMapping = {
 	PowerPlant = 'Entity/Item/PowerPlant',
 	Cooler = 'Entity/Item/Cooler',
 	Shield = 'Entity/Item/Shield',
-	-- QuantumDrive = 'Entity/Item/QuantumDrive',
+	QuantumDrive = 'Entity/Item/QuantumDrive',
 }
 
 --- Formats a short description using the item-family template:

@@ -61,7 +61,8 @@ function suite:testShortDescription()
 		{ manufacturer = 'Greycat Industrial' },
 		{ name = 'Mining laser head' }
 	)
-	self:assertEquals('S1 mining laser head by Greycat Industrial', desc)
+	-- formatShortDescription uses the manufacturer's short form (Greycat for GRIN).
+	self:assertEquals('S1 mining laser head by Greycat', desc)
 end
 
 function suite:testStructuredData()

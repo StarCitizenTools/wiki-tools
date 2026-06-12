@@ -37,6 +37,8 @@ local itemSubtypeMapping = {
 	Missile = 'Entity/Item/Missile',
 	WeaponMissile = 'Entity/Item/Missile',
 	Bomb = 'Entity/Item/Bomb',
+	MissileLauncher = 'Entity/Item/Rack',
+	BombLauncher = 'Entity/Item/Rack',
 }
 
 --- Formats a short description using the item-family template:

@@ -43,7 +43,7 @@ function p.getSections(apiData, args)
 	end
 	local value = format.formatNum(count)
 	if size then
-		value = value .. ' × size ' .. format.formatNum(size)
+		value = value .. ' × S' .. format.formatNum(size)
 	end
 	local label = apiData.type == 'BombLauncher' and 'Bomb launcher' or 'Missile rack'
 	return {

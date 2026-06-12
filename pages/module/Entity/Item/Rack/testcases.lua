@@ -24,14 +24,14 @@ function suite:testMissileRackCapacity()
 	self:assertEquals(1, #sections)
 	self:assertEquals('rack', sections[1].key)
 	self:assertEquals('Missile rack', sections[1].label)
-	self:assertEquals('20 × size 12', findItem(sections[1].items, 'Capacity').content)
+	self:assertEquals('20 × S12', findItem(sections[1].items, 'Capacity').content)
 end
 
 -- A bomb launcher: count is `max_bombs`, size is `max_size`, labelled differently.
 function suite:testBombLauncherCapacity()
 	local sections = Rack.getSections({ type = 'BombLauncher', max_bombs = 1, max_size = 3 }, {})
 	self:assertEquals('Bomb launcher', sections[1].label)
-	self:assertEquals('1 × size 3', findItem(sections[1].items, 'Capacity').content)
+	self:assertEquals('1 × S3', findItem(sections[1].items, 'Capacity').content)
 end
 
 -- Count without a size still shows the count alone.

@@ -26,7 +26,9 @@ Set wiki to `https://starcitizen.tools`. Call `get-category-members` on the targ
 - Mainspace article pages (the migration targets).
 - Subcategory entries named like `Category:<Type> (Size N)` for N = 1..10 — legacy autocategories from the old `{{Item}}` template, to be deleted at the end.
 
-Report the article-page count to the user before starting. Real ranges seen so far: PDCs ~7, Weapon mounts 26.
+Report the article-page count to the user before starting. Real ranges seen so far: PDCs ~7, Weapon mounts 26, Guns 132.
+
+**Exclude unmigratable pages from the worklist.** Some category members are placeholder items with **no UUID** (e.g. weapons that exist only in the localization `labels.json`, not as an in-game entity). They have no API record, so `{{Entity}}` cannot render them. Identify them up front (members whose `{{Item}}` block has no `uuid`, or whose SMW `UUID` is empty) and leave them on `{{Item}}`; they will keep a few legacy subcats alive (step 9). Also exclude redirects. Report the *migratable* count, not the raw member count.
 
 ### 2. Sample before batching
 
@@ -79,6 +81,7 @@ For every page, the canonical structure is:
 
 Rules:
 - Section order is fixed; insert missing ones in the right place.
+- **Keep only `uuid`/`name`/`image`/`manufacturer` in the `{{Entity}}` block; drop every other legacy `{{Item}}` param.** Stat-bearing types (weapons) carry many (`Damage`, `Damage Type`, `Range`, `Ammo Count`, `Rate`, `Power Drain`, `IR Signature`, `UEC Cost`, …); `{{Entity}}` renders all of that from the API now, so they are dropped.
 - `{{Entity/Blueprints}}` goes on every page even if the item isn't currently craftable — the template renders empty for items without blueprint data.
 - Normalize heading spacing: `== Section ==` (single space inside the `==`). Some legacy pages have `==Section==`.
 - Preserve page-specific extras (e.g. `== Development ==`) between `Used by` and `References`.
@@ -97,6 +100,7 @@ Default is **light polish** that fixes obvious clunkers (typos, awkward "It allo
 - **Let wikilinks do the explaining**: the page links to `[[gimbal mount]]` / `[[weapon mount]]` — those articles cover what the mechanism does. The lead doesn't need to re-explain.
 - **Pipe-link category-level terms to the type's index article.** Example: in a ball-turret page lead, write `[[Weapon mount|ball turret]]` rather than bare `ball turret`. Same for `[[Weapon mount|nose turret]]`, `[[Weapon mount|turret mount]]`, etc. Apply only to the **first occurrence** in the lead. Terms that already have their own article (e.g. `[[gimbal mount]]`) keep their bare link.
 - **No em-dashes** in article body prose (project rule from `feedback_no_em_dash`).
+- **A deeper rewrite must not eat real lore.** When the original lead carries genuine facts (manufacturer relationship, series role, origin/history, "first Xi'an vehicle weapon", "assimilated tech"), keep it as a following sentence rather than collapsing everything into the one-line template. Drop only restatements of stats the infobox now shows (damage, range, rate) and pure filler. After a bulk run, the section-diff audit (step 4's last rule) catches *dropped sections*; lore lives in the lead, so spot-check a sample of leads too.
 - **Don't fabricate facts.** If the original is silent on weapon capacity or specs (some Reliant pages), keep the lead minimal — `"is a size N turret mount manufactured by [[X]] for the [[Y series]]."` is fine.
 - **Cite the game build.** These pages are `{{Entity}}`-rendered, i.e. sourced from game/API data, and usually have no other citation. End the lead sentence with one game-data ref:
   `<ref name="ig<patch digits>">{{Cite game|build=[[Star Citizen Alpha <patch>|Alpha <patch>]]|accessdate=<edit date>}}</ref>`
@@ -116,7 +120,7 @@ For dual-position mounts (PC2-style splitters):
 
 ### 6. Deploy article updates
 
-Fire all `update-page` calls in parallel in a single message — they're independent and the wiki handles concurrent edits fine. Edit summary pattern: `"Migrate {{Item}} → {{Entity}}; add Crafting section; normalize headings; lead polish"` (adjust for what actually changed on the page — e.g. "fix copy-paste bug in lead" or "preserve Development section").
+Fire `update-page` calls in parallel — they're independent and the wiki handles concurrent edits fine. **For large categories (100+), run the migration as several parallel batch-agents**: write the transform spec (steps 4-5) to a shared file, hand each agent that spec plus a disjoint sub-list of pages, then run the section-diff audit over the whole set afterward. **Bulk runs must use a bot-flagged account** (`bot: true` on `update-page`) so they don't flood Recent Changes for other editors; **verify the first edit returns `botMarked: true`** before continuing. If it returns `false`, the session's account lacks the `bot` right, so stop and switch credentials rather than flooding RC unflagged (edits cannot be retroactively flagged). Edit summary pattern: `"Migrate {{Item}} → {{Entity}}; add Crafting section; normalize headings; lead polish"` (adjust for what actually changed on the page — e.g. "fix copy-paste bug in lead" or "preserve Development section").
 
 ### 7. Update the index article (`<Type singular>`, e.g. `Weapon mount`)
 
@@ -142,12 +146,14 @@ Other rules for the index article:
 
 Set the header to `{{Category header|pages|[[<Type singular>]]s}}` (note: capital first letter on the link, matching the article title). Preserve the parent category link (e.g. `[[Category:Turrets]]` for Weapon mounts). If the page had an `#ask`/table, remove it — that lives on the article now.
 
-### 9. Delete legacy size subcategories
+### 9. Delete the legacy subcategory tree
 
-For each `Category:<Type plural> (Size N)`:
-1. Call `get-category-members` to confirm it's empty (the `{{Item}} → {{Entity}}` migration drains them, but verify per category).
-2. If empty → `delete-page` with reason: *"Legacy autocategory from {{Item}} template; drained after Entity migration (size is now a structured-data facet, not a category)"*.
-3. If NOT empty → investigate the remaining members before deleting. A non-Entity page hardcoded into the subcat would be lost. Don't delete on faith.
+The old `{{Item}}` template autocategorized into more than `(Size N)`: also `(Grade X)`, `(<item_type>)` (e.g. `Guns (Laser Cannon)`), and standalone grouping/mechanism categories (e.g. `Cannon`, `Repeater`, `Scattergun`). Enumerate the full tree (subcats of `Category:<Type plural>`, plus any `(Grade X)` red categories) and drain + delete it:
+
+1. **Leaves before parents.** Delete the leaf `(item_type)`/`(Size N)`/`(Grade X)` cats first; a grouping parent (`Cannon`, etc.) only empties once its child subcats are gone, then delete it.
+2. **Verify each is empty** via `get-category-members` before deleting. `delete-page` reason: *"Legacy {{Item}} autocategory; drained after Entity migration (size/type are now structured-data facets, not categories)"*. (`delete-page` has no bot flag; deletions log regardless.)
+3. **Relocate manually-categorized Files, don't orphan them.** Weapon images are sometimes hand-filed into a type/size subcat. Edit each such File to replace the legacy subcat with the **parent** `[[Category:<Type plural>]]` (files don't appear as table rows: the `{{Data table}}` query is main-namespace-only). Then the leaf empties and can be deleted.
+4. **Keep any subcat still holding an unmigratable straggler.** The no-UUID placeholder pages (step 1) can't migrate, so the few subcats they sit in (and their grouping parents) cannot be emptied. Leave those; never delete a cat with an article member.
 
 ### 9b. Galactapedia link sweep (post-migration enrichment)
 
@@ -167,20 +173,21 @@ After everything, show:
 | Articles migrated | N | URLs to a couple as spot-checks |
 | Index article | 1 | Link |
 | Category page | 1 | Link |
-| Size subcategories deleted | N | (all empty post-migration) |
+| Legacy subcategories deleted | N | (drained; some kept if held by unmigratable stragglers) |
 
 ## Gotchas
 
 - **1Password / MCP auth timeout** (`command "op" timed out after 10s`): the user reconnects MCP via `/mcp`. Pause and ask them; don't retry blindly. Subagents independently hit this — prefer running deploy from the coordinator context after reconnect.
 - **Mainspace title required to test categories**: when verifying renders via `parse-wikitext`, pass a mainspace `title` parameter. `Module:Entity` guards content-category emission to namespace 0.
 - **The wiki uses `$wgArticlePath = "/$1"`**: articles live at the root, not under `/wiki/`. `Special:FilePath/<File>` resolves files; `/wiki/Special:FilePath/...` 404s. Don't hardcode the CDN host.
-- **Param compatibility is verbatim for items so far**, but other types may carry extra `{{Item}}` params (no examples yet). If you see a param `{{Entity}}` doesn't know, stop and ask whether to drop it or extend `{{Entity}}`.
+- **Drop legacy stat params; keep only the four core.** `uuid`/`name`/`image`/`manufacturer` map to `{{Entity}}`; stat-bearing types (weapons) carry many legacy `{{Item}}` stat params (`Damage`, `Damage Type`, `Range`, `Ammo Count`, `Rate`, `Power Drain`, `IR Signature`, `UEC Cost`, …) that `{{Entity}}` now renders from the API — drop them all. Stop to ask only if a param is neither a known legacy stat nor one of the four core (a genuinely new field `{{Entity}}` does not know).
 - **Enumerate the API by paging `page[number]`, never trust one list call.** `/api/commodities?page[size]=500` returns only ~200 rows while `meta.total` says more — the page size is capped server-side. A worklist built from a single list call silently misses records. Page through `page[number]` until `last_page`, and resolve any specific record by direct `/{uuid}` fetch (the list omits some that the direct endpoint returns).
 - **An empty-array field still `matches()`.** `box_sizes_scu: []` decodes to an empty Lua table, which is `~= nil`, so `Module:Entity/Commodity.matches()` fires and the page renders fine. Records with `[]` here (Oxygen, Biological Samples, Virus Cultures) are real commodities that were simply never given a wiki page — create them; no code change needed.
 - **Name collisions need a disambiguated title or a hands-off.** A canonical game-data name may already be a `{{Disambig}}` (e.g. `Mercury`) or a rich non-commodity article (e.g. `Molina Mold`, a `{{Infobox Species}}` page). Create the entity at `<Name> (commodity)` and add a disambig entry, or leave the existing article alone — don't overwrite it.
 - **Create-bucket pages still need the lead pass.** Pages created (not migrated) tend to get a bare templated lead like `"'''X''' is a [[Commodity|processed]] commodity."`. Give them the same grounded-lead pass as migrated pages (pull the API `description`, write a real one-sentence lead + game cite); audit for the `"is an? … commodity\.?$"` pattern to find them.
 - **Don't touch `{{Entity}}` template internals from this skill.** This is a content-migration skill; template changes belong in a separate session.
 - **The `{{Item}}` template still exists wiki-side** during migration — it's not breaking, just legacy. Other categories may still rely on it. Don't delete the template.
+- **Category mass-deletion trips the harness security classifier.** Deleting many shared categories in one run is flagged as unauthorized external-system writes, and a subagent doing it gets blocked mid-run. Get **explicit user confirmation of the specific delete targets** as a listed batch before running the deletions; don't try to work around the gate.
 
 ## What this skill does not do
 

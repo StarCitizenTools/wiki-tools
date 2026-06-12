@@ -238,6 +238,49 @@ function suite:testParseEmpty()
 	self:assertEquals(nil, r.firing_type)
 end
 
+-- getShortDescription()
+
+function suite:testShortDescriptionUsesSizeAndClass()
+	local desc = WeaponGun.getShortDescription(
+		{ class_name = 'KBAR_BallisticCannon_S2', size = 2, vehicle_weapon = { type = 'Ballistic Cannon' } },
+		{},
+		{ name = 'Gun' },
+		nil
+	)
+	self:assertEquals('S2 Ballistic cannon', desc)
+end
+
+function suite:testShortDescriptionLaserRepeater()
+	local desc = WeaponGun.getShortDescription(
+		{ class_name = 'VNCL_LaserCannon_S1', size = 1, vehicle_weapon = { type = 'Laser Repeater' } },
+		{},
+		{ name = 'Gun' },
+		nil
+	)
+	self:assertEquals('S1 Laser repeater', desc)
+end
+
+function suite:testShortDescriptionFallsBackWhenUnparsed()
+	-- rocket pod: no parsed class -> family type name, still size-prefixed
+	local desc = WeaponGun.getShortDescription(
+		{ class_name = 'APAR_RocketPod_S3', size = 3, vehicle_weapon = { type = 'Rocket Pod' } },
+		{},
+		{ name = 'Rocket pod' },
+		nil
+	)
+	self:assertEquals('S3 Rocket pod', desc)
+end
+
+function suite:testShortDescriptionNoSizeOmitsPrefix()
+	local desc = WeaponGun.getShortDescription(
+		{ class_name = 'APAR_RocketPod', vehicle_weapon = { type = 'Rocket Pod' } },
+		{},
+		{ name = 'Rocket pod' },
+		nil
+	)
+	self:assertEquals('Rocket pod', desc)
+end
+
 -- wiring
 
 function suite:testResolveSubtypeReturnsWeaponGun()

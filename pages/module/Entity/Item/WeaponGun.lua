@@ -7,6 +7,7 @@ require('strict')
 --- (turret ports carry the same `vehicle_weapon` shape as a standalone gun).
 
 local format = require('Module:Entity/Format')
+local item = require('Module:Entity/Item')
 local CLASSES = mw.loadJsonData('Module:Entity/Item/WeaponGun/weaponClasses.json')
 
 local p = {}
@@ -184,6 +185,32 @@ end
 --- @return EntitySectionEntry[]
 function p.getSections(apiData, args)
 	return p.getVehicleWeaponSections(apiData.vehicle_weapon)
+end
+
+--- Short description for vehicle weapons, more specific than the family default
+--- ("Gun by X"): a parsed gun reads "S<size> <damage type> <firing type> by
+--- <manufacturer>" (e.g. "S1 Laser repeater by Hurston Dynamics"); a weapon whose
+--- class can't be parsed (rocket pods, gap guns) keeps the family type name but
+--- still gains the size prefix (e.g. "S2 Rocket pod by X"). Size is omitted only
+--- when the API has none.
+---
+--- @param apiData table
+--- @param args table
+--- @param typeInfo table
+--- @param prefix string|nil
+--- @return string
+function p.getShortDescription(apiData, args, typeInfo, prefix)
+	local class = parseWeaponClass(apiData)
+	local typeName
+	if class.damage_type and class.firing_type then
+		typeName = class.damage_type .. ' ' .. class.firing_type:lower()
+	else
+		typeName = typeInfo.name
+	end
+	if apiData.size then
+		typeName = 'S' .. tostring(apiData.size) .. ' ' .. typeName
+	end
+	return item.formatShortDescription({ name = typeName }, apiData, args, prefix)
 end
 
 --- Flat structured data for the structured-data backend. Every access is

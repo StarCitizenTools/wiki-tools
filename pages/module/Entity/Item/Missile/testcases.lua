@@ -73,6 +73,13 @@ function suite:testEmptyWhenNoBlock()
 	self:assertEquals(0, #Missile.getSections({}, {}))
 end
 
+-- Torpedoes share the missile block (sub_type "Torpedo") and relabel the section.
+function suite:testTorpedoSectionLabel()
+	local missile = sampleData().missile
+	self:assertEquals('Torpedo', Missile.getSections({ sub_type = 'Torpedo', missile = missile }, {})[1].label)
+	self:assertEquals('Missile', Missile.getSections({ missile = missile }, {})[1].label)
+end
+
 -- Short description surfaces the signal type gun-style: "S1 infrared missile by X".
 function suite:testShortDescriptionUsesSignalType()
 	local desc = Missile.getShortDescription(sampleData(), { manufacturer = 'Behring' }, { name = 'Missile' })

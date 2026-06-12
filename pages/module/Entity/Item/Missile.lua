@@ -8,6 +8,11 @@ require('strict')
 --- defining classification: surfaced in the short description like a gun's weapon
 --- type ("S1 infrared missile by Behring") and stored as a queryable facet, not a
 --- browse category.
+---
+--- Torpedoes share this block: the API types them `Missile` with `sub_type`
+--- "Torpedo", so they dispatch here too. Their `Ship.Missile.Torpedo`
+--- classification routes the category + short-description noun to "torpedo"
+--- (classifications.json); this module only swaps the stat-section label.
 
 local format = require('Module:Entity/Format')
 local item = require('Module:Entity/Item')
@@ -88,10 +93,13 @@ function p.getSections(apiData, args)
 		return {}
 	end
 
+	-- Torpedoes (sub_type "Torpedo") share this block; label the stat group with
+	-- the player-facing ordnance kind.
+	local label = apiData.sub_type == 'Torpedo' and 'Torpedo' or 'Missile'
 	return {
 		{
 			key = 'missile',
-			label = 'Missile',
+			label = label,
 			items = items,
 		},
 	}

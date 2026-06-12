@@ -74,4 +74,26 @@ function suite:testResolveSubtype()
 	self:assertEquals(QIG, Item.resolveSubtype({ type = 'QuantumInterdictionGenerator' }))
 end
 
+-- Short description surfaces the subdivision (QED / QDMP / QID), like a gun's
+-- specific weapon type, not the umbrella "quantum interdiction generator".
+function suite:testShortDescriptionQdmp()
+	local desc = QIG.getShortDescription({
+		size = 3,
+		class = 'Military',
+		grade = 'A',
+		quantum_interdiction_generator = { jamming = { range = 4500 }, pulse = { radius = 1 } },
+	}, { manufacturer = 'Wei-Tek' }, { name = 'Quantum interdiction generator' })
+	self:assertEquals('S3 Gr. A military quantum dampener by Wei-Tek', desc)
+end
+
+function suite:testShortDescriptionQed()
+	local desc = QIG.getShortDescription({
+		size = 1,
+		class = 'Military',
+		grade = 'A',
+		quantum_interdiction_generator = { jamming = { range = 12000 }, pulse = { radius = 20000 } },
+	}, { manufacturer = 'Wei-Tek' }, { name = 'Quantum interdiction generator' })
+	self:assertEquals('S1 Gr. A military quantum enforcement device by Wei-Tek', desc)
+end
+
 return suite

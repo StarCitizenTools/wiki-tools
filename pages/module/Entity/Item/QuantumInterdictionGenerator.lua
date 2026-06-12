@@ -9,11 +9,19 @@ require('strict')
 --- the placeholder 1 m means it can snare; a jamming range means it can dampen.
 
 local format = require('Module:Entity/Format')
+local item = require('Module:Entity/Item')
 
 local p = {}
 
 --- @type string
 p.parent = 'Entity/Item'
+
+-- Full type names per enforcement subdivision, used in the short description.
+local SUBTYPE_NAME = {
+	QED = 'Quantum enforcement device',
+	QDMP = 'Quantum dampener',
+	QID = 'Quantum interdiction device',
+}
 
 --- Snare / dampener capability from the interdiction block.
 ---
@@ -111,6 +119,32 @@ function p.getStructuredData(apiData, args)
 		qig_duration = tonumber(pulse.discharge_time),
 		qig_cooldown = tonumber(pulse.cooldown_time),
 	}
+end
+
+--- Short description uses the device's enforcement subdivision as the type —
+--- "Quantum enforcement device" (QED), "Quantum dampener" (QDMP), or "Quantum
+--- interdiction device" (QID) — mirroring how vehicle guns surface their
+--- specific weapon type (e.g. "Laser repeater") rather than the generic "gun".
+--- Falls back to the umbrella "quantum interdiction generator" type when the
+--- subdivision can't be determined.
+---
+--- @param apiData table
+--- @param args table
+--- @param typeInfo table
+--- @param prefix string|nil
+--- @return string
+function p.getShortDescription(apiData, args, typeInfo, prefix)
+	local qig = apiData.quantum_interdiction_generator
+	if type(qig) == 'table' then
+		local hasSnare, hasDampener = capabilities(qig)
+		local name = SUBTYPE_NAME[deviceClass(hasSnare, hasDampener)]
+		if name then
+			local subInfo = { name = name }
+			return item.formatGradedShortDescription(subInfo, apiData, args)
+				or item.formatShortDescription(subInfo, apiData, args, prefix)
+		end
+	end
+	return item.getShortDescription(apiData, args, typeInfo, prefix)
 end
 
 -- Test-only exports. Not part of the public API.

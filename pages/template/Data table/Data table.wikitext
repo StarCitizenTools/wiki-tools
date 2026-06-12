@@ -1,5 +1,5 @@
 <includeonly><!--
--->{{#invoke:DataTableLua|main}}<!--
+-->{{#invoke:DataGrid|main}}<!--
 --></includeonly><noinclude>
 {{/doc}}
 </noinclude>

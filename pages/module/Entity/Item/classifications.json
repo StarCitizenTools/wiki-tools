@@ -11,6 +11,5 @@
 	"Ship.Turret.CanardTurret": { "name": "Weapon mount", "category": "Weapon mounts" },
 	"Ship.Cooler":           { "name": "Cooler", "category": "Coolers" },
 	"Ship.QuantumDrive":     { "name": "Quantum drive", "category": "Quantum drives" },
-	"Ship.FuelNozzle":       { "name": "Fuel nozzle", "category": "Fuel nozzles" },
 	"Ship.Missile.Torpedo":  { "name": "Torpedo", "category": "Torpedoes" }
 }

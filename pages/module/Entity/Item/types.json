@@ -39,7 +39,7 @@
 	"Cooler": { "name": "Cooler", "category": "Coolers" },
 	"Debris": { "name": "Debris", "category": "Debris" },
 	"Display": { "name": "Display", "category": "Displays" },
-	"DockingCollar": { "name": "Docking collar", "category": "Docking collars" },
+	"DockingCollar": { "name": "Fuel nozzle", "category": "Fuel nozzles" },
 	"Door": { "name": "Door", "category": "Doors" },
 	"Drink": { "name": "Drink", "category": "Drinks" },
 	"EMP": { "name": "EMP generator", "category": "EMP generators" },

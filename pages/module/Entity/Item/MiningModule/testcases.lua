@@ -78,6 +78,44 @@ function suite:testStructuredData()
 	self:assertEquals(35, data.power_modifier)
 	self:assertEquals(5, data.charges)
 	self:assertEquals(60, data.duration)
+	-- Each modifier_map effect becomes a numeric "Modifier <effect>" facet.
+	self:assertEquals(15.5, data.modifier_resistance)
+	self:assertEquals(-30, data.modifier_shatter_damage)
+end
+
+-- The API sometimes hands a modifier value as a string with a percent sign
+-- ("-80%") rather than a number; it must still render and store as -80.
+function suite:testStringPercentValue()
+	local apiData = {
+		mining_modifier = {
+			type = 'Active',
+			power_modifier = -0.15,
+			modifier_map = { overcharge_rate = '-80%' },
+		},
+	}
+	local sections = MiningModule.getSections(apiData, {})
+	self:assertEquals('-80%', findItem(sections[1].items, 'Overcharge rate').content)
+	self:assertEquals('-15%', findItem(sections[1].items, 'Power').content)
+	local data = MiningModule.getStructuredData(apiData)
+	self:assertEquals(-80, data.modifier_overcharge_rate)
+end
+
+-- A passive module: charges 0 / duration null are gated out of structured data.
+function suite:testPassiveStructuredData()
+	local data = MiningModule.getStructuredData({
+		mining_modifier = {
+			type = 'Passive',
+			charges = 0,
+			duration = nil,
+			power_modifier = 0,
+			modifier_map = { inert_materials = 5 },
+		},
+	})
+	self:assertEquals('Passive', data.mining_type)
+	self:assertEquals(0, data.power_modifier)
+	self:assertEquals(nil, data.charges)
+	self:assertEquals(nil, data.duration)
+	self:assertEquals(5, data.modifier_inert_materials)
 end
 
 function suite:testResolveSubtype()

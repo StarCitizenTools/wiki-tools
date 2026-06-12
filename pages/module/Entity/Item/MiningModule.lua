@@ -37,6 +37,20 @@ local function titleCase(key)
 	return s:sub(1, 1):upper() .. s:sub(2)
 end
 
+--- Coerces a modifier value to a number, tolerating the API's occasional
+--- string-with-percent form ("-80%" instead of -80). Returns nil for input
+--- that isn't numeric even after stripping a trailing percent sign.
+---
+--- @param value number|string|nil
+--- @return number|nil
+local function toNumber(value)
+	local n = tonumber(value)
+	if n == nil and type(value) == 'string' then
+		n = tonumber((value:gsub('%%', '')))
+	end
+	return n
+end
+
 --- Formats a numeric modifier as a signed percentage, rounded to one decimal to
 --- shed float noise (0.35 * 100 = 34.9999…). "+15.5%", "-30%". Returns nil for
 --- non-numeric input.
@@ -44,7 +58,7 @@ end
 --- @param value number|string|nil
 --- @return string|nil
 local function signedPct(value)
-	local n = tonumber(value)
+	local n = toNumber(value)
 	if n == nil then
 		return nil
 	end
@@ -67,8 +81,11 @@ function p.getSections(apiData, args)
 
 	local items = {}
 	pushItem(items, 'Type', m.type)
-	if m.power_modifier ~= nil then
-		pushItem(items, 'Power', signedPct(tonumber(m.power_modifier) * 100))
+	-- power_modifier is a 0-1 fraction (×100 for %); it can be null on passive
+	-- modules, so coerce first and skip when absent.
+	local power = toNumber(m.power_modifier)
+	if power ~= nil then
+		pushItem(items, 'Power', signedPct(power * 100))
 	end
 	local charges = tonumber(m.charges)
 	if charges and charges > 0 then
@@ -119,6 +136,13 @@ function p.getShortDescription(apiData, args, typeInfo, prefix)
 	return item.formatShortDescription({ name = typeName }, apiData, args, prefix)
 end
 
+--- Contributes mining-module facets for querying / the type index table: the
+--- module type, the power modifier (as a percentage), charges + duration for
+--- active modules, and every `modifier_map` effect as a numeric `Modifier
+--- <effect>` property (e.g. "Modifier resistance" = 15.5). The effect facets
+--- are dynamic, so new effects become queryable without code changes, and the
+--- `Modifier <effect>` naming reuses the legacy index's property names.
+---
 --- @param apiData table
 --- @param args table
 --- @return table<string, any>
@@ -127,13 +151,25 @@ function p.getStructuredData(apiData, args)
 	if type(m) ~= 'table' then
 		return {}
 	end
-	local power = tonumber(m.power_modifier)
-	return {
+	local power = toNumber(m.power_modifier)
+	local charges = tonumber(m.charges)
+	local duration = tonumber(m.duration)
+	local data = {
 		mining_type = m.type,
 		power_modifier = power and (math.floor(power * 1000 + 0.5) / 10) or nil,
-		charges = tonumber(m.charges),
-		duration = tonumber(m.duration),
+		charges = (charges and charges > 0) and charges or nil,
+		duration = (duration and duration > 0) and duration or nil,
 	}
+
+	local map = type(m.modifier_map) == 'table' and m.modifier_map or {}
+	for k, v in pairs(map) do
+		local n = toNumber(v)
+		if n ~= nil then
+			data['modifier_' .. k] = n
+		end
+	end
+
+	return data
 end
 
 return p

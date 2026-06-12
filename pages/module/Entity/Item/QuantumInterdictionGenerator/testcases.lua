@@ -25,7 +25,7 @@ function suite:testQedRows()
 	}, {})
 	self:assertEquals(1, #sections)
 	self:assertEquals('quantum_interdiction_generator', sections[1].key)
-	self:assertEquals('Snare + dampener (QED)', findItem(sections[1].items, 'Mode').content)
+	self:assertEquals('Snare + dampener', findItem(sections[1].items, 'Mode').content)
 	self:assertEquals('20,000 m', findItem(sections[1].items, 'Snare range').content)
 	self:assertEquals('12,000 m', findItem(sections[1].items, 'Dampener range').content)
 	self:assertEquals('90 s', findItem(sections[1].items, 'Charge time').content)
@@ -41,7 +41,7 @@ function suite:testQdmpHasNoSnareRange()
 			pulse = { radius = 1, charge_time = 90, discharge_time = 30, cooldown_time = 1 },
 		},
 	}, {})
-	self:assertEquals('Dampener (QDMP)', findItem(sections[1].items, 'Mode').content)
+	self:assertEquals('Dampener', findItem(sections[1].items, 'Mode').content)
 	self:assertEquals(nil, findItem(sections[1].items, 'Snare range'))
 	self:assertEquals('4,000 m', findItem(sections[1].items, 'Dampener range').content)
 end

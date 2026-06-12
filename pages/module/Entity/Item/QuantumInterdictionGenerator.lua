@@ -55,9 +55,9 @@ local function deviceClass(hasSnare, hasDampener)
 end
 
 local MODE_DESCRIPTION = {
-	QED = 'Snare + dampener (QED)',
-	QDMP = 'Dampener (QDMP)',
-	QID = 'Snare (QID)',
+	QED = 'Snare + dampener',
+	QDMP = 'Dampener',
+	QID = 'Snare',
 }
 
 --- @param apiData table

@@ -1,0 +1,28 @@
+/* Module:DataGrid presentation tweaks over the AGGrid extension theme. Scoped to
+   the .t-datagrid wrapper the module emits. Mirrors Module:PledgeVehicleGrid. The
+   scwSmart cell behaviour (right-align toggle) is owned by the aggridRenderers
+   gadget; this sheet only positions cells. */
+
+/* All rows in one internally-scrolling, virtualised grid; a taller viewport does
+   not grow the DOM. Overrides the extension's default height. */
+.t-datagrid .ext-aggrid {
+	height: 70vh;
+}
+
+/* Vertically centre cell content. */
+.t-datagrid .ag-cell {
+	display: flex;
+	align-items: center;
+}
+
+/* Keep numeric (right-aligned) cells flush right now that the cell is a flex box. */
+.t-datagrid .ag-cell.ag-right-aligned-cell {
+	justify-content: flex-end;
+}
+
+/* Lead thumbnail: fit the image to the row without distortion. */
+.t-datagrid .ag-cell img {
+	max-height: 100%;
+	width: auto;
+	object-fit: contain;
+}

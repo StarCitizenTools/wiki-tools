@@ -33,6 +33,7 @@ local itemSubtypeMapping = {
 	Radar = 'Entity/Item/Radar',
 	EMP = 'Entity/Item/EMP',
 	QuantumInterdictionGenerator = 'Entity/Item/QuantumInterdictionGenerator',
+	FlightController = 'Entity/Item/FlightController',
 }
 
 --- Formats a short description using the item-family template:

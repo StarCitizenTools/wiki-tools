@@ -409,10 +409,13 @@ local function buildItemSummaryRows(args, apiData)
 		table.insert(rows, { label = 'Rent', icon = '⏳', value = rentValue })
 	end
 
+	-- `is_lootable` is the upstream's direct loot flag; it supersedes the
+	-- older scan for the `CanGenerateAsLoot` entity tag (the two agree, and
+	-- the flag reads the same derived signal without walking entity_tag_map).
 	table.insert(rows, {
 		label = 'Loot',
 		icon = '📦',
-		value = resolveFlag(args.canLoot, hasEntityTag(apiData, 'CanGenerateAsLoot')),
+		value = resolveFlag(args.canLoot, apiData.is_lootable),
 	})
 	table.insert(rows, {
 		label = 'Craft',

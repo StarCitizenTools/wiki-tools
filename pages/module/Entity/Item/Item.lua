@@ -30,6 +30,7 @@ local itemSubtypeMapping = {
 	Shield = 'Entity/Item/Shield',
 	QuantumDrive = 'Entity/Item/QuantumDrive',
 	JumpDrive = 'Entity/Item/JumpModule',
+	Radar = 'Entity/Item/Radar',
 }
 
 --- Formats a short description using the item-family template:

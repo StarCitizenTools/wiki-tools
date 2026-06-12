@@ -43,7 +43,7 @@
 	"Door": { "name": "Door", "category": "Doors" },
 	"Drink": { "name": "Drink", "category": "Drinks" },
 	"EMP": { "name": "EMP generator", "category": "EMP generators" },
-	"ExternalFuelTank": { "name": "External fuel tank", "category": "External fuel tanks" },
+	"ExternalFuelTank": { "name": "Fuel pod", "category": "Fuel pods" },
 	"FPS_Consumable": { "name": "Supplies", "category": "Supplies" },
 	"FPS_Magazine": { "name": "Magazine", "category": "Magazines" },
 	"FPS_WeaponMelee": { "name": "Melee weapon", "category": "Melee weapons" },

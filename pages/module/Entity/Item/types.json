@@ -104,7 +104,7 @@
 	"TowingBeam": { "name": "Towing beam", "category": "Towing beams" },
 	"TractorBeam": { "name": "Tractor beam", "category": "Tractor beams" },
 	"Turret": { "name": "Turret", "category": "Turrets" },
-	"TurretBase": { "name": "Turret base", "category": "Turret bases" },
+	"TurretBase": { "name": "Manned turret", "category": "Manned turrets" },
 	"Visor": { "name": "Visor", "category": "Visors" },
 	"Weapon": { "name": "Weapon", "category": "Weapons" },
 	"WeaponAttachment": { "name": "Attachment", "category": "Attachments" },

@@ -112,6 +112,29 @@ function suite:testGradeContentFpsReturnsNil()
 	self:assertEquals(nil, Item._internal.gradeContent({}))
 end
 
+-- formatGradedShortDescription (graded vehicle components)
+
+function suite:testGradedShortDescription()
+	local desc = Item.formatGradedShortDescription(
+		{ name = 'Power plant' },
+		{ size = 3, grade = 'A', class = 'Military' },
+		{ manufacturer = 'Amon & Reese Co.' }
+	)
+	self:assertEquals('S3 Gr. A military power plant by Amon & Reese Co.', desc)
+end
+
+function suite:testGradedShortDescriptionNoClassReturnsNil()
+	-- No class (vehicle weapon / FPS item) -> nil, so the generic descriptor is used.
+	self:assertEquals(nil, Item.formatGradedShortDescription({ name = 'Gun' }, { size = 1, grade = 'A' }, {}))
+end
+
+function suite:testGradedShortDescriptionNoGradeReturnsNil()
+	self:assertEquals(
+		nil,
+		Item.formatGradedShortDescription({ name = 'Power plant' }, { size = 2, class = 'Military' }, {})
+	)
+end
+
 -- getItemType (relocated from Util)
 
 function suite:testGetItemTypeReturnsLabel()

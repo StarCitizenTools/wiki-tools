@@ -212,9 +212,37 @@ function p.getSections(apiData, args)
 	}
 end
 
---- Default short description for items: "[<prefix>] <type> [by <manufacturer>]".
---- The optional prefix is supplied by a matching facet (e.g. the consumable
---- facet's effects adjective) and composed by formatShortDescription.
+--- Spec-style short description for graded vehicle components — the ones the
+--- API marks with a `class` (power plants, coolers, shields, quantum drives,
+--- ...): e.g. "S3 Gr. A military power plant by Amon & Reese Co.". Returns nil
+--- when the item isn't a graded component (missing class, grade, or size), so
+--- the caller falls back to the generic item descriptor. Gating on classContent
+--- keeps this off vehicle weapons and FPS items, which carry no class.
+---
+--- @param typeInfo table
+--- @param apiData table
+--- @param args table
+--- @return string|nil
+function p.formatGradedShortDescription(typeInfo, apiData, args)
+	local class = classContent(apiData)
+	local grade = gradeContent(apiData)
+	local size = apiData.size
+	if not (class and grade and size) then
+		return nil
+	end
+	local desc = 'S' .. tostring(size) .. ' Gr. ' .. grade .. ' ' .. class:lower() .. ' ' .. typeInfo.name:lower()
+	local manufacturer = base.resolveManufacturer(apiData, args)
+	if manufacturer then
+		desc = desc .. ' by ' .. manufacturer.short
+	end
+	return desc
+end
+
+--- Default short description for items: graded vehicle components get the
+--- spec-style descriptor (formatGradedShortDescription); everything else gets
+--- "[<prefix>] <type> [by <manufacturer>]". The optional prefix is supplied by
+--- a matching facet (e.g. the consumable facet's effects adjective) and composed
+--- by formatShortDescription.
 ---
 --- @param apiData table
 --- @param args table
@@ -222,7 +250,8 @@ end
 --- @param prefix string|nil
 --- @return string
 function p.getShortDescription(apiData, args, typeInfo, prefix)
-	return p.formatShortDescription(typeInfo, apiData, args, prefix)
+	return p.formatGradedShortDescription(typeInfo, apiData, args)
+		or p.formatShortDescription(typeInfo, apiData, args, prefix)
 end
 
 --- Contributes item-level facet values to structured data: size, grade,

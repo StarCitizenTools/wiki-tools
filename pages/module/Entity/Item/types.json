@@ -42,7 +42,7 @@
 	"DockingCollar": { "name": "Docking collar", "category": "Docking collars" },
 	"Door": { "name": "Door", "category": "Doors" },
 	"Drink": { "name": "Drink", "category": "Drinks" },
-	"EMP": { "name": "EMP", "category": "EMPs" },
+	"EMP": { "name": "EMP generator", "category": "EMP generators" },
 	"ExternalFuelTank": { "name": "External fuel tank", "category": "External fuel tanks" },
 	"FPS_Consumable": { "name": "Supplies", "category": "Supplies" },
 	"FPS_Magazine": { "name": "Magazine", "category": "Magazines" },

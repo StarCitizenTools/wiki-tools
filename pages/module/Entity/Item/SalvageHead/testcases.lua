@@ -74,9 +74,9 @@ function suite:testShortDescription()
 	local desc = SalvageHead.getShortDescription(
 		balerData(),
 		{ manufacturer = 'Greycat Industrial' },
-		{ name = 'Salvage beam' }
+		{ name = 'Salvage head' }
 	)
-	self:assertEquals('S2 salvage beam by Greycat', desc)
+	self:assertEquals('S2 salvage head by Greycat', desc)
 end
 
 function suite:testStructuredData()

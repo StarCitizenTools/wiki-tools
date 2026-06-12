@@ -92,7 +92,7 @@
 	"Radar": { "name": "Radar", "category": "Radars" },
 	"Relay": { "name": "Relay", "category": "Relays" },
 	"RemovableChip": { "name": "Device", "category": "Devices" },
-	"SalvageHead": { "name": "Salvage beam", "category": "Salvage beams" },
+	"SalvageHead": { "name": "Salvage head", "category": "Salvage heads" },
 	"SalvageModifier": { "name": "Scraper module", "category": "Scraper modules" },
 	"Seat": { "name": "Seat", "category": "Seats" },
 	"SeatDashboard": { "name": "Dashboard", "category": "Dashboards" },

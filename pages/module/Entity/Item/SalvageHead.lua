@@ -123,7 +123,7 @@ function p.getSections(apiData, args)
 	}
 end
 
---- Short description prepends the mount size — "S2 salvage beam by Greycat" —
+--- Short description prepends the mount size — "S2 salvage head by Greycat" —
 --- mirroring the other component descriptors.
 ---
 --- @param apiData table

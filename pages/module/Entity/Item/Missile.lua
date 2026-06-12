@@ -28,6 +28,20 @@ local function pushItem(items, label, content)
 	end
 end
 
+--- Normalizes the API's lock signal type to a readable label by splitting
+--- CamelCase: "CrossSection" -> "Cross Section". Single-word values
+--- ("Infrared", "Electromagnetic") pass through unchanged. Returns nil for a
+--- missing/blank value.
+---
+--- @param raw string|nil
+--- @return string|nil
+local function signalLabel(raw)
+	if type(raw) ~= 'string' or raw == '' then
+		return nil
+	end
+	return (raw:gsub('(%l)(%u)', '%1 %2'))
+end
+
 --- Formats a min/max numeric pair as "lo–hi unit", collapsing to a single value
 --- when the bounds are equal or only one is present. Returns nil when neither
 --- bound is numeric.
@@ -61,7 +75,7 @@ function p.getSections(apiData, args)
 	local flight = type(missile.flight) == 'table' and missile.flight or {}
 
 	local items = {}
-	pushItem(items, 'Signal type', missile.signal_type)
+	pushItem(items, 'Signal type', signalLabel(missile.signal_type))
 	pushItem(items, 'Damage', format.formatNum(missile.damage_total))
 	pushItem(items, 'Explosion radius', rangeStr(missile.explosion_radius_min, missile.explosion_radius_max, 'm'))
 	pushItem(items, 'Lock time', missile.lock_time and (format.formatNum(missile.lock_time) .. ' s'))
@@ -95,9 +109,9 @@ end
 --- @return string
 function p.getShortDescription(apiData, args, typeInfo, prefix)
 	local missile = apiData.missile
-	local signal = type(missile) == 'table' and missile.signal_type or nil
+	local signal = type(missile) == 'table' and signalLabel(missile.signal_type) or nil
 	local typeName = typeInfo.name
-	if type(signal) == 'string' and signal ~= '' then
+	if signal then
 		typeName = signal:lower() .. ' ' .. typeInfo.name:lower()
 	end
 	if apiData.size then
@@ -116,7 +130,7 @@ function p.getStructuredData(apiData, args)
 	end
 	local flight = type(missile.flight) == 'table' and missile.flight or {}
 	return {
-		signal_type = missile.signal_type,
+		signal_type = signalLabel(missile.signal_type),
 		warhead_damage = tonumber(missile.damage_total),
 		explosion_radius = tonumber(missile.explosion_radius_max),
 		lock_time = tonumber(missile.lock_time),

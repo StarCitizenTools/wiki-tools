@@ -56,6 +56,19 @@ function suite:testEqualRangeCollapses()
 	self:assertEquals('5 m', findItem(sections[1].items, 'Explosion radius').content)
 end
 
+-- The API's CamelCase "CrossSection" is normalized to "Cross Section" for
+-- display, the facet, and the short description.
+function suite:testCrossSectionNormalized()
+	local api = { size = 3, missile = { signal_type = 'CrossSection', damage_total = 3200 } }
+	local sections = Missile.getSections(api, {})
+	self:assertEquals('Cross Section', findItem(sections[1].items, 'Signal type').content)
+	self:assertEquals('Cross Section', Missile.getStructuredData(api).signal_type)
+	self:assertEquals(
+		'S3 cross section missile by Firestorm Kinetics',
+		Missile.getShortDescription(api, { manufacturer = 'Firestorm Kinetics' }, { name = 'Missile' })
+	)
+end
+
 function suite:testEmptyWhenNoBlock()
 	self:assertEquals(0, #Missile.getSections({}, {}))
 end

@@ -77,10 +77,13 @@ For every page, the canonical structure is:
 <references />
 
 {{Navplate manufacturers|<manufacturer code>}}
+{{Navplate <type, e.g. power plants / vehicle weapons>}}
 ```
 
 Rules:
 - Section order is fixed; insert missing ones in the right place.
+- **Always keep the `== Ports ==` / `{{Entity/Ports}}` section, even for component types where it currently renders "No ports."** (power plants, coolers, etc. have no child ports today). It is data-driven and forward-compatible: CIG may add ports in a future patch and the section then populates automatically. Do not strip it as empty noise.
+- Add BOTH navplates at the foot: `{{Navplate manufacturers|<code>}}` and the type navplate (`{{Navplate <type plural>}}`, e.g. `{{Navplate power plants}}`). Confirm the type navplate exists before relying on it.
 - **Keep only `uuid`/`name`/`image`/`manufacturer` in the `{{Entity}}` block; drop every other legacy `{{Item}}` param.** Stat-bearing types (weapons) carry many (`Damage`, `Damage Type`, `Range`, `Ammo Count`, `Rate`, `Power Drain`, `IR Signature`, `UEC Cost`, …); `{{Entity}}` renders all of that from the API now, so they are dropped.
 - `{{Entity/Blueprints}}` goes on every page even if the item isn't currently craftable — the template renders empty for items without blueprint data.
 - Normalize heading spacing: `== Section ==` (single space inside the `==`). Some legacy pages have `==Section==`.

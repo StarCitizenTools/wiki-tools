@@ -70,7 +70,8 @@ function suite:testShortDescription()
 		{ manufacturer = 'Greycat Industrial' },
 		{ name = 'Tractor beam' }
 	)
-	self:assertEquals('S1 tractor beam by Greycat Industrial', desc)
+	-- formatShortDescription uses the manufacturer's short form (Greycat for GRIN).
+	self:assertEquals('S1 tractor beam by Greycat', desc)
 end
 
 function suite:testStructuredData()

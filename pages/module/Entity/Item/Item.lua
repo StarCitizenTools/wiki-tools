@@ -43,6 +43,7 @@ local itemSubtypeMapping = {
 	TowingBeam = 'Entity/Item/Beam',
 	MiningModifier = 'Entity/Item/MiningModule',
 	WeaponMining = 'Entity/Item/WeaponMining',
+	SalvageModifier = 'Entity/Item/Scraper',
 }
 
 --- Formats a short description using the item-family template:

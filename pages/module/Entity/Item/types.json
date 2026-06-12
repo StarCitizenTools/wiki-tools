@@ -93,6 +93,7 @@
 	"Relay": { "name": "Relay", "category": "Relays" },
 	"RemovableChip": { "name": "Device", "category": "Devices" },
 	"SalvageHead": { "name": "Salvage beam", "category": "Salvage beams" },
+	"SalvageModifier": { "name": "Scraper module", "category": "Scraper modules" },
 	"Seat": { "name": "Seat", "category": "Seats" },
 	"SeatDashboard": { "name": "Dashboard", "category": "Dashboards" },
 	"SelfDestruct": { "name": "Self destruct unit", "category": "Self destruct units" },

@@ -40,7 +40,8 @@ function suite:testActiveRows()
 	self:assertEquals('5', findItem(sections[1].items, 'Charges').content)
 	self:assertEquals('60 s', findItem(sections[1].items, 'Duration').content)
 	self:assertEquals('+15.5%', findItem(sections[1].items, 'Resistance').content)
-	self:assertEquals('-30%', findItem(sections[1].items, 'Shatter damage').content)
+	-- format.formatNum renders negatives with a typographic minus (U+2212).
+	self:assertEquals('−30%', findItem(sections[1].items, 'Shatter damage').content)
 end
 
 -- A passive module: no charges/duration; modifier_map keys auto-title.
@@ -69,7 +70,8 @@ function suite:testShortDescription()
 		{ manufacturer = 'Musashi Industrial and Starflight Concern' },
 		{ name = 'Mining module' }
 	)
-	self:assertEquals('S1 mining module by Musashi Industrial and Starflight Concern', desc)
+	-- formatShortDescription uses the manufacturer's short form (MISC for Musashi).
+	self:assertEquals('S1 mining module by MISC', desc)
 end
 
 function suite:testStructuredData()
@@ -94,8 +96,8 @@ function suite:testStringPercentValue()
 		},
 	}
 	local sections = MiningModule.getSections(apiData, {})
-	self:assertEquals('-80%', findItem(sections[1].items, 'Overcharge rate').content)
-	self:assertEquals('-15%', findItem(sections[1].items, 'Power').content)
+	self:assertEquals('−80%', findItem(sections[1].items, 'Overcharge rate').content)
+	self:assertEquals('−15%', findItem(sections[1].items, 'Power').content)
 	local data = MiningModule.getStructuredData(apiData)
 	self:assertEquals(-80, data.modifier_overcharge_rate)
 end

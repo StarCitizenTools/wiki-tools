@@ -78,9 +78,10 @@ function suite:testDuplicateAliasDetectsRepeat()
 	self:assertEquals('Size', dg.duplicateAlias(dg.parseColumns('Size\nSize')))
 end
 
--- A column aliasing to the reserved lead key "Name" collides with the lead.
+-- A column aliasing to a reserved lead key (Name or Image) collides with the lead.
 function suite:testDuplicateAliasDetectsLeadCollision()
 	self:assertEquals('Name', dg.duplicateAlias(dg.parseColumns('Foo ; label=Name')))
+	self:assertEquals('Image', dg.duplicateAlias(dg.parseColumns('Bar ; label=Image')))
 end
 
 -- buildQuery
@@ -114,6 +115,10 @@ end
 
 function suite:testBuildQueryNilConditionsUnchanged()
 	self:assertEquals('[[:+]] [[Category:Guns]]', dg.buildQuery('Guns', dg.parseColumns('Size'), nil)[1])
+end
+
+function suite:testBuildQueryEmptyConditionsUnchanged()
+	self:assertEquals('[[:+]] [[Category:Guns]]', dg.buildQuery('Guns', dg.parseColumns('Size'), '')[1])
 end
 
 return suite

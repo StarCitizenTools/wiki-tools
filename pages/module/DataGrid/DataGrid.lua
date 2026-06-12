@@ -202,7 +202,8 @@ local function buildColumnDefs(columns, classes)
 		}),
 	}
 	for i, column in ipairs(columns) do
-		local header = (column.label and column.label ~= '') and column.label or column.property
+		-- The header and the result-row alias are the same value (label, else property).
+		local header = p.columnAlias(column)
 		local filter = column.filter and 'aggridSet' or 'agTextColumnFilter'
 		local def
 		if classes[i] == 'link' then

@@ -37,9 +37,9 @@ function suite:testRows()
 	self:assertEquals(1, #sections)
 	self:assertEquals('seat', sections[1].key)
 	self:assertEquals('Seat', sections[1].label)
-	-- Signed range with a typographic minus (U+2212).
-	self:assertEquals('−20° to 20°', findItem(sections[1].items, 'Yaw').content)
-	self:assertEquals('−20° to 80°', findItem(sections[1].items, 'Pitch').content)
+	-- Signed range: typographic minus (U+2212) on bounds, em dash (U+2014) separator.
+	self:assertEquals('−20° — 20°', findItem(sections[1].items, 'Yaw').content)
+	self:assertEquals('−20° — 80°', findItem(sections[1].items, 'Pitch').content)
 	self:assertEquals('No', findItem(sections[1].items, 'Ejection seat').content)
 end
 
@@ -49,7 +49,7 @@ function suite:testEjectionYes()
 		seat = { yaw = { min = 0, max = 0 }, pitch = { min = -90, max = 90 }, has_ejection = true },
 	}, {})
 	self:assertEquals('Yes', findItem(sections[1].items, 'Ejection seat').content)
-	self:assertEquals('−90° to 90°', findItem(sections[1].items, 'Pitch').content)
+	self:assertEquals('−90° — 90°', findItem(sections[1].items, 'Pitch').content)
 end
 
 function suite:testEmptyWhenNoSeat()
@@ -58,6 +58,8 @@ end
 
 function suite:testStructuredData()
 	local data = Seat.getStructuredData(turretData())
+	self:assertEquals('−20° — 20°', data.yaw)
+	self:assertEquals('−20° — 80°', data.pitch)
 	self:assertEquals(-20, data.yaw_min)
 	self:assertEquals(20, data.yaw_max)
 	self:assertEquals(-20, data.pitch_min)

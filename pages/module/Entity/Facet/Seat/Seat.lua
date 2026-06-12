@@ -21,9 +21,10 @@ function p.matches(apiData)
 	return apiData ~= nil and type(apiData.seat) == 'table'
 end
 
---- Formats a {min, max} axis as a signed degree range ("−20° to 20°"). Reads the
+--- Formats a {min, max} axis as a signed degree range ("−20° — 20°"). Reads the
 --- `min`/`max` pair (falling back to `minimum`/`maximum`). Returns nil when either
---- bound is non-numeric so the row collapses.
+--- bound is non-numeric so the row collapses. The em dash separator stays clear
+--- of the typographic minus on negative bounds.
 ---
 --- @param axis table|nil
 --- @return string|nil
@@ -42,7 +43,7 @@ local function formatRange(axis)
 	if min == nil or max == nil then
 		return nil
 	end
-	return format.formatNum(min) .. '° to ' .. format.formatNum(max) .. '°'
+	return format.formatNum(min) .. '° — ' .. format.formatNum(max) .. '°'
 end
 
 --- @param apiData table
@@ -81,9 +82,11 @@ function p.getSections(apiData, args)
 	}
 end
 
---- Seat facets for structured data / query: the yaw / pitch bounds in degrees.
---- (has_ejection is rendered in the section but kept out of the query layer for
---- now — booleans aren't yet used as Entity facets.)
+--- Seat facets for structured data / query: the yaw / pitch traverse as both a
+--- formatted display range (`Yaw` / `Pitch`, for the type index table) and the
+--- raw numeric bounds (`Yaw min` … for numeric queries). has_ejection is rendered
+--- in the section but kept out of the query layer for now — booleans aren't yet
+--- used as Entity facets.
 ---
 --- @param apiData table
 --- @param args table
@@ -93,13 +96,15 @@ function p.getStructuredData(apiData, args)
 	if type(seat) ~= 'table' then
 		return {}
 	end
-	local yaw = type(seat.yaw) == 'table' and seat.yaw or {}
-	local pitch = type(seat.pitch) == 'table' and seat.pitch or {}
+	local yawAxis = type(seat.yaw) == 'table' and seat.yaw or {}
+	local pitchAxis = type(seat.pitch) == 'table' and seat.pitch or {}
 	return {
-		yaw_min = tonumber(yaw.min) or tonumber(yaw.minimum),
-		yaw_max = tonumber(yaw.max) or tonumber(yaw.maximum),
-		pitch_min = tonumber(pitch.min) or tonumber(pitch.minimum),
-		pitch_max = tonumber(pitch.max) or tonumber(pitch.maximum),
+		yaw = formatRange(seat.yaw),
+		pitch = formatRange(seat.pitch),
+		yaw_min = tonumber(yawAxis.min) or tonumber(yawAxis.minimum),
+		yaw_max = tonumber(yawAxis.max) or tonumber(yawAxis.maximum),
+		pitch_min = tonumber(pitchAxis.min) or tonumber(pitchAxis.minimum),
+		pitch_max = tonumber(pitchAxis.max) or tonumber(pitchAxis.maximum),
 	}
 end
 

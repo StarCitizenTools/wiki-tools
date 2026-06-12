@@ -118,12 +118,23 @@ local function renderAspect(aspect)
 		end
 	end
 
+	-- modifier_range (and its at_min/at_max_quality fields) can be absent on some
+	-- blueprints (e.g. power plants), so nil-guard the arithmetic and let the cell
+	-- collapse rather than throwing.
+	local function modifierCell(value, betterWhen)
+		if value == nil then
+			return nil
+		end
+		return style(value - 1, betterWhen)
+	end
+
 	local rows = {}
 	for _, entry in ipairs(aspect.modifiers) do
+		local range = entry.modifier_range or {}
 		table.insert(rows, {
 			entry.label,
-			style(entry.modifier_range.at_min_quality - 1, entry.better_when),
-			style(entry.modifier_range.at_max_quality - 1, entry.better_when),
+			modifierCell(range.at_min_quality, entry.better_when),
+			modifierCell(range.at_max_quality, entry.better_when),
 		})
 	end
 

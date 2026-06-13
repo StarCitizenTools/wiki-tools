@@ -168,6 +168,20 @@ local function buildSections(chain, facets, apiData, args)
 	end
 	local sections = assembly.mergeSections(sectionsList)
 
+	-- Stat sections (the chain's and facets' labelled sections — the subtype
+	-- stat block, Dimensions, etc.) render collapsible but expanded by default,
+	-- so a reader can fold away detail without losing the headline values. A
+	-- section that sets its own collapsible state keeps it (Component collapses
+	-- by default; Consumable / vehicle-weapon sections opt to stay open), and
+	-- the label-less general section stays plain (always shown). Runs before the
+	-- Metadata / External-sites sections are appended, so their explicit
+	-- collapsed state is untouched.
+	for _, section in ipairs(sections) do
+		if section.label and section.collapsible == nil then
+			section.collapsible = true
+		end
+	end
+
 	table.insert(sections, buildMetadataSection(apiData, args))
 
 	local externalSites = buildExternalSitesSection(chain, apiData, args)

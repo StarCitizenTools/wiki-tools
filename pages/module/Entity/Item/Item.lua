@@ -33,6 +33,18 @@ local itemSubtypeMapping = {
 	Radar = 'Entity/Item/Radar',
 	EMP = 'Entity/Item/EMP',
 	QuantumInterdictionGenerator = 'Entity/Item/QuantumInterdictionGenerator',
+	FlightController = 'Entity/Item/FlightController',
+	Missile = 'Entity/Item/Missile',
+	WeaponMissile = 'Entity/Item/Missile',
+	Bomb = 'Entity/Item/Bomb',
+	MissileLauncher = 'Entity/Item/Rack',
+	BombLauncher = 'Entity/Item/Rack',
+	TractorBeam = 'Entity/Item/Beam',
+	TowingBeam = 'Entity/Item/Beam',
+	MiningModifier = 'Entity/Item/MiningModule',
+	WeaponMining = 'Entity/Item/WeaponMining',
+	SalvageModifier = 'Entity/Item/Scraper',
+	SalvageHead = 'Entity/Item/SalvageHead',
 }
 
 --- Formats a short description using the item-family template:

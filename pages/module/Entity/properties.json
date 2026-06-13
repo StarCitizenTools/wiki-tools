@@ -1,0 +1,1008 @@
+{
+	"%doc": "Source-of-truth manifest of the SMW properties Module:Entity emits as structured data (StructuredData.store -> mw.smw.set). Each Property: page is generated from this with [[Has type::<smw>]]. Bucket-forward: only PAGE/TEXT/INTEGER/DOUBLE/BOOLEAN are used (never Quantity); data is stored UNITLESS (units are a render concern). `bucket` records the intended Bucket field type for the future migration (SMW has no integer/double split). `modules` lists the emitting Entity module(s). Multi-valued props (Effects/Systems) are TEXT for now; revisit their modeling at Bucket time.",
+	"Acquisition kind": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Commodity"
+		],
+		"desc": "Acquisition kind of a commodity record."
+	},
+	"Alpha damage": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"WeaponGun"
+		],
+		"desc": "Per-shot (alpha) damage of a weapon."
+	},
+	"Ammo": {
+		"smw": "Number",
+		"bucket": "INTEGER",
+		"modules": [
+			"WeaponGun",
+			"WeaponPersonal"
+		],
+		"desc": "Magazine / ammunition capacity of a weapon."
+	},
+	"Arm time": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Bomb"
+		],
+		"desc": "Arming delay of a bomb, in seconds."
+	},
+	"Available": {
+		"smw": "Boolean",
+		"bucket": "BOOLEAN",
+		"modules": [
+			"Mission"
+		],
+		"desc": "Whether a mission is currently available."
+	},
+	"Beam force": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Beam"
+		],
+		"desc": "Pull/push force of a tractor or towing beam, in newtons."
+	},
+	"Beam max angle": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Beam"
+		],
+		"desc": "Maximum articulation angle of a tractor/towing beam, in degrees."
+	},
+	"Beam mode force": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Beam"
+		],
+		"desc": "Heavy-lift mode force of a beam (cargo/tow), in newtons."
+	},
+	"Beam range": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Beam"
+		],
+		"desc": "Maximum range of a tractor/towing beam, in metres."
+	},
+	"Beam tether break": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Beam"
+		],
+		"desc": "Tether break time of a towing beam, in seconds."
+	},
+	"Blast radius": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Grenade"
+		],
+		"desc": "Area-of-effect blast radius of a grenade, in metres."
+	},
+	"Boost speed": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"FlightController"
+		],
+		"desc": "Boosted forward flight speed set by a flight controller, in m/s."
+	},
+	"Capacity count": {
+		"smw": "Number",
+		"bucket": "INTEGER",
+		"modules": [
+			"Rack"
+		],
+		"desc": "Number of ordnance a rack carries."
+	},
+	"Capacity size": {
+		"smw": "Number",
+		"bucket": "INTEGER",
+		"modules": [
+			"Rack"
+		],
+		"desc": "Size of each ordnance a rack carries."
+	},
+	"Category": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Mission"
+		],
+		"desc": "Legality category of a mission (verified / unverified)."
+	},
+	"Charges": {
+		"smw": "Number",
+		"bucket": "INTEGER",
+		"modules": [
+			"MiningModule"
+		],
+		"desc": "Number of charges of a mining module."
+	},
+	"Class": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Item"
+		],
+		"desc": "Component class (Military, Civilian, Industrial, …) of a graded vehicle component."
+	},
+	"Commodity group": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Commodity"
+		],
+		"desc": "Commodity family group."
+	},
+	"Commodity type": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Commodity"
+		],
+		"desc": "Commodity leaf type."
+	},
+	"Coolant generation": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Cooler"
+		],
+		"desc": "Coolant generated per segment by a cooler."
+	},
+	"Cooling rate": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Cooler"
+		],
+		"desc": "Cooling rate of a cooler."
+	},
+	"Damage": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Grenade",
+			"WeaponPersonal"
+		],
+		"desc": "Damage value of a weapon or grenade."
+	},
+	"Damage class": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"WeaponPersonal"
+		],
+		"desc": "Damage class of a personal weapon (Ballistic, Energy, …)."
+	},
+	"Damage repair rate": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"SalvageHead"
+		],
+		"desc": "Maximum damage-map repair rate of a salvage head."
+	},
+	"Damage type": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Grenade",
+			"WeaponGun"
+		],
+		"desc": "Damage type (Physical, Energy, …)."
+	},
+	"Density": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Commodity"
+		],
+		"desc": "Density of a commodity, in g/cm³."
+	},
+	"Distortion": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Component"
+		],
+		"desc": "Maximum distortion health of a component."
+	},
+	"Dps": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"WeaponGun",
+			"WeaponPersonal"
+		],
+		"desc": "Damage per second of a weapon."
+	},
+	"Drop angle": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Bomb"
+		],
+		"desc": "Maximum drop angle of a bomb, in degrees."
+	},
+	"Duration": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"MiningModule"
+		],
+		"desc": "Effect duration of a mining module, in seconds."
+	},
+	"Effective range": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"WeaponPersonal"
+		],
+		"desc": "Effective range of a weapon, in metres."
+	},
+	"Effects": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Consumable"
+		],
+		"multi": true,
+		"desc": "Consumable effects (multi-valued)."
+	},
+	"Em signature": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Component"
+		],
+		"desc": "Electromagnetic signature of a component."
+	},
+	"Emp charge time": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"EMP"
+		],
+		"desc": "Charge duration of an EMP generator, in seconds."
+	},
+	"Emp cooldown": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"EMP"
+		],
+		"desc": "Cooldown of an EMP generator, in seconds."
+	},
+	"Emp distortion damage": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"EMP"
+		],
+		"desc": "Distortion damage of an EMP generator."
+	},
+	"Emp duration": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"EMP"
+		],
+		"desc": "Unleash duration of an EMP generator, in seconds."
+	},
+	"Emp radius": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"EMP"
+		],
+		"desc": "Radius of an EMP generator, in metres."
+	},
+	"Explosion radius": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Bomb",
+			"Missile"
+		],
+		"desc": "Explosion radius of a bomb or missile, in metres."
+	},
+	"Extraction efficiency": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Scraper"
+		],
+		"desc": "Salvage extraction efficiency of a salvage head, as a fraction."
+	},
+	"Extraction throughput": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"WeaponMining"
+		],
+		"desc": "Extraction throughput of a mining laser head."
+	},
+	"Faction": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Mission"
+		],
+		"desc": "Issuing faction of a mission."
+	},
+	"Fire rate": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"WeaponGun"
+		],
+		"desc": "Fire rate of a weapon, in rounds per minute."
+	},
+	"Firing type": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"WeaponGun"
+		],
+		"desc": "Firing mechanism of a vehicle weapon (Cannon, Repeater, …)."
+	},
+	"Grade": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Item"
+		],
+		"desc": "Component grade (A–D) of a graded vehicle component."
+	},
+	"Health": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Component"
+		],
+		"desc": "Health (hit points) of a component."
+	},
+	"Health repair rate": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"SalvageHead"
+		],
+		"desc": "Maximum health repair rate of a salvage head."
+	},
+	"Hei": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Consumable"
+		],
+		"desc": "Hydration Efficacy Index of a consumable."
+	},
+	"Ir signature": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Component"
+		],
+		"desc": "Infrared signature of a component."
+	},
+	"Item type": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Item"
+		],
+		"desc": "In-game item type label."
+	},
+	"Jump alignment rate": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"JumpModule"
+		],
+		"desc": "Quantum alignment rate of a jump module."
+	},
+	"Jump fuel usage multiplier": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"JumpModule"
+		],
+		"desc": "Quantum fuel-usage multiplier of a jump module."
+	},
+	"Jump tuning rate": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"JumpModule"
+		],
+		"desc": "Quantum tuning rate of a jump module."
+	},
+	"Lock angle": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Missile"
+		],
+		"desc": "Lock-on cone angle of a missile, in degrees."
+	},
+	"Lock range": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Missile"
+		],
+		"desc": "Maximum lock-on range of a missile, in metres."
+	},
+	"Lock time": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Missile"
+		],
+		"desc": "Lock-on time of a missile, in seconds."
+	},
+	"Magnification": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Facet/WeaponModifier"
+		],
+		"desc": "Optical magnification of a scope or rangefinder (e.g. 8 means 8×)."
+	},
+	"Manufacturer": {
+		"smw": "Page",
+		"bucket": "PAGE",
+		"modules": [
+			"Base"
+		],
+		"desc": "Manufacturer of an entity."
+	},
+	"Material efficiency": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"SalvageHead"
+		],
+		"desc": "Material efficiency of a salvage head, as a fraction."
+	},
+	"Max range": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"WeaponGun",
+			"WeaponPersonal"
+		],
+		"desc": "Maximum range of a weapon, in metres."
+	},
+	"Max speed": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"FlightController"
+		],
+		"desc": "Maximum flight speed set by a flight controller, in m/s."
+	},
+	"Maximum range": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"WeaponMining"
+		],
+		"desc": "Maximum mining range of a mining laser head, in metres."
+	},
+	"Mineable": {
+		"smw": "Boolean",
+		"bucket": "BOOLEAN",
+		"modules": [
+			"Commodity"
+		],
+		"desc": "Whether a commodity is mineable."
+	},
+	"Mining power max": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"WeaponMining"
+		],
+		"desc": "Maximum mining laser power."
+	},
+	"Mining power min": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"WeaponMining"
+		],
+		"desc": "Minimum mining laser power."
+	},
+	"Mining type": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"MiningModule"
+		],
+		"desc": "Mining modifier type of a mining module."
+	},
+	"Missile range": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Missile"
+		],
+		"desc": "Flight range of a missile, in metres."
+	},
+	"Missile speed": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Missile"
+		],
+		"desc": "Speed of a missile, in m/s."
+	},
+	"Module slots": {
+		"smw": "Number",
+		"bucket": "INTEGER",
+		"modules": [
+			"WeaponMining"
+		],
+		"desc": "Number of mining-module slots on a mining laser head."
+	},
+	"Muzzle velocity": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"WeaponGun",
+			"WeaponPersonal"
+		],
+		"desc": "Muzzle velocity of a weapon, in m/s."
+	},
+	"Name": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Base"
+		],
+		"desc": "Display name of an entity."
+	},
+	"Ndr": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Consumable"
+		],
+		"desc": "Nutritional Density Rating of a consumable."
+	},
+	"Optimal range": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"WeaponMining"
+		],
+		"desc": "Optimal mining range of a mining laser head, in metres."
+	},
+	"Pitch": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"FlightController",
+			"Seat"
+		],
+		"desc": "Pitch traverse range of a seat or flight controller (display string)."
+	},
+	"Pitch boosted": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"FlightController"
+		],
+		"desc": "Boosted pitch rate of a flight controller, in °/s."
+	},
+	"Pitch max": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Seat"
+		],
+		"desc": "Maximum pitch angle of a seat, in degrees."
+	},
+	"Pitch min": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Seat"
+		],
+		"desc": "Minimum pitch angle of a seat, in degrees."
+	},
+	"Pitch speed": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Turret"
+		],
+		"desc": "Pitch rotation speed of a turret, in °/s."
+	},
+	"Power generation": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"PowerPlant"
+		],
+		"desc": "Power generated per segment by a power plant."
+	},
+	"Power modifier": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"MiningModule"
+		],
+		"desc": "Power modifier of a mining module, as a percentage."
+	},
+	"Power output": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"PowerPlant"
+		],
+		"desc": "Power output of a power plant."
+	},
+	"Qig charge time": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"QuantumInterdictionGenerator"
+		],
+		"desc": "Charge time of a quantum interdiction generator, in seconds."
+	},
+	"Qig cooldown": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"QuantumInterdictionGenerator"
+		],
+		"desc": "Cooldown of a quantum interdiction generator, in seconds."
+	},
+	"Qig dampener range": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"QuantumInterdictionGenerator"
+		],
+		"desc": "Quantum dampener range of a quantum interdiction generator, in metres."
+	},
+	"Qig duration": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"QuantumInterdictionGenerator"
+		],
+		"desc": "Discharge duration of a quantum interdiction generator, in seconds."
+	},
+	"Qig mode": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"QuantumInterdictionGenerator"
+		],
+		"desc": "Mode of a quantum interdiction generator (QED, QDMP, QID)."
+	},
+	"Qig snare range": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"QuantumInterdictionGenerator"
+		],
+		"desc": "Quantum snare radius of a quantum interdiction generator, in metres."
+	},
+	"Quantum cooldown": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"QuantumDrive"
+		],
+		"desc": "Cooldown of a quantum drive, in seconds."
+	},
+	"Quantum fuel requirement": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"QuantumDrive"
+		],
+		"desc": "Quantum fuel requirement of a quantum drive."
+	},
+	"Quantum speed": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"QuantumDrive"
+		],
+		"desc": "Travel speed of a quantum drive, in Mm/s."
+	},
+	"Quantum spool time": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"QuantumDrive"
+		],
+		"desc": "Spool-up time of a quantum drive, in seconds."
+	},
+	"Radar aim assist range": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Radar"
+		],
+		"desc": "Aim-assist assignment range of a radar, in metres."
+	},
+	"Radar cooldown": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Radar"
+		],
+		"desc": "Cooldown of a radar."
+	},
+	"Radar resource sensitivity": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Radar"
+		],
+		"desc": "Resource-detection sensitivity of a radar."
+	},
+	"Radar sensitivity": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Radar"
+		],
+		"desc": "Infrared sensitivity of a radar."
+	},
+	"Radius multiplier": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Scraper"
+		],
+		"desc": "Salvage radius multiplier of a scraper module."
+	},
+	"Ramp down time": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"SalvageHead"
+		],
+		"desc": "Salvage ramp-down time of a salvage head, in seconds."
+	},
+	"Ramp up time": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"SalvageHead"
+		],
+		"desc": "Salvage ramp-up time of a salvage head, in seconds."
+	},
+	"Roll": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"FlightController"
+		],
+		"desc": "Base roll rate of a flight controller, in °/s."
+	},
+	"Roll boosted": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"FlightController"
+		],
+		"desc": "Boosted roll rate of a flight controller, in °/s."
+	},
+	"Salvage speed multiplier": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Scraper"
+		],
+		"desc": "Salvage speed multiplier of a scraper module."
+	},
+	"Scm speed": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"FlightController"
+		],
+		"desc": "SCM (combat) flight speed set by a flight controller, in m/s."
+	},
+	"Scrip": {
+		"smw": "Number",
+		"bucket": "INTEGER",
+		"modules": [
+			"Mission"
+		],
+		"desc": "Reputation/scrip reward of a mission."
+	},
+	"Shield health": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Shield"
+		],
+		"desc": "Maximum shield health of a shield generator."
+	},
+	"Shield regen delay": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Shield"
+		],
+		"desc": "Shield regeneration delay after damage, in seconds."
+	},
+	"Shield regeneration": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Shield"
+		],
+		"desc": "Shield regeneration rate of a shield generator."
+	},
+	"Signal type": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Missile"
+		],
+		"desc": "Missile guidance signal type (Cross Section, …)."
+	},
+	"Signature": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Commodity"
+		],
+		"desc": "Material signature of a commodity."
+	},
+	"Size": {
+		"smw": "Number",
+		"bucket": "INTEGER",
+		"modules": [
+			"Item"
+		],
+		"desc": "Size (slot size) of an item."
+	},
+	"Slash damage": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Knife"
+		],
+		"desc": "Blade-slash damage of a melee weapon."
+	},
+	"Stab damage": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Knife"
+		],
+		"desc": "Blade-stab damage of a melee weapon."
+	},
+	"Systems": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Commodity",
+			"Mission"
+		],
+		"multi": true,
+		"desc": "Star systems a commodity or mission is associated with (multi-valued)."
+	},
+	"Tier": {
+		"smw": "Number",
+		"bucket": "INTEGER",
+		"modules": [
+			"Commodity"
+		],
+		"desc": "Tier of a commodity."
+	},
+	"Type": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Mission"
+		],
+		"desc": "Mission type."
+	},
+	"Uec": {
+		"smw": "Number",
+		"bucket": "INTEGER",
+		"modules": [
+			"Mission"
+		],
+		"desc": "aUEC payout of a mission."
+	},
+	"Uuid": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Base"
+		],
+		"desc": "Game UUID of an entity."
+	},
+	"Volume": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Item"
+		],
+		"desc": "Volume of an item, in microSCU."
+	},
+	"Warhead damage": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Bomb",
+			"Missile"
+		],
+		"desc": "Total warhead damage of a bomb or missile."
+	},
+	"Weapon class": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"WeaponPersonal"
+		],
+		"desc": "Player-facing weapon class of a personal weapon (Pistol, Assault Rifle, …)."
+	},
+	"Yaw": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"FlightController",
+			"Seat"
+		],
+		"desc": "Yaw traverse range of a seat or flight controller (display string)."
+	},
+	"Yaw boosted": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"FlightController"
+		],
+		"desc": "Boosted yaw rate of a flight controller, in °/s."
+	},
+	"Yaw max": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Seat"
+		],
+		"desc": "Maximum yaw angle of a seat, in degrees."
+	},
+	"Yaw min": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Seat"
+		],
+		"desc": "Minimum yaw angle of a seat, in degrees."
+	},
+	"Yaw speed": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Turret"
+		],
+		"desc": "Yaw rotation speed of a turret, in °/s."
+	}
+}

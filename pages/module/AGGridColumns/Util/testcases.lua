@@ -73,4 +73,36 @@ function suite:testCloneFormatNil()
 	self:assertEquals(nil, Util.cloneFormat(nil))
 end
 
+function suite:testToTextScalar()
+	self:assertEquals('Laser', Util.toText('Laser'))
+end
+
+function suite:testToTextNil()
+	self:assertEquals(nil, Util.toText(nil))
+end
+
+-- Pre-existing, byte-identical behaviour: an all-empty multi-valued result joins to
+-- '' (not nil). Pinned so a future change can't silently alter consumer output.
+function suite:testToTextAllEmptyArrayIsEmptyString()
+	self:assertEquals('', Util.toText({ '', '' }))
+end
+
+function suite:testToNumberNegative()
+	self:assertEquals(-3, Util.toNumber('-3 m/s'))
+end
+
+function suite:testToNumberArrayUsesFirst()
+	self:assertEquals(100, Util.toNumber({ '100 m/s', '200 m/s' }))
+end
+
+function suite:testParseLinkNoDisplay()
+	local target, display = Util.parseLink('[[:Aegis Dynamics]]')
+	self:assertEquals('Aegis Dynamics', target)
+	self:assertEquals(nil, display)
+end
+
+function suite:testClassifyColumnAllTextIsPlain()
+	self:assertEquals('plain', Util.classifyColumn({ '180 m/s', '90 m/s' }))
+end
+
 return suite

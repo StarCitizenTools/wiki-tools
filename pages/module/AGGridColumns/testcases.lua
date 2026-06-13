@@ -93,4 +93,22 @@ function suite:testStackedValueCellNoSubWhenSame()
 	self:assertEquals(nil, v.sub)
 end
 
+-- Contract: a kind with no `type` at all (nil, not false) is rejected.
+function suite:testValidateRejectsMissingType()
+	local ok = Contract.validate({ buildColDef = function() end, buildCellValue = function() end })
+	self:assertFalse(ok)
+end
+
+-- A cell whose source field is absent yields nil (the row key is simply omitted).
+function suite:testTextCellNilWhenAbsent()
+	self:assertEquals(nil, cellOf({ kind = 'text', field = 'c', label = 'C' }, {}))
+end
+
+-- A badge value not present in the variants map gets a nil variant (neutral pill).
+function suite:testBadgeCellUnmappedVariant()
+	local v = cellOf({ kind = 'badge', field = 'c', label = 'C' }, { C = 'Unmapped' })
+	self:assertEquals('Unmapped', v.text)
+	self:assertEquals(nil, v.variant)
+end
+
 return suite

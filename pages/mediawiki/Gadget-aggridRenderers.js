@@ -26,6 +26,8 @@
  *      { value: <number>, text: <primary string>, sub: <secondary string>|null }
  *  - scwBadge: a BadgeLua-style pill. Value shape:
  *      { text, variant: 'error'|'success'|'warning'|null }
+ *  - scwSmart: a plain text column with numeric-aware sort and per-cell right-
+ *    align of numeric-looking values. Cell value is a display string (no object).
  */
 ( function () {
 	'use strict';
@@ -74,6 +76,72 @@
 		span.className = className;
 		span.style.setProperty( '--scw-entitycard-icon', 'url("' + thumb.src + '")' );
 		return span;
+	}
+
+	// Decode HTML entities in a display string (notably the literal "&#160;" the SMW
+	// formatter emits for nbsp) by round-tripping through a detached <textarea>. This
+	// is browser-native decoding; it never executes markup.
+	var scwDecodeEl = document.createElement( 'textarea' );
+	function scwDecode( s ) {
+		// Callers pass an already-stringified value (see scwClean); s is always a string.
+		if ( s.indexOf( '&' ) === -1 ) {
+			return s;
+		}
+		scwDecodeEl.innerHTML = s;
+		return scwDecodeEl.value;
+	}
+
+	// Normalise a cell value to clean text: stringify, decode entities, fold nbsp to
+	// a normal space, collapse runs, and trim. Numbers stringify straight through.
+	function scwClean( v ) {
+		if ( v === null || v === undefined ) {
+			return '';
+		}
+		var s = typeof v === 'string' ? v : String( v );
+		s = scwDecode( s );
+		return s.replace( / /g, ' ' ).replace( /\s+/g, ' ' ).replace( /^\s+|\s+$/g, '' );
+	}
+
+	// The numeric value of a cell, or null when it is not numeric. RULE: numeric iff,
+	// after cleaning, the value is a LEADING number (optional sign, decimals,
+	// thousands commas) followed by an optional TRAILING unit token (a run with no
+	// digits: ' m/s', ' kg', ' SCU', '°/s', '🗡️'). 'S2' / 'Gr. 3' / '$1,500' have the
+	// number after a non-digit prefix, so they are NON-numeric and sort
+	// alphabetically ( 'S1' < 'S10' < 'S2' ). One predictable rule for every column.
+	function scwNumericPart( v ) {
+		if ( typeof v === 'number' ) {
+			return isFinite( v ) ? v : null;
+		}
+		var s = scwClean( v );
+		if ( s === '' ) {
+			return null;
+		}
+		var m = s.match( /^([+-]?[0-9][0-9,]*(?:\.[0-9]+)?)\s*(?:[^0-9]*)$/ );
+		if ( !m ) {
+			return null;
+		}
+		var n = parseFloat( m[ 1 ].replace( /,/g, '' ) );
+		return isNaN( n ) ? null : n;
+	}
+
+	function scwLooksNumeric( v ) {
+		return scwNumericPart( v ) !== null;
+	}
+
+	// Numeric when both sides are numeric (tie-break by localeCompare so equal
+	// numbers with different unit text stay stable); alphabetical otherwise.
+	function scwNumericAwareCompare( a, b ) {
+		var an = scwNumericPart( a );
+		var bn = scwNumericPart( b );
+		if ( an !== null && bn !== null ) {
+			if ( an < bn ) {
+				return -1;
+			}
+			if ( an > bn ) {
+				return 1;
+			}
+		}
+		return scwClean( a ).localeCompare( scwClean( b ) );
 	}
 
 	function buildCard( v ) {
@@ -288,6 +356,23 @@
 			comparator: function ( a, b ) {
 				return String( ( a && a.text ) || '' )
 					.localeCompare( String( ( b && b.text ) || '' ) );
+			}
+		};
+
+		// Generic numeric-aware text column for browse tables (Module:DataGrid). The
+		// Lua side packs a plain display string; this type sorts numeric-looking
+		// values numerically and right-aligns them per cell, with no Lua typing.
+		reg.columnTypes.scwSmart = {
+			comparator: function ( a, b ) {
+				return scwNumericAwareCompare( a, b );
+			},
+			cellClassRules: {
+				'ag-right-aligned-cell': function ( params ) {
+					return scwLooksNumeric( params.value );
+				}
+			},
+			valueFormatter: function ( params ) {
+				return params.value == null ? '' : String( params.value );
 			}
 		};
 	} );

@@ -32,6 +32,8 @@ p.facets = {
 	require('Module:Entity/Facet/Gadget'),
 	require('Module:Entity/Facet/Salvage'),
 	require('Module:Entity/Facet/Heal'),
+	require('Module:Entity/Facet/Medical'),
+	require('Module:Entity/Facet/Hacking'),
 	require('Module:Entity/Facet/WeaponModifier'),
 	require('Module:Entity/Facet/IronSight'),
 	require('Module:Entity/Facet/Magazine'),

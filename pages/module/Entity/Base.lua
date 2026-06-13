@@ -32,10 +32,12 @@ function p.resolveManufacturer(apiData, args)
 			}
 	end
 
+	-- UNKN ("Unknown manufacturer") is a legitimate in-game manufacturer code,
+	-- so it resolves like any other (see Module:Manufacturers). GENF/GEND/NONE/TBD
+	-- are placeholder sentinels for "no manufacturer" and stay filtered out.
 	local apiMfr = apiData.manufacturer
 	if
 		not apiMfr
-		or apiMfr.code == 'UNKN'
 		or apiMfr.code == 'GENF'
 		or apiMfr.code == 'GEND'
 		or apiMfr.code == 'NONE'

@@ -132,6 +132,7 @@
 	"TYDT": { "name": "Tyler Design & Tech" },
 	"UBA": { "name": "Universal Body Armor" },
 	"UEE": { "name": "United Empire of Earth", "short": "UEE" },
+	"UNKN": { "name": "Unknown manufacturer" },
 	"UTFL": { "name": "UltiFlex" },
 	"UPS": { "name": "Upsiders" },
 	"VFGI": { "name": "VFG Industrial" },

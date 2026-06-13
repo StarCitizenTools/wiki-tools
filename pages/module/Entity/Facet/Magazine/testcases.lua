@@ -76,13 +76,13 @@ end
 
 function suite:testStructuredData()
 	local d = Magazine.getStructuredData(ballistic())
-	self:assertEquals(15, d.capacity)
-	self:assertEquals(800, d.velocity)
-	self:assertEquals(1600, d.ammo_range)
+	self:assertEquals(15, d.ammo)
+	self:assertEquals(800, d.muzzle_velocity)
+	self:assertEquals(1600, d.max_range)
 	self:assertEquals(42.5, d.damage)
 	-- Missile mag: capacity 0 gated out; detonation damage summed.
 	local m = Magazine.getStructuredData(missile())
-	self:assertEquals(nil, m.capacity)
+	self:assertEquals(nil, m.ammo)
 	self:assertEquals(150, m.damage)
 end
 

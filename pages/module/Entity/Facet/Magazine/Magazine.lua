@@ -150,10 +150,13 @@ function p.getStructuredData(apiData, args)
 		end
 	end
 
+	-- Reuse the shared weapon-ammo properties (Ammo / Muzzle velocity / Max range
+	-- / Damage) rather than minting magazine-only duplicates, so the index sorts
+	-- numerically against the same declared properties guns use.
 	return {
-		capacity = (capacity and capacity > 0) and capacity or nil,
-		velocity = tonumber(ammo.speed),
-		ammo_range = tonumber(ammo.range),
+		ammo = (capacity and capacity > 0) and capacity or nil,
+		muzzle_velocity = tonumber(ammo.speed),
+		max_range = tonumber(ammo.range),
 		damage = damageTotal,
 	}
 end

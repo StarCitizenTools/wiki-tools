@@ -14,12 +14,10 @@ require('strict')
 -- parsed to titles here. Multi-valued printouts (Loaner) arrive as arrays.
 
 local aggrid = require('mw.ext.aggrid')
+local AGGridColumns = require('Module:AGGridColumns')
+local Util = require('Module:AGGridColumns/Util')
 
 local p = {}
-
--- Source thumbnail width in px. The display size is fixed by styles.css, so this
--- only governs image resolution.
-local IMAGE_WIDTH = 120
 
 -- Source width in px for the manufacturer brand glyph in the card eyebrow.
 local GLYPH_WIDTH = 40
@@ -38,181 +36,6 @@ do
 			end
 		end
 	end
-end
-
--- Decode a single scalar SMW value to clean text.
-local function decodeScalar(value)
-	if type(value) == 'table' then
-		value = value.fulltext or value.fullText or value.text or value.label
-	end
-	if value == nil then
-		return nil
-	end
-	return mw.text.decode(tostring(value), true)
-end
-
--- Map a function over a (possibly multi-valued) SMW result value, joining the
--- decoded results with ", ". Single values pass straight through `fn`.
-local function mapJoin(value, fn)
-	if type(value) == 'table' and value[1] ~= nil then
-		local parts = {}
-		for _, v in ipairs(value) do
-			local t = decodeScalar(v)
-			if t and t ~= '' then
-				parts[#parts + 1] = fn(t)
-			end
-		end
-		return table.concat(parts, ', ')
-	end
-	local s = decodeScalar(value)
-	if s == nil then
-		return nil
-	end
-	return fn(s)
-end
-
-local function identity(s)
-	return s
-end
-
-local function toText(value)
-	return mapJoin(value, identity)
-end
-
--- Coerce to a number: decode entities first (drops the nbsp "160" leak), then
--- strip currency, units, and grouping separators.
-local function toNumber(value)
-	if type(value) == 'number' then
-		return value
-	end
-	if type(value) == 'table' and value[1] ~= nil then
-		value = value[1]
-	end
-	local text = decodeScalar(value)
-	if text == nil then
-		return nil
-	end
-	return tonumber((text:gsub('[^%d%.%-]', '')))
-end
-
--- Parse "[[:Target|Display]]" (a single SMW page value) into target, display.
-local function parseLink(markup)
-	if type(markup) == 'table' then
-		markup = markup[1]
-	end
-	local s = decodeScalar(markup)
-	if s == nil then
-		return nil
-	end
-	local inner = s:match('^%[%[(.-)%]%]$') or s
-	local target = inner:match('^([^|]*)')
-	if target then
-		target = target:gsub('^:', '')
-	end
-	if not target or target == '' then
-		return nil
-	end
-	return target, inner:match('|(.*)$')
-end
-
--- Build a linked-thumbnail cell value from "[[File:X.png|frameless|...]]" markup,
--- linked to the row's own page. nil when the file is absent or missing on-wiki.
-local function buildThumb(markup, linkTarget)
-	if type(markup) == 'table' then
-		markup = markup[1]
-	end
-	local s = decodeScalar(markup)
-	if s == nil then
-		return nil
-	end
-	local inner = s:match('^%[%[(.-)%]%]$') or s
-	local file = inner:match('^([^|]*)')
-	if not file or file == '' then
-		return nil
-	end
-	return aggrid.thumb(file, IMAGE_WIDTH, linkTarget and { link = linkTarget } or nil)
-end
-
--- Build a link-list cell value from a (possibly multi-valued) page printout.
-local function buildLinkList(value)
-	if value == nil then
-		return nil
-	end
-	local items = (type(value) == 'table' and value[1] ~= nil) and value or { value }
-	local targets = {}
-	for _, m in ipairs(items) do
-		local target = parseLink(m)
-		if target then
-			targets[#targets + 1] = target
-		end
-	end
-	if #targets == 0 then
-		return nil
-	end
-	return aggrid.linkList(targets)
-end
-
--- Build the structured value for the combined "Vehicle" card cell consumed by the
--- scwEntityCard renderer (SCW gadget): a thumbnail (image), the ship name as the
--- title, and the manufacturer as the eyebrow (text + brand glyph icon). Every
--- file/URL target is resolved server-side here; the renderer only builds DOM from
--- this value. Returns nil when the row has no resolvable page.
-local function buildCard(result)
-	local nameTarget, nameDisplay = parseLink(result['Name'])
-	if not nameTarget then
-		return nil
-	end
-	local nameLink = aggrid.link(nameTarget, nameDisplay)
-	local card = {
-		title = (nameLink and nameLink.text) or nameDisplay or nameTarget,
-		titleHref = nameLink and nameLink.href,
-		image = buildThumb(result['Image'], nameTarget),
-	}
-	local mfrTarget, mfrDisplay = parseLink(result['Manufacturer'])
-	if mfrTarget then
-		local mfrName = mfrDisplay or mfrTarget
-		local info = MANUFACTURER[mfrName]
-		-- Compact eyebrow label: the manufacturer's short name, falling back to the
-		-- full name. The link still targets the full manufacturer page. The full
-		-- name (eyebrowFull) is the set-filter value, so the filter reads in full.
-		card.eyebrow = (info and info.short) or mfrName
-		card.eyebrowFull = mfrName
-		local mfrLink = aggrid.link(mfrTarget, mfrName)
-		card.eyebrowHref = mfrLink and mfrLink.href
-		-- Brand glyph: best-effort. The renderer paints it as a CSS mask; the media
-		-- host sends CORS headers, so the resolved (cross-origin) URL works. A nil
-		-- code or missing file yields a text-only eyebrow (aggrid.thumb returns nil).
-		if info and info.code then
-			card.eyebrowIcon = aggrid.thumb('File:Sc-icon-brand-' .. info.code .. '.svg', GLYPH_WIDTH)
-		end
-	end
-	return card
-end
-
--- Build a stacked-value cell for the scwStackedValue renderer: a primary number
--- over an optional muted secondary (the original price), shown only when it
--- differs from the current. `value` is the raw current number, kept for sort and
--- the number filter; `text`/`sub` are the formatted display lines.
-local function buildPriceStack(current, original)
-	if current == nil then
-		return nil
-	end
-	local lang = mw.getContentLanguage()
-	local stack = { value = current, text = '$' .. lang:formatNum(current) }
-	if original ~= nil and original ~= current then
-		stack.sub = '$' .. lang:formatNum(original)
-	end
-	return stack
-end
-
--- Build a badge cell for the scwBadge renderer (BadgeLua-style pill): the text
--- plus an optional BadgeLua variant ('success'/'warning'/'error') looked up from
--- `variants`. Unmapped values render a neutral base badge; an empty value -> nil.
-local function buildBadge(text, variants)
-	if text == nil or text == '' then
-		return nil
-	end
-	return { text = text, variant = variants and variants[text] }
 end
 
 -- Numeric display formats. The extension applies these client-side via Intl on
@@ -239,81 +62,106 @@ local PRODUCTION_VARIANT = {
 	['In concept'] = 'error',
 }
 
--- Column set mirroring the live List of pledge vehicles #ask. `label` is the SMW
--- printout label the result row is keyed by; `field` is the AG Grid field.
--- `kind` selects a rich renderer; `num` marks numeric; `format` is its numeric
--- display spec (see above). `filter` overrides the default column filter -- the
--- low-cardinality categorical columns use the extension's checkbox set filter
--- ('aggridSet'). `w` is an explicit width: the auto-sizing columns ignore it
--- (the grid auto-sizes via autoSizeStrategy; retained so buildColumnDefs can
--- switch back to fixed widths), but the card column uses it because its custom
--- DOM does not auto-size meaningfully.
+-- Eyebrow resolver for the vehicle card: the manufacturer's short name + brand
+-- glyph, parsed from the row's Manufacturer page printout. Consumer-specific
+-- (the card kind itself stays generic). Returns nil when there's no manufacturer.
+local function manufacturerEyebrow(result)
+	local mfrTarget, mfrDisplay = Util.parseLink(result['Manufacturer'])
+	if not mfrTarget then
+		return nil
+	end
+	local mfrName = mfrDisplay or mfrTarget
+	local info = MANUFACTURER[mfrName]
+	local mfrLink = aggrid.link(mfrTarget, mfrName)
+	local eyebrow = {
+		text = (info and info.short) or mfrName,
+		full = mfrName,
+		href = mfrLink and mfrLink.href,
+	}
+	if info and info.code then
+		eyebrow.icon = aggrid.thumb('File:Sc-icon-brand-' .. info.code .. '.svg', GLYPH_WIDTH)
+	end
+	return eyebrow
+end
+
 local COLUMNS = {
-	-- One card cell replaces the former Image + Name + Manufacturer columns:
-	-- thumbnail + manufacturer eyebrow + ship name. Rendered by the scwEntityCard
-	-- column type (SCW gadget); sorts by name, set filter lists manufacturers.
-	{ field = 'vehicle', header = 'Vehicle', kind = 'card', filter = 'aggridSet', w = 300 },
-	{ field = 'career', label = 'Career', header = 'Career', filter = 'aggridSet', w = 110 },
-	{ field = 'role', label = 'Role', header = 'Role', filter = 'aggridSet', w = 180 },
-	{ field = 'size', label = 'Size', header = 'Size', filter = 'aggridSet', w = 80 },
+	{
+		field = 'vehicle',
+		header = 'Vehicle',
+		kind = 'card',
+		titleLabel = 'Name',
+		imageLabel = 'Image',
+		eyebrow = manufacturerEyebrow,
+		filter = 'aggridSet',
+		width = 300,
+	},
+	{ field = 'career', header = 'Career', kind = 'text', label = 'Career', filter = 'aggridSet', width = 110 },
+	{ field = 'role', header = 'Role', kind = 'text', label = 'Role', filter = 'aggridSet', width = 180 },
+	{ field = 'size', header = 'Size', kind = 'text', label = 'Size', filter = 'aggridSet', width = 80 },
 	{
 		field = 'production',
-		label = 'Production state',
 		header = 'Production state',
 		kind = 'badge',
+		label = 'Production state',
 		variants = PRODUCTION_VARIANT,
 		filter = 'aggridSet',
-		w = 200,
+		width = 200,
 	},
 	{
 		field = 'availability',
-		label = 'Pledge availability',
 		header = 'Pledge availability',
+		kind = 'text',
+		label = 'Pledge availability',
 		filter = 'aggridSet',
-		w = 140,
+		width = 140,
 	},
-	-- Pledge / Warbond each stack the current price over the original (when the
-	-- original differs), rendered by the scwStackedValue column type.
 	{
 		field = 'pledge',
 		header = 'Pledge',
-		kind = 'priceStack',
+		kind = 'stackedValue',
 		curLabel = 'Pledge',
 		origLabel = 'Orig pledge',
-		w = 90,
+		width = 90,
 	},
 	{
 		field = 'warbond',
 		header = 'Warbond',
-		kind = 'priceStack',
+		kind = 'stackedValue',
 		curLabel = 'Warbond',
 		origLabel = 'Orig warbond',
-		w = 90,
+		width = 90,
 	},
-	{ field = 'loaner', label = 'Loaner', header = 'Loaner', kind = 'linkList', w = 160 },
-	{ field = 'avgPrice', label = 'Avg purchase', header = 'Avg purchase', num = true, format = FMT_AUEC, w = 105 },
+	{ field = 'loaner', header = 'Loaner', kind = 'linkList', label = 'Loaner', width = 160 },
+	{
+		field = 'avgPrice',
+		header = 'Avg purchase',
+		kind = 'number',
+		label = 'Avg purchase',
+		format = FMT_AUEC,
+		width = 105,
+	},
 	{
 		field = 'avgRental',
-		label = 'Avg daily rental',
 		header = 'Avg daily rental',
-		num = true,
+		kind = 'number',
+		label = 'Avg daily rental',
 		format = FMT_AUEC,
-		w = 105,
+		width = 105,
 	},
-	{ field = 'length', label = 'Length', header = 'Length', num = true, format = FMT_METERS, w = 80 },
-	{ field = 'width', label = 'Width', header = 'Width', num = true, format = FMT_METERS, w = 80 },
-	{ field = 'height', label = 'Height', header = 'Height', num = true, format = FMT_METERS, w = 80 },
-	{ field = 'mass', label = 'Mass', header = 'Mass', num = true, format = FMT_KG, w = 90 },
-	{ field = 'minCrew', label = 'Min crew', header = 'Min crew', num = true, w = 80 },
-	{ field = 'maxCrew', label = 'Max crew', header = 'Max crew', num = true, w = 80 },
-	{ field = 'stowage', label = 'Stowage', header = 'Stowage', num = true, format = FMT_PLAIN, w = 95 },
-	{ field = 'cargo', label = 'Cargo', header = 'Cargo', num = true, format = FMT_SCU, w = 80 },
-	{ field = 'scm', label = 'SCM speed', header = 'SCM speed', num = true, format = FMT_SPEED, w = 85 },
-	{ field = 'maxSpeed', label = 'Max speed', header = 'Max speed', num = true, format = FMT_SPEED, w = 90 },
-	{ field = 'roll', label = 'Roll', header = 'Roll', num = true, format = FMT_RATE, w = 75 },
-	{ field = 'pitch', label = 'Pitch', header = 'Pitch', num = true, format = FMT_RATE, w = 75 },
-	{ field = 'yaw', label = 'Yaw', header = 'Yaw', num = true, format = FMT_RATE, w = 75 },
-	{ field = 'conceptDate', label = 'Concept date', header = 'Concept date', w = 110 },
+	{ field = 'length', header = 'Length', kind = 'number', label = 'Length', format = FMT_METERS, width = 80 },
+	{ field = 'width', header = 'Width', kind = 'number', label = 'Width', format = FMT_METERS, width = 80 },
+	{ field = 'height', header = 'Height', kind = 'number', label = 'Height', format = FMT_METERS, width = 80 },
+	{ field = 'mass', header = 'Mass', kind = 'number', label = 'Mass', format = FMT_KG, width = 90 },
+	{ field = 'minCrew', header = 'Min crew', kind = 'number', label = 'Min crew', width = 80 },
+	{ field = 'maxCrew', header = 'Max crew', kind = 'number', label = 'Max crew', width = 80 },
+	{ field = 'stowage', header = 'Stowage', kind = 'number', label = 'Stowage', format = FMT_PLAIN, width = 95 },
+	{ field = 'cargo', header = 'Cargo', kind = 'number', label = 'Cargo', format = FMT_SCU, width = 80 },
+	{ field = 'scm', header = 'SCM speed', kind = 'number', label = 'SCM speed', format = FMT_SPEED, width = 85 },
+	{ field = 'maxSpeed', header = 'Max speed', kind = 'number', label = 'Max speed', format = FMT_SPEED, width = 90 },
+	{ field = 'roll', header = 'Roll', kind = 'number', label = 'Roll', format = FMT_RATE, width = 75 },
+	{ field = 'pitch', header = 'Pitch', kind = 'number', label = 'Pitch', format = FMT_RATE, width = 75 },
+	{ field = 'yaw', header = 'Yaw', kind = 'number', label = 'Yaw', format = FMT_RATE, width = 75 },
+	{ field = 'conceptDate', header = 'Concept date', kind = 'text', label = 'Concept date', width = 110 },
 }
 
 local function buildQuery()
@@ -353,110 +201,6 @@ local function buildQuery()
 	}
 end
 
-local function buildRowData(results)
-	local rows = {}
-	for _, result in ipairs(results) do
-		local row = {}
-		for _, col in ipairs(COLUMNS) do
-			if col.kind == 'card' then
-				row[col.field] = buildCard(result)
-			elseif col.kind == 'priceStack' then
-				row[col.field] = buildPriceStack(toNumber(result[col.curLabel]), toNumber(result[col.origLabel]))
-			elseif col.kind == 'badge' then
-				row[col.field] = buildBadge(toText(result[col.label]), col.variants)
-			elseif col.num then
-				row[col.field] = toNumber(result[col.label])
-			elseif col.kind == 'linkList' then
-				row[col.field] = buildLinkList(result[col.label])
-			else
-				row[col.field] = toText(result[col.label])
-			end
-		end
-		rows[#rows + 1] = row
-	end
-	return rows
-end
-
--- Shallow-copy a format spec. The FMT_* constants are shared by several columns,
--- but Scribunto's PHP serializer rejects the same table appearing more than once
--- in a structure ("Cannot pass circular reference to PHP"), so each colDef needs
--- its own instance. Values are scalars, so a shallow copy is enough.
-local function cloneFormat(fmt)
-	if fmt == nil then
-		return nil
-	end
-	local copy = {}
-	for k, v in pairs(fmt) do
-		copy[k] = v
-	end
-	return copy
-end
-
-local function buildColumnDefs()
-	local defs = {}
-	for _, col in ipairs(COLUMNS) do
-		local def
-		if col.kind == 'card' then
-			-- The scwEntityCard column type (SCW gadget) supplies the cellRenderer,
-			-- the name comparator, and the manufacturer filterValueGetter the set
-			-- filter reads. Pin a width and skip auto-sizing: the custom card DOM
-			-- does not measure meaningfully under fitCellContents.
-			def = {
-				field = col.field,
-				headerName = col.header,
-				type = 'scwEntityCard',
-				filter = col.filter or 'aggridSet',
-				sortable = true,
-				width = col.w,
-				suppressAutoSize = true,
-			}
-		elseif col.kind == 'priceStack' then
-			-- scwStackedValue (SCW gadget) renders the stack and supplies the
-			-- comparator + filterValueGetter that key on the current price.
-			def = {
-				field = col.field,
-				headerName = col.header,
-				type = 'scwStackedValue',
-				filter = 'agNumberColumnFilter',
-				cellClass = 'ag-right-aligned-cell',
-				headerClass = 'ag-right-aligned-header',
-				width = col.w,
-				suppressAutoSize = true,
-			}
-		elseif col.kind == 'badge' then
-			-- scwBadge (SCW gadget) renders the BadgeLua-style pill; the set filter
-			-- and sort key on the badge text via valueFormatter / comparator.
-			def = {
-				field = col.field,
-				headerName = col.header,
-				type = 'scwBadge',
-				filter = col.filter or 'aggridSet',
-				sortable = true,
-				width = col.w,
-				suppressAutoSize = true,
-			}
-		elseif col.kind == 'linkList' then
-			def = aggrid.linkListColumn({
-				field = col.field,
-				header = col.header,
-				filter = col.filter or 'agTextColumnFilter',
-			})
-		elseif col.num then
-			def = {
-				field = col.field,
-				headerName = col.header,
-				filter = col.filter or 'agNumberColumnFilter',
-				type = 'numericColumn',
-				format = cloneFormat(col.format),
-			}
-		else
-			def = { field = col.field, headerName = col.header, filter = col.filter or 'agTextColumnFilter' }
-		end
-		defs[#defs + 1] = def
-	end
-	return defs
-end
-
 --- Entry point. Renders the pledge-vehicle grid.
 --- @param frame mw.frame
 --- @return string
@@ -467,8 +211,8 @@ function p.main(frame)
 	end
 
 	local gridOptions = {
-		columnDefs = buildColumnDefs(),
-		rowData = buildRowData(results),
+		columnDefs = AGGridColumns.buildColumnDefs(COLUMNS),
+		rowData = AGGridColumns.buildRowData(results, COLUMNS),
 		-- Themed global search box wired to AG Grid's quick filter (client-side over
 		-- the loaded rows).
 		quickSearch = true,

@@ -1,23 +1,19 @@
 require('strict')
 
---- SMW-value helpers for Module:DataGrid. mw.smw.ask returns each printout as a
---- formatted display string: numbers carry units and embed the nbsp as the literal
---- entity "&#160;"; page printouts return "[[:Target|Display]]"; file printouts
---- return "[[File:X.png|...]]"; multi-valued printouts arrive as arrays. These
---- helpers DECODE those shapes. classifyColumn decides only the distinction that is
---- reliable from markup -- page-link vs plain -- never number-vs-text (the scwSmart
---- gadget column type sorts plain columns numerically at render time).
+--- SMW-value decoders shared by Module:AGGridColumns kinds and consumers.
+--- mw.smw.ask returns formatted display strings (numbers carry units + the literal
+--- entity "&#160;"; page printouts return "[[:Target|Display]]"; files
+--- "[[File:X|...]]"; multi-valued printouts arrive as arrays). These decode those
+--- shapes. Lifted from the former Module:DataGrid/Util, plus toNumber/buildLinkList
+--- (from the former PledgeVehicleGrid) and cloneFormat.
 
 local aggrid = require('mw.ext.aggrid')
 
 local p = {}
 
--- Source thumbnail width in px. Display size is fixed by styles.css; this only
--- governs image resolution.
-local IMAGE_WIDTH = 120
+--- Source thumbnail width in px (display size is fixed in styles.css).
+p.IMAGE_WIDTH = 120
 
---- Decode a single scalar SMW value to clean text (HTML entities decoded, so the
---- "&#160;" nbsp leak becomes a real nbsp instead of "160").
 --- @param value any
 --- @return string|nil
 function p.decodeScalar(value)
@@ -30,8 +26,7 @@ function p.decodeScalar(value)
 	return mw.text.decode(tostring(value), true)
 end
 
---- Decode a (possibly multi-valued) SMW value to display text. Arrays join with
---- ", "; scalars pass through; nil stays nil.
+--- Decode a (possibly multi-valued) SMW value to display text; arrays join ", ".
 --- @param value any
 --- @return string|nil
 function p.toText(value)
@@ -48,8 +43,26 @@ function p.toText(value)
 	return p.decodeScalar(value)
 end
 
---- Parse a single SMW page value "[[:Target|Display]]" into target, display.
---- Returns nil when the value is not a single bracketed page link.
+--- Coerce to a number: entity-decode (drops the nbsp "160" leak), then strip
+--- currency/units/grouping. nil when not parseable.
+--- @param value any
+--- @return number|nil
+function p.toNumber(value)
+	if type(value) == 'number' then
+		return value
+	end
+	if type(value) == 'table' and value[1] ~= nil then
+		value = value[1]
+	end
+	local text = p.decodeScalar(value)
+	if text == nil then
+		return nil
+	end
+	return tonumber((text:gsub('[^%d%.%-]', '')))
+end
+
+--- Parse a single SMW page value "[[:Target|Display]]" -> target, display. nil when
+--- not a single bracketed page link.
 --- @param markup any
 --- @return string|nil target
 --- @return string|nil display
@@ -72,9 +85,8 @@ function p.parseLink(markup)
 	return target, inner:match('|(.*)$')
 end
 
---- Build a linked-thumbnail cell value (consumed by the aggridImage column type)
---- from "[[File:X.png|...]]" markup, linked to linkTarget. nil when the file is
---- absent or missing on-wiki.
+--- Build a linked-thumbnail cell value (for the aggridImage type) from
+--- "[[File:X|...]]" markup, linked to linkTarget. nil when the file is absent.
 --- @param markup any
 --- @param linkTarget string|nil
 --- @return table|nil
@@ -91,12 +103,32 @@ function p.buildThumb(markup, linkTarget)
 	if not file or file == '' then
 		return nil
 	end
-	return aggrid.thumb(file, IMAGE_WIDTH, linkTarget and { link = linkTarget } or nil)
+	return aggrid.thumb(file, p.IMAGE_WIDTH, linkTarget and { link = linkTarget } or nil)
 end
 
--- Lower-cased namespace prefixes that mark a value as a file (so a file printout is
--- not mistaken for a page link). Canonical "file"/"image" plus the wiki's localised
--- File namespace (id 6) name and aliases. Built once on first use.
+--- Build a link-list cell value (for the aggridLinkList type) from a (possibly
+--- multi-valued) page printout. nil when no resolvable target.
+--- @param value any
+--- @return table|nil
+function p.buildLinkList(value)
+	if value == nil then
+		return nil
+	end
+	local items = (type(value) == 'table' and value[1] ~= nil) and value or { value }
+	local targets = {}
+	for _, m in ipairs(items) do
+		local target = p.parseLink(m)
+		if target then
+			targets[#targets + 1] = target
+		end
+	end
+	if #targets == 0 then
+		return nil
+	end
+	return aggrid.linkList(targets)
+end
+
+-- Lower-cased namespace prefixes marking a value as a file. Built once.
 local FILE_PREFIXES
 local function filePrefixes()
 	if FILE_PREFIXES then
@@ -117,7 +149,6 @@ local function filePrefixes()
 	return FILE_PREFIXES
 end
 
--- True when a decoded value string is a single bracketed File:/Image: link.
 local function isFileMarkup(s)
 	local inner = s:match('^%[%[(.-)%]%]$')
 	if not inner then
@@ -128,16 +159,12 @@ local function isFileMarkup(s)
 end
 
 --- Classify an editor column from its non-nil values: 'link' when every non-empty
---- value is a single page link "[[...]]" (and not a file), else 'plain'. Number-vs-
---- text is deliberately NOT decided here. An all-empty list is 'plain'.
---- @param values any[]  non-nil mw.smw.ask values for this column (one per non-empty row)
+--- value is a single page link (not a file), else 'plain'. Never number-vs-text.
+--- @param values any[]
 --- @return string  'link' | 'plain'
 function p.classifyColumn(values)
 	local seen = false
 	for _, v in ipairs(values) do
-		-- A value is a string, a scalar SMW object, or a multi-valued array. Pass the
-		-- array's first element through; the `or v` falls back to the whole value when
-		-- it is not an array, letting decodeScalar field-resolve a scalar SMW object.
 		local s = p.decodeScalar(type(v) == 'table' and v[1] or v)
 		if s ~= nil and s ~= '' then
 			seen = true
@@ -148,5 +175,22 @@ function p.classifyColumn(values)
 	end
 	return seen and 'link' or 'plain'
 end
+
+--- Shallow-copy a format spec. Scribunto's PHP serializer rejects the same table
+--- twice ("Cannot pass circular reference to PHP"), so each colDef needs its own.
+--- @param fmt table|nil
+--- @return table|nil
+function p.cloneFormat(fmt)
+	if fmt == nil then
+		return nil
+	end
+	local copy = {}
+	for k, v in pairs(fmt) do
+		copy[k] = v
+	end
+	return copy
+end
+
+p._internal = { isFileMarkup = isFileMarkup }
 
 return p

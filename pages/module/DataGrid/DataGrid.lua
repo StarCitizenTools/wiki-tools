@@ -12,7 +12,8 @@ require('strict')
 --- NOT decided here -- scwSmart sorts numeric-looking values numerically and right-
 --- aligns them per cell at render time.
 
-local Util = require('Module:DataGrid/Util')
+local Util = require('Module:AGGridColumns/Util')
+local AGGridColumns = require('Module:AGGridColumns')
 local aggrid = require('mw.ext.aggrid')
 
 local p = {}
@@ -79,14 +80,6 @@ function p.columnAlias(column)
 	return column.property
 end
 
---- The synthetic, AG-Grid-safe field id for the i-th editor column. Property names
---- contain spaces/parens, so they are unsafe as AG Grid `field` keys.
---- @param index integer
---- @return string
-local function columnField(index)
-	return 'c' .. index
-end
-
 --- The first editor column whose alias collides with another column or with a lead
 --- key. mw.smw.ask keys by alias, so a collision silently drops a column's data.
 --- @param columns DataGridColumn[]
@@ -127,98 +120,44 @@ function p.buildQuery(category, columns, conditions)
 	return query
 end
 
---- Classify each editor column ('link' | 'plain') from its non-empty values.
+--- Build the AGGridColumns column specs for this query: the fixed lead thumbnail +
+--- linked name, then one spec per editor column (classified link vs smart-plain).
 --- @param results table[]
 --- @param columns DataGridColumn[]
---- @return string[]
-local function classifyColumns(results, columns)
-	local classes = {}
-	for i, column in ipairs(columns) do
-		local alias = p.columnAlias(column)
-		local values = {}
-		for _, result in ipairs(results) do
-			local v = result[alias]
-			if v ~= nil then
-				values[#values + 1] = v
-			end
-		end
-		classes[i] = Util.classifyColumn(values)
-	end
-	return classes
-end
-
---- Build AG Grid rowData. Lead: linked thumbnail + linked name (both link to the
---- row's own page). Editor columns: link cells for 'link' columns, decoded text
---- for 'plain' columns.
---- @param results table[]
---- @param columns DataGridColumn[]
---- @param classes string[]
 --- @return table[]
-local function buildRowData(results, columns, classes)
-	local rows = {}
-	for _, result in ipairs(results) do
-		local pageTitle, pageDisplay = Util.parseLink(result[NAME_ALIAS])
-		local row = {
-			thumb = Util.buildThumb(result[IMAGE_ALIAS], pageTitle),
-			name = pageTitle and aggrid.link(pageTitle, pageDisplay) or nil,
-		}
-		for i, column in ipairs(columns) do
-			local field = columnField(i)
-			local value = result[p.columnAlias(column)]
-			if classes[i] == 'link' then
-				local target, display = Util.parseLink(value)
-				row[field] = target and aggrid.link(target, display) or Util.toText(value)
-			else
-				row[field] = Util.toText(value)
-			end
-		end
-		rows[#rows + 1] = row
-	end
-	return rows
-end
-
---- Build AG Grid columnDefs: a blank-header linked thumbnail (aggridImage), a
---- linked name (aggridLink), then one def per editor column. Plain columns get the
---- scwSmart gadget type (numeric-aware sort + per-cell right-align); link columns
---- get aggridLink. A `filter`-flagged column gets the checkbox set filter; others
---- get the text filter.
---- @param columns DataGridColumn[]
---- @param classes string[]
---- @return table[]
-local function buildColumnDefs(columns, classes)
-	local defs = {
-		aggrid.imageColumn({
+local function buildSpecs(results, columns)
+	local specs = {
+		{
+			kind = 'image',
 			field = 'thumb',
 			header = '',
+			imageLabel = IMAGE_ALIAS,
+			linkLabel = NAME_ALIAS,
 			sortable = false,
 			filter = false,
 			width = 72,
 			suppressAutoSize = true,
-		}),
-		aggrid.linkColumn({
-			field = 'name',
-			header = NAME_ALIAS,
-			filter = 'agTextColumnFilter',
-		}),
+		},
+		{ kind = 'link', field = 'name', header = NAME_ALIAS, label = NAME_ALIAS, filter = 'agTextColumnFilter' },
 	}
 	for i, column in ipairs(columns) do
-		-- The header and the result-row alias are the same value (label, else property).
-		local header = p.columnAlias(column)
-		local filter = column.filter and 'aggridSet' or 'agTextColumnFilter'
-		local def
-		if classes[i] == 'link' then
-			def = aggrid.linkColumn({ field = columnField(i), header = header, filter = filter })
-		else
-			def = {
-				field = columnField(i),
-				headerName = header,
-				type = 'scwSmart',
-				filter = filter,
-			}
+		local alias = p.columnAlias(column)
+		local values = {}
+		for _, result in ipairs(results) do
+			if result[alias] ~= nil then
+				values[#values + 1] = result[alias]
+			end
 		end
-		defs[#defs + 1] = def
+		local class = Util.classifyColumn(values)
+		specs[#specs + 1] = {
+			kind = (class == 'link') and 'link' or 'smart',
+			field = 'c' .. i,
+			header = (column.label and column.label ~= '') and column.label or column.property,
+			label = alias,
+			filter = column.filter and 'aggridSet' or 'agTextColumnFilter',
+		}
 	end
-	return defs
+	return specs
 end
 
 --- Entry point for {{Data table}}. Reads `category`, `columns`, `conditions` from
@@ -252,10 +191,10 @@ function p.main(frame)
 		results = {}
 	end
 
-	local classes = classifyColumns(results, columns)
+	local specs = buildSpecs(results, columns)
 	local gridOptions = {
-		columnDefs = buildColumnDefs(columns, classes),
-		rowData = buildRowData(results, columns, classes),
+		columnDefs = AGGridColumns.buildColumnDefs(specs),
+		rowData = AGGridColumns.buildRowData(results, specs),
 		quickSearch = true,
 		pagination = false,
 		rowHeight = 48,

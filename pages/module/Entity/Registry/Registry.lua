@@ -33,6 +33,7 @@ p.facets = {
 	require('Module:Entity/Facet/Salvage'),
 	require('Module:Entity/Facet/Heal'),
 	require('Module:Entity/Facet/WeaponModifier'),
+	require('Module:Entity/Facet/Mining'),
 	require('Module:Entity/Facet/Component'),
 	require('Module:Entity/Facet/Dimensions'),
 }

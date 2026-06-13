@@ -6,118 +6,18 @@ local Item = require('Module:Entity/Item')
 
 local suite = ScribuntoUnit:new()
 
-local function findItem(items, label)
-	for _, it in ipairs(items or {}) do
-		if it.label == label then
-			return it
-		end
-	end
-	return nil
-end
-
--- The Brandt: an active module, power +35%, resistance +15.5%, shatter -30%.
-local function brandtData()
-	return {
-		size = 1,
-		mining_modifier = {
-			type = 'Active',
-			charges = 5,
-			duration = 60,
-			power_modifier = 0.35,
-			modifier_map = { resistance = 15.5, shatter_damage = -30 },
-		},
-	}
-end
-
-function suite:testActiveRows()
-	local sections = MiningModule.getSections(brandtData(), {})
-	self:assertEquals(1, #sections)
-	self:assertEquals('mining_modifier', sections[1].key)
-	self:assertEquals('Mining module', sections[1].label)
-	self:assertEquals('Active', findItem(sections[1].items, 'Type').content)
-	-- 0.35 * 100 rounds cleanly to +35%, not +34.9999%.
-	self:assertEquals('+35%', findItem(sections[1].items, 'Power').content)
-	self:assertEquals('5', findItem(sections[1].items, 'Charges').content)
-	self:assertEquals('60 s', findItem(sections[1].items, 'Duration').content)
-	self:assertEquals('+15.5%', findItem(sections[1].items, 'Resistance').content)
-	-- format.formatNum renders negatives with a typographic minus (U+2212).
-	self:assertEquals('−30%', findItem(sections[1].items, 'Shatter damage').content)
-end
-
--- A passive module: no charges/duration; modifier_map keys auto-title.
-function suite:testPassiveAndAutoTitle()
-	local sections = MiningModule.getSections({
-		mining_modifier = {
-			type = 'Passive',
-			power_modifier = 0.1,
-			modifier_map = { optimal_charge_window_rate = 25 },
-		},
-	}, {})
-	self:assertEquals('Passive', findItem(sections[1].items, 'Type').content)
-	self:assertEquals('+10%', findItem(sections[1].items, 'Power').content)
-	self:assertEquals(nil, findItem(sections[1].items, 'Charges'))
-	self:assertEquals(nil, findItem(sections[1].items, 'Duration'))
-	self:assertEquals('+25%', findItem(sections[1].items, 'Optimal charge window rate').content)
-end
-
-function suite:testEmptyWhenNoBlock()
-	self:assertEquals(0, #MiningModule.getSections({}, {}))
-end
+-- mining_modifier rendering + structured data is covered by
+-- Module:Entity/Facet/Mining/testcases; this subtype now only owns the
+-- size-prefixed short description and its type resolution.
 
 function suite:testShortDescription()
 	local desc = MiningModule.getShortDescription(
-		brandtData(),
+		{ size = 1 },
 		{ manufacturer = 'Musashi Industrial and Starflight Concern' },
 		{ name = 'Mining module' }
 	)
 	-- formatShortDescription uses the manufacturer's short form (MISC for Musashi).
 	self:assertEquals('S1 mining module by MISC', desc)
-end
-
-function suite:testStructuredData()
-	local data = MiningModule.getStructuredData(brandtData())
-	self:assertEquals('Active', data.mining_type)
-	self:assertEquals(35, data.power_modifier)
-	self:assertEquals(5, data.charges)
-	self:assertEquals(60, data.duration)
-	-- Each modifier_map effect becomes a numeric "Modifier <effect>" facet.
-	self:assertEquals(15.5, data.modifier_resistance)
-	self:assertEquals(-30, data.modifier_shatter_damage)
-end
-
--- The API sometimes hands a modifier value as a string with a percent sign
--- ("-80%") rather than a number; it must still render and store as -80.
-function suite:testStringPercentValue()
-	local apiData = {
-		mining_modifier = {
-			type = 'Active',
-			power_modifier = -0.15,
-			modifier_map = { overcharge_rate = '-80%' },
-		},
-	}
-	local sections = MiningModule.getSections(apiData, {})
-	self:assertEquals('−80%', findItem(sections[1].items, 'Overcharge rate').content)
-	self:assertEquals('−15%', findItem(sections[1].items, 'Power').content)
-	local data = MiningModule.getStructuredData(apiData)
-	self:assertEquals(-80, data.modifier_overcharge_rate)
-end
-
--- A passive module: charges 0 / duration null are gated out of structured data.
-function suite:testPassiveStructuredData()
-	local data = MiningModule.getStructuredData({
-		mining_modifier = {
-			type = 'Passive',
-			charges = 0,
-			duration = nil,
-			power_modifier = 0,
-			modifier_map = { inert_materials = 5 },
-		},
-	})
-	self:assertEquals('Passive', data.mining_type)
-	self:assertEquals(0, data.power_modifier)
-	self:assertEquals(nil, data.charges)
-	self:assertEquals(nil, data.duration)
-	self:assertEquals(5, data.modifier_inert_materials)
 end
 
 function suite:testResolveSubtype()

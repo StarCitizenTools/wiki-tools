@@ -2,11 +2,15 @@ require('strict')
 
 --- @module Entity/Facet/WeaponModifier
 --- weapon_modifier facet. Items that modify a weapon when attached or used —
---- FPS weapon attachments (scopes, barrels, …) and the monocular rangefinder
---- gadget — carry a `weapon_modifier` block: optical magnification (`aim`) plus
---- a set of combat multipliers (fire rate, damage, projectile speed, …).
---- Renders a Modifier section; a multiplier shows only when it deviates from 1
---- (a value of 1 is a no-op and would be noise on every attachment).
+--- FPS weapon attachments (scopes, barrels, suppressors, …) and the monocular
+--- rangefinder gadget — carry a `weapon_modifier` block. This facet is the single
+--- comprehensive renderer of that block: optical magnification (`aim`), the flat
+--- combat multipliers (fire rate, damage, projectile speed, …), and the nested
+--- handling sub-tables (`recoil`, `spread`) that barrels/compensators alter.
+--- Every multiplier shows only when it deviates from 1 (a value of 1 is a no-op
+--- and would be noise on every attachment), so an item renders only the rows it
+--- actually changes. Guns do NOT carry this block (their spread/recoil live in
+--- `personal_weapon`), so the facet stays scoped to attachments + the rangefinder.
 
 local format = require('Module:Entity/Format')
 
@@ -54,6 +58,34 @@ local function magnification(aim)
 	return table.concat(parts, ' / ')
 end
 
+--- The four spread multipliers (min / max / first-attack / per-attack) are
+--- near-always equal, so collapse them to one "×N". When they genuinely differ,
+--- show the distinct non-1 values joined, so nothing is silently hidden. Returns
+--- nil when every spread multiplier is absent or 1.
+---
+--- @param spread table|nil
+--- @return string|nil
+local function spreadMult(spread)
+	if type(spread) ~= 'table' then
+		return nil
+	end
+	local seen, ordered = {}, {}
+	for _, key in ipairs({ 'min_multiplier', 'max_multiplier', 'first_attack_multiplier', 'per_attack_multiplier' }) do
+		local n = tonumber(spread[key])
+		if n ~= nil and n ~= 1 then
+			local label = '×' .. format.formatNum(n)
+			if not seen[label] then
+				seen[label] = true
+				table.insert(ordered, label)
+			end
+		end
+	end
+	if #ordered == 0 then
+		return nil
+	end
+	return table.concat(ordered, ' / ')
+end
+
 --- @param apiData table
 --- @param args table
 --- @return EntitySectionEntry[]
@@ -62,6 +94,7 @@ function p.getSections(apiData, args)
 	if type(wm) ~= 'table' then
 		return {}
 	end
+	local recoil = type(wm.recoil) == 'table' and wm.recoil or {}
 
 	local items = {}
 	local function push(label, content)
@@ -79,6 +112,13 @@ function p.getSections(apiData, args)
 	push('Heat generation', mult(wm.heat_generation_multiplier))
 	push('Sound radius', mult(wm.sound_radius_multiplier))
 	push('Charge time', mult(wm.charge_time_multiplier))
+	-- Nested handling sub-tables — the player-meaningful effect of barrels.
+	push('Recoil', mult(recoil.multiplier))
+	push('Recoil recovery', mult(recoil.decay_multiplier))
+	push('Spread', spreadMult(wm.spread))
+	push('Spread recovery', mult(type(wm.spread) == 'table' and wm.spread.decay_multiplier or nil))
+	-- ADS speed penalty/bonus (compensators slow the aim-down-sights transition).
+	push('ADS time', mult(type(wm.aim) == 'table' and wm.aim.zoom_time_scale or nil))
 
 	if #items == 0 then
 		return {}
@@ -104,6 +144,7 @@ end
 p._internal = {
 	mult = mult,
 	magnification = magnification,
+	spreadMult = spreadMult,
 }
 
 return p

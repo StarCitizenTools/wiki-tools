@@ -27,6 +27,10 @@ p.kinds = {
 p.facets = {
 	require('Module:Entity/Facet/Consumable'),
 	require('Module:Entity/Facet/Seat'),
+	require('Module:Entity/Facet/Knife'),
+	require('Module:Entity/Facet/Grenade'),
+	require('Module:Entity/Facet/Gadget'),
+	require('Module:Entity/Facet/WeaponModifier'),
 	require('Module:Entity/Facet/Component'),
 	require('Module:Entity/Facet/Dimensions'),
 }

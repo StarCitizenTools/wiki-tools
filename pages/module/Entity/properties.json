@@ -89,6 +89,14 @@
 		],
 		"desc": "Area-of-effect blast radius of a grenade, in metres."
 	},
+	"Blood drug level": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Medical"
+		],
+		"desc": "Blood drug level a medical consumable raises when administered."
+	},
 	"Boost speed": {
 		"smw": "Number",
 		"bucket": "DOUBLE",
@@ -125,9 +133,10 @@
 		"smw": "Number",
 		"bucket": "INTEGER",
 		"modules": [
-			"MiningModule"
+			"MiningModule",
+			"Hacking"
 		],
-		"desc": "Number of charges of a mining module."
+		"desc": "Number of charges of a mining module, or breach charges of a cryptokey."
 	},
 	"Class": {
 		"smw": "Text",
@@ -308,6 +317,14 @@
 			"EMP"
 		],
 		"desc": "Radius of an EMP generator, in metres."
+	},
+	"Error chance": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Hacking"
+		],
+		"desc": "Per-attempt failure chance of a cryptokey, as a percentage."
 	},
 	"Explosion radius": {
 		"smw": "Number",

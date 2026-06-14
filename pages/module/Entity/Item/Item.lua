@@ -273,9 +273,24 @@ function p.getShortDescription(apiData, args, typeInfo, prefix)
 		or p.formatShortDescription(typeInfo, apiData, args, prefix)
 end
 
+--- An item's base-variant flag (`is_base_variant`): true for the canonical
+--- piece, false for a colorway / edition variant of it. Returned only when the
+--- API carries the boolean (most items do), so items without the concept store
+--- nothing. A generic item facet — it lets index tables filter the colorway
+--- explosion (armor / clothing) down to base pieces.
+---
+--- @param apiData table
+--- @return boolean|nil
+local function baseVariant(apiData)
+	if type(apiData.is_base_variant) == 'boolean' then
+		return apiData.is_base_variant
+	end
+	return nil
+end
+
 --- Contributes item-level facet values to structured data: size, grade,
---- class, the in-game item type, and volume (in µSCU). Stored
---- backend-agnostically via Module:Entity/StructuredData. These are facets
+--- class, the in-game item type, volume (in µSCU), and the base-variant flag.
+--- Stored backend-agnostically via Module:Entity/StructuredData. These are facets
 --- for querying/tooling, not browse categories — the structural category
 --- is classification-driven (Module:Entity/Data.resolveClassification →
 --- classifications.json).
@@ -290,6 +305,7 @@ function p.getStructuredData(apiData, args)
 		class = apiData.class,
 		item_type = getItemType(apiData),
 		volume = getVolume(apiData),
+		base_variant = baseVariant(apiData),
 	}
 end
 

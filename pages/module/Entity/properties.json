@@ -41,6 +41,14 @@
 		],
 		"desc": "Whether a mission is currently available."
 	},
+	"Base variant": {
+		"smw": "Boolean",
+		"bucket": "BOOLEAN",
+		"modules": [
+			"Item"
+		],
+		"desc": "Whether an item is the canonical base piece (true) rather than a colorway or edition variant (false)."
+	},
 	"Beam force": {
 		"smw": "Number",
 		"bucket": "DOUBLE",
@@ -80,6 +88,14 @@
 			"Beam"
 		],
 		"desc": "Tether break time of a towing beam, in seconds."
+	},
+	"Biochemical resistance": {
+		"smw": "Number",
+		"bucket": "INTEGER",
+		"modules": [
+			"Armor"
+		],
+		"desc": "Biochemical damage resistance of armor, as a percentage."
 	},
 	"Blast radius": {
 		"smw": "Number",
@@ -228,6 +244,14 @@
 		],
 		"desc": "Maximum distortion health of a component."
 	},
+	"Distortion resistance": {
+		"smw": "Number",
+		"bucket": "INTEGER",
+		"modules": [
+			"Armor"
+		],
+		"desc": "Distortion damage resistance of armor, as a percentage."
+	},
 	"Dps": {
 		"smw": "Number",
 		"bucket": "DOUBLE",
@@ -318,6 +342,14 @@
 		],
 		"desc": "Radius of an EMP generator, in metres."
 	},
+	"Energy resistance": {
+		"smw": "Number",
+		"bucket": "INTEGER",
+		"modules": [
+			"Armor"
+		],
+		"desc": "Energy damage resistance of armor, as a percentage."
+	},
 	"Error chance": {
 		"smw": "Number",
 		"bucket": "DOUBLE",
@@ -375,6 +407,14 @@
 		],
 		"desc": "Firing mechanism of a vehicle weapon (Cannon, Repeater, …)."
 	},
+	"G force resistance": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Environment"
+		],
+		"desc": "G-force resistance modifier a suit confers to the wearer."
+	},
 	"Grade": {
 		"smw": "Text",
 		"bucket": "TEXT",
@@ -406,6 +446,14 @@
 			"Consumable"
 		],
 		"desc": "Hydration Efficacy Index of a consumable."
+	},
+	"Impact resistance": {
+		"smw": "Number",
+		"bucket": "INTEGER",
+		"modules": [
+			"Armor"
+		],
+		"desc": "Impact damage resistance of armor, as a percentage."
 	},
 	"Ir signature": {
 		"smw": "Number",
@@ -520,6 +568,14 @@
 		],
 		"desc": "Maximum mining range of a mining laser head, in metres."
 	},
+	"Maximum temperature": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Environment"
+		],
+		"desc": "Hottest temperature a wearable protects against, in °C."
+	},
 	"Mineable": {
 		"smw": "Boolean",
 		"bucket": "BOOLEAN",
@@ -527,6 +583,14 @@
 			"Commodity"
 		],
 		"desc": "Whether a commodity is mineable."
+	},
+	"Minimum temperature": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Environment"
+		],
+		"desc": "Coldest temperature a wearable protects against, in °C."
 	},
 	"Mining power max": {
 		"smw": "Number",
@@ -608,6 +672,14 @@
 			"WeaponMining"
 		],
 		"desc": "Optimal mining range of a mining laser head, in metres."
+	},
+	"Physical resistance": {
+		"smw": "Number",
+		"bucket": "INTEGER",
+		"modules": [
+			"Armor"
+		],
+		"desc": "Physical damage resistance of armor, as a percentage."
 	},
 	"Pitch": {
 		"smw": "Text",
@@ -786,6 +858,22 @@
 		],
 		"desc": "Infrared sensitivity of a radar."
 	},
+	"Radiation capacity": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Environment"
+		],
+		"desc": "Maximum radiation a suit can absorb before its protection fails."
+	},
+	"Radiation dissipation": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Environment"
+		],
+		"desc": "Rate at which a suit dissipates absorbed radiation."
+	},
 	"Radius multiplier": {
 		"smw": "Number",
 		"bucket": "DOUBLE",
@@ -914,6 +1002,22 @@
 		],
 		"desc": "Blade-stab damage of a melee weapon."
 	},
+	"Storage capacity": {
+		"smw": "Number",
+		"bucket": "INTEGER",
+		"modules": [
+			"Inventory"
+		],
+		"desc": "Inventory carrying capacity of a garment or container, in µSCU."
+	},
+	"Stun resistance": {
+		"smw": "Number",
+		"bucket": "INTEGER",
+		"modules": [
+			"Armor"
+		],
+		"desc": "Stun damage resistance of armor, as a percentage."
+	},
 	"Systems": {
 		"smw": "Text",
 		"bucket": "TEXT",
@@ -923,6 +1027,14 @@
 		],
 		"multi": true,
 		"desc": "Star systems a commodity or mission is associated with (multi-valued)."
+	},
+	"Thermal resistance": {
+		"smw": "Number",
+		"bucket": "INTEGER",
+		"modules": [
+			"Armor"
+		],
+		"desc": "Thermal damage resistance of armor, as a percentage."
 	},
 	"Tier": {
 		"smw": "Number",
@@ -980,6 +1092,14 @@
 			"WeaponPersonal"
 		],
 		"desc": "Player-facing weapon class of a personal weapon (Pistol, Assault Rifle, …)."
+	},
+	"Weight class": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Armor"
+		],
+		"desc": "Weight class of an armor piece (Light, Medium, Heavy, Super Heavy)."
 	},
 	"Yaw": {
 		"smw": "Text",

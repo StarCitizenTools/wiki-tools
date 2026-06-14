@@ -26,6 +26,7 @@ local itemSubtypeMapping = {
 	WeaponPersonal = 'Entity/Item/WeaponPersonal',
 	WeaponAttachment = 'Entity/Item/WeaponAttachment',
 	FPS_Consumable = 'Entity/Item/FPSConsumable',
+	Misc = 'Entity/Item/Misc',
 	WeaponGun = 'Entity/Item/WeaponGun',
 	PowerPlant = 'Entity/Item/PowerPlant',
 	Cooler = 'Entity/Item/Cooler',

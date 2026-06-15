@@ -1,0 +1,8 @@
+.range-bar { margin-top: 4px; }
+.range-bar__track { position: relative; height: 6px; border-radius: 2px; overflow: hidden; }
+.range-bar__seg { position: absolute; top: 0; bottom: 0; }
+.range-bar__seg--dim { opacity: 0.4; }
+.range-bar__tick { position: absolute; top: 0; bottom: 0; width: 1px; z-index: 2; }
+.range-bar__labels { position: relative; height: var(--line-height-small); margin-top: 5px; font-size: var(--font-size-small); line-height: var(--line-height-small); font-weight: var(--font-weight-semi-bold); color: var(--color-emphasized); }
+.range-bar__labels span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+.range-bar__label--tick { color: var(--color-subtle); font-weight: var(--font-weight-normal); }

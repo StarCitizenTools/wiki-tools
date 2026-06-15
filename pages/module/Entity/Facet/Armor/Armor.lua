@@ -25,11 +25,6 @@ local DAMAGE_TYPES = {
 	{ key = 'impact', label = 'Impact', abbr = 'IMP' },
 }
 
--- Heatmap banding for the resistance tiles, as fractions of 100%. Tuned to real
--- armour: values cluster 10-60%, so weak <=20%, mid 21-45%, strong >45% (e.g.
--- heavy stun 60% reads strong/green, light 20% reads weak/red).
-local HEATMAP_THRESHOLDS = { 0.2, 0.45 }
-
 --- The damage-reduction percentage for a type, derived from its damage-taken
 --- multiplier (0.6 means 60% of damage is taken, i.e. 40% resistance). Returns
 --- nil when the multiplier is absent or non-numeric. Rounds to a whole percent.
@@ -115,9 +110,10 @@ function p.matches(apiData)
 end
 
 --- Builds the resistance tiles (one per damage type with a value) for the
---- progress-tile row. Each tile is heatmap-coloured by its resistance via the
---- shared Module:ProgressTiles helper; the abbreviation is the visible label and
---- the full name the hover title. Empty when no damage type has a value.
+--- progress-tile row. Tiles use the default single accent (resistance is a
+--- "more is better, none is bad" stat, so a diverging red→green heatmap would
+--- mislead); the abbreviation is the visible label and the full name the hover
+--- title. Empty when no damage type has a value.
 ---
 --- @param map table the damage_resistance_map
 --- @return ProgressTile[]
@@ -130,7 +126,6 @@ local function buildTiles(map)
 				value = pct,
 				label = dt.abbr,
 				title = dt.label,
-				color = progressTiles.heatmap(pct, 100, HEATMAP_THRESHOLDS),
 			})
 		end
 	end
@@ -152,13 +147,15 @@ function p.getSections(apiData, args)
 		return {}
 	end
 
-	-- The resistance set renders as a Module:ProgressTiles row (custom HTML
-	-- section content); the infobox makes labelled sections collapsible.
+	-- The resistance set renders as a Module:ProgressTiles row, carried as a
+	-- full-width, label-less section item so it shares the infobox item spacing.
 	return {
 		{
 			key = 'armor',
 			label = 'Damage resistance',
-			content = progressTiles.render({ tiles = tiles }),
+			items = {
+				{ content = progressTiles.render({ tiles = tiles }), class = 't-infobox-item--block' },
+			},
 		},
 	}
 end

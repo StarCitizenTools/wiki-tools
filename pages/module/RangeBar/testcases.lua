@@ -88,32 +88,6 @@ function suite:testFmtNumZero()
 	self:assertEquals('0', RangeBar._internal.fmtNum(0))
 end
 
--- labelWidthPct() — width as a % of the nominal bar, by character count
-
-function suite:testLabelWidthPctCountsCharsNotBytes()
-	-- "−75 °C" is 6 characters (the minus and degree sign are multi-byte).
-	self:assertEquals(6 * 8 / 300 * 100, RangeBar._internal.labelWidthPct('−75 °C'))
-end
-
-function suite:testLabelWidthPctShortLabel()
-	self:assertEquals(1 * 8 / 300 * 100, RangeBar._internal.labelWidthPct('0'))
-end
-
--- overlaps() — [left, right] percentage boxes
-
-function suite:testOverlapsTrue()
-	self:assertEquals(true, RangeBar._internal.overlaps({ 0, 10 }, { 5, 15 }))
-end
-
-function suite:testOverlapsFalse()
-	self:assertEquals(false, RangeBar._internal.overlaps({ 0, 10 }, { 30, 40 }))
-end
-
-function suite:testOverlapsGapTreatedAsTouching()
-	-- Boxes 0.2% apart are within the clearance gap, so they count as overlapping.
-	self:assertEquals(true, RangeBar._internal.overlaps({ 0, 10 }, { 10.2, 20 }))
-end
-
 -- render() guards
 
 function suite:testRenderNilOnMissingStops()

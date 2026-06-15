@@ -66,15 +66,8 @@ function suite:testTemperatureBoundsGated()
 	self:assertEquals(nil, Environment._internal.temperatureBounds({}))
 end
 
-function suite:testDegreeLabel()
-	-- Band-edge labels: typographic minus (U+2212) on negatives; °C unit.
-	self:assertEquals('−77 °C', Environment._internal.degreeLabel(-77))
-	self:assertEquals('107 °C', Environment._internal.degreeLabel(107))
-	self:assertEquals('0 °C', Environment._internal.degreeLabel(0))
-end
-
 function suite:testNumLabel()
-	-- Tick label: bare value, no unit; typographic minus on negatives.
+	-- Temperature value parts: bare value, no unit; typographic minus on negatives.
 	self:assertEquals('−77', Environment._internal.numLabel(-77))
 	self:assertEquals('107', Environment._internal.numLabel(107))
 	self:assertEquals('0', Environment._internal.numLabel(0))
@@ -85,19 +78,24 @@ function suite:testArmorRows()
 	self:assertEquals(1, #sections)
 	self:assertEquals('environment', sections[1].key)
 	self:assertEquals('Environment', sections[1].label)
-	-- Temperature is now the section content (a bar), not a label:value item.
-	self:assertEquals('string', type(sections[1].content))
-	self:assertEquals(nil, findItem(sections[1].items, 'Temperature'))
-	self:assertEquals('26,800', findItem(sections[1].items, 'Radiation capacity').content)
-	self:assertEquals('145.8', findItem(sections[1].items, 'Radiation dissipation').content)
-	self:assertEquals('−0.5', findItem(sections[1].items, 'G-force resistance').content)
+	local its = sections[1].items
+	-- Temperature + radiation capacity + radiation dissipation + g-force = 4 items,
+	-- each bar its own item.
+	self:assertEquals(4, #its)
+	-- The first three are full-width, label-less graph items (bars).
+	self:assertEquals('t-infobox-item--block', its[1].class)
+	self:assertEquals('string', type(its[1].content))
+	self:assertEquals('t-infobox-item--block', its[2].class)
+	self:assertEquals('t-infobox-item--block', its[3].class)
+	-- G-force is a plain labelled row.
+	self:assertEquals('−0.5', findItem(its, 'G-force resistance').content)
 end
 
 function suite:testClothingRowsGated()
-	-- A jacket has zero radiation / g-force, so only the temperature bar shows.
+	-- A jacket has zero radiation / g-force, so only the temperature bar item shows.
 	local sections = Environment.getSections(jacketData(), {})
-	self:assertEquals('string', type(sections[1].content))
-	self:assertEquals(0, #sections[1].items)
+	self:assertEquals(1, #sections[1].items)
+	self:assertEquals('t-infobox-item--block', sections[1].items[1].class)
 end
 
 function suite:testStructuredDataArmor()

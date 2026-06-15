@@ -10,18 +10,30 @@ require('strict')
 --- g-force too.
 
 local format = require('Module:Entity/Format')
+local rangeBar = require('Module:RangeBar')
 
 local p = {}
 
+-- Fixed thermal axis the bar spans. Wearable survivable bounds top out near ±225 °C
+-- in-game, so −250…+250 frames every suit with a little headroom and a common scale.
+local TEMPERATURE_DOMAIN = { min = -250, max = 250 }
+
+-- Ice–fire gradient: cold cyan -> near-white neutral -> hot orange-red, in domain
+-- units. Fixed hex so the palette reads identically across themes.
+local TEMPERATURE_STOPS = {
+	{ at = -250, color = '#2bd0e6' },
+	{ at = 0, color = '#eef3f6' },
+	{ at = 250, color = '#ff5630' },
+}
+
 --- Reads a temperature block ({min,max}, falling back to {minimum,maximum}) and
---- formats it as a degree-Celsius range ("−75 °C — 105 °C"). Returns nil when a
---- bound is missing or the range is a meaningless 0–0 (a garment with no thermal
---- rating), so the row collapses. The em dash separator stays clear of the
---- typographic minus on negative bounds (matches the Seat facet).
+--- returns its survivable bounds. Returns nil when a bound is missing or the range
+--- is a meaningless 0–0 (a garment with no thermal rating), so the row collapses.
 ---
 --- @param temp table|nil
---- @return string|nil
-local function formatTemperature(temp)
+--- @return number|nil min
+--- @return number|nil max
+local function temperatureBounds(temp)
 	if type(temp) ~= 'table' then
 		return nil
 	end
@@ -39,7 +51,45 @@ local function formatTemperature(temp)
 	if min == 0 and max == 0 then
 		return nil
 	end
-	return format.formatNum(min) .. ' °C — ' .. format.formatNum(max) .. ' °C'
+	return min, max
+end
+
+--- Formats a temperature value with a typographic minus on negatives ("−77", "0").
+---
+--- @param v number
+--- @return string
+local function numLabel(v)
+	return v < 0 and '−' .. format.formatNum(-v) or format.formatNum(v)
+end
+
+--- The band-edge label: the value plus the °C unit ("−77 °C", "107 °C"). The 0 °C
+--- reference tick uses the bare numLabel instead, to keep the midpoint marker terse.
+---
+--- @param v number
+--- @return string
+local function degreeLabel(v)
+	return numLabel(v) .. ' °C'
+end
+
+--- Renders the survivable temperature range as a RangeBar on the fixed thermal
+--- axis, with a 0 °C reference tick. Returns nil when there is no usable range.
+---
+--- @param temp table|nil
+--- @return string|nil
+local function temperatureBar(temp)
+	local min, max = temperatureBounds(temp)
+	if min == nil then
+		return nil
+	end
+	return rangeBar.render({
+		min = min,
+		max = max,
+		domain = TEMPERATURE_DOMAIN,
+		stops = TEMPERATURE_STOPS,
+		tick = 0,
+		format = degreeLabel,
+		formatTick = numLabel,
+	})
 end
 
 --- @param apiData table|nil
@@ -59,7 +109,9 @@ function p.getSections(apiData, args)
 		end
 	end
 
-	push('Temperature', formatTemperature(apiData.temperature_resistance))
+	-- The temperature range renders as a full-width bar above the value rows
+	-- (section content), not a label:value item.
+	local bar = temperatureBar(apiData.temperature_resistance)
 
 	local rad = apiData.radiation_resistance
 	if type(rad) == 'table' then
@@ -78,7 +130,7 @@ function p.getSections(apiData, args)
 		push('G-force resistance', format.formatNum(gforce))
 	end
 
-	if #items == 0 then
+	if bar == nil and #items == 0 then
 		return {}
 	end
 
@@ -87,6 +139,7 @@ function p.getSections(apiData, args)
 			key = 'environment',
 			label = 'Environment',
 			collapsible = true,
+			content = bar,
 			items = items,
 		},
 	}
@@ -136,7 +189,9 @@ end
 
 -- Test-only exports. Not part of the public API.
 p._internal = {
-	formatTemperature = formatTemperature,
+	temperatureBounds = temperatureBounds,
+	numLabel = numLabel,
+	degreeLabel = degreeLabel,
 }
 
 return p

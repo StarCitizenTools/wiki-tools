@@ -40,23 +40,44 @@ function suite:testMatches()
 	self:assertEquals(false, Environment.matches(nil))
 end
 
-function suite:testTemperatureRange()
-	-- Positive band: plain digits, em dash (U+2014) separator.
-	self:assertEquals('2 °C — 30 °C', Environment._internal.formatTemperature({ min = 2, max = 30 }))
-	-- Negative band: typographic minus (U+2212) on the lower bound.
-	self:assertEquals('−75 °C — 105 °C', Environment._internal.formatTemperature({ min = -75, max = 105 }))
+function suite:testTemperatureBounds()
+	-- Positive band.
+	local min, max = Environment._internal.temperatureBounds({ min = 2, max = 30 })
+	self:assertEquals(2, min)
+	self:assertEquals(30, max)
+	-- Negative band.
+	min, max = Environment._internal.temperatureBounds({ min = -75, max = 105 })
+	self:assertEquals(-75, min)
+	self:assertEquals(105, max)
 end
 
-function suite:testTemperatureFallbackKeys()
+function suite:testTemperatureBoundsFallbackKeys()
 	-- minimum/maximum are read when min/max are absent.
-	self:assertEquals('2 °C — 30 °C', Environment._internal.formatTemperature({ minimum = 2, maximum = 30 }))
+	local min, max = Environment._internal.temperatureBounds({ minimum = 2, maximum = 30 })
+	self:assertEquals(2, min)
+	self:assertEquals(30, max)
 end
 
-function suite:testTemperatureZeroZeroGated()
-	-- A 0–0 band is a meaningless "no thermal rating" and collapses.
-	self:assertEquals(nil, Environment._internal.formatTemperature({ min = 0, max = 0 }))
-	self:assertEquals(nil, Environment._internal.formatTemperature(nil))
-	self:assertEquals(nil, Environment._internal.formatTemperature({}))
+function suite:testTemperatureBoundsGated()
+	-- A 0–0 band is a meaningless "no thermal rating" and collapses; so does a
+	-- missing block.
+	self:assertEquals(nil, Environment._internal.temperatureBounds({ min = 0, max = 0 }))
+	self:assertEquals(nil, Environment._internal.temperatureBounds(nil))
+	self:assertEquals(nil, Environment._internal.temperatureBounds({}))
+end
+
+function suite:testDegreeLabel()
+	-- Band-edge labels: typographic minus (U+2212) on negatives; °C unit.
+	self:assertEquals('−77 °C', Environment._internal.degreeLabel(-77))
+	self:assertEquals('107 °C', Environment._internal.degreeLabel(107))
+	self:assertEquals('0 °C', Environment._internal.degreeLabel(0))
+end
+
+function suite:testNumLabel()
+	-- Tick label: bare value, no unit; typographic minus on negatives.
+	self:assertEquals('−77', Environment._internal.numLabel(-77))
+	self:assertEquals('107', Environment._internal.numLabel(107))
+	self:assertEquals('0', Environment._internal.numLabel(0))
 end
 
 function suite:testArmorRows()
@@ -64,19 +85,19 @@ function suite:testArmorRows()
 	self:assertEquals(1, #sections)
 	self:assertEquals('environment', sections[1].key)
 	self:assertEquals('Environment', sections[1].label)
-	self:assertEquals('−75 °C — 105 °C', findItem(sections[1].items, 'Temperature').content)
+	-- Temperature is now the section content (a bar), not a label:value item.
+	self:assertEquals('string', type(sections[1].content))
+	self:assertEquals(nil, findItem(sections[1].items, 'Temperature'))
 	self:assertEquals('26,800', findItem(sections[1].items, 'Radiation capacity').content)
 	self:assertEquals('145.8', findItem(sections[1].items, 'Radiation dissipation').content)
 	self:assertEquals('−0.5', findItem(sections[1].items, 'G-force resistance').content)
 end
 
 function suite:testClothingRowsGated()
-	-- A jacket has zero radiation / g-force, so only the temperature row shows.
+	-- A jacket has zero radiation / g-force, so only the temperature bar shows.
 	local sections = Environment.getSections(jacketData(), {})
-	self:assertEquals('2 °C — 30 °C', findItem(sections[1].items, 'Temperature').content)
-	self:assertEquals(nil, findItem(sections[1].items, 'Radiation capacity'))
-	self:assertEquals(nil, findItem(sections[1].items, 'Radiation dissipation'))
-	self:assertEquals(nil, findItem(sections[1].items, 'G-force resistance'))
+	self:assertEquals('string', type(sections[1].content))
+	self:assertEquals(0, #sections[1].items)
 end
 
 function suite:testStructuredDataArmor()

@@ -6,6 +6,16 @@
     padding: var(--space-xs);
 }
 
+/* Graph items (temperature / radiation / damage-resistance visualisations) are
+   label-less, full-width content rendered as section items, so they pick up the
+   same item spacing as the value rows. The single-col default sizes content to
+   70% right-aligned; this widens a graph item's content to the full row. Uses
+   InfoboxLua's generic item `class` passthrough; the styling is entity-specific. */
+.t-infobox-section-items--single-col .t-infobox-item--block .t-infobox-item-content {
+    flex-basis: 100%;
+    text-align: start;
+}
+
 /* Footer section: a label-less infobox section holding a flex row of action
    buttons (Galactapedia / Wiki API). The footer uses InfoboxLua's generic
    section-variant hook (a passed-through `class`), but the styling is

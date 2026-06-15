@@ -6,7 +6,7 @@
     width: 100%;
     margin-bottom: var(--space-md);
     font-size: var(--font-size-small);
-    line-height: var(--line-height-xx-small);
+    line-height: var(--line-height-small);
 }
 
 .t-infobox dl,

@@ -11,8 +11,10 @@ require('strict')
 --- The renderer is intentionally "dumb" (it just draws what it's given). The
 --- optional `heatmap` helper maps a value to a Citizen status token
 --- (error/warning/success) for callers that want a weak->strong colour signal;
---- others pass a fixed accent or per-tile colours. All visuals use Citizen
---- design tokens, so the output is theme-aware.
+--- others pass a fixed accent or per-tile colours. The arc (a conic-gradient) is
+--- passed as a CSS custom property the stylesheet consumes; the value text is
+--- always --color-base. All visuals use Citizen design tokens, so the output is
+--- theme-aware.
 
 local p = {}
 
@@ -25,7 +27,7 @@ local STYLES = 'Module:ProgressTiles/styles.css'
 --- @field value number The numeric value (drives the fill and, by default, the displayed text).
 --- @field label string|nil Short label shown below the tile. Optional.
 --- @field title string|nil Full name surfaced as a hover tooltip. Optional.
---- @field color string|nil CSS colour for the arc and value (a token string). Defaults to a neutral accent.
+--- @field color string|nil CSS colour for the arc (a token string). Defaults to a neutral accent. The value text is always --color-base for legibility.
 --- @field text string|nil Overrides the displayed text (e.g. "40%"). Defaults to the value.
 
 --- @class ProgressTilesData
@@ -84,27 +86,27 @@ function p.render(data)
 	local tiles = data.tiles or {}
 	local max = tonumber(data.max) or DEFAULT_MAX
 
-	local root = mw.html.create('div'):addClass('progress-tiles')
+	local root = mw.html.create('div'):addClass('t-progress-tiles')
 	for _, tile in ipairs(tiles) do
 		local value = tonumber(tile.value) or 0
 		local color = tile.color or DEFAULT_COLOR
 		local pct = clampPct(value, max)
 
-		local cell = root:tag('div'):addClass('progress-tiles__cell')
-		local gauge = cell:tag('div'):addClass('progress-tiles__gauge'):css('aspect-ratio', '1')
+		local cell = root:tag('div'):addClass('t-progress-tiles__cell')
+		local gauge = cell:tag('div'):addClass('t-progress-tiles__gauge')
 		if tile.title then
 			gauge:attr('title', tile.title)
 		end
 		gauge
 			:tag('div')
-			:addClass('progress-tiles__ring')
-			:css('background', 'conic-gradient(' .. color .. ' ' .. pct .. '%, ' .. TRACK .. ' 0)')
+			:addClass('t-progress-tiles__ring')
+			:css('--t-progress-tiles-ring', 'conic-gradient(' .. color .. ' ' .. pct .. '%, ' .. TRACK .. ' 0)')
 			:tag('div')
-			:addClass('progress-tiles__center')
-		gauge:tag('span'):addClass('progress-tiles__value'):css('color', color):wikitext(tile.text or tostring(value))
+			:addClass('t-progress-tiles__center')
+		gauge:tag('span'):addClass('t-progress-tiles__value'):wikitext(tile.text or tostring(value))
 
 		if tile.label then
-			cell:tag('span'):addClass('progress-tiles__label'):wikitext(tile.label)
+			cell:tag('span'):addClass('t-progress-tiles__label'):wikitext(tile.label)
 		end
 	end
 

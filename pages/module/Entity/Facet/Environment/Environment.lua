@@ -11,6 +11,7 @@ require('strict')
 
 local format = require('Module:Entity/Format')
 local rangeBar = require('Module:RangeBar')
+local meterBar = require('Module:MeterBar')
 
 local p = {}
 
@@ -25,6 +26,11 @@ local TEMPERATURE_STOPS = {
 	{ at = 0, color = '#eef3f6' },
 	{ at = 250, color = '#ff5630' },
 }
+
+-- Radiation meters scale against the current class best so a full bar = top-tier
+-- protection (REM = capacity pool, REM/s = recovery rate).
+local MAX_RADIATION_CAPACITY = 52800
+local MAX_RADIATION_DISSIPATION = 251.1
 
 --- Reads a temperature block ({min,max}, falling back to {minimum,maximum}) and
 --- returns its survivable bounds. Returns nil when a bound is missing or the range
@@ -62,17 +68,9 @@ local function numLabel(v)
 	return v < 0 and '−' .. format.formatNum(-v) or format.formatNum(v)
 end
 
---- The band-edge label: the value plus the °C unit ("−77 °C", "107 °C"). The 0 °C
---- reference tick uses the bare numLabel instead, to keep the midpoint marker terse.
----
---- @param v number
---- @return string
-local function degreeLabel(v)
-	return numLabel(v) .. ' °C'
-end
-
---- Renders the survivable temperature range as a RangeBar on the fixed thermal
---- axis, with a 0 °C reference tick. Returns nil when there is no usable range.
+--- Renders the survivable temperature range as a labeled RangeBar on the fixed
+--- thermal axis, with a 0 °C reference tick line. The header value is the range
+--- ("−75 – 105 °C", en dash). Returns nil when there is no usable range.
 ---
 --- @param temp table|nil
 --- @return string|nil
@@ -82,13 +80,13 @@ local function temperatureBar(temp)
 		return nil
 	end
 	return rangeBar.render({
+		label = 'Temperature',
+		value = numLabel(min) .. ' – ' .. numLabel(max) .. ' °C',
 		min = min,
 		max = max,
 		domain = TEMPERATURE_DOMAIN,
 		stops = TEMPERATURE_STOPS,
 		tick = 0,
-		format = degreeLabel,
-		formatTick = numLabel,
 	})
 end
 
@@ -103,34 +101,45 @@ end
 --- @return table[] Ordered list of section entries with key field
 function p.getSections(apiData, args)
 	local items = {}
-	local function push(label, content)
-		if content ~= nil and content ~= '' then
-			table.insert(items, { label = label, content = content })
+
+	-- Each bar is its own full-width, label-less graph item; the section's item
+	-- list owns the spacing. G-force stays a plain label:value item.
+	local function graphItem(content)
+		if content then
+			table.insert(items, { content = content, class = 't-infobox-item--block' })
 		end
 	end
 
-	-- The temperature range renders as a full-width bar above the value rows
-	-- (section content), not a label:value item.
-	local bar = temperatureBar(apiData.temperature_resistance)
+	graphItem(temperatureBar(apiData.temperature_resistance))
 
 	local rad = apiData.radiation_resistance
 	if type(rad) == 'table' then
 		local capacity = tonumber(rad.maximum_radiation_capacity)
 		if capacity and capacity > 0 then
-			push('Radiation capacity', format.formatNum(capacity))
+			graphItem(meterBar.render({
+				label = 'Radiation capacity',
+				value = capacity,
+				max = MAX_RADIATION_CAPACITY,
+				text = format.formatNum(capacity) .. ' REM',
+			}))
 		end
 		local dissipation = tonumber(rad.radiation_dissipation_rate)
 		if dissipation and dissipation > 0 then
-			push('Radiation dissipation', format.formatNum(dissipation))
+			graphItem(meterBar.render({
+				label = 'Radiation dissipation',
+				value = dissipation,
+				max = MAX_RADIATION_DISSIPATION,
+				text = format.formatNum(dissipation) .. ' REM/s',
+			}))
 		end
 	end
 
 	local gforce = tonumber(apiData.gforce_resistance)
 	if gforce and gforce ~= 0 then
-		push('G-force resistance', format.formatNum(gforce))
+		table.insert(items, { label = 'G-force resistance', content = format.formatNum(gforce) })
 	end
 
-	if bar == nil and #items == 0 then
+	if #items == 0 then
 		return {}
 	end
 
@@ -139,7 +148,6 @@ function p.getSections(apiData, args)
 			key = 'environment',
 			label = 'Environment',
 			collapsible = true,
-			content = bar,
 			items = items,
 		},
 	}
@@ -191,7 +199,6 @@ end
 p._internal = {
 	temperatureBounds = temperatureBounds,
 	numLabel = numLabel,
-	degreeLabel = degreeLabel,
 }
 
 return p

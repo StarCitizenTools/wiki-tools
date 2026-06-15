@@ -40,7 +40,7 @@ Builds and returns the tile row.
 | `value` | `number` | Yes | | Drives the fill (`value / max`) and, by default, the displayed text. |
 | `label` | `string` | No | | Short label shown below the tile. |
 | `title` | `string` | No | | Full name surfaced as a hover tooltip. |
-| `color` | `string` | No | `var(--color-progressive)` | CSS colour for the arc and value. Any valid CSS colour. |
+| `color` | `string` | No | `var(--color-progressive)` | CSS colour for the arc. Any valid CSS colour. The value text is always `--color-base` for legibility. |
 | `text` | `string` | No | the value | Overrides the displayed text (e.g. `"40%"`). |
 
 ### `p.heatmap( value, max, thresholds )`
@@ -49,7 +49,7 @@ Optional helper. Maps a value to a Citizen status colour token: weak → `--colo
 
 ## Styles
 
-CSS lives in [Module:ProgressTiles/styles.css](https://starcitizen.tools/Module:ProgressTiles/styles.css) and is bundled automatically. It uses Citizen skin design tokens (`--color-*`, `--space-*`, `--font-size-*`, `--font-weight-*`, `--border-radius-*`) so it inherits the site theme. The per-tile arc colour, fill percentage, and value colour are applied inline (so they can vary per tile).
+CSS lives in [Module:ProgressTiles/styles.css](https://starcitizen.tools/Module:ProgressTiles/styles.css) and is bundled automatically. It uses Citizen skin design tokens (`--color-*`, `--space-*`, `--font-size-*`, `--font-weight-*`, `--border-radius-*`) so it inherits the site theme. The per-tile arc (a conic-gradient of colour + fill) comes from a CSS custom property (`--t-progress-tiles-ring`) the module sets; the stylesheet consumes it. The value text is `--color-base`.
 
 ## Architecture
 

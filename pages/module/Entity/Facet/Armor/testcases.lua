@@ -98,11 +98,10 @@ function suite:testTiles()
 	local phy = tileByTitle(tiles, 'Physical')
 	self:assertEquals(40, phy.value)
 	self:assertEquals('PHY', phy.label)
-	self:assertEquals('var(--color-warning)', phy.color)
-	-- 60% stun reads strong (green), 35% impact mid (amber)
-	self:assertEquals('var(--color-success)', tileByTitle(tiles, 'Stun').color)
+	-- Tiles carry no per-tile colour now; the renderer applies a single accent.
+	self:assertEquals(nil, phy.color)
+	self:assertEquals(60, tileByTitle(tiles, 'Stun').value)
 	self:assertEquals(35, tileByTitle(tiles, 'Impact').value)
-	self:assertEquals('var(--color-warning)', tileByTitle(tiles, 'Impact').color)
 end
 
 function suite:testSection()
@@ -110,7 +109,10 @@ function suite:testSection()
 	self:assertEquals(1, #sections)
 	self:assertEquals('armor', sections[1].key)
 	self:assertEquals('Damage resistance', sections[1].label)
-	self:assertEquals('string', type(sections[1].content))
+	-- The tile row is a full-width, label-less item.
+	self:assertEquals(1, #sections[1].items)
+	self:assertEquals('t-infobox-item--block', sections[1].items[1].class)
+	self:assertEquals('string', type(sections[1].items[1].content))
 end
 
 function suite:testShortDescriptionPrefix()

@@ -35,4 +35,22 @@ function suite:testBuildClip()
 	)
 end
 
+function suite:testBuildClipEndsBeforeRightEdge()
+	-- A curve whose last point is at x=40 on a domain of 100 closes the area at
+	-- 40%, not 100% — leaving the right 60% empty (range/scale-clip case).
+	local points = { { x = 0, y = 12 }, { x = 40, y = 12 } }
+	self:assertEquals('polygon(0% 100%, 0% 0%, 40% 0%, 40% 100%)', I.buildClip(points, 100, 12))
+end
+
+function suite:testRenderEmitsDataset()
+	local html = FalloffChart.render({
+		points = { { x = 0, y = 12 }, { x = 40, y = 12 } },
+		domain = 100,
+		yMax = 12,
+		dataset = { ['falloff-alpha'] = 12, ['falloff-min-dist'] = 40 },
+	})
+	self:assertStringContains('data-falloff-alpha="12"', html, true)
+	self:assertStringContains('data-falloff-min-dist="40"', html, true)
+end
+
 return suite

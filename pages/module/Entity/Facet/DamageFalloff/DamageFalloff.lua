@@ -17,6 +17,20 @@ local p = {}
 
 local DAMAGE_TYPES = { 'physical', 'energy', 'thermal', 'distortion', 'biochemical', 'stun' }
 
+-- Fixed per-class x-axis maxima (m), keyed by personal_weapon.type, so charts are
+-- comparable within a weapon class. Each fits the typical class members (from a
+-- catalogue-wide falloff survey); a rare long-tail weapon is drawn to the scale and
+-- clipped with a "→" marker. Unknown / future classes fall back to the weapon's own
+-- adaptive domain, so the facet degrades gracefully.
+local CLASS_SCALE = {
+	['SMG'] = 100,
+	['Assault Rifle'] = 150,
+	['Pistol'] = 200,
+	['LMG'] = 400,
+	['Sniper Rifle'] = 600,
+	['Shotgun'] = 600,
+}
+
 --- A distance label, rounded to a whole metre, with digit grouping.
 --- @param n number
 --- @return string
@@ -154,6 +168,27 @@ local function adaptiveDomain(m)
 	return m.range
 end
 
+--- The weapon's class (personal_weapon.type), used to look up the fixed scale.
+--- @param apiData table
+--- @return string|nil
+local function weaponType(apiData)
+	local block = weaponBlock(apiData)
+	if type(block) == 'table' and type(block.type) == 'string' then
+		return block.type
+	end
+	return nil
+end
+
+--- The chart's fixed x extent: the weapon class's shared scale (so charts are
+--- comparable within a class), or the weapon's own adaptive domain when the class
+--- has no fixed scale.
+--- @param apiData table
+--- @param m table
+--- @return number
+local function chartDomain(apiData, m)
+	return CLASS_SCALE[weaponType(apiData)] or adaptiveDomain(m)
+end
+
 --- @param apiData table|nil
 --- @return boolean
 function p.matches(apiData)
@@ -173,30 +208,56 @@ function p.getSections(apiData, args)
 		return {}
 	end
 
-	local domain = adaptiveDomain(m)
+	local domain = chartDomain(apiData, m)
 	local fd = floorDistance(m)
-	local floorInDomain = fd <= domain
-	local endDmg = damageAt(m, domain)
+	-- Draw only to where the projectile actually reaches; the fixed class scale may
+	-- extend past a short-range weapon (leaving honest dead space on the right).
+	local drawEnd = math.min(domain, m.range)
+	local floorInView = fd <= drawEnd
+	-- Curve still descending where the fixed scale cuts it off, with the projectile
+	-- reaching at least that far: show a "→" clip marker.
+	local clipped = m.range >= domain and fd > domain
+	-- Lowest damage the weapon actually deals: the floor if reached within range,
+	-- else the damage at maximum range.
+	local headerEnd = (fd <= m.range) and m.minDamage or damageAt(m, m.range)
 
-	local points = {
-		{ x = 0, y = m.alpha },
-		{ x = m.minDist, y = m.alpha },
-	}
-	if floorInDomain then
+	local points = { { x = 0, y = m.alpha } }
+	if m.minDist <= drawEnd then
+		table.insert(points, { x = m.minDist, y = m.alpha })
+	end
+	if floorInView then
 		table.insert(points, { x = fd, y = m.minDamage })
 	end
-	table.insert(points, { x = domain, y = endDmg })
+	table.insert(points, { x = drawEnd, y = damageAt(m, drawEnd) })
 
-	local markers = { { at = m.minDist, label = metres(m.minDist) } }
-	if floorInDomain then
+	local markers = {}
+	if m.minDist <= drawEnd then
+		table.insert(markers, { at = m.minDist, label = metres(m.minDist) })
+	end
+	if floorInView then
 		table.insert(markers, { at = fd, label = 'floor ' .. metres(fd) })
 	end
 
 	local caption
-	if floorInDomain then
+	if floorInView then
 		caption = 'Full &#8804; ' .. metres(m.minDist) .. ' &#183; floor ' .. dmg(m.minDamage) .. ' at ' .. metres(fd)
+	elseif fd <= m.range then
+		-- Floor reached, but beyond the fixed scale (off the right edge).
+		caption = 'Full &#8804; '
+			.. metres(m.minDist)
+			.. ' &#183; &#8594; floor '
+			.. dmg(m.minDamage)
+			.. ' at '
+			.. metres(fd)
 	else
-		caption = 'Full &#8804; ' .. metres(m.minDist) .. ' &#183; ' .. dmg(endDmg) .. ' at ' .. metres(m.range)
+		-- Projectile dies before the floor is reached.
+		caption = 'Full &#8804; '
+			.. metres(m.minDist)
+			.. ' &#183; '
+			.. dmg(damageAt(m, m.range))
+			.. ' at '
+			.. metres(m.range)
+			.. ' (floor not reached)'
 	end
 
 	local chart = falloffChart.render({
@@ -204,12 +265,21 @@ function p.getSections(apiData, args)
 		domain = domain,
 		yMax = m.alpha,
 		label = 'Damage falloff',
-		value = dmg(m.alpha) .. ' &#8594; ' .. dmg(endDmg),
+		value = dmg(m.alpha) .. ' &#8594; ' .. dmg(headerEnd),
 		markers = markers,
-		floor = floorInDomain and m.minDamage or nil,
+		floor = floorInView and m.minDamage or nil,
 		axisMin = '0 m',
-		axisMax = metres(domain),
+		axisMax = metres(domain) .. (clipped and ' &#8594;' or ''),
 		caption = caption,
+		-- Model for the optional client-side hover gadget (Gadget-falloffChart).
+		dataset = {
+			['falloff-alpha'] = m.alpha,
+			['falloff-min-dist'] = m.minDist,
+			['falloff-per-meter'] = m.perMeter,
+			['falloff-min-damage'] = m.minDamage,
+			['falloff-domain'] = domain,
+			['falloff-range'] = m.range,
+		},
 	})
 
 	if chart == nil then
@@ -242,6 +312,8 @@ p._internal = {
 	floorDistance = floorDistance,
 	damageAt = damageAt,
 	adaptiveDomain = adaptiveDomain,
+	chartDomain = chartDomain,
+	weaponType = weaponType,
 	primaryDamageType = primaryDamageType,
 	dropValue = dropValue,
 }

@@ -32,6 +32,8 @@ local STYLES = 'Module:FalloffChart/styles.css'
 --- @field axisMin string|nil Axis label (bottom-left).
 --- @field axisMax string|nil Axis label (bottom-right).
 --- @field caption string|nil Sub-caption line.
+--- @field dataset table<string, any>|nil data-* attributes (key without the "data-"
+---        prefix) emitted on the chart element, for optional client-side enhancement.
 
 --- Two-decimal format, trailing zeros (and a bare dot) stripped: 16.70 -> "16.7".
 --- @param n number
@@ -74,7 +76,11 @@ local function buildClip(points, domain, yMax)
 		local y = 100 - clampPct(pt.y, yMax)
 		table.insert(coords, fmtNum(x) .. '% ' .. fmtNum(y) .. '%')
 	end
-	table.insert(coords, '100% 100%')
+	-- Close the area to the baseline at the LAST point's x (not a hard 100%), so a
+	-- curve that ends before the right edge (range- or scale-clipped) leaves the
+	-- remaining width empty instead of filling a triangle of dead space.
+	local lastX = clampPct(points[#points].x, domain)
+	table.insert(coords, fmtNum(lastX) .. '% 100%')
 	return 'polygon(' .. table.concat(coords, ', ') .. ')'
 end
 
@@ -100,6 +106,20 @@ function p.render(data)
 	end
 
 	local chart = root:tag('div'):addClass('t-falloff__chart')
+
+	-- Emit data-* attributes (sorted, for deterministic output) so an optional
+	-- client-side gadget can enhance the chart without re-deriving the model.
+	if type(data.dataset) == 'table' then
+		local keys = {}
+		for k in pairs(data.dataset) do
+			table.insert(keys, k)
+		end
+		table.sort(keys)
+		for _, k in ipairs(keys) do
+			chart:attr('data-' .. k, tostring(data.dataset[k]))
+		end
+	end
+
 	chart:tag('div'):addClass('t-falloff__area'):css('--t-falloff-clip', buildClip(points, domain, yMax))
 
 	local floor = tonumber(data.floor)

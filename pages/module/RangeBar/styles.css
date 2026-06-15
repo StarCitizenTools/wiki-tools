@@ -1,7 +1,7 @@
 .t-range-bar__head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-sm); font-size: var(--font-size-small); line-height: var(--line-height-small); }
 .t-range-bar__label { color: var(--color-subtle); font-weight: var(--font-weight-medium); }
 .t-range-bar__value { text-align: end; color: var(--color-base); }
-.t-range-bar__track { position: relative; height: 6px; margin-top: var(--space-xxs); border-radius: 2px; overflow: hidden; }
+.t-range-bar__track { position: relative; height: 4px; margin-block: var(--space-xxs); border-radius: 2px; overflow: hidden; }
 .t-range-bar__seg { position: absolute; top: 0; bottom: 0; left: var(--t-range-bar-seg-left); width: var(--t-range-bar-seg-width); background: var(--t-range-bar-seg-bg); }
 .t-range-bar__seg--dim { opacity: 0.4; }
 .t-range-bar__tick { position: absolute; top: 0; bottom: 0; width: 1px; z-index: 2; left: var(--t-range-bar-tick-left); background: var(--t-range-bar-tick-color); }

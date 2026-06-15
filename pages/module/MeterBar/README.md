@@ -40,7 +40,7 @@ The fill is clamped to 0–100% of `value / max`.
 
 ## Styles
 
-The layout lives in [Module:MeterBar/styles.css](https://starcitizen.tools/Module:MeterBar/styles.css): a label/value header (`--font-size-small`, label `--color-subtle` / `--font-weight-medium`, value `--color-base`) above a 6px track (`--color-surface-3`) holding the fill. The fill width and colour come from CSS custom properties (`--t-meter-bar-fill-width`, `--t-meter-bar-fill-color`) the module sets; the stylesheet consumes them.
+The layout lives in [Module:MeterBar/styles.css](https://starcitizen.tools/Module:MeterBar/styles.css): a label/value header (`--font-size-small`, label `--color-subtle` / `--font-weight-medium`, value `--color-base`) above a 4px track (`--color-surface-3`) holding the fill. The fill width and colour come from CSS custom properties (`--t-meter-bar-fill-width`, `--t-meter-bar-fill-color`) the module sets; the stylesheet consumes them.
 
 ## Architecture
 

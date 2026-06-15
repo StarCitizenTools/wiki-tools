@@ -10,27 +10,20 @@ require('strict')
 --- g-force too.
 
 local format = require('Module:Entity/Format')
+local statFormat = require('Module:Entity/StatFormat')
 local rangeBar = require('Module:RangeBar')
 local meterBar = require('Module:MeterBar')
 
 local p = {}
 
--- Fixed thermal axis the bar spans. Wearable survivable bounds top out near ±225 °C
--- in-game, so −250…+250 frames every suit with a little headroom and a common scale.
-local TEMPERATURE_DOMAIN = { min = -250, max = 250 }
-
 -- Ice–fire gradient: cold cyan -> near-white neutral -> hot orange-red, in domain
--- units. Fixed hex so the palette reads identically across themes.
+-- units. Fixed hex so the palette reads identically across themes. (Axis bounds and
+-- units live in Module:Entity/StatFormat; only the palette is temperature-specific.)
 local TEMPERATURE_STOPS = {
 	{ at = -250, color = '#2bd0e6' },
 	{ at = 0, color = '#eef3f6' },
 	{ at = 250, color = '#ff5630' },
 }
-
--- Radiation meters scale against the current class best so a full bar = top-tier
--- protection (REM = capacity pool, REM/s = recovery rate).
-local MAX_RADIATION_CAPACITY = 52800
-local MAX_RADIATION_DISSIPATION = 251.1
 
 --- Reads a temperature block ({min,max}, falling back to {minimum,maximum}) and
 --- returns its survivable bounds. Returns nil when a bound is missing or the range
@@ -68,9 +61,20 @@ local function numLabel(v)
 	return v < 0 and '−' .. format.formatNum(-v) or format.formatNum(v)
 end
 
---- Renders the survivable temperature range as a labeled RangeBar on the fixed
---- thermal axis, with a 0 °C reference tick line. The header value is the range
---- ("−75 – 105 °C", en dash). Returns nil when there is no usable range.
+--- Formats the g-force modifier with an explicit sign ("+1", "−0.5"), coloured by
+--- sign: a positive value is a bonus (success), a negative one a high-g penalty
+--- (destructive).
+---
+--- @param v number
+--- @return string
+local function gforceLabel(v)
+	return format.colorBySign((v < 0 and '−' or '+') .. format.formatNum(math.abs(v)), v)
+end
+
+--- Renders the survivable temperature range as a labeled RangeBar, with a 0 °C
+--- reference tick line. Axis bounds + unit come from Module:Entity/StatFormat; the
+--- header value is the range ("−75 – 105 °C", en dash). Returns nil when there is
+--- no usable range.
 ---
 --- @param temp table|nil
 --- @return string|nil
@@ -79,12 +83,13 @@ local function temperatureBar(temp)
 	if min == nil then
 		return nil
 	end
+	local scale = statFormat.get('temperature')
 	return rangeBar.render({
 		label = 'Temperature',
-		value = numLabel(min) .. ' – ' .. numLabel(max) .. ' °C',
+		value = numLabel(min) .. ' – ' .. numLabel(max) .. ' ' .. scale.unit,
 		min = min,
 		max = max,
-		domain = TEMPERATURE_DOMAIN,
+		domain = { min = scale.min, max = scale.max },
 		stops = TEMPERATURE_STOPS,
 		tick = 0,
 	})
@@ -116,27 +121,29 @@ function p.getSections(apiData, args)
 	if type(rad) == 'table' then
 		local capacity = tonumber(rad.maximum_radiation_capacity)
 		if capacity and capacity > 0 then
+			local scale = statFormat.get('radiation_capacity')
 			graphItem(meterBar.render({
 				label = 'Radiation capacity',
 				value = capacity,
-				max = MAX_RADIATION_CAPACITY,
-				text = format.formatNum(capacity) .. ' REM',
+				max = scale.max,
+				text = format.formatNum(capacity) .. ' ' .. scale.unit,
 			}))
 		end
 		local dissipation = tonumber(rad.radiation_dissipation_rate)
 		if dissipation and dissipation > 0 then
+			local scale = statFormat.get('radiation_dissipation')
 			graphItem(meterBar.render({
 				label = 'Radiation dissipation',
 				value = dissipation,
-				max = MAX_RADIATION_DISSIPATION,
-				text = format.formatNum(dissipation) .. ' REM/s',
+				max = scale.max,
+				text = format.formatNum(dissipation) .. ' ' .. scale.unit,
 			}))
 		end
 	end
 
 	local gforce = tonumber(apiData.gforce_resistance)
 	if gforce and gforce ~= 0 then
-		table.insert(items, { label = 'G-force resistance', content = format.formatNum(gforce) })
+		table.insert(items, { label = 'G-force', content = gforceLabel(gforce) })
 	end
 
 	if #items == 0 then
@@ -199,6 +206,7 @@ end
 p._internal = {
 	temperatureBounds = temperatureBounds,
 	numLabel = numLabel,
+	gforceLabel = gforceLabel,
 }
 
 return p

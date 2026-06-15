@@ -73,6 +73,17 @@ function suite:testNumLabel()
 	self:assertEquals('0', Environment._internal.numLabel(0))
 end
 
+function suite:testGforceLabel()
+	-- Positive (a bonus): explicit + sign, coloured success.
+	local pos = Environment._internal.gforceLabel(1)
+	self:assertEquals(true, mw.ustring.find(pos, '+1', 1, true) ~= nil)
+	self:assertEquals(true, mw.ustring.find(pos, 'color-success', 1, true) ~= nil)
+	-- Negative (a high-g penalty): typographic minus, coloured destructive.
+	local neg = Environment._internal.gforceLabel(-0.5)
+	self:assertEquals(true, mw.ustring.find(neg, '−0.5', 1, true) ~= nil)
+	self:assertEquals(true, mw.ustring.find(neg, 'color-destructive', 1, true) ~= nil)
+end
+
 function suite:testArmorRows()
 	local sections = Environment.getSections(armorData(), {})
 	self:assertEquals(1, #sections)
@@ -87,8 +98,8 @@ function suite:testArmorRows()
 	self:assertEquals('string', type(its[1].content))
 	self:assertEquals('t-infobox-item--block', its[2].class)
 	self:assertEquals('t-infobox-item--block', its[3].class)
-	-- G-force is a plain labelled row.
-	self:assertEquals('−0.5', findItem(its, 'G-force resistance').content)
+	-- G-force is a plain labelled row (signed, value coloured when negative).
+	self:assertEquals('string', type(findItem(its, 'G-force').content))
 end
 
 function suite:testClothingRowsGated()

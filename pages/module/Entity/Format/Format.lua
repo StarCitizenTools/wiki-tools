@@ -22,6 +22,23 @@ function p.formatNum(value)
 	return lang:formatNum(number)
 end
 
+--- Wraps display text in a span coloured by the sign of `value`: positive ->
+--- --color-success, negative -> --color-destructive. Zero or a non-numeric value
+--- returns the text unchanged (no span). For "good when positive, bad when
+--- negative" values such as modifiers or deltas (e.g. a g-force bonus vs penalty).
+---
+--- @param text string The already-formatted display text.
+--- @param value number|string The signed value driving the colour.
+--- @return string
+function p.colorBySign(text, value)
+	local number = tonumber(value)
+	if number == nil or number == 0 then
+		return text
+	end
+	local color = number > 0 and 'var(--color-success)' or 'var(--color-destructive)'
+	return tostring(mw.html.create('span'):css('color', color):wikitext(text))
+end
+
 --- Joins a list of strings into natural English with Oxford comma.
 --- Examples: {} → nil; {A} → "A"; {A,B} → "A and B"; {A,B,C} → "A, B, and C".
 ---

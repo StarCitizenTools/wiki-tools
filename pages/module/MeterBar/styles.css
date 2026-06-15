@@ -1,5 +1,5 @@
 .t-meter-bar__head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-sm); font-size: var(--font-size-small); line-height: var(--line-height-small); }
 .t-meter-bar__label { color: var(--color-subtle); font-weight: var(--font-weight-medium); }
 .t-meter-bar__value { text-align: end; color: var(--color-base); }
-.t-meter-bar__track { position: relative; height: 6px; margin-top: var(--space-xxs); border-radius: 2px; overflow: hidden; background: var(--color-surface-3); }
+.t-meter-bar__track { position: relative; height: 4px; margin-block: var(--space-xxs); border-radius: 2px; overflow: hidden; background: var(--color-surface-3); }
 .t-meter-bar__fill { height: 100%; border-radius: 2px; width: var(--t-meter-bar-fill-width); background: var(--t-meter-bar-fill-color); }

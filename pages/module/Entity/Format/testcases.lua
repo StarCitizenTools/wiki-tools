@@ -26,6 +26,24 @@ function suite:testJoinAndFour()
 	self:assertEquals('A, B, C, and D', format.joinAnd({ 'A', 'B', 'C', 'D' }))
 end
 
+-- colorBySign
+
+function suite:testColorBySignPositive()
+	local out = format.colorBySign('+1', 1)
+	self:assertEquals(true, mw.ustring.find(out, '+1', 1, true) ~= nil)
+	self:assertEquals(true, mw.ustring.find(out, 'color-success', 1, true) ~= nil)
+end
+
+function suite:testColorBySignNegative()
+	local out = format.colorBySign('−0.5', -0.5)
+	self:assertEquals(true, mw.ustring.find(out, '−0.5', 1, true) ~= nil)
+	self:assertEquals(true, mw.ustring.find(out, 'color-destructive', 1, true) ~= nil)
+end
+
+function suite:testColorBySignZeroUnchanged()
+	self:assertEquals('0', format.colorBySign('0', 0))
+end
+
 -- buildHtmlList
 
 function suite:testBuildHtmlListEmpty()

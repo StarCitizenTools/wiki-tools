@@ -52,7 +52,7 @@ Values outside the domain clamp to the bar edges. The gradient for each segment 
 
 ## Styles
 
-The layout lives in [Module:RangeBar/styles.css](https://starcitizen.tools/Module:RangeBar/styles.css): a label/value header (`--font-size-small`, label `--color-subtle` / `--font-weight-medium`, value `--color-base`) above a 6px track with a 2px radius holding the gradient segments and a 1px tick line. Segment positions/gradients and the tick come from CSS custom properties the module sets; the stylesheet consumes them.
+The layout lives in [Module:RangeBar/styles.css](https://starcitizen.tools/Module:RangeBar/styles.css): a label/value header (`--font-size-small`, label `--color-subtle` / `--font-weight-medium`, value `--color-base`) above a 4px track with a 2px radius holding the gradient segments and a 1px tick line. Segment positions/gradients and the tick come from CSS custom properties the module sets; the stylesheet consumes them.
 
 ## Architecture
 

@@ -1,0 +1,78 @@
+.t-falloff__head {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	gap: var(--space-sm);
+	font-size: var(--font-size-small);
+	line-height: var(--line-height-small);
+}
+
+.t-falloff__label {
+	color: var(--color-subtle);
+	font-weight: var(--font-weight-medium);
+}
+
+.t-falloff__value {
+	text-align: end;
+	color: var(--color-base);
+}
+
+.t-falloff__chart {
+	position: relative;
+	height: 72px;
+	margin-block: var(--space-xxs);
+	border: var(--border-base);
+	border-radius: var(--border-radius-medium);
+	background: var(--color-surface-1);
+	overflow: hidden;
+}
+
+.t-falloff__area {
+	position: absolute;
+	inset: 0;
+	background: var(--color-progressive);
+	opacity: 0.45;
+	clip-path: var(--t-falloff-clip);
+}
+
+.t-falloff__floor {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: var(--t-falloff-floor-top);
+	border-top: 1px dashed var(--border-color-base);
+}
+
+.t-falloff__tick {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: var(--t-falloff-tick-left);
+	width: 1px;
+	background: var(--border-color-interactive);
+}
+
+.t-falloff__tick-label {
+	position: absolute;
+	top: 2px;
+	left: 3px;
+	font-size: var(--font-size-x-small);
+	line-height: var(--line-height-x-small);
+	color: var(--color-subtle);
+	white-space: nowrap;
+}
+
+.t-falloff__axis {
+	display: flex;
+	justify-content: space-between;
+	font-size: var(--font-size-x-small);
+	line-height: var(--line-height-x-small);
+	color: var(--color-subtle);
+}
+
+.t-falloff__caption {
+	margin-top: var(--space-xxs);
+	font-size: var(--font-size-x-small);
+	line-height: var(--line-height-x-small);
+	color: var(--color-subtle);
+}

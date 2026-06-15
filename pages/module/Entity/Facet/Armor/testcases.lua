@@ -5,10 +5,10 @@ local Armor = require('Module:Entity/Facet/Armor')
 
 local suite = ScribuntoUnit:new()
 
-local function findItem(items, label)
-	for _, it in ipairs(items or {}) do
-		if it.label == label then
-			return it
+local function tileByTitle(tiles, title)
+	for _, t in ipairs(tiles or {}) do
+		if t.title == title then
+			return t
 		end
 	end
 	return nil
@@ -92,14 +92,25 @@ function suite:testDescriptorPrefix()
 	self:assertEquals(nil, dp({ sub_type = 'UNDEFINED' }))
 end
 
-function suite:testRows()
+function suite:testTiles()
+	local tiles = Armor._internal.buildTiles(heavyTorso().suit_armor.damage_resistance_map)
+	self:assertEquals(7, #tiles)
+	local phy = tileByTitle(tiles, 'Physical')
+	self:assertEquals(40, phy.value)
+	self:assertEquals('PHY', phy.label)
+	self:assertEquals('var(--color-warning)', phy.color)
+	-- 60% stun reads strong (green), 35% impact mid (amber)
+	self:assertEquals('var(--color-success)', tileByTitle(tiles, 'Stun').color)
+	self:assertEquals(35, tileByTitle(tiles, 'Impact').value)
+	self:assertEquals('var(--color-warning)', tileByTitle(tiles, 'Impact').color)
+end
+
+function suite:testSection()
 	local sections = Armor.getSections(heavyTorso(), {})
 	self:assertEquals(1, #sections)
 	self:assertEquals('armor', sections[1].key)
-	self:assertEquals('Armor', sections[1].label)
-	self:assertEquals('40%', findItem(sections[1].items, 'Physical').content)
-	self:assertEquals('60%', findItem(sections[1].items, 'Stun').content)
-	self:assertEquals('35%', findItem(sections[1].items, 'Impact').content)
+	self:assertEquals('Damage resistance', sections[1].label)
+	self:assertEquals('string', type(sections[1].content))
 end
 
 function suite:testShortDescriptionPrefix()

@@ -8,7 +8,7 @@ require('strict')
 --- description prefix ("Heavy torso armor by CDS") and as a queryable facet.
 --- Data-driven: fires on any entity with a `suit_armor` block.
 
-local format = require('Module:Entity/Format')
+local progressTiles = require('Module:ProgressTiles')
 
 local p = {}
 
@@ -16,14 +16,19 @@ local p = {}
 -- {multiplier, threshold} objects, but `damage_resistance_map` flattens them all
 -- to a bare damage-taken multiplier, which is what we read.
 local DAMAGE_TYPES = {
-	{ key = 'physical', label = 'Physical' },
-	{ key = 'energy', label = 'Energy' },
-	{ key = 'distortion', label = 'Distortion' },
-	{ key = 'thermal', label = 'Thermal' },
-	{ key = 'biochemical', label = 'Biochemical' },
-	{ key = 'stun', label = 'Stun' },
-	{ key = 'impact', label = 'Impact' },
+	{ key = 'physical', label = 'Physical', abbr = 'PHY' },
+	{ key = 'energy', label = 'Energy', abbr = 'ENG' },
+	{ key = 'distortion', label = 'Distortion', abbr = 'DST' },
+	{ key = 'thermal', label = 'Thermal', abbr = 'THM' },
+	{ key = 'biochemical', label = 'Biochemical', abbr = 'BIO' },
+	{ key = 'stun', label = 'Stun', abbr = 'STN' },
+	{ key = 'impact', label = 'Impact', abbr = 'IMP' },
 }
+
+-- Heatmap banding for the resistance tiles, as fractions of 100%. Tuned to real
+-- armour: values cluster 10-60%, so weak <=20%, mid 21-45%, strong >45% (e.g.
+-- heavy stun 60% reads strong/green, light 20% reads weak/red).
+local HEATMAP_THRESHOLDS = { 0.2, 0.45 }
 
 --- The damage-reduction percentage for a type, derived from its damage-taken
 --- multiplier (0.6 means 60% of damage is taken, i.e. 40% resistance). Returns
@@ -109,6 +114,29 @@ function p.matches(apiData)
 	return apiData ~= nil and type(apiData.suit_armor) == 'table'
 end
 
+--- Builds the resistance tiles (one per damage type with a value) for the
+--- progress-tile row. Each tile is heatmap-coloured by its resistance via the
+--- shared Module:ProgressTiles helper; the abbreviation is the visible label and
+--- the full name the hover title. Empty when no damage type has a value.
+---
+--- @param map table the damage_resistance_map
+--- @return ProgressTile[]
+local function buildTiles(map)
+	local tiles = {}
+	for _, dt in ipairs(DAMAGE_TYPES) do
+		local pct = resistancePercent(map, dt.key)
+		if pct ~= nil then
+			table.insert(tiles, {
+				value = pct,
+				label = dt.abbr,
+				title = dt.label,
+				color = progressTiles.heatmap(pct, 100, HEATMAP_THRESHOLDS),
+			})
+		end
+	end
+	return tiles
+end
+
 --- @param apiData table
 --- @param args table
 --- @return table[] Ordered list of section entries with key field
@@ -119,24 +147,18 @@ function p.getSections(apiData, args)
 	end
 	local map = type(sa.damage_resistance_map) == 'table' and sa.damage_resistance_map or {}
 
-	local items = {}
-	for _, dt in ipairs(DAMAGE_TYPES) do
-		local pct = resistancePercent(map, dt.key)
-		if pct ~= nil then
-			table.insert(items, { label = dt.label, content = format.formatNum(pct) .. '%' })
-		end
-	end
-
-	if #items == 0 then
+	local tiles = buildTiles(map)
+	if #tiles == 0 then
 		return {}
 	end
 
+	-- The resistance set renders as a Module:ProgressTiles row (custom HTML
+	-- section content); the infobox makes labelled sections collapsible.
 	return {
 		{
 			key = 'armor',
-			label = 'Armor',
-			collapsible = true,
-			items = items,
+			label = 'Damage resistance',
+			content = progressTiles.render({ tiles = tiles }),
 		},
 	}
 end
@@ -183,6 +205,7 @@ p._internal = {
 	resistancePercent = resistancePercent,
 	weightClass = weightClass,
 	descriptorPrefix = descriptorPrefix,
+	buildTiles = buildTiles,
 }
 
 return p

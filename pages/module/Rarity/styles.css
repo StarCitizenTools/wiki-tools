@@ -1,0 +1,34 @@
+/* Rarity palette: hardcoded, theme-aware (light-dark), tinted to match the
+   success / warning badge contrast — strong text, subtle background, mid border.
+   Higher specificity (.t-badge.rarity-badge--*) so it overrides the BadgeLua base
+   regardless of stylesheet order. */
+
+.t-badge.rarity-badge--common {
+	color: light-dark(oklch(48% 0.012 255), oklch(72% 0.016 255));
+	background-color: light-dark(oklch(95% 0.004 255), oklch(20% 0.01 255));
+	border-color: light-dark(oklch(89% 0.008 255), oklch(31% 0.014 255));
+}
+
+.t-badge.rarity-badge--uncommon {
+	color: light-dark(oklch(51% 0.12 150), oklch(70% 0.16 150));
+	background-color: light-dark(oklch(95% 0.025 150), oklch(16% 0.035 150));
+	border-color: light-dark(oklch(90% 0.055 150), oklch(26% 0.055 150));
+}
+
+.t-badge.rarity-badge--rare {
+	color: light-dark(oklch(52% 0.16 250), oklch(72% 0.13 250));
+	background-color: light-dark(oklch(95% 0.03 250), oklch(17% 0.055 250));
+	border-color: light-dark(oklch(91% 0.06 250), oklch(28% 0.085 250));
+}
+
+.t-badge.rarity-badge--epic {
+	color: light-dark(oklch(52% 0.19 310), oklch(73% 0.16 310));
+	background-color: light-dark(oklch(95% 0.035 310), oklch(17% 0.06 310));
+	border-color: light-dark(oklch(91% 0.07 310), oklch(29% 0.1 310));
+}
+
+.t-badge.rarity-badge--legendary {
+	color: light-dark(oklch(54% 0.13 70), oklch(76% 0.15 75));
+	background-color: light-dark(oklch(95% 0.04 75), oklch(17% 0.05 60));
+	border-color: light-dark(oklch(92% 0.075 75), oklch(29% 0.075 60));
+}

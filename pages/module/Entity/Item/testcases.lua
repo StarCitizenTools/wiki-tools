@@ -82,11 +82,13 @@ function suite:testGetStructuredData()
 	local result = Item.getStructuredData({
 		size = 3,
 		grade = 'A',
+		rarity = 'Rare',
 		description_data = { { name = 'Item Type', value = 'Laser Repeater' } },
 	}, {})
 	self:assertEquals(3, result.size)
 	self:assertEquals('A', result.grade)
 	self:assertEquals('Laser Repeater', result.item_type)
+	self:assertEquals('Rare', result.rarity)
 end
 
 -- classContent / gradeContent (graded-component rows)

@@ -898,6 +898,14 @@
 		],
 		"desc": "Salvage ramp-up time of a salvage head, in seconds."
 	},
+	"Rarity": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Item"
+		],
+		"desc": "Rarity tier of an item (Common, Uncommon, Rare, Epic, Legendary)."
+	},
 	"Roll": {
 		"smw": "Number",
 		"bucket": "DOUBLE",

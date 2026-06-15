@@ -290,10 +290,10 @@ local function baseVariant(apiData)
 end
 
 --- Contributes item-level facet values to structured data: size, grade,
---- class, the in-game item type, volume (in µSCU), and the base-variant flag.
---- Stored backend-agnostically via Module:Entity/StructuredData. These are facets
---- for querying/tooling, not browse categories — the structural category
---- is classification-driven (Module:Entity/Data.resolveClassification →
+--- class, the in-game item type, volume (in µSCU), the base-variant flag, and
+--- the rarity tier. Stored backend-agnostically via Module:Entity/StructuredData.
+--- These are facets for querying/tooling, not browse categories — the structural
+--- category is classification-driven (Module:Entity/Data.resolveClassification →
 --- classifications.json).
 ---
 --- @param apiData table
@@ -307,6 +307,7 @@ function p.getStructuredData(apiData, args)
 		item_type = getItemType(apiData),
 		volume = getVolume(apiData),
 		base_variant = baseVariant(apiData),
+		rarity = apiData.rarity,
 	}
 end
 

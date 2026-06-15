@@ -9,6 +9,7 @@ require('strict')
 local button = require('Module:ButtonLua')
 local assembly = require('Module:Entity/Assembly')
 local infobox = require('Module:InfoboxLua')
+local rarity = require('Module:Rarity')
 
 local WIKI_API_SEARCH_URL = 'https://api.star-citizen.wiki/search/'
 
@@ -197,6 +198,24 @@ local function buildSections(chain, facets, apiData, args)
 	return sections
 end
 
+--- Builds the InfoboxLua `image` value: the page image plus a rarity badge
+--- overlay (pinned top-right) when the entity exposes a rarity. Returns the bare
+--- image string when there's no rarity, leaving the placeholder path untouched.
+---
+--- @param apiData table
+--- @param args table
+--- @return string|table|nil
+local function buildImage(apiData, args)
+	local badge = rarity.badge(apiData.rarity)
+	if not badge then
+		return args.image
+	end
+	-- The overlay strip spans the full image top; right-align the badge into the
+	-- corner via Module:Entity/styles.css (.t-infobox-rarity-overlay).
+	local overlay = mw.html.create('div'):addClass('t-infobox-rarity-overlay'):wikitext(badge)
+	return { src = args.image, overlay = tostring(overlay) }
+end
+
 --- Renders the full entity infobox (TemplateStyles + InfoboxLua HTML) from a
 --- Module:Entity/Data result.
 ---
@@ -214,7 +233,7 @@ function p.render(result, args)
 	local html = infobox.render({
 		title = result.apiData.name or args.name or mw.title.getCurrentTitle().text,
 		subtitle = result.displayType,
-		image = args.image,
+		image = buildImage(result.apiData, args),
 		sections = sections,
 	})
 

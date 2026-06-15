@@ -1,3 +1,11 @@
+/* Rarity badge rides the image overlay strip (full-width, pinned to the image
+   top by InfoboxLua); push it into the top-right corner with a small inset. */
+.t-infobox-rarity-overlay {
+    display: flex;
+    justify-content: flex-end;
+    padding: var(--space-xs);
+}
+
 /* Footer section: a label-less infobox section holding a flex row of action
    buttons (Galactapedia / Wiki API). The footer uses InfoboxLua's generic
    section-variant hook (a passed-through `class`), but the styling is

@@ -42,6 +42,7 @@ p.facets = {
 	require('Module:Entity/Facet/Mining'),
 	require('Module:Entity/Facet/Armor'),
 	require('Module:Entity/Facet/Environment'),
+	require('Module:Entity/Facet/DamageFalloff'),
 	require('Module:Entity/Facet/Inventory'),
 	require('Module:Entity/Facet/Component'),
 	require('Module:Entity/Facet/Dimensions'),

@@ -407,6 +407,14 @@
 		],
 		"desc": "Firing mechanism of a vehicle weapon (Cannon, Repeater, …)."
 	},
+	"Full damage range": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"DamageFalloff"
+		],
+		"desc": "Distance (m) over which a personal weapon deals full damage before falloff begins."
+	},
 	"G force resistance": {
 		"smw": "Number",
 		"bucket": "DOUBLE",
@@ -575,6 +583,14 @@
 			"Environment"
 		],
 		"desc": "Hottest temperature a wearable protects against, in °C."
+	},
+	"Min damage": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"DamageFalloff"
+		],
+		"desc": "Floored per-shot damage a personal weapon deals at long range after falloff."
 	},
 	"Mineable": {
 		"smw": "Boolean",

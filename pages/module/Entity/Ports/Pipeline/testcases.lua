@@ -545,8 +545,9 @@ function suite:testAggregatePrecomputesExpandableTrueForTurret()
 	self:assertEquals(true, agg[1].expandable)
 end
 
-function suite:testAggregatePrecomputesExpandableFalseForWeapon()
-	-- Weapons category has no expandIntoTypes → expandable should be false.
+function suite:testAggregatePrecomputesExpandableTrueForWeapon()
+	-- Weapons category has expandIntoTypes: ["WeaponGun"] (added so weapon-mount
+	-- item pages show the inner gun slot as an L-tree child). expandable = true.
 	local w = helpers.normalizePort({
 		name = 'w',
 		type = 'WeaponGun',
@@ -555,7 +556,7 @@ function suite:testAggregatePrecomputesExpandableFalseForWeapon()
 		equipped_item = { name = 'M9A' },
 	}, 1)
 	local agg = helpers.aggregateSiblings({ w })
-	self:assertEquals(false, agg[1].expandable)
+	self:assertEquals(true, agg[1].expandable)
 end
 
 function suite:testAggregateStripsSignatureKey()

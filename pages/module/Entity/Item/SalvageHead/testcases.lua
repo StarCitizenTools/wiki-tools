@@ -40,19 +40,19 @@ local function balerData()
 	}
 end
 
+-- SalvageHead.getSections contributes only the Range row. The Salvage-mode stat
+-- set (material efficiency, repair rates, ramp times, etc.) is delegated to the
+-- Module:Entity/Facet/Salvage data-driven facet, which renders below via the
+-- section-merge chain. Both share the 'salvage' section key.
 function suite:testRows()
 	local sections = SalvageHead.getSections(balerData(), {})
 	self:assertEquals(1, #sections)
 	self:assertEquals('salvage', sections[1].key)
 	self:assertEquals('Salvage', sections[1].label)
 	self:assertEquals('150 m', findItem(sections[1].items, 'Range').content)
-	self:assertEquals('100%', findItem(sections[1].items, 'Material efficiency').content)
-	self:assertEquals('10', findItem(sections[1].items, 'Health repair rate').content)
-	self:assertEquals('10', findItem(sections[1].items, 'Damage repair rate').content)
-	self:assertEquals('0.5', findItem(sections[1].items, 'Health-to-ammo ratio').content)
-	self:assertEquals('1 s / 2 s', findItem(sections[1].items, 'Ramp up / down').content)
-	self:assertEquals('90%', findItem(sections[1].items, 'Max vehicle damage').content)
-	self:assertEquals('100%', findItem(sections[1].items, 'Repaired material').content)
+	-- Mode-stat rows (material efficiency, repair rates, etc.) are NOT emitted by
+	-- this subtype; they come from the Salvage facet.
+	self:assertEquals(nil, findItem(sections[1].items, 'Material efficiency'))
 end
 
 -- The FPS salvage tool shares the mode shape under personal_weapon; the head
@@ -79,12 +79,15 @@ function suite:testShortDescription()
 	self:assertEquals('S2 salvage head by Greycat', desc)
 end
 
+-- getStructuredData emits only beam_range from the subtype; the Salvage facet
+-- stores material_efficiency, repair rates, and ramp times.
 function suite:testStructuredData()
 	local data = SalvageHead.getStructuredData(balerData())
 	self:assertEquals(150, data.beam_range)
-	self:assertEquals(100, data.material_efficiency)
-	self:assertEquals(10, data.health_repair_rate)
-	self:assertEquals(1, data.ramp_up_time)
+	-- Facet-owned fields are not present on the subtype's structured data.
+	self:assertEquals(nil, data.material_efficiency)
+	self:assertEquals(nil, data.health_repair_rate)
+	self:assertEquals(nil, data.ramp_up_time)
 end
 
 function suite:testResolveSubtype()

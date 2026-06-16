@@ -118,9 +118,9 @@ end
 function p.getShortDescription(apiData, args, typeInfo, prefix)
 	local missile = apiData.missile
 	local signal = type(missile) == 'table' and signalLabel(missile.signal_type) or nil
-	local typeName = typeInfo.name
+	local typeName = typeInfo.name:lower()
 	if signal then
-		typeName = signal:lower() .. ' ' .. typeInfo.name:lower()
+		typeName = signal:lower() .. ' ' .. typeName
 	end
 	if apiData.size then
 		typeName = 'S' .. tostring(apiData.size) .. ' ' .. typeName

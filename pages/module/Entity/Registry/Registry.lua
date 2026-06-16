@@ -40,6 +40,7 @@ p.facets = {
 	require('Module:Entity/Facet/LaserPointer'),
 	require('Module:Entity/Facet/Flashlight'),
 	require('Module:Entity/Facet/Mining'),
+	require('Module:Entity/Facet/Beam'),
 	require('Module:Entity/Facet/Armor'),
 	require('Module:Entity/Facet/Environment'),
 	require('Module:Entity/Facet/DamageFalloff'),

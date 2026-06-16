@@ -82,4 +82,22 @@ function suite:testStructuredData()
 	self:assertEquals(5, Gadget.getStructuredData(multiTool(), {}).max_range)
 end
 
+-- An FPS tractor-beam gadget with a tractor_beam block: the Beam facet renders the
+-- authoritative beam range, so the gadget overview suppresses its duplicate Range.
+function suite:testRangeSuppressedWithBeamBlock()
+	local s = Gadget.getSections({
+		sub_type = 'Gadget',
+		tractor_beam = { range = { max = 100 } },
+		personal_weapon = {
+			type = 'Tractor Beam',
+			range = 100,
+			ammunition = { capacity = 50 },
+		},
+	}, {})
+	self:assertEquals(1, #s)
+	self:assertEquals('Tractor Beam', findItem(s[1].items, 'Type').content)
+	self:assertEquals('50', findItem(s[1].items, 'Capacity').content)
+	self:assertEquals(nil, findItem(s[1].items, 'Range'))
+end
+
 return suite

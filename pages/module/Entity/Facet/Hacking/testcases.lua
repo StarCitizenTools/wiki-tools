@@ -39,7 +39,10 @@ function suite:testRows()
 	self:assertEquals('hacking', sections[1].key)
 	self:assertEquals('Hacking', sections[1].label)
 	self:assertEquals('3', findItem(sections[1].items, 'Charges').content)
-	self:assertEquals('×0.5', findItem(sections[1].items, 'Hack time').content)
+	-- Hack time ×0.5 (faster) is lower-better → green buff.
+	local hackTime = findItem(sections[1].items, 'Hack time').content
+	self:assertStringContains('×0.5', hackTime, true)
+	self:assertStringContains('color-success', hackTime, true)
 	self:assertEquals('50%', findItem(sections[1].items, 'Error chance').content)
 end
 

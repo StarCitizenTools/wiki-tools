@@ -44,6 +44,32 @@ function suite:testColorBySignZeroUnchanged()
 	self:assertEquals('0', format.colorBySign('0', 0))
 end
 
+-- colorByDirection
+
+function suite:testColorByDirectionHigherBetter()
+	-- baseline 1 (multiplier), higher is better: ×1.2 good (green), ×0.8 bad (red).
+	self:assertStringContains('color-success', format.colorByDirection('×1.2', 1.2, 1, 'higher'), true)
+	self:assertStringContains('color-destructive', format.colorByDirection('×0.8', 0.8, 1, 'higher'), true)
+end
+
+function suite:testColorByDirectionLowerBetter()
+	-- baseline 1, lower is better (recoil): ×0.8 good (green), ×1.2 bad (red).
+	self:assertStringContains('color-success', format.colorByDirection('×0.8', 0.8, 1, 'lower'), true)
+	self:assertStringContains('color-destructive', format.colorByDirection('×1.2', 1.2, 1, 'lower'), true)
+end
+
+function suite:testColorByDirectionBaselineUnchanged()
+	-- At the baseline (no modification) and for non-numeric input, return text plain.
+	self:assertEquals('×1', format.colorByDirection('×1', 1, 1, 'higher'))
+	self:assertEquals('×1', format.colorByDirection('×1', 1, 1, 'lower'))
+	self:assertEquals('—', format.colorByDirection('—', 'n/a', 1, 'higher'))
+end
+
+function suite:testColorBySignDelegates()
+	-- colorBySign is colorByDirection(value, 0, 'higher').
+	self:assertEquals(format.colorByDirection('+1', 1, 0, 'higher'), format.colorBySign('+1', 1))
+end
+
 -- buildHtmlList
 
 function suite:testBuildHtmlListEmpty()

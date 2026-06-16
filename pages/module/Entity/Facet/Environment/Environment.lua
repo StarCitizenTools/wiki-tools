@@ -123,7 +123,7 @@ function p.getSections(apiData, args)
 		if capacity and capacity > 0 then
 			local scale = statFormat.get('radiation_capacity')
 			graphItem(meterBar.render({
-				label = 'Radiation capacity',
+				label = 'Radiation protection',
 				value = capacity,
 				max = scale.max,
 				text = format.formatNum(capacity) .. ' ' .. scale.unit,
@@ -133,7 +133,7 @@ function p.getSections(apiData, args)
 		if dissipation and dissipation > 0 then
 			local scale = statFormat.get('radiation_dissipation')
 			graphItem(meterBar.render({
-				label = 'Radiation dissipation',
+				label = 'Radiation scrub rate',
 				value = dissipation,
 				max = scale.max,
 				text = format.formatNum(dissipation) .. ' ' .. scale.unit,
@@ -143,7 +143,7 @@ function p.getSections(apiData, args)
 
 	local gforce = tonumber(apiData.gforce_resistance)
 	if gforce and gforce ~= 0 then
-		table.insert(items, { label = 'G-force', content = gforceLabel(gforce) })
+		table.insert(items, { label = 'G resistance', content = gforceLabel(gforce) })
 	end
 
 	if #items == 0 then

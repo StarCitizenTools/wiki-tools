@@ -30,7 +30,7 @@ local function multiTool()
 		sub_type = 'Gadget',
 		personal_weapon = {
 			type = 'Utility',
-			effective_range = 5,
+			range = 5,
 			ammunition = { capacity = 100 },
 			modes = {
 				{ type = 'Salvage', material_efficiency = 0.8, max_health_repair_rate = 310 },
@@ -53,7 +53,7 @@ function suite:testOverviewOnly()
 	self:assertEquals(1, #s)
 	local overview = findSection(s, 'gadget')
 	self:assertEquals('Utility', findItem(overview.items, 'Type').content)
-	self:assertEquals('5 m', findItem(overview.items, 'Effective range').content)
+	self:assertEquals('5 m', findItem(overview.items, 'Range').content)
 	self:assertEquals('100', findItem(overview.items, 'Capacity').content)
 end
 
@@ -63,7 +63,7 @@ function suite:testTractorOnlyOverview()
 		sub_type = 'Gadget',
 		personal_weapon = {
 			type = 'Tractor Beam',
-			effective_range = 100,
+			range = 100,
 			ammunition = { capacity = 50 },
 			modes = { { type = 'tractorbeam', toggle_mode = 'IsToggle' } },
 		},
@@ -79,7 +79,25 @@ function suite:testEmptyWhenNoStats()
 end
 
 function suite:testStructuredData()
-	self:assertEquals(5, Gadget.getStructuredData(multiTool(), {}).effective_range)
+	self:assertEquals(5, Gadget.getStructuredData(multiTool(), {}).max_range)
+end
+
+-- An FPS tractor-beam gadget with a tractor_beam block: the Beam facet renders the
+-- authoritative beam range, so the gadget overview suppresses its duplicate Range.
+function suite:testRangeSuppressedWithBeamBlock()
+	local s = Gadget.getSections({
+		sub_type = 'Gadget',
+		tractor_beam = { range = { max = 100 } },
+		personal_weapon = {
+			type = 'Tractor Beam',
+			range = 100,
+			ammunition = { capacity = 50 },
+		},
+	}, {})
+	self:assertEquals(1, #s)
+	self:assertEquals('Tractor Beam', findItem(s[1].items, 'Type').content)
+	self:assertEquals('50', findItem(s[1].items, 'Capacity').content)
+	self:assertEquals(nil, findItem(s[1].items, 'Range'))
 end
 
 return suite

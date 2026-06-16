@@ -12,7 +12,7 @@ The fill colour defaults to a single accent (`--color-progressive`); the value t
 local MeterBar = require( 'Module:MeterBar' )
 
 local html = MeterBar.render( {
-	label = 'Radiation capacity',
+	label = 'Radiation protection',
 	value = 26800,
 	max = 52800,
 	text = '26,800 REM',

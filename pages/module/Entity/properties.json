@@ -277,14 +277,6 @@
 		],
 		"desc": "Effect duration of a mining module, in seconds."
 	},
-	"Effective range": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
-		"modules": [
-			"WeaponPersonal"
-		],
-		"desc": "Effective range of a weapon, in metres."
-	},
 	"Effects": {
 		"smw": "Text",
 		"bucket": "TEXT",
@@ -406,6 +398,14 @@
 			"WeaponGun"
 		],
 		"desc": "Firing mechanism of a vehicle weapon (Cannon, Repeater, …)."
+	},
+	"Full damage range": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"DamageFalloff"
+		],
+		"desc": "Distance (m) over which a personal weapon deals full damage before falloff begins."
 	},
 	"G force resistance": {
 		"smw": "Number",
@@ -548,9 +548,10 @@
 		"bucket": "DOUBLE",
 		"modules": [
 			"WeaponGun",
-			"WeaponPersonal"
+			"WeaponPersonal",
+			"Gadget"
 		],
-		"desc": "Maximum range of a weapon, in metres."
+		"desc": "Maximum range of a weapon, in metres (personal weapons / gadgets display it as \"Range\")."
 	},
 	"Max speed": {
 		"smw": "Number",
@@ -575,6 +576,14 @@
 			"Environment"
 		],
 		"desc": "Hottest temperature a wearable protects against, in °C."
+	},
+	"Min damage": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"DamageFalloff"
+		],
+		"desc": "Floored per-shot damage a personal weapon deals at long range after falloff."
 	},
 	"Mineable": {
 		"smw": "Boolean",

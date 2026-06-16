@@ -34,6 +34,21 @@ local function mult(value)
 	return '×' .. format.formatNum(n)
 end
 
+--- A multiplier as "×N", coloured by whether the modification is a buff or nerf:
+--- multipliers pivot at 1, and `goodDirection` says which side is good (e.g. a
+--- recoil ×0.8 is good = 'lower', a damage ×1.2 is good = 'higher'). nil at 1/absent.
+---
+--- @param value number|string|nil
+--- @param goodDirection string 'higher' | 'lower'
+--- @return string|nil
+local function coloredMult(value, goodDirection)
+	local text = mult(value)
+	if text == nil then
+		return nil
+	end
+	return format.colorByDirection(text, value, 1, goodDirection)
+end
+
 --- Optical magnification from the `aim` block, e.g. "8×" or "8× / 16×" for a
 --- two-stage zoom. Returns nil when there is no zoom beyond 1×.
 ---
@@ -86,6 +101,25 @@ local function spreadMult(spread)
 	return table.concat(ordered, ' / ')
 end
 
+--- spreadMult, coloured. Spread is lower-is-better (less spread is good) and the four
+--- multipliers move together, so colour the whole string by the first non-1 value.
+---
+--- @param spread table|nil
+--- @return string|nil
+local function coloredSpread(spread)
+	local text = spreadMult(spread)
+	if text == nil then
+		return nil
+	end
+	for _, key in ipairs({ 'max_multiplier', 'min_multiplier', 'first_attack_multiplier', 'per_attack_multiplier' }) do
+		local n = tonumber(spread[key])
+		if n ~= nil and n ~= 1 then
+			return format.colorByDirection(text, n, 1, 'lower')
+		end
+	end
+	return text
+end
+
 --- @param apiData table
 --- @param args table
 --- @return EntitySectionEntry[]
@@ -103,22 +137,26 @@ function p.getSections(apiData, args)
 		end
 	end
 
+	-- Magnification is a spec figure, not a buff/nerf, so it is left uncoloured.
+	-- Every other row is a multiplier coloured green/red by its good direction:
+	-- more damage / fire rate / speed / recovery is good; less recoil / spread /
+	-- heat / ammo cost / sound / charge / ADS time is good.
 	push('Magnification', magnification(wm.aim))
-	push('Fire rate', mult(wm.fire_rate_multiplier))
-	push('Damage', mult(wm.damage_multiplier))
-	push('Damage over time', mult(wm.damage_over_time_multiplier))
-	push('Projectile speed', mult(wm.projectile_speed_multiplier))
-	push('Ammo cost', mult(wm.ammo_cost_multiplier))
-	push('Heat generation', mult(wm.heat_generation_multiplier))
-	push('Sound radius', mult(wm.sound_radius_multiplier))
-	push('Charge time', mult(wm.charge_time_multiplier))
+	push('Fire rate', coloredMult(wm.fire_rate_multiplier, 'higher'))
+	push('Damage', coloredMult(wm.damage_multiplier, 'higher'))
+	push('Damage over time', coloredMult(wm.damage_over_time_multiplier, 'higher'))
+	push('Projectile speed', coloredMult(wm.projectile_speed_multiplier, 'higher'))
+	push('Ammo cost', coloredMult(wm.ammo_cost_multiplier, 'lower'))
+	push('Heat generation', coloredMult(wm.heat_generation_multiplier, 'lower'))
+	push('Sound radius', coloredMult(wm.sound_radius_multiplier, 'lower'))
+	push('Charge time', coloredMult(wm.charge_time_multiplier, 'lower'))
 	-- Nested handling sub-tables — the player-meaningful effect of barrels.
-	push('Recoil', mult(recoil.multiplier))
-	push('Recoil recovery', mult(recoil.decay_multiplier))
-	push('Spread', spreadMult(wm.spread))
-	push('Spread recovery', mult(type(wm.spread) == 'table' and wm.spread.decay_multiplier or nil))
+	push('Recoil', coloredMult(recoil.multiplier, 'lower'))
+	push('Recoil recovery', coloredMult(recoil.decay_multiplier, 'higher'))
+	push('Spread', coloredSpread(wm.spread))
+	push('Spread recovery', coloredMult(type(wm.spread) == 'table' and wm.spread.decay_multiplier or nil, 'higher'))
 	-- ADS speed penalty/bonus (compensators slow the aim-down-sights transition).
-	push('ADS time', mult(type(wm.aim) == 'table' and wm.aim.zoom_time_scale or nil))
+	push('ADS time', coloredMult(type(wm.aim) == 'table' and wm.aim.zoom_time_scale or nil, 'lower'))
 
 	if #items == 0 then
 		return {}

@@ -14,6 +14,13 @@ local function findItem(items, label)
 	return nil
 end
 
+-- A multiplier row is now a colorByDirection span: assert it shows the value AND the
+-- expected colour (color-success = green buff, color-destructive = red nerf).
+local function assertColored(self, content, value, color)
+	self:assertStringContains(value, content, true)
+	self:assertStringContains(color, content, true)
+end
+
 function suite:testMatches()
 	self:assertEquals(true, WM.matches({ weapon_modifier = {} }))
 	self:assertEquals(false, WM.matches({}))
@@ -31,6 +38,7 @@ function suite:testMagnificationOnly()
 	}, {})
 	self:assertEquals(1, #sections)
 	self:assertEquals('Modifier', sections[1].label)
+	-- Magnification is a spec figure, left uncoloured.
 	self:assertEquals('8× / 16×', findItem(sections[1].items, 'Magnification').content)
 	self:assertEquals(nil, findItem(sections[1].items, 'Fire rate'))
 	self:assertEquals(nil, findItem(sections[1].items, 'Damage'))
@@ -46,8 +54,10 @@ function suite:testMultipliers()
 		},
 	}, {})
 	self:assertEquals('4×', findItem(sections[1].items, 'Magnification').content)
-	self:assertEquals('×1.5', findItem(sections[1].items, 'Damage').content)
-	self:assertEquals('×0.5', findItem(sections[1].items, 'Sound radius').content)
+	-- Damage ×1.5: higher is better -> green buff.
+	assertColored(self, findItem(sections[1].items, 'Damage').content, '×1.5', 'color-success')
+	-- Sound radius ×0.5: lower is better -> green buff.
+	assertColored(self, findItem(sections[1].items, 'Sound radius').content, '×0.5', 'color-success')
 end
 
 -- Barrel/compensator: nested recoil + spread + ADS-time penalty.
@@ -67,14 +77,18 @@ function suite:testRecoilSpread()
 		},
 	}, {})
 	local items = sections[1].items
-	self:assertEquals('×1.2', findItem(items, 'Sound radius').content)
-	self:assertEquals('×0.7', findItem(items, 'Recoil').content)
-	self:assertEquals('×0.7', findItem(items, 'Recoil recovery').content)
-	-- Four equal spread multipliers collapse to one row.
-	self:assertEquals('×0.8', findItem(items, 'Spread').content)
+	-- Sound radius ×1.2: lower is better -> red nerf (louder).
+	assertColored(self, findItem(items, 'Sound radius').content, '×1.2', 'color-destructive')
+	-- Recoil ×0.7: lower is better -> green buff.
+	assertColored(self, findItem(items, 'Recoil').content, '×0.7', 'color-success')
+	-- Recoil recovery ×0.7: higher is better -> red nerf (slower recovery).
+	assertColored(self, findItem(items, 'Recoil recovery').content, '×0.7', 'color-destructive')
+	-- Four equal spread multipliers collapse to one row; lower is better -> green.
+	assertColored(self, findItem(items, 'Spread').content, '×0.8', 'color-success')
 	-- spread.decay 1 is a no-op -> no Spread recovery row.
 	self:assertEquals(nil, findItem(items, 'Spread recovery'))
-	self:assertEquals('×1.15', findItem(items, 'ADS time').content)
+	-- ADS time ×1.15: lower is better -> red nerf (slower aim-down-sights).
+	assertColored(self, findItem(items, 'ADS time').content, '×1.15', 'color-destructive')
 	-- zoom 1× is a no-op -> no Magnification.
 	self:assertEquals(nil, findItem(items, 'Magnification'))
 end
@@ -91,7 +105,8 @@ function suite:testSpreadDiffers()
 			},
 		},
 	}, {})
-	self:assertEquals('×0.8 / ×0.9', findItem(sections[1].items, 'Spread').content)
+	-- Both <1 (less spread) -> green; coloured by the first non-1 (max 0.9).
+	assertColored(self, findItem(sections[1].items, 'Spread').content, '×0.8 / ×0.9', 'color-success')
 end
 
 -- 1× zoom + all-default multipliers/handling -> nothing renders.

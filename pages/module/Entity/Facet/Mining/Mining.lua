@@ -89,10 +89,11 @@ function p.getSections(apiData, args)
 	local items = {}
 	pushItem(items, 'Type', m.type)
 	-- power_modifier is a 0-1 fraction (×100 for %); it can be null on passive
-	-- modules, so coerce first and skip when absent.
+	-- modules, so coerce first and skip when absent. It is a signed bonus/penalty
+	-- about a 0 baseline (more laser power is good), so colour it green/red by sign.
 	local power = toNumber(m.power_modifier)
 	if power ~= nil then
-		pushItem(items, 'Power', signedPct(power * 100))
+		pushItem(items, 'Power', format.colorBySign(signedPct(power * 100), power))
 	end
 	local charges = tonumber(m.charges)
 	if charges and charges > 0 then

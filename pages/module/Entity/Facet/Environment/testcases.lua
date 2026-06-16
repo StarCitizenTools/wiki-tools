@@ -98,8 +98,8 @@ function suite:testArmorRows()
 	self:assertEquals('string', type(its[1].content))
 	self:assertEquals('t-infobox-item--block', its[2].class)
 	self:assertEquals('t-infobox-item--block', its[3].class)
-	-- G-force is a plain labelled row (signed, value coloured when negative).
-	self:assertEquals('string', type(findItem(its, 'G-force').content))
+	-- G resistance is a plain labelled row (signed, value coloured when negative).
+	self:assertEquals('string', type(findItem(its, 'G resistance').content))
 end
 
 function suite:testClothingRowsGated()

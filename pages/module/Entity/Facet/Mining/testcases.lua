@@ -56,8 +56,10 @@ function suite:testActiveRows()
 	self:assertEquals('mining', sections[1].key)
 	self:assertEquals('Mining', sections[1].label)
 	self:assertEquals('Active', findItem(sections[1].items, 'Type').content)
-	-- 0.35 * 100 rounds cleanly to +35%, not +34.9999%.
-	self:assertEquals('+35%', findItem(sections[1].items, 'Power').content)
+	-- 0.35 * 100 rounds cleanly to +35%; a positive power bonus is coloured green.
+	local power = findItem(sections[1].items, 'Power').content
+	self:assertStringContains('+35%', power, true)
+	self:assertStringContains('--color-success', power, true)
 	self:assertEquals('5', findItem(sections[1].items, 'Charges').content)
 	self:assertEquals('60 s', findItem(sections[1].items, 'Duration').content)
 	self:assertEquals('+15.5%', findItem(sections[1].items, 'Resistance').content)
@@ -103,7 +105,10 @@ function suite:testStringPercentValue()
 	}
 	local sections = Mining.getSections(apiData, {})
 	self:assertEquals('−80%', findItem(sections[1].items, 'Overcharge rate').content)
-	self:assertEquals('−15%', findItem(sections[1].items, 'Power').content)
+	-- A negative power penalty is coloured red.
+	local power = findItem(sections[1].items, 'Power').content
+	self:assertStringContains('−15%', power, true)
+	self:assertStringContains('--color-destructive', power, true)
 	self:assertEquals(-80, Mining.getStructuredData(apiData).modifier_overcharge_rate)
 end
 

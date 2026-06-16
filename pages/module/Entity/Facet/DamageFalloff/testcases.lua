@@ -131,10 +131,11 @@ end
 
 function suite:testChartDomainUsesClassScale()
 	local m = I.resolveFalloff(p4ar().personal_weapon)
-	-- Known classes use their fixed shared scale.
-	self:assertEquals(150, I.chartDomain({ personal_weapon = { type = 'Assault Rifle' } }, m))
-	self:assertEquals(600, I.chartDomain({ personal_weapon = { type = 'Sniper Rifle' } }, m))
-	self:assertEquals(200, I.chartDomain({ personal_weapon = { type = 'Pistol' } }, m))
+	-- Known classes use their fixed shared scale (furthest floor + ~10% headroom).
+	self:assertEquals(330, I.chartDomain({ personal_weapon = { type = 'Assault Rifle' } }, m))
+	self:assertEquals(1760, I.chartDomain({ personal_weapon = { type = 'LMG' } }, m))
+	self:assertEquals(610, I.chartDomain({ personal_weapon = { type = 'Sniper Rifle' } }, m))
+	self:assertEquals(290, I.chartDomain({ personal_weapon = { type = 'Pistol' } }, m))
 	-- Unknown class -> adaptive fallback (p4ar floorDistance 80 * 1.25 = 100).
 	self:assertEquals(100, I.chartDomain({ personal_weapon = { type = 'Mystery' } }, m))
 end

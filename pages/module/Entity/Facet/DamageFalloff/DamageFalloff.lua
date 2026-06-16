@@ -18,17 +18,33 @@ local p = {}
 local DAMAGE_TYPES = { 'physical', 'energy', 'thermal', 'distortion', 'biochemical', 'stun' }
 
 -- Fixed per-class x-axis maxima (m), keyed by personal_weapon.type, so charts are
--- comparable within a weapon class. Each fits the typical class members (from a
--- catalogue-wide falloff survey); a rare long-tail weapon is drawn to the scale and
--- clipped with a "→" marker. Unknown / future classes fall back to the weapon's own
--- adaptive domain, so the facet degrades gracefully.
+-- comparable within a class. For classes whose weapons reach a damage floor this is
+-- the furthest floor in the class plus a small (~10%) headroom, so the longest-
+-- falloff weapon's plateau is just visible past its floor without a long dead tail.
+-- Range-limited classes (Shotgun — the projectile dies before the floor) use the max
+-- range. Values from a catalogue-wide falloff survey. Unknown / future classes fall
+-- back to the weapon's own adaptive domain (which carries the same headroom).
 local CLASS_SCALE = {
-	['SMG'] = 100,
-	['Assault Rifle'] = 150,
-	['Pistol'] = 200,
-	['LMG'] = 400,
-	['Sniper Rifle'] = 600,
+	['SMG'] = 90,
+	['Assault Rifle'] = 330,
+	['Pistol'] = 290,
+	['LMG'] = 1760,
+	['Sniper Rifle'] = 610,
 	['Shotgun'] = 600,
+}
+
+-- Fixed per-class y-axis maxima (per-shot damage), keyed by personal_weapon.type, so
+-- a class's weapons are comparable on absolute damage too: the higher, flatter curve
+-- is the stronger weapon. Set to the class's max alpha (rounded). A high-damage
+-- archetype (e.g. the P8-AR "DMR", Coda "magnum") legitimately sits near the top.
+-- Unknown classes fall back to the weapon's own alpha (curve fills the height).
+local CLASS_Y_MAX = {
+	['SMG'] = 15,
+	['Assault Rifle'] = 50,
+	['Pistol'] = 60,
+	['LMG'] = 30,
+	['Sniper Rifle'] = 100,
+	['Shotgun'] = 150,
 }
 
 --- A distance label, rounded to a whole metre, with digit grouping.
@@ -215,8 +231,9 @@ function p.getSections(apiData, args)
 	local drawEnd = math.min(domain, m.range)
 	local floorInView = fd <= drawEnd
 	-- Curve still descending where the fixed scale cuts it off, with the projectile
-	-- reaching at least that far: show a "→" clip marker.
-	local clipped = m.range >= domain and fd > domain
+	-- reaching past it: show a "→" clip marker. (Dormant for in-class weapons now
+	-- that each class scale reaches its furthest floor; a safety net for outliers.)
+	local clipped = m.range > domain and fd > domain
 	-- Lowest damage the weapon actually deals: the floor if reached within range,
 	-- else the damage at maximum range.
 	local headerEnd = (fd <= m.range) and m.minDamage or damageAt(m, m.range)
@@ -230,47 +247,36 @@ function p.getSections(apiData, args)
 	end
 	table.insert(points, { x = drawEnd, y = damageAt(m, drawEnd) })
 
+	-- Both falloff bounds get an x-axis label: minDist (the full-damage range) and the
+	-- floor distance (where the curve bottoms out). The chart places them so they
+	-- don't collide with each other or the scale-max.
 	local markers = {}
 	if m.minDist <= drawEnd then
 		table.insert(markers, { at = m.minDist, label = metres(m.minDist) })
 	end
 	if floorInView then
-		table.insert(markers, { at = fd, label = 'floor ' .. metres(fd) })
+		table.insert(markers, { at = fd, label = metres(fd) })
 	end
 
-	local caption
-	if floorInView then
-		caption = 'Full &#8804; ' .. metres(m.minDist) .. ' &#183; floor ' .. dmg(m.minDamage) .. ' at ' .. metres(fd)
-	elseif fd <= m.range then
-		-- Floor reached, but beyond the fixed scale (off the right edge).
-		caption = 'Full &#8804; '
-			.. metres(m.minDist)
-			.. ' &#183; &#8594; floor '
-			.. dmg(m.minDamage)
-			.. ' at '
-			.. metres(fd)
-	else
-		-- Projectile dies before the floor is reached.
-		caption = 'Full &#8804; '
-			.. metres(m.minDist)
-			.. ' &#183; '
-			.. dmg(damageAt(m, m.range))
-			.. ' at '
-			.. metres(m.range)
-			.. ' (floor not reached)'
-	end
+	-- Shared per-class damage scale (absolute-damage comparable), with round y-axis
+	-- ticks; the weapon's own alpha/floor live in the header, not duplicated here.
+	local yMaxScale = CLASS_Y_MAX[weaponType(apiData)] or m.alpha
 
 	local chart = falloffChart.render({
 		points = points,
 		domain = domain,
-		yMax = m.alpha,
+		yMax = yMaxScale,
 		label = 'Damage falloff',
 		value = dmg(m.alpha) .. ' &#8594; ' .. dmg(headerEnd),
 		markers = markers,
 		floor = floorInView and m.minDamage or nil,
-		axisMin = '0 m',
-		axisMax = metres(domain) .. (clipped and ' &#8594;' or ''),
-		caption = caption,
+		scaleMax = metres(domain) .. (clipped and ' &#8594;' or ''),
+		yTicks = {
+			{ at = 0, label = '0' },
+			{ at = yMaxScale / 2, label = dmg(yMaxScale / 2) },
+			{ at = yMaxScale, label = dmg(yMaxScale) },
+		},
+		reach = (m.range < domain) and { at = m.range, label = metres(m.range) } or nil,
 		-- Model for the optional client-side hover gadget (Gadget-falloffChart).
 		dataset = {
 			['falloff-alpha'] = m.alpha,

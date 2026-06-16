@@ -17,10 +17,24 @@
 	color: var(--color-base);
 }
 
+.t-falloff__plot {
+	display: flex;
+	align-items: stretch;
+	margin-block: var(--space-xxs);
+}
+
+.t-falloff__yaxis {
+	position: relative;
+	flex: none;
+	width: calc(var(--t-falloff-label-len) + var(--space-xxs));
+	font-size: var(--font-size-x-small);
+	line-height: var(--line-height-x-small);
+}
+
 .t-falloff__chart {
 	position: relative;
+	flex: 1;
 	height: 72px;
-	margin-block: var(--space-xxs);
 	border: var(--border-base);
 	border-radius: var(--border-radius-medium);
 	background: var(--color-surface-1);
@@ -30,8 +44,14 @@
 .t-falloff__area {
 	position: absolute;
 	inset: 0;
+	background: var(--background-color-progressive-subtle);
+	clip-path: var(--t-falloff-clip);
+}
+
+.t-falloff__line {
+	position: absolute;
+	inset: 0;
 	background: var(--color-progressive);
-	opacity: 0.45;
 	clip-path: var(--t-falloff-clip);
 }
 
@@ -43,31 +63,90 @@
 	border-top: 1px dashed var(--border-color-base);
 }
 
-.t-falloff__tick {
+.t-falloff__gridline {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: var(--t-falloff-grid-top);
+	border-top: 1px solid var(--border-color-base);
+	opacity: 0.4;
+}
+
+.t-falloff__ylabel {
+	position: absolute;
+	right: var(--space-xxs);
+	color: var(--color-subtle);
+}
+
+.t-falloff__ylabel--top {
+	top: 2px;
+}
+
+.t-falloff__ylabel--bottom {
+	bottom: 2px;
+}
+
+.t-falloff__ylabel--mid {
+	top: var(--t-falloff-grid-top);
+	transform: translateY(-50%);
+}
+
+.t-falloff__tick,
+.t-falloff__reach {
 	position: absolute;
 	top: 0;
 	bottom: 0;
 	left: var(--t-falloff-tick-left);
-	width: 1px;
-	background: var(--border-color-interactive);
 }
 
-.t-falloff__tick-label {
-	position: absolute;
-	top: 2px;
-	left: 3px;
+.t-falloff__tick {
+	width: 1px;
+	background: var(--border-color-base);
+	opacity: 0.6;
+}
+
+.t-falloff__reach {
+	border-left: 1px dashed var(--color-subtle);
+}
+
+.t-falloff__xaxis {
+	position: relative;
+	height: 1.4em;
+	margin-top: var(--space-xxs);
+	/* Offset by the y-axis gutter so 0–100% aligns under the plot, not the gutter. */
+	margin-left: calc(var(--t-falloff-label-len) + var(--space-xxs));
 	font-size: var(--font-size-x-small);
 	line-height: var(--line-height-x-small);
+}
+
+.t-falloff__xlabel {
+	position: absolute;
+	top: 0;
+	left: var(--t-falloff-x);
+	transform: translateX(-50%);
 	color: var(--color-subtle);
 	white-space: nowrap;
 }
 
-.t-falloff__axis {
-	display: flex;
-	justify-content: space-between;
-	font-size: var(--font-size-x-small);
-	line-height: var(--line-height-x-small);
-	color: var(--color-subtle);
+.t-falloff__xlabel--start {
+	left: 0;
+	transform: none;
+}
+
+.t-falloff__xlabel--end {
+	left: auto;
+	right: 0;
+	transform: none;
+}
+
+/* Left edge sits on the tick (label grows rightward). */
+.t-falloff__xlabel--tickleft {
+	transform: none;
+}
+
+/* Right edge sits on the tick (label grows leftward). */
+.t-falloff__xlabel--tickright {
+	transform: translateX(-100%);
 }
 
 .t-falloff__caption {

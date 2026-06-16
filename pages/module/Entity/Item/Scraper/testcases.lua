@@ -32,8 +32,14 @@ function suite:testRows()
 	self:assertEquals(1, #sections)
 	self:assertEquals('salvage_modifier', sections[1].key)
 	self:assertEquals('Salvage', sections[1].label)
-	self:assertEquals('×0.15', findItem(sections[1].items, 'Salvage speed').content)
-	self:assertEquals('×3.5', findItem(sections[1].items, 'Radius').content)
+	-- Both multipliers are higher-better: ×0.15 speed (slower) is a red nerf, ×3.5
+	-- radius (wider) a green buff.
+	local speed = findItem(sections[1].items, 'Salvage speed').content
+	self:assertStringContains('×0.15', speed, true)
+	self:assertStringContains('color-destructive', speed, true)
+	local radius = findItem(sections[1].items, 'Radius').content
+	self:assertStringContains('×3.5', radius, true)
+	self:assertStringContains('color-success', radius, true)
 	self:assertEquals('90%', findItem(sections[1].items, 'Extraction efficiency').content)
 end
 

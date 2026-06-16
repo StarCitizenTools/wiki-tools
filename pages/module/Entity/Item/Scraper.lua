@@ -40,13 +40,15 @@ function p.getSections(apiData, args)
 
 	-- salvage_speed_multiplier and radius_multiplier are baseline multipliers
 	-- (×1 = unchanged); extraction_efficiency is a 0-1 fraction shown as a percent.
+	-- Both multipliers are higher-is-better (faster salvage / bigger radius), so
+	-- colour green above ×1, red below; a neutral ×1 (ReadyGrip) renders uncoloured.
 	local speed = tonumber(s.salvage_speed_multiplier)
 	if speed then
-		pushItem(items, 'Salvage speed', '×' .. format.formatNum(speed))
+		pushItem(items, 'Salvage speed', format.colorByDirection('×' .. format.formatNum(speed), speed, 1, 'higher'))
 	end
 	local radius = tonumber(s.radius_multiplier)
 	if radius then
-		pushItem(items, 'Radius', '×' .. format.formatNum(radius))
+		pushItem(items, 'Radius', format.colorByDirection('×' .. format.formatNum(radius), radius, 1, 'higher'))
 	end
 	local efficiency = tonumber(s.extraction_efficiency)
 	if efficiency then

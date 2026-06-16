@@ -22,21 +22,44 @@ function p.formatNum(value)
 	return lang:formatNum(number)
 end
 
+--- Wraps display text in a span coloured by whether `value` sits on the good or bad
+--- side of `baseline`, per `goodDirection`: 'higher' → green above the baseline, red
+--- below; 'lower' → green below, red above. At the baseline (or for a non-numeric
+--- value) the text is returned unchanged (no span). For directional values whose SIGN
+--- alone does not say good/bad — multipliers (baseline 1, e.g. a ×0.8 recoil mod is
+--- good but a ×0.8 damage mod is bad) and lower-is-better deltas.
+---
+--- @param text string The already-formatted display text.
+--- @param value number|string The value driving the colour.
+--- @param baseline number The neutral point (0 for an additive delta, 1 for a multiplier).
+--- @param goodDirection string 'higher' (more is better) | 'lower' (less is better).
+--- @return string
+function p.colorByDirection(text, value, baseline, goodDirection)
+	local number = tonumber(value)
+	if number == nil or number == baseline then
+		return text
+	end
+	local good
+	if goodDirection == 'lower' then
+		good = number < baseline
+	else
+		good = number > baseline
+	end
+	local color = good and 'var(--color-success)' or 'var(--color-destructive)'
+	return tostring(mw.html.create('span'):css('color', color):wikitext(text))
+end
+
 --- Wraps display text in a span coloured by the sign of `value`: positive ->
 --- --color-success, negative -> --color-destructive. Zero or a non-numeric value
---- returns the text unchanged (no span). For "good when positive, bad when
---- negative" values such as modifiers or deltas (e.g. a g-force bonus vs penalty).
+--- returns the text unchanged (no span). The baseline-0, higher-is-good shortcut of
+--- colorByDirection, for "good when positive, bad when negative" values such as a
+--- g-force bonus vs penalty or a mining power modifier.
 ---
 --- @param text string The already-formatted display text.
 --- @param value number|string The signed value driving the colour.
 --- @return string
 function p.colorBySign(text, value)
-	local number = tonumber(value)
-	if number == nil or number == 0 then
-		return text
-	end
-	local color = number > 0 and 'var(--color-success)' or 'var(--color-destructive)'
-	return tostring(mw.html.create('span'):css('color', color):wikitext(text))
+	return p.colorByDirection(text, value, 0, 'higher')
 end
 
 --- Joins a list of strings into natural English with Oxford comma.

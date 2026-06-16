@@ -49,9 +49,10 @@ function p.getSections(apiData, args)
 	if charges and charges > 0 then
 		push('Charges', format.formatNum(charges))
 	end
+	-- duration_multiplier: below 1 hacks faster, so lower is better — green below ×1.
 	local dur = tonumber(h.duration_multiplier)
 	if dur ~= nil and dur ~= 1 then
-		push('Hack time', '×' .. format.formatNum(dur))
+		push('Hack time', format.colorByDirection('×' .. format.formatNum(dur), dur, 1, 'lower'))
 	end
 	push('Error chance', percent(h.error_chance))
 

@@ -129,7 +129,7 @@ One row per unique subtype module. "API `type` key(s)" reproduces `itemSubtypeMa
 
 - **stat-block** — reads a named API block and renders its rows as an infobox section.
 - **algorithmic** — derives a display value or category from multi-field API logic rather than a simple read.
-- **routing-shim** — no section of its own; exists only to route `sub_type` values to their browse category via `getTypeInfo`.
+- **routing-shim** — no stat section of its own; exists either to route `sub_type` values to a browse category via `getTypeInfo` (WeaponAttachment, FPSConsumable, Misc), or to supply a type-specific `getShortDescription` — typically a size-prefixed form — that the generic Item fallback can't produce (Beam, MiningModule). Any stats come from facets.
 
 | Subtype | API `type` key(s) | API block read | Section rows | SMW keys | Kind | Notes |
 |---|---|---|---|---|---|---|

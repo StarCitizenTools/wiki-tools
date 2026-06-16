@@ -9,7 +9,6 @@
 
 .t-falloff__label {
 	color: var(--color-subtle);
-	font-weight: var(--font-weight-medium);
 }
 
 .t-falloff__value {

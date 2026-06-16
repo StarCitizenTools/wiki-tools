@@ -1,8 +1,10 @@
 # Module:Entity/Item
 
-The Item kind is the dominant branch of the Entity pipeline. It covers every equippable in-game object served by Apiunto's `/items/{uuid}` endpoint — vehicle components (power plants, coolers, shields, quantum drives, flight blades, guns, turrets, racks), personal weapons, attachments, ordnance, mining and salvage equipment, FPS consumables, and habitat flair. Over [Module:Entity/Base](https://starcitizen.tools/Module:Entity/Base), Item adds the items API endpoint, size / grade / class / volume structured-data facets, the community-sites external-link block, and — crucially — subtype dispatch: Item resolves the active leaf module from `apiData.type`, letting each subtype contribute its own stats section without Item knowing anything about the stat blocks involved.
+The Item kind is the dominant branch of the Entity pipeline. It covers every equippable in-game object served by Apiunto's `/items/{uuid}` endpoint — vehicle components (power plants, coolers, shields, quantum drives, flight blades, guns, turrets, racks), personal weapons, attachments, ordnance, mining and salvage equipment, FPS consumables, and habitat flair.
 
-Food and Drink are intentionally absent from the subtype mapping. They are handled entirely by the data-driven consumable facet (`Module:Entity/Facet/Consumable`), which reads the `food` block on any entity that carries it. Their category and subtitle still resolve via `types.json`; they need no subtype leaf.
+Over [Module:Entity/Base](https://starcitizen.tools/Module:Entity/Base), Item adds the items API endpoint, the size / grade / class / volume structured-data facets, and the community-sites external-link block. Its defining job is **subtype dispatch**: Item resolves the active leaf module from `apiData.type`, letting each subtype contribute its own stats section without Item knowing anything about the stat blocks involved.
+
+Food and Drink are intentionally absent from the subtype mapping. The data-driven consumable facet (`Module:Entity/Facet/Consumable`) handles them entirely, reading the `food` block on any entity that carries it. Their category and subtitle still resolve via `types.json`, so they need no subtype leaf.
 
 ## Role in the pipeline
 
@@ -125,11 +127,11 @@ local itemSubtypeMapping = {
 
 ## Subtype catalog
 
-One row per unique subtype module. "API `type` key(s)" reproduces `itemSubtypeMapping` exactly. "Kind" classifies the module's primary nature:
+One row per unique subtype module; the "API `type` key(s)" column reproduces `itemSubtypeMapping` exactly. The "Kind" column classifies each module's primary nature:
 
 - **stat-block** — reads a named API block and renders its rows as an infobox section.
-- **algorithmic** — derives a display value or category from multi-field API logic rather than a simple read.
-- **routing-shim** — no stat section of its own; exists either to route `sub_type` values to a browse category via `getTypeInfo` (WeaponAttachment, FPSConsumable, Misc), or to supply a type-specific `getShortDescription` — typically a size-prefixed form — that the generic Item fallback can't produce (Beam, MiningModule). Any stats come from facets.
+- **algorithmic** — derives a display value or category from multi-field API logic, not a simple read.
+- **routing-shim** — has no stat section of its own. It exists either to route `sub_type` values to a browse category via `getTypeInfo` (WeaponAttachment, FPSConsumable, Misc), or to supply a type-specific `getShortDescription` — typically a size-prefixed form — that the generic Item fallback can't produce (Beam, MiningModule). Any stats come from facets.
 
 | Subtype | API `type` key(s) | API block read | Section rows | SMW keys | Kind | Notes |
 |---|---|---|---|---|---|---|
@@ -186,7 +188,7 @@ Entity/Item/
 ├── testcases.lua                    # ScribuntoUnit suite
 ├── communitySites.json              # External-site link definitions
 ├── types.json                       # API type → category / display name fallback map
-├── classifications.json             # classification path → category / short-desc noun
+├── classifications.json             # classification path → { name, category }
 │
 ├── Module.lua                       # Vehicle module (type=Module)
 ├── Turret.lua                       # Turret / gimbal mount / PDC

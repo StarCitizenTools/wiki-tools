@@ -1,8 +1,8 @@
 # Module:Entity/Registry
 
-The single declarative home for every Entity component that exists. Adding a kind or a facet is a one-line edit here — plus the module file itself and a passing conformance test. No other file needs to change: `Module:Entity/Data` reads `registry.kinds` for endpoint discovery and `registry.facets` for additive detection; the [Module:Entity/Registry/testcases](https://starcitizen.tools/Module:Entity/Registry/testcases) suite runs `Contract.validate` over whatever is in those lists automatically.
+The single declarative home for every Entity kind and facet. Registering one is a one-line edit here — plus the module file itself and a passing conformance test; no other file changes. `Module:Entity/Data` reads `registry.kinds` for endpoint discovery and `registry.facets` for additive detection, and the [Module:Entity/Registry/testcases](https://starcitizen.tools/Module:Entity/Registry/testcases) suite runs `Contract.validate` over whatever is in those lists automatically.
 
-Item **subtypes** are intentionally NOT registered here. Subtype dispatch is a kind-internal concern owned by each kind's `resolveSubtype` function. Only `Module:Entity/Item` has subtypes; its `itemSubtypeMapping` table is the subtype catalog — see [Module:Entity/Item](https://starcitizen.tools/Module:Entity/Item).
+Item **subtypes** are intentionally NOT registered here. Subtype dispatch is a kind-internal concern owned by each kind's `resolveSubtype` function. Only `Module:Entity/Item` has subtypes, and its `itemSubtypeMapping` table is the subtype catalog — see [Module:Entity/Item](https://starcitizen.tools/Module:Entity/Item).
 
 ## Role in the pipeline
 
@@ -35,7 +35,7 @@ p.kinds = {
 }
 ```
 
-Kinds are probed **in order**: the first kind whose `matches(frame)` returns true is selected as the primary kind for that page. Order therefore encodes precedence.
+Kinds are probed **in order**: the first kind whose `matches(apiData)` returns true is selected as the primary kind for that page. Order therefore encodes precedence.
 
 `Item` is listed first because it dominates the page mix — most wiki pages are items, so placing Item first short-circuits the probe on the most common case and avoids three wasted endpoint calls. `Vehicle` follows because ships and vehicles are the second-largest population. `Commodity` and `Mission` are narrow types that fail quickly on the common-case frames that reach them, so their position at the tail has negligible cost.
 
@@ -52,13 +52,18 @@ p.facets = {
 
 Facets are **additive**: after the primary kind is resolved, every facet whose `matches(apiData)` returns true contributes its section to the infobox — independently of the kind and independently of each other. A single entity can match ten facets simultaneously.
 
-Registration order matters: when two facets emit sections under different keys, the order in `p.facets` is the order their sections appear in the merged infobox. A facet that injects into an existing key (e.g. DamageFalloff appending a chart item into the `personal_weapon` key) is rendered by the key owner's position, not the facet's own position.
+Registration order matters: when two facets emit sections under *different* keys, their order in `p.facets` is the order their sections appear in the merged infobox. A facet that injects into an *existing* key (e.g. DamageFalloff appending a chart item into the `personal_weapon` key) renders at the key owner's position, not its own.
 
 A facet must implement `matches(apiData)` (required) and `getSections(apiData, args)` (required), and optionally `getStructuredData`, `getShortDescriptionPrefix`. See [Module:Entity/Contract](https://starcitizen.tools/Module:Entity/Contract).
 
 ## Facet catalog
 
-All 22 registered facets, in registration order. "Matches on" is the `apiData` field or condition that `matches()` tests. "Section rows / output" describes what `getSections` renders — use "custom HTML via `<primitive>`" for chart/bar/tile facets. "SMW keys" are the keys returned by `getStructuredData` (or "—" when absent). "Short-desc prefix" indicates whether the facet implements `getShortDescriptionPrefix`.
+All 22 registered facets, in registration order. The columns read as:
+
+- **Matches on** — the `apiData` field or condition that `matches()` tests.
+- **Section rows / output** — what `getSections` renders ("custom HTML via `<primitive>`" for chart/bar/tile facets).
+- **SMW keys** — the keys returned by `getStructuredData`, or "—" when absent.
+- **Short-desc prefix** — whether the facet implements `getShortDescriptionPrefix`.
 
 | # | Facet | Matches on (`apiData` field) | Section rows / output | SMW keys | Short-desc prefix | Notes |
 |---|---|---|---|---|---|---|

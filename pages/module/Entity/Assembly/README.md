@@ -1,6 +1,6 @@
 # Module:Entity/Assembly
 
-Pure composition primitives that assemble an entity from its type chain. It walks the `p.parent` chain from a resolved leaf module up to `Base`, returns the chain in root-first order, and provides two merge functions that collapse each link's contributions into the single section list and structured-data table the renderer consumes. All three functions are stateless and have no `mw` dependencies.
+The pure composition primitives that turn a type chain into render-ready output. Assembly walks the `p.parent` chain from a resolved leaf module up to `Base`, returns it in root-first order, then collapses every link's contributions into the single section list and structured-data table the renderer consumes. All three functions are stateless and have no `mw` dependencies.
 
 ## Role in the pipeline
 
@@ -31,7 +31,7 @@ Data.get
 function p.buildChain(leafModule)
 ```
 
-Follows `current.parent` from the leaf until a module has no `parent` field, accumulating the chain leaf-first, then reverses it to return root-first order. Each `parent` value is passed verbatim to `require('Module:' .. current.parent)`.
+Follows `current.parent` from the leaf until a module has no `parent` field, accumulating the chain leaf-first, then reverses it to root-first order. Each `parent` value is passed verbatim to `require('Module:' .. current.parent)`.
 
 ### `p.mergeSections(sectionsList) → table[]`
 

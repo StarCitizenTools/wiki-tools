@@ -1,6 +1,6 @@
 # Module:Entity/Api
 
-The single Apiunto I/O seam for the Entity system. Every piece of external game data the system renders passes through this module: callers supply an `EntityApiConfig` describing where and how to fetch, plus a UUID identifying the entity, and get back a decoded, unwrapped response table. Nothing outside this module calls `mw.ext.Apiunto` directly.
+The single Apiunto I/O seam for the Entity system — every piece of external game data the system renders passes through here. A caller supplies an `EntityApiConfig` (where and how to fetch) plus a UUID identifying the entity, and gets back a decoded, unwrapped response table. Nothing outside this module calls `mw.ext.Apiunto` directly.
 
 ## Role in the pipeline
 
@@ -83,11 +83,11 @@ Kinds declare their `EntityApiConfig` tables in `getApiConfigs`. The first entry
 
 **`fetchAllApis` flat-merge is last-writer-wins.** If two configs in the list both populate the same top-level key (e.g. both have a `"name"` field in their response), the later config overwrites the earlier one silently. Config ordering therefore matters and there is no collision warning.
 
-**Forward: Phase-2 drift detection anchor.** This module is the planned hook point for the "API-field → module map" and any future `meta.deprecated_fields` handling. When CIG's API begins advertising deprecated fields in response metadata, the check belongs here — `fetchApi` sees the raw decoded envelope before `responseDataPath` strips it, making it the only place in the system where `meta` is still reachable.
+**Forward-looking: this is the Phase-2 drift-detection anchor.** The module is the planned hook point for the "API-field → module map" and any future `meta.deprecated_fields` handling. When CIG's API begins advertising deprecated fields in response metadata, the check belongs here — `fetchApi` sees the raw decoded envelope before `responseDataPath` strips it, making it the only place in the system where `meta` is still reachable.
 
 ## Tests
 
-`Api` has no sibling `testcases.lua`. The module is a thin pure-I/O seam: both of its meaningful code paths call either `mw.ext.Apiunto.fetch` or `mw.text.jsonDecode`, neither of which is available in the ScribuntoUnit sandbox without a live API behind them. The `pcall` guards are the safety net — a thrown error from either extension call is caught and surfaced as an `err` return rather than a page render failure. Testing the merge logic or the `responseDataPath` unwrap in isolation would require mocking `mw.ext.Apiunto`, which Scribunto does not support. Integration coverage comes from the kind and facet tests that exercise the full pipeline on-wiki.
+`Api` has no sibling `testcases.lua`, by design. The module is a thin pure-I/O seam: both of its meaningful code paths call `mw.ext.Apiunto.fetch` or `mw.text.jsonDecode`, neither of which is available in the ScribuntoUnit sandbox without a live API behind them. Testing the merge logic or the `responseDataPath` unwrap in isolation would mean mocking `mw.ext.Apiunto`, which Scribunto does not support. Instead, the `pcall` guards are the safety net — a thrown error from either extension call is caught and surfaced as an `err` return rather than a page-render failure — and integration coverage comes from the kind and facet tests that exercise the full pipeline on-wiki.
 
 ## Architecture
 

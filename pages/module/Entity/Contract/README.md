@@ -1,8 +1,8 @@
 # Module:Entity/Contract
 
-Defines the Entity component contract as data and provides a validator against it. For each role — KIND, FACET, CHAIN_LINK — it declares which lifecycle hooks exist and whether each is required or optional, then exposes `p.validate` so a conformance test can check a component module before it ever reaches the rendering pipeline.
+The machine-checkable spec for what a well-formed Entity component looks like. For each role — KIND, FACET, CHAIN_LINK — it declares which lifecycle hooks exist and whether each is required or optional, then exposes `p.validate` so a conformance test can reject a mis-wired component before it ever reaches the rendering pipeline.
 
-There is no runtime role here. The module is a contributor-facing guardrail — it runs in the [Module:Entity/Registry](https://starcitizen.tools/Module:Entity/Registry) conformance test, not during infobox rendering. See [Module:Entity](https://starcitizen.tools/Module:Entity) for the prose contract and hook reference that describes what each hook does.
+**Contract has no runtime role.** It is a contributor-facing guardrail that runs in the [Module:Entity/Registry](https://starcitizen.tools/Module:Entity/Registry) conformance test, never during infobox rendering. For the prose contract and a description of what each hook *does*, see [Module:Entity](https://starcitizen.tools/Module:Entity).
 
 ## Role in the pipeline
 
@@ -82,7 +82,7 @@ A "—" cell means the hook is not part of that role's spec at all — it is nei
 
 **"Required" means inert, not crash.** The word "required" here is a contract concept, not a runtime one. `Entity.lua` guards every hook with `if mod.x` before calling it, so a missing required hook silently does nothing in production. The conformance gate exists to surface those silent failures before deploy — a kind without `getApiConfigs` will never resolve its API data; a facet without `getSections` will never render anything. Neither will throw; both are bugs.
 
-**Misspelled optional hooks are not caught.** `validate` only iterates the spec's keys. If a component exports `getSectionsn` instead of `getSections`, the validator sees an unknown key, ignores it, and returns `ok = true`. The spec knows `getSections` is optional and absent — that's valid. The misspelling is invisible. Only required hooks are protected from this class of typo; optional hooks rely on the author noticing that their section never renders.
+**Misspelled optional hooks are not caught.** `validate` only iterates the spec's keys, so it never sees a typo'd export. If a component exports `getSectionsn` instead of `getSections`, the validator ignores the unknown key and returns `ok = true` — from its view, `getSections` is optional and absent, which is valid. Only required hooks are protected from this class of typo; for optional ones, the author's only signal is noticing that their section never renders.
 
 **The contract is deliberately stricter than the runtime.** A facet with no `getSections` would not crash `Entity.lua`, but it would contribute nothing — a wiring bug masquerading as a missing feature. The contract treats that as a failure so contributors catch the gap at test time.
 

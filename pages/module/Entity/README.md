@@ -1,14 +1,15 @@
 # Module:Entity
 
-Renders the entity infobox and owns page metadata (SMW structured data,
-short description, categories) from a single `{{Entity}}` invocation. Sibling
+Renders the entity infobox and owns the page's metadata — SMW structured data,
+short description, and categories — from a single `{{Entity}}` invocation. Sibling
 renderers (Availability, Related, Ports, UsedBy, Description, Blueprints) consume
-`Module:Entity/Data` and render their own page sections.
+`Module:Entity/Data` and render their own page sections off the same fetch.
 
 ## Pipeline walkthrough
 
 A single `{{Entity}}` invocation runs this sequence inside
-[Module:Entity/Data](https://starcitizen.tools/Module:Entity/Data).get:
+[Module:Entity/Data](https://starcitizen.tools/Module:Entity/Data).get. Each step
+feeds the next:
 
 1. **Parse args** — `Data.parseArgs` merges direct `#invoke` args with parent-frame
    args and, when `uuid` is absent from both, reads the SMW-stored UUID via `#show`
@@ -69,13 +70,13 @@ An entity page is assembled from three kinds of component:
 - **Kind** — a top-level entity with its own API endpoint and a
   mutually-exclusive identity (Item, Vehicle, Commodity). `Module:Entity/Data`
   probes each registered kind's identity endpoint and asks `matches(apiData)`;
-  first match wins.
+  the first match wins.
 - **Chain link** — kinds extend a `p.parent` chain (Base → Item → subtype). Each
-  link contributes infobox sections / structured data / etc. for the level it
-  owns. Links are merged root-to-leaf.
-- **Facet** — a cross-cutting, additive aspect detected by the presence of a
-  data field (e.g. `consumable` on `apiData.food`), independent of the primary
-  kind. Every facet whose `matches(apiData)` is true contributes, on top of the
+  link contributes infobox sections, structured data, and so on for the level it
+  owns. Links merge root-to-leaf.
+- **Facet** — a cross-cutting, additive aspect, detected by the presence of a
+  data field (e.g. `consumable` on `apiData.food`) and independent of the primary
+  kind. Every facet whose `matches(apiData)` is true contributes on top of the
   chain.
 
 Flow: `Data.get` → probe kinds → resolve subtype leaf → build the chain →
@@ -118,7 +119,7 @@ See `Module:Entity/Types` for the full LuaCATS interfaces and
   "consumable", "mineable")? → a **facet**. Create a module with `matches` +
   `getSections`, add it to `Registry.facets`.
 
-Prefer a **facet** for any new aspect: it is additive, kind-independent, and
+**Prefer a facet for any new aspect** — it is additive, kind-independent, and
 data-driven. Subtypes are the legacy structural-refinement mechanism (the
 Food/Drink subtypes were collapsed into the `consumable` facet); reach for a
 subtype only when the variation is genuinely exclusive within a single kind.

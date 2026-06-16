@@ -1,8 +1,8 @@
 # Module:Entity/Data
 
-The data provider for the Entity infobox system. Every sibling renderer — `{{Entity}}`, `{{Entity/Availability}}`, `{{Entity/Ports}}`, `{{Entity/Related}}`, `{{Entity/UsedBy}}`, `{{Entity/Description}}`, `{{Entity/Blueprints}}` — calls `Data.get` to obtain a single normalized result: parsed wikitext args, merged API data, the resolved module chain, matched facets, and display-type metadata.
+The data provider for the Entity infobox system. Every sibling renderer — `{{Entity}}`, `{{Entity/Availability}}`, `{{Entity/Ports}}`, `{{Entity/Related}}`, `{{Entity/UsedBy}}`, `{{Entity/Description}}`, `{{Entity/Blueprints}}` — calls `Data.get` to obtain one normalized result: parsed wikitext args, merged API data, the resolved module chain, matched facets, and display-type metadata.
 
-The module is **stateless** across `#invoke` calls. No module-level state persists between page parses; repeated calls within the same parse rely on the Apiunto HTTP cache to stay cheap, so each sibling template can call `Data.get` independently without any coordination or shared mutable state.
+The module is **stateless** across `#invoke` calls — no module-level state persists between page parses. Each sibling template calls `Data.get` independently, with no coordination or shared mutable state; repeated calls within the same parse stay cheap by riding the Apiunto HTTP cache.
 
 ## Role in the pipeline
 
@@ -67,7 +67,7 @@ Primary entry point for sibling renderers. Takes the `args` table returned by `p
 
 6. **`typeInfo` / `displayType` resolution** — tries `leaf.getTypeInfo(apiData, args)` first. If that returns a result, `displayType` is set to `typeInfo.name`. If `getTypeInfo` is absent or returns `nil`, falls back to [Module:Entity/TypeResolver](https://starcitizen.tools/Module:Entity/TypeResolver)`.resolve(args.type or apiData.type, apiData.classification)`.
 
-7. **`detectFacets`** — iterates `registry.facets` in registration order. Every facet whose `facet.matches(apiData)` returns `true` is appended to `facets`. All matching facets are collected (no short-circuit); facets are additive. This runs last, when `p.get` builds its return table — `detectFacets` and `typeInfo` are independent (neither reads the other), so the order between them carries no data dependency.
+7. **`detectFacets`** — iterates `registry.facets` in registration order and appends every facet whose `facet.matches(apiData)` returns `true`. All matches are collected (no short-circuit); facets are additive. This runs last, as `p.get` builds its return table. `detectFacets` and `typeInfo` are independent (neither reads the other), so the order between them carries no data dependency.
 
 ## Data
 

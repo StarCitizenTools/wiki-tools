@@ -1,6 +1,6 @@
 # Module:Entity/TypeResolver
 
-Resolves an entity's display metadata — `typeInfo` and `displayType` — from the API record's raw `type` and `classification` strings. The output drives the singular label shown in the infobox header (e.g. "Cooler") and the plural browse category filed under (e.g. "Coolers"). TypeResolver is a pure lookup module: it loads two curated JSON manifests and applies a fixed precedence ladder. It has no side effects and no knowledge of rendering.
+Resolves an entity's display metadata — `typeInfo` and `displayType` — from the API record's raw `type` and `classification` strings. The output drives the singular label shown in the infobox header (e.g. "Cooler") and the plural browse category the page files under (e.g. "Coolers"). TypeResolver is a **pure lookup module**: it loads two curated JSON manifests, applies a fixed precedence ladder, and returns. No side effects, no knowledge of rendering.
 
 ## Role in the pipeline
 
@@ -50,7 +50,7 @@ When no JSON entry matches and the fail-open fallback fires, `typeInfo` is `nil`
 
 ## The precedence ladder
 
-Four mechanisms can produce the `(typeInfo, displayType)` pair. Earlier steps win; later steps are only reached when the earlier step returns `nil`.
+Four mechanisms can produce the `(typeInfo, displayType)` pair, tried in order. Earlier steps win; a later step is reached only when the one above it returns `nil`.
 
 **1. Leaf `getTypeInfo` (highest priority — in `Data.get`, before TypeResolver is called)**
 
@@ -93,7 +93,7 @@ Keyed by the raw API **`type` string** (`"Cooler"`, `"WeaponPersonal"`, `"Quantu
 
 ## Gotchas
 
-**Four overlapping mechanisms decide the label and category.** Leaf `getTypeInfo`, `classifications.json`, `types.json`, and the raw-string fallback all apply to the same entity. When reading an infobox label, the source is not obvious from the output alone — you have to trace which step won.
+**The winning source is not obvious from the output.** Four overlapping mechanisms — leaf `getTypeInfo`, `classifications.json`, `types.json`, and the raw-string fallback — all apply to the same entity. When you're reading an infobox label, you have to trace the ladder to know which step produced it.
 
 **Some entries appear in both JSON files with identical values.** `"Ship.Cooler"` in `classifications.json` and `"Cooler"` in `types.json` both resolve to `{ name = "Cooler", category = "Coolers" }`. Likewise `"Ship.QuantumDrive"` / `"QuantumDrive"`. For items served by the item endpoint the classification path wins (step 2), making the `types.json` entry dead for those items. The duplication is harmless but it means a name change requires updating both files to stay consistent.
 

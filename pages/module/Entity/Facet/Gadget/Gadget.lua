@@ -5,8 +5,7 @@ require('strict')
 --- salvage tools, tractor beams, fire extinguishers, rangefinders. Their stats
 --- live in the shared `personal_weapon` block, but the gun "Weapon" section is
 --- meaningless for a utility tool — so WeaponPersonal suppresses it for gadgets
---- and this facet renders the utility overview (type / effective range /
---- capacity) instead.
+--- and this facet renders the utility overview (type / range / capacity) instead.
 ---
 --- Per-mode behaviour is owned by data-driven facets that match on the mode
 --- itself, not on the Gadget sub_type: a Salvage mode renders via the Salvage
@@ -52,7 +51,8 @@ function p.getSections(apiData, args)
 		end
 	end
 	push('Type', type(pw.type) == 'string' and pw.type ~= '' and pw.type or nil)
-	push('Effective range', withUnit(pw.effective_range, ' m'))
+	-- `range` (the API's non-deprecated field; `effective_range` is deprecated).
+	push('Range', withUnit(pw.range, ' m'))
 	local capacity = tonumber(ammunition.capacity)
 	if capacity and capacity > 0 then
 		push('Capacity', format.formatNum(capacity))
@@ -81,9 +81,9 @@ function p.getStructuredData(apiData, args)
 		return {}
 	end
 	local data = {}
-	local effRange = tonumber(pw.effective_range)
-	if effRange then
-		data.effective_range = effRange
+	local range = tonumber(pw.range)
+	if range then
+		data.max_range = range
 	end
 	return data
 end

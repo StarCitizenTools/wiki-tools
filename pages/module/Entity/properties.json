@@ -277,14 +277,6 @@
 		],
 		"desc": "Effect duration of a mining module, in seconds."
 	},
-	"Effective range": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
-		"modules": [
-			"WeaponPersonal"
-		],
-		"desc": "Effective range of a weapon, in metres."
-	},
 	"Effects": {
 		"smw": "Text",
 		"bucket": "TEXT",
@@ -556,9 +548,10 @@
 		"bucket": "DOUBLE",
 		"modules": [
 			"WeaponGun",
-			"WeaponPersonal"
+			"WeaponPersonal",
+			"Gadget"
 		],
-		"desc": "Maximum range of a weapon, in metres."
+		"desc": "Maximum range of a weapon, in metres (personal weapons / gadgets display it as \"Range\")."
 	},
 	"Max speed": {
 		"smw": "Number",

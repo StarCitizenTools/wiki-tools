@@ -108,14 +108,10 @@ function p.getSections(apiData, args)
 		pushItem(overview, 'Ammo', format.formatNum(capacity))
 	end
 	pushItem(overview, 'Muzzle velocity', withUnit(ammunition.speed, ' m/s'))
-	-- Guns commonly report effective_range == ammunition.range; suppress the
-	-- identical Maximum range row, but keep it when the two genuinely differ.
-	local effRange = tonumber(pw.effective_range)
-	local maxRange = tonumber(ammunition.range)
-	pushItem(overview, 'Effective range', effRange and withUnit(effRange, ' m'))
-	if maxRange ~= nil and maxRange ~= effRange then
-		pushItem(overview, 'Maximum range', withUnit(maxRange, ' m'))
-	end
+	-- Range from the API's `range` field (its `effective_range` is deprecated). A
+	-- single Range row; the damage-falloff chart carries the over-distance story.
+	local range = tonumber(pw.range)
+	pushItem(overview, 'Range', range and withUnit(range, ' m'))
 	local statCount = #overview - statStart
 
 	local modeItems = {}
@@ -214,8 +210,7 @@ function p.getStructuredData(apiData, args)
 		damage = damage.alpha_total,
 		dps = damage.dps_total,
 		muzzle_velocity = ammunition.speed,
-		effective_range = pw.effective_range,
-		max_range = ammunition.range,
+		max_range = tonumber(pw.range),
 	}
 	local capacity = tonumber(ammunition.capacity)
 	if capacity and capacity > 0 then

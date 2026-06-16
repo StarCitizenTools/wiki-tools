@@ -110,6 +110,8 @@ Keyed by the raw API **`type` string** (`"Cooler"`, `"WeaponPersonal"`, `"Quantu
 - `resolveClassification` with a leaf path that has a direct entry (`"Ship.Turret.PDCTurret"` → `"PDC"` / `"PDCs"`).
 - `resolveClassification` with a path that requires the prefix walk (`"Ship.Turret.SomethingNew"` → `"Turrets"` via the `"Ship.Turret"` grouping entry).
 - `resolveClassification` with a non-`Ship.*` path and `nil` — both must return `nil`.
+- `resolveClassification` with a direct leaf entry for a non-turret type (`"Ship.Weapon.Rocket"` → `"Rocket pod"` / `"Rocket pods"`).
+- `resolveClassification` over a `"Ship.Weapon.Gun"` path and a `"Ship.Cooler"` path — exercises the cross-file overlap case where the classification entry wins even though the type also appears in `types.json` (the Cooler duplication noted in Gotchas).
 - `p.resolve` end-to-end: classification wins over `types.json` for a `Ship.*` path.
 - `p.resolve` end-to-end: `types.json` is used when classification is non-`Ship.*` (`"FPS.Weapon.Medium"` → `"Personal weapon"`).
 

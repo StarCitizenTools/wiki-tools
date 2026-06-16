@@ -38,7 +38,7 @@ Performs a single fetch-decode-unwrap cycle:
 2. `pcall`-guards `mw.ext.Apiunto.fetch(config.name, endpoint, config.params)`. A thrown error returns `nil, 'API fetch failed: …'` (lines 18–22).
 3. `pcall`-guards `mw.text.jsonDecode(response)`. A decode error returns `nil, 'JSON decode failed: …'` (lines 24–27).
 4. If `config.responseDataPath` is set, descends one level: `data = data[config.responseDataPath]` (lines 29–31). This strips the API envelope (e.g. `"data"`) so callers receive the payload directly.
-5. Returns `data or {}` (line 33) — a failed path dereference that yields `nil` (e.g. path key absent) becomes an empty table, not `nil`, so `hasError` stays false.
+5. Returns `data or {}` (line 33) — a path dereference that yields `nil` (e.g. the `responseDataPath` key is absent) becomes an empty table rather than `nil`. `fetchApi` itself never reports this as an error; the downstream consequence (it cannot raise `fetchAllApis`'s `hasError`) is covered in Gotchas.
 
 ### `fetchAllApis(configs, uuid) → apiData: table, hasError: boolean`
 
@@ -68,8 +68,10 @@ The merge is additive and last-writer-wins (see Gotchas).
 |---|---|---|---|
 | `name` | `string` | yes | Apiunto source name passed to `mw.ext.Apiunto.fetch` |
 | `endpoint` | `string` | yes | URL template; `%s` is replaced with the UUID via `string.format` |
-| `params` | `table` | yes | Query parameters forwarded to `mw.ext.Apiunto.fetch` |
+| `params` | `table` | yes\* | Query parameters forwarded to `mw.ext.Apiunto.fetch` |
 | `responseDataPath` | `string` | no | If present, selects `response[responseDataPath]` as the payload |
+
+\*`params` is passed straight through to `mw.ext.Apiunto.fetch` with no nil-guard in `fetchApi`. Supplying it is a caller convention (every kind's `getApiConfigs` sets it), not a runtime requirement the module enforces.
 
 Kinds declare their `EntityApiConfig` tables in `getApiConfigs`. The first entry is the identity endpoint used by `probeKind`; subsequent entries become supplemental configs merged via `fetchAllApis`.
 

@@ -3,11 +3,37 @@ lefthook = "latest"
 rust = "latest"
 stylua = "latest"
 "cargo:gale-lint" = "latest"
+# Off-wiki ScribuntoUnit runner (provides `scribuntounit` + `scribuntounit-fetch`).
+# Requires system lua5.1 + curl/wget: as of v0.2.0 the runner FETCHES the Scribunto
+# lualib at setup into .scribuntounit/ (pinned via scribuntounit.config.lua's
+# scribunto.ref) rather than bundling it. Do NOT add mise's lua plugin.
+"github:StarCitizenTools/mediawiki-scribuntounit" = { version = "0.2.0", bin_path = "bin" }
 
 [tasks.lint]
-run = ["stylua --check pages/module/", "gale 'pages/module/**/*.css'"]
+run = ["stylua --check pages/module/ tests/ scribuntounit.config.lua", "gale 'pages/module/**/*.css'"]
 description = "Check formatting"
 
 [tasks.fix]
-run = ["stylua pages/module/", "gale --fix 'pages/module/**/*.css'"]
+run = ["stylua pages/module/ tests/ scribuntounit.config.lua", "gale --fix 'pages/module/**/*.css'"]
 description = "Fix formatting"
+
+[tasks.test]
+depends = ["test:lua"]
+description = "Run all local tests"
+
+[tasks."test:lua"]
+depends = ["test:lua:manifest", "test:lua:unit"]
+description = "Run all Lua tests (manifest conformance + off-wiki ScribuntoUnit suites)"
+
+[tasks."test:lua:manifest"]
+run = "lua5.1 tests/manifest.lua"
+description = "Validate Entity JSON config manifests for shape and cross-reference invariants"
+
+[tasks."test:lua:fetch"]
+run = "scribuntounit-fetch"
+description = "Fetch the Scribunto lualib into .scribuntounit/ (cached; ref pinned in scribuntounit.config.lua). No-op once present."
+
+[tasks."test:lua:unit"]
+depends = ["test:lua:fetch"]
+run = "scribuntounit"
+description = "Run the ScribuntoUnit suites off-wiki via the mediawiki-scribuntounit runner (config: scribuntounit.config.lua); pass a module name to filter, e.g. mise run test:lua:unit RangeBar"

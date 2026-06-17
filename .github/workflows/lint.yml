@@ -13,8 +13,5 @@ jobs:
 
       - uses: jdx/mise-action@v4
 
-      - name: Check Lua formatting
-        run: stylua --check pages/module/
-
-      - name: Check CSS formatting
-        run: gale 'pages/module/**/*.css'
+      - name: Lint (stylua pages/module + tests, gale CSS)
+        run: mise run lint

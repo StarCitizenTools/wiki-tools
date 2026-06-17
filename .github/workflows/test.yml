@@ -1,0 +1,32 @@
+name: Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: jdx/mise-action@v4
+
+      # Lua is the precompiled system package, NOT mise-managed: mise's lua plugin
+      # builds the interpreter from source, which fails on stock runners.
+      - name: Install Lua 5.1
+        run: sudo apt-get update && sudo apt-get install -y lua5.1
+
+      # Cache the Scribunto lualib that scribuntounit-fetch downloads. Keyed on the
+      # config that pins scribunto.ref. NOTE: REL1_43 is a moving branch, so a
+      # config-unchanged run serves the cache even if upstream advances — purge the
+      # cache (or change the key) to force a refresh.
+      - name: Cache fetched lualib
+        uses: actions/cache@v5
+        with:
+          path: .scribuntounit
+          key: scribunto-lualib-${{ hashFiles('scribuntounit.config.lua') }}
+
+      - name: Run tests (manifest + off-wiki ScribuntoUnit suites)
+        run: mise run test

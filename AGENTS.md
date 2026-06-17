@@ -54,8 +54,9 @@ Key gotchas:
 
 Unit tests use `Module:ScribuntoUnit` and live alongside the module they test (e.g., `Util/testcases.lua` → `Module:InfoboxLua/Util/testcases`).
 
-- Tests run on the wiki, not locally — deploy first. The documentation template surfaces results on the module's wiki page.
-- Only test modules with real logic (validation, data transformation). Skip rendering components that return `mw.html` or strip markers.
+- Run them locally with `mise run test` (or `mise run test:lua:unit`, plus `mise run test:lua:unit <ModuleName>` to filter to one module). The suites run headless via the [`mediawiki-scribuntounit`](https://github.com/StarCitizenTools/mediawiki-scribuntounit) runner, consumed via mise (the `[tools]` entry provides `scribuntounit` + `scribuntounit-fetch`; needs a system `lua5.1` + `curl`/`wget`). The runner fetches the Scribunto lualib (pinned via `scribunto.ref` in the config, default `REL1_43`) into a gitignored `.scribuntounit/` cache — `test:lua:unit` depends on `test:lua:fetch`, so it's automatic. It auto-discovers every `pages/module/**/testcases.lua` — no registry — and is a merge-blocking CI gate. Wiki-specific config (module root, render-primitive stubs, `mw.ext.aggrid`/`BadgeLua`/`Yesno` stand-ins) lives in `scribuntounit.config.lua` at the repo root; `tests/README.md` has the details.
+- The runner covers **logic only** (type resolution, row-building, pure helpers), not rendered HTML, the Apiunto fetch layer, or the live `mw.smw` store. Separately, `tests/manifest.lua` validates the Entity JSON config files (`mise run test:lua:manifest`). The wiki documentation template still surfaces on-wiki ScribuntoUnit results too; for rendering/visual behavior use Browser Testing below.
+- A module that ships its own `testcases.lua` is loaded for real by the runner; render primitives without their own suite are stubbed (add them to `stubs` in `scribuntounit.config.lua`). Only test modules with real logic (validation, data transformation); skip pure rendering components.
 - Prefix test functions with `test`; ScribuntoUnit ignores everything else.
 
 ### Browser Testing

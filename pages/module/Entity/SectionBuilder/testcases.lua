@@ -42,6 +42,29 @@ function suite:testPushReturnsItemsForChaining()
 	self:assertTrue(sectionBuilder.push(items, 'A', '1') == items)
 end
 
+-- pushNonNil() — collapses on nil ONLY (keeps '')
+
+function suite:testPushNonNilKeepsEmptyString()
+	-- the whole point: '' is kept (push would drop it)
+	local items = {}
+	sectionBuilder.pushNonNil(items, 'Cooling rate', '')
+	self:assertEquals(1, #items)
+	self:assertEquals('Cooling rate', items[1].label)
+	self:assertEquals('', items[1].content)
+end
+
+function suite:testPushNonNilSkipsNil()
+	local items = {}
+	sectionBuilder.pushNonNil(items, 'Cooling rate', nil)
+	self:assertEquals(0, #items)
+end
+
+function suite:testPushNonNilKeepsValueAndChains()
+	local items = {}
+	self:assertTrue(sectionBuilder.pushNonNil(items, 'Power', '120') == items)
+	self:assertEquals('120', items[1].content)
+end
+
 -- section() — payload presence gate + field passthrough
 
 function suite:testSectionNilWhenNoPayload()

@@ -8,6 +8,7 @@ require('strict')
 --- from the Component facet; this adds the cooling-specific row(s).
 
 local format = require('Module:Entity/Format')
+local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
 
@@ -26,24 +27,14 @@ function p.getSections(apiData, args)
 	local items = {}
 	-- cooling_rate is null game-wide in the current model; rendered only if it
 	-- ever returns, so the row appears automatically when CIG repopulates it.
-	if cooler.cooling_rate ~= nil then
-		table.insert(items, { label = 'Cooling rate', content = format.formatNum(cooler.cooling_rate) })
-	end
-	if cooler.coolant_segment_generation ~= nil then
-		table.insert(items, { label = 'Cooling', content = format.formatNum(cooler.coolant_segment_generation) })
-	end
+	sectionBuilder.pushNonNil(items, 'Cooling rate', format.formatNum(cooler.cooling_rate))
+	sectionBuilder.pushNonNil(items, 'Cooling', format.formatNum(cooler.coolant_segment_generation))
 
-	if #items == 0 then
-		return {}
-	end
-
-	return {
-		{
-			key = 'cooler',
-			label = 'Cooler',
-			items = items,
-		},
-	}
+	return sectionBuilder.build(sectionBuilder.section({
+		key = 'cooler',
+		label = 'Cooler',
+		items = items,
+	}))
 end
 
 --- @param apiData table

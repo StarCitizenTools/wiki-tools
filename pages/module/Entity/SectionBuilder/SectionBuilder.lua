@@ -35,6 +35,25 @@ function p.push(items, label, content)
 	return items
 end
 
+--- Like push(), but collapses on nil ONLY — an empty-string `content` is KEPT.
+--- Use when `content` is pre-formatted and '' is a value the original code would
+--- still display: e.g. `format.formatNum(x)` (which returns '' for a non-numeric,
+--- non-nil source) where the row appears whenever its source is present. Because
+--- `formatNum(nil)` is nil and `formatNum(non-nil)` is non-nil, calling
+--- `pushNonNil(items, label, format.formatNum(src))` exactly reproduces a
+--- hand-written `if src ~= nil then insert(formatNum(src)) end`. Plain push(),
+--- which also drops '', would wrongly remove such a row. Returns `items`.
+--- @param items EntityItemData[]  the row accumulator
+--- @param label string
+--- @param content any
+--- @return EntityItemData[] items
+function p.pushNonNil(items, label, content)
+	if content ~= nil then
+		items[#items + 1] = { label = label, content = content }
+	end
+	return items
+end
+
 --- Build one section from a config, or return nil when it carries no payload
 --- (no rows, no sub-sections, no content) — so build() drops it, matching the
 --- `if #items == 0 then return {} end` guard the sites write by hand. Unset

@@ -7,24 +7,13 @@ require('strict')
 --- Module:Entity/Item/WeaponGun's section builder.
 
 local format = require('Module:Entity/Format')
+local sectionBuilder = require('Module:Entity/SectionBuilder')
 local weaponGun = require('Module:Entity/Item/WeaponGun')
 
 local p = {}
 
 --- @type string
 p.parent = 'Entity/Item'
-
---- Appends a label/content item only when content is non-nil (mirrors the
---- nil-collapsing the sibling subtype modules use).
----
---- @param items EntityItemData[]
---- @param label string
---- @param content string|nil
-local function pushItem(items, label, content)
-	if content ~= nil then
-		table.insert(items, { label = label, content = content })
-	end
-end
 
 --- Builds the Turret stats section from `apiData.turret`: mount count and
 --- yaw/pitch traverse speeds (when the API reports them; many turrets leave
@@ -43,19 +32,16 @@ local function buildTurretSection(turret)
 	local pitch = type(turret.pitch_axis) == 'table' and turret.pitch_axis or {}
 
 	local items = {}
-	pushItem(items, 'Mounts', turret.mounts and format.formatNum(turret.mounts))
-	pushItem(items, 'Yaw speed', yaw.speed and (format.formatNum(yaw.speed) .. ' °/s'))
-	pushItem(items, 'Pitch speed', pitch.speed and (format.formatNum(pitch.speed) .. ' °/s'))
+	sectionBuilder.pushNonNil(items, 'Mounts', turret.mounts and format.formatNum(turret.mounts))
+	sectionBuilder.pushNonNil(items, 'Yaw speed', yaw.speed and (format.formatNum(yaw.speed) .. ' °/s'))
+	sectionBuilder.pushNonNil(items, 'Pitch speed', pitch.speed and (format.formatNum(pitch.speed) .. ' °/s'))
 
-	if #items == 0 then
-		return nil
-	end
-	return {
+	return sectionBuilder.section({
 		key = 'turret',
 		label = 'Turret',
 		collapsible = true,
 		items = items,
-	}
+	})
 end
 
 --- Returns the `vehicle_weapon` of the first locked gun port — a port that

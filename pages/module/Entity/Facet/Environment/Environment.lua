@@ -11,6 +11,7 @@ require('strict')
 
 local format = require('Module:Entity/Format')
 local statFormat = require('Module:Entity/StatFormat')
+local sectionBuilder = require('Module:Entity/SectionBuilder')
 local rangeBar = require('Module:RangeBar')
 local meterBar = require('Module:MeterBar')
 
@@ -146,18 +147,12 @@ function p.getSections(apiData, args)
 		table.insert(items, { label = 'G resistance', content = gforceLabel(gforce) })
 	end
 
-	if #items == 0 then
-		return {}
-	end
-
-	return {
-		{
-			key = 'environment',
-			label = 'Environment',
-			collapsible = true,
-			items = items,
-		},
-	}
+	return sectionBuilder.build(sectionBuilder.section({
+		key = 'environment',
+		label = 'Environment',
+		collapsible = true,
+		items = items,
+	}))
 end
 
 --- Contributes environmental-protection facets for querying: the temperature

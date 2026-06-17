@@ -14,6 +14,11 @@ local p = {}
 --- Kind: a top-level entity with its own API endpoint, probed by matches().
 --- `matches` + `getApiConfigs` identify it; the rest are optional chain-link
 --- contributions a kind may also make as a chain root.
+---
+--- A kind also declares a string `name` (exposed as Data.get().result.kind). It
+--- is absent from the spec below because validate() type-checks every spec key as
+--- a function hook; `name` is enforced as a non-empty, unique string by the
+--- Registry conformance test (Module:Entity/Registry/testcases) instead.
 --- @type table<string, boolean>
 p.KIND = {
 	matches = true,

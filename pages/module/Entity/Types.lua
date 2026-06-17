@@ -37,6 +37,7 @@ local p = {}
 --- @class EntityKind : EntityChainLink
 --- A top-level entity with its own API endpoint and a mutually-exclusive
 --- identity (Item / Vehicle / Commodity). Registered in Module:Entity/Registry.
+--- @field name string REQUIRED. Canonical kind name, exposed as Data.get().result.kind (enforced by the Registry conformance test)
 --- @field matches fun(apiData: table|nil): boolean REQUIRED. Strict, nil-safe identity predicate
 --- @field getApiConfigs fun(): EntityApiConfig[] REQUIRED. [1] is the identity probe endpoint
 --- @field resolveSubtype nil|fun(apiData: table|nil): table|nil Refine to a subtype leaf module, or nil

@@ -185,6 +185,7 @@ end
 --- @return table apiData Merged API response data
 --- @return table[] chain Module chain (root to leaf)
 --- @return boolean hasApiError True if any fetch failed
+--- @return table|nil matchedKind The probed kind module (nil if none matched)
 local function fetchApiData(args)
 	local matchedKind, apiData, fetchedEndpoints, hasApiError = probeKind(args)
 
@@ -205,16 +206,21 @@ local function fetchApiData(args)
 		apiData = matchedKind.enrich(apiData)
 	end
 
-	return apiData, chain, hasApiError
+	return apiData, chain, hasApiError, matchedKind
 end
 
 --- Primary entry point for sibling renderers. Fetches API data, resolves the
 --- type chain, and packages everything a renderer needs into a single table.
 ---
 --- @param args table Parsed wikitext args (use p.parseArgs to produce)
---- @return { args: table, apiData: table, chain: table[], typeInfo: table|nil, displayType: string|nil, hasApiError: boolean }
+--- @return { args: table, kind: string, apiData: table, chain: table[], typeInfo: table|nil, displayType: string|nil, hasApiError: boolean }
 function p.get(args)
-	local apiData, chain, hasApiError = fetchApiData(args)
+	local apiData, chain, hasApiError, matchedKind = fetchApiData(args)
+
+	-- Canonical kind name for sibling renderers — Item when nothing matched,
+	-- mirroring resolveLeaf's fallback. Renderers branch on this instead of
+	-- re-deriving the kind from apiData fields.
+	local kind = (matchedKind and matchedKind.name) or 'Item'
 
 	local leaf = chain[#chain]
 	local typeInfo, displayType
@@ -228,6 +234,7 @@ function p.get(args)
 
 	return {
 		args = args,
+		kind = kind,
 		apiData = apiData,
 		chain = chain,
 		facets = detectFacets(apiData),

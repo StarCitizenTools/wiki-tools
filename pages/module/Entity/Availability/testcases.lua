@@ -5,22 +5,32 @@ local Availability = require('Module:Entity/Availability')
 
 local suite = ScribuntoUnit:new()
 
--- isCommodity()
+-- buildSummaryRows() dispatches on result.kind
 
-function suite:testIsCommodityTrueWithBoxSizes()
-	self:assertEquals(true, Availability._internal.isCommodity({ box_sizes_scu = { 1, 2 } }))
+function suite:testBuildSummaryRowsDispatchesCommodityByKind()
+	local apiData = { box_sizes_scu = { 1, 2 }, _rawRecord = { is_mineable = true } }
+	local rows = Availability._internal.buildSummaryRows({}, apiData, 'Commodity')
+	local hasMine = false
+	for _, r in ipairs(rows) do
+		if r.label == 'Mine' then
+			hasMine = true
+		end
+	end
+	self:assertTrue(hasMine, 'kind="Commodity" should route to the commodity summary builder')
 end
 
-function suite:testIsCommodityFalseForItem()
-	self:assertEquals(false, Availability._internal.isCommodity({ uuid = 'x' }))
-end
-
-function suite:testIsCommodityFalseForVehicle()
-	self:assertEquals(false, Availability._internal.isCommodity({ is_vehicle = true }))
-end
-
-function suite:testIsCommodityNilSafe()
-	self:assertEquals(false, Availability._internal.isCommodity(nil))
+-- The dispatch keys on result.kind, NOT on apiData fields (the point of the
+-- refactor): an Item carrying a box_sizes_scu field must still route to the item
+-- builder, not the commodity one.
+function suite:testBuildSummaryRowsKeysOnKindNotFields()
+	local rows = Availability._internal.buildSummaryRows({}, { box_sizes_scu = { 1 }, uuid = 'x' }, 'Item')
+	local hasMine = false
+	for _, r in ipairs(rows) do
+		if r.label == 'Mine' then
+			hasMine = true
+		end
+	end
+	self:assertFalse(hasMine, 'kind="Item" must not route to the commodity builder even with box_sizes_scu present')
 end
 
 -- groupBySystem()

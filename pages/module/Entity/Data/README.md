@@ -40,6 +40,10 @@ Primary entry point for sibling renderers. Takes the `args` table returned by `p
 ```lua
 {
     args        = table,        -- the parsed wikitext args passed in
+    kind        = string,       -- canonical kind name from the matched kind's p.name
+                                --   (Item/Vehicle/Commodity/Mission); 'Item' when no kind
+                                --   matched, mirroring resolveLeaf's fallback. Sibling
+                                --   renderers branch on this instead of re-deriving from apiData.
     apiData     = table,        -- merged API response (empty table when no uuid or all fetches fail)
     chain       = table[],      -- module chain from root to leaf, as built by Assembly.buildChain
     facets      = table[],      -- facet modules whose matches(apiData) returned true

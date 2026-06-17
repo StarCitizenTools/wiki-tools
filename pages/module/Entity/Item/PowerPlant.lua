@@ -8,6 +8,7 @@ require('strict')
 --- power-specific row(s).
 
 local format = require('Module:Entity/Format')
+local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
 
@@ -26,24 +27,14 @@ function p.getSections(apiData, args)
 	local items = {}
 	-- power_output is null game-wide in the current model; rendered only if it
 	-- ever returns, so the row appears automatically when CIG repopulates it.
-	if pp.power_output ~= nil then
-		table.insert(items, { label = 'Power output', content = format.formatNum(pp.power_output) })
-	end
-	if pp.power_segment_generation ~= nil then
-		table.insert(items, { label = 'Power', content = format.formatNum(pp.power_segment_generation) })
-	end
+	sectionBuilder.pushNonNil(items, 'Power output', format.formatNum(pp.power_output))
+	sectionBuilder.pushNonNil(items, 'Power', format.formatNum(pp.power_segment_generation))
 
-	if #items == 0 then
-		return {}
-	end
-
-	return {
-		{
-			key = 'power_plant',
-			label = 'Power plant',
-			items = items,
-		},
-	}
+	return sectionBuilder.build(sectionBuilder.section({
+		key = 'power_plant',
+		label = 'Power plant',
+		items = items,
+	}))
 end
 
 --- @param apiData table

@@ -9,6 +9,7 @@ require('strict')
 --- Data-driven: fires on any entity with a `suit_armor` block.
 
 local progressTiles = require('Module:ProgressTiles')
+local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
 
@@ -149,15 +150,13 @@ function p.getSections(apiData, args)
 
 	-- The resistance set renders as a Module:ProgressTiles row, carried as a
 	-- full-width, label-less section item so it shares the infobox item spacing.
-	return {
-		{
-			key = 'armor',
-			label = 'Damage resistance',
-			items = {
-				{ content = progressTiles.render({ tiles = tiles }), class = 't-infobox-item--block' },
-			},
+	return sectionBuilder.build(sectionBuilder.section({
+		key = 'armor',
+		label = 'Damage resistance',
+		items = {
+			{ content = progressTiles.render({ tiles = tiles }), class = 't-infobox-item--block' },
 		},
-	}
+	}))
 end
 
 --- Weight class as the short-description prefix ("Heavy" -> "Heavy torso armor

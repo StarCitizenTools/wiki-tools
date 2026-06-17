@@ -8,25 +8,13 @@ require('strict')
 
 local format = require('Module:Entity/Format')
 local item = require('Module:Entity/Item')
+local sectionBuilder = require('Module:Entity/SectionBuilder')
 local CLASSES = mw.loadJsonData('Module:Entity/Item/WeaponGun/weaponClasses.json')
 
 local p = {}
 
 --- @type string
 p.parent = 'Entity/Item'
-
---- Appends a label/content item to a list only when content is non-nil.
---- Mirrors the nil-collapsing the other subtype modules rely on, but lets
---- callers pass a pre-formatted string or nil in one expression.
----
---- @param items EntityItemData[]
---- @param label string
---- @param content string|nil
-local function pushItem(items, label, content)
-	if content ~= nil then
-		table.insert(items, { label = label, content = content })
-	end
-end
 
 --- The type segment of an RSI class_name, lowercased: the underscore-part after
 --- the manufacturer prefix. "KBAR_BallisticCannon_S2" -> "ballisticcannon",
@@ -151,33 +139,35 @@ function p.getVehicleWeaponSections(vehicleWeapon)
 	end
 
 	local overview = {}
-	pushItem(overview, 'Type', vehicleWeapon.type and tostring(vehicleWeapon.type))
-	pushItem(overview, 'Damage', format.formatNum(damage.alpha_total))
-	pushItem(overview, 'DPS', format.formatNum(damage.burst))
-	pushItem(overview, 'Fire rate', vehicleWeapon.rpm and (format.formatNum(vehicleWeapon.rpm) .. ' RPM'))
-	pushItem(overview, 'Fire mode', #modeNames > 0 and table.concat(modeNames, ', ') or nil)
-	pushItem(overview, 'Range', vehicleWeapon.range and (format.formatNum(vehicleWeapon.range) .. ' m'))
-	pushItem(overview, 'Speed', ammunition.speed and (format.formatNum(ammunition.speed) .. ' m/s'))
+	sectionBuilder.pushNonNil(overview, 'Type', vehicleWeapon.type and tostring(vehicleWeapon.type))
+	sectionBuilder.pushNonNil(overview, 'Damage', format.formatNum(damage.alpha_total))
+	sectionBuilder.pushNonNil(overview, 'DPS', format.formatNum(damage.burst))
+	sectionBuilder.pushNonNil(
+		overview,
+		'Fire rate',
+		vehicleWeapon.rpm and (format.formatNum(vehicleWeapon.rpm) .. ' RPM')
+	)
+	sectionBuilder.pushNonNil(overview, 'Fire mode', #modeNames > 0 and table.concat(modeNames, ', ') or nil)
+	sectionBuilder.pushNonNil(
+		overview,
+		'Range',
+		vehicleWeapon.range and (format.formatNum(vehicleWeapon.range) .. ' m')
+	)
+	sectionBuilder.pushNonNil(overview, 'Speed', ammunition.speed and (format.formatNum(ammunition.speed) .. ' m/s'))
 	-- Ammo only for magazine-fed (ballistic) weapons; energy weapons report 0.
 	-- tonumber() guards against a string value (comparing string > number throws
 	-- in Lua 5.1) and keeps the row hidden for 0/nil/non-numeric capacity.
 	local capacity = tonumber(vehicleWeapon.capacity)
 	if capacity and capacity > 0 then
-		pushItem(overview, 'Ammo', format.formatNum(capacity))
+		sectionBuilder.pushNonNil(overview, 'Ammo', format.formatNum(capacity))
 	end
 
-	if #overview == 0 then
-		return {}
-	end
-
-	return {
-		{
-			key = 'vehicle_weapon',
-			label = 'Weapon',
-			collapsible = true,
-			items = overview,
-		},
-	}
+	return sectionBuilder.build(sectionBuilder.section({
+		key = 'vehicle_weapon',
+		label = 'Weapon',
+		collapsible = true,
+		items = overview,
+	}))
 end
 
 --- @param apiData table

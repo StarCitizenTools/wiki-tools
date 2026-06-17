@@ -12,6 +12,7 @@ require('strict')
 
 local format = require('Module:Entity/Format')
 local falloffChart = require('Module:FalloffChart')
+local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
 
@@ -292,9 +293,10 @@ function p.getSections(apiData, args)
 		return {}
 	end
 
-	return {
-		{ key = key, items = { { content = chart, class = 't-infobox-item--block' } } },
-	}
+	return sectionBuilder.build(sectionBuilder.section({
+		key = key,
+		items = { { content = chart, class = 't-infobox-item--block' } },
+	}))
 end
 
 --- @param apiData table

@@ -6,7 +6,7 @@ The summary grid is always rendered (layout stays stable across pages); the deta
 
 ## Kind dispatch
 
-`Module:Entity/Data` resolves the entity kind through its kind registry and surfaces a kind-shaped `apiData` to this module. Availability identifies vehicles by the same canonical signal `Module:Entity/Vehicle.matches()` uses upstream — presence of the `is_vehicle` key at the top level. The kind drives the summary builder (item vs vehicle row sets) and gates the Rentals detail card; the Shops card is unified across kinds and reads `uex_prices.purchase` regardless.
+`Module:Entity/Data` resolves the entity kind through its kind registry and surfaces both a kind-shaped `apiData` and a canonical `result.kind` (`Commodity` / `Vehicle` / `Item`). Availability branches on `result.kind` — it no longer re-derives the kind from `apiData` fields itself. The kind drives the summary builder (commodity vs vehicle vs item row sets) and gates the Rentals detail card; the Shops card is unified across kinds and reads `uex_prices.purchase` regardless.
 
 ## Usage
 
@@ -63,7 +63,7 @@ Read from the merged Apiunto response:
 | Field | Description |
 |---|---|
 | `uex_prices` | Dict with two buckets: `purchase` (array of terminals with `price_buy`) and `rental` (array of terminals with `price_rent`). Either bucket may be empty independently. Vehicles never have a Sell side. |
-| `is_vehicle` | Top-level key. Presence (regardless of value — `true` for ground vehicles, `false` for spaceships) identifies the response as a vehicle and gates the Rentals detail card. |
+| `is_vehicle` | Top-level key. The Data layer's `Module:Entity/Vehicle.matches()` keys on its **presence** (regardless of value — `true` for ground vehicles, `false` for spaceships) to set `result.kind = 'Vehicle'`, which gates the Rentals detail card. Availability reads `result.kind`, not this field directly. |
 | `msrp` | Top-level number (USD pledge price). Presence drives the Pledge summary card. |
 
 Buy derives from `uex_prices.purchase`, Rent from `uex_prices.rental` — same inference logic as items. Pledge is `apiData.msrp ~= nil`.

@@ -256,17 +256,6 @@ local function renderSection(heading, tilesRows)
 	return h3 .. Tiles.render({ rows = tilesRows, aspectRatio = TILE_ASPECT_RATIO })
 end
 
---- Mirrors Module:Entity/Commodity.matches() — commodities carry the
---- `box_sizes_scu` ladder. Their related entities are the physical cargo-box
---- instances of the substance, rendered as a table rather than tiles (the
---- boxes share one image and have no own pages).
----
---- @param apiData table
---- @return boolean
-local function isCommodity(apiData)
-	return type(apiData) == 'table' and apiData.box_sizes_scu ~= nil
-end
-
 -- Standard CIG cargo-container external dimensions { length, width, height }
 -- in metres, keyed by SCU. A game constant, identical for every commodity,
 -- verified against the items endpoint's cargo_dimension (the Stor*All container
@@ -386,7 +375,8 @@ function p.main(frame)
 		return renderEmpty()
 	end
 
-	if isCommodity(result.apiData) then
+	-- Commodities: related entities are the physical cargo-box variants.
+	if result.kind == 'Commodity' then
 		return renderCargoVariants(result.apiData)
 	end
 
@@ -416,7 +406,6 @@ end
 
 -- Test-only exports. Not part of the public API.
 p._internal = {
-	isCommodity = isCommodity,
 	buildCargoRows = buildCargoRows,
 	boxDimensions = boxDimensions,
 }

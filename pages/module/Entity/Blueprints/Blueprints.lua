@@ -17,16 +17,6 @@ local api = require('Module:Entity/Api')
 
 local p = {}
 
---- Mirrors Module:Entity/Commodity.matches(). Commodities aren't craftable
---- and carry no own `blueprint`; instead they're crafting *ingredients*, so
---- this module renders a "used in crafting" summary for them.
----
---- @param apiData table
---- @return boolean
-local function isCommodity(apiData)
-	return type(apiData) == 'table' and apiData.box_sizes_scu ~= nil
-end
-
 --- How many crafting blueprints use `name` as an ingredient, via the
 --- blueprints endpoint's `filter[ingredient]` (matched by name) — a single
 --- cheap fetch reading `meta.total` (page size 1). Returns nil on fetch
@@ -248,7 +238,8 @@ function p.main(frame)
 		args = { src = 'Module:Entity/Blueprints/styles.css' },
 	})
 
-	if isCommodity(result.apiData) then
+	-- Commodities aren't craftable; render a "used in crafting" summary instead.
+	if result.kind == 'Commodity' then
 		return styles .. renderCommodityUsedIn(result.apiData)
 	end
 

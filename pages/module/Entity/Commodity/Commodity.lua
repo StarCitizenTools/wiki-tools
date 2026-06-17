@@ -69,6 +69,10 @@ end
 
 local p = {}
 
+--- Canonical kind name; the Data.get() `result.kind` value sibling renderers
+--- branch on. Every kind declares one (enforced by the Registry conformance test).
+p.name = 'Commodity'
+
 --- @type string
 p.parent = 'Entity/Base'
 

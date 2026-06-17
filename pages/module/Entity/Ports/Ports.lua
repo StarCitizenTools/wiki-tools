@@ -9,7 +9,6 @@ require('strict')
 --- other Entity-family template on the page.
 
 local data = require('Module:Entity/Data')
-local Vehicle = require('Module:Entity/Vehicle')
 local pipeline = require('Module:Entity/Ports/Pipeline')
 local render = require('Module:Entity/Ports/Render')
 local PageResolver = require('Module:Entity/PageResolver')
@@ -40,7 +39,7 @@ function p.main(frame)
 		return empty('No ports.')
 	end
 
-	local groups = pipeline.process(rawPorts, { isVehicle = Vehicle.matches(result.apiData) })
+	local groups = pipeline.process(rawPorts, { isVehicle = result.kind == 'Vehicle' })
 	pipeline.applyResolvedLinks(groups, PageResolver.resolve(pipeline.collectEquippedUuids(groups)))
 	return styles .. render.fromGroups(groups)
 end

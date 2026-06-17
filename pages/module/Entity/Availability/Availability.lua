@@ -328,29 +328,6 @@ local function hasEntityTag(apiData, tagName)
 	return false
 end
 
---- Mirrors Module:Entity/Vehicle.matches() — vehicles always carry the
---- `is_vehicle` key at the top level, items never do. Both endpoints
---- now share the same `uex_prices` dict shape, so the prior dict-vs-array
---- discriminator no longer works; using the kind-canonical signal keeps
---- Availability aligned with the kind registry's idea of "vehicle".
----
---- @param apiData table
---- @return boolean
-local function isVehicle(apiData)
-	return type(apiData) == 'table' and apiData.is_vehicle ~= nil
-end
-
---- Mirrors Module:Entity/Commodity.matches() — commodity records carry the
---- `box_sizes_scu` ladder, a field neither items nor vehicles return. Lets
---- Availability host commodity acquisition (mining + trade) alongside the
---- item/vehicle paths.
----
---- @param apiData table
---- @return boolean
-local function isCommodity(apiData)
-	return type(apiData) == 'table' and apiData.box_sizes_scu ~= nil
-end
-
 --- Groups a commodity's raw mining `locations[]` by star system, in first-seen
 --- order, normalizing each entry to the cells the Mining table renders. Safe on
 --- nil / non-table input (returns {}).
@@ -490,21 +467,21 @@ local function buildCommoditySummaryRows(args, apiData)
 	}
 end
 
---- Dispatches to the item or vehicle summary builder. The `icon`
---- field on each row is a category-level decorative glyph (emoji
---- for now — no Codex icons feel right for these specific concepts).
---- Each card renders it before the label; `aria-hidden` on the icon
---- span keeps screen readers from announcing it on top of the
---- already-clear label text.
+--- Dispatches to the commodity, vehicle, or item summary builder by kind. The
+--- `icon` field on each row is a category-level decorative glyph (emoji for now
+--- — no Codex icons feel right for these specific concepts). Each card renders
+--- it before the label; `aria-hidden` on the icon span keeps screen readers from
+--- announcing it on top of the already-clear label text.
 ---
 --- @param args table
 --- @param apiData table
+--- @param kind string The Data.get() result.kind ('Commodity'/'Vehicle'/'Item'/…)
 --- @return { label: string, icon: string, value: boolean|nil }[]
-local function buildSummaryRows(args, apiData)
-	if isCommodity(apiData) then
+local function buildSummaryRows(args, apiData, kind)
+	if kind == 'Commodity' then
 		return buildCommoditySummaryRows(args, apiData)
 	end
-	if isVehicle(apiData) then
+	if kind == 'Vehicle' then
 		return buildVehicleSummaryRows(args, apiData)
 	end
 	return buildItemSummaryRows(args, apiData)
@@ -721,9 +698,10 @@ end
 ---    placeholder would be misleading noise.
 ---
 --- @param apiData table
+--- @param kind string The Data.get() result.kind
 --- @return string
-local function renderDetail(apiData)
-	if isCommodity(apiData) then
+local function renderDetail(apiData, kind)
+	if kind == 'Commodity' then
 		return renderCommodityDetail(apiData)
 	end
 
@@ -756,7 +734,7 @@ local function renderDetail(apiData)
 		footer = uexFooter(firstUexLink(purchasePrices) or UEX_FALLBACK_URL),
 	})
 
-	if not isVehicle(apiData) then
+	if kind ~= 'Vehicle' then
 		return shopCard
 	end
 
@@ -799,17 +777,17 @@ function p.main(frame)
 		args = { src = 'Module:Entity/Availability/styles.css' },
 	})
 
-	local summary = renderSummary(buildSummaryRows(args, apiData))
-	local detail = renderDetail(apiData)
+	local summary = renderSummary(buildSummaryRows(args, apiData, result.kind))
+	local detail = renderDetail(apiData, result.kind)
 
 	return styles .. summary .. detail
 end
 
 -- Test-only exports. Not part of the public API.
 p._internal = {
-	isCommodity = isCommodity,
 	groupBySystem = groupBySystem,
 	buildCommoditySummaryRows = buildCommoditySummaryRows,
+	buildSummaryRows = buildSummaryRows,
 }
 
 return p

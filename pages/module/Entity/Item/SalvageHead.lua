@@ -13,6 +13,7 @@ require('strict')
 
 local format = require('Module:Entity/Format')
 local item = require('Module:Entity/Item')
+local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
 
@@ -33,13 +34,13 @@ function p.getSections(apiData, args)
 		return {}
 	end
 
-	return {
-		{
-			key = 'salvage',
-			label = 'Salvage',
-			items = { { label = 'Range', content = format.formatNum(range) .. ' m' } },
-		},
-	}
+	local items = {}
+	sectionBuilder.push(items, 'Range', format.formatNum(range) .. ' m')
+	return sectionBuilder.build(sectionBuilder.section({
+		key = 'salvage',
+		label = 'Salvage',
+		items = items,
+	}))
 end
 
 --- Short description prepends the mount size — "S2 salvage head by Greycat" —

@@ -7,6 +7,7 @@ require('strict')
 --- ("Narrow → Projector, 35 m"), ordered by the mode's port name for stability.
 
 local format = require('Module:Entity/Format')
+local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
 
@@ -48,23 +49,15 @@ function p.getSections(apiData, args)
 		if radius then
 			table.insert(parts, format.formatNum(radius) .. ' m')
 		end
-		if #parts > 0 then
-			table.insert(items, { label = label, content = table.concat(parts, ', ') })
-		end
+		sectionBuilder.push(items, label, table.concat(parts, ', '))
 	end
 
-	if #items == 0 then
-		return {}
-	end
-
-	return {
-		{
-			key = 'flashlight',
-			label = 'Flashlight',
-			collapsible = true,
-			items = items,
-		},
-	}
+	return sectionBuilder.build(sectionBuilder.section({
+		key = 'flashlight',
+		label = 'Flashlight',
+		collapsible = true,
+		items = items,
+	}))
 end
 
 return p

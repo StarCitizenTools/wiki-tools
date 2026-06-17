@@ -11,6 +11,7 @@ require('strict')
 --- either facet reaching into the other's block.
 
 local format = require('Module:Entity/Format')
+local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
 
@@ -41,28 +42,17 @@ function p.getSections(apiData, args)
 	end
 
 	local items = {}
-	local function push(label, content)
-		if content ~= nil and content ~= '' then
-			table.insert(items, { label = label, content = content })
-		end
-	end
 
-	push('Max range', withUnit(s.max_range, ' m'))
-	push('Range increment', withUnit(s.range_increment, ' m'))
-	push('Auto-zeroing', withUnit(s.auto_zeroing_time, ' s'))
+	sectionBuilder.push(items, 'Max range', withUnit(s.max_range, ' m'))
+	sectionBuilder.push(items, 'Range increment', withUnit(s.range_increment, ' m'))
+	sectionBuilder.push(items, 'Auto-zeroing', withUnit(s.auto_zeroing_time, ' s'))
 
-	if #items == 0 then
-		return {}
-	end
-
-	return {
-		{
-			key = 'iron_sight',
-			label = 'Sight',
-			collapsible = true,
-			items = items,
-		},
-	}
+	return sectionBuilder.build(sectionBuilder.section({
+		key = 'iron_sight',
+		label = 'Sight',
+		collapsible = true,
+		items = items,
+	}))
 end
 
 --- The ranging stats as numeric facets for the Iron sights index table. (Optical

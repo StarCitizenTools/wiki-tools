@@ -8,6 +8,7 @@ require('strict')
 --- per-damage-type absorption and resistance.
 
 local format = require('Module:Entity/Format')
+local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
 
@@ -67,24 +68,20 @@ function p.getSections(apiData, args)
 	end
 
 	local items = {}
-	local function push(label, content)
-		if content ~= nil and content ~= '' then
-			table.insert(items, { label = label, content = content })
-		end
-	end
 
 	-- regen_delay carries the pause before the shield starts recharging:
 	-- `damage` after any hit, `downed` (longer) after a full depletion.
 	local delay = type(shield.regen_delay) == 'table' and shield.regen_delay or {}
 
-	push('Shield HP', shield.max_health and format.formatNum(shield.max_health))
-	push('Regeneration', shield.regen_rate and (format.formatNum(shield.regen_rate) .. ' HP/s'))
-	push('Regen delay', delay.damage and (format.formatNum(delay.damage) .. ' s'))
-	push('Downed delay', delay.downed and (format.formatNum(delay.downed) .. ' s'))
+	sectionBuilder.push(items, 'Shield HP', shield.max_health and format.formatNum(shield.max_health))
+	sectionBuilder.push(items, 'Regeneration', shield.regen_rate and (format.formatNum(shield.regen_rate) .. ' HP/s'))
+	sectionBuilder.push(items, 'Regen delay', delay.damage and (format.formatNum(delay.damage) .. ' s'))
+	sectionBuilder.push(items, 'Downed delay', delay.downed and (format.formatNum(delay.downed) .. ' s'))
 	-- Absorption: fraction of each damage type the shield intercepts. Types it
 	-- fully absorbs (max >= 1) are the default and omitted; the row surfaces the
 	-- types that partially bypass to the hull (e.g. physical on most shields).
-	push(
+	sectionBuilder.push(
+		items,
 		'Absorption',
 		formatDamageMap(shield.absorption, function(_, hi)
 			return hi < 1
@@ -92,24 +89,19 @@ function p.getSections(apiData, args)
 	)
 	-- Resistance: damage reduction on what the shield absorbs. Only types with
 	-- some resistance (max > 0) are listed.
-	push(
+	sectionBuilder.push(
+		items,
 		'Resistance',
 		formatDamageMap(shield.resistance, function(_, hi)
 			return hi > 0
 		end)
 	)
 
-	if #items == 0 then
-		return {}
-	end
-
-	return {
-		{
-			key = 'shield',
-			label = 'Shield',
-			items = items,
-		},
-	}
+	return sectionBuilder.build(sectionBuilder.section({
+		key = 'shield',
+		label = 'Shield',
+		items = items,
+	}))
 end
 
 --- @param apiData table

@@ -19,19 +19,9 @@ require('strict')
 --- identical block, so vehicle output is unchanged.
 
 local format = require('Module:Entity/Format')
+local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
-
---- Appends a label/content pair only when content is non-empty.
----
---- @param items table[]
---- @param label string
---- @param content string|nil
-local function pushItem(items, label, content)
-	if content ~= nil and content ~= '' then
-		table.insert(items, { label = label, content = content })
-	end
-end
 
 --- Resolves the heavy-lift mode force + its display label. Vehicle beams only:
 --- towing beams carry a `towing` object, tractor beams a `cargo_mode_override`.
@@ -79,29 +69,23 @@ function p.getSections(apiData, args)
 	local tether = type(beam.tether) == 'table' and beam.tether or {}
 
 	local items = {}
-	pushItem(items, 'Force', force.max and format.formatNum(force.max))
+	sectionBuilder.push(items, 'Force', force.max and format.formatNum(force.max))
 	local liftForce, liftLabel = heavyLift(apiData, beam)
-	pushItem(items, liftLabel, liftForce and format.formatNum(liftForce))
-	pushItem(items, 'Range', range.max and (format.formatNum(range.max) .. ' m'))
-	pushItem(items, 'Max angle', range.max_angle and (format.formatNum(range.max_angle) .. '°'))
-	pushItem(
+	sectionBuilder.push(items, liftLabel, liftForce and format.formatNum(liftForce))
+	sectionBuilder.push(items, 'Range', range.max and (format.formatNum(range.max) .. ' m'))
+	sectionBuilder.push(items, 'Max angle', range.max_angle and (format.formatNum(range.max_angle) .. '°'))
+	sectionBuilder.push(
 		items,
 		'Tether break time',
 		tether.tether_break_time and (format.formatNum(tether.tether_break_time) .. ' s')
 	)
 
-	if #items == 0 then
-		return {}
-	end
-
 	local label = apiData.type == 'TowingBeam' and 'Towing beam' or 'Tractor beam'
-	return {
-		{
-			key = 'tractor_beam',
-			label = label,
-			items = items,
-		},
-	}
+	return sectionBuilder.build(sectionBuilder.section({
+		key = 'tractor_beam',
+		label = label,
+		items = items,
+	}))
 end
 
 --- @param apiData table

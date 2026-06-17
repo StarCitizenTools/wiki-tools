@@ -7,6 +7,7 @@ require('strict')
 --- distortion damage, charge time, active duration, and cooldown.
 
 local format = require('Module:Entity/Format')
+local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
 
@@ -23,29 +24,18 @@ function p.getSections(apiData, args)
 	end
 
 	local items = {}
-	local function push(label, content)
-		if content ~= nil and content ~= '' then
-			table.insert(items, { label = label, content = content })
-		end
-	end
 
-	push('EMP radius', emp.emp_radius and (format.formatNum(emp.emp_radius) .. ' m'))
-	push('Distortion damage', emp.distortion_damage and format.formatNum(emp.distortion_damage))
-	push('Charge time', emp.charge_duration and (format.formatNum(emp.charge_duration) .. ' s'))
-	push('Duration', emp.unleash_duration and (format.formatNum(emp.unleash_duration) .. ' s'))
-	push('Cooldown', emp.cooldown_duration and (format.formatNum(emp.cooldown_duration) .. ' s'))
+	sectionBuilder.push(items, 'EMP radius', emp.emp_radius and (format.formatNum(emp.emp_radius) .. ' m'))
+	sectionBuilder.push(items, 'Distortion damage', emp.distortion_damage and format.formatNum(emp.distortion_damage))
+	sectionBuilder.push(items, 'Charge time', emp.charge_duration and (format.formatNum(emp.charge_duration) .. ' s'))
+	sectionBuilder.push(items, 'Duration', emp.unleash_duration and (format.formatNum(emp.unleash_duration) .. ' s'))
+	sectionBuilder.push(items, 'Cooldown', emp.cooldown_duration and (format.formatNum(emp.cooldown_duration) .. ' s'))
 
-	if #items == 0 then
-		return {}
-	end
-
-	return {
-		{
-			key = 'emp',
-			label = 'EMP',
-			items = items,
-		},
-	}
+	return sectionBuilder.build(sectionBuilder.section({
+		key = 'emp',
+		label = 'EMP',
+		items = items,
+	}))
 end
 
 --- @param apiData table

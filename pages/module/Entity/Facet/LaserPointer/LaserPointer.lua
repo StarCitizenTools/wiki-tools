@@ -7,6 +7,7 @@ require('strict')
 --- a later pass.)
 
 local format = require('Module:Entity/Format')
+local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
 
@@ -28,14 +29,14 @@ function p.getSections(apiData, args)
 	if range == nil then
 		return {}
 	end
-	return {
-		{
-			key = 'laser_pointer',
-			label = 'Laser pointer',
-			collapsible = true,
-			items = { { label = 'Range', content = format.formatNum(range) .. ' m' } },
-		},
-	}
+	local items = {}
+	sectionBuilder.push(items, 'Range', format.formatNum(range) .. ' m')
+	return sectionBuilder.build(sectionBuilder.section({
+		key = 'laser_pointer',
+		label = 'Laser pointer',
+		collapsible = true,
+		items = items,
+	}))
 end
 
 --- @param apiData table

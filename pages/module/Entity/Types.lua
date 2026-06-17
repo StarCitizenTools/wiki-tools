@@ -11,6 +11,7 @@ local p = {}
 --- @class EntityItemData
 --- @field label string|nil The label text for the item
 --- @field content string|nil The display content
+--- @field class string|nil CSS class on the item element (e.g. a full-width block row)
 
 --- @class EntitySectionEntry
 --- @field key string Unique section identifier used for merging across the type chain

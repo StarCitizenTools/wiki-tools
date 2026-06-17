@@ -10,22 +10,12 @@ require('strict')
 
 local format = require('Module:Entity/Format')
 local item = require('Module:Entity/Item')
+local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
 
 --- @type string
 p.parent = 'Entity/Item'
-
---- Appends a label/content pair only when content is non-empty.
----
---- @param items table[]
---- @param label string
---- @param content string|nil
-local function pushItem(items, label, content)
-	if content ~= nil and content ~= '' then
-		table.insert(items, { label = label, content = content })
-	end
-end
 
 --- @param apiData table
 --- @param args table
@@ -44,28 +34,34 @@ function p.getSections(apiData, args)
 	-- colour green above ×1, red below; a neutral ×1 (ReadyGrip) renders uncoloured.
 	local speed = tonumber(s.salvage_speed_multiplier)
 	if speed then
-		pushItem(items, 'Salvage speed', format.colorByDirection('×' .. format.formatNum(speed), speed, 1, 'higher'))
+		sectionBuilder.push(
+			items,
+			'Salvage speed',
+			format.colorByDirection('×' .. format.formatNum(speed), speed, 1, 'higher')
+		)
 	end
 	local radius = tonumber(s.radius_multiplier)
 	if radius then
-		pushItem(items, 'Radius', format.colorByDirection('×' .. format.formatNum(radius), radius, 1, 'higher'))
+		sectionBuilder.push(
+			items,
+			'Radius',
+			format.colorByDirection('×' .. format.formatNum(radius), radius, 1, 'higher')
+		)
 	end
 	local efficiency = tonumber(s.extraction_efficiency)
 	if efficiency then
-		pushItem(items, 'Extraction efficiency', format.formatNum(math.floor(efficiency * 1000 + 0.5) / 10) .. '%')
+		sectionBuilder.push(
+			items,
+			'Extraction efficiency',
+			format.formatNum(math.floor(efficiency * 1000 + 0.5) / 10) .. '%'
+		)
 	end
 
-	if #items == 0 then
-		return {}
-	end
-
-	return {
-		{
-			key = 'salvage_modifier',
-			label = 'Salvage',
-			items = items,
-		},
-	}
+	return sectionBuilder.build(sectionBuilder.section({
+		key = 'salvage_modifier',
+		label = 'Salvage',
+		items = items,
+	}))
 end
 
 --- Short description prepends the mount size — "S1 scraper module by Greycat" —

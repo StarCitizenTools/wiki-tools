@@ -8,6 +8,7 @@ require('strict')
 --- whenever the block is present, so it also covers any future melee weapon.
 
 local format = require('Module:Entity/Format')
+local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
 
@@ -75,27 +76,21 @@ function p.getSections(apiData, args)
 	end
 
 	local items = {}
-	local function push(label, content)
-		if content ~= nil and content ~= '' then
-			table.insert(items, { label = label, content = content })
-		end
-	end
 
 	-- Slash and stab usually match; collapse to one Damage row when they do.
 	local slash = modeDamage(b, 'BladeSlash')
 	local stab = modeDamage(b, 'BladeStab')
 	if slash ~= nil and slash == stab then
-		push('Damage', format.formatNum(slash))
+		sectionBuilder.push(items, 'Damage', format.formatNum(slash))
 	else
-		push('Slash damage', format.formatNum(slash))
-		push('Stab damage', format.formatNum(stab))
+		sectionBuilder.push(items, 'Slash damage', format.formatNum(slash))
+		sectionBuilder.push(items, 'Stab damage', format.formatNum(stab))
 	end
-	push('Takedown', yesNo(b.can_be_used_for_take_down))
+	sectionBuilder.push(items, 'Takedown', yesNo(b.can_be_used_for_take_down))
 
-	if #items == 0 then
-		return {}
-	end
-	return { { key = 'melee', label = 'Melee', collapsible = true, items = items } }
+	return sectionBuilder.build(
+		sectionBuilder.section({ key = 'melee', label = 'Melee', collapsible = true, items = items })
+	)
 end
 
 --- @param apiData table

@@ -16,22 +16,12 @@ require('strict')
 
 local format = require('Module:Entity/Format')
 local item = require('Module:Entity/Item')
+local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
 
 --- @type string
 p.parent = 'Entity/Item'
-
---- Appends a label/content pair only when content is non-empty.
----
---- @param items table[]
---- @param label string
---- @param content string|nil
-local function pushItem(items, label, content)
-	if content ~= nil and content ~= '' then
-		table.insert(items, { label = label, content = content })
-	end
-end
 
 --- Normalizes the API's lock signal type to a readable label by splitting
 --- CamelCase: "CrossSection" -> "Cross Section". Single-word values
@@ -80,29 +70,27 @@ function p.getSections(apiData, args)
 	local flight = type(missile.flight) == 'table' and missile.flight or {}
 
 	local items = {}
-	pushItem(items, 'Signal type', signalLabel(missile.signal_type))
-	pushItem(items, 'Damage', format.formatNum(missile.damage_total))
-	pushItem(items, 'Explosion radius', rangeStr(missile.explosion_radius_min, missile.explosion_radius_max, 'm'))
-	pushItem(items, 'Lock time', missile.lock_time and (format.formatNum(missile.lock_time) .. ' s'))
-	pushItem(items, 'Lock range', rangeStr(missile.lock_range_min, missile.lock_range_max, 'm'))
-	pushItem(items, 'Lock angle', missile.lock_angle and (format.formatNum(missile.lock_angle) .. '°'))
-	pushItem(items, 'Speed', missile.speed and (format.formatNum(missile.speed) .. ' m/s'))
-	pushItem(items, 'Range', flight.range and (format.formatNum(flight.range) .. ' m'))
-
-	if #items == 0 then
-		return {}
-	end
+	sectionBuilder.push(items, 'Signal type', signalLabel(missile.signal_type))
+	sectionBuilder.push(items, 'Damage', format.formatNum(missile.damage_total))
+	sectionBuilder.push(
+		items,
+		'Explosion radius',
+		rangeStr(missile.explosion_radius_min, missile.explosion_radius_max, 'm')
+	)
+	sectionBuilder.push(items, 'Lock time', missile.lock_time and (format.formatNum(missile.lock_time) .. ' s'))
+	sectionBuilder.push(items, 'Lock range', rangeStr(missile.lock_range_min, missile.lock_range_max, 'm'))
+	sectionBuilder.push(items, 'Lock angle', missile.lock_angle and (format.formatNum(missile.lock_angle) .. '°'))
+	sectionBuilder.push(items, 'Speed', missile.speed and (format.formatNum(missile.speed) .. ' m/s'))
+	sectionBuilder.push(items, 'Range', flight.range and (format.formatNum(flight.range) .. ' m'))
 
 	-- Torpedoes (sub_type "Torpedo") share this block; label the stat group with
 	-- the player-facing ordnance kind.
 	local label = apiData.sub_type == 'Torpedo' and 'Torpedo' or 'Missile'
-	return {
-		{
-			key = 'missile',
-			label = label,
-			items = items,
-		},
-	}
+	return sectionBuilder.build(sectionBuilder.section({
+		key = 'missile',
+		label = label,
+		items = items,
+	}))
 end
 
 --- Short description surfaces the lock signal type as the missile's specific

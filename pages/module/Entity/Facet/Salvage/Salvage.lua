@@ -15,6 +15,7 @@ require('strict')
 --- facet's stats append below it (chain sections precede facets in the merge).
 
 local format = require('Module:Entity/Format')
+local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
 
@@ -101,28 +102,27 @@ local function salvageItems(mode)
 	if type(mode) ~= 'table' then
 		return items
 	end
-	local function push(label, content)
-		if content ~= nil and content ~= '' then
-			table.insert(items, { label = label, content = content })
-		end
-	end
 
-	push('Material efficiency', percent(mode.material_efficiency))
-	push('Health repair rate', formatStat(mode.max_health_repair_rate))
-	push('Damage repair rate', formatStat(mode.max_damage_map_repair_rate))
-	push('Health-to-ammo ratio', formatStat(mode.health_to_ammo_ratio))
+	sectionBuilder.push(items, 'Material efficiency', percent(mode.material_efficiency))
+	sectionBuilder.push(items, 'Health repair rate', formatStat(mode.max_health_repair_rate))
+	sectionBuilder.push(items, 'Damage repair rate', formatStat(mode.max_damage_map_repair_rate))
+	sectionBuilder.push(items, 'Health-to-ammo ratio', formatStat(mode.health_to_ammo_ratio))
 
 	local rampUp = tonumber(mode.ramp_up_time)
 	local rampDown = tonumber(mode.ramp_down_time)
 	if rampUp and rampDown then
-		push('Ramp up / down', format.formatNum(rampUp) .. ' s / ' .. format.formatNum(rampDown) .. ' s')
+		sectionBuilder.push(
+			items,
+			'Ramp up / down',
+			format.formatNum(rampUp) .. ' s / ' .. format.formatNum(rampDown) .. ' s'
+		)
 	else
-		push('Ramp up', formatStat(mode.ramp_up_time, ' s'))
-		push('Ramp down', formatStat(mode.ramp_down_time, ' s'))
+		sectionBuilder.push(items, 'Ramp up', formatStat(mode.ramp_up_time, ' s'))
+		sectionBuilder.push(items, 'Ramp down', formatStat(mode.ramp_down_time, ' s'))
 	end
 
-	push('Max vehicle damage', percent(mode.max_vehicle_damage_ratio))
-	push('Repaired material', percent(mode.repaired_material_ratio))
+	sectionBuilder.push(items, 'Max vehicle damage', percent(mode.max_vehicle_damage_ratio))
+	sectionBuilder.push(items, 'Repaired material', percent(mode.repaired_material_ratio))
 	return items
 end
 
@@ -139,17 +139,12 @@ end
 --- @return table[] Ordered list of section entries with key field
 function p.getSections(apiData, args)
 	local items = salvageItems(salvageModeOf(apiData))
-	if #items == 0 then
-		return {}
-	end
-	return {
-		{
-			key = 'salvage',
-			label = 'Salvage',
-			collapsible = true,
-			items = items,
-		},
-	}
+	return sectionBuilder.build(sectionBuilder.section({
+		key = 'salvage',
+		label = 'Salvage',
+		collapsible = true,
+		items = items,
+	}))
 end
 
 --- Structured data for the Salvage mode. Property names are shared across every

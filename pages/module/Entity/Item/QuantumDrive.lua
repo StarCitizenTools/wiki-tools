@@ -8,6 +8,7 @@ require('strict')
 --- the fuel requirement.
 
 local format = require('Module:Entity/Format')
+local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
 
@@ -44,28 +45,21 @@ function p.getSections(apiData, args)
 	local jump = type(qd.standard_jump) == 'table' and qd.standard_jump or {}
 
 	local items = {}
-	local function push(label, content)
-		if content ~= nil and content ~= '' then
-			table.insert(items, { label = label, content = content })
-		end
-	end
 
-	push('Quantum speed', speedDisplay(jump))
-	push('Spool time', jump.spool_up_time and (format.formatNum(jump.spool_up_time) .. ' s'))
-	push('Cooldown', jump.cooldown_time and (format.formatNum(jump.cooldown_time) .. ' s'))
-	push('Fuel requirement', qd.quantum_fuel_requirement and format.formatNum(qd.quantum_fuel_requirement))
+	sectionBuilder.push(items, 'Quantum speed', speedDisplay(jump))
+	sectionBuilder.push(items, 'Spool time', jump.spool_up_time and (format.formatNum(jump.spool_up_time) .. ' s'))
+	sectionBuilder.push(items, 'Cooldown', jump.cooldown_time and (format.formatNum(jump.cooldown_time) .. ' s'))
+	sectionBuilder.push(
+		items,
+		'Fuel requirement',
+		qd.quantum_fuel_requirement and format.formatNum(qd.quantum_fuel_requirement)
+	)
 
-	if #items == 0 then
-		return {}
-	end
-
-	return {
-		{
-			key = 'quantum_drive',
-			label = 'Quantum drive',
-			items = items,
-		},
-	}
+	return sectionBuilder.build(sectionBuilder.section({
+		key = 'quantum_drive',
+		label = 'Quantum drive',
+		items = items,
+	}))
 end
 
 --- @param apiData table

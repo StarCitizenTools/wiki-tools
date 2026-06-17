@@ -12,22 +12,12 @@ require('strict')
 
 local format = require('Module:Entity/Format')
 local item = require('Module:Entity/Item')
+local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
 
 --- @type string
 p.parent = 'Entity/Item'
-
---- Appends a label/content pair only when content is non-empty.
----
---- @param items table[]
---- @param label string
---- @param content string|nil
-local function pushItem(items, label, content)
-	if content ~= nil and content ~= '' then
-		table.insert(items, { label = label, content = content })
-	end
-end
 
 --- Title-cases a snake_case modifier key: "laser_instability" -> "Laser instability".
 ---
@@ -98,15 +88,15 @@ function p.getSections(apiData, args)
 	local pmin = toNumber(lp.min) or toNumber(lp.minimum)
 	local pmax = toNumber(lp.max) or toNumber(lp.maximum)
 	if pmin and pmax then
-		pushItem(items, 'Mining power', format.formatNum(pmin) .. ' – ' .. format.formatNum(pmax))
+		sectionBuilder.push(items, 'Mining power', format.formatNum(pmin) .. ' – ' .. format.formatNum(pmax))
 	elseif pmax then
-		pushItem(items, 'Mining power', format.formatNum(pmax))
+		sectionBuilder.push(items, 'Mining power', format.formatNum(pmax))
 	end
 
-	pushItem(items, 'Module slots', formatStat(ml.module_slots))
-	pushItem(items, 'Optimal range', formatStat(ml.optimal_range, ' m'))
-	pushItem(items, 'Maximum range', formatStat(ml.maximum_range, ' m'))
-	pushItem(items, 'Extraction rate', formatStat(ml.extraction_throughput))
+	sectionBuilder.push(items, 'Module slots', formatStat(ml.module_slots))
+	sectionBuilder.push(items, 'Optimal range', formatStat(ml.optimal_range, ' m'))
+	sectionBuilder.push(items, 'Maximum range', formatStat(ml.maximum_range, ' m'))
+	sectionBuilder.push(items, 'Extraction rate', formatStat(ml.extraction_throughput))
 
 	-- Built-in modifier_map effects vary per head; render each, sorted for a stable order.
 	local map = type(ml.modifier_map) == 'table' and ml.modifier_map or {}
@@ -116,20 +106,14 @@ function p.getSections(apiData, args)
 	end
 	table.sort(keys)
 	for _, k in ipairs(keys) do
-		pushItem(items, titleCase(k), signedPct(map[k]))
+		sectionBuilder.push(items, titleCase(k), signedPct(map[k]))
 	end
 
-	if #items == 0 then
-		return {}
-	end
-
-	return {
-		{
-			key = 'mining_laser',
-			label = 'Mining laser',
-			items = items,
-		},
-	}
+	return sectionBuilder.build(sectionBuilder.section({
+		key = 'mining_laser',
+		label = 'Mining laser',
+		items = items,
+	}))
 end
 
 --- Short description prepends the mount size — "S1 mining laser head by Greycat

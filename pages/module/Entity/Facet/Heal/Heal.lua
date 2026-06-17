@@ -12,6 +12,7 @@ require('strict')
 --- healing-beam mode is taken since the rendered figures match.
 
 local format = require('Module:Entity/Format')
+local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
 
@@ -87,28 +88,17 @@ function p.getSections(apiData, args)
 	end
 
 	local items = {}
-	local function push(label, content)
-		if content ~= nil and content ~= '' then
-			table.insert(items, { label = label, content = content })
-		end
-	end
 
-	push('Healing rate', withUnit(heal.healing_per_second, '/s'))
-	push('Range', withUnit(heal.max_distance, ' m'))
-	push('Sensor range', withUnit(heal.max_sensor_distance, ' m'))
+	sectionBuilder.push(items, 'Healing rate', withUnit(heal.healing_per_second, '/s'))
+	sectionBuilder.push(items, 'Range', withUnit(heal.max_distance, ' m'))
+	sectionBuilder.push(items, 'Sensor range', withUnit(heal.max_sensor_distance, ' m'))
 
-	if #items == 0 then
-		return {}
-	end
-
-	return {
-		{
-			key = 'heal',
-			label = 'Healing',
-			collapsible = true,
-			items = items,
-		},
-	}
+	return sectionBuilder.build(sectionBuilder.section({
+		key = 'heal',
+		label = 'Healing',
+		collapsible = true,
+		items = items,
+	}))
 end
 
 -- Test-only exports. Not part of the public API.

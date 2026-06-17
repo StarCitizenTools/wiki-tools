@@ -8,6 +8,7 @@ require('strict')
 --- leaving them as plain items.
 
 local format = require('Module:Entity/Format')
+local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
 
@@ -50,22 +51,20 @@ function p.getSections(apiData, args)
 	local aoe = type(g.aoe) == 'table' and g.aoe or {}
 
 	local items = {}
-	local function push(label, content)
-		if content ~= nil and content ~= '' then
-			table.insert(items, { label = label, content = content })
-		end
-	end
 
-	push('Damage type', type(g.damage_type) == 'string' and g.damage_type ~= '' and g.damage_type or nil)
-	push('Damage', format.formatNum(g.damage))
+	sectionBuilder.push(
+		items,
+		'Damage type',
+		type(g.damage_type) == 'string' and g.damage_type ~= '' and g.damage_type or nil
+	)
+	sectionBuilder.push(items, 'Damage', format.formatNum(g.damage))
 	local rMin = aoe.min ~= nil and aoe.min or aoe.minimum
 	local rMax = aoe.max ~= nil and aoe.max or aoe.maximum
-	push('Blast radius', rangeStr(rMin, rMax, 'm'))
+	sectionBuilder.push(items, 'Blast radius', rangeStr(rMin, rMax, 'm'))
 
-	if #items == 0 then
-		return {}
-	end
-	return { { key = 'grenade', label = 'Grenade', collapsible = true, items = items } }
+	return sectionBuilder.build(
+		sectionBuilder.section({ key = 'grenade', label = 'Grenade', collapsible = true, items = items })
+	)
 end
 
 --- @param apiData table

@@ -14,6 +14,7 @@ require('strict')
 --- nothing.
 
 local format = require('Module:Entity/Format')
+local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
 
@@ -45,35 +46,24 @@ function p.getSections(apiData, args)
 	local ammunition = type(pw.ammunition) == 'table' and pw.ammunition or {}
 
 	local overview = {}
-	local function push(label, content)
-		if content ~= nil and content ~= '' then
-			table.insert(overview, { label = label, content = content })
-		end
-	end
-	push('Type', type(pw.type) == 'string' and pw.type ~= '' and pw.type or nil)
+	sectionBuilder.push(overview, 'Type', type(pw.type) == 'string' and pw.type ~= '' and pw.type or nil)
 	-- `range` (the API's non-deprecated field; `effective_range` is deprecated).
 	-- Skip it when a tractor_beam block is present: the Beam facet renders the
 	-- authoritative beam range, so the gadget overview would just duplicate it.
 	if type(apiData.tractor_beam) ~= 'table' then
-		push('Range', withUnit(pw.range, ' m'))
+		sectionBuilder.push(overview, 'Range', withUnit(pw.range, ' m'))
 	end
 	local capacity = tonumber(ammunition.capacity)
 	if capacity and capacity > 0 then
-		push('Capacity', format.formatNum(capacity))
+		sectionBuilder.push(overview, 'Capacity', format.formatNum(capacity))
 	end
 
-	if #overview == 0 then
-		return {}
-	end
-
-	return {
-		{
-			key = 'gadget',
-			label = 'Gadget',
-			collapsible = true,
-			items = overview,
-		},
-	}
+	return sectionBuilder.build(sectionBuilder.section({
+		key = 'gadget',
+		label = 'Gadget',
+		collapsible = true,
+		items = overview,
+	}))
 end
 
 --- @param apiData table

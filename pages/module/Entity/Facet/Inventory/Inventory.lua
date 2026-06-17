@@ -7,6 +7,7 @@ require('strict')
 --- `inventory` block, regardless of kind.
 
 local format = require('Module:Entity/Format')
+local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
 
@@ -43,16 +44,14 @@ function p.getSections(apiData, args)
 		return {}
 	end
 
-	return {
-		{
-			key = 'inventory',
-			label = 'Storage',
-			collapsible = true,
-			items = {
-				{ label = 'Storage capacity', content = format.formatNum(capacity) .. ' µSCU' },
-			},
-		},
-	}
+	local items = {}
+	sectionBuilder.push(items, 'Storage capacity', format.formatNum(capacity) .. ' µSCU')
+	return sectionBuilder.build(sectionBuilder.section({
+		key = 'inventory',
+		label = 'Storage',
+		collapsible = true,
+		items = items,
+	}))
 end
 
 --- @param apiData table

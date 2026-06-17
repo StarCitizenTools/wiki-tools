@@ -2,3 +2,6 @@
 docs/superpowers
 .playwright-cli
 .superpowers/
+
+# Scribunto lualib cache fetched by scribuntounit-fetch (see scribuntounit.config.lua)
+.scribuntounit/

@@ -1,0 +1,3 @@
+# Vendored dkjson (used by the JSON manifest checks) — exclude from GitHub's
+# language stats and collapse it in diffs.
+tests/vendor/** linguist-vendored linguist-generated

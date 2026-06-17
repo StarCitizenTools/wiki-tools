@@ -1,0 +1,2 @@
+# Vendored dkjson. Kept verbatim so diffs against upstream are clean. Do NOT reformat.
+tests/vendor/

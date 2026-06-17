@@ -1,0 +1,5 @@
+<includeonly><!--
+-->{{#invoke:IconText|main}}<!--
+--></includeonly><noinclude>
+{{/doc}}
+</noinclude>

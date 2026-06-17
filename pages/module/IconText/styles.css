@@ -1,0 +1,9 @@
+.t-icon-text {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.t-icon-text__icon {
+	user-select: none;
+}

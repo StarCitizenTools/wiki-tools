@@ -9,6 +9,7 @@ require('strict')
 --- pitch. There is no durability block, so no Component facet fires.
 
 local format = require('Module:Entity/Format')
+local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
 
@@ -46,31 +47,20 @@ function p.getSections(apiData, args)
 	end
 
 	local items = {}
-	local function push(label, content)
-		if content ~= nil and content ~= '' then
-			table.insert(items, { label = label, content = content })
-		end
-	end
 
 	-- Forward boost is the SCM speed's "boosted" counterpart, so it rides in the
 	-- SCM row's parenthetical rather than getting a row of its own.
-	push('SCM speed', baseBoost(fc.scm_speed, fc.boost_speed_forward, 'm/s'))
-	push('Max speed', fc.max_speed and (format.formatNum(fc.max_speed) .. ' m/s'))
-	push('Pitch', baseBoost(fc.pitch, fc.pitch_boosted, '°/s'))
-	push('Yaw', baseBoost(fc.yaw, fc.yaw_boosted, '°/s'))
-	push('Roll', baseBoost(fc.roll, fc.roll_boosted, '°/s'))
+	sectionBuilder.push(items, 'SCM speed', baseBoost(fc.scm_speed, fc.boost_speed_forward, 'm/s'))
+	sectionBuilder.push(items, 'Max speed', fc.max_speed and (format.formatNum(fc.max_speed) .. ' m/s'))
+	sectionBuilder.push(items, 'Pitch', baseBoost(fc.pitch, fc.pitch_boosted, '°/s'))
+	sectionBuilder.push(items, 'Yaw', baseBoost(fc.yaw, fc.yaw_boosted, '°/s'))
+	sectionBuilder.push(items, 'Roll', baseBoost(fc.roll, fc.roll_boosted, '°/s'))
 
-	if #items == 0 then
-		return {}
-	end
-
-	return {
-		{
-			key = 'flight_controller',
-			label = 'Flight performance',
-			items = items,
-		},
-	}
+	return sectionBuilder.build(sectionBuilder.section({
+		key = 'flight_controller',
+		label = 'Flight performance',
+		items = items,
+	}))
 end
 
 --- @param apiData table

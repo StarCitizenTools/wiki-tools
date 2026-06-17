@@ -13,19 +13,9 @@ require('strict')
 --- that used to live in the MiningModule subtype.
 
 local format = require('Module:Entity/Format')
+local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
-
---- Appends a label/content pair only when content is non-empty.
----
---- @param items table[]
---- @param label string
---- @param content string|nil
-local function pushItem(items, label, content)
-	if content ~= nil and content ~= '' then
-		table.insert(items, { label = label, content = content })
-	end
-end
 
 --- Title-cases a snake_case modifier key: "shatter_damage" -> "Shatter damage".
 ---
@@ -87,21 +77,21 @@ function p.getSections(apiData, args)
 	end
 
 	local items = {}
-	pushItem(items, 'Type', m.type)
+	sectionBuilder.push(items, 'Type', m.type)
 	-- power_modifier is a 0-1 fraction (×100 for %); it can be null on passive
 	-- modules, so coerce first and skip when absent. It is a signed bonus/penalty
 	-- about a 0 baseline (more laser power is good), so colour it green/red by sign.
 	local power = toNumber(m.power_modifier)
 	if power ~= nil then
-		pushItem(items, 'Power', format.colorBySign(signedPct(power * 100), power))
+		sectionBuilder.push(items, 'Power', format.colorBySign(signedPct(power * 100), power))
 	end
 	local charges = tonumber(m.charges)
 	if charges and charges > 0 then
-		pushItem(items, 'Charges', format.formatNum(charges))
+		sectionBuilder.push(items, 'Charges', format.formatNum(charges))
 	end
 	local duration = tonumber(m.duration)
 	if duration and duration > 0 then
-		pushItem(items, 'Duration', format.formatNum(duration) .. ' s')
+		sectionBuilder.push(items, 'Duration', format.formatNum(duration) .. ' s')
 	end
 
 	-- The modifier_map effects vary per item; render each, sorted for a stable order.
@@ -112,21 +102,15 @@ function p.getSections(apiData, args)
 	end
 	table.sort(keys)
 	for _, k in ipairs(keys) do
-		pushItem(items, titleCase(k), signedPct(map[k]))
+		sectionBuilder.push(items, titleCase(k), signedPct(map[k]))
 	end
 
-	if #items == 0 then
-		return {}
-	end
-
-	return {
-		{
-			key = 'mining',
-			label = 'Mining',
-			collapsible = true,
-			items = items,
-		},
-	}
+	return sectionBuilder.build(sectionBuilder.section({
+		key = 'mining',
+		label = 'Mining',
+		collapsible = true,
+		items = items,
+	}))
 end
 
 --- Mining facets for querying / the type index table: the module type, the power

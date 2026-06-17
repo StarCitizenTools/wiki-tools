@@ -13,6 +13,7 @@ require('strict')
 --- `personal_weapon`), so the facet stays scoped to attachments + the rangefinder.
 
 local format = require('Module:Entity/Format')
+local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
 
@@ -131,37 +132,39 @@ function p.getSections(apiData, args)
 	local recoil = type(wm.recoil) == 'table' and wm.recoil or {}
 
 	local items = {}
-	local function push(label, content)
-		if content ~= nil and content ~= '' then
-			table.insert(items, { label = label, content = content })
-		end
-	end
 
 	-- Magnification is a spec figure, not a buff/nerf, so it is left uncoloured.
 	-- Every other row is a multiplier coloured green/red by its good direction:
 	-- more damage / fire rate / speed / recovery is good; less recoil / spread /
 	-- heat / ammo cost / sound / charge / ADS time is good.
-	push('Magnification', magnification(wm.aim))
-	push('Fire rate', coloredMult(wm.fire_rate_multiplier, 'higher'))
-	push('Damage', coloredMult(wm.damage_multiplier, 'higher'))
-	push('Damage over time', coloredMult(wm.damage_over_time_multiplier, 'higher'))
-	push('Projectile speed', coloredMult(wm.projectile_speed_multiplier, 'higher'))
-	push('Ammo cost', coloredMult(wm.ammo_cost_multiplier, 'lower'))
-	push('Heat generation', coloredMult(wm.heat_generation_multiplier, 'lower'))
-	push('Sound radius', coloredMult(wm.sound_radius_multiplier, 'lower'))
-	push('Charge time', coloredMult(wm.charge_time_multiplier, 'lower'))
+	sectionBuilder.push(items, 'Magnification', magnification(wm.aim))
+	sectionBuilder.push(items, 'Fire rate', coloredMult(wm.fire_rate_multiplier, 'higher'))
+	sectionBuilder.push(items, 'Damage', coloredMult(wm.damage_multiplier, 'higher'))
+	sectionBuilder.push(items, 'Damage over time', coloredMult(wm.damage_over_time_multiplier, 'higher'))
+	sectionBuilder.push(items, 'Projectile speed', coloredMult(wm.projectile_speed_multiplier, 'higher'))
+	sectionBuilder.push(items, 'Ammo cost', coloredMult(wm.ammo_cost_multiplier, 'lower'))
+	sectionBuilder.push(items, 'Heat generation', coloredMult(wm.heat_generation_multiplier, 'lower'))
+	sectionBuilder.push(items, 'Sound radius', coloredMult(wm.sound_radius_multiplier, 'lower'))
+	sectionBuilder.push(items, 'Charge time', coloredMult(wm.charge_time_multiplier, 'lower'))
 	-- Nested handling sub-tables — the player-meaningful effect of barrels.
-	push('Recoil', coloredMult(recoil.multiplier, 'lower'))
-	push('Recoil recovery', coloredMult(recoil.decay_multiplier, 'higher'))
-	push('Spread', coloredSpread(wm.spread))
-	push('Spread recovery', coloredMult(type(wm.spread) == 'table' and wm.spread.decay_multiplier or nil, 'higher'))
+	sectionBuilder.push(items, 'Recoil', coloredMult(recoil.multiplier, 'lower'))
+	sectionBuilder.push(items, 'Recoil recovery', coloredMult(recoil.decay_multiplier, 'higher'))
+	sectionBuilder.push(items, 'Spread', coloredSpread(wm.spread))
+	sectionBuilder.push(
+		items,
+		'Spread recovery',
+		coloredMult(type(wm.spread) == 'table' and wm.spread.decay_multiplier or nil, 'higher')
+	)
 	-- ADS speed penalty/bonus (compensators slow the aim-down-sights transition).
-	push('ADS time', coloredMult(type(wm.aim) == 'table' and wm.aim.zoom_time_scale or nil, 'lower'))
+	sectionBuilder.push(
+		items,
+		'ADS time',
+		coloredMult(type(wm.aim) == 'table' and wm.aim.zoom_time_scale or nil, 'lower')
+	)
 
-	if #items == 0 then
-		return {}
-	end
-	return { { key = 'weapon_modifier', label = 'Modifier', collapsible = true, items = items } }
+	return sectionBuilder.build(
+		sectionBuilder.section({ key = 'weapon_modifier', label = 'Modifier', collapsible = true, items = items })
+	)
 end
 
 --- @param apiData table

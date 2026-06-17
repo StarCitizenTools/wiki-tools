@@ -8,6 +8,7 @@ require('strict')
 --- sensitivity, cooldown, and the aim-assist range.
 
 local format = require('Module:Entity/Format')
+local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
 
@@ -38,30 +39,23 @@ function p.getSections(apiData, args)
 	local aim = type(radar.aim_assist) == 'table' and radar.aim_assist or {}
 
 	local items = {}
-	local function push(label, content)
-		if content ~= nil and content ~= '' then
-			table.insert(items, { label = label, content = content })
-		end
-	end
 
 	-- IR / cross-section / electromagnetic share one signature-sensitivity
 	-- rating; infrared is representative.
-	push('Sensitivity', pct(sensitivity.infrared))
-	push('Resource sensitivity', pct(sensitivity.resource))
-	push('Cooldown', radar.cooldown and (format.formatNum(radar.cooldown) .. ' s'))
-	push('Aim assist range', aim.distance_max_assignment and (format.formatNum(aim.distance_max_assignment) .. ' m'))
+	sectionBuilder.push(items, 'Sensitivity', pct(sensitivity.infrared))
+	sectionBuilder.push(items, 'Resource sensitivity', pct(sensitivity.resource))
+	sectionBuilder.push(items, 'Cooldown', radar.cooldown and (format.formatNum(radar.cooldown) .. ' s'))
+	sectionBuilder.push(
+		items,
+		'Aim assist range',
+		aim.distance_max_assignment and (format.formatNum(aim.distance_max_assignment) .. ' m')
+	)
 
-	if #items == 0 then
-		return {}
-	end
-
-	return {
-		{
-			key = 'radar',
-			label = 'Radar',
-			items = items,
-		},
-	}
+	return sectionBuilder.build(sectionBuilder.section({
+		key = 'radar',
+		label = 'Radar',
+		items = items,
+	}))
 end
 
 --- @param apiData table

@@ -11,6 +11,7 @@ require('strict')
 --- zero `max_ammo_count`, so the Capacity row is suppressed when it is 0/absent.
 
 local format = require('Module:Entity/Format')
+local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
 
@@ -92,35 +93,24 @@ function p.getSections(apiData, args)
 	local ammo = type(apiData.ammunition) == 'table' and apiData.ammunition or {}
 
 	local items = {}
-	local function push(label, content)
-		if content ~= nil and content ~= '' then
-			table.insert(items, { label = label, content = content })
-		end
-	end
 
 	local capacity = tonumber(mag.max_ammo_count)
 	if capacity and capacity > 0 then
-		push('Capacity', format.formatNum(capacity))
+		sectionBuilder.push(items, 'Capacity', format.formatNum(capacity))
 	end
-	push('Velocity', withUnit(ammo.speed, ' m/s'))
-	push('Range', withUnit(ammo.range, ' m'))
+	sectionBuilder.push(items, 'Velocity', withUnit(ammo.speed, ' m/s'))
+	sectionBuilder.push(items, 'Range', withUnit(ammo.range, ' m'))
 	-- Ballistic/energy rounds carry impact_damage_map; missiles carry
 	-- detonation_damage_map (+ an explosion radius).
-	push('Damage', damageString(ammo.impact_damage_map or ammo.detonation_damage_map))
-	push('Explosion radius', explosionRadius(ammo.explosion_radius))
+	sectionBuilder.push(items, 'Damage', damageString(ammo.impact_damage_map or ammo.detonation_damage_map))
+	sectionBuilder.push(items, 'Explosion radius', explosionRadius(ammo.explosion_radius))
 
-	if #items == 0 then
-		return {}
-	end
-
-	return {
-		{
-			key = 'magazine',
-			label = 'Magazine',
-			collapsible = true,
-			items = items,
-		},
-	}
+	return sectionBuilder.build(sectionBuilder.section({
+		key = 'magazine',
+		label = 'Magazine',
+		collapsible = true,
+		items = items,
+	}))
 end
 
 --- Magazine facets for the Magazines index table: capacity + ammo velocity /

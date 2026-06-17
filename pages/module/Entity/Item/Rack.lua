@@ -11,6 +11,7 @@ require('strict')
 
 local format = require('Module:Entity/Format')
 local item = require('Module:Entity/Item')
+local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
 
@@ -46,13 +47,13 @@ function p.getSections(apiData, args)
 		value = value .. ' × S' .. format.formatNum(size)
 	end
 	local label = apiData.type == 'BombLauncher' and 'Bomb launcher' or 'Missile rack'
-	return {
-		{
-			key = 'rack',
-			label = label,
-			items = { { label = 'Capacity', content = value } },
-		},
-	}
+	local items = {}
+	sectionBuilder.push(items, 'Capacity', value)
+	return sectionBuilder.build(sectionBuilder.section({
+		key = 'rack',
+		label = label,
+		items = items,
+	}))
 end
 
 --- Short description prepends the mount size — "S1 missile rack by Behring" —

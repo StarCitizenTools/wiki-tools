@@ -8,6 +8,7 @@ require('strict')
 --- with a `hacking_chip` block.
 
 local format = require('Module:Entity/Format')
+local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
 
@@ -39,35 +40,24 @@ function p.getSections(apiData, args)
 	end
 
 	local items = {}
-	local function push(label, content)
-		if content ~= nil and content ~= '' then
-			table.insert(items, { label = label, content = content })
-		end
-	end
 
 	local charges = tonumber(h.max_charges)
 	if charges and charges > 0 then
-		push('Charges', format.formatNum(charges))
+		sectionBuilder.push(items, 'Charges', format.formatNum(charges))
 	end
 	-- duration_multiplier: below 1 hacks faster, so lower is better — green below ×1.
 	local dur = tonumber(h.duration_multiplier)
 	if dur ~= nil and dur ~= 1 then
-		push('Hack time', format.colorByDirection('×' .. format.formatNum(dur), dur, 1, 'lower'))
+		sectionBuilder.push(items, 'Hack time', format.colorByDirection('×' .. format.formatNum(dur), dur, 1, 'lower'))
 	end
-	push('Error chance', percent(h.error_chance))
+	sectionBuilder.push(items, 'Error chance', percent(h.error_chance))
 
-	if #items == 0 then
-		return {}
-	end
-
-	return {
-		{
-			key = 'hacking',
-			label = 'Hacking',
-			collapsible = true,
-			items = items,
-		},
-	}
+	return sectionBuilder.build(sectionBuilder.section({
+		key = 'hacking',
+		label = 'Hacking',
+		collapsible = true,
+		items = items,
+	}))
 end
 
 --- @param apiData table

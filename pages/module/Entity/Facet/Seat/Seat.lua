@@ -10,6 +10,7 @@ require('strict')
 --- Turret subtype).
 
 local format = require('Module:Entity/Format')
+local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
 
@@ -56,30 +57,19 @@ function p.getSections(apiData, args)
 	end
 
 	local items = {}
-	local function push(label, content)
-		if content ~= nil and content ~= '' then
-			table.insert(items, { label = label, content = content })
-		end
-	end
 
-	push('Yaw', formatRange(seat.yaw))
-	push('Pitch', formatRange(seat.pitch))
+	sectionBuilder.push(items, 'Yaw', formatRange(seat.yaw))
+	sectionBuilder.push(items, 'Pitch', formatRange(seat.pitch))
 	if type(seat.has_ejection) == 'boolean' then
-		push('Ejection seat', seat.has_ejection and 'Yes' or 'No')
+		sectionBuilder.push(items, 'Ejection seat', seat.has_ejection and 'Yes' or 'No')
 	end
 
-	if #items == 0 then
-		return {}
-	end
-
-	return {
-		{
-			key = 'seat',
-			label = 'Seat',
-			collapsible = true,
-			items = items,
-		},
-	}
+	return sectionBuilder.build(sectionBuilder.section({
+		key = 'seat',
+		label = 'Seat',
+		collapsible = true,
+		items = items,
+	}))
 end
 
 --- Seat facets for structured data / query: the yaw / pitch traverse as both a

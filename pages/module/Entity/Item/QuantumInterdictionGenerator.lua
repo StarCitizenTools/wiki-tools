@@ -10,6 +10,7 @@ require('strict')
 
 local format = require('Module:Entity/Format')
 local item = require('Module:Entity/Item')
+local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
 
@@ -72,33 +73,22 @@ function p.getSections(apiData, args)
 	local hasSnare, hasDampener, snareRadius, dampenRange = capabilities(qig)
 
 	local items = {}
-	local function push(label, content)
-		if content ~= nil and content ~= '' then
-			table.insert(items, { label = label, content = content })
-		end
-	end
 
 	local class = deviceClass(hasSnare, hasDampener)
-	push('Mode', class and MODE_DESCRIPTION[class])
+	sectionBuilder.push(items, 'Mode', class and MODE_DESCRIPTION[class])
 	if hasSnare then
-		push('Snare range', format.formatNum(snareRadius) .. ' m')
+		sectionBuilder.push(items, 'Snare range', format.formatNum(snareRadius) .. ' m')
 	end
-	push('Dampener range', dampenRange and (format.formatNum(dampenRange) .. ' m'))
-	push('Charge time', pulse.charge_time and (format.formatNum(pulse.charge_time) .. ' s'))
-	push('Duration', pulse.discharge_time and (format.formatNum(pulse.discharge_time) .. ' s'))
-	push('Cooldown', pulse.cooldown_time and (format.formatNum(pulse.cooldown_time) .. ' s'))
+	sectionBuilder.push(items, 'Dampener range', dampenRange and (format.formatNum(dampenRange) .. ' m'))
+	sectionBuilder.push(items, 'Charge time', pulse.charge_time and (format.formatNum(pulse.charge_time) .. ' s'))
+	sectionBuilder.push(items, 'Duration', pulse.discharge_time and (format.formatNum(pulse.discharge_time) .. ' s'))
+	sectionBuilder.push(items, 'Cooldown', pulse.cooldown_time and (format.formatNum(pulse.cooldown_time) .. ' s'))
 
-	if #items == 0 then
-		return {}
-	end
-
-	return {
-		{
-			key = 'quantum_interdiction_generator',
-			label = 'Quantum interdiction',
-			items = items,
-		},
-	}
+	return sectionBuilder.build(sectionBuilder.section({
+		key = 'quantum_interdiction_generator',
+		label = 'Quantum interdiction',
+		items = items,
+	}))
 end
 
 --- @param apiData table

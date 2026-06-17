@@ -14,6 +14,7 @@ require('strict')
 --- Retaliator-style vehicle modules (type=="Module") route here.
 
 local item = require('Module:Entity/Item')
+local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
 
@@ -94,17 +95,12 @@ function p.getSections(apiData, args)
 	for _, name in ipairs(vehicles) do
 		links[#links + 1] = '[[' .. name .. ']]'
 	end
-	return {
-		{
-			key = 'general',
-			items = {
-				{
-					label = #vehicles > 1 and 'Vehicles' or 'Vehicle',
-					content = table.concat(links, ', '),
-				},
-			},
-		},
-	}
+	local items = {}
+	sectionBuilder.push(items, #vehicles > 1 and 'Vehicles' or 'Vehicle', table.concat(links, ', '))
+	return sectionBuilder.build(sectionBuilder.section({
+		key = 'general',
+		items = items,
+	}))
 end
 
 --- Short description tuned for modules: "Vehicle module for the <vehicle>"

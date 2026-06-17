@@ -8,6 +8,7 @@ require('strict')
 --- owning subtype; this facet renders the common physics so subtypes stay small.
 
 local format = require('Module:Entity/Format')
+local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
 
@@ -67,31 +68,19 @@ function p.getSections(apiData, args)
 	local distortion = apiData.distortion or {}
 
 	local items = {}
-	local function push(label, content)
-		if content ~= nil and content ~= '' then
-			table.insert(items, { label = label, content = content })
-		end
-	end
+	sectionBuilder.push(items, 'Health', durability.health and format.formatNum(durability.health))
+	sectionBuilder.push(items, 'EM signature', emission.em_max and format.formatNum(emission.em_max))
+	sectionBuilder.push(items, 'IR signature', emission.ir and format.formatNum(emission.ir))
+	sectionBuilder.push(items, 'Distortion', distortion.max and format.formatNum(distortion.max))
+	sectionBuilder.push(items, 'Resistance', formatResistance(durability.resistance))
 
-	push('Health', durability.health and format.formatNum(durability.health))
-	push('EM signature', emission.em_max and format.formatNum(emission.em_max))
-	push('IR signature', emission.ir and format.formatNum(emission.ir))
-	push('Distortion', distortion.max and format.formatNum(distortion.max))
-	push('Resistance', formatResistance(durability.resistance))
-
-	if #items == 0 then
-		return {}
-	end
-
-	return {
-		{
-			key = 'component',
-			label = 'Component',
-			collapsible = true,
-			collapsed = true,
-			items = items,
-		},
-	}
+	return sectionBuilder.build(sectionBuilder.section({
+		key = 'component',
+		label = 'Component',
+		collapsible = true,
+		collapsed = true,
+		items = items,
+	}))
 end
 
 --- Common component facets for structured data / browse: health, EM and IR

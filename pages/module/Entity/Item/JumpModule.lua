@@ -8,6 +8,7 @@ require('strict')
 --- usage multiplier.
 
 local format = require('Module:Entity/Format')
+local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
 
@@ -24,30 +25,20 @@ function p.getSections(apiData, args)
 	end
 
 	local items = {}
-	local function push(label, content)
-		if content ~= nil and content ~= '' then
-			table.insert(items, { label = label, content = content })
-		end
-	end
 
-	push('Alignment rate', jump.alignment_rate and format.formatNum(jump.alignment_rate))
-	push('Tuning rate', jump.tuning_rate and format.formatNum(jump.tuning_rate))
-	push(
+	sectionBuilder.push(items, 'Alignment rate', jump.alignment_rate and format.formatNum(jump.alignment_rate))
+	sectionBuilder.push(items, 'Tuning rate', jump.tuning_rate and format.formatNum(jump.tuning_rate))
+	sectionBuilder.push(
+		items,
 		'Fuel usage multiplier',
 		jump.fuel_usage_efficiency_multiplier and (format.formatNum(jump.fuel_usage_efficiency_multiplier) .. '×')
 	)
 
-	if #items == 0 then
-		return {}
-	end
-
-	return {
-		{
-			key = 'jump_module',
-			label = 'Jump module',
-			items = items,
-		},
-	}
+	return sectionBuilder.build(sectionBuilder.section({
+		key = 'jump_module',
+		label = 'Jump module',
+		items = items,
+	}))
 end
 
 --- @param apiData table

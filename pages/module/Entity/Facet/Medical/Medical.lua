@@ -9,6 +9,7 @@ require('strict')
 --- carry a `food` block instead, so the Consumable facet handles those.)
 
 local format = require('Module:Entity/Format')
+local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
 
@@ -73,32 +74,21 @@ function p.getSections(apiData, args)
 	local nutrition = type(m.nutrition) == 'table' and m.nutrition or {}
 
 	local items = {}
-	local function push(label, content)
-		if content ~= nil and content ~= '' then
-			table.insert(items, { label = label, content = content })
-		end
-	end
 
 	local bdl = tonumber(nutrition.blood_drug_level)
 	if bdl ~= nil then
-		push('Blood drug level', format.formatNum(bdl))
+		sectionBuilder.push(items, 'Blood drug level', format.formatNum(bdl))
 	end
-	push('Combat buffs', effectList(m.combat_buffs))
-	push('Impact resistances', effectList(m.impact_resistances))
-	push('Debuffs', effectList(m.debuffs))
+	sectionBuilder.push(items, 'Combat buffs', effectList(m.combat_buffs))
+	sectionBuilder.push(items, 'Impact resistances', effectList(m.impact_resistances))
+	sectionBuilder.push(items, 'Debuffs', effectList(m.debuffs))
 
-	if #items == 0 then
-		return {}
-	end
-
-	return {
-		{
-			key = 'medical',
-			label = 'Medical',
-			collapsible = true,
-			items = items,
-		},
-	}
+	return sectionBuilder.build(sectionBuilder.section({
+		key = 'medical',
+		label = 'Medical',
+		collapsible = true,
+		items = items,
+	}))
 end
 
 --- @param apiData table

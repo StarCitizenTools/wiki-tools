@@ -9,22 +9,12 @@ require('strict')
 
 local format = require('Module:Entity/Format')
 local item = require('Module:Entity/Item')
+local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
 
 --- @type string
 p.parent = 'Entity/Item'
-
---- Appends a label/content pair only when content is non-empty.
----
---- @param items table[]
---- @param label string
---- @param content string|nil
-local function pushItem(items, label, content)
-	if content ~= nil and content ~= '' then
-		table.insert(items, { label = label, content = content })
-	end
-end
 
 --- Formats a min/max numeric pair as "lo–hi unit", collapsing to a single value
 --- when the bounds are equal or only one is present. Returns nil when neither
@@ -79,22 +69,20 @@ function p.getSections(apiData, args)
 	local arm = bomb.arm_time ~= nil and bomb.arm_time or delays.arm_time
 
 	local items = {}
-	pushItem(items, 'Damage', damage and format.formatNum(damage))
-	pushItem(items, 'Explosion radius', rangeStr(rMin, rMax, 'm'))
-	pushItem(items, 'Arm time', arm and (format.formatNum(arm) .. ' s'))
-	pushItem(items, 'Drop angle', bomb.maximum_drop_angle and (format.formatNum(bomb.maximum_drop_angle) .. '°'))
+	sectionBuilder.push(items, 'Damage', damage and format.formatNum(damage))
+	sectionBuilder.push(items, 'Explosion radius', rangeStr(rMin, rMax, 'm'))
+	sectionBuilder.push(items, 'Arm time', arm and (format.formatNum(arm) .. ' s'))
+	sectionBuilder.push(
+		items,
+		'Drop angle',
+		bomb.maximum_drop_angle and (format.formatNum(bomb.maximum_drop_angle) .. '°')
+	)
 
-	if #items == 0 then
-		return {}
-	end
-
-	return {
-		{
-			key = 'bomb',
-			label = 'Bomb',
-			items = items,
-		},
-	}
+	return sectionBuilder.build(sectionBuilder.section({
+		key = 'bomb',
+		label = 'Bomb',
+		items = items,
+	}))
 end
 
 --- Short description prepends the size to the bomb type — "S10 bomb by FireStorm

@@ -7,3 +7,19 @@
 .t-icon-text__icon {
 	user-select: none;
 }
+
+/*
+ * Mask mode: render the icon as a CSS mask filled with currentColor, so it
+ * matches the surrounding text and recolors with it. The file URL is stashed
+ * in --t-icon-text-icon-url inline (a quoted string); it is consumed here via
+ * image-set() + bare var() because the sanitizer rejects url(var()) inline.
+ */
+.t-icon-text__icon--mask {
+	display: inline-block;
+	--t-icon-text-icon-mask: image-set(var(--t-icon-text-icon-url) 1x);
+	mask-image: var(--t-icon-text-icon-mask);
+	mask-size: contain;
+	mask-repeat: no-repeat;
+	mask-position: center;
+	background-color: currentColor;
+}

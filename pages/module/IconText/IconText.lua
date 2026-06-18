@@ -1,5 +1,7 @@
 require('strict')
 
+local yesno = require('Module:Yesno')
+
 local p = {}
 
 --- @param args table
@@ -10,8 +12,20 @@ local function getProps(args)
 		iconTitle = args.iconTitle,
 		text = args.text or args[1],
 		size = args.size or '20px',
+		mask = yesno(args.mask),
 		class = args.class or '',
 	}
+end
+
+--- Resolve the icon's file URL for use as a CSS mask image.
+---
+--- @param icon string
+--- @return string
+local function getIconSrc(icon)
+	return mw.getCurrentFrame():callParserFunction('filepath', {
+		icon,
+		'nowiki',
+	})
 end
 
 --- @param icon string
@@ -26,7 +40,7 @@ local function getIconWikitext(icon, size, iconTitle)
 	return string.format('[[File:%s|%s|link=|class=metadata]]', icon, size)
 end
 
---- Render the icon link
+--- Render the icon text
 ---
 --- @param args table
 --- @return mw.html
@@ -35,7 +49,24 @@ local function getIconTextHtml(args)
 
 	root:addClass('t-icon-text'):addClass(args.class)
 
-	root:tag('span'):addClass('t-icon-text__icon'):wikitext(getIconWikitext(args.icon, args.size, args.iconTitle))
+	local iconSpan = root:tag('span'):addClass('t-icon-text__icon')
+
+	if args.mask then
+		iconSpan:addClass('t-icon-text__icon--mask'):cssText(
+			string.format(
+				'--t-icon-text-icon-url: "%s"; width: %s; height: %s;',
+				getIconSrc(args.icon),
+				args.size,
+				args.size
+			)
+		)
+
+		if args.iconTitle then
+			iconSpan:attr('title', args.iconTitle)
+		end
+	else
+		iconSpan:wikitext(getIconWikitext(args.icon, args.size, args.iconTitle))
+	end
 
 	root:tag('span'):addClass('t-icon-text__text'):wikitext(args.text)
 

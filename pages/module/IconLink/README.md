@@ -45,6 +45,7 @@ local html = iconLink._main( {
 | `link` | `string` | Yes | | Target wiki page. Also accepted as the first positional argument (`args[1]`); the named `link` wins if both are given. |
 | `text` | `string` | No | (the link) | Visible label. Defaults to the link target. |
 | `size` | `string` | No | `20px` | Icon size, as a MediaWiki image size (e.g. `16px`). |
+| `mask` | `boolean` | No | `false` | Render the icon as a recolorable CSS mask (filled with `background-color: currentColor`) instead of an `<img>`, so it matches the linked text color. The masked icon stays linked to the target page. Best with a single-color icon. |
 | `class` | `string` | No | | Extra CSS class appended to the root `<span>`. |
 
 ## Examples
@@ -59,6 +60,12 @@ local html = iconLink._main( {
 
 ```wikitext
 {{#invoke:IconLink|main|link=Stanton system|text=Stanton|icon=CdxIconMapPin.svg|size=16px}}
+```
+
+### Recolorable mask icon
+
+```wikitext
+{{#invoke:IconLink|main|link=Aurora MR|icon=CdxIconArticle.svg|mask=yes}}
 ```
 
 ## Architecture

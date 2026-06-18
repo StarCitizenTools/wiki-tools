@@ -44,6 +44,7 @@ local html = iconText._main( {
 | `text` | `string` | Yes | | Visible label. Also accepted as the first positional argument (`args[1]`); the named `text` wins if both are given. |
 | `iconTitle` | `string` | No | | Tooltip shown when hovering the icon; also used as the icon's `alt` text. When omitted, the icon is purely decorative with no tooltip. |
 | `size` | `string` | No | `20px` | Icon size, as a MediaWiki image size (e.g. `16px`). |
+| `mask` | `boolean` | No | `false` | Render the icon as a recolorable CSS mask (filled with `background-color: currentColor`) instead of an `<img>`, so it matches the surrounding text color. Best with a single-color icon. |
 | `class` | `string` | No | | Extra CSS class appended to the root `<span>`. |
 
 ## Examples
@@ -64,6 +65,12 @@ local html = iconText._main( {
 
 ```wikitext
 {{#invoke:IconText|main|icon=CdxIconClock.svg|text=5 minutes|iconTitle=Estimated time}}
+```
+
+### Recolorable mask icon
+
+```wikitext
+{{#invoke:IconText|main|icon=CdxIconClock.svg|text=5 minutes|mask=yes}}
 ```
 
 ## Architecture

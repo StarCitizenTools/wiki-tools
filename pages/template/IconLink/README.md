@@ -11,6 +11,7 @@ The first positional argument is the target page; `icon` is the file name of the
 | <syntaxhighlight inline lang="wikitext">{{IconLink\|Aurora MR\|icon=CdxIconArticle.svg}}</syntaxhighlight> | {{IconLink\|Aurora MR\|icon=CdxIconArticle.svg}} |
 | <syntaxhighlight inline lang="wikitext">{{IconLink\|Stanton system\|text=Stanton\|icon=CdxIconMapPin.svg}}</syntaxhighlight> | {{IconLink\|Stanton system\|text=Stanton\|icon=CdxIconMapPin.svg}} |
 | <syntaxhighlight inline lang="wikitext">{{IconLink\|Aurora MR\|icon=CdxIconImage.svg\|size=16px}}</syntaxhighlight> | {{IconLink\|Aurora MR\|icon=CdxIconImage.svg\|size=16px}} |
+| <syntaxhighlight inline lang="wikitext">{{IconLink\|Aurora MR\|icon=CdxIconArticle.svg\|mask=yes}}</syntaxhighlight> | {{IconLink\|Aurora MR\|icon=CdxIconArticle.svg\|mask=yes}} |
 
 ## Parameters
 
@@ -20,12 +21,14 @@ The first positional argument is the target page; `icon` is the file name of the
 | `icon` | Icon | wiki-file-name | Yes |  | File name (without the `File:` prefix) of the leading icon. | `CdxIconArticle.svg` |
 | `text` | Text | string | No | (the link target) | Visible label. Defaults to the page name. | `Aurora` |
 | `size` | Icon size | string | No | `20px` | Icon size, as a MediaWiki image size. | `16px` |
+| `mask` | Mask icon | boolean | No | `false` | Render the icon as a recolorable CSS mask filled with the linked text color, instead of an image. | `yes` |
 | `class` | CSS class | string | No |  | Extra class appended to the root span. | `my-icon-link` |
 
 ## Behavior
 
 - The icon and the text sit in a single inline-flex span, so they stay on one line with a small gap and align vertically centered.
 - The icon is rendered with `class=metadata`, which excludes it from MultimediaViewer; clicking it follows the same link as the text.
+- `mask` swaps the `<img>` for a CSS mask filled with `background-color: currentColor`, so the icon takes on the linked text color. The masked icon stays wrapped in the link. Provide a single-color (for example Codex) icon for the best result.
 - `link` is an accepted alias for the first positional argument. If both are supplied, `link` takes precedence.
 - If `icon` is omitted, or if no link is given, the module raises a script error.
 

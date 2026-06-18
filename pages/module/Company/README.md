@@ -26,7 +26,7 @@ The template passes its parameters to the module as `args`. The module emits the
 | `areaserved` | Area served. Display only, not stored to SMW. |
 | `keypeople` | Key people. Semicolon-separated; renders as a list. Display only, not stored to SMW. |
 | `founder` | Founder(s). Semicolon-separated; renders as a list. Wikilinks accepted; link targets stored to SMW. |
-| `founded` | Founding date or year. |
+| `founded` | Founding year (e.g. `2554`). The module renders it via `{{Start date and age}}`; SMW stores the clean year. |
 | `fate` | Fate of the company. Display only, not stored to SMW. |
 | `defunct` | Year or date the company became defunct. Display only, not stored to SMW. |
 | `formerly` | Former name(s). Display only, not stored to SMW. |
@@ -70,8 +70,8 @@ Properties are defined in `Module:Company/properties.json` and written via `mw.s
 | `Products` | Text | `products` | Same transform as Industry. |
 | `Manufacturer code` | Text | (derived from `name`) | Resolved via `p.resolveCode` from Module:Manufacturers. Displayed in the collapsed Metadata section (an identifier, not descriptive content). |
 | `Race` | Text | `race` | Defaults to `Human`. |
-| `Headquarters` | Page | `headquarters` | Every wikilink TARGET in the field (the location pages), separator-agnostic; non-link prose (e.g. a street address) is ignored. |
-| `Founded` | Text | `founded` | |
+| `Headquarters` | Page | `headquarters` | One star system per HQ: the last wikilink of each `;`-separated HQ segment (convention "place, …, system"). |
+| `Founded` | Text | `founded` | The clean year passed by the editor (display is rendered via `{{Start date and age}}`, but SMW stores just the year). |
 | `Founder` | Page | `founder` | Semicolon-split; link targets stored (not display labels). |
 | `Parent company` | Page | `parent` | Link target stored. |
 | `Subsidiaries` | Page | `subsidiaries` | Semicolon-split; link targets stored. |
@@ -80,7 +80,7 @@ Properties are defined in `Module:Company/properties.json` and written via `mw.s
 
 Display-only fields (`areaserved`, `keypeople`, `fate`, `defunct`, `formerly`, `allies`, `rivals`) are intentionally absent from SMW.
 
-**Page-type properties** (`Founder`, `Parent company`, `Subsidiaries`, `Predecessor`, `Successor`) extract the link target from wikilink markup: `[[Target|Label]]` stores `Target`, not `Label`. `Headquarters` (also Page-type) extracts *every* wikilink target in the field, so each city / planet / system becomes a queryable value.
+**Page-type properties** (`Founder`, `Parent company`, `Subsidiaries`, `Predecessor`, `Successor`) extract the link target from wikilink markup: `[[Target|Label]]` stores `Target`, not `Label`. `Headquarters` (also Page-type) stores one star system per HQ — the last wikilink of each `;`-separated segment — so each HQ's system is queryable (the free-form HQ string itself stays the display value).
 
 **Industry and Products** are semicolon-split into individual SMW entries; each item is lcfirst + delinked (the display label is kept). When an item starts with a wikilink, `lcfirst` is a no-op (it sees `[` as the first character).
 

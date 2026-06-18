@@ -97,20 +97,22 @@ function suite:testStructuredFounderTargetsAndTrims()
 	self:assertDeepEquals({ 'Jane Doe', 'John Roe' }, data['Founder'])
 end
 
-function suite:testStructuredHeadquartersExtractsLinks()
-	-- Every wikilink target becomes a Page value, regardless of , / ; punctuation;
-	-- non-link prose (street addresses) is ignored.
+function suite:testStructuredHeadquartersSystemPerHq()
+	-- One system per ';'-separated HQ: the last wikilink of each segment (the
+	-- convention is "place, …, system"). Non-link prose is ignored.
 	local data = company.getStructuredData({
 		headquarters = '332 Yedilin Blvd, [[Nova Kyiv]], [[Terra (planet)|Terra]], [[Terra system|Terra]]; [[MacArthur]], [[Killian]]',
 	})
-	self:assertDeepEquals(
-		{ 'Nova Kyiv', 'Terra (planet)', 'Terra system', 'MacArthur', 'Killian' },
-		data['Headquarters']
-	)
+	self:assertDeepEquals({ 'Terra system', 'Killian' }, data['Headquarters'])
 end
 
 function suite:testStructuredHeadquartersNoLinksOmitted()
 	self:assertEquals(nil, company.getStructuredData({ headquarters = 'Somewhere unlinked' })['Headquarters'])
+end
+
+function suite:testStructuredFoundedStoresCleanYear()
+	-- The editor passes a clean year, so SMW stores the year (not rendered output).
+	self:assertEquals('2554', company.getStructuredData({ founded = '2554' })['Founded'])
 end
 
 function suite:testStructuredRaceDefaultsAndCodeResolves()
@@ -317,6 +319,17 @@ function suite:testHeadquartersListsMultipleHqs()
 	self:assertStringContains('<li', content, true)
 	self:assertStringContains('[[Terra]]', content, true)
 	self:assertStringContains('[[MacArthur]], [[Killian]]', content, true)
+end
+
+-- founded display (clean year -> {{Start date and age}}; other -> as-is)
+function suite:testFoundedDisplayWrapsYear()
+	local sections = company.getContentSections({ founder = '[[X]]', founded = '2554' })
+	self:assertEquals('{{Start date and age|2554|sctime=yes}}', findItem(sections, 'Founded').content)
+end
+
+function suite:testFoundedDisplayPassesThroughNonYear()
+	local sections = company.getContentSections({ founder = '[[X]]', founded = 'Unknown' })
+	self:assertEquals('Unknown', findItem(sections, 'Founded').content)
 end
 
 return suite

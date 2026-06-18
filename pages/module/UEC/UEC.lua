@@ -4,20 +4,27 @@ local iconText = require('Module:IconText')
 
 local p = {}
 
---- Render the UEC text
----
---- @param uecNum number
---- @return string
-local function renderUec(uecNum)
-	local lang = mw.language.getContentLanguage()
+local lang = mw.language.getContentLanguage()
 
-	return iconText._main({
-		icon = 'Sc-icon-uec.svg',
-		iconTitle = 'UEC',
-		text = lang:formatNum(uecNum),
-		class = 't-uec',
-		mask = true,
+--- Render the UEC glyph followed by pre-formatted amount text, with the
+--- module's TemplateStyles attached.
+---
+--- @param amountText string
+--- @return string
+local function renderUec(amountText)
+	local styles = mw.getCurrentFrame():extensionTag({
+		name = 'templatestyles',
+		args = { src = 'Module:UEC/styles.css' },
 	})
+
+	return styles
+		.. iconText._main({
+			icon = 'Sc-icon-uec.svg',
+			iconTitle = 'UEC',
+			text = amountText,
+			class = 't-uec',
+			mask = true,
+		})
 end
 
 --- Wikitext entry point for the module
@@ -29,7 +36,7 @@ function p.main(frame)
 	return p._main(getArgs(frame)[1])
 end
 
---- Render the UEC text
+--- Render a single UEC value: the glyph followed by the grouped number.
 ---
 --- @param uec string|number
 --- @return string
@@ -40,10 +47,28 @@ function p._main(uec)
 		error('Invalid UEC value: ' .. tostring(uec))
 	end
 
-	return mw.getCurrentFrame():extensionTag({
-		name = 'templatestyles',
-		args = { src = 'Module:UEC/styles.css' },
-	}) .. renderUec(uecNum)
+	return renderUec(lang:formatNum(uecNum))
+end
+
+--- Render a UEC range: the glyph followed by "min–max" (grouped), collapsing
+--- to a single value when min == max. Both bounds must be numeric.
+---
+--- @param min string|number
+--- @param max string|number
+--- @return string
+function p._range(min, max)
+	local minNum = tonumber(min)
+	local maxNum = tonumber(max)
+
+	if not minNum or not maxNum then
+		error('Invalid UEC range: ' .. tostring(min) .. '–' .. tostring(max))
+	end
+
+	if minNum == maxNum then
+		return renderUec(lang:formatNum(minNum))
+	end
+
+	return renderUec(lang:formatNum(minNum) .. '–' .. lang:formatNum(maxNum))
 end
 
 return p

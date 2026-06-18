@@ -14,15 +14,15 @@ local cardLua = require('Module:CardLua')
 local tableLua = require('Module:TableLua')
 local yesno = require('Module:Yesno')
 local commodity = require('Module:Entity/Commodity')
+local uec = require('Module:UEC')
 
 local p = {}
 
-local lang = mw.language.getContentLanguage()
-
 --- Zero prices render as `-` (UEX uses 0 rather than null for "not sold
---- here"). Returns the locale-grouped number otherwise (e.g.
---- 123456 → "123,456"). MediaWiki's tablesorter parses grouped
---- numbers natively, so the table sort stays numerically correct.
+--- here"). Otherwise returns the UEC component (Module:UEC): the currency
+--- glyph followed by the locale-grouped amount (e.g. 123456 → "123,456").
+--- TableLua strips HTML before sorting, so the column still sorts on the
+--- grouped number.
 ---
 --- @param price number|nil
 --- @return string
@@ -30,7 +30,7 @@ local function formatPrice(price)
 	if not price or price == 0 then
 		return '-'
 	end
-	return lang:formatNum(price)
+	return uec._main(price)
 end
 
 --- Wraps the Apiunto ISO 8601 timestamp in a <time> element. The visible
@@ -86,10 +86,11 @@ local function priceRange(prices, key)
 	return min, max
 end
 
---- "7 aUEC" when min == max, "7–12 aUEC" otherwise. Returns nil when no
---- non-zero prices exist, so callers can distinguish "no market" from
---- "market with zero price" (which shouldn't happen but is guarded
---- against in priceRange).
+--- The UEC component for the price span (Module:UEC): the currency glyph
+--- followed by "7" when min == max, or "7–12" otherwise. Returns nil when
+--- no non-zero prices exist, so callers can distinguish "no market" from
+--- "market with zero price" (which shouldn't happen but is guarded against
+--- in priceRange).
 ---
 --- @param min number|nil
 --- @param max number|nil
@@ -98,10 +99,7 @@ local function formatPriceRange(min, max)
 	if not min then
 		return nil
 	end
-	if min == max then
-		return lang:formatNum(min) .. ' aUEC'
-	end
-	return lang:formatNum(min) .. '–' .. lang:formatNum(max) .. ' aUEC'
+	return uec._range(min, max)
 end
 
 --- "N locations" or "1 location". Pulled out so both description

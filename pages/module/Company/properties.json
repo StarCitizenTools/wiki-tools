@@ -1,0 +1,15 @@
+{
+	"%doc": "Source-of-truth manifest of the SMW properties Module:Company emits via getStructuredData -> mw.smw.set. Multi-value fields are SEMICOLON-separated. Page-type properties (Founder, Parent company, Subsidiaries, Predecessor, Successor) store the wikilink TARGET(s); Headquarters stores every location wikilink target found in the field (separator-agnostic). Industry/Products store the per-item delink + lcfirst display label, semicolon-split. Display-only fields (Area served, Key people, Fate, Defunct, Formerly, Allies, Rivals) are intentionally absent. Plain SMW, not Buckets.",
+	"Name": { "smw": "Text", "source": "name" },
+	"Industry": { "smw": "Text", "source": "industry", "transform": "textList" },
+	"Products": { "smw": "Text", "source": "products", "transform": "textList" },
+	"Manufacturer code": { "smw": "Text", "source": "code" },
+	"Race": { "smw": "Text", "source": "race", "default": "Human" },
+	"Headquarters": { "smw": "Page", "source": "headquarters", "transform": "pageLinks" },
+	"Founder": { "smw": "Page", "source": "founder", "transform": "pageList" },
+	"Founded": { "smw": "Text", "source": "founded" },
+	"Parent company": { "smw": "Page", "source": "parent", "transform": "page" },
+	"Subsidiaries": { "smw": "Page", "source": "subsidiaries", "transform": "pageList" },
+	"Predecessor": { "smw": "Page", "source": "predecessor", "transform": "page" },
+	"Successor": { "smw": "Page", "source": "successor", "transform": "page" }
+}

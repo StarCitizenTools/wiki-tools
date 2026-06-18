@@ -1,0 +1,52 @@
+/* Module:Company — company-specific infobox styling. The generic infobox look
+   comes from Module:InfoboxLua/styles.css; this sheet adds only what the generic
+   component cannot know about (logo background, Galactapedia footer button),
+   hung off the `t-company` / section-variant class passthrough. Footer rules are
+   ported from Module:Entity/styles.css. */
+
+/* Background for transparent logos that need contrast against the infobox.
+   QA (Task 8) confirms these against the legacy .infobox-image--light/--dark. */
+.t-company .t-infobox-image--light {
+    background-color: #ffffff;
+}
+
+.t-company .t-infobox-image--dark {
+    background-color: #16191d;
+}
+
+/* Footer action row (Galactapedia button). */
+.t-infobox-section--footer {
+    padding-top: var(--space-md);
+}
+
+.t-infobox-footer-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+}
+
+.t-infobox-footer-actions > .t-button {
+    flex-grow: 1;
+}
+
+.t-infobox-footer-actions > .t-button > a {
+    display: block;
+}
+
+.t-infobox-section--footer .cdx-button {
+    display: flex;
+    width: 100%;
+    justify-content: center;
+}
+
+/* Galactapedia footer button: themed with the Galactapedia brand colors. The
+   compound selector outweighs Codex's .cdx-button defaults; the mask icon
+   follows `color`. */
+.t-button--galactapedia.cdx-button {
+    background-color: #162535;
+    color: #bae4f2;
+}
+
+.t-button--galactapedia.cdx-button:hover {
+    background-color: #111d29;
+}

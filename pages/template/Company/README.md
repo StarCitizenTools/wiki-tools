@@ -28,11 +28,11 @@ Backed by [[Module:Company]].
 | `industry` | string | No | | Industry or industries. Semicolon-separated; renders as a list. Wikilinks accepted. | `[[Spacecraft]] manufacturing` |
 | `products` | string | No | | Products or product categories. Semicolon-separated; renders as a list. Wikilinks accepted. | `[[Fighter]]s; [[Capital ship]]s` |
 | `race` | string | No | `Human` | Species affiliation of the company. | `Human` |
-| `headquarters` | string | No | | Headquarters location(s). Separate multiple HQs with `;`; renders as a list. Wikilinks accepted. | `[[Lorville]], [[Hurston]]; [[Area18]], [[ArcCorp]]` |
+| `headquarters` | string | No | | Headquarters location(s). Separate multiple HQs with `;`; each as "place, …, system" (the last link of each is stored as that HQ's system). Renders as a list. | `[[Lorville]], [[Hurston]]; [[Area18]], [[ArcCorp]]` |
 | `areaserved` | string | No | | Area served. Display only; not stored to SMW. | `UEE` |
 | `keypeople` | string | No | | Key people. Semicolon-separated; renders as a list. Display only; not stored to SMW. | `[[John Donahue]] (CEO)` |
 | `founder` | string | No | | Founder(s). Semicolon-separated; renders as a list. Wikilinks accepted; link targets stored to SMW. | `[[Aaron Sykes]]` |
-| `founded` | string | No | | Founding date or year. | `2755` |
+| `founded` | string | No | | Founding year (clean). The module renders it via `{{Start date and age}}`; SMW stores just the year. | `2755` |
 | `fate` | string | No | | Fate of the company. Display only; not stored to SMW. | `Nationalized` |
 | `defunct` | string | No | | Year or date the company became defunct. Display only; not stored to SMW. | `2792` |
 | `formerly` | string | No | | Former name(s). Display only; not stored to SMW. | `Roberts Space Industries` |

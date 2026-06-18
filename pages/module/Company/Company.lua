@@ -57,20 +57,32 @@ local function splitSemi(text)
 	return parts
 end
 
---- Extract every wikilink TARGET from a string, in order: [[A|B]] and [[A]]
---- both yield A; non-link text is ignored. Used for Headquarters, whose field
---- mixes location links with prose (e.g. a street address).
+--- The TARGET of the last wikilink in a string ([[A|B]] / [[A]] -> A), or nil.
+--- Used for Headquarters: the convention is "place, …, system", so the last
+--- link of each HQ segment is its star system.
 --- @param text string
---- @return string[]
-local function extractLinks(text)
-	local targets = {}
+--- @return string|nil
+local function lastLink(text)
+	local last
 	for target in text:gmatch('%[%[([^%]]-)%]%]') do
-		target = mw.text.trim((target:gsub('|.*$', '')))
-		if target ~= '' then
-			targets[#targets + 1] = target
-		end
+		last = mw.text.trim((target:gsub('|.*$', '')))
 	end
-	return targets
+	if last == '' then
+		last = nil
+	end
+	return last
+end
+
+--- Founded display: a bare SC year renders via {{Start date and age}} (so the
+--- editor passes a clean year and SMW stores the year, not rendered template
+--- output); any other value (full date, "Unknown", …) shows as-is.
+--- @param value string|nil
+--- @return string|nil
+local function foundedDisplay(value)
+	if value and value:match('^%s*%d+%s*$') then
+		return '{{Start date and age|' .. mw.text.trim(value) .. '|sctime=yes}}'
+	end
+	return value
 end
 
 --- Display helper for multi-value fields: a semicolon list with 2+ items renders
@@ -137,10 +149,17 @@ local TRANSFORMS = {
 		end
 		return out
 	end,
-	-- Headquarters: every wikilink target (location pages), separator-agnostic so
-	-- it works regardless of how the composite HQ string is punctuated.
-	pageLinks = function(v)
-		return extractLinks(v)
+	-- Headquarters: one star system per HQ — the last wikilink of each
+	-- semicolon-separated HQ segment (the convention is "place, …, system").
+	hqSystems = function(v)
+		local out = {}
+		for _, segment in ipairs(splitSemi(v)) do
+			local sys = lastLink(segment)
+			if sys then
+				out[#out + 1] = sys
+			end
+		end
+		return out
 	end,
 	-- Industry/Products: semicolon-split; each item lcfirst + delinked (display
 	-- label kept), the legacy delink/lcfirst normalisation applied per value.
@@ -314,7 +333,7 @@ function p.getContentSections(args)
 	local people = {}
 	push(people, 'Key people', multiList(args.keypeople))
 	push(people, 'Founder', multiList(args.founder))
-	push(people, 'Founded', args.founded)
+	push(people, 'Founded', foundedDisplay(args.founded))
 	add(makeSection(people, { label = 'People', collapsible = true }))
 
 	local history = {}

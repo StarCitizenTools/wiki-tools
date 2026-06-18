@@ -40,7 +40,10 @@ function p._main(uec)
 		error('Invalid UEC value: ' .. tostring(uec))
 	end
 
-	return renderUec(uecNum)
+	return mw.getCurrentFrame():extensionTag({
+		name = 'templatestyles',
+		args = { src = 'Module:UEC/styles.css' },
+	}) .. renderUec(uecNum)
 end
 
 return p

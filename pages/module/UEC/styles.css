@@ -1,0 +1,8 @@
+.t-uec.t-icon-text {
+	gap: 2px;
+}
+
+.t-uec .t-icon-text__icon {
+	width: 1em !important;
+	height: 1em !important;
+}

@@ -58,6 +58,20 @@ return {
 			end,
 		})
 
+		-- Module:list — list builder (not in this repo). Faithful enough for the
+		-- multi-value display logic: makeList returns a <ul> of the positional
+		-- items; named options (list_style, etc.) are ignored in the stub. The
+		-- real list markup is verified on-wiki / in the browser.
+		api.stub('list', {
+			makeList = function(_, args)
+				local html = mw.html.create('ul')
+				for _, item in ipairs(args) do
+					html:tag('li'):wikitext(item)
+				end
+				return tostring(html)
+			end,
+		})
+
 		-- mw.ext.aggrid — require-able stand-in for the AGGrid extension, required
 		-- at load time by Module:AGGridColumns / Module:DataGrid. Their suites assert
 		-- pure logic, so the builders only need to exist and return plausible shapes.

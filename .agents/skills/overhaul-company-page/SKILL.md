@@ -31,10 +31,11 @@ The steps are ordered and later steps assume earlier ones. Skip a step already s
 ### 1. Convert {{Infobox company}} -> {{Company}}
 
 Map the legacy params onto `{{Company}}`. Key differences:
-- **Multi-value fields use a semicolon (`;`)**, not a comma (avoids colliding with commas inside names/links): `industry`, `products`, `founder`, `subsidiaries`, `allies`, `rivals`, `keypeople`.
+- **Multi-value fields use a semicolon (`;`)**, not a comma (avoids colliding with commas inside names/links): `industry`, `products`, `founder`, `subsidiaries`, `predecessor`, `successor`, `allies`, `rivals`, `keypeople`. `predecessor`/`successor` are multi-value because a merger has several predecessors (and a split, several successors); each renders as a list and stores an SMW Page list.
+- **Drop the legacy comment placeholders.** `{{Infobox company}}` carries `|param = <!-- ... -->` hints; do not copy them into `{{Company}}` - they add nothing and interfere with VisualEditor. Keep only populated parameters and drop empty ones entirely (no bare `|param =` lines).
 - **Manufacturer code is derived** from the company name via `Module:Manufacturers` - there is no `code` param; drop any legacy one.
 - **`founded` is a clean year** (e.g. `2554`). The module renders the date via `{{Start date and age}}`; do not pass a template.
-- **`headquarters`**: separate multiple HQs with `;`; each as `place, ..., system`. The module stores one star system per HQ (the last wikilink of each segment) to SMW. Keep the display concise as `[[Place]], [[System]]`.
+- **`headquarters`**: separate multiple HQs with `;`; each as `place, ..., system`. The module stores one star system per HQ (the last wikilink of each segment) to SMW. Keep the display tidy - drop redundant pipes (`[[Terra system|Terra]]` -> `[[Terra system]]`) and do not over-disambiguate - but keep each distinct real place: a city/planet/system chain like `[[Jata]], [[Cestulus]], [[Davien system]]` is fine, not just two links.
 - **`areaserved`**: apply the noise-cut - leave it blank when it is simply the whole UEE (`[[United Empire of Earth]]` / `UEE space` / `Human occupied space`); fill it only when narrower (a city, planet, system, or "limited export"). It is an SMW Page list (semicolon-separated, every served place).
 
 ### 2. Enrich from Galactapedia
@@ -76,6 +77,7 @@ If the company manufactures items, add a Products section in the content band (a
 - The category defaults to the page title. **Verify the category actually has members** (`get-category-members` on `Category:<page title>`): every migrated item carries a manufacturer category equal to the *manufacturer name*. When the page title differs from it (disambiguated, abbreviated, or differently-cased - `ArcCorp (company)` -> `ArcCorp`, `Microtech`, `MISC`), pass the override `{{Manufacturer products | <category>}}`. A 0-member category means the wrong name.
 - **Confirm the members are products**, not just that the count is nonzero - a few company categories also hold non-product pages (e.g. `Category:ArcCorp` mixes in mining areas), and the table lists every main-namespace member.
 - **Drop `{{Navplate manufacturers|<CODE>}}`** - the live, filterable table supersedes the static navbox.
+- **Ship manufacturers are a known rough edge.** A ship-maker's category (e.g. `Aegis Dynamics`) mixes its **ships** (which have no `Item type`) with its **components** (Coolers, Flight Blades, ...); `{{Manufacturer products}}` lists both, with a blank `Item type` for the ships. Use it anyway for now - a ship-appropriate products presentation is a separate future effort. Behring, a pure component-maker, was the clean case.
 
 ### 6. Copyedit to wiki style
 

@@ -1,0 +1,5 @@
+<includeonly>{{Data table
+| category = {{{1|{{PAGENAME}}}}}
+| columns =
+    Item type ; filter
+}}</includeonly><noinclude>{{/doc}}</noinclude>

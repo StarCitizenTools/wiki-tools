@@ -3,6 +3,10 @@
    scwSmart cell behaviour (right-align toggle) is owned by the aggridRenderers
    gadget; this sheet only positions cells. */
 
+.t-datagrid {
+	margin-block: var( --space-md );
+}
+
 /* All rows in one internally-scrolling, virtualised grid; a taller viewport does
    not grow the DOM. Overrides the extension's default height. */
 .t-datagrid .ext-aggrid {

@@ -58,6 +58,15 @@
     height: auto;
 }
 
+/* SVG images have a transparent background by default; add a light grey background to improve readability. */
+.t-infobox-image .mw-file-element[src$=".svg"] {
+	background-color: var(--color-neutral-50);
+	background-image:
+		linear-gradient(to right, var(--color-neutral-100) 1px, transparent 1px),
+		linear-gradient(to bottom, var(--color-neutral-100) 1px, transparent 1px);
+	background-size: 16px 16px;
+}
+
 .t-infobox-header-content {
     position: relative;
     margin-top: var(--space-sm);

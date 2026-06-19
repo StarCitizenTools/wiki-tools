@@ -92,6 +92,17 @@ function suite:testStructuredParentIsPageTarget()
 	)
 end
 
+function suite:testStructuredPredecessorSuccessorArePageLists()
+	-- Predecessor/Successor are multi-value (mergers/splits): semicolon-split,
+	-- each item's link target, like Founder/Subsidiaries.
+	local data = company.getStructuredData({
+		predecessor = '[[Aegis Macrocomputing]]; [[Dynamic Production Systems]]',
+		successor = '[[New Co]]',
+	})
+	self:assertDeepEquals({ 'Aegis Macrocomputing', 'Dynamic Production Systems' }, data['Predecessor'])
+	self:assertDeepEquals({ 'New Co' }, data['Successor'])
+end
+
 function suite:testStructuredFounderTargetsAndTrims()
 	local data = company.getStructuredData({ founder = ' [[Jane Doe]] ; [[John Roe|Johnny]] ' })
 	self:assertDeepEquals({ 'Jane Doe', 'John Roe' }, data['Founder'])

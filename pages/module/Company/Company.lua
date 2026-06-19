@@ -341,8 +341,8 @@ function p.getContentSections(args)
 	push(history, 'Fate', args.fate)
 	push(history, 'Defunct', args.defunct)
 	push(history, 'Formerly', args.formerly)
-	push(history, 'Predecessor', args.predecessor)
-	push(history, 'Successor', args.successor)
+	push(history, 'Predecessor', multiList(args.predecessor))
+	push(history, 'Successor', multiList(args.successor))
 	add(makeSection(history, { label = 'History', collapsible = true }))
 
 	local relations = {}

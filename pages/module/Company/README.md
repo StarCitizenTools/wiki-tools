@@ -30,8 +30,8 @@ The template passes its parameters to the module as `args`. The module emits the
 | `fate` | Fate of the company. Display only, not stored to SMW. |
 | `defunct` | Year or date the company became defunct. Display only, not stored to SMW. |
 | `formerly` | Former name(s). Display only, not stored to SMW. |
-| `predecessor` | Predecessor company. Wikilink accepted; the link target is stored to SMW. |
-| `successor` | Successor company. Wikilink accepted; the link target is stored to SMW. |
+| `predecessor` | Predecessor company or companies (e.g. the firms that merged to form it). Semicolon-separated; renders as a list. Wikilinks accepted; link targets stored to SMW. |
+| `successor` | Successor company or companies. Semicolon-separated; renders as a list. Wikilinks accepted; link targets stored to SMW. |
 | `parent` | Parent company. Wikilink accepted; the link target is stored to SMW. |
 | `subsidiaries` | Subsidiary companies. Semicolon-separated wikilinks; renders as a list. Link targets stored to SMW. |
 | `allies` | Allied organizations. Semicolon-separated; renders as a list. Display only, not stored to SMW. |
@@ -76,12 +76,12 @@ Properties are defined in `Module:Company/properties.json` and written via `mw.s
 | `Founder` | Page | `founder` | Semicolon-split; link targets stored (not display labels). |
 | `Parent company` | Page | `parent` | Link target stored. |
 | `Subsidiaries` | Page | `subsidiaries` | Semicolon-split; link targets stored. |
-| `Predecessor` | Page | `predecessor` | Link target stored. |
-| `Successor` | Page | `successor` | Link target stored. |
+| `Predecessor` | Page | `predecessor` | Semicolon-split; each item's link target stored (a merger can have several). |
+| `Successor` | Page | `successor` | Semicolon-split; each item's link target stored. |
 
 Display-only fields (`keypeople`, `fate`, `defunct`, `formerly`, `allies`, `rivals`) are intentionally absent from SMW.
 
-**Page-type properties** (`Founder`, `Subsidiaries`, `Area served`, `Parent company`, `Predecessor`, `Successor`) extract the link target from wikilink markup: `[[Target|Label]]` stores `Target`, not `Label`. The list-valued ones (`Founder`, `Subsidiaries`, `Area served`) are semicolon-split into one value per item. `Headquarters` (also Page-type) stores one star system per HQ — the last wikilink of each `;`-separated segment — so each HQ's system is queryable (the free-form HQ string itself stays the display value). `Area served` differs from `Headquarters`: it stores **every** served place (each item's link target, not collapsed to the system), so station/city-level queries work; fill it only when narrower than the whole UEE.
+**Page-type properties** (`Founder`, `Subsidiaries`, `Area served`, `Parent company`, `Predecessor`, `Successor`) extract the link target from wikilink markup: `[[Target|Label]]` stores `Target`, not `Label`. The list-valued ones (`Founder`, `Subsidiaries`, `Area served`, `Predecessor`, `Successor`) are semicolon-split into one value per item. `Headquarters` (also Page-type) stores one star system per HQ — the last wikilink of each `;`-separated segment — so each HQ's system is queryable (the free-form HQ string itself stays the display value). `Area served` differs from `Headquarters`: it stores **every** served place (each item's link target, not collapsed to the system), so station/city-level queries work; fill it only when narrower than the whole UEE.
 
 **Industry and Products** are semicolon-split into individual SMW entries; each item is lcfirst + delinked (the display label is kept). When an item starts with a wikilink, `lcfirst` is a no-op (it sees `[` as the first character).
 

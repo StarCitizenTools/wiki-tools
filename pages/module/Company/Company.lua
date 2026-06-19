@@ -215,6 +215,7 @@ function p.getStructuredData(args)
 		code = p.resolveCode(args),
 		race = args.race,
 		headquarters = args.headquarters,
+		areaserved = args.areaserved,
 		founder = args.founder,
 		founded = args.founded,
 		parent = args.parent,
@@ -325,7 +326,7 @@ function p.getContentSections(args)
 	push(top, 'Products', multiList(args.products))
 	push(top, 'Race', p.raceLink(args)) -- always present (defaults to Human)
 	push(top, 'Headquarters', multiList(args.headquarters))
-	push(top, 'Area served', args.areaserved)
+	push(top, 'Area served', multiList(args.areaserved))
 	add(makeSection(top))
 
 	-- Founding context (Founder + Founded) sits with People rather than the

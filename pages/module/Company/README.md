@@ -23,7 +23,7 @@ The template passes its parameters to the module as `args`. The module emits the
 | `products` | Products or product categories. Semicolon-separated; renders as a list. Wikilinks accepted. |
 | `race` | Species affiliation (e.g. `Human`, `Xi'an`). Defaults to `Human`. |
 | `headquarters` | Headquarters location(s). Separate multiple HQs with `;` (each may contain comma-separated city/planet/system); renders as a list when there are 2+. |
-| `areaserved` | Area served. Display only, not stored to SMW. |
+| `areaserved` | Area served. Semicolon-separated; renders as a list. Wikilinks accepted; each item's link target stored to SMW as a Page. Fill only when narrower than the whole UEE (a bare `[[United Empire of Earth]]` carries no signal). |
 | `keypeople` | Key people. Semicolon-separated; renders as a list. Display only, not stored to SMW. |
 | `founder` | Founder(s). Semicolon-separated; renders as a list. Wikilinks accepted; link targets stored to SMW. |
 | `founded` | Founding year (e.g. `2554`). The module renders it via `{{Start date and age}}`; SMW stores the clean year. |
@@ -71,6 +71,7 @@ Properties are defined in `Module:Company/properties.json` and written via `mw.s
 | `Manufacturer code` | Text | (derived from `name`) | Resolved via `p.resolveCode` from Module:Manufacturers. Displayed in the collapsed Metadata section (an identifier, not descriptive content). |
 | `Race` | Text | `race` | Defaults to `Human`. |
 | `Headquarters` | Page | `headquarters` | One star system per HQ: the last wikilink of each `;`-separated HQ segment (convention "place, …, system"). |
+| `Area served` | Page | `areaserved` | Semicolon-split; each item's link target stored (every served place, not collapsed to system). |
 | `Founded` | Text | `founded` | The clean year passed by the editor (display is rendered via `{{Start date and age}}`, but SMW stores just the year). |
 | `Founder` | Page | `founder` | Semicolon-split; link targets stored (not display labels). |
 | `Parent company` | Page | `parent` | Link target stored. |
@@ -78,9 +79,9 @@ Properties are defined in `Module:Company/properties.json` and written via `mw.s
 | `Predecessor` | Page | `predecessor` | Link target stored. |
 | `Successor` | Page | `successor` | Link target stored. |
 
-Display-only fields (`areaserved`, `keypeople`, `fate`, `defunct`, `formerly`, `allies`, `rivals`) are intentionally absent from SMW.
+Display-only fields (`keypeople`, `fate`, `defunct`, `formerly`, `allies`, `rivals`) are intentionally absent from SMW.
 
-**Page-type properties** (`Founder`, `Parent company`, `Subsidiaries`, `Predecessor`, `Successor`) extract the link target from wikilink markup: `[[Target|Label]]` stores `Target`, not `Label`. `Headquarters` (also Page-type) stores one star system per HQ — the last wikilink of each `;`-separated segment — so each HQ's system is queryable (the free-form HQ string itself stays the display value).
+**Page-type properties** (`Founder`, `Subsidiaries`, `Area served`, `Parent company`, `Predecessor`, `Successor`) extract the link target from wikilink markup: `[[Target|Label]]` stores `Target`, not `Label`. The list-valued ones (`Founder`, `Subsidiaries`, `Area served`) are semicolon-split into one value per item. `Headquarters` (also Page-type) stores one star system per HQ — the last wikilink of each `;`-separated segment — so each HQ's system is queryable (the free-form HQ string itself stays the display value). `Area served` differs from `Headquarters`: it stores **every** served place (each item's link target, not collapsed to the system), so station/city-level queries work; fill it only when narrower than the whole UEE.
 
 **Industry and Products** are semicolon-split into individual SMW entries; each item is lcfirst + delinked (the display label is kept). When an item starts with a wikilink, `lcfirst` is a no-op (it sees `[` as the first character).
 

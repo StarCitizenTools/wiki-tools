@@ -110,6 +110,30 @@ function suite:testStructuredHeadquartersNoLinksOmitted()
 	self:assertEquals(nil, company.getStructuredData({ headquarters = 'Somewhere unlinked' })['Headquarters'])
 end
 
+function suite:testStructuredAreaServedStoresPageTargets()
+	-- Area served is a Page list: semicolon-split, each item's link TARGET stored
+	-- (every served place is queryable, not collapsed to a system like HQ).
+	local data = company.getStructuredData({ areaserved = '[[Lorville]]; [[Hurston]]' })
+	self:assertDeepEquals({ 'Lorville', 'Hurston' }, data['Area served'])
+end
+
+function suite:testStructuredAreaServedSingleTarget()
+	local data = company.getStructuredData({ areaserved = '[[Crusader]]' })
+	self:assertDeepEquals({ 'Crusader' }, data['Area served'])
+end
+
+function suite:testStructuredAreaServedPipedTargets()
+	-- Page targets, not labels: [[Target|Label]] -> Target.
+	local data = company.getStructuredData({
+		areaserved = '[[Stanton system|Stanton]]; [[microTech (planet)|microTech]]',
+	})
+	self:assertDeepEquals({ 'Stanton system', 'microTech (planet)' }, data['Area served'])
+end
+
+function suite:testStructuredAreaServedAbsentWhenEmpty()
+	self:assertEquals(nil, company.getStructuredData({ name = 'X' })['Area served'])
+end
+
 function suite:testStructuredFoundedStoresCleanYear()
 	-- The editor passes a clean year, so SMW stores the year (not rendered output).
 	self:assertEquals('2554', company.getStructuredData({ founded = '2554' })['Founded'])
@@ -319,6 +343,20 @@ function suite:testHeadquartersListsMultipleHqs()
 	self:assertStringContains('<li', content, true)
 	self:assertStringContains('[[Terra]]', content, true)
 	self:assertStringContains('[[MacArthur]], [[Killian]]', content, true)
+end
+
+function suite:testAreaServedListsMultiplePlaces()
+	-- Semicolon separates distinct served places; renders as a list (like HQ).
+	local content =
+		findItem(company.getContentSections({ areaserved = '[[Lorville]]; [[New Babbage]]' }), 'Area served').content
+	self:assertStringContains('<li', content, true)
+	self:assertStringContains('[[Lorville]]', content, true)
+	self:assertStringContains('[[New Babbage]]', content, true)
+end
+
+function suite:testAreaServedSinglePlacePlain()
+	local sections = company.getContentSections({ areaserved = '[[Crusader]]' })
+	self:assertEquals('[[Crusader]]', findItem(sections, 'Area served').content)
 end
 
 -- founded display (clean year -> {{Start date and age}}; other -> as-is)

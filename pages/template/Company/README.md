@@ -29,7 +29,7 @@ Backed by [[Module:Company]].
 | `products` | string | No | | Products or product categories. Semicolon-separated; renders as a list. Wikilinks accepted. | `[[Fighter]]s; [[Capital ship]]s` |
 | `race` | string | No | `Human` | Species affiliation of the company. | `Human` |
 | `headquarters` | string | No | | Headquarters location(s). Separate multiple HQs with `;`; each as "place, …, system" (the last link of each is stored as that HQ's system). Renders as a list. | `[[Lorville]], [[Hurston]]; [[Area18]], [[ArcCorp]]` |
-| `areaserved` | string | No | | Area served. Display only; not stored to SMW. | `UEE` |
+| `areaserved` | string | No | | Area served. Semicolon-separated; renders as a list. Wikilinks accepted; each item's link target is stored to SMW as a Page (every served place). Fill only when narrower than the whole UEE, a bare `[[United Empire of Earth]]` carries no signal. | `[[Lorville]]; [[Hurston]]` |
 | `keypeople` | string | No | | Key people. Semicolon-separated; renders as a list. Display only; not stored to SMW. | `[[John Donahue]] (CEO)` |
 | `founder` | string | No | | Founder(s). Semicolon-separated; renders as a list. Wikilinks accepted; link targets stored to SMW. | `[[Aaron Sykes]]` |
 | `founded` | string | No | | Founding year (clean). The module renders it via `{{Start date and age}}`; SMW stores just the year. | `2755` |

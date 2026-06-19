@@ -36,8 +36,8 @@ Backed by [[Module:Company]].
 | `fate` | string | No | | Fate of the company. Display only; not stored to SMW. | `Nationalized` |
 | `defunct` | string | No | | Year or date the company became defunct. Display only; not stored to SMW. | `2792` |
 | `formerly` | string | No | | Former name(s). Display only; not stored to SMW. | `Roberts Space Industries` |
-| `predecessor` | string | No | | Predecessor company. Wikilink accepted; the link target is stored to SMW. | `[[Aegis Corp]]` |
-| `successor` | string | No | | Successor company. Wikilink accepted; the link target is stored to SMW. | `[[New Aegis]]` |
+| `predecessor` | string | No | | Predecessor company or companies (e.g. firms that merged to form it). Semicolon-separated; renders as a list; link targets stored to SMW. | `[[Aegis Macrocomputing]]; [[Dynamic Production Systems]]` |
+| `successor` | string | No | | Successor company or companies. Semicolon-separated; renders as a list; link targets stored to SMW. | `[[New Aegis]]` |
 | `parent` | string | No | | Parent company. Wikilink accepted; the link target is stored to SMW. | `[[Shubin Interstellar]]` |
 | `subsidiaries` | string | No | | Subsidiary companies. Semicolon-separated wikilinks; renders as a list. Link targets stored to SMW. | `[[Consolidated Outland]]` |
 | `allies` | string | No | | Allied organizations. Semicolon-separated; renders as a list. Display only; not stored to SMW. | `[[Hurston Dynamics]]` |

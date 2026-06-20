@@ -177,7 +177,22 @@
 			}
 			overlay.style.display = 'none';
 
+			// Uploading overlay: dims the preview and shows an indeterminate loading
+			// ring around the border while the (possibly slow) stash upload is in
+			// flight. The ring is drawn and animated entirely in CSS
+			// (.t-quantumupload__uploading::after); JS only adds/removes the element.
+			var uploading = document.createElement( 'div' );
+			uploading.className = 't-quantumupload__uploading';
+			el.appendChild( uploading );
+
+			function removeUploading() {
+				if ( uploading.parentNode ) {
+					uploading.parentNode.removeChild( uploading );
+				}
+			}
+
 			function revert() {
+				removeUploading();
 				if ( preview.parentNode ) {
 					preview.parentNode.removeChild( preview );
 				}
@@ -190,6 +205,7 @@
 
 			var api = new mw.Api();
 			api.uploadToStash( file, { filename: filename } ).done( function ( finishUpload ) {
+				removeUploading();
 				showConfirm( filename, finishUpload, revert );
 			} ).fail( function ( code, result ) {
 				mw.notify( errorText( code, result ), { type: 'error' } );

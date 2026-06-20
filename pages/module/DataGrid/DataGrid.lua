@@ -96,17 +96,22 @@ function p.duplicateAlias(columns)
 	return nil
 end
 
---- Build the mw.smw.ask query: main-namespace + category condition (plus optional
---- raw conditions), the two lead printouts, one aliased printout per editor column,
---- then the fixed options.
+--- Build the mw.smw.ask query: a main-namespace restriction, an optional category
+--- condition, and optional raw conditions; then the two lead printouts, one aliased
+--- printout per editor column, and the fixed options. At least one of `category` or
+--- `conditions` should be non-empty (`main` enforces this) — a bare `[[:+]]` would
+--- otherwise match the entire main namespace.
 --- @param category string
 --- @param columns DataGridColumn[]
 --- @param conditions? string
 --- @return string[]
 function p.buildQuery(category, columns, conditions)
-	-- `[[:+]]` restricts to the main namespace so File/Category pages tagged into
-	-- the category don't leak in as rows.
-	local condition = '[[:+]] [[Category:' .. category .. ']]'
+	-- `[[:+]]` restricts to the main namespace so File/Category pages don't leak in
+	-- as rows.
+	local condition = '[[:+]]'
+	if category and category ~= '' then
+		condition = condition .. ' [[Category:' .. category .. ']]'
+	end
 	if conditions and conditions ~= '' then
 		condition = condition .. ' ' .. conditions
 	end
@@ -169,8 +174,9 @@ function p.main(frame)
 	local args = getArgs(frame)
 
 	local category = mw.text.trim(args.category or '')
-	if category == '' then
-		return '<strong class="error">Module:DataGrid: missing required parameter "category".</strong>'
+	local conditions = mw.text.trim(args.conditions or '')
+	if category == '' and conditions == '' then
+		return '<strong class="error">Module:DataGrid: provide a "category" or "conditions" to query.</strong>'
 	end
 
 	local columns = p.parseColumns(args.columns)
@@ -183,9 +189,9 @@ function p.main(frame)
 		return '<strong class="error">Module:DataGrid: duplicate column "' .. duplicate .. '".</strong>'
 	end
 
-	local conditions = mw.text.trim(args.conditions or '')
-	-- An empty category legitimately returns no rows; coerce non-table to {} so the
-	-- grid renders empty (AG Grid shows its own "no rows" overlay) rather than erroring.
+	-- A query that matches nothing legitimately returns no rows; coerce non-table to
+	-- {} so the grid renders empty (AG Grid shows its own "no rows" overlay) rather
+	-- than erroring.
 	local results = mw.smw.ask(p.buildQuery(category, columns, conditions))
 	if type(results) ~= 'table' then
 		results = {}

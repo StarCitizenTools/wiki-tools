@@ -1,14 +1,14 @@
 # Module:DataGrid
 
-Builds an interactive, filterable browse table for a category on [AG Grid](https://www.ag-grid.com/) via [Extension:AGGrid](https://www.mediawiki.org/wiki/Extension:AGGrid). The successor to [Module:DataTableLua](https://starcitizen.tools/Module:DataTableLua): the same [Template:Data table](https://starcitizen.tools/Template:Data_table) contract, but virtualised rows, rich cells (linked thumbnails and names), and REST-served data on saved pages.
+Builds an interactive, filterable browse table on [AG Grid](https://www.ag-grid.com/) via [Extension:AGGrid](https://www.mediawiki.org/wiki/Extension:AGGrid) for a category, a raw SMW condition, or both. The successor to [Module:DataTableLua](https://starcitizen.tools/Module:DataTableLua): the same [Template:Data table](https://starcitizen.tools/Template:Data_table) contract, but virtualised rows, rich cells (linked thumbnails and names), and REST-served data on saved pages.
 
 ## Usage
 
 Invoked through `{{Data table}}`, a bare `{{#invoke:DataGrid|main}}`. The module reads `category`, `columns`, and `conditions` off the parent (template) frame via `Module:Arguments`.
 
-- `category` — the category to browse.
+- `category` — the category to browse. Optional when `conditions` is given; provide at least one of the two.
 - `columns` — one column per line, `property; label=X; size=X; filter`. The first clause is the SMW property; the rest are modifiers. `label=` overrides the header (and the result-row key). The bare `filter` flag gives the column a checkbox set filter. `size=` is parsed for backward-compatibility but is **unused** — no live page sets it, and the lead thumbnail width is fixed.
-- `conditions` — extra raw SMW query conditions (e.g. `[[Item type::Gun]]`), appended to the category condition.
+- `conditions` — extra raw SMW query conditions (e.g. `[[Item type::Gun]]` or `[[Manufacturer::ArcCorp]]`). Appended to the category condition when both are given, or used on its own when no category is supplied ([[Template:Manufacturer products]] queries `[[Manufacturer::…]]` with no category). The query is always restricted to the main namespace with `[[:+]]`.
 
 ## Behaviour
 

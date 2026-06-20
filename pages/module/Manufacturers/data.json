@@ -12,7 +12,7 @@
 	"AMRS": { "name": "Amon & Reese Co." },
 	"ANVL": { "name": "Anvil Aerospace", "short": "Anvil" },
 	"APAR": { "name": "Apocalypse Arms" },
-	"ARCC": { "name": "ArcCorp" },
+	"ARCC": { "name": "ArcCorp", "page": "ArcCorp (company)" },
 	"ARGO": { "name": "Argo Astronautics", "short": "Argo" },
 	"ARMA": { "name": "ArmaMod" },
 	"ASAS": { "name": "Ascension Astro" },

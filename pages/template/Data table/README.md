@@ -39,8 +39,11 @@ Spacing around `;` is optional: `Size ; filter`, `Size; filter`, and `Size;filte
 
 | Name | Label | Type | Required | Default | Description | Example |
 |------|-------|------|----------|---------|-------------|---------|
-| `category` | Category | string | Yes |  | Category whose member pages are listed. Do not include the `Category:` prefix. | `Personal weapons` |
+| `category` | Category | string | No |  | Category whose member pages are listed. Do not include the `Category:` prefix. Provide this, `conditions`, or both. | `Personal weapons` |
 | `columns` | Columns | content | Yes |  | One column per line. First clause is the SMW property; add `; label=X`, `; filter`, or `; size=X` modifiers. | `Size ; filter` |
+| `conditions` | Conditions | string | No |  | Extra raw SMW query conditions, appended to the category condition (or used alone when no `category` is given). Advanced: use to filter by an SMW property rather than category membership. | `[[Manufacturer::ArcCorp]]` |
+
+At least one of `category` or `conditions` must be given. The query is always restricted to the main namespace.
 
 ## Behavior
 

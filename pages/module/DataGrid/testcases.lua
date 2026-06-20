@@ -121,4 +121,22 @@ function suite:testBuildQueryEmptyConditionsUnchanged()
 	self:assertEquals('[[:+]] [[Category:Guns]]', dg.buildQuery('Guns', dg.parseColumns('Size'), '')[1])
 end
 
+-- A conditions-only query (no category) drops the category clause but keeps the
+-- main-namespace restriction. This is the {{Manufacturer products}} path.
+function suite:testBuildQueryConditionsOnly()
+	local q = dg.buildQuery('', dg.parseColumns('Item type'), '[[Manufacturer::ArcCorp]]')
+	self:assertEquals('[[:+]] [[Manufacturer::ArcCorp]]', q[1])
+end
+
+function suite:testBuildQueryNilCategoryWithConditions()
+	local q = dg.buildQuery(nil, dg.parseColumns('Item type'), '[[Manufacturer::ArcCorp]]')
+	self:assertEquals('[[:+]] [[Manufacturer::ArcCorp]]', q[1])
+end
+
+-- Degenerate guard: neither category nor conditions leaves the bare namespace
+-- restriction. `main` rejects this combination before it can reach a query.
+function suite:testBuildQueryNoCategoryNoConditions()
+	self:assertEquals('[[:+]]', dg.buildQuery('', dg.parseColumns('Item type'))[1])
+end
+
 return suite

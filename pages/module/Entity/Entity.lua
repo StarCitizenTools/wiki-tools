@@ -16,8 +16,9 @@ local p = {}
 --- @param facets table[]
 --- @param apiData table
 --- @param args table
+--- @param typeInfo table|nil
 --- @return boolean success True if the backend accepted the data
-local function storeStructuredData(chain, facets, apiData, args)
+local function storeStructuredData(chain, facets, apiData, args, typeInfo)
 	local dataList = {}
 	for _, mod in ipairs(chain) do
 		if mod.getStructuredData then
@@ -29,7 +30,16 @@ local function storeStructuredData(chain, facets, apiData, args)
 			table.insert(dataList, facet.getStructuredData(apiData, args))
 		end
 	end
-	return structuredData.store(assembly.mergeStructuredData(dataList))
+	local merged = assembly.mergeStructuredData(dataList)
+	-- `subject_type` is the page's most-specific structural type (fine-grained:
+	-- "Gun", "Cooler", …), deliberately distinct from the coarse `result.kind`
+	-- (Item / Vehicle / …). It is the same value that drives the structural
+	-- category, persisted as a queryable SMW property. SMW treats underscores as
+	-- spaces in property names, so `subject_type` maps to the property "Subject type".
+	if typeInfo and typeInfo.name then
+		merged.subject_type = typeInfo.name
+	end
+	return structuredData.store(merged)
 end
 
 --- Sets the page's short description via the SHORTDESC parser function.
@@ -86,7 +96,7 @@ function p.main(frame)
 	end
 
 	local html = entityInfobox.render(result, args)
-	local storeSuccess = storeStructuredData(result.chain, result.facets, result.apiData, args)
+	local storeSuccess = storeStructuredData(result.chain, result.facets, result.apiData, args, result.typeInfo)
 
 	setShortDescription(frame, result.typeInfo, result.chain, result.facets, result.apiData, args)
 

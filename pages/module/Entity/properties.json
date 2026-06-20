@@ -1035,6 +1035,14 @@
 		],
 		"desc": "Stun damage resistance of armor, as a percentage."
 	},
+	"Subject type": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Entity"
+		],
+		"desc": "Most-specific structural type of the page subject (e.g. Gun, Cooler, Company). Injected centrally by Module:Entity from the resolved typeInfo."
+	},
 	"Systems": {
 		"smw": "Text",
 		"bucket": "TEXT",

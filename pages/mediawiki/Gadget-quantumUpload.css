@@ -52,20 +52,20 @@
 	position: absolute;
 	inset: 0;
 	pointer-events: none;
-	background-color: rgba( 0, 0, 0, 0.25 );
+	background-color: var( --background-color-backdrop-light );
 }
 
 .t-quantumupload__uploading::after {
 	content: "";
 	position: absolute;
 	inset: 0;
-	padding: 4px;
-	background: conic-gradient( from var( --qu-angle ), var( --color-progressive, #36c ) 0 90deg, transparent 90deg );
+	padding: 2px;
+	background: conic-gradient( from var( --qu-angle ), var( --color-progressive ) 0 90deg, transparent 90deg );
 	-webkit-mask: linear-gradient( #000 0 0 ) content-box, linear-gradient( #000 0 0 );
 	-webkit-mask-composite: xor;
 	mask: linear-gradient( #000 0 0 ) content-box, linear-gradient( #000 0 0 );
 	mask-composite: exclude;
-	animation: qu-spin 0.9s linear infinite;
+	animation: qu-spin 1200ms linear infinite;
 }
 
 @keyframes qu-spin {

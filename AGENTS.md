@@ -27,6 +27,7 @@ Wiki pages, modules, and automation for [Star Citizen Wiki](https://starcitizen.
 - Module imports use MediaWiki paths: `require('Module:InfoboxLua/Util')`.
 - CSS class prefix follows the owning component (e.g., `t-infobox-` for InfoboxLua).
 - CSS uses design tokens from the Citizen skin (`--space-md`, `--color-surface-1`, etc.).
+- Gadgets that enhance server-rendered HTML read their context from `data-gadget-<gadgetname>-<key>` attributes on the target element (e.g. a `quantumUpload` placeholder carries `data-gadget-quantumupload-name`). Prefixing by gadget name keeps the contract traceable — `grep gadget-<name>-` finds every emitter and the owning gadget. HTML lowercases attribute names, so keep each segment lowercase in markup and read them via `el.dataset.gadget<Name><Key>`.
 
 ## Wiki URL paths
 

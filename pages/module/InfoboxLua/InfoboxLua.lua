@@ -6,6 +6,7 @@ local INFOBOX_WIDTH = 400
 
 local headerComponent = require('Module:InfoboxLua/Components/Header')
 local sectionComponent = require('Module:InfoboxLua/Components/Section')
+local imageResolver = require('Module:InfoboxLua/ImageResolver')
 
 --- @class InfoboxLuaData
 --- @field class string|nil An additional HTML class for the infobox's container. Optional.
@@ -13,16 +14,19 @@ local sectionComponent = require('Module:InfoboxLua/Components/Section')
 --- @field title string The title of the infobox.
 --- @field subtitle string|nil The subtitle of the infobox. Optional.
 --- @field image ImageComponentData|string|nil The main image of the infobox. Optional.
+--- @field imageUploadName string|nil Override for the auto-discovery / upload convention base. Optional.
 --- @field images table<ImageComponentData>|nil The images of the infobox. Optional.
 --- @field sections table<SectionComponentData>|nil The sections of the infobox. Optional.
 
 local p = {}
 
---- Get the image data
+--- Get the image data, auto-discovering the conventional quick-upload image and,
+--- failing that, marking the placeholder for the QuantumUpload gadget.
 ---
---- @param image string|ImageComponentData
+--- @param image string|ImageComponentData|nil
+--- @param uploadNameOverride string|nil Convention base override; defaults to '<page title> - infobox'.
 --- @return ImageComponentData
-local function getImageData(image)
+local function getImageData(image, uploadNameOverride)
 	local imageData = {}
 
 	if type(image) == 'string' then
@@ -37,10 +41,19 @@ local function getImageData(image)
 		imageData.size = INFOBOX_WIDTH
 	end
 
-	-- No image source, use placeholder
+	-- No explicit image source: try to auto-discover the conventionally-named
+	-- quick-upload image; otherwise use the placeholder and attach the upload
+	-- contract so the QuantumUpload gadget can offer an upload control.
 	if type(imageData.src) ~= 'string' then
-		imageData.src = PLACEHOLDER_IMAGE
-		imageData.size = PLACEHOLDER_IMAGE_SIZE
+		local base = uploadNameOverride or imageResolver.conventionBase(mw.title.getCurrentTitle().text)
+		local discovered = imageResolver.resolveDiscoveredSrc(base)
+		if type(discovered) == 'string' then
+			imageData.src = discovered
+		else
+			imageData.src = PLACEHOLDER_IMAGE
+			imageData.size = PLACEHOLDER_IMAGE_SIZE
+			imageData.upload = { name = base }
+		end
 	end
 
 	return imageData
@@ -54,7 +67,7 @@ local function getContentHtml(data)
 	contentHtml:node(headerComponent.getHtml({
 		title = data.title,
 		subtitle = data.subtitle or nil,
-		image = getImageData(data.image),
+		image = getImageData(data.image, data.imageUploadName),
 		images = data.images or nil,
 	}))
 

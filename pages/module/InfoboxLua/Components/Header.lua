@@ -18,6 +18,11 @@ local function getImageHtml(image)
 	local root = mw.html.create('div')
 	root:addClass('t-infobox-image-container')
 
+	if type(imageData.upload) == 'table' and util.isNonEmptyString(imageData.upload.name) then
+		root:addClass('t-infobox-image-container--placeholder')
+		root:attr('data-gadget-quantumupload-name', imageData.upload.name)
+	end
+
 	root:tag('div')
 		:addClass('t-infobox-image')
 		:wikitext(string.format('[[File:%s|%dpx|class=%s]]', imageData.src, imageData.size, imageData.class or ''))

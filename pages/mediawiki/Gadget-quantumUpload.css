@@ -1,0 +1,61 @@
+/* QuantumUpload gadget — overlay control on infobox placeholders.
+ * Companion to MediaWiki:Gadget-quantumUpload.js. Gadget CSS is raw site CSS
+ * (not TemplateStyles), so the full property set is available. */
+
+.t-infobox-image-container--placeholder {
+	position: relative;
+}
+
+.t-quantumupload {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	pointer-events: none;
+}
+
+.t-quantumupload__button {
+	pointer-events: auto;
+	cursor: pointer;
+	padding: var( --space-xs, 0.5em ) var( --space-md, 1em );
+	font-weight: var( --font-weight-medium, 600 );
+	line-height: var( --line-height-xs, 1.25 );
+	color: var( --color-base, #fff );
+	background-color: var( --color-surface-2, rgba( 0, 0, 0, 0.65 ) );
+	border: 1px solid var( --border-color-base, #72777d );
+	border-radius: var( --border-radius-base, 2px );
+}
+
+.t-quantumupload__input {
+	display: none;
+}
+
+.t-infobox-image-container--placeholder.t-quantumupload--drag {
+	outline: 2px dashed var( --color-progressive, #36c );
+	outline-offset: -4px;
+}
+
+.t-quantumupload__confirm {
+	position: absolute;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	display: flex;
+	gap: var( --space-xs, 0.5em );
+	align-items: center;
+	padding: var( --space-xs, 0.5em );
+	font-size: var( --font-size-small, 0.875em );
+	line-height: var( --line-height-small, 1.4 );
+	color: var( --color-base, #fff );
+	background-color: var( --color-surface-1, rgba( 0, 0, 0, 0.8 ) );
+}
+
+.t-quantumupload__confirm-msg {
+	flex: 1;
+}
+
+.t-quantumupload__confirm-ok,
+.t-quantumupload__confirm-cancel {
+	cursor: pointer;
+}

@@ -33,6 +33,9 @@
 	var ICON_CLOSE = '<svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">' +
 		'<path d="M5 5l10 10M15 5L5 15" fill="none" stroke="currentColor" stroke-width="2" ' +
 		'stroke-linecap="round"/></svg>';
+	var ICON_UPLOAD = '<svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">' +
+		'<path d="M10 13V4M6.5 7.5 10 4l3.5 3.5M4 13v3h12v-3" fill="none" stroke="currentColor" ' +
+		'stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
 	// File base + the picked file's extension (jpeg normalised to jpg).
 	function targetFilename( base, file ) {
@@ -100,8 +103,12 @@
 
 		var button = document.createElement( 'button' );
 		button.type = 'button';
-		button.className = 'cdx-button cdx-button--weight-primary cdx-button--action-progressive t-quantumupload__button';
-		button.textContent = 'Add image';
+		button.className = 'cdx-button t-quantumupload__button';
+		var buttonIcon = document.createElement( 'span' );
+		buttonIcon.className = 'cdx-icon';
+		buttonIcon.innerHTML = ICON_UPLOAD;
+		button.appendChild( buttonIcon );
+		button.appendChild( document.createTextNode( 'Add image' ) );
 
 		overlay.appendChild( button );
 		overlay.appendChild( input );
@@ -138,26 +145,44 @@
 
 			var filename = targetFilename( base, file );
 			var previewUrl = URL.createObjectURL( file );
-			var img = el.querySelector( 'img' );
-			var originalSrc = img ? img.getAttribute( 'src' ) : null;
-			var originalSrcset = img ? img.getAttribute( 'srcset' ) : null;
 
 			// Show the picked image as a local preview and hide the add button.
-			// srcset is dropped so the blob src wins on hi-DPI displays.
-			if ( img ) {
-				img.removeAttribute( 'srcset' );
-				img.setAttribute( 'src', previewUrl );
+			// The wiki wraps the placeholder in <picture> with a <source> that
+			// overrides the <img> and pins fixed dimensions, so instead of mutating
+			// it we hide the whole file markup and drop in our own naturally-sized
+			// <img>. `.mw-file-element` is the standard class on any rendered file
+			// image, so this stays reusable (not tied to InfoboxLua); we hide its
+			// `mw:File` wrapper, falling back to the image itself.
+			var img = el.querySelector( '.mw-file-element' );
+			var fileMarkup = ( img && img.closest( '[typeof="mw:File"]' ) ) || img;
+			var previewHost = ( fileMarkup && fileMarkup.parentNode ) || el;
+			// Capture the placeholder's rendered width before hiding it: the host is
+			// often a shrink-to-fit float, so once the placeholder is gone a
+			// percentage-width preview would collapse. Pinning the width keeps the
+			// preview the same size, with natural height (no aspect-ratio stretch).
+			var displayWidth = img ? Math.round( img.getBoundingClientRect().width ) : 0;
+
+			var preview = document.createElement( 'img' );
+			preview.className = 't-quantumupload__preview';
+			preview.src = previewUrl;
+			if ( displayWidth ) {
+				preview.style.width = displayWidth + 'px';
+			}
+
+			if ( fileMarkup ) {
+				fileMarkup.style.display = 'none';
+				previewHost.insertBefore( preview, fileMarkup.nextSibling );
+			} else {
+				el.appendChild( preview );
 			}
 			overlay.style.display = 'none';
 
 			function revert() {
-				if ( img ) {
-					if ( originalSrc !== null ) {
-						img.setAttribute( 'src', originalSrc );
-					}
-					if ( originalSrcset !== null ) {
-						img.setAttribute( 'srcset', originalSrcset );
-					}
+				if ( preview.parentNode ) {
+					preview.parentNode.removeChild( preview );
+				}
+				if ( fileMarkup ) {
+					fileMarkup.style.display = '';
 				}
 				URL.revokeObjectURL( previewUrl );
 				overlay.style.display = '';

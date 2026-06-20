@@ -25,6 +25,15 @@
 	display: none;
 }
 
+/* Local preview image: replaces the hidden placeholder markup. Width is pinned
+ * inline (to the placeholder's rendered width) by the gadget; height stays auto
+ * so the upload keeps its own aspect ratio (no stretch to fixed dimensions). */
+.t-quantumupload__preview {
+	display: block;
+	max-width: 100%;
+	height: auto;
+}
+
 .t-infobox-image-container--placeholder.t-quantumupload--drag {
 	outline: 2px dashed var( --color-progressive, #36c );
 	outline-offset: -4px;

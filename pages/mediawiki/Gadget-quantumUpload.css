@@ -1,6 +1,6 @@
 /* QuantumUpload gadget — overlay control on infobox placeholders.
- * Companion to MediaWiki:Gadget-quantumUpload.js. Gadget CSS is raw site CSS
- * (not TemplateStyles), so the full property set is available. */
+ * Companion to MediaWiki:Gadget-quantumUpload.js. Buttons are Codex (cdx-button*);
+ * this sheet only handles layout/positioning of the overlay and confirm bar. */
 
 .t-infobox-image-container--placeholder {
 	position: relative;
@@ -15,16 +15,10 @@
 	pointer-events: none;
 }
 
+/* The overlay swallows pointer events so the image stays interactive; the button
+ * re-enables them for itself. */
 .t-quantumupload__button {
 	pointer-events: auto;
-	cursor: pointer;
-	padding: var( --space-xs, 0.5em ) var( --space-md, 1em );
-	font-weight: var( --font-weight-medium, 600 );
-	line-height: var( --line-height-xs, 1.25 );
-	color: var( --color-base, #fff );
-	background-color: var( --color-surface-2, rgba( 0, 0, 0, 0.65 ) );
-	border: 1px solid var( --border-color-base, #72777d );
-	border-radius: var( --border-radius-base, 2px );
 }
 
 .t-quantumupload__input {
@@ -53,9 +47,7 @@
 
 .t-quantumupload__confirm-msg {
 	flex: 1;
-}
-
-.t-quantumupload__confirm-ok,
-.t-quantumupload__confirm-cancel {
-	cursor: pointer;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }

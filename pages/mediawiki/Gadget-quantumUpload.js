@@ -10,6 +10,8 @@
  * upload-stash -> local preview -> confirm -> publish (with auto-filled file
  * page) -> purge the host page so the infobox auto-discovers the new file.
  *
+ * Buttons use Codex classes (cdx-button*) which are loaded site-wide.
+ *
  * Optional override attributes on the same element:
  *   data-gadget-quantumupload-categories  pipe-separated categories
  *   data-gadget-quantumupload-desc        file-page description text
@@ -22,6 +24,15 @@
 	var MAINT_CATEGORY = 'Images uploaded via QuantumUpload';
 	var LICENSE_TEMPLATE = 'Cc-by-sa-4.0';
 	var COMMENT = 'Uploaded via QuantumUpload gadget';
+
+	// Static check / close glyphs for the icon-only Codex buttons; they inherit
+	// the button's text colour via currentColor. No user data — innerHTML is safe.
+	var ICON_CHECK = '<svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">' +
+		'<path d="M4 10.5l4 4 8-9" fill="none" stroke="currentColor" stroke-width="2" ' +
+		'stroke-linecap="round" stroke-linejoin="round"/></svg>';
+	var ICON_CLOSE = '<svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">' +
+		'<path d="M5 5l10 10M15 5L5 15" fill="none" stroke="currentColor" stroke-width="2" ' +
+		'stroke-linecap="round"/></svg>';
 
 	// File base + the picked file's extension (jpeg normalised to jpg).
 	function targetFilename( base, file ) {
@@ -89,7 +100,7 @@
 
 		var button = document.createElement( 'button' );
 		button.type = 'button';
-		button.className = 't-quantumupload__button';
+		button.className = 'cdx-button cdx-button--weight-primary cdx-button--action-progressive t-quantumupload__button';
 		button.textContent = 'Add image';
 
 		overlay.appendChild( button );
@@ -119,11 +130,6 @@
 			}
 		} );
 
-		function resetButton() {
-			button.disabled = false;
-			button.textContent = 'Add image';
-		}
-
 		function start( file ) {
 			if ( !/^image\//.test( file.type ) ) {
 				mw.notify( 'Please choose an image file.', { type: 'error' } );
@@ -134,24 +140,31 @@
 			var previewUrl = URL.createObjectURL( file );
 			var img = el.querySelector( 'img' );
 			var originalSrc = img ? img.getAttribute( 'src' ) : null;
+			var originalSrcset = img ? img.getAttribute( 'srcset' ) : null;
 
+			// Show the picked image as a local preview and hide the add button.
+			// srcset is dropped so the blob src wins on hi-DPI displays.
 			if ( img ) {
+				img.removeAttribute( 'srcset' );
 				img.setAttribute( 'src', previewUrl );
 			}
-			button.disabled = true;
-			button.textContent = 'Stashing…';
+			overlay.style.display = 'none';
 
 			function revert() {
-				if ( img && originalSrc !== null ) {
-					img.setAttribute( 'src', originalSrc );
+				if ( img ) {
+					if ( originalSrc !== null ) {
+						img.setAttribute( 'src', originalSrc );
+					}
+					if ( originalSrcset !== null ) {
+						img.setAttribute( 'srcset', originalSrcset );
+					}
 				}
 				URL.revokeObjectURL( previewUrl );
-				resetButton();
+				overlay.style.display = '';
 			}
 
 			var api = new mw.Api();
 			api.uploadToStash( file, { filename: filename } ).done( function ( finishUpload ) {
-				button.textContent = 'Stashed';
 				showConfirm( filename, finishUpload, revert );
 			} ).fail( function ( code, result ) {
 				mw.notify( errorText( code, result ), { type: 'error' } );
@@ -165,21 +178,24 @@
 
 			var msg = document.createElement( 'span' );
 			msg.className = 't-quantumupload__confirm-msg';
-			msg.textContent = 'Publish as ' + filename + ' under ' + LICENSE_TEMPLATE + '?';
-
-			var ok = document.createElement( 'button' );
-			ok.type = 'button';
-			ok.className = 't-quantumupload__confirm-ok';
-			ok.textContent = 'Confirm';
+			msg.textContent = filename;
+			msg.title = 'Publish under ' + LICENSE_TEMPLATE;
 
 			var cancel = document.createElement( 'button' );
 			cancel.type = 'button';
-			cancel.className = 't-quantumupload__confirm-cancel';
-			cancel.textContent = 'Cancel';
+			cancel.className = 'cdx-button cdx-button--icon-only cdx-button--weight-quiet t-quantumupload__confirm-cancel';
+			cancel.setAttribute( 'aria-label', 'Cancel' );
+			cancel.innerHTML = ICON_CLOSE;
+
+			var ok = document.createElement( 'button' );
+			ok.type = 'button';
+			ok.className = 'cdx-button cdx-button--icon-only cdx-button--weight-primary cdx-button--action-progressive t-quantumupload__confirm-ok';
+			ok.setAttribute( 'aria-label', 'Publish image' );
+			ok.innerHTML = ICON_CHECK;
 
 			bar.appendChild( msg );
-			bar.appendChild( ok );
 			bar.appendChild( cancel );
+			bar.appendChild( ok );
 			el.appendChild( bar );
 			ok.focus();
 
@@ -197,7 +213,6 @@
 			ok.addEventListener( 'click', function () {
 				ok.disabled = true;
 				cancel.disabled = true;
-				ok.textContent = 'Publishing…';
 
 				finishUpload( {
 					filename: filename,
@@ -219,7 +234,6 @@
 				} ).fail( function ( code, result ) {
 					ok.disabled = false;
 					cancel.disabled = false;
-					ok.textContent = 'Confirm';
 					mw.notify( errorText( code, result ), { type: 'error' } );
 				} );
 			} );

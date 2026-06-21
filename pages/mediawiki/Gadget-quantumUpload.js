@@ -24,6 +24,11 @@
 	const MAINT_CATEGORY = 'Images uploaded via QuantumUpload';
 	const LICENSE_TEMPLATE = 'Cc-by-sa-4.0';
 	const COMMENT = 'Uploaded via QuantumUpload gadget';
+	// Upload warnings that are benign for an infobox image and shouldn't block the
+	// stash: the name was previously deleted (`was-deleted`), or the content matches
+	// an already-deleted file (`duplicate-archive`). A *live* conflict — `duplicate`
+	// (matches an existing file) or `exists` — and anything else is surfaced instead.
+	const BENIGN_WARNINGS = [ 'was-deleted', 'duplicate-archive' ];
 
 	// Static glyphs for the Codex icon buttons; they inherit the button's text
 	// colour via currentColor. No user data — innerHTML is safe.
@@ -72,12 +77,13 @@ ${ catText }
 			return 'That image is already on the wiki.';
 		}
 		if ( warnings && warnings.exists ) {
-			return 'A file named that already exists.';
+			return 'A file with that name already exists.';
 		}
 		if ( result && result.error && result.error.info ) {
 			return result.error.info;
 		}
-		return `Upload failed (${ code || 'unknown error' }).`;
+		mw.log.warn( 'QuantumUpload: upload failed', code, result );
+		return 'Upload failed. Please try again.';
 	}
 
 	// Reuse the Confetti gadget's burst on success. Loaded on demand; a delight,
@@ -194,16 +200,27 @@ ${ catText }
 				overlay.style.display = '';
 			};
 
-			new mw.Api().uploadToStash( file, { filename: filename } ).done( ( finishUpload ) => {
+			// Stash the file. Warnings reject the upload here (before the file is
+			// published); if the file was still stashed (filekey present) and every
+			// warning is benign (e.g. the name was previously deleted), proceed to the
+			// confirm step. Anything else (duplicate, exists, large-file, …) surfaces.
+			new mw.Api().upload( file, { stash: true, filename: filename } ).done( ( result ) => {
 				removeUploading();
-				showConfirm( filename, finishUpload, revert );
+				showConfirm( filename, result.upload.filekey, revert );
 			} ).fail( ( code, result ) => {
-				mw.notify( errorText( code, result ), { type: 'error' } );
-				revert();
+				const upload = result && result.upload;
+				const keys = ( upload && upload.warnings ) ? Object.keys( upload.warnings ) : [];
+				if ( upload && upload.filekey && keys.length && keys.every( ( k ) => BENIGN_WARNINGS.indexOf( k ) !== -1 ) ) {
+					removeUploading();
+					showConfirm( filename, upload.filekey, revert );
+				} else {
+					mw.notify( errorText( code, result ), { type: 'error' } );
+					revert();
+				}
 			} );
 		}
 
-		function showConfirm( filename, finishUpload, revert ) {
+		function showConfirm( filename, filekey, revert ) {
 			const bar = document.createElement( 'div' );
 			bar.className = 't-quantumupload__confirm';
 
@@ -237,12 +254,7 @@ ${ catText }
 				ok.disabled = true;
 				cancel.disabled = true;
 
-				finishUpload( {
-					filename: filename,
-					text: buildPageText( el ),
-					comment: COMMENT,
-					ignorewarnings: false
-				} ).done( () => {
+				const onPublished = () => {
 					bar.remove();
 					overlay.remove();
 					el.removeAttribute( NAME_ATTR );
@@ -252,7 +264,22 @@ ${ catText }
 					new mw.Api().post( { action: 'purge', titles: mw.config.get( 'wgPageName' ) } );
 					mw.notify( 'Image published.', { type: 'success' } );
 					celebrate();
-				} ).fail( ( code, result ) => {
+				};
+
+				// Publish the already-stashed, already-vetted file. uploadFromStash
+				// rejects whenever the response carries warnings — even when the upload
+				// actually succeeded (result === 'Success'), which is exactly what
+				// ignorewarnings produces — so treat that case as a success.
+				new mw.Api().uploadFromStash( filekey, {
+					filename: filename,
+					text: buildPageText( el ),
+					comment: COMMENT,
+					ignorewarnings: true
+				} ).done( onPublished ).fail( ( code, result ) => {
+					if ( result && result.upload && result.upload.result === 'Success' ) {
+						onPublished();
+						return;
+					}
 					ok.disabled = false;
 					cancel.disabled = false;
 					mw.notify( errorText( code, result ), { type: 'error' } );

@@ -21,6 +21,9 @@ local function getImageHtml(image)
 	if type(imageData.upload) == 'table' and util.isNonEmptyString(imageData.upload.name) then
 		root:addClass('t-infobox-image-container--placeholder')
 		root:attr('data-gadget-quantumupload-name', imageData.upload.name)
+		if util.isNonEmptyString(imageData.upload.categories) then
+			root:attr('data-gadget-quantumupload-categories', imageData.upload.categories)
+		end
 	end
 
 	root:tag('div')

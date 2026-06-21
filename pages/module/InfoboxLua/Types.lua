@@ -19,7 +19,7 @@ local p = {}
 --- @field label string|nil The label text for the image. Only used for tabber. Optional.
 --- @field size number|nil The size of the image. Optional.
 --- @field class string|nil The class of the image. Optional.
---- @field upload table|nil Upload contract { name = string } set when this is a placeholder; drives the QuantumUpload gadget marker. Optional.
+--- @field upload table|nil Upload contract { name = string, categories = string } set when this is a placeholder; drives the QuantumUpload gadget marker. Optional.
 
 --- @type DataSchemaDefinition @The schema for ImageComponent data.
 p.ImageComponentDataSchema = {

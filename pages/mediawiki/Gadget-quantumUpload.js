@@ -50,7 +50,9 @@
 		const pageTitle = mw.config.get( 'wgPageName' ).replace( /_/g, ' ' );
 		const desc = el.getAttribute( 'data-gadget-quantumupload-desc' ) || `Infobox image for [[${ pageTitle }]]`;
 		const license = el.getAttribute( 'data-gadget-quantumupload-license' ) || LICENSE_TEMPLATE;
-		const cats = ( el.getAttribute( 'data-gadget-quantumupload-categories' ) || MAINT_CATEGORY ).split( '|' );
+		// The maintenance category is always present; the emitter may add more.
+		const extra = el.getAttribute( 'data-gadget-quantumupload-categories' );
+		const cats = [ MAINT_CATEGORY ].concat( extra ? extra.split( '|' ) : [] );
 		const date = new Date().toISOString().slice( 0, 10 );
 		const catText = cats.map( ( c ) => `[[Category:${ c.trim() }]]` ).join( '\n' );
 
@@ -198,6 +200,8 @@ ${ catText }
 				}
 				URL.revokeObjectURL( previewUrl );
 				overlay.style.display = '';
+				// Clear the picker so re-selecting the same file fires `change` again.
+				input.value = '';
 			};
 
 			// Stash the file. Warnings reject the upload here (before the file is

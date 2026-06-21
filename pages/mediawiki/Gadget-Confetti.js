@@ -1,4 +1,3 @@
-// console.log( '[Gadget-Confetti] Gadget loaded' );
 function confettiFromPageSide() {
 	confetti({
 		particleCount: 100,

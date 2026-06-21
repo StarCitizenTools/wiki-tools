@@ -3,6 +3,9 @@ require('strict')
 local PLACEHOLDER_IMAGE = 'Placeholderv2.png'
 local PLACEHOLDER_IMAGE_SIZE = 400
 local INFOBOX_WIDTH = 400
+-- Per-page tracking category for images uploaded via the QuantumUpload gadget,
+-- e.g. 'Gladius' -> 'Gladius images'. string.format pattern; change here to retune.
+local UPLOAD_IMAGE_CATEGORY = '%s images'
 
 local headerComponent = require('Module:InfoboxLua/Components/Header')
 local sectionComponent = require('Module:InfoboxLua/Components/Section')
@@ -45,14 +48,18 @@ local function getImageData(image, uploadNameOverride)
 	-- quick-upload image; otherwise use the placeholder and attach the upload
 	-- contract so the QuantumUpload gadget can offer an upload control.
 	if type(imageData.src) ~= 'string' then
-		local base = uploadNameOverride or imageResolver.conventionBase(mw.title.getCurrentTitle().text)
+		local pageTitle = mw.title.getCurrentTitle().text
+		local base = uploadNameOverride or imageResolver.conventionBase(pageTitle)
 		local discovered = imageResolver.resolveDiscoveredSrc(base)
 		if type(discovered) == 'string' then
 			imageData.src = discovered
 		else
 			imageData.src = PLACEHOLDER_IMAGE
 			imageData.size = PLACEHOLDER_IMAGE_SIZE
-			imageData.upload = { name = base }
+			imageData.upload = {
+				name = base,
+				categories = string.format(UPLOAD_IMAGE_CATEGORY, pageTitle),
+			}
 		end
 	end
 

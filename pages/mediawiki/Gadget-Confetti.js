@@ -14,6 +14,9 @@ function confettiFromPageSide() {
 	});
 }
 
+// Expose so other gadgets (e.g. QuantumUpload) can reuse the burst.
+window.confettiFromPageSide = confettiFromPageSide;
+
 const confettiCommand = {
 	id: 'confetti',
 	triggers: [ '/confetti', '🎉', '🎊', '🥳' ],

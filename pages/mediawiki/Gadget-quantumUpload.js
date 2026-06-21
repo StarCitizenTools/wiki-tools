@@ -228,11 +228,6 @@ ${ catText }
 			const bar = document.createElement( 'div' );
 			bar.className = 't-quantumupload__confirm';
 
-			const msg = document.createElement( 'span' );
-			msg.className = 't-quantumupload__confirm-msg';
-			msg.textContent = filename;
-			msg.title = `Publish under ${ LICENSE_TEMPLATE }`;
-
 			const cancel = document.createElement( 'button' );
 			cancel.type = 'button';
 			cancel.className = 'cdx-button cdx-button--icon-only cdx-button--weight-quiet t-quantumupload__confirm-cancel';
@@ -243,9 +238,11 @@ ${ catText }
 			ok.type = 'button';
 			ok.className = 'cdx-button cdx-button--icon-only cdx-button--weight-primary cdx-button--action-progressive t-quantumupload__confirm-ok';
 			ok.setAttribute( 'aria-label', 'Publish image' );
+			// The filename is no longer shown; keep the licensing disclosure on hover.
+			ok.title = `Publish ${ filename } under ${ LICENSE_TEMPLATE }`;
 			ok.innerHTML = ICON_CHECK;
 
-			bar.append( msg, cancel, ok );
+			bar.append( cancel, ok );
 			el.append( bar );
 			ok.focus();
 

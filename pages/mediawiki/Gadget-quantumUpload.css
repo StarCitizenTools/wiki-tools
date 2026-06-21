@@ -78,20 +78,8 @@
 	position: absolute;
 	right: 0;
 	bottom: 0;
-	left: 0;
 	display: flex;
 	gap: var( --space-xs, 0.5rem );
 	align-items: center;
-	padding: var( --space-xs, 0.5rem );
-	font-size: var( --font-size-small, 0.875rem );
-	line-height: var( --line-height-small, 1.4 );
-	color: var( --color-base, #fff );
 	background-color: var( --color-surface-1, rgba( 0, 0, 0, 0.8 ) );
-}
-
-.t-quantumupload__confirm-msg {
-	flex: 1;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
 }

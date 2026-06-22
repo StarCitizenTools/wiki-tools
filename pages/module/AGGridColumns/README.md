@@ -8,14 +8,14 @@ Consumers (Module:DataGrid for `{{Data table}}`, Module:PledgeVehicleGrid) build
 
 | kind | JS type | cell value | used by |
 |---|---|---|---|
-| `image` | `aggridImage` | linked thumbnail | DataGrid lead |
-| `link` | `aggridLink` | linked page | DataGrid name/link columns |
+| `image` | `aggridImage` | linked thumbnail | *(spare — generic thumbnail column)* |
+| `link` | `aggridLink` | linked page | DataGrid page-link columns |
 | `linkList` | `aggridLinkList` | list of links | pledge loaner |
 | `valueList` | `aggridLinkList` | list of plain-text tags and/or links (set filter splits per value) | DataGrid multi-valued columns |
 | `text` | *(none)* | plain text | pledge text columns |
 | `smart` | `scwSmart` | numeric-aware text | DataGrid plain columns |
 | `number` | `numericColumn` | real number + Intl format | pledge stats |
-| `card` | `scwEntityCard` | thumb + eyebrow + title | pledge vehicle |
+| `card` | `scwEntityCard` | thumb + eyebrow + title | pledge vehicle, DataGrid lead |
 | `stackedValue` | `scwStackedValue` | primary over muted secondary | pledge prices |
 | `badge` | `scwBadge` | BadgeLua-style pill | pledge production state |
 

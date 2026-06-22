@@ -7,13 +7,13 @@ Builds an interactive, filterable browse table on [AG Grid](https://www.ag-grid.
 Invoked through `{{Data table}}`, a bare `{{#invoke:DataGrid|main}}`. The module reads `category`, `columns`, and `conditions` off the parent (template) frame via `Module:Arguments`.
 
 - `category` — the category to browse. Optional when `conditions` is given; provide at least one of the two.
-- `columns` — one column per line, `property; label=X; size=X; filter`. The first clause is the SMW property; the rest are modifiers. `label=` overrides the header (and the result-row key). The bare `filter` flag gives the column a checkbox set filter. `size=` is parsed for backward-compatibility but is **unused** — no live page sets it, and the lead thumbnail width is fixed.
+- `columns` — one column per line, `property; label=X; size=X; filter; eyebrow`. The first clause is the SMW property; the rest are modifiers. `label=` overrides the header (and the result-row key). The bare `filter` flag gives the column a checkbox set filter. The bare `eyebrow` flag promotes the column into the lead card as a secondary label above the name (at most one per table), instead of rendering it as its own column. `size=` is parsed for backward-compatibility but is **unused**.
 - `conditions` — extra raw SMW query conditions (e.g. `[[Item type::Gun]]` or `[[Manufacturer::ArcCorp]]`). Appended to the category condition when both are given, or used on its own when no category is supplied ([[Template:Manufacturer products]] queries `[[Manufacturer::…]]` with no category). The query is always restricted to the main namespace with `[[:+]]`.
 
 ## Behaviour
 
 - **Data source** — one `mw.smw.ask` query: a fixed `Page Image` + page-name lead, then one aliased printout per column. Every column is emitted with an explicit `=alias` (the `label`, else the property verbatim) so result rows key deterministically. Two columns resolving to the same alias — or one colliding with the reserved `Image`/`Name` lead keys — are rejected with an inline error.
-- **Lead columns** — a blank-header linked thumbnail (`aggridImage`) and a linked name (`aggridLink`), both linking to the row's own page.
+- **Lead** — a single card cell (the shared `card` kind, the gadget's `scwEntityCard` type): a square thumbnail sized to the row plus the linked page name, both linking to the row's own page. A column flagged `eyebrow` adds its value as a secondary label above the name (linked when it is a page), and the rows grow taller to fit. The lead is text-filtered by name; to filter by a property such as manufacturer, add it as a normal `filter` column.
 - **Column classification** — each editor column is classified from its values: a **multi-value list** column (any row holds several values → `aggridLinkList` via `aggrid.list`), a **page-link** column (`[[:Target|Display]]` values → `aggridLink`), or a **plain** column. This keeps page-valued columns such as Manufacturer rendering as links and renders a multi-valued property (e.g. Company Industry/Products) as a comma list. Number-vs-text is deliberately not decided in Lua.
 - **Numeric sort** — plain columns use the gadget's `scwSmart` type: numeric-looking values sort numerically and right-align per cell; text sorts alphabetically. No column-level numeric typing, so a stray text value never flips a column and a code like `S2` never mis-sorts.
 - **Filtering** — `filter`-flagged columns get the checkbox set filter (`aggridSet`); other columns get a text filter. On a **multi-value list** column the set filter splits each cell into one option per value, so a company in both `mining` and `salvage` appears under both checkboxes and either one matches it. A global `quickSearch` box sits above the grid.
@@ -22,9 +22,9 @@ Invoked through `{{Data table}}`, a bare `{{#invoke:DataGrid|main}}`. The module
 
 ## Requirements
 
-- [Extension:AGGrid](https://www.mediawiki.org/wiki/Extension:AGGrid) — `mw.ext.aggrid`, the `aggridImage`/`aggridLink`/`aggridLinkList` column types (the last via `aggrid.list`), the `aggridSet` filter (which splits a multi-value cell into one option per value), `quickSearch`, and the `Pages using AG Grid` tracking category.
+- [Extension:AGGrid](https://www.mediawiki.org/wiki/Extension:AGGrid) — `mw.ext.aggrid`, the `aggridLink`/`aggridLinkList` column types (the latter via `aggrid.list`), the `aggridSet` filter (which splits a multi-value cell into one option per value), `quickSearch`, and the `Pages using AG Grid` tracking category.
 - [Extension:SemanticScribunto](https://www.mediawiki.org/wiki/Extension:SemanticScribunto) — `mw.smw.ask`.
-- **aggridRenderers gadget** (`MediaWiki:Gadget-aggridRenderers.js`) — registers the generic `scwSmart` column type. Gated in `MediaWiki:Gadgets-definition` by `categories=Pages using AG Grid`, so it loads on grid pages. Without it, plain columns fall back to AG Grid's default string sort and left alignment.
+- **aggridRenderers gadget** (`MediaWiki:Gadget-aggridRenderers.js`) — registers the `scwSmart` (plain columns) and `scwEntityCard` (lead card) column types. Gated in `MediaWiki:Gadgets-definition` by `categories=Pages using AG Grid`, so it loads on grid pages. Without it, the lead card and plain-column sort/align fall back to AG Grid defaults.
 
 ## Architecture
 

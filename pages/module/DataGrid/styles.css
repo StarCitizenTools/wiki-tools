@@ -5,6 +5,9 @@
 
 .t-datagrid {
 	margin-block: var( --space-md );
+	/* Compact lead-card thumbnail (the gadget defaults to the pledge grid's 56px);
+	   40px fits DataGrid's compact rows. Inherited by every .scw-entitycard cell. */
+	--scw-entitycard-media-size: 40px;
 }
 
 /* All rows in one internally-scrolling, virtualised grid; a taller viewport does

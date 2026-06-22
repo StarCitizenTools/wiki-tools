@@ -41,23 +41,22 @@
 	pointer-events: none;
 }
 
+/* Square thumbnail. A fixed size (not a percentage of the row) because percentage
+   heights don't resolve through AG Grid's nested-flex cells. The size is the
+   inherited --scw-entitycard-media-size, defaulting to the pledge grid's 56px; a
+   denser consumer (Module:DataGrid) sets a smaller value on its wrapper so the
+   thumbnail fits a compact row. */
 .scw-entitycard__media {
 	position: relative;
 	flex: none;
-	display: flex;
-	align-items: center;
-	height: 100%;
+	display: block;
+	width: var( --scw-entitycard-media-size, 56px );
+	height: var( --scw-entitycard-media-size, 56px );
 }
 
-/* Square thumbnail sized to the row: the image is a replaced element, so a
-   definite height + aspect-ratio drives its width reliably. It fills the cell
-   height minus a little breathing room, so the same card renders correctly at
-   DataGrid's compact rows and the pledge grid's taller rows. */
 .scw-entitycard__image {
-	display: block;
-	width: auto;
-	height: calc( 100% - var( --space-xs ) );
-	aspect-ratio: 1;
+	width: 100%;
+	height: 100%;
 	object-fit: cover;
 	border-radius: var( --border-radius-base );
 }

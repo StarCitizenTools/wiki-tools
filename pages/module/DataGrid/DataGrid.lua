@@ -6,8 +6,10 @@ require('strict')
 --- every row from SMW (mw.smw.ask), reshapes the results into AG Grid rowData +
 --- columnDefs, and returns the grid.
 ---
---- Column model: a fixed lead thumbnail + linked name, then one column per editor
---- line. Each editor column is classified from its values as a multi-value list column
+--- Column model: a single card lead (thumbnail + linked name, optional eyebrow
+--- from a column flagged `eyebrow`), then one column per editor line. An eyebrow
+--- column feeds the lead card and is not emitted as its own column. Each remaining
+--- editor column is classified from its values as a multi-value list column
 --- (aggridLinkList, when any row holds several values), a page-link column (aggridLink),
 --- or a plain column (the gadget's scwSmart type). A `filter`-flagged list column gets
 --- the extension's set filter, which splits each cell into one option per value. Numeric
@@ -26,6 +28,12 @@ local NAME_ALIAS = 'Name'
 
 -- Fixed query tail.
 local QUERY_OPTIONS = { 'mainlabel=-', 'limit=1000' }
+
+-- Lead card geometry. The lead is a fixed-width card; rows are compact when the
+-- card is just thumbnail + name, and taller when an eyebrow adds a second line.
+local LEAD_WIDTH = 260
+local ROW_HEIGHT = 48
+local EYEBROW_ROW_HEIGHT = 60
 
 --- @class DataGridColumn
 --- @field property string
@@ -132,42 +140,73 @@ function p.buildQuery(category, columns, conditions)
 	return query
 end
 
---- Build the AGGridColumns column specs for this query: the fixed lead thumbnail +
---- linked name, then one spec per editor column (classified link vs smart-plain).
+--- A generic eyebrow resolver for the lead card, closed over the eyebrow column's
+--- result-row key. Returns the value as `{ text, full, href? }`: a linked label
+--- when the value is a single page printout, else plain text. No icon — the brand
+--- glyph is PledgeVehicleGrid-specific. Returns nil when the value is empty.
+--- @param alias string
+--- @return fun(result: table): table|nil
+local function eyebrowResolver(alias)
+	return function(result)
+		local value = result[alias]
+		local target, display = Util.parseLink(value)
+		if target then
+			local link = aggrid.link(target, display)
+			return {
+				text = (link and link.text) or display or target,
+				full = display or target,
+				href = link and link.href,
+			}
+		end
+		local text = Util.toText(value)
+		if text and text ~= '' then
+			return { text = text, full = text }
+		end
+		return nil
+	end
+end
+
+--- Build the AGGridColumns column specs for this query: a single card lead
+--- (thumbnail + linked name, optional eyebrow), then one spec per editor column
+--- (classified link vs multi-value list vs smart-plain). A column flagged
+--- `eyebrow` feeds the lead card and is not emitted as its own column.
 --- @param results table[]
 --- @param columns DataGridColumn[]
+--- @param eyebrowColumn DataGridColumn|nil
 --- @return table[]
-local function buildSpecs(results, columns)
-	local specs = {
-		{
-			kind = 'image',
-			field = 'thumb',
-			header = '',
-			imageLabel = IMAGE_ALIAS,
-			linkLabel = NAME_ALIAS,
-			sortable = false,
-			filter = false,
-			width = 72,
-			suppressAutoSize = true,
-		},
-		{ kind = 'link', field = 'name', header = NAME_ALIAS, label = NAME_ALIAS, filter = 'agTextColumnFilter' },
+local function buildSpecs(results, columns, eyebrowColumn)
+	local leadSpec = {
+		kind = 'card',
+		field = 'lead',
+		header = NAME_ALIAS,
+		titleLabel = NAME_ALIAS,
+		imageLabel = IMAGE_ALIAS,
+		filterOn = 'title',
+		filter = 'agTextColumnFilter',
+		width = LEAD_WIDTH,
 	}
+	if eyebrowColumn then
+		leadSpec.eyebrow = eyebrowResolver(p.columnAlias(eyebrowColumn))
+	end
+	local specs = { leadSpec }
 	local KINDS = { list = 'valueList', link = 'link', plain = 'smart' }
 	for i, column in ipairs(columns) do
-		local alias = p.columnAlias(column)
-		local values = {}
-		for _, result in ipairs(results) do
-			if result[alias] ~= nil then
-				values[#values + 1] = result[alias]
+		if not column.eyebrow then
+			local alias = p.columnAlias(column)
+			local values = {}
+			for _, result in ipairs(results) do
+				if result[alias] ~= nil then
+					values[#values + 1] = result[alias]
+				end
 			end
+			specs[#specs + 1] = {
+				kind = KINDS[Util.classifyColumn(values)],
+				field = 'c' .. i,
+				header = (column.label and column.label ~= '') and column.label or column.property,
+				label = alias,
+				filter = column.filter and 'aggridSet' or 'agTextColumnFilter',
+			}
 		end
-		specs[#specs + 1] = {
-			kind = KINDS[Util.classifyColumn(values)],
-			field = 'c' .. i,
-			header = (column.label and column.label ~= '') and column.label or column.property,
-			label = alias,
-			filter = column.filter and 'aggridSet' or 'agTextColumnFilter',
-		}
 	end
 	return specs
 end
@@ -196,6 +235,17 @@ function p.main(frame)
 		return '<strong class="error">Module:DataGrid: duplicate column "' .. duplicate .. '".</strong>'
 	end
 
+	-- At most one column may be promoted into the lead card's eyebrow.
+	local eyebrowColumn
+	for _, column in ipairs(columns) do
+		if column.eyebrow then
+			if eyebrowColumn then
+				return '<strong class="error">Module:DataGrid: only one eyebrow column allowed.</strong>'
+			end
+			eyebrowColumn = column
+		end
+	end
+
 	-- A query that matches nothing legitimately returns no rows; coerce non-table to
 	-- {} so the grid renders empty (AG Grid shows its own "no rows" overlay) rather
 	-- than erroring.
@@ -204,13 +254,13 @@ function p.main(frame)
 		results = {}
 	end
 
-	local specs = buildSpecs(results, columns)
+	local specs = buildSpecs(results, columns, eyebrowColumn)
 	local gridOptions = {
 		columnDefs = AGGridColumns.buildColumnDefs(specs),
 		rowData = AGGridColumns.buildRowData(results, specs),
 		quickSearch = true,
 		pagination = false,
-		rowHeight = 48,
+		rowHeight = eyebrowColumn and EYEBROW_ROW_HEIGHT or ROW_HEIGHT,
 		autoSizeStrategy = { type = 'fitCellContents' },
 		defaultColDef = { sortable = true, resizable = true },
 	}

@@ -24,9 +24,3 @@
 	justify-content: flex-end;
 }
 
-/* Lead thumbnail: fit the image to the row without distortion. */
-.t-datagrid .ag-cell img {
-	max-height: 100%;
-	width: auto;
-	object-fit: contain;
-}

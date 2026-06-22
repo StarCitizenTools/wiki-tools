@@ -8,6 +8,7 @@ return {
 	image = require('Module:AGGridColumns/Kind/Image'),
 	link = require('Module:AGGridColumns/Kind/Link'),
 	linkList = require('Module:AGGridColumns/Kind/LinkList'),
+	valueList = require('Module:AGGridColumns/Kind/ValueList'),
 	text = require('Module:AGGridColumns/Kind/Text'),
 	smart = require('Module:AGGridColumns/Kind/Smart'),
 	number = require('Module:AGGridColumns/Kind/Number'),

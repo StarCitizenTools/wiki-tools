@@ -128,6 +128,37 @@ function p.buildLinkList(value)
 	return aggrid.linkList(targets)
 end
 
+--- Build a multi-value list cell value (via aggrid.list, rendered by the aggridLinkList
+--- type) from a (possibly multi-valued) printout. Each item becomes a plain-text tag,
+--- or a { link, text } when it parses as a single page link — so a multi-valued page
+--- property still links while a plain-text property (e.g. Industry) stays text. The
+--- extension's set filter splits the resulting cell into one option per value. nil when
+--- nothing non-empty resolves.
+--- @param value any
+--- @return table|nil  { links = { {text}|{text,href}, ... } }
+function p.buildValueList(value)
+	if value == nil then
+		return nil
+	end
+	local raw = (type(value) == 'table' and value[1] ~= nil) and value or { value }
+	local items = {}
+	for _, m in ipairs(raw) do
+		local target, display = p.parseLink(m)
+		if target then
+			items[#items + 1] = { link = target, text = display }
+		else
+			local text = p.decodeScalar(m)
+			if text ~= nil and text ~= '' then
+				items[#items + 1] = text
+			end
+		end
+	end
+	if #items == 0 then
+		return nil
+	end
+	return aggrid.list(items)
+end
+
 -- Lower-cased namespace prefixes marking a value as a file. Built once.
 local FILE_PREFIXES
 local function filePrefixes()
@@ -158,14 +189,25 @@ local function isFileMarkup(s)
 	return prefix ~= nil and filePrefixes()[mw.ustring.lower(mw.text.trim(prefix))] == true
 end
 
---- Classify an editor column from its non-nil values: 'link' when every non-empty
---- value is a single page link (not a file), else 'plain'. Never number-vs-text.
+--- Classify an editor column from its non-nil values:
+---  'list'  — any value is multi-valued (a sequence); render as a splitting value list
+---            (one set-filter option per value), covering both page links and plain text;
+---  'link'  — every non-empty single value is a single page link (not a file);
+---  'plain' — otherwise (the default). Never number-vs-text.
+--- The list check is a full first pass so the result never depends on row order. nil/
+--- keyed-object scalars (e.g. { fulltext = … }) are not sequences, so they classify as
+--- single values, not lists.
 --- @param values any[]
---- @return string  'link' | 'plain'
+--- @return string  'list' | 'link' | 'plain'
 function p.classifyColumn(values)
+	for _, v in ipairs(values) do
+		if type(v) == 'table' and v[1] ~= nil then
+			return 'list'
+		end
+	end
 	local seen = false
 	for _, v in ipairs(values) do
-		local s = p.decodeScalar(type(v) == 'table' and v[1] or v)
+		local s = p.decodeScalar(v)
 		if s ~= nil and s ~= '' then
 			seen = true
 			if not s:match('^%[%[(.-)%]%]$') or isFileMarkup(s) then

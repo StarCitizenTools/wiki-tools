@@ -98,6 +98,9 @@ return {
 			function aggrid.linkListColumn(o)
 				return column(o, 'aggridLinkList')
 			end
+			function aggrid.listColumn(o)
+				return column(o, 'aggridLinkList')
+			end
 			function aggrid.link(target, display)
 				return { text = display or target, href = target }
 			end
@@ -106,6 +109,19 @@ return {
 			end
 			function aggrid.linkList(targets)
 				return { links = targets }
+			end
+			function aggrid.list(items)
+				local links = {}
+				for _, item in ipairs(items) do
+					if type(item) == 'string' then
+						links[#links + 1] = { text = item }
+					elseif type(item) == 'table' and item.link ~= nil then
+						links[#links + 1] = { text = item.text or item.link, href = item.link }
+					elseif type(item) == 'table' and item.text ~= nil then
+						links[#links + 1] = { text = item.text }
+					end
+				end
+				return { links = links }
 			end
 			function aggrid.render()
 				return ''

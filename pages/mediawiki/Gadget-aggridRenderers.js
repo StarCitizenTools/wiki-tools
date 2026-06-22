@@ -298,16 +298,27 @@
 			cellRenderer: function ( params ) {
 				return buildCard( params.value );
 			},
-			// Sort / quick-search / CSV export key on the title (ship name); the set
-			// filter lists the eyebrow (e.g. manufacturer) via filterValueGetter,
-			// decoupled from the display scalar (AGGrid#17). cellRenderer is
-			// independent of both.
+			// Sort / quick-search / CSV export key on the title (ship name). The
+			// filter value is chosen by colDef.scwCardFilterOn: 'title' (text
+			// filter on the name, used by Module:DataGrid) or 'eyebrow' (set
+			// filter on e.g. the manufacturer). Unset uses the eyebrow when
+			// present, else the title, so PledgeVehicleGrid (which always has an
+			// eyebrow and sets no flag) filters by manufacturer as before.
 			valueFormatter: function ( params ) {
 				return ( params.value && params.value.title ) || '';
 			},
 			filterValueGetter: function ( params ) {
 				var v = params.data && params.data[ params.colDef.field ];
-				return ( v && ( v.eyebrowFull || v.eyebrow ) ) || null;
+				if ( !v ) {
+					return null;
+				}
+				if ( params.colDef.scwCardFilterOn === 'title' ) {
+					return v.title || null;
+				}
+				if ( params.colDef.scwCardFilterOn === 'eyebrow' ) {
+					return v.eyebrowFull || v.eyebrow || null;
+				}
+				return v.eyebrowFull || v.eyebrow || v.title || null;
 			},
 			// Show the eyebrow glyph beside each value in the set filter.
 			filterParams: {

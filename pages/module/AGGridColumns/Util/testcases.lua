@@ -105,4 +105,44 @@ function suite:testClassifyColumnAllTextIsPlain()
 	self:assertEquals('plain', Util.classifyColumn({ '180 m/s', '90 m/s' }))
 end
 
+-- A multi-valued cell (a sequence) classifies the whole column as a value list.
+function suite:testClassifyColumnMultiValueIsList()
+	self:assertEquals('list', Util.classifyColumn({ { 'mining', 'salvage' } }))
+end
+
+-- The list check is a full first pass: a single plain value before a multi-valued one
+-- still yields 'list' (order-independent), not 'plain'.
+function suite:testClassifyColumnMixedSingleThenMultiIsList()
+	self:assertEquals('list', Util.classifyColumn({ 'trade', { 'mining', 'salvage' } }))
+end
+
+-- A keyed-object scalar ({ fulltext = … }) is not a sequence, so it is not a list.
+function suite:testClassifyColumnKeyedObjectIsNotList()
+	self:assertEquals('link', Util.classifyColumn({ '[[:A|A]]', '[[:B|B]]' }))
+	self:assertEquals('plain', Util.classifyColumn({ { fulltext = 'Foo' } }))
+end
+
+function suite:testBuildValueListMultiPlain()
+	self:assertDeepEquals(
+		{ links = { { text = 'mining' }, { text = 'salvage' } } },
+		Util.buildValueList({ 'mining', 'salvage' })
+	)
+end
+
+function suite:testBuildValueListSingleScalar()
+	self:assertDeepEquals({ links = { { text = 'mining' } } }, Util.buildValueList('mining'))
+end
+
+function suite:testBuildValueListLinksKeepTarget()
+	self:assertDeepEquals(
+		{ links = { { text = 'A', href = 'Aegis Dynamics' } } },
+		Util.buildValueList({ '[[:Aegis Dynamics|A]]' })
+	)
+end
+
+function suite:testBuildValueListDropsEmpty()
+	self:assertEquals(nil, Util.buildValueList(nil))
+	self:assertEquals(nil, Util.buildValueList({ '', '' }))
+end
+
 return suite

@@ -161,12 +161,15 @@ local TRANSFORMS = {
 		end
 		return out
 	end,
-	-- Industry/Products: semicolon-split; each item lcfirst + delinked (display
-	-- label kept), the legacy delink/lcfirst normalisation applied per value.
+	-- Industry/Products: semicolon-split; each item delinked then lcfirst (display
+	-- label kept). Delink first so a wikilinked item normalises identically to a
+	-- plain one: "[[Clothing]] manufacture" -> "clothing manufacture", matching the
+	-- plain "clothing manufacture" instead of stranding a capitalised duplicate
+	-- (lcfirst is a no-op on a leading "[", so running it first leaves the capital).
 	textList = function(v)
 		local out = {}
 		for _, item in ipairs(splitSemi(v)) do
-			out[#out + 1] = delink(lang:lcfirst(item))
+			out[#out + 1] = lang:lcfirst(delink(item))
 		end
 		return out
 	end,
@@ -252,8 +255,8 @@ function p.getStructuredData(args)
 end
 
 --- Short description: "<race> company in the <industry> industry", or
---- "<race> company in Star Citizen" when no industry. Industry is lcfirst+
---- delinked (faithful to the legacy template). Pure (no frame).
+--- "<race> company in Star Citizen" when no industry. Industry is delinked then
+--- lcfirst (same normalisation as the stored Industry property). Pure (no frame).
 --- @param args table
 --- @return string
 function p.getShortDescription(args)
@@ -262,7 +265,7 @@ function p.getShortDescription(args)
 	if industry ~= '' then
 		-- Use the first (primary) industry so the description stays concise.
 		local first = splitSemi(industry)[1] or industry
-		return race .. ' company in the ' .. delink(lang:lcfirst(first)) .. ' industry'
+		return race .. ' company in the ' .. lang:lcfirst(delink(first)) .. ' industry'
 	end
 	return race .. ' company in Star Citizen'
 end

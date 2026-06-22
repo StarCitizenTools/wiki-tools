@@ -7,10 +7,12 @@ require('strict')
 --- columnDefs, and returns the grid.
 ---
 --- Column model: a fixed lead thumbnail + linked name, then one column per editor
---- line. Each editor column is classified from its values as a page-link column
---- (aggridLink) or a plain column (the gadget's scwSmart type). Numeric typing is
---- NOT decided here -- scwSmart sorts numeric-looking values numerically and right-
---- aligns them per cell at render time.
+--- line. Each editor column is classified from its values as a multi-value list column
+--- (aggridLinkList, when any row holds several values), a page-link column (aggridLink),
+--- or a plain column (the gadget's scwSmart type). A `filter`-flagged list column gets
+--- the extension's set filter, which splits each cell into one option per value. Numeric
+--- typing is NOT decided here -- scwSmart sorts numeric-looking values numerically and
+--- right-aligns them per cell at render time.
 
 local Util = require('Module:AGGridColumns/Util')
 local AGGridColumns = require('Module:AGGridColumns')
@@ -145,6 +147,7 @@ local function buildSpecs(results, columns)
 		},
 		{ kind = 'link', field = 'name', header = NAME_ALIAS, label = NAME_ALIAS, filter = 'agTextColumnFilter' },
 	}
+	local KINDS = { list = 'valueList', link = 'link', plain = 'smart' }
 	for i, column in ipairs(columns) do
 		local alias = p.columnAlias(column)
 		local values = {}
@@ -153,9 +156,8 @@ local function buildSpecs(results, columns)
 				values[#values + 1] = result[alias]
 			end
 		end
-		local class = Util.classifyColumn(values)
 		specs[#specs + 1] = {
-			kind = (class == 'link') and 'link' or 'smart',
+			kind = KINDS[Util.classifyColumn(values)],
 			field = 'c' .. i,
 			header = (column.label and column.label ~= '') and column.label or column.property,
 			label = alias,

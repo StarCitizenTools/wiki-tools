@@ -50,6 +50,12 @@ function suite:testStackedValueColDefRightAligned()
 	self:assertEquals('ag-right-aligned-cell', def.cellClass)
 end
 
+function suite:testValueListColDefType()
+	local def = colDefOf({ kind = 'valueList', field = 'c', header = 'C', label = 'C' })
+	self:assertEquals('aggridLinkList', def.type)
+	self:assertEquals('aggridSet', def.filter)
+end
+
 function suite:testUnknownKindErrors()
 	self:assertThrows(function()
 		AGGridColumns.buildColumnDefs({ { kind = 'nope', field = 'c' } })
@@ -91,6 +97,17 @@ function suite:testStackedValueCellNoSubWhenSame()
 		{ Cur = '50', Orig = '50' }
 	)
 	self:assertEquals(nil, v.sub)
+end
+
+-- A value-list cell splits a multi-valued printout into one { text } item per value
+-- (the extension's set filter then offers one option per value).
+function suite:testValueListCellSplitsMultiValue()
+	local v = cellOf({ kind = 'valueList', field = 'c', label = 'C' }, { C = { 'mining', 'salvage' } })
+	self:assertDeepEquals({ links = { { text = 'mining' }, { text = 'salvage' } } }, v)
+end
+
+function suite:testValueListCellNilWhenAbsent()
+	self:assertEquals(nil, cellOf({ kind = 'valueList', field = 'c', label = 'C' }, {}))
 end
 
 -- Contract: a kind with no `type` at all (nil, not false) is rejected.

@@ -72,10 +72,20 @@ function suite:testStructuredIndustryMultiLcfirstPerItem()
 	self:assertDeepEquals({ 'mining', 'salvage' }, data['Industry'])
 end
 
-function suite:testStructuredIndustryLinkedLcfirstNoop()
-	-- lcfirst is a no-op when an item starts with '[', then delink keeps the label.
+function suite:testStructuredIndustryLinkedDelinkedThenLcfirst()
+	-- Delink runs before lcfirst, so a wikilinked item is lowercased like a plain
+	-- one (no leading '[' to block lcfirst): '[[Mining]]' -> 'mining'.
 	local data = company.getStructuredData({ industry = '[[Mining]]; [[Salvage]]' })
-	self:assertDeepEquals({ 'Mining', 'Salvage' }, data['Industry'])
+	self:assertDeepEquals({ 'mining', 'salvage' }, data['Industry'])
+end
+
+-- The invariant the order-swap guarantees: a wikilinked item and the equivalent
+-- plain item normalise to the SAME stored value (no capitalised duplicate).
+function suite:testStructuredIndustryLinkedMatchesPlain()
+	local linked = company.getStructuredData({ industry = '[[Clothing]] manufacture' })['Industry']
+	local plain = company.getStructuredData({ industry = 'clothing manufacture' })['Industry']
+	self:assertDeepEquals({ 'clothing manufacture' }, linked)
+	self:assertDeepEquals(plain, linked)
 end
 
 function suite:testStructuredFounderIsDelinkedPageList()
@@ -176,8 +186,8 @@ function suite:testShortDescWithoutIndustry()
 end
 
 function suite:testShortDescWithWikilinkedIndustry()
-	-- lcfirst is a no-op on '[' then delink: '[[Mining]]' -> 'Mining' (capital kept)
-	self:assertEquals('Human company in the Mining industry', company.getShortDescription({ industry = '[[Mining]]' }))
+	-- Delink before lcfirst: '[[Mining]]' -> 'Mining' -> 'mining' (matches plain input).
+	self:assertEquals('Human company in the mining industry', company.getShortDescription({ industry = '[[Mining]]' }))
 end
 
 function suite:testShortDescTrimsIndustry()

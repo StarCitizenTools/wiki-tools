@@ -11,6 +11,7 @@ Consumers (Module:DataGrid for `{{Data table}}`, Module:PledgeVehicleGrid) build
 | `image` | `aggridImage` | linked thumbnail | DataGrid lead |
 | `link` | `aggridLink` | linked page | DataGrid name/link columns |
 | `linkList` | `aggridLinkList` | list of links | pledge loaner |
+| `valueList` | `aggridLinkList` | list of plain-text tags and/or links (set filter splits per value) | DataGrid multi-valued columns |
 | `text` | *(none)* | plain text | pledge text columns |
 | `smart` | `scwSmart` | numeric-aware text | DataGrid plain columns |
 | `number` | `numericColumn` | real number + Intl format | pledge stats |
@@ -40,6 +41,6 @@ AGGridColumns.lua   buildColumnDefs / buildRowData (generic loops)
 Registry.lua        kind name -> module
 Contract.lua        COLUMN_KIND + validate
 Util/Util.lua       SMW decoders (decodeScalar/toText/toNumber/parseLink/buildThumb/
-                    buildLinkList/classifyColumn/cloneFormat)
+                    buildLinkList/buildValueList/classifyColumn/cloneFormat)
 Kind/*.lua          one module per kind
 ```

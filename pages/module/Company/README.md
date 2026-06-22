@@ -66,7 +66,7 @@ Properties are defined in `Module:Company/properties.json` and written via `mw.s
 | Property | SMW type | Source parameter | Notes |
 |---|---|---|---|
 | `Name` | Text | `name` | |
-| `Industry` | Text | `industry` | Semicolon-split; each item lcfirst + delinked. `lcfirst` is a no-op when an item begins with a wikilink (`[`). |
+| `Industry` | Text | `industry` | Semicolon-split; each item delinked then lcfirst, so a wikilinked item normalises identically to a plain one (`[[Clothing]] manufacture` → `clothing manufacture`). |
 | `Products` | Text | `products` | Same transform as Industry. |
 | `Manufacturer code` | Text | (derived from `name`) | Resolved via `p.resolveCode` from Module:Manufacturers. Displayed in the collapsed Metadata section (an identifier, not descriptive content). |
 | `Race` | Text | `race` | Defaults to `Human`. |
@@ -83,7 +83,7 @@ Display-only fields (`keypeople`, `fate`, `defunct`, `formerly`, `allies`, `riva
 
 **Page-type properties** (`Founder`, `Subsidiaries`, `Area served`, `Parent company`, `Predecessor`, `Successor`) extract the link target from wikilink markup: `[[Target|Label]]` stores `Target`, not `Label`. The list-valued ones (`Founder`, `Subsidiaries`, `Area served`, `Predecessor`, `Successor`) are semicolon-split into one value per item. `Headquarters` (also Page-type) stores one star system per HQ — the last wikilink of each `;`-separated segment — so each HQ's system is queryable (the free-form HQ string itself stays the display value). `Area served` differs from `Headquarters`: it stores **every** served place (each item's link target, not collapsed to the system), so station/city-level queries work; fill it only when narrower than the whole UEE.
 
-**Industry and Products** are semicolon-split into individual SMW entries; each item is lcfirst + delinked (the display label is kept). When an item starts with a wikilink, `lcfirst` is a no-op (it sees `[` as the first character).
+**Industry and Products** are semicolon-split into individual SMW entries; each item is **delinked then lcfirst** (the display label is kept for the infobox). Delinking first matters: `lcfirst` only lowercases the leading character, and a wikilinked item starts with `[`, so running `lcfirst` first would leave the word capitalised after the brackets are stripped — storing `Clothing manufacture` for `[[Clothing]] manufacture` but `clothing manufacture` for the plain text, a casing duplicate. Delinking first normalises both to `clothing manufacture`. (This does not merge genuine word-form/synonym variants such as `manufacture` vs `manufacturer` — those are an editorial/vocabulary concern.)
 
 **Multi-value separator:** all multi-value fields use a semicolon (`;`), which avoids colliding with commas inside names, addresses, and link labels.
 

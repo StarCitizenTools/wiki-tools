@@ -139,4 +139,21 @@ function suite:testBuildQueryNoCategoryNoConditions()
 	self:assertEquals('[[:+]]', dg.buildQuery('', dg.parseColumns('Item type'))[1])
 end
 
+-- eyebrow flag (promotes a column into the lead card's eyebrow)
+
+function suite:testParseColumnsEyebrowFlag()
+	self:assertEquals(true, dg.parseColumns('Manufacturer ; eyebrow')[1].eyebrow)
+end
+
+function suite:testParseColumnsEyebrowWithOtherModifiers()
+	local col = dg.parseColumns('Manufacturer ; label=Maker ; eyebrow')[1]
+	self:assertEquals('Manufacturer', col.property)
+	self:assertEquals('Maker', col.label)
+	self:assertEquals(true, col.eyebrow)
+end
+
+function suite:testParseColumnsNoEyebrowByDefault()
+	self:assertEquals(nil, dg.parseColumns('Size')[1].eyebrow)
+end
+
 return suite

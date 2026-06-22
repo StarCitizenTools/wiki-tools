@@ -32,11 +32,14 @@ local QUERY_OPTIONS = { 'mainlabel=-', 'limit=1000' }
 --- @field label? string
 --- @field size? string    Parsed for forward-compatibility; unused (see README).
 --- @field filter? boolean
+--- @field eyebrow? boolean Promote this column into the lead card's eyebrow.
 
 --- Parse the multi-line `columns` value. Carried over from Module:DataTableLua:
 --- one column per non-blank line; within a line, `;`-separated clauses where the
 --- first is the SMW property and the rest are modifiers (`label=X`, `size=X`, or
---- the bare flag `filter`). Unknown clauses are ignored. Empty-property lines drop.
+--- the bare flags `filter` / `eyebrow`). `eyebrow` promotes the column into the
+--- lead card instead of rendering it as its own column. Unknown clauses are
+--- ignored. Empty-property lines drop.
 --- @param raw string
 --- @return DataGridColumn[]
 function p.parseColumns(raw)
@@ -59,6 +62,8 @@ function p.parseColumns(raw)
 						column.size = value
 					elseif clause == 'filter' then
 						column.filter = true
+					elseif clause == 'eyebrow' then
+						column.eyebrow = true
 					end
 				end
 			end

@@ -31,12 +31,10 @@ Wiki pages, modules, and automation for [Star Citizen Wiki](https://starcitizen.
 
 ## Wiki URL paths
 
-Star Citizen Wiki runs with `$wgArticlePath = "/$1"` — articles live at the **root**, not under `/wiki/`. When you build URLs in wikitext, Lua, or CSS, use:
+Star Citizen Wiki runs with `$wgArticlePath = "/$1"` — articles live at the **root**, not under `/wiki/`. How you reference a file depends on the context:
 
-- `/Special:FilePath/<File>` — canonical redirect to a file's CDN URL (e.g. for `mask-image: url(...)` and similar). `/wiki/Special:FilePath/…` 404s.
-- `/<Page name>` — internal links you compose manually (most of the time prefer `[[Page name]]` and let MediaWiki build the URL).
-
-The wiki's CDN host (`media.starcitizen.tools`) is the eventual target for file URLs after the `Special:FilePath` redirect chain. Don't hard-code the CDN host; the redirect path is what's stable.
+- **CSS `url()` (`mask-image`, `background-image`, …)** — use the file's **direct CDN URL**, `https://media.starcitizen.tools/<a>/<ab>/<File>`. Do **not** use `/Special:FilePath/<File>` here: it is a double redirect (`Special:FilePath` → `Special:Redirect/file` → CDN) served `Cache-Control: max-age=0`, so the browser re-walks both hops on every render, while the CDN URL is cacheable (~31 days). TemplateStyles allowlists the `media.starcitizen.tools` host (`$wgTemplateStylesAllowedUrls`, in the `sct-docker-images` repo), so the absolute URL survives the CSS sanitizer. The `<a>/<ab>` segment is `md5(filename)` (first hex char / first two) — resolve it once with `curl -sIL https://starcitizen.tools/Special:FilePath/<File>` and paste the final `Location`. Only do this for stable, long-lived files (e.g. Codex icons): a rename moves the path, and the CSS must then be updated by hand.
+- **Wikitext / Lua** — prefer `[[Page name]]` or `[[File:…]]` and let MediaWiki build the cached URL. When you must compose a file URL by hand, `/Special:FilePath/<File>` is the robust choice (resilient to renames; `/wiki/Special:FilePath/…` 404s). For internal links, `/<Page name>`.
 
 ## Scribunto API
 

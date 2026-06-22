@@ -48,8 +48,15 @@
  * element recolors automatically through CSS inheritance.
  *
  * Codex icons (CdxIconSuccess / CdxIconClear / CdxIconHelpNotice) are
- * uploaded as SVG files on the wiki; the `/Special:FilePath/…` redirect
- * resolves to the CDN. `-webkit-mask-image` was tried first but
+ * uploaded as SVG files on the wiki and referenced by their direct CDN
+ * URL. We deliberately avoid `/Special:FilePath/…` here: it is a double
+ * redirect (Special:FilePath → Special:Redirect/file → CDN) served with
+ * `Cache-Control: max-age=0`, so the browser re-walks it on every render;
+ * the CDN URL is cacheable (max-age ≈ 31d) and TemplateStyles allowlists
+ * the `media.starcitizen.tools` host. The path segment is md5(filename)
+ * (first hex char / first two) — to add an icon, resolve its URL once via
+ * `curl -sIL https://starcitizen.tools/Special:FilePath/<File>.svg` and
+ * paste the final Location. `-webkit-mask-image` was tried first but
  * TemplateStyles rejects the prefixed property; modern Safari (15.4+)
  * supports the unprefixed form so the prefix is unnecessary anyway.
  */
@@ -77,7 +84,7 @@
 }
 
 .t-entity-availability-summary-item--yes .t-entity-availability-summary-value {
-	mask-image: url(/Special:FilePath/CdxIconSuccess.svg);
+	mask-image: url(https://media.starcitizen.tools/e/e8/CdxIconSuccess.svg);
 }
 
 .t-entity-availability-summary-item--no {
@@ -86,7 +93,7 @@
 }
 
 .t-entity-availability-summary-item--no .t-entity-availability-summary-value {
-	mask-image: url(/Special:FilePath/CdxIconClear.svg);
+	mask-image: url(https://media.starcitizen.tools/f/f5/CdxIconClear.svg);
 }
 
 .t-entity-availability-summary-item--unknown {
@@ -96,7 +103,7 @@
 }
 
 .t-entity-availability-summary-item--unknown .t-entity-availability-summary-value {
-	mask-image: url(/Special:FilePath/CdxIconHelpNotice.svg);
+	mask-image: url(https://media.starcitizen.tools/9/9b/CdxIconHelpNotice.svg);
 }
 
 /*

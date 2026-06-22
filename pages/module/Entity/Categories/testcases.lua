@@ -82,4 +82,16 @@ function suite:testNoExtraCategoriesWhenAbsent()
 	self:assertEquals(false, hasValue(names, 'Commodities'))
 end
 
+-- build()
+
+function suite:testBuildEmitsManualApiDataCategoryWhenTrue()
+	local out = Categories.build({ name = 'Ship', category = 'Ships' }, {}, {}, false, false, true)
+	self:assertEquals(true, string.find(out, 'Category:Entities with manual API data', 1, true) ~= nil)
+end
+
+function suite:testBuildOmitsManualApiDataCategoryWhenFalse()
+	local out = Categories.build({ name = 'Ship', category = 'Ships' }, {}, {}, false, false, false)
+	self:assertEquals(true, string.find(out, 'Category:Entities with manual API data', 1, true) == nil)
+end
+
 return suite

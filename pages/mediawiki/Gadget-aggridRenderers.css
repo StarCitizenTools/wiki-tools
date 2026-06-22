@@ -44,14 +44,20 @@
 .scw-entitycard__media {
 	position: relative;
 	flex: none;
-	display: block;
-	width: 56px;
-	height: 56px;
+	display: flex;
+	align-items: center;
+	height: 100%;
 }
 
+/* Square thumbnail sized to the row: the image is a replaced element, so a
+   definite height + aspect-ratio drives its width reliably. It fills the cell
+   height minus a little breathing room, so the same card renders correctly at
+   DataGrid's compact rows and the pledge grid's taller rows. */
 .scw-entitycard__image {
-	width: 56px;
-	height: 56px;
+	display: block;
+	width: auto;
+	height: calc( 100% - var( --space-xs ) );
+	aspect-ratio: 1;
 	object-fit: cover;
 	border-radius: var( --border-radius-base );
 }

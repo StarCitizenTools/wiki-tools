@@ -87,6 +87,7 @@ end
 
 function suite:testShipSpeedSection()
 	local s = Vehicle.getSections({
+		is_spaceship = true,
 		career = 'Combat',
 		role = 'Light Fighter',
 		size = 'small',
@@ -103,6 +104,7 @@ function suite:testShipSpeedSection()
 	-- Overview is the labelless top section (always shown, never collapsible).
 	local ov = findSection(s, 'overview')
 	self:assertEquals(nil, ov.label)
+	self:assertEquals('Spacecraft', findItem(ov.items, 'Type').content)
 	self:assertEquals('Combat', findItem(ov.items, 'Career').content)
 end
 

@@ -170,8 +170,17 @@ function p.getSections(apiData, args, resolved)
 	local drive = type(apiData.drive) == 'table' and apiData.drive or {}
 	local crew = type(apiData.crew) == 'table' and apiData.crew or {}
 
-	-- Overview (labelless top section): identity rows under the title.
+	-- Overview (labelless top section): type + identity rows under the title.
+	-- Type comes from the resolved subtype's getTypeInfo so it stays the single
+	-- source of truth (the header subtitle now shows the manufacturer instead).
 	local overview = {}
+	local subtype = p.resolveSubtype(apiData)
+	local typeName = nil
+	if subtype and subtype.getTypeInfo then
+		local typeInfo = subtype.getTypeInfo(apiData, args)
+		typeName = typeInfo and typeInfo.name
+	end
+	sectionBuilder.push(overview, 'Type', typeName)
 	sectionBuilder.push(overview, 'Career', apiData.career)
 	sectionBuilder.push(overview, 'Role', apiData.role)
 	sectionBuilder.push(overview, 'Size', apiData.size and lang:ucfirst(tostring(apiData.size)) or nil)

@@ -6,6 +6,7 @@ require('strict')
 
 local base = require('Module:Entity/Base')
 local format = require('Module:Entity/Format')
+local productionStatus = require('Module:Entity/ProductionStatus')
 local sectionBuilder = require('Module:Entity/SectionBuilder')
 local lang = mw.language.getContentLanguage()
 
@@ -230,6 +231,20 @@ end
 --- @return string|nil
 function p.getSubtitle(apiData, args)
 	return manufacturerLink(apiData, args)
+end
+
+--- Vehicle production-state badge for the infobox header overlay. Uses the
+--- editorial-resolved production_state (API production_status, override-able).
+--- Vehicle-only: other entities are in-game by definition, so a status badge
+--- would be noise.
+--- @param apiData table
+--- @param args table
+--- @param resolved table|nil
+--- @return string|nil
+function p.getHeaderBadge(apiData, args, resolved)
+	local state = resolved and resolved.production_state and resolved.production_state.value
+		or apiData.production_status
+	return productionStatus.badge(state)
 end
 
 --- Return the Vehicle editorial manifest. Used by Module:Entity/Editorial to

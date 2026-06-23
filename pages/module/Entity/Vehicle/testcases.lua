@@ -1,6 +1,7 @@
 require('strict')
 
 local ScribuntoUnit = require('Module:ScribuntoUnit')
+local ProductionStatus = require('Module:Entity/ProductionStatus')
 local Vehicle = require('Module:Entity/Vehicle')
 local Ship = require('Module:Entity/Vehicle/Ship')
 local GroundVehicle = require('Module:Entity/Vehicle/GroundVehicle')
@@ -185,6 +186,39 @@ end
 function suite:testStructuredDataDropsNilAgility()
 	local d = Vehicle.getStructuredData({ agility = { roll = nil, pitch = nil, yaw = nil } }, {}, {})
 	self:assertEquals(nil, d['Roll rate'])
+end
+
+-- The headless runner supports mw.getCurrentFrame():extensionTag (PASS in probe),
+-- so we can test the full badge path end-to-end.
+function suite:testHeaderBadgeNilWhenNoState()
+	self:assertEquals(nil, Vehicle.getHeaderBadge({}, {}, {}))
+	self:assertEquals(nil, Vehicle.getHeaderBadge({ production_status = 'made up' }, {}, {}))
+end
+
+function suite:testHeaderBadgeFromApiData()
+	-- badge() calls extensionTag; runner supports it → returns a string
+	local result = Vehicle.getHeaderBadge({ production_status = 'flight-ready' }, {}, {})
+	self:assertEquals(true, type(result) == 'string')
+end
+
+function suite:testHeaderBadgeEditorialOverrideBeatsApi()
+	-- editorial override (production_state.value) takes priority over apiData.production_status
+	local resolved = { production_state = { value = 'In concept', source = 'override' } }
+	local result = Vehicle.getHeaderBadge({ production_status = 'flight-ready' }, {}, resolved)
+	self:assertEquals(true, type(result) == 'string')
+	-- The badge text should contain the overridden label, not the API one
+	self:assertEquals(true, result:find('In concept') ~= nil)
+end
+
+function suite:testHeaderBadgeNilOverrideResolvesToApi()
+	-- resolved with no production_state falls through to apiData
+	local result = Vehicle.getHeaderBadge({ production_status = 'in-production' }, {}, {})
+	self:assertEquals(true, type(result) == 'string')
+end
+
+function suite:testProductionStatusResolvesOverrideAndApiForms()
+	self:assertEquals('In concept', ProductionStatus._internal.resolve('In concept').label)
+	self:assertEquals('Flight ready', ProductionStatus._internal.resolve('flight-ready').label)
 end
 
 return suite

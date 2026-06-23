@@ -199,21 +199,27 @@ local function buildSections(chain, facets, apiData, args, resolved)
 	return sections
 end
 
---- Builds the InfoboxLua `image` value: the page image plus a rarity badge
---- overlay (pinned top-right) when the entity exposes a rarity. Returns the bare
---- image string when there's no rarity, leaving the placeholder path untouched.
+--- Builds the InfoboxLua `image` value: the page image plus an overlay strip of
+--- chips (a header badge from the chain, e.g. a vehicle's production status, and
+--- the rarity badge). Returns the bare image string when there are no chips.
 ---
 --- @param apiData table
 --- @param args table
+--- @param headerBadge string|nil
 --- @return string|table|nil
-local function buildImage(apiData, args)
-	local badge = rarity.badge(apiData.rarity)
-	if not badge then
+local function buildImage(apiData, args, headerBadge)
+	local chips = {}
+	if headerBadge and headerBadge ~= '' then
+		table.insert(chips, headerBadge)
+	end
+	local rarityBadge = rarity.badge(apiData.rarity)
+	if rarityBadge then
+		table.insert(chips, rarityBadge)
+	end
+	if #chips == 0 then
 		return args.image
 	end
-	-- The overlay strip spans the full image top; right-align the badge into the
-	-- corner via Module:Entity/styles.css (.t-infobox-rarity-overlay).
-	local overlay = mw.html.create('div'):addClass('t-infobox-rarity-overlay'):wikitext(badge)
+	local overlay = mw.html.create('div'):addClass('t-infobox-badge-overlay'):wikitext(table.concat(chips))
 	return { src = args.image, overlay = tostring(overlay) }
 end
 
@@ -244,10 +250,22 @@ function p.render(result, args)
 		end
 	end
 
+	-- Header badge: a chain link (vehicles) may contribute a badge for the image
+	-- overlay (e.g. production status). Leaf-first wins.
+	local headerBadge = nil
+	for i = #result.chain, 1, -1 do
+		if result.chain[i].getHeaderBadge then
+			headerBadge = result.chain[i].getHeaderBadge(result.apiData, args, result.resolved)
+			if headerBadge and headerBadge ~= '' then
+				break
+			end
+		end
+	end
+
 	local html = infobox.render({
 		title = result.apiData.name or args.name or mw.title.getCurrentTitle().text,
 		subtitle = subtitle,
-		image = buildImage(result.apiData, args),
+		image = buildImage(result.apiData, args, headerBadge),
 		sections = sections,
 	})
 

@@ -1,9 +1,11 @@
-/* Rarity badge rides the image overlay strip (full-width, pinned to the image
-   top by InfoboxLua); push it into the top-right corner with a small inset. */
-.t-infobox-rarity-overlay {
+/* Badge overlay rides the image overlay strip (full-width, pinned to the image
+   top by InfoboxLua); chips (production-status badge, rarity badge) are
+   right-aligned into the corner with a small inset. */
+.t-infobox-badge-overlay {
     display: flex;
     justify-content: flex-end;
     padding: var(--space-xs);
+    gap: var(--space-xs);
 }
 
 /* Graph items (temperature / radiation / damage-resistance visualisations) are

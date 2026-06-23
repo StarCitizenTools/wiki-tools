@@ -53,6 +53,7 @@ p.CHAIN_LINK = {
 	getTypeInfo = false,
 	getApiConfigs = false,
 	getSubtitle = false,
+	getHeaderBadge = false,
 }
 
 --- Validates a component against a role spec. Each required hook must be present

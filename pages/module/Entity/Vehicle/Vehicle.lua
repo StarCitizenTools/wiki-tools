@@ -89,19 +89,25 @@ end
 
 --- A Universe acquisition row value: an editorial `canX` override (yes/no) wins,
 --- else inferred from UEX prices. "Yes" links to the page's Acquisition section
---- (where the full per-shop price table lives); "No" is plain; nil (Unknown)
---- drops the row.
+--- (where the full per-shop price table lives); "No" is plain.
+--- A flight-ready ship is in-game, so the absence of a price is a definitive "No"
+--- (not sold in-game) and the row stays; an unreleased ship with no data stays
+--- Unknown and the row drops. "Yes" always requires real data or an override.
 --- @param override any  args.canbuy / args.canrent
 --- @param prices table[]|nil
 --- @param key string
+--- @param flightReady boolean
 --- @return string|nil
-local function acquireRow(override, prices, key)
+local function acquireRow(override, prices, key, flightReady)
 	local flag = nil
 	if override ~= nil and override ~= '' then
 		flag = yesno(override)
 	end
 	if flag == nil then
 		flag = inferCanAcquire(prices, key)
+	end
+	if flag == nil and flightReady then
+		flag = false
 	end
 	if flag == true then
 		return '[[#Acquisition|Yes]]'
@@ -332,10 +338,14 @@ function p.getSections(apiData, args, resolved)
 	local insurance = type(apiData.insurance) == 'table' and apiData.insurance or {}
 
 	-- Universe: whether the ship is buyable/rentable in-game (the legacy at-a-glance),
-	-- "Yes" linking to the Acquisition section for the full per-shop price table.
+	-- "Yes" linking to the Acquisition section for the full per-shop price table. A
+	-- flight-ready ship always shows the rows (no price = a definitive "No"); an
+	-- unreleased ship with no data drops them (Unknown).
+	local effectiveState = effective(resolved, 'production_state', apiData.production_status)
+	local flightReady = productionStatus.key(effectiveState) == 'flightready'
 	local universe = {}
-	sectionBuilder.push(universe, 'Buyable', acquireRow(args.canbuy, uex.purchase, 'price_buy'))
-	sectionBuilder.push(universe, 'Rentable', acquireRow(args.canrent, uex.rental, 'price_rent'))
+	sectionBuilder.push(universe, 'Buyable', acquireRow(args.canbuy, uex.purchase, 'price_buy', flightReady))
+	sectionBuilder.push(universe, 'Rentable', acquireRow(args.canrent, uex.rental, 'price_rent', flightReady))
 
 	local pledge = {}
 	sectionBuilder.push(
@@ -349,11 +359,7 @@ function p.getSections(apiData, args, resolved)
 		pledgeCell(editorialValue(resolved, 'warbond_price'), editorialValue(resolved, 'original_warbond_price'))
 	)
 	sectionBuilder.push(pledge, 'Availability', editorialValue(resolved, 'pledge_availability'))
-	sectionBuilder.push(
-		pledge,
-		'Loaner',
-		loanerList(apiData, effective(resolved, 'production_state', apiData.production_status))
-	)
+	sectionBuilder.push(pledge, 'Loaner', loanerList(apiData, effectiveState))
 
 	local insuranceItems = {}
 	sectionBuilder.push(insuranceItems, 'Claim time', withUnit(insurance.claim_time, ' min'))

@@ -237,6 +237,22 @@ function suite:testCostUniverseCanBuyOverride()
 	self:assertEquals('[[#Acquisition|Yes]]', findItem(universe.items, 'Buyable').content)
 end
 
+function suite:testCostUniverseFlightReadyNoDataIsNo()
+	-- flight-ready ship, no UEX data: Universe stays, Buyable/Rentable = No (in-game → definitive)
+	local s = Vehicle.getSections({ production_status = 'flight-ready', uex_prices = {} }, {}, {})
+	local universe = findItem(findSection(s, 'cost').sections, 'Universe')
+	self:assertEquals('No', findItem(universe.items, 'Buyable').content)
+	self:assertEquals('No', findItem(universe.items, 'Rentable').content)
+end
+
+function suite:testCostUniverseUnreleasedNoDataDrops()
+	-- unreleased ship, no UEX, no override → Unknown → Universe dropped (Pledge still shows)
+	local s = Vehicle.getSections({ production_status = 'in-concept', msrp = 30, uex_prices = {} }, {}, {})
+	local cost = findSection(s, 'cost')
+	self:assertEquals(nil, findItem(cost.sections, 'Universe'))
+	self:assertEquals('$30', findItem(findItem(cost.sections, 'Pledge').items, 'Standalone').content)
+end
+
 function suite:testCostPledgeUsesMsrp()
 	local s = Vehicle.getSections({ msrp = 30 }, {}, {})
 	local pledge = findItem(findSection(s, 'cost').sections, 'Pledge')

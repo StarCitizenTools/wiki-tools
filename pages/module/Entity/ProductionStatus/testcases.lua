@@ -31,4 +31,14 @@ function suite:testBadgeNilOnUnknown()
 	self:assertEquals(nil, ProductionStatus.badge(nil))
 end
 
+function suite:testKeyNormalizesApiAndEditorialForms()
+	self:assertEquals('flightready', ProductionStatus.key('flight-ready'))
+	self:assertEquals('flightready', ProductionStatus.key('Flight ready'))
+end
+
+function suite:testKeyNilOnEmpty()
+	self:assertEquals(nil, ProductionStatus.key(nil))
+	self:assertEquals(nil, ProductionStatus.key(''))
+end
+
 return suite

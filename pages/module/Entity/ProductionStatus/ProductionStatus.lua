@@ -21,17 +21,28 @@ local TIERS = {
 
 local p = {}
 
+--- Normalized tier key for a status string (lowercase, non-alphanumerics
+--- stripped) — e.g. "flight-ready" / "Flight ready" → "flightready". Lets callers
+--- branch on production state (e.g. suppress loaners for flight-ready ships)
+--- without re-implementing the normalization. nil for an empty / non-string value.
+---
+--- @param status string|nil
+--- @return string|nil
+function p.key(status)
+	if type(status) ~= 'string' or status == '' then
+		return nil
+	end
+	return (status:lower():gsub('[^%a%d]', ''))
+end
+
 --- Resolve a production status string (any case, non-alphanumerics stripped) to
 --- its tier descriptor, or nil for an empty / unknown value.
 ---
 --- @param status string|nil
 --- @return { label: string, class: string }|nil
 local function resolve(status)
-	if type(status) ~= 'string' or status == '' then
-		return nil
-	end
-	local key = status:lower():gsub('[^%a%d]', '')
-	return TIERS[key]
+	local key = p.key(status)
+	return key and TIERS[key] or nil
 end
 
 --- Render the production status badge. Returns nil for an empty / unknown status

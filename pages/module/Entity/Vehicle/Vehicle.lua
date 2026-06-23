@@ -10,6 +10,7 @@ local dimensionsPresets = require('Module:Dimensions/presets')
 local format = require('Module:Entity/Format')
 local productionStatus = require('Module:Entity/ProductionStatus')
 local sectionBuilder = require('Module:Entity/SectionBuilder')
+local yesno = require('Module:Yesno')
 local lang = mw.language.getContentLanguage()
 
 local p = {}
@@ -73,6 +74,43 @@ local function priceRange(rows, key)
 	return format.formatNum(lo) .. ' \226\128\147 ' .. format.formatNum(hi) .. ' aUEC' -- en dash
 end
 
+--- Whether the vehicle can be acquired (bought/rented) per UEX data: true when a
+--- real price exists, false when there are entries but no price for this side,
+--- nil (Unknown) when there's no price array to judge from.
+--- @param prices table[]|nil
+--- @param key string
+--- @return boolean|nil
+local function inferCanAcquire(prices, key)
+	if type(prices) ~= 'table' or prices[1] == nil then
+		return nil
+	end
+	return priceRange(prices, key) ~= nil
+end
+
+--- A Universe acquisition row value: an editorial `canX` override (yes/no) wins,
+--- else inferred from UEX prices. "Yes" links to the page's Acquisition section
+--- (where the full per-shop price table lives); "No" is plain; nil (Unknown)
+--- drops the row.
+--- @param override any  args.canbuy / args.canrent
+--- @param prices table[]|nil
+--- @param key string
+--- @return string|nil
+local function acquireRow(override, prices, key)
+	local flag = nil
+	if override ~= nil and override ~= '' then
+		flag = yesno(override)
+	end
+	if flag == nil then
+		flag = inferCanAcquire(prices, key)
+	end
+	if flag == true then
+		return '[[#Acquisition|Yes]]'
+	elseif flag == false then
+		return 'No'
+	end
+	return nil
+end
+
 --- A pledge price cell: "$N", with " (was $M)" appended when an original differs. nil when no current.
 --- @param current any
 --- @param original any
@@ -97,6 +135,29 @@ end
 local function editorialValue(resolved, field)
 	local entry = resolved and resolved[field]
 	return entry and entry.value or nil
+end
+
+--- Loaner ships as a comma-joined wikilink list, or nil. Suppressed for
+--- flight-ready ships: the vehicle is implemented, so no loaner is granted even
+--- when the API still returns stale loaner data.
+--- @param apiData table
+--- @param state any  effective production state
+--- @return string|nil
+local function loanerList(apiData, state)
+	if productionStatus.key(state) == 'flightready' then
+		return nil
+	end
+	local loaner = apiData.loaner
+	if type(loaner) ~= 'table' or loaner[1] == nil then
+		return nil
+	end
+	local links = {}
+	for _, entry in ipairs(loaner) do
+		if type(entry) == 'table' and type(entry.name) == 'string' and entry.name ~= '' then
+			links[#links + 1] = '[[' .. entry.name .. ']]'
+		end
+	end
+	return links[1] and table.concat(links, ', ') or nil
 end
 
 --- Crew as "min–max" (en dash) or a single value. nil when neither present.
@@ -270,14 +331,11 @@ function p.getSections(apiData, args, resolved)
 	local uex = type(apiData.uex_prices) == 'table' and apiData.uex_prices or {}
 	local insurance = type(apiData.insurance) == 'table' and apiData.insurance or {}
 
+	-- Universe: whether the ship is buyable/rentable in-game (the legacy at-a-glance),
+	-- "Yes" linking to the Acquisition section for the full per-shop price table.
 	local universe = {}
-	sectionBuilder.push(universe, 'Purchase', priceRange(uex.purchase, 'price_buy'))
-	sectionBuilder.push(universe, 'Rental', priceRange(uex.rental, 'price_rent'))
-	sectionBuilder.push(
-		universe,
-		'Shops',
-		(uex.purchase or uex.rental) and '[[#Acquisition|View all locations]]' or nil
-	)
+	sectionBuilder.push(universe, 'Buyable', acquireRow(args.canbuy, uex.purchase, 'price_buy'))
+	sectionBuilder.push(universe, 'Rentable', acquireRow(args.canrent, uex.rental, 'price_rent'))
 
 	local pledge = {}
 	sectionBuilder.push(
@@ -291,6 +349,11 @@ function p.getSections(apiData, args, resolved)
 		pledgeCell(editorialValue(resolved, 'warbond_price'), editorialValue(resolved, 'original_warbond_price'))
 	)
 	sectionBuilder.push(pledge, 'Availability', editorialValue(resolved, 'pledge_availability'))
+	sectionBuilder.push(
+		pledge,
+		'Loaner',
+		loanerList(apiData, effective(resolved, 'production_state', apiData.production_status))
+	)
 
 	local insuranceItems = {}
 	sectionBuilder.push(insuranceItems, 'Claim time', withUnit(insurance.claim_time, ' min'))

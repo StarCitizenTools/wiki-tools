@@ -221,12 +221,20 @@ function suite:testProductionStatusResolvesOverrideAndApiForms()
 	self:assertEquals('Flight ready', ProductionStatus._internal.resolve('flight-ready').label)
 end
 
-function suite:testCostUniverseRange()
+function suite:testCostUniverseBuyableRentable()
 	local s = Vehicle.getSections({
-		uex_prices = { purchase = { { price_buy = 500000 }, { price_buy = 0 }, { price_buy = 700000 } } },
+		uex_prices = { purchase = { { price_buy = 500000 } }, rental = { { price_rent = 0 } } },
 	}, {}, {})
 	local universe = findItem(findSection(s, 'cost').sections, 'Universe')
-	self:assertEquals('500,000 \226\128\147 700,000 aUEC', findItem(universe.items, 'Purchase').content)
+	self:assertEquals('[[#Acquisition|Yes]]', findItem(universe.items, 'Buyable').content)
+	self:assertEquals('No', findItem(universe.items, 'Rentable').content)
+end
+
+function suite:testCostUniverseCanBuyOverride()
+	-- editorial canbuy override beats inferred (no UEX data → would be Unknown)
+	local s = Vehicle.getSections({ uex_prices = {} }, { canbuy = 'yes' }, {})
+	local universe = findItem(findSection(s, 'cost').sections, 'Universe')
+	self:assertEquals('[[#Acquisition|Yes]]', findItem(universe.items, 'Buyable').content)
 end
 
 function suite:testCostPledgeUsesMsrp()
@@ -249,6 +257,27 @@ end
 
 function suite:testCostOmittedWhenNoData()
 	self:assertEquals(nil, findSection(Vehicle.getSections({}, {}, {}), 'cost'))
+end
+
+function suite:testPledgeLoanerShownForConcept()
+	local s = Vehicle.getSections(
+		{ production_status = 'in-concept', loaner = { { name = 'C2 Hercules' }, { name = 'Syulen' } } },
+		{},
+		{}
+	)
+	local pledge = findItem(findSection(s, 'cost').sections, 'Pledge')
+	self:assertEquals('[[C2 Hercules]], [[Syulen]]', findItem(pledge.items, 'Loaner').content)
+end
+
+function suite:testPledgeLoanerSuppressedForFlightReady()
+	local s = Vehicle.getSections(
+		{ msrp = 30, production_status = 'flight-ready', loaner = { { name = 'C2 Hercules' } } },
+		{},
+		{}
+	)
+	local pledge = findItem(findSection(s, 'cost').sections, 'Pledge')
+	self:assertEquals('$30', findItem(pledge.items, 'Standalone').content)
+	self:assertEquals(nil, findItem(pledge.items, 'Loaner'))
 end
 
 function suite:testStructuredDataInsurance()

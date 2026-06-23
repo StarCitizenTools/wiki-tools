@@ -20,8 +20,6 @@ return {
 		'MeterBar',
 		'FalloffChart',
 		'Tiles',
-		'Dimensions',
-		'Dimensions/presets',
 		'Rarity',
 		'CardLua',
 		'CollapsibleCard',

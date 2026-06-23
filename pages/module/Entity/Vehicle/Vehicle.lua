@@ -5,6 +5,8 @@ require('strict')
 --- infobox sections (Overview, Capacity, Speed) from API data.
 
 local base = require('Module:Entity/Base')
+local dimensions = require('Module:Dimensions')
+local dimensionsPresets = require('Module:Dimensions/presets')
 local format = require('Module:Entity/Format')
 local productionStatus = require('Module:Entity/ProductionStatus')
 local sectionBuilder = require('Module:Entity/SectionBuilder')
@@ -303,6 +305,32 @@ function p.getSections(apiData, args, resolved)
 	local cost = (costTabs[1] ~= nil) and sectionBuilder.section({ key = 'cost', label = 'Cost', sections = costTabs })
 		or nil
 
+	-- Dimensions: thin adapter over Module:Dimensions. Vehicles carry flat
+	-- dimension.{length,width,height} (the item Dimensions facet reads a nested
+	-- .dimensions and so does not match vehicles).
+	local dimensionsSection = nil
+	local dim = type(apiData.dimension) == 'table' and apiData.dimension or nil
+	if dim and tonumber(dim.length) and tonumber(dim.width) and tonumber(dim.height) then
+		local metrics = {}
+		if tonumber(apiData.mass) then
+			metrics[#metrics + 1] = { label = 'Mass', value = format.formatNum(apiData.mass) .. ' kg' }
+		end
+		local boxHtml = dimensions._main({
+			length = tonumber(dim.length),
+			width = tonumber(dim.width),
+			height = tonumber(dim.height),
+			lengthAlt = tonumber(effective(resolved, 'retracted_length', nil)),
+			widthAlt = tonumber(effective(resolved, 'retracted_width', nil)),
+			heightAlt = tonumber(effective(resolved, 'retracted_height', nil)),
+			reference = dimensionsPresets.human,
+			metrics = metrics,
+		})
+		if boxHtml then
+			dimensionsSection =
+				sectionBuilder.section({ key = 'dimensions', label = 'Dimensions', content = tostring(boxHtml) })
+		end
+	end
+
 	return sectionBuilder.build(
 		-- Labelless top section: identity rows show plainly under the title (always
 		-- visible, not collapsible) — InfoboxLua renders a section with no label as
@@ -310,6 +338,7 @@ function p.getSections(apiData, args, resolved)
 		sectionBuilder.section({ key = 'overview', items = overview }),
 		sectionBuilder.section({ key = 'capacity', label = 'Capacity', items = capacity }),
 		sectionBuilder.section({ key = 'speed', label = 'Speed', items = speedItems }),
+		dimensionsSection,
 		cost
 	)
 end

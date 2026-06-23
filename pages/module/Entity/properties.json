@@ -1036,6 +1036,30 @@
 		],
 		"desc": "Rarity tier of an item (Common, Uncommon, Rare, Epic, Legendary)."
 	},
+	"Retracted height": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Retracted (folded) height of a vehicle, in metres."
+	},
+	"Retracted length": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Retracted (folded) length of a vehicle, in metres."
+	},
+	"Retracted width": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Retracted (folded) width of a vehicle, in metres."
+	},
 	"Roll": {
 		"smw": "Number",
 		"bucket": "DOUBLE",

@@ -12,5 +12,8 @@
 	"series": { "arg": "series", "smw": "Series" },
 	"warbond_price": { "arg": "warbondcost", "smw": "Warbond pledge price", "transform": "number" },
 	"original_pledge_price": { "arg": "originalpledgecost", "smw": "Original pledge price", "transform": "number" },
-	"original_warbond_price": { "arg": "originalwarbondcost", "smw": "Original warbond pledge price", "transform": "number" }
+	"original_warbond_price": { "arg": "originalwarbondcost", "smw": "Original warbond pledge price", "transform": "number" },
+	"retracted_length": { "arg": "retractedlength", "smw": "Retracted length", "transform": "number" },
+	"retracted_width": { "arg": "retractedwidth", "smw": "Retracted width", "transform": "number" },
+	"retracted_height": { "arg": "retractedheight", "smw": "Retracted height", "transform": "number" }
 }

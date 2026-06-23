@@ -257,4 +257,23 @@ function suite:testStructuredDataInsurance()
 	self:assertEquals(1631, d['Insurance expedite cost'])
 end
 
+function suite:testDimensionsSectionPresent()
+	local s = Vehicle.getSections({ dimension = { length = 19, width = 8.75, height = 4.5 }, mass = 26245 }, {}, {})
+	local d = findSection(s, 'dimensions')
+	self:assertEquals('dimensions', d.key)
+	self:assertEquals(true, type(d.content) == 'string' and #d.content > 0)
+end
+
+function suite:testDimensionsOmittedWhenAbsent()
+	self:assertEquals(nil, findSection(Vehicle.getSections({}, {}, {}), 'dimensions'))
+end
+
+function suite:testDimensionsOmittedWhenIncomplete()
+	-- missing height → no box
+	self:assertEquals(
+		nil,
+		findSection(Vehicle.getSections({ dimension = { length = 19, width = 8.75 } }, {}, {}), 'dimensions')
+	)
+end
+
 return suite

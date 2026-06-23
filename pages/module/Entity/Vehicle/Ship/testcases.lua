@@ -6,12 +6,12 @@ local Ship = require('Module:Entity/Vehicle/Ship')
 local suite = ScribuntoUnit:new()
 
 function suite:testTypeInfoName()
-	local ti = Ship.getTypeInfo({ is_spaceship = true }, {})
-	self:assertEquals('Spaceship', ti.name)
+	local ti = Ship.getTypeInfo({ is_spacecraft = true }, {})
+	self:assertEquals('Spacecraft', ti.name)
 end
 
 function suite:testTypeInfoCategory()
-	local ti = Ship.getTypeInfo({ is_spaceship = true }, {})
+	local ti = Ship.getTypeInfo({ is_spacecraft = true }, {})
 	self:assertEquals('Ships', ti.category)
 end
 
@@ -19,25 +19,25 @@ function suite:testShortDescriptionWithRoleAndManufacturer()
 	-- args.manufacturer resolves via Module:Manufacturers; RSI has short='RSI'
 	local apiData = { role = 'Light fighter' }
 	local desc = Ship.getShortDescription(apiData, { manufacturer = 'RSI' }, {}, nil, {})
-	self:assertEquals('Light fighter spaceship by RSI', desc)
+	self:assertEquals('Light fighter spacecraft by RSI', desc)
 end
 
 function suite:testShortDescriptionWithoutRole()
 	local apiData = {}
 	local desc = Ship.getShortDescription(apiData, { manufacturer = 'RSI' }, {}, nil, {})
-	self:assertEquals('spaceship by RSI', desc)
+	self:assertEquals('spacecraft by RSI', desc)
 end
 
 function suite:testShortDescriptionWithoutManufacturer()
 	local apiData = { role = 'Exploration' }
 	local desc = Ship.getShortDescription(apiData, {}, {}, nil, {})
-	self:assertEquals('Exploration spaceship', desc)
+	self:assertEquals('Exploration spacecraft', desc)
 end
 
 function suite:testShortDescriptionMultiRole()
 	local apiData = { role = { 'Combat', 'Exploration' } }
 	local desc = Ship.getShortDescription(apiData, { manufacturer = 'RSI' }, {}, nil, {})
-	self:assertEquals('Combat/Exploration spaceship by RSI', desc)
+	self:assertEquals('Combat/Exploration spacecraft by RSI', desc)
 end
 
 return suite

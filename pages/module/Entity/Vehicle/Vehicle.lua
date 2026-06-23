@@ -154,8 +154,15 @@ function p.getSections(apiData, args, resolved)
 	local drive = type(apiData.drive) == 'table' and apiData.drive or {}
 	local crew = type(apiData.crew) == 'table' and apiData.crew or {}
 
-	-- Overview
+	-- Overview (labelless top section): manufacturer + identity rows.
 	local overview = {}
+	local mfr = base.resolveManufacturer(apiData, args)
+	local mfrLink = nil
+	if mfr and mfr.page then
+		mfrLink = (mfr.name and mfr.name ~= mfr.page) and ('[[' .. mfr.page .. '|' .. mfr.name .. ']]')
+			or ('[[' .. mfr.page .. ']]')
+	end
+	sectionBuilder.push(overview, 'Manufacturer', mfrLink)
 	sectionBuilder.push(overview, 'Career', apiData.career)
 	sectionBuilder.push(overview, 'Role', apiData.role)
 	sectionBuilder.push(overview, 'Size', apiData.size and lang:ucfirst(tostring(apiData.size)) or nil)

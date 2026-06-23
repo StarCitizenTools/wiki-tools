@@ -8,6 +8,9 @@
 	"mass": { "arg": "mass", "smw": "Mass", "apiPath": "mass", "transform": "number" },
 	"pledge_price": { "arg": "pledgecost", "smw": "Pledge price", "apiPath": "msrp", "transform": "number" },
 	"pledge_availability": { "arg": "pledgeavailability", "smw": "Pledge availability" },
-	"production_state": { "arg": "productionstate", "smw": "Production state" },
-	"series": { "arg": "series", "smw": "Series" }
+	"production_state": { "arg": "productionstate", "smw": "Production state", "apiPath": "production_status" },
+	"series": { "arg": "series", "smw": "Series" },
+	"warbond_price": { "arg": "warbondcost", "smw": "Warbond pledge price", "transform": "number" },
+	"original_pledge_price": { "arg": "originalpledgecost", "smw": "Original pledge price", "transform": "number" },
+	"original_warbond_price": { "arg": "originalwarbondcost", "smw": "Original warbond pledge price", "transform": "number" }
 }

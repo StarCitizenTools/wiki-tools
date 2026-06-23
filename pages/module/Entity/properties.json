@@ -471,6 +471,30 @@
 		],
 		"desc": "Impact damage resistance of armor, as a percentage."
 	},
+	"Insurance claim time": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Standard insurance claim time of a vehicle, in minutes."
+	},
+	"Insurance expedite cost": {
+		"smw": "Number",
+		"bucket": "INTEGER",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Insurance expedite fee of a vehicle, in aUEC."
+	},
+	"Insurance expedite time": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Insurance expedite time of a vehicle, in minutes."
+	},
 	"Ir signature": {
 		"smw": "Number",
 		"bucket": "DOUBLE",
@@ -730,6 +754,22 @@
 			"WeaponMining"
 		],
 		"desc": "Optimal mining range of a mining laser head, in metres."
+	},
+	"Original pledge price": {
+		"smw": "Number",
+		"bucket": "INTEGER",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Original (launch) standalone pledge price of a vehicle, in USD."
+	},
+	"Original warbond pledge price": {
+		"smw": "Number",
+		"bucket": "INTEGER",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Original (launch) warbond pledge price of a vehicle, in USD."
 	},
 	"Physical resistance": {
 		"smw": "Number",
@@ -1214,6 +1254,14 @@
 			"Item"
 		],
 		"desc": "Volume of an item, in microSCU."
+	},
+	"Warbond pledge price": {
+		"smw": "Number",
+		"bucket": "INTEGER",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Warbond pledge price of a vehicle, in USD."
 	},
 	"Warhead damage": {
 		"smw": "Number",

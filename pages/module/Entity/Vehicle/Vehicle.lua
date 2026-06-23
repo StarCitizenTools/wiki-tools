@@ -45,6 +45,58 @@ local function effective(resolved, field, apiFallback)
 	return apiFallback
 end
 
+--- Min–max of non-zero numeric values at `key` across an array, as "lo – hi aUEC"
+--- (single value when lo==hi, en dash between). nil when no non-zero entry.
+--- @param rows table|nil
+--- @param key string
+--- @return string|nil
+local function priceRange(rows, key)
+	if type(rows) ~= 'table' then
+		return nil
+	end
+	local lo, hi
+	for _, row in ipairs(rows) do
+		local v = tonumber(row[key])
+		if v and v > 0 then
+			lo = (lo == nil or v < lo) and v or lo
+			hi = (hi == nil or v > hi) and v or hi
+		end
+	end
+	if not lo then
+		return nil
+	end
+	if lo == hi then
+		return format.formatNum(lo) .. ' aUEC'
+	end
+	return format.formatNum(lo) .. ' \226\128\147 ' .. format.formatNum(hi) .. ' aUEC' -- en dash
+end
+
+--- A pledge price cell: "$N", with " (was $M)" appended when an original differs. nil when no current.
+--- @param current any
+--- @param original any
+--- @return string|nil
+local function pledgeCell(current, original)
+	local c = tonumber(current)
+	if c == nil then
+		return nil
+	end
+	local s = '$' .. format.formatNum(c)
+	local o = tonumber(original)
+	if o and o ~= c then
+		s = s .. ' (was $' .. format.formatNum(o) .. ')'
+	end
+	return s
+end
+
+--- Editorial-resolved value for a pure-editorial field (no API fallback). nil when absent.
+--- @param resolved table|nil
+--- @param field string
+--- @return any
+local function editorialValue(resolved, field)
+	local entry = resolved and resolved[field]
+	return entry and entry.value or nil
+end
+
 --- Crew as "min–max" (en dash) or a single value. nil when neither present.
 --- @return string|nil
 local function crewRange(minV, maxV)
@@ -212,13 +264,53 @@ function p.getSections(apiData, args, resolved)
 	sectionBuilder.push(speedItems, 'Pitch rate', withUnit(agility.pitch, ' \194\176/s'))
 	sectionBuilder.push(speedItems, 'Yaw rate', withUnit(agility.yaw, ' \194\176/s'))
 
+	-- Cost: three subsection-tabs. aUEC summary links out to {{Entity/Availability}}.
+	local uex = type(apiData.uex_prices) == 'table' and apiData.uex_prices or {}
+	local insurance = type(apiData.insurance) == 'table' and apiData.insurance or {}
+
+	local universe = {}
+	sectionBuilder.push(universe, 'Purchase', priceRange(uex.purchase, 'price_buy'))
+	sectionBuilder.push(universe, 'Rental', priceRange(uex.rental, 'price_rent'))
+	sectionBuilder.push(
+		universe,
+		'Shops',
+		(uex.purchase or uex.rental) and '[[#Acquisition|View all locations]]' or nil
+	)
+
+	local pledge = {}
+	sectionBuilder.push(
+		pledge,
+		'Standalone',
+		pledgeCell(effective(resolved, 'pledge_price', apiData.msrp), editorialValue(resolved, 'original_pledge_price'))
+	)
+	sectionBuilder.push(
+		pledge,
+		'Warbond',
+		pledgeCell(editorialValue(resolved, 'warbond_price'), editorialValue(resolved, 'original_warbond_price'))
+	)
+	sectionBuilder.push(pledge, 'Availability', editorialValue(resolved, 'pledge_availability'))
+
+	local insuranceItems = {}
+	sectionBuilder.push(insuranceItems, 'Claim time', withUnit(insurance.claim_time, ' min'))
+	sectionBuilder.push(insuranceItems, 'Expedite time', withUnit(insurance.expedite_time, ' min'))
+	sectionBuilder.push(insuranceItems, 'Expedite fee', withUnit(insurance.expedite_cost, ' aUEC'))
+
+	local costTabs = sectionBuilder.build(
+		sectionBuilder.section({ key = 'cost-universe', label = 'Universe', items = universe }),
+		sectionBuilder.section({ key = 'cost-pledge', label = 'Pledge', items = pledge }),
+		sectionBuilder.section({ key = 'cost-insurance', label = 'Insurance', items = insuranceItems })
+	)
+	local cost = (costTabs[1] ~= nil) and sectionBuilder.section({ key = 'cost', label = 'Cost', sections = costTabs })
+		or nil
+
 	return sectionBuilder.build(
 		-- Labelless top section: identity rows show plainly under the title (always
 		-- visible, not collapsible) — InfoboxLua renders a section with no label as
 		-- the general top group.
 		sectionBuilder.section({ key = 'overview', items = overview }),
 		sectionBuilder.section({ key = 'capacity', label = 'Capacity', items = capacity }),
-		sectionBuilder.section({ key = 'speed', label = 'Speed', items = speedItems })
+		sectionBuilder.section({ key = 'speed', label = 'Speed', items = speedItems }),
+		cost
 	)
 end
 
@@ -272,6 +364,9 @@ function p.getStructuredData(apiData, args, resolved)
 		['Roll rate'] = tonumber(agility.roll),
 		['Pitch rate'] = tonumber(agility.pitch),
 		['Yaw rate'] = tonumber(agility.yaw),
+		['Insurance claim time'] = apiData.insurance and tonumber(apiData.insurance.claim_time) or nil,
+		['Insurance expedite time'] = apiData.insurance and tonumber(apiData.insurance.expedite_time) or nil,
+		['Insurance expedite cost'] = apiData.insurance and tonumber(apiData.insurance.expedite_cost) or nil,
 	}
 end
 

@@ -95,9 +95,9 @@ function p.matches(apiData)
 end
 
 --- Refine a vehicle to its family subtype leaf. Every vehicle record carries all
---- three family flags; exactly one is truthy. Gravlev is checked first because a
---- hover bike may also set is_vehicle. Returns nil when no family flag is set
---- (the Vehicle kind itself stays the leaf).
+--- three family flags and exactly one is truthy (a gravlev has is_vehicle=false),
+--- so order is just defensive most-specific-first. Returns nil when no family
+--- flag is set (the Vehicle kind itself stays the leaf).
 --- @param apiData table|nil
 --- @return table|nil
 function p.resolveSubtype(apiData)

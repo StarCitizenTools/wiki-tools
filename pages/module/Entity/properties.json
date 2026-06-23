@@ -557,7 +557,7 @@
 		"modules": [
 			"Vehicle"
 		],
-		"desc": "Manual API identifier field for a vehicle page (used when automatic UUID lookup fails)."
+		"desc": "Editorial field keys that were hand-supplied for API-owned data (fill or override); drives the 'Entities with manual API data' maintenance category."
 	},
 	"Mass": {
 		"smw": "Number",

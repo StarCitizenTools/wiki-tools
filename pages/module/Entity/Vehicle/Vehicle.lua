@@ -10,6 +10,7 @@ local dimensionsPresets = require('Module:Dimensions/presets')
 local format = require('Module:Entity/Format')
 local productionStatus = require('Module:Entity/ProductionStatus')
 local sectionBuilder = require('Module:Entity/SectionBuilder')
+local uec = require('Module:UEC')
 local yesno = require('Module:Yesno')
 local lang = mw.language.getContentLanguage()
 
@@ -23,6 +24,15 @@ local function withUnit(value, unit)
 		return nil
 	end
 	return format.formatNum(n) .. unit
+end
+
+--- A UEC amount rendered via Module:UEC (currency glyph + grouped number), nil
+--- when the value isn't numeric.
+--- @param value any
+--- @return string|nil
+local function uecAmount(value)
+	local n = tonumber(value)
+	return n and uec._main(n) or nil
 end
 
 --- Round a possibly-fractional number to the nearest integer (drive speeds are
@@ -364,7 +374,7 @@ function p.getSections(apiData, args, resolved)
 	local insuranceItems = {}
 	sectionBuilder.push(insuranceItems, 'Claim time', withUnit(insurance.claim_time, ' min'))
 	sectionBuilder.push(insuranceItems, 'Expedite time', withUnit(insurance.expedite_time, ' min'))
-	sectionBuilder.push(insuranceItems, 'Expedite fee', withUnit(insurance.expedite_cost, ' aUEC'))
+	sectionBuilder.push(insuranceItems, 'Expedite fee', uecAmount(insurance.expedite_cost))
 
 	-- Subsection tabs are raw InfoboxLua section data ({ label, items }) with NO
 	-- `key`: mergeSections strips the Entity-internal `key` only at the top level,

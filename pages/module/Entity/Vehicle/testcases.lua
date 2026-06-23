@@ -268,7 +268,9 @@ end
 function suite:testCostInsurance()
 	local s = Vehicle.getSections({ insurance = { claim_time = 2.92, expedite_cost = 1631 } }, {}, {})
 	local ins = findItem(findSection(s, 'cost').sections, 'Insurance')
-	self:assertEquals('1,631 aUEC', findItem(ins.items, 'Expedite fee').content)
+	-- Expedite fee renders via Module:UEC (glyph + grouped number), not a bare unit.
+	local fee = findItem(ins.items, 'Expedite fee').content
+	self:assertTrue(fee ~= nil and fee:find('1,631', 1, true) ~= nil)
 end
 
 function suite:testCostOmittedWhenNoData()

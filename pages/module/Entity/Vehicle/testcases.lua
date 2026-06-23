@@ -225,25 +225,25 @@ function suite:testCostUniverseRange()
 	local s = Vehicle.getSections({
 		uex_prices = { purchase = { { price_buy = 500000 }, { price_buy = 0 }, { price_buy = 700000 } } },
 	}, {}, {})
-	local universe = findSection(findSection(s, 'cost').sections, 'cost-universe')
+	local universe = findItem(findSection(s, 'cost').sections, 'Universe')
 	self:assertEquals('500,000 \226\128\147 700,000 aUEC', findItem(universe.items, 'Purchase').content)
 end
 
 function suite:testCostPledgeUsesMsrp()
 	local s = Vehicle.getSections({ msrp = 30 }, {}, {})
-	local pledge = findSection(findSection(s, 'cost').sections, 'cost-pledge')
+	local pledge = findItem(findSection(s, 'cost').sections, 'Pledge')
 	self:assertEquals('$30', findItem(pledge.items, 'Standalone').content)
 end
 
 function suite:testCostPledgeShowsOriginalWhenDiffers()
 	local s = Vehicle.getSections({ msrp = 30 }, {}, { original_pledge_price = { value = 45, source = 'editorial' } })
-	local pledge = findSection(findSection(s, 'cost').sections, 'cost-pledge')
+	local pledge = findItem(findSection(s, 'cost').sections, 'Pledge')
 	self:assertEquals('$30 (was $45)', findItem(pledge.items, 'Standalone').content)
 end
 
 function suite:testCostInsurance()
 	local s = Vehicle.getSections({ insurance = { claim_time = 2.92, expedite_cost = 1631 } }, {}, {})
-	local ins = findSection(findSection(s, 'cost').sections, 'cost-insurance')
+	local ins = findItem(findSection(s, 'cost').sections, 'Insurance')
 	self:assertEquals('1,631 aUEC', findItem(ins.items, 'Expedite fee').content)
 end
 

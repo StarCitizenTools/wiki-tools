@@ -297,13 +297,21 @@ function p.getSections(apiData, args, resolved)
 	sectionBuilder.push(insuranceItems, 'Expedite time', withUnit(insurance.expedite_time, ' min'))
 	sectionBuilder.push(insuranceItems, 'Expedite fee', withUnit(insurance.expedite_cost, ' aUEC'))
 
-	local costTabs = sectionBuilder.build(
-		sectionBuilder.section({ key = 'cost-universe', label = 'Universe', items = universe }),
-		sectionBuilder.section({ key = 'cost-pledge', label = 'Pledge', items = pledge }),
-		sectionBuilder.section({ key = 'cost-insurance', label = 'Insurance', items = insuranceItems })
-	)
-	local cost = (costTabs[1] ~= nil) and sectionBuilder.section({ key = 'cost', label = 'Cost', sections = costTabs })
-		or nil
+	-- Subsection tabs are raw InfoboxLua section data ({ label, items }) with NO
+	-- `key`: mergeSections strips the Entity-internal `key` only at the top level,
+	-- so a keyed subsection fails InfoboxLua's schema validation. Matches the
+	-- Dimensions facet's subsection shape.
+	local costTabs = {}
+	if universe[1] ~= nil then
+		costTabs[#costTabs + 1] = { label = 'Universe', items = universe }
+	end
+	if pledge[1] ~= nil then
+		costTabs[#costTabs + 1] = { label = 'Pledge', items = pledge }
+	end
+	if insuranceItems[1] ~= nil then
+		costTabs[#costTabs + 1] = { label = 'Insurance', items = insuranceItems }
+	end
+	local cost = costTabs[1] and sectionBuilder.section({ key = 'cost', label = 'Cost', sections = costTabs }) or nil
 
 	-- Dimensions: thin adapter over Module:Dimensions. Vehicles carry flat
 	-- dimension.{length,width,height} (the item Dimensions facet reads a nested

@@ -144,6 +144,22 @@ function p.formatShortDescription(apiData, args, familyNoun)
 	return mw.text.trim(desc)
 end
 
+--- Manufacturer as a wikilink ([[Page]] or [[Page|Name]]), or nil when none
+--- resolves. Shared by the header subtitle.
+--- @param apiData table
+--- @param args table
+--- @return string|nil
+local function manufacturerLink(apiData, args)
+	local mfr = base.resolveManufacturer(apiData, args)
+	if not mfr or not mfr.page then
+		return nil
+	end
+	if mfr.name and mfr.name ~= mfr.page then
+		return '[[' .. mfr.page .. '|' .. mfr.name .. ']]'
+	end
+	return '[[' .. mfr.page .. ']]'
+end
+
 --- @param apiData table
 --- @param args table
 --- @param resolved table|nil
@@ -154,15 +170,8 @@ function p.getSections(apiData, args, resolved)
 	local drive = type(apiData.drive) == 'table' and apiData.drive or {}
 	local crew = type(apiData.crew) == 'table' and apiData.crew or {}
 
-	-- Overview (labelless top section): manufacturer + identity rows.
+	-- Overview (labelless top section): identity rows under the title.
 	local overview = {}
-	local mfr = base.resolveManufacturer(apiData, args)
-	local mfrLink = nil
-	if mfr and mfr.page then
-		mfrLink = (mfr.name and mfr.name ~= mfr.page) and ('[[' .. mfr.page .. '|' .. mfr.name .. ']]')
-			or ('[[' .. mfr.page .. ']]')
-	end
-	sectionBuilder.push(overview, 'Manufacturer', mfrLink)
 	sectionBuilder.push(overview, 'Career', apiData.career)
 	sectionBuilder.push(overview, 'Role', apiData.role)
 	sectionBuilder.push(overview, 'Size', apiData.size and lang:ucfirst(tostring(apiData.size)) or nil)
@@ -201,6 +210,17 @@ function p.getSections(apiData, args, resolved)
 		sectionBuilder.section({ key = 'capacity', label = 'Capacity', items = capacity }),
 		sectionBuilder.section({ key = 'speed', label = 'Speed', items = speedItems })
 	)
+end
+
+--- Vehicle header subtitle: the manufacturer (linked), shown in place of the
+--- default type subtitle so vehicles are identified by maker (as the legacy
+--- infobox did). nil when no manufacturer resolves → the infobox falls back to
+--- the display type.
+--- @param apiData table
+--- @param args table
+--- @return string|nil
+function p.getSubtitle(apiData, args)
+	return manufacturerLink(apiData, args)
 end
 
 --- Return the Vehicle editorial manifest. Used by Module:Entity/Editorial to

@@ -231,9 +231,22 @@ function p.render(result, args)
 		args = { src = 'Module:Entity/styles.css' },
 	})
 
+	-- Subtitle defaults to the display type; a chain link may override it
+	-- (vehicles show their manufacturer in the header). Leaf-first wins.
+	local subtitle = result.displayType
+	for i = #result.chain, 1, -1 do
+		if result.chain[i].getSubtitle then
+			local override = result.chain[i].getSubtitle(result.apiData, args)
+			if override and override ~= '' then
+				subtitle = override
+				break
+			end
+		end
+	end
+
 	local html = infobox.render({
 		title = result.apiData.name or args.name or mw.title.getCurrentTitle().text,
-		subtitle = result.displayType,
+		subtitle = subtitle,
 		image = buildImage(result.apiData, args),
 		sections = sections,
 	})

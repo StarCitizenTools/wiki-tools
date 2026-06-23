@@ -139,12 +139,14 @@ function suite:testEmptyApiOmitsSections()
 	self:assertEquals(nil, findSection(s, 'capacity'))
 end
 
-function suite:testManufacturerRowInOverview()
+function suite:testGetSubtitleReturnsManufacturerLink()
 	-- args.manufacturer 'Testco' doesn't resolve, so Base falls back to a
 	-- self-referencing record (page == name) → a plain [[Testco]] link.
-	local s = Vehicle.getSections({ career = 'Combat' }, { manufacturer = 'Testco' }, {})
-	local ov = findSection(s, 'overview')
-	self:assertEquals('[[Testco]]', findItem(ov.items, 'Manufacturer').content)
+	self:assertEquals('[[Testco]]', Vehicle.getSubtitle({}, { manufacturer = 'Testco' }))
+end
+
+function suite:testGetSubtitleNilWhenNoManufacturer()
+	self:assertEquals(nil, Vehicle.getSubtitle({}, {}))
 end
 
 function suite:testEditorialManifestLoads()

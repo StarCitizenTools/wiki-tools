@@ -52,6 +52,7 @@ p.CHAIN_LINK = {
 	getExternalSiteItems = false,
 	getTypeInfo = false,
 	getApiConfigs = false,
+	getSubtitle = false,
 }
 
 --- Validates a component against a role spec. Each required hook must be present

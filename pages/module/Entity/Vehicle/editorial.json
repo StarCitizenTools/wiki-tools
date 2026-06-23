@@ -1,7 +1,7 @@
 {
 	"%doc": "Vehicle editorial manifest. field -> { arg, smw, apiPath?, transform?, default? }. apiPath present = overlap field (API value used as fallback; editor value overrides, audited as fill/override). apiPath absent = pure-editorial (the API does not model it). Resolved by Module:Entity/Editorial in Data.get; SMW property names declared in Module:Entity/properties.json (modules:[Vehicle]).",
-	"scm_speed": { "arg": "scmspeed", "smw": "SCM speed", "apiPath": "speed.scm", "transform": "number" },
-	"max_speed": { "arg": "maxspeed", "smw": "Maximum speed", "apiPath": "speed.max", "transform": "number" },
+	"scm_speed": { "arg": "scmspeed", "smw": "Scm speed", "apiPath": "speed.scm", "transform": "number" },
+	"max_speed": { "arg": "maxspeed", "smw": "Max speed", "apiPath": "speed.max", "transform": "number" },
 	"crew_min": { "arg": "mincrew", "smw": "Minimum crew", "apiPath": "crew.min", "transform": "number" },
 	"crew_max": { "arg": "maxcrew", "smw": "Maximum crew", "apiPath": "crew.max", "transform": "number" },
 	"cargo_capacity": { "arg": "cargocapacity", "smw": "Cargo capacity", "apiPath": "cargo_capacity", "transform": "number" },

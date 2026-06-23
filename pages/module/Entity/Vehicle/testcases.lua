@@ -162,7 +162,7 @@ function suite:testStructuredDataOmitsManifestOwnedFields()
 	)
 	self:assertEquals(nil, d['Minimum crew'])
 	self:assertEquals(nil, d['Cargo capacity'])
-	self:assertEquals(nil, d['SCM speed'])
+	self:assertEquals(nil, d['Scm speed'])
 	self:assertEquals(nil, d['Pledge price'])
 end
 

@@ -589,9 +589,10 @@
 		"smw": "Number",
 		"bucket": "DOUBLE",
 		"modules": [
-			"FlightController"
+			"FlightController",
+			"Vehicle"
 		],
-		"desc": "Maximum flight speed set by a flight controller, in m/s."
+		"desc": "Maximum flight/travel speed in m/s (a vehicle's, or set by a flight controller)."
 	},
 	"Maximum crew": {
 		"smw": "Number",
@@ -608,14 +609,6 @@
 			"WeaponMining"
 		],
 		"desc": "Maximum mining range of a mining laser head, in metres."
-	},
-	"Maximum speed": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
-		"modules": [
-			"Vehicle"
-		],
-		"desc": "Maximum flight/travel speed of a vehicle, in m/s."
 	},
 	"Maximum temperature": {
 		"smw": "Number",
@@ -1043,21 +1036,14 @@
 		],
 		"desc": "Salvage speed multiplier of a scraper module."
 	},
-	"SCM speed": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
-		"modules": [
-			"Vehicle"
-		],
-		"desc": "SCM (combat) speed of a vehicle, in m/s."
-	},
 	"Scm speed": {
 		"smw": "Number",
 		"bucket": "DOUBLE",
 		"modules": [
-			"FlightController"
+			"FlightController",
+			"Vehicle"
 		],
-		"desc": "SCM (combat) flight speed set by a flight controller, in m/s."
+		"desc": "SCM (combat) speed in m/s (a vehicle's, or set by a flight controller)."
 	},
 	"Series": {
 		"smw": "Text",

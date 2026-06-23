@@ -329,6 +329,9 @@ function p.getSections(apiData, args, resolved)
 		'Cargo',
 		withUnit(effective(resolved, 'cargo_capacity', apiData.cargo_capacity), ' SCU')
 	)
+	-- Personal stowage (the API's `vehicle_inventory`, in µSCU — same unit as the
+	-- item Inventory facet's scu_converted); labelled "Inventory" in the infobox.
+	sectionBuilder.push(capacity, 'Inventory', withUnit(apiData.vehicle_inventory, ' µSCU'))
 
 	-- Speed: ships/gravlevs use speed.*; ground vehicles use drive.* (speed.* is null).
 	local speedItems = {}

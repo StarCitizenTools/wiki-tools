@@ -131,6 +131,12 @@ function suite:testCapacityCrewRangeAndCargo()
 	self:assertEquals('96 SCU', findItem(cap.items, 'Cargo').content)
 end
 
+function suite:testCapacityInventory()
+	local s = Vehicle.getSections({ vehicle_inventory = 1620000 }, {}, {})
+	local cap = findSection(s, 'capacity')
+	self:assertEquals('1,620,000 µSCU', findItem(cap.items, 'Inventory').content)
+end
+
 function suite:testEditorialOverrideFlowsIntoSpeed()
 	local s = Vehicle.getSections({ speed = { scm = 227 } }, {}, { scm_speed = { value = 210, source = 'override' } })
 	self:assertEquals('210 m/s', findItem(findSection(s, 'speed').items, 'SCM speed').content)

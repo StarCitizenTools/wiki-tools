@@ -345,9 +345,9 @@ function p.getSections(apiData, args, resolved)
 		-- the general top group.
 		sectionBuilder.section({ key = 'overview', items = overview }),
 		sectionBuilder.section({ key = 'capacity', label = 'Capacity', items = capacity }),
+		cost,
 		sectionBuilder.section({ key = 'speed', label = 'Speed', items = speedItems }),
-		dimensionsSection,
-		cost
+		dimensionsSection
 	)
 end
 

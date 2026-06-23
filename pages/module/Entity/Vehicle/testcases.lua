@@ -100,6 +100,10 @@ function suite:testShipSpeedSection()
 	self:assertEquals('1,230 m/s', findItem(sp.items, 'Max speed').content)
 	self:assertEquals('137 \194\176/s', findItem(sp.items, 'Roll rate').content)
 	self:assertEquals(nil, findItem(sp.items, 'Reverse speed'))
+	-- Overview is the labelless top section (always shown, never collapsible).
+	local ov = findSection(s, 'overview')
+	self:assertEquals(nil, ov.label)
+	self:assertEquals('Combat', findItem(ov.items, 'Career').content)
 end
 
 function suite:testGroundVehicleSpeedUsesDrive()

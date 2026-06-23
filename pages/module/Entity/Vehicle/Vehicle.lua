@@ -187,7 +187,10 @@ function p.getSections(apiData, args, resolved)
 	sectionBuilder.push(speedItems, 'Yaw rate', withUnit(agility.yaw, ' \194\176/s'))
 
 	return sectionBuilder.build(
-		sectionBuilder.section({ key = 'overview', label = 'Overview', items = overview }),
+		-- Labelless top section: identity rows show plainly under the title (always
+		-- visible, not collapsible) — InfoboxLua renders a section with no label as
+		-- the general top group.
+		sectionBuilder.section({ key = 'overview', items = overview }),
 		sectionBuilder.section({ key = 'capacity', label = 'Capacity', items = capacity }),
 		sectionBuilder.section({ key = 'speed', label = 'Speed', items = speedItems })
 	)

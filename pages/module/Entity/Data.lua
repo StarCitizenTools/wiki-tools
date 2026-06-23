@@ -11,6 +11,7 @@ require('strict')
 
 local api = require('Module:Entity/Api')
 local assembly = require('Module:Entity/Assembly')
+local editorial = require('Module:Entity/Editorial')
 local registry = require('Module:Entity/Registry')
 local typeResolver = require('Module:Entity/TypeResolver')
 
@@ -213,7 +214,7 @@ end
 --- type chain, and packages everything a renderer needs into a single table.
 ---
 --- @param args table Parsed wikitext args (use p.parseArgs to produce)
---- @return { args: table, kind: string, apiData: table, chain: table[], typeInfo: table|nil, displayType: string|nil, hasApiError: boolean }
+--- @return { args: table, kind: string, apiData: table, chain: table[], facets: table[], typeInfo: table|nil, displayType: string|nil, hasApiError: boolean, resolved: table, editorialData: table, hasManualApiData: boolean }
 function p.get(args)
 	local apiData, chain, hasApiError, matchedKind = fetchApiData(args)
 
@@ -232,6 +233,14 @@ function p.get(args)
 		typeInfo, displayType = typeResolver.resolve(args.type or apiData.type, apiData.classification)
 	end
 
+	local resolved, editorialData, hasManualApiData = {}, {}, false
+	if matchedKind and matchedKind.getEditorialManifest then
+		local manifest = matchedKind.getEditorialManifest()
+		resolved = editorial.resolve(apiData, args, manifest)
+		editorialData = editorial.toStructuredData(resolved, manifest)
+		hasManualApiData = editorial.hasManualApiData(resolved)
+	end
+
 	return {
 		args = args,
 		kind = kind,
@@ -241,6 +250,9 @@ function p.get(args)
 		typeInfo = typeInfo,
 		displayType = displayType,
 		hasApiError = hasApiError,
+		resolved = resolved,
+		editorialData = editorialData,
+		hasManualApiData = hasManualApiData,
 	}
 end
 

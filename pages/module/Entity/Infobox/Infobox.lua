@@ -151,12 +151,13 @@ end
 --- @param facets table[]
 --- @param apiData table
 --- @param args table
+--- @param resolved table|nil Editorial resolved fields (optional; {} when no manifest)
 --- @return table[] sections
-local function buildSections(chain, facets, apiData, args)
+local function buildSections(chain, facets, apiData, args, resolved)
 	local sectionsList = {}
 	for _, mod in ipairs(chain) do
 		if mod.getSections then
-			table.insert(sectionsList, mod.getSections(apiData, args))
+			table.insert(sectionsList, mod.getSections(apiData, args, resolved))
 		end
 	end
 	-- Facet sections come after the chain so a new-key facet section (e.g.
@@ -164,7 +165,7 @@ local function buildSections(chain, facets, apiData, args)
 	-- key merges into it via mergeSections' append-items behaviour.
 	for _, facet in ipairs(facets) do
 		if facet.getSections then
-			table.insert(sectionsList, facet.getSections(apiData, args))
+			table.insert(sectionsList, facet.getSections(apiData, args, resolved))
 		end
 	end
 	local sections = assembly.mergeSections(sectionsList)
@@ -223,7 +224,7 @@ end
 --- @param args table Parsed wikitext args
 --- @return string
 function p.render(result, args)
-	local sections = buildSections(result.chain, result.facets, result.apiData, args)
+	local sections = buildSections(result.chain, result.facets, result.apiData, args, result.resolved)
 
 	local styles = mw.getCurrentFrame():extensionTag({
 		name = 'templatestyles',

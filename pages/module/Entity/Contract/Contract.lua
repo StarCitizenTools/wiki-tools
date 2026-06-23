@@ -30,6 +30,7 @@ p.KIND = {
 	getStructuredData = false,
 	getShortDescription = false,
 	getExternalSiteItems = false,
+	getEditorialManifest = false,
 }
 
 --- Facet: a cross-cutting additive aspect matched on a data field.

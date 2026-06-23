@@ -1,15 +1,61 @@
 require('strict')
 
 --- @module Entity/Vehicle
---- Vehicle type module. Barebones for now — exposes the vehicles API
---- endpoint so sibling renderers (Availability, Description, etc.) can
---- consume vehicle data through the standard Module:Entity/Data path.
---- Full vehicle infobox treatment (sections, structured data) lands
---- later; this is the minimum needed to route vehicle UUIDs.
+--- Vehicle type module. Exposes the vehicles API endpoint and renders core
+--- infobox sections (Overview, Capacity, Speed) from API data.
 
 local base = require('Module:Entity/Base')
+local format = require('Module:Entity/Format')
+local sectionBuilder = require('Module:Entity/SectionBuilder')
+local lang = mw.language.getContentLanguage()
 
 local p = {}
+
+--- Render-time unit attach: nil for non-numeric so SectionBuilder drops the row.
+--- @return string|nil
+local function withUnit(value, unit)
+	local n = tonumber(value)
+	if n == nil then
+		return nil
+	end
+	return format.formatNum(n) .. unit
+end
+
+--- Round a possibly-fractional number to the nearest integer (drive speeds are
+--- derived floats, e.g. 13.5584... reverse). nil-safe.
+--- @return number|nil
+local function roundInt(value)
+	local n = tonumber(value)
+	if n == nil then
+		return nil
+	end
+	return math.floor(n + 0.5)
+end
+
+--- Effective value for an overridable field: the editorial-resolved value when
+--- present (encodes override/fill/api), else the API fallback. Forward-compatible
+--- with the editorial manifest landing later.
+--- @return any
+local function effective(resolved, field, apiFallback)
+	local entry = resolved and resolved[field]
+	if entry ~= nil then
+		return entry.value
+	end
+	return apiFallback
+end
+
+--- Crew as "min–max" (en dash) or a single value. nil when neither present.
+--- @return string|nil
+local function crewRange(minV, maxV)
+	minV, maxV = tonumber(minV), tonumber(maxV)
+	if minV and maxV and minV ~= maxV then
+		return format.formatNum(minV) .. '\226\128\147' .. format.formatNum(maxV)
+	end
+	if minV or maxV then
+		return format.formatNum(minV or maxV)
+	end
+	return nil
+end
 
 --- Canonical kind name; the Data.get() `result.kind` value sibling renderers
 --- branch on. Every kind declares one (enforced by the Registry conformance test).
@@ -96,6 +142,55 @@ function p.formatShortDescription(apiData, args, familyNoun)
 		desc = desc .. ' by ' .. mfr.short
 	end
 	return mw.text.trim(desc)
+end
+
+--- @param apiData table
+--- @param args table
+--- @param resolved table|nil
+--- @return table[]
+function p.getSections(apiData, args, resolved)
+	local speed = type(apiData.speed) == 'table' and apiData.speed or {}
+	local agility = type(apiData.agility) == 'table' and apiData.agility or {}
+	local drive = type(apiData.drive) == 'table' and apiData.drive or {}
+	local crew = type(apiData.crew) == 'table' and apiData.crew or {}
+
+	-- Overview
+	local overview = {}
+	sectionBuilder.push(overview, 'Career', apiData.career)
+	sectionBuilder.push(overview, 'Role', apiData.role)
+	sectionBuilder.push(overview, 'Size', apiData.size and lang:ucfirst(tostring(apiData.size)) or nil)
+
+	-- Capacity
+	local capacity = {}
+	sectionBuilder.push(
+		capacity,
+		'Crew',
+		crewRange(effective(resolved, 'crew_min', crew.min), effective(resolved, 'crew_max', crew.max))
+	)
+	sectionBuilder.push(
+		capacity,
+		'Cargo',
+		withUnit(effective(resolved, 'cargo_capacity', apiData.cargo_capacity), ' SCU')
+	)
+
+	-- Speed: ships/gravlevs use speed.*; ground vehicles use drive.* (speed.* is null).
+	local speedItems = {}
+	sectionBuilder.push(speedItems, 'SCM speed', withUnit(effective(resolved, 'scm_speed', speed.scm), ' m/s'))
+	local maxSpeed = effective(resolved, 'max_speed', speed.max)
+	if maxSpeed == nil then
+		maxSpeed = roundInt(drive.max_speed_ms)
+	end
+	sectionBuilder.push(speedItems, 'Max speed', withUnit(maxSpeed, ' m/s'))
+	sectionBuilder.push(speedItems, 'Reverse speed', withUnit(roundInt(drive.reverse_speed_ms), ' m/s'))
+	sectionBuilder.push(speedItems, 'Roll rate', withUnit(agility.roll, ' \194\176/s'))
+	sectionBuilder.push(speedItems, 'Pitch rate', withUnit(agility.pitch, ' \194\176/s'))
+	sectionBuilder.push(speedItems, 'Yaw rate', withUnit(agility.yaw, ' \194\176/s'))
+
+	return sectionBuilder.build(
+		sectionBuilder.section({ key = 'overview', label = 'Overview', items = overview }),
+		sectionBuilder.section({ key = 'capacity', label = 'Capacity', items = capacity }),
+		sectionBuilder.section({ key = 'speed', label = 'Speed', items = speedItems })
+	)
 end
 
 return p

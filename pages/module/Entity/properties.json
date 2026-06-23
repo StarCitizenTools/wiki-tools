@@ -137,6 +137,22 @@
 		],
 		"desc": "Size of each ordnance a rack carries."
 	},
+	"Career": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Career category of a vehicle (Combat, Transport, Exploration, …)."
+	},
+	"Cargo capacity": {
+		"smw": "Number",
+		"bucket": "INTEGER",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Cargo capacity of a vehicle, in SCU."
+	},
 	"Category": {
 		"smw": "Text",
 		"bucket": "TEXT",
@@ -535,6 +551,22 @@
 		],
 		"desc": "Manufacturer of an entity."
 	},
+	"Manual API field": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Manual API identifier field for a vehicle page (used when automatic UUID lookup fails)."
+	},
+	"Mass": {
+		"smw": "Number",
+		"bucket": "INTEGER",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Mass of a vehicle, in kg."
+	},
 	"Material efficiency": {
 		"smw": "Number",
 		"bucket": "DOUBLE",
@@ -561,6 +593,14 @@
 		],
 		"desc": "Maximum flight speed set by a flight controller, in m/s."
 	},
+	"Maximum crew": {
+		"smw": "Number",
+		"bucket": "INTEGER",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Maximum crew count of a vehicle."
+	},
 	"Maximum range": {
 		"smw": "Number",
 		"bucket": "DOUBLE",
@@ -568,6 +608,14 @@
 			"WeaponMining"
 		],
 		"desc": "Maximum mining range of a mining laser head, in metres."
+	},
+	"Maximum speed": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Maximum flight/travel speed of a vehicle, in m/s."
 	},
 	"Maximum temperature": {
 		"smw": "Number",
@@ -592,6 +640,14 @@
 			"Commodity"
 		],
 		"desc": "Whether a commodity is mineable."
+	},
+	"Minimum crew": {
+		"smw": "Number",
+		"bucket": "INTEGER",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Minimum crew count of a vehicle."
 	},
 	"Minimum temperature": {
 		"smw": "Number",
@@ -723,6 +779,14 @@
 		],
 		"desc": "Minimum pitch angle of a seat, in degrees."
 	},
+	"Pitch rate": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Pitch agility rate of a vehicle, in °/s."
+	},
 	"Pitch speed": {
 		"smw": "Number",
 		"bucket": "DOUBLE",
@@ -730,6 +794,22 @@
 			"Turret"
 		],
 		"desc": "Pitch rotation speed of a turret, in °/s."
+	},
+	"Pledge availability": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Pledge store availability status of a vehicle (e.g. Available, Limited, Unavailable)."
+	},
+	"Pledge price": {
+		"smw": "Number",
+		"bucket": "INTEGER",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "MSRP pledge price of a vehicle, in USD."
 	},
 	"Power generation": {
 		"smw": "Number",
@@ -754,6 +834,14 @@
 			"PowerPlant"
 		],
 		"desc": "Power output of a power plant."
+	},
+	"Production state": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Production/flight-readiness state of a vehicle (e.g. Flight Ready, In Production)."
 	},
 	"Qig charge time": {
 		"smw": "Number",
@@ -931,6 +1019,22 @@
 		],
 		"desc": "Boosted roll rate of a flight controller, in °/s."
 	},
+	"Roll rate": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Roll agility rate of a vehicle, in °/s."
+	},
+	"Role": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Role of a vehicle (e.g. Light Fighter, Heavy Bomber, Cargo)."
+	},
 	"Salvage speed multiplier": {
 		"smw": "Number",
 		"bucket": "DOUBLE",
@@ -939,6 +1043,14 @@
 		],
 		"desc": "Salvage speed multiplier of a scraper module."
 	},
+	"SCM speed": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "SCM (combat) speed of a vehicle, in m/s."
+	},
 	"Scm speed": {
 		"smw": "Number",
 		"bucket": "DOUBLE",
@@ -946,6 +1058,14 @@
 			"FlightController"
 		],
 		"desc": "SCM (combat) flight speed set by a flight controller, in m/s."
+	},
+	"Series": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Vehicle series/product line a vehicle belongs to."
 	},
 	"Scrip": {
 		"smw": "Number",
@@ -1002,6 +1122,14 @@
 			"Item"
 		],
 		"desc": "Size (slot size) of an item."
+	},
+	"Size class": {
+		"smw": "Number",
+		"bucket": "INTEGER",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Size class of a vehicle (numeric, e.g. 1–10 small to capital)."
 	},
 	"Slash damage": {
 		"smw": "Number",
@@ -1158,6 +1286,14 @@
 			"Seat"
 		],
 		"desc": "Minimum yaw angle of a seat, in degrees."
+	},
+	"Yaw rate": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Yaw agility rate of a vehicle, in °/s."
 	},
 	"Yaw speed": {
 		"smw": "Number",

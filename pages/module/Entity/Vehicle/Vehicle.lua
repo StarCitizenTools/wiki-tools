@@ -193,4 +193,32 @@ function p.getSections(apiData, args, resolved)
 	)
 end
 
+--- Return the Vehicle editorial manifest. Used by Module:Entity/Editorial to
+--- resolve hybrid API/wikitext fields (crew, cargo, speed, mass, pledge price)
+--- and to drive SMW storage for those fields.
+--- @return table
+function p.getEditorialManifest()
+	return mw.loadJsonData('Module:Entity/Vehicle/editorial.json')
+end
+
+--- Return structured data for the pure-API vehicle fields not covered by the
+--- editorial manifest (Career, Role, Size class, agility rates). Fields owned
+--- by the editorial layer (crew/cargo/speed/mass/pledge) are intentionally
+--- absent here — the editorial resolver handles their SMW storage.
+--- @param apiData table
+--- @param args table
+--- @param resolved table|nil
+--- @return table
+function p.getStructuredData(apiData, args, resolved)
+	local agility = type(apiData.agility) == 'table' and apiData.agility or {}
+	return {
+		['Career'] = apiData.career,
+		['Role'] = apiData.role,
+		['Size class'] = tonumber(apiData.size_class),
+		['Roll rate'] = tonumber(agility.roll),
+		['Pitch rate'] = tonumber(agility.pitch),
+		['Yaw rate'] = tonumber(agility.yaw),
+	}
+end
+
 return p

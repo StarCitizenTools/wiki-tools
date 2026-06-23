@@ -135,4 +135,40 @@ function suite:testEmptyApiOmitsSections()
 	self:assertEquals(nil, findSection(s, 'capacity'))
 end
 
+function suite:testEditorialManifestLoads()
+	local m = Vehicle.getEditorialManifest()
+	self:assertEquals('msrp', m.pledge_price.apiPath)
+	self:assertEquals('speed.scm', m.scm_speed.apiPath)
+	self:assertEquals('Pledge availability', m.pledge_availability.smw)
+end
+
+function suite:testStructuredDataPureApiStats()
+	local d = Vehicle.getStructuredData(
+		{ career = 'Combat', role = 'Light Fighter', size_class = 2, agility = { roll = 137, pitch = 59, yaw = 51 } },
+		{},
+		{}
+	)
+	self:assertEquals('Combat', d['Career'])
+	self:assertEquals(2, d['Size class'])
+	self:assertEquals(137, d['Roll rate'])
+end
+
+function suite:testStructuredDataOmitsManifestOwnedFields()
+	-- crew/cargo/speed/mass/pledge are owned by the editorial layer, NOT getStructuredData
+	local d = Vehicle.getStructuredData(
+		{ crew = { min = 1, max = 3 }, cargo_capacity = 96, speed = { scm = 227 }, mass = 26245, msrp = 30 },
+		{},
+		{}
+	)
+	self:assertEquals(nil, d['Minimum crew'])
+	self:assertEquals(nil, d['Cargo capacity'])
+	self:assertEquals(nil, d['SCM speed'])
+	self:assertEquals(nil, d['Pledge price'])
+end
+
+function suite:testStructuredDataDropsNilAgility()
+	local d = Vehicle.getStructuredData({ agility = { roll = nil, pitch = nil, yaw = nil } }, {}, {})
+	self:assertEquals(nil, d['Roll rate'])
+end
+
 return suite

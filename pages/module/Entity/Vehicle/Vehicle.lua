@@ -333,18 +333,19 @@ function p.getSections(apiData, args, resolved)
 	-- item Inventory facet's scu_converted); labelled "Inventory" in the infobox.
 	sectionBuilder.push(capacity, 'Inventory', withUnit(apiData.vehicle_inventory, ' µSCU'))
 
-	-- Speed: ships/gravlevs use speed.*; ground vehicles use drive.* (speed.* is null).
-	local speedItems = {}
-	sectionBuilder.push(speedItems, 'SCM speed', withUnit(effective(resolved, 'scm_speed', speed.scm), ' m/s'))
+	-- Stats: performance figures (later also hull/armor). Speed: ships/gravlevs use
+	-- speed.*; ground vehicles use drive.* (speed.* is null).
+	local statsItems = {}
+	sectionBuilder.push(statsItems, 'SCM speed', withUnit(effective(resolved, 'scm_speed', speed.scm), ' m/s'))
 	local maxSpeed = effective(resolved, 'max_speed', speed.max)
 	if maxSpeed == nil then
 		maxSpeed = roundInt(drive.max_speed_ms)
 	end
-	sectionBuilder.push(speedItems, 'Max speed', withUnit(maxSpeed, ' m/s'))
-	sectionBuilder.push(speedItems, 'Reverse speed', withUnit(roundInt(drive.reverse_speed_ms), ' m/s'))
-	sectionBuilder.push(speedItems, 'Roll rate', withUnit(agility.roll, ' \194\176/s'))
-	sectionBuilder.push(speedItems, 'Pitch rate', withUnit(agility.pitch, ' \194\176/s'))
-	sectionBuilder.push(speedItems, 'Yaw rate', withUnit(agility.yaw, ' \194\176/s'))
+	sectionBuilder.push(statsItems, 'Max speed', withUnit(maxSpeed, ' m/s'))
+	sectionBuilder.push(statsItems, 'Reverse speed', withUnit(roundInt(drive.reverse_speed_ms), ' m/s'))
+	sectionBuilder.push(statsItems, 'Roll rate', withUnit(agility.roll, ' \194\176/s'))
+	sectionBuilder.push(statsItems, 'Pitch rate', withUnit(agility.pitch, ' \194\176/s'))
+	sectionBuilder.push(statsItems, 'Yaw rate', withUnit(agility.yaw, ' \194\176/s'))
 
 	-- Cost: three subsection-tabs. aUEC summary links out to {{Entity/Availability}}.
 	local uex = type(apiData.uex_prices) == 'table' and apiData.uex_prices or {}
@@ -428,7 +429,7 @@ function p.getSections(apiData, args, resolved)
 		sectionBuilder.section({ key = 'overview', items = overview }),
 		sectionBuilder.section({ key = 'capacity', label = 'Capacity', items = capacity }),
 		cost,
-		sectionBuilder.section({ key = 'speed', label = 'Speed', items = speedItems }),
+		sectionBuilder.section({ key = 'stats', label = 'Stats', items = statsItems }),
 		dimensionsSection
 	)
 end

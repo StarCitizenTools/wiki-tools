@@ -97,7 +97,7 @@ function suite:testShipSpeedSection()
 		speed = { scm = 227, max = 1230 },
 		agility = { roll = 137, pitch = 59, yaw = 51 },
 	}, {}, {})
-	local sp = findSection(s, 'speed')
+	local sp = findSection(s, 'stats')
 	self:assertEquals('227 m/s', findItem(sp.items, 'SCM speed').content)
 	self:assertEquals('1,230 m/s', findItem(sp.items, 'Max speed').content)
 	self:assertEquals('137 \194\176/s', findItem(sp.items, 'Roll rate').content)
@@ -117,7 +117,7 @@ function suite:testGroundVehicleSpeedUsesDrive()
 		agility = { roll = nil, pitch = nil, yaw = nil },
 		drive = { max_speed_ms = 36, reverse_speed_ms = 13.558441 },
 	}, {}, {})
-	local sp = findSection(s, 'speed')
+	local sp = findSection(s, 'stats')
 	self:assertEquals(nil, findItem(sp.items, 'SCM speed'))
 	self:assertEquals('36 m/s', findItem(sp.items, 'Max speed').content)
 	self:assertEquals('14 m/s', findItem(sp.items, 'Reverse speed').content)
@@ -139,12 +139,12 @@ end
 
 function suite:testEditorialOverrideFlowsIntoSpeed()
 	local s = Vehicle.getSections({ speed = { scm = 227 } }, {}, { scm_speed = { value = 210, source = 'override' } })
-	self:assertEquals('210 m/s', findItem(findSection(s, 'speed').items, 'SCM speed').content)
+	self:assertEquals('210 m/s', findItem(findSection(s, 'stats').items, 'SCM speed').content)
 end
 
 function suite:testEmptyApiOmitsSections()
 	local s = Vehicle.getSections({}, {}, {})
-	self:assertEquals(nil, findSection(s, 'speed'))
+	self:assertEquals(nil, findSection(s, 'stats'))
 	self:assertEquals(nil, findSection(s, 'capacity'))
 end
 

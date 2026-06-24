@@ -10,21 +10,15 @@ require('strict')
 local format = require('Module:Entity/Format')
 local sectionBuilder = require('Module:Entity/SectionBuilder')
 local statFormat = require('Module:Entity/StatFormat')
+local Util = require('Module:Entity/Facet/Util')
 
 local p = {}
 
 -- Damage types shown in the resistance row, in a stable order. Components are
 -- usually 1.0 (no resistance) for distortion / biochemical / stun, so the row
 -- only lists the types that actually resist.
-local RESIST_ORDER = { 'physical', 'energy', 'thermal', 'distortion', 'biochemical', 'stun' }
-local RESIST_LABEL = {
-	physical = 'Physical',
-	energy = 'Energy',
-	thermal = 'Thermal',
-	distortion = 'Distortion',
-	biochemical = 'Biochemical',
-	stun = 'Stun',
-}
+local RESIST_ORDER = Util.damageKeys()
+local RESIST_LABEL = Util.damageLabels()
 
 --- Data-driven match: presence of the `durability` block (the component health /
 --- resistance payload). Nil-safe, strict boolean.

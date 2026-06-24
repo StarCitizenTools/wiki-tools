@@ -13,19 +13,9 @@ require('strict')
 
 local format = require('Module:Entity/Format')
 local sectionBuilder = require('Module:Entity/SectionBuilder')
+local Util = require('Module:Entity/Facet/Util')
 
 local p = {}
-
---- @param value any
---- @param unit string
---- @return string|nil
-local function withUnit(value, unit)
-	local n = tonumber(value)
-	if n == nil then
-		return nil
-	end
-	return format.formatNum(n) .. unit
-end
 
 --- Finds the first healing-beam mode in a modes array.
 ---
@@ -89,9 +79,9 @@ function p.getSections(apiData, args)
 
 	local items = {}
 
-	sectionBuilder.push(items, 'Healing rate', withUnit(heal.healing_per_second, '/s'))
-	sectionBuilder.push(items, 'Range', withUnit(heal.max_distance, ' m'))
-	sectionBuilder.push(items, 'Sensor range', withUnit(heal.max_sensor_distance, ' m'))
+	sectionBuilder.push(items, 'Healing rate', Util.withUnit(heal.healing_per_second, '/s'))
+	sectionBuilder.push(items, 'Range', Util.withUnit(heal.max_distance, ' m'))
+	sectionBuilder.push(items, 'Sensor range', Util.withUnit(heal.max_sensor_distance, ' m'))
 
 	return sectionBuilder.build(sectionBuilder.section({
 		key = 'heal',

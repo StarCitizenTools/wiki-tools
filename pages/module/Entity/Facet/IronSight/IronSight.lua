@@ -12,6 +12,7 @@ require('strict')
 
 local format = require('Module:Entity/Format')
 local sectionBuilder = require('Module:Entity/SectionBuilder')
+local Util = require('Module:Entity/Facet/Util')
 
 local p = {}
 
@@ -19,17 +20,6 @@ local p = {}
 --- @return boolean
 function p.matches(apiData)
 	return apiData ~= nil and type(apiData.iron_sight) == 'table'
-end
-
---- @param value number|string|nil
---- @param unit string
---- @return string|nil
-local function withUnit(value, unit)
-	local n = tonumber(value)
-	if n == nil then
-		return nil
-	end
-	return format.formatNum(n) .. unit
 end
 
 --- @param apiData table
@@ -43,9 +33,9 @@ function p.getSections(apiData, args)
 
 	local items = {}
 
-	sectionBuilder.push(items, 'Max range', withUnit(s.max_range, ' m'))
-	sectionBuilder.push(items, 'Range increment', withUnit(s.range_increment, ' m'))
-	sectionBuilder.push(items, 'Auto-zeroing', withUnit(s.auto_zeroing_time, ' s'))
+	sectionBuilder.push(items, 'Max range', Util.withUnit(s.max_range, ' m'))
+	sectionBuilder.push(items, 'Range increment', Util.withUnit(s.range_increment, ' m'))
+	sectionBuilder.push(items, 'Auto-zeroing', Util.withUnit(s.auto_zeroing_time, ' s'))
 
 	return sectionBuilder.build(sectionBuilder.section({
 		key = 'iron_sight',

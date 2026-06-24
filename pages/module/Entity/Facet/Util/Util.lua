@@ -2,7 +2,8 @@ require('strict')
 
 --- @module Entity/Facet/Util
 --- Shared, stateless display helpers extracted from individual facets. Output is
---- byte-identical to the per-facet originals (withUnit x5, titleCase x2, rangeStr x1).
+--- byte-identical to the per-facet originals; no local copies of these helpers
+--- remain anywhere under pages/module/Entity.
 
 local format = require('Module:Entity/Format')
 

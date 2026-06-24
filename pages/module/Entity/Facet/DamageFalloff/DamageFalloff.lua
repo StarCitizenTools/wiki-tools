@@ -13,10 +13,11 @@ require('strict')
 local format = require('Module:Entity/Format')
 local falloffChart = require('Module:FalloffChart')
 local sectionBuilder = require('Module:Entity/SectionBuilder')
+local Util = require('Module:Entity/Facet/Util')
 
 local p = {}
 
-local DAMAGE_TYPES = { 'physical', 'energy', 'thermal', 'distortion', 'biochemical', 'stun' }
+local DAMAGE_TYPES = Util.damageKeys()
 
 -- Fixed per-class x-axis maxima (m), keyed by personal_weapon.type, so charts are
 -- comparable within a class. For classes whose weapons reach a damage floor this is

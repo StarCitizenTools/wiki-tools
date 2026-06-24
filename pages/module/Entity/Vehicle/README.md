@@ -8,7 +8,7 @@ The Vehicle kind is the second registered kind in the Entity pipeline, matched o
 Module:Entity/Data
   ↓  kind probe: Vehicle.matches(apiData) — is_vehicle key present?
 Module:Entity/Vehicle               ← kind module (all section logic lives here)
-  ↓  Vehicle.resolveSubtype(apiData)
+  ↓  Vehicle.resolveSubtype(apiData, args)
 Module:Entity/Vehicle/Ship          ← is_spaceship=true
 Module:Entity/Vehicle/GroundVehicle ← is_vehicle=true
 Module:Entity/Vehicle/Gravlev       ← is_gravlev=true
@@ -16,7 +16,7 @@ Module:Entity/Vehicle/Gravlev       ← is_gravlev=true
 
 `matches()` identifies vehicles by the **presence** of the `is_vehicle` key (not its value — a spaceship carries `is_vehicle=false`). Items never have this key.
 
-`resolveSubtype` checks the three family flags in priority order (gravlev → spaceship → ground vehicle) and returns the subtype module, or nil when none is set (Vehicle itself stays the leaf). Each subtype contributes only two things: `getTypeInfo` (the display type noun + browse category) and `getShortDescription` (which delegates to `Vehicle.formatShortDescription`). All section rendering, structured data, categories, and external links are centralised in `Vehicle.lua`.
+`resolveSubtype` checks the three family flags in priority order (gravlev → spaceship → ground vehicle) and returns the subtype module, or nil when none is set (Vehicle itself stays the leaf). In editorial mode there is no API record and therefore no family flags, so it falls back to the `|family=` arg (`ship` / `ground` / `gravlev`) — see [Planned vehicles](#planned-vehicles-editorial-mode). Each subtype contributes only two things: `getTypeInfo` (the display type noun + browse category) and `getShortDescription` (which delegates to `Vehicle.formatShortDescription`). All section rendering, structured data, categories, and external links are centralised in `Vehicle.lua`.
 
 | Subtype | `getTypeInfo.name` | Browse category |
 |---|---|---|
@@ -28,7 +28,7 @@ Short descriptions are manufacturer-led: `"<mfr short> <size|single-seat> <role-
 
 ## The 4-layer field model
 
-For any field that can be curated by an editor *and* has an API counterpart — crew, cargo, speed, mass, pledge price, production state — the same field appears in four places with distinct concerns:
+For any field that can be curated by an editor *and* has an API counterpart — crew, cargo, speed, dimensions (length/width/height), mass, pledge price, production state — the same field appears in four places with distinct concerns:
 
 1. **`editorial.json`** — maps a manifest key to `{ arg, smw, apiPath?, transform? }`. Fields with `apiPath` are *overlap* fields (the API provides a value; the wiki can override or fill gaps). Fields without `apiPath` are *pure-editorial* (the API does not model them at all: pledge prices, lore/development dates, series, generation).
 
@@ -54,7 +54,7 @@ The `resolved` table is produced by `Module:Entity/Editorial` and passed to `get
 | `buildCapacity` | `capacity` | `Capacity` | Crew range / Cargo (SCU) / Inventory (µSCU from `vehicle_inventory`) |
 | `buildCost` | `cost` | `Cost` | Subsection tabs: Universe / Pledge / Insurance |
 | `buildStats` | `stats` | `Stats` | Subsection tabs: Flight / Hull / Hydrogen / Quantum |
-| `buildDimensions` | `dimensions` | `Dimensions` | `Module:Dimensions` box; includes retracted dimensions from editorial manifest |
+| `buildDimensions` | `dimensions` | `Dimensions` | `Module:Dimensions` box. Length/width/height/mass (and the retracted dimensions) are editorial overlap fields, so a planned vehicle renders the box from `|length=`/`|width=`/`|height=`/`|mass=`; in-game vehicles fill from `apiData.dimension` |
 | `buildLore` | `lore` | `Lore` | In-lore release / retirement dates — collapsed by default |
 | `buildDevelopment` | `development` | `Development` | Real-world concept announced / concept sale dates — collapsed by default |
 
@@ -72,7 +72,7 @@ The `resolved` table is produced by `Module:Entity/Editorial` and passed to `get
 
 Vehicle is the first kind to opt in to **editorial mode** (`p.editorialMode = true`). A planned vehicle is the same Vehicle kind rendered from a subset of the data, the editorial args alone, when there is no genuine API record yet. It is not a separate "lite" template or mode: it is the ordinary Vehicle render with the API-sourced sections naturally empty.
 
-**How to declare one.** Set `|kind=Vehicle`, set `|family=` to one of `ship` / `ground` / `gravlev`, and provide **no** `|uuid=`. The `|family=` arg selects the subtype (Ship / GroundVehicle / Gravlev) the way the API family flags do for in-game vehicles: a planned page has no API record, so there are no `is_spaceship` / `is_vehicle` / `is_gravlev` flags to read, and `Vehicle.resolveSubtype` falls back to `args.family`. Then supply the usual editorial args (`manufacturer`, `model`, `career`, `size`, `productionstate`, `role`, the lore/development dates, the pledge prices, and so on, the same args documented in the 4-layer field model above). One caveat on `|role=`: it is not in `editorial.json`, so in editorial mode it only feeds the manufacturer-led short description (via `rolePhrase`); the Overview "Role" row reads `apiData.role` and so stays absent on a planned page. `Module:Entity/Data.get` sees the opted-in kind with no resolvable record, sets `apiData = {}`, and the chain renders editorial-first.
+**How to declare one.** Set `|kind=Vehicle`, set `|family=` to one of `ship` / `ground` / `gravlev`, provide `|name=` (**required**: with no API record it is the only source of the entity name, and `Module:Entity` errors out when neither a uuid nor a name is given), and provide **no** `|uuid=`. The `|family=` arg selects the subtype (Ship / GroundVehicle / Gravlev) the way the API family flags do for in-game vehicles: a planned page has no API record, so there are no `is_spaceship` / `is_vehicle` / `is_gravlev` flags to read, and `Vehicle.resolveSubtype` falls back to `args.family`. Then supply the usual editorial args (`manufacturer`, `model`, `career`, `size`, `productionstate`, `role`, the lore/development dates, the pledge prices, and so on, the same args documented in the 4-layer field model above). One caveat on `|role=`: it is not in `editorial.json`, so in editorial mode it only feeds the manufacturer-led short description (via `rolePhrase`); the Overview "Role" row reads `apiData.role` and so stays absent on a planned page. `Module:Entity/Data.get` sees the opted-in kind with no resolvable record, sets `apiData = {}`, and the chain renders editorial-first.
 
 Worked example, the planned Hull E:
 
@@ -80,11 +80,34 @@ Worked example, the planned Hull E:
 {{Entity|kind=Vehicle|family=ship|name=Hull E|manufacturer=MISC|model=Hull|career=Transport|size=Large|productionstate=In concept|role=Heavy Freight}}
 ```
 
-**What renders.** Categories and the short description reach full parity with an in-game vehicle, because both source editorial-first (the manufacturer browse category, the subtype browse category, and the manufacturer-led short description are all built from args). The production-state badge renders from `|productionstate=`. Every editorial section that has data renders (Overview, Cost's Pledge tab, Lore, Development, and so on). The API-only sections simply omit themselves, since they are data-gated and there is no API data to gate on: Ports/hardpoints, the Cost Universe tab (UEX availability and pricing), the API-derived flight stats (Stats tabs), and the Dimensions box all drop out. A planned page is therefore a clean subset of the in-game render, not a different layout.
+**What renders.** Categories and the short description reach full parity with an in-game vehicle, because both source editorial-first (the manufacturer browse category, the subtype browse category, and the manufacturer-led short description are all built from args). The production-state badge renders from `|productionstate=`. Every editorial section that has data renders (Overview, Capacity, Cost's Pledge tab, **Dimensions** when `|length=`/`|width=`/`|height=`/`|mass=` are supplied, Lore, Development, and so on). The genuinely API-only sections omit themselves, since they are data-gated and there is no API data to gate on: Ports/hardpoints, the Cost Universe tab (UEX availability and pricing), and the API-derived flight stats (Stats tabs) all drop out. A planned page is therefore a clean subset of the in-game render, not a different layout.
 
 **Lifecycle.** When the vehicle enters the game and the API, add `|uuid=`. `Module:Entity/Data.get` then resolves the genuine record, and rendering hands back to the normal API path: `resolveSubtype` reads the API family flags first, so `|family=` becomes a harmless no-op, and `|kind=` is likewise ignored once a real record exists. Any editorial fields the author already wrote persist as overlay overrides, the editor-wins layer described in the 4-layer field model (overlap fields fill or override the API value, pure-editorial fields carry through unchanged). No migration or rewrite of the page is needed: adding the uuid is the whole transition.
 
 **Safety.** A planned page is the `name`-only case (no `|uuid=`), and it does **not** trigger any tracking category. But a `|uuid=` that does **not** resolve to a genuine record, a typo, or a uuid that is not yet in the API, emits `[[Category:Pages with an unresolved entity reference]]`. This stops a broken reference from silently masquerading as a planned page: a planned page deliberately has no uuid, so a present-but-unresolved uuid is always an error worth flagging.
+
+## External sites
+
+`getExternalSiteItems` builds two rows — **Official sites** and **Community sites** — via `Module:Entity/Format.buildSiteLinks` from `officialSites.json` and `communitySites.json`.
+
+Official-site URL args are all named `<name>url`, for consistency:
+
+| Arg | Label | Multiple? |
+|---|---|---|
+| `pledgeurl` | Pledge store | single (falls back to API `pledge_url`) |
+| `galactapediaurl` | Galactapedia | single |
+| `brochureurl` | Brochure | yes |
+| `trailerurl` | Trailer | yes |
+| `presentationurl` | Presentation | yes |
+| `qaurl` | Q&A | yes |
+
+The four multi-value args (`brochureurl` / `trailerurl` / `presentationurl` / `qaurl`) accept a **semicolon-separated list** — the wiki convention for multi-value parameters (`Module:Entity/Format.splitSemi`, mirroring Editorial/Company):
+
+```wikitext
+| presentationurl = https://…/first; https://…/second
+```
+
+`buildSiteLinks` renders one link per URL, **numbering the labels** when there is more than one ("Presentation 1 · Presentation 2"); a single URL keeps the bare label. Community sites (UEX, Erkul, Ship Matrix, Universal Item Finder, Wiki API) are derived from API identifiers (`uuid`, `class_name`, `shipmatrix_name`), not editor args.
 
 ## Operational notes
 
@@ -106,8 +129,8 @@ Entity/Vehicle/
 ├── Ship.lua             # Subtype: getTypeInfo (Spacecraft / Ships) + getShortDescription
 ├── GroundVehicle.lua    # Subtype: getTypeInfo (Ground vehicle / Ground vehicles) + getShortDescription
 ├── Gravlev.lua          # Subtype: getTypeInfo (Gravlev / Gravlevs) + getShortDescription
-├── editorial.json       # 22-field editorial manifest (overlap + pure-editorial fields)
-├── officialSites.json   # Official external-site link definitions
+├── editorial.json       # 25-field editorial manifest (overlap + pure-editorial fields)
+├── officialSites.json   # Official external-site link definitions (<name>url args)
 ├── communitySites.json  # Community external-site link definitions (UEX, Erkul, Ship Matrix, …)
 └── testcases.lua        # ScribuntoUnit suite
 ```

@@ -50,6 +50,10 @@ Primary entry point for sibling renderers. Takes the `args` table returned by `p
     typeInfo    = table|nil,    -- { name, category, … } from leaf.getTypeInfo or TypeResolver.resolve
     displayType = string|nil,   -- typeInfo.name convenience alias; nil when type is unknown
     hasApiError = boolean,      -- true when any load-bearing fetch failed (see Data section for semantics)
+    resolved          = table,    -- editorial fields resolved by Module:Entity/Editorial ({} when the kind has no manifest)
+    editorialData     = table,    -- editorial values projected to SMW key/value pairs
+    hasManualApiData  = boolean,  -- an editor overrode/filled an overlap (apiPath) field → maintenance category
+    unresolvedReference = boolean, -- a uuid was provided but resolved to no genuine record (editorial-mode safety)
 }
 ```
 
@@ -60,7 +64,7 @@ Primary entry point for sibling renderers. Takes the `args` table returned by `p
 1. **`probeKind`** — iterates `registry.kinds` in registration order. For each kind, fetches its primary API endpoint (the first config returned by `kind.getApiConfigs()`). If `kind.matches(data)` is true, that kind wins and the loop short-circuits; later kinds are never fetched. Probe errors on a *non-matching* kind are discarded — a 404 on the items endpoint for a vehicle UUID is expected and does not set `hasApiError`. Only the matched kind's own fetch error is propagated.
 
 2. **`resolveLeaf`** — given the matched kind (or `nil`), resolves the leaf module:
-   - If the kind has `resolveSubtype`, calls `kind.resolveSubtype(apiData)`. If it returns a module, that module is the leaf; if it returns `nil`, the kind itself is the leaf.
+   - If the kind has `resolveSubtype`, calls `kind.resolveSubtype(apiData, args)` (the `args` let a kind resolve its sub-identity editorially — e.g. Vehicle reads `|family=` when the API family flags are absent). If it returns a module, that module is the leaf; if it returns `nil`, the kind itself is the leaf.
    - If there was no matched kind, falls back to `Module:Entity/Item`. A UUID that was provided but produced no match sets `hasApiError = true` at this step (a given-but-unmatched UUID indicates a genuine fetch problem).
 
 3. **`Assembly.buildChain`** — calls [Module:Entity/Assembly](https://starcitizen.tools/Module:Entity/Assembly) with the leaf module. Assembly walks the `p.parent` chain upward (leaf → … → Base) to produce the ordered `chain` array (root first, leaf last).
@@ -72,6 +76,20 @@ Primary entry point for sibling renderers. Takes the `args` table returned by `p
 6. **`typeInfo` / `displayType` resolution** — tries `leaf.getTypeInfo(apiData, args)` first. If that returns a result, `displayType` is set to `typeInfo.name`. If `getTypeInfo` is absent or returns `nil`, falls back to [Module:Entity/TypeResolver](https://starcitizen.tools/Module:Entity/TypeResolver)`.resolve(args.type or apiData.type, apiData.classification)`.
 
 7. **`detectFacets`** — iterates `registry.facets` in registration order and appends every facet whose `facet.matches(apiData)` returns `true`. All matches are collected (no short-circuit); facets are additive. This runs last, as `p.get` builds its return table. `detectFacets` and `typeInfo` are independent (neither reads the other), so the order between them carries no data dependency.
+
+### Editorial mode (planned entities)
+
+Between `fetchApiData` (steps 1–5) and `typeInfo` resolution, `p.get` checks whether a **genuine in-game record** came back, tested by `isGenuineRecord(apiData)` — `apiData.uuid` present and non-empty. This is deliberately *not* "the fetch returned something": the API can return a stub/partial for some in-concept entities, so presence-of-record is not enough.
+
+When there is **no** genuine record **and** `args.kind` names a registered kind that opts in (`editorialMode = true`, looked up case-insensitively by `resolveEditorialKind`), `p.get` switches to **editorial mode**:
+
+- the opted-in kind becomes `matchedKind`;
+- `apiData` is reset to `{}` so the render is driven entirely by the editorial `resolved` layer;
+- the chain is rebuilt from `kind.resolveSubtype(apiData, args)` (the kind resolves its sub-identity from args — Vehicle's `|family=`);
+- `hasApiError` is forced `false` (a missing record is expected here, not an error);
+- `unresolvedReference` is set `true` **iff** a `|uuid=` was provided — a planned page declares no uuid, so a present-but-unresolved uuid is a typo or not-yet-in-API reference worth flagging (`[[Category:Pages with an unresolved entity reference]]`, emitted by `Module:Entity/Categories`).
+
+`args.kind` is consulted **only** when there is no genuine record, so an in-game page's API-matched kind always wins and `|kind=`/`|family=` are harmless no-ops once a uuid resolves. See [Module:Entity/Vehicle](https://starcitizen.tools/Module:Entity/Vehicle) for the consumer side.
 
 ## Data
 
@@ -100,7 +118,7 @@ Renderers use `hasApiError` to display an error notice instead of an empty infob
 
 ## Gotchas
 
-**Only `detectFacets` and `resolveLeaf` are test-exported.** `p._internal` exposes exactly these two functions. `probeKind`, `fetchChainExtras`, and `fetchApiData` are local functions with no test export; they are covered only indirectly through `p.get` integration tests if any are written.
+**`p._internal` exports `detectFacets`, `resolveLeaf`, `isGenuineRecord`, and `resolveEditorialKind`.** `probeKind`, `fetchChainExtras`, and `fetchApiData` are local functions with no test export; they are covered only indirectly through `p.get` integration tests if any are written. The editorial-mode dispatch glue inside `p.get` (the genuine-record branch on a real API miss) is browser-verified, not unit-tested — the runner has no live API — but its constituent predicates (`isGenuineRecord`, `resolveEditorialKind`, `resolveLeaf` arg-threading) are unit-tested in isolation.
 
 **Item-first registry probe is load-bearing external behaviour.** `Registry.kinds` registers `Module:Entity/Item` first deliberately — it matches the majority of pages, so the common case pays one fetch and short-circuits. This relies on Apiunto *not* following the items→vehicles HTTP 302 redirect: if Apiunto transparently followed redirects, a vehicle UUID would match Item and be misclassified. The probe order and Apiunto's redirect behaviour are therefore coupled; changing either without the other will silently misroute vehicle entities.
 

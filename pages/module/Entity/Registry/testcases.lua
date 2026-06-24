@@ -13,7 +13,7 @@ end
 
 function suite:testAllKindsConform()
 	for i, kind in ipairs(Registry.kinds) do
-		local ok, errors = Contract.validate(kind, Contract.KIND)
+		local ok, errors = Contract.validate(kind, Contract.KIND, { strict = true })
 		self:assertTrue(ok, 'kind #' .. i .. ' failed: ' .. table.concat(errors, '; '))
 	end
 end
@@ -34,7 +34,7 @@ end
 
 function suite:testAllFacetsConform()
 	for i, facet in ipairs(Registry.facets) do
-		local ok, errors = Contract.validate(facet, Contract.FACET)
+		local ok, errors = Contract.validate(facet, Contract.FACET, { strict = true })
 		self:assertTrue(ok, 'facet #' .. i .. ' failed: ' .. table.concat(errors, '; '))
 	end
 end

@@ -10,33 +10,12 @@ require('strict')
 local format = require('Module:Entity/Format')
 local item = require('Module:Entity/Item')
 local sectionBuilder = require('Module:Entity/SectionBuilder')
+local Util = require('Module:Entity/Facet/Util')
 
 local p = {}
 
 --- @type string
 p.parent = 'Entity/Item'
-
---- Formats a min/max numeric pair as "lo–hi unit", collapsing to a single value
---- when the bounds are equal or only one is present. Returns nil when neither
---- bound is numeric (e.g. the size 10 Colossus reports null radii).
----
---- @param min number|string|nil
---- @param max number|string|nil
---- @param unit string
---- @return string|nil
-local function rangeStr(min, max, unit)
-	local lo, hi = tonumber(min), tonumber(max)
-	if lo == nil and hi == nil then
-		return nil
-	end
-	if lo == nil then
-		return format.formatNum(hi) .. ' ' .. unit
-	end
-	if hi == nil or hi == lo then
-		return format.formatNum(lo) .. ' ' .. unit
-	end
-	return format.formatNum(lo) .. '–' .. format.formatNum(hi) .. ' ' .. unit
-end
 
 --- Rounds a numeric damage value to a whole number (the API reports fractional
 --- totals like 568296.99). Returns nil for non-numeric input.
@@ -70,7 +49,7 @@ function p.getSections(apiData, args)
 
 	local items = {}
 	sectionBuilder.push(items, 'Damage', damage and format.formatNum(damage))
-	sectionBuilder.push(items, 'Explosion radius', rangeStr(rMin, rMax, 'm'))
+	sectionBuilder.push(items, 'Explosion radius', Util.rangeStr(rMin, rMax, 'm'))
 	sectionBuilder.push(items, 'Arm time', arm and (format.formatNum(arm) .. ' s'))
 	sectionBuilder.push(
 		items,

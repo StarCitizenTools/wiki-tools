@@ -249,18 +249,14 @@ end
 --- @param args table
 --- @return string|nil
 function p.formatGradedShortDescription(typeInfo, apiData, args)
-	local class = classContent(apiData)
-	local grade = gradeContent(apiData)
-	local size = apiData.size
-	if not (class and grade and size) then
-		return nil
-	end
-	local desc = 'S' .. tostring(size) .. ' Gr. ' .. grade .. ' ' .. class:lower() .. ' ' .. typeInfo.name:lower()
 	local manufacturer = base.resolveManufacturer(apiData, args)
-	if manufacturer then
-		desc = desc .. ' by ' .. manufacturer.short
-	end
-	return desc
+	return format.gradedShortDescription(
+		typeInfo.name,
+		apiData.size,
+		classContent(apiData),
+		gradeContent(apiData),
+		manufacturer and manufacturer.short or nil
+	)
 end
 
 --- Default short description for items: graded vehicle components get the

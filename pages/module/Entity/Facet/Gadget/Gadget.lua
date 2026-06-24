@@ -15,6 +15,7 @@ require('strict')
 
 local format = require('Module:Entity/Format')
 local sectionBuilder = require('Module:Entity/SectionBuilder')
+local Util = require('Module:Entity/Facet/Util')
 
 local p = {}
 
@@ -22,17 +23,6 @@ local p = {}
 --- @return boolean
 function p.matches(apiData)
 	return apiData ~= nil and apiData.sub_type == 'Gadget'
-end
-
---- @param value any
---- @param unit string
---- @return string|nil
-local function withUnit(value, unit)
-	local n = tonumber(value)
-	if n == nil then
-		return nil
-	end
-	return format.formatNum(n) .. unit
 end
 
 --- @param apiData table
@@ -51,7 +41,7 @@ function p.getSections(apiData, args)
 	-- Skip it when a tractor_beam block is present: the Beam facet renders the
 	-- authoritative beam range, so the gadget overview would just duplicate it.
 	if type(apiData.tractor_beam) ~= 'table' then
-		sectionBuilder.push(overview, 'Range', withUnit(pw.range, ' m'))
+		sectionBuilder.push(overview, 'Range', Util.withUnit(pw.range, ' m'))
 	end
 	local capacity = tonumber(ammunition.capacity)
 	if capacity and capacity > 0 then

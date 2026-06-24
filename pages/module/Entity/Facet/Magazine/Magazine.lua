@@ -12,6 +12,7 @@ require('strict')
 
 local format = require('Module:Entity/Format')
 local sectionBuilder = require('Module:Entity/SectionBuilder')
+local Util = require('Module:Entity/Facet/Util')
 
 local p = {}
 
@@ -19,17 +20,6 @@ local p = {}
 --- @return boolean
 function p.matches(apiData)
 	return apiData ~= nil and type(apiData.magazine) == 'table'
-end
-
---- @param value number|string|nil
---- @param unit string
---- @return string|nil
-local function withUnit(value, unit)
-	local n = tonumber(value)
-	if n == nil then
-		return nil
-	end
-	return format.formatNum(n) .. unit
 end
 
 --- Formats a damage map ({ physical = 42.5 } / { energy = 18 }) as a type-tagged
@@ -98,8 +88,8 @@ function p.getSections(apiData, args)
 	if capacity and capacity > 0 then
 		sectionBuilder.push(items, 'Capacity', format.formatNum(capacity))
 	end
-	sectionBuilder.push(items, 'Velocity', withUnit(ammo.speed, ' m/s'))
-	sectionBuilder.push(items, 'Range', withUnit(ammo.range, ' m'))
+	sectionBuilder.push(items, 'Velocity', Util.withUnit(ammo.speed, ' m/s'))
+	sectionBuilder.push(items, 'Range', Util.withUnit(ammo.range, ' m'))
 	-- Ballistic/energy rounds carry impact_damage_map; missiles carry
 	-- detonation_damage_map (+ an explosion radius).
 	sectionBuilder.push(items, 'Damage', damageString(ammo.impact_damage_map or ammo.detonation_damage_map))

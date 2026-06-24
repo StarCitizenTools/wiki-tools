@@ -9,30 +9,9 @@ require('strict')
 
 local format = require('Module:Entity/Format')
 local sectionBuilder = require('Module:Entity/SectionBuilder')
+local Util = require('Module:Entity/Facet/Util')
 
 local p = {}
-
---- Formats a min/max numeric pair as "lo–hi unit", collapsing to a single value
---- when the bounds are equal or only one is present. Returns nil when neither
---- bound is numeric.
----
---- @param min number|string|nil
---- @param max number|string|nil
---- @param unit string
---- @return string|nil
-local function rangeStr(min, max, unit)
-	local lo, hi = tonumber(min), tonumber(max)
-	if lo == nil and hi == nil then
-		return nil
-	end
-	if lo == nil then
-		return format.formatNum(hi) .. ' ' .. unit
-	end
-	if hi == nil or hi == lo then
-		return format.formatNum(lo) .. ' ' .. unit
-	end
-	return format.formatNum(lo) .. '–' .. format.formatNum(hi) .. ' ' .. unit
-end
 
 --- @param apiData table|nil
 --- @return boolean
@@ -60,7 +39,7 @@ function p.getSections(apiData, args)
 	sectionBuilder.push(items, 'Damage', format.formatNum(g.damage))
 	local rMin = aoe.min ~= nil and aoe.min or aoe.minimum
 	local rMax = aoe.max ~= nil and aoe.max or aoe.maximum
-	sectionBuilder.push(items, 'Blast radius', rangeStr(rMin, rMax, 'm'))
+	sectionBuilder.push(items, 'Blast radius', Util.rangeStr(rMin, rMax, 'm'))
 
 	return sectionBuilder.build(
 		sectionBuilder.section({ key = 'grenade', label = 'Grenade', collapsible = true, items = items })
@@ -85,7 +64,7 @@ end
 
 -- Test-only exports. Not part of the public API.
 p._internal = {
-	rangeStr = rangeStr,
+	rangeStr = Util.rangeStr,
 }
 
 return p

@@ -110,4 +110,11 @@ function suite:testBuildOmitsUnresolvedReferenceWhenAbsent()
 	self:assertEquals(true, string.find(out, 'unresolved entity reference', 1, true) == nil)
 end
 
+function suite:testUnregisteredPropertyCategory()
+	local withFlag = Categories.build(nil, {}, {}, false, false, false, false, true)
+	self:assertTrue(withFlag:find('Entities with unregistered structured-data properties', 1, true) ~= nil)
+	local withoutFlag = Categories.build(nil, {}, {}, false, false, false, false, false)
+	self:assertEquals(nil, withoutFlag:find('Entities with unregistered structured-data properties', 1, true))
+end
+
 return suite

@@ -17,6 +17,7 @@ require('strict')
 
 local format = require('Module:Entity/Format')
 local item = require('Module:Entity/Item')
+local Util = require('Module:Entity/Facet/Util')
 
 local p = {}
 
@@ -33,21 +34,6 @@ local function pushItem(items, label, content)
 	if content ~= nil then
 		table.insert(items, { label = label, content = content })
 	end
-end
-
---- Formats a number with a trailing unit, or nil when the value isn't numeric.
---- tonumber() guards against string/null API values (Lua 5.1 throws on a
---- string-vs-number compare) and keeps the row hidden for nil.
----
---- @param value any
---- @param unit string
---- @return string|nil
-local function withUnit(value, unit)
-	local n = tonumber(value)
-	if n == nil then
-		return nil
-	end
-	return format.formatNum(n) .. unit
 end
 
 --- Per-mode fire stats as one display string: "<rpm> RPM" plus a pellet count
@@ -107,11 +93,11 @@ function p.getSections(apiData, args)
 	if capacity and capacity > 0 then
 		pushItem(overview, 'Ammo', format.formatNum(capacity))
 	end
-	pushItem(overview, 'Muzzle velocity', withUnit(ammunition.speed, ' m/s'))
+	pushItem(overview, 'Muzzle velocity', Util.withUnit(ammunition.speed, ' m/s'))
 	-- Range from the API's `range` field (its `effective_range` is deprecated). A
 	-- single Range row; the damage-falloff chart carries the over-distance story.
 	local range = tonumber(pw.range)
-	pushItem(overview, 'Range', range and withUnit(range, ' m'))
+	pushItem(overview, 'Range', range and Util.withUnit(range, ' m'))
 	local statCount = #overview - statStart
 
 	local modeItems = {}

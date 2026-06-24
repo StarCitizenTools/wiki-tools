@@ -1,0 +1,5 @@
+.t-entity-rewards-table caption {
+  font-size: var(--font-size-small);
+  font-style: italic;
+  font-weight: normal;
+}

@@ -133,4 +133,20 @@ function suite:testEmptyWhenNoBlock()
 	self:assertEquals(0, #Environment.getSections({}, {}))
 end
 
+function suite:testGetSectionsReturnsMutableListForWearableSet()
+	local sections = Environment.getSections({
+		temperature_resistance = { min = -40, max = 60 },
+		gforce_resistance = 5,
+	})
+	self:assertTrue(#sections > 0)
+	self:assertEquals('environment', sections[1].key)
+	self:assertEquals('table', type(sections[1].items))
+	table.insert(sections[1].items, { label = 'Pressurized', content = 'Yes' })
+	self:assertEquals('Pressurized', sections[1].items[#sections[1].items].label)
+end
+
+function suite:testGetSectionsEmptyWhenNoData()
+	self:assertEquals(0, #Environment.getSections({}))
+end
+
 return suite

@@ -17,6 +17,7 @@ require('strict')
 local format = require('Module:Entity/Format')
 local item = require('Module:Entity/Item')
 local sectionBuilder = require('Module:Entity/SectionBuilder')
+local Util = require('Module:Entity/Facet/Util')
 
 local p = {}
 
@@ -37,28 +38,6 @@ local function signalLabel(raw)
 	return (raw:gsub('(%l)(%u)', '%1 %2'))
 end
 
---- Formats a min/max numeric pair as "lo–hi unit", collapsing to a single value
---- when the bounds are equal or only one is present. Returns nil when neither
---- bound is numeric.
----
---- @param min number|string|nil
---- @param max number|string|nil
---- @param unit string
---- @return string|nil
-local function rangeStr(min, max, unit)
-	local lo, hi = tonumber(min), tonumber(max)
-	if lo == nil and hi == nil then
-		return nil
-	end
-	if lo == nil then
-		return format.formatNum(hi) .. ' ' .. unit
-	end
-	if hi == nil or hi == lo then
-		return format.formatNum(lo) .. ' ' .. unit
-	end
-	return format.formatNum(lo) .. '–' .. format.formatNum(hi) .. ' ' .. unit
-end
-
 --- @param apiData table
 --- @param args table
 --- @return table[] Ordered list of section entries with key field
@@ -75,10 +54,10 @@ function p.getSections(apiData, args)
 	sectionBuilder.push(
 		items,
 		'Explosion radius',
-		rangeStr(missile.explosion_radius_min, missile.explosion_radius_max, 'm')
+		Util.rangeStr(missile.explosion_radius_min, missile.explosion_radius_max, 'm')
 	)
 	sectionBuilder.push(items, 'Lock time', missile.lock_time and (format.formatNum(missile.lock_time) .. ' s'))
-	sectionBuilder.push(items, 'Lock range', rangeStr(missile.lock_range_min, missile.lock_range_max, 'm'))
+	sectionBuilder.push(items, 'Lock range', Util.rangeStr(missile.lock_range_min, missile.lock_range_max, 'm'))
 	sectionBuilder.push(items, 'Lock angle', missile.lock_angle and (format.formatNum(missile.lock_angle) .. '°'))
 	sectionBuilder.push(items, 'Speed', missile.speed and (format.formatNum(missile.speed) .. ' m/s'))
 	sectionBuilder.push(items, 'Range', flight.range and (format.formatNum(flight.range) .. ' m'))

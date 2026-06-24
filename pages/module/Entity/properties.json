@@ -1,5 +1,15 @@
 {
 	"%doc": "Source-of-truth manifest of the SMW properties Module:Entity emits as structured data (StructuredData.store -> mw.smw.set). Each Property: page is generated from this with [[Has type::<smw>]]. Bucket-forward: only PAGE/TEXT/INTEGER/DOUBLE/BOOLEAN are used (never Quantity); data is stored UNITLESS (units are a render concern). `bucket` records the intended Bucket field type for the future migration (SMW has no integer/double split). `modules` lists the emitting Entity module(s). Multi-valued props (Effects/Systems) are TEXT for now; revisit their modeling at Bucket time.",
+	"%patterns": [
+		{
+			"keyMatch": "^modifier_(.+)$",
+			"property": "Modifier %s",
+			"smw": "Number",
+			"bucket": "DOUBLE",
+			"modules": ["Facet/Mining"],
+			"desc": "Per-effect mining modifier (dynamic; e.g. modifier_resistance -> 'Modifier resistance')."
+		}
+	],
 	"Acquisition kind": {
 		"smw": "Text",
 		"bucket": "TEXT",
@@ -655,6 +665,14 @@
 		],
 		"desc": "Quantum tuning rate of a jump module."
 	},
+	"Laser range": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"LaserPointer"
+		],
+		"desc": "Effective range of a laser pointer attachment, in metres."
+	},
 	"Lock angle": {
 		"smw": "Number",
 		"bucket": "DOUBLE",
@@ -890,6 +908,15 @@
 			"WeaponMining"
 		],
 		"desc": "Optimal mining range of a mining laser head, in metres."
+	},
+	"Orders": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Orders"
+		],
+		"multi": true,
+		"desc": "Hauling-contract requested cargo lines (Module:Entity/Orders)."
 	},
 	"Original pledge price": {
 		"smw": "Number",
@@ -1198,6 +1225,14 @@
 		],
 		"desc": "Salvage ramp-up time of a salvage head, in seconds."
 	},
+	"Range increment": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"IronSight"
+		],
+		"desc": "Per-step range increment of an iron-sight attachment, in metres."
+	},
 	"Rarity": {
 		"smw": "Text",
 		"bucket": "TEXT",
@@ -1229,6 +1264,15 @@
 			"Vehicle"
 		],
 		"desc": "Retracted (folded) width of a vehicle, in metres."
+	},
+	"Rewards": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Rewards"
+		],
+		"multi": true,
+		"desc": "Contract reward item/blueprint lines (Module:Entity/Rewards)."
 	},
 	"Roll": {
 		"smw": "Number",

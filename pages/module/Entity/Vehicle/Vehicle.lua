@@ -14,6 +14,7 @@ local progressTiles = require('Module:ProgressTiles')
 local sectionBuilder = require('Module:Entity/SectionBuilder')
 local statFormat = require('Module:Entity/StatFormat')
 local uec = require('Module:UEC')
+local Util = require('Module:Entity/Facet/Util')
 local yesno = require('Module:Yesno')
 local lang = mw.language.getContentLanguage()
 
@@ -21,16 +22,6 @@ local QUANTUM_SPEED_DIVISOR = 1000000
 local QUANTUM_RANGE_DIVISOR = 1000000000
 
 local p = {}
-
---- Render-time unit attach: nil for non-numeric so SectionBuilder drops the row.
---- @return string|nil
-local function withUnit(value, unit)
-	local n = tonumber(value)
-	if n == nil then
-		return nil
-	end
-	return format.formatNum(n) .. unit
-end
 
 --- A scaled numeric value with a unit: `format.formatNum(value / divisor)` rounded
 --- to `decimals`, plus the unit. nil when non-numeric. divisor defaults to 1.
@@ -558,11 +549,11 @@ local function buildCapacity(apiData, args, resolved)
 	sectionBuilder.push(
 		capacity,
 		'Cargo',
-		withUnit(effective(resolved, 'cargo_capacity', apiData.cargo_capacity), ' SCU')
+		Util.withUnit(effective(resolved, 'cargo_capacity', apiData.cargo_capacity), ' SCU')
 	)
 	-- Personal stowage (the API's `vehicle_inventory`, in µSCU — same unit as the
 	-- item Inventory facet's scu_converted); labelled "Inventory" in the infobox.
-	sectionBuilder.push(capacity, 'Inventory', withUnit(apiData.vehicle_inventory, ' µSCU'))
+	sectionBuilder.push(capacity, 'Inventory', Util.withUnit(apiData.vehicle_inventory, ' µSCU'))
 	return sectionBuilder.section({ key = 'capacity', label = 'Capacity', items = capacity })
 end
 
@@ -601,8 +592,8 @@ local function buildCost(apiData, args, resolved)
 	sectionBuilder.push(pledge, 'Loaner', loanerList(apiData, effectiveState))
 
 	local insuranceItems = {}
-	sectionBuilder.push(insuranceItems, 'Claim time', withUnit(insurance.claim_time, ' min'))
-	sectionBuilder.push(insuranceItems, 'Expedite time', withUnit(insurance.expedite_time, ' min'))
+	sectionBuilder.push(insuranceItems, 'Claim time', Util.withUnit(insurance.claim_time, ' min'))
+	sectionBuilder.push(insuranceItems, 'Expedite time', Util.withUnit(insurance.expedite_time, ' min'))
 	sectionBuilder.push(insuranceItems, 'Expedite fee', uecAmount(insurance.expedite_cost))
 
 	-- Subsection tabs are raw InfoboxLua section data ({ label, items }) with NO
@@ -642,21 +633,21 @@ local function buildStats(apiData, args, resolved)
 	-- Flight tab: speed + agility rows. Ships/gravlevs use speed.*; ground vehicles
 	-- use drive.* (speed.* is null).
 	local statsItems = {}
-	sectionBuilder.push(statsItems, 'SCM speed', withUnit(effective(resolved, 'scm_speed', speed.scm), ' m/s'))
+	sectionBuilder.push(statsItems, 'SCM speed', Util.withUnit(effective(resolved, 'scm_speed', speed.scm), ' m/s'))
 	local maxSpeed = effective(resolved, 'max_speed', speed.max)
 	if maxSpeed == nil then
 		maxSpeed = roundInt(drive.max_speed_ms)
 	end
-	sectionBuilder.push(statsItems, 'Max speed', withUnit(maxSpeed, ' m/s'))
-	sectionBuilder.push(statsItems, 'Reverse speed', withUnit(roundInt(drive.reverse_speed_ms), ' m/s'))
-	sectionBuilder.push(statsItems, 'Roll rate', withUnit(agility.roll, ' \194\176/s'))
-	sectionBuilder.push(statsItems, 'Pitch rate', withUnit(agility.pitch, ' \194\176/s'))
-	sectionBuilder.push(statsItems, 'Yaw rate', withUnit(agility.yaw, ' \194\176/s'))
+	sectionBuilder.push(statsItems, 'Max speed', Util.withUnit(maxSpeed, ' m/s'))
+	sectionBuilder.push(statsItems, 'Reverse speed', Util.withUnit(roundInt(drive.reverse_speed_ms), ' m/s'))
+	sectionBuilder.push(statsItems, 'Roll rate', Util.withUnit(agility.roll, ' \194\176/s'))
+	sectionBuilder.push(statsItems, 'Pitch rate', Util.withUnit(agility.pitch, ' \194\176/s'))
+	sectionBuilder.push(statsItems, 'Yaw rate', Util.withUnit(agility.yaw, ' \194\176/s'))
 
 	-- Hull tab: HP rows + armor resistance tiles + signature labels.
 	local hull = {}
-	sectionBuilder.push(hull, 'Hull', withUnit(apiData.health, ' HP'))
-	sectionBuilder.push(hull, 'Shield', withUnit(apiData.shield_hp, ' HP'))
+	sectionBuilder.push(hull, 'Hull', Util.withUnit(apiData.health, ' HP'))
+	sectionBuilder.push(hull, 'Shield', Util.withUnit(apiData.shield_hp, ' HP'))
 	local tiles = {}
 	for _, dt in ipairs(DAMAGE_TYPES) do
 		local pct = statFormat.resistancePercent(armor[dt.key])
@@ -673,7 +664,7 @@ local function buildStats(apiData, args, resolved)
 
 	-- Hydrogen tab: fuel capacity, intake, and per-thruster usage.
 	local hydrogen = {}
-	sectionBuilder.push(hydrogen, 'Capacity', withUnit(fuel.capacity, ''))
+	sectionBuilder.push(hydrogen, 'Capacity', Util.withUnit(fuel.capacity, ''))
 	sectionBuilder.push(hydrogen, 'Intake rate', positiveUnit(fuel.intake_rate, ''))
 	sectionBuilder.push(hydrogen, 'Main', positiveUnit(usage.main, ''))
 	sectionBuilder.push(hydrogen, 'Retro', positiveUnit(usage.retro, ''))
@@ -693,8 +684,8 @@ local function buildStats(apiData, args, resolved)
 		'Quantum range',
 		scaledUnit(quantum.quantum_range, QUANTUM_RANGE_DIVISOR, ' Gm', 1)
 	)
-	sectionBuilder.push(quantumItems, 'Spool time', withUnit(quantum.quantum_spool_time, ' s'))
-	sectionBuilder.push(quantumItems, 'Quantum fuel', withUnit(quantum.quantum_fuel_capacity, ''))
+	sectionBuilder.push(quantumItems, 'Spool time', Util.withUnit(quantum.quantum_spool_time, ' s'))
+	sectionBuilder.push(quantumItems, 'Quantum fuel', Util.withUnit(quantum.quantum_fuel_capacity, ''))
 
 	-- Assemble tabs in order: Flight | Hull | Hydrogen | Quantum (subsection tabs are
 	-- raw {label, items} with NO key — a keyed subsection fails InfoboxLua's schema).

@@ -13,20 +13,12 @@ require('strict')
 local format = require('Module:Entity/Format')
 local item = require('Module:Entity/Item')
 local sectionBuilder = require('Module:Entity/SectionBuilder')
+local Util = require('Module:Entity/Facet/Util')
 
 local p = {}
 
 --- @type string
 p.parent = 'Entity/Item'
-
---- Title-cases a snake_case modifier key: "laser_instability" -> "Laser instability".
----
---- @param key string
---- @return string
-local function titleCase(key)
-	local s = key:gsub('_', ' ')
-	return s:sub(1, 1):upper() .. s:sub(2)
-end
 
 --- Coerces a value to a number, tolerating the API's occasional string forms
 --- (e.g. "1850", or a percent like "-80%"). Returns nil for non-numeric input.
@@ -106,7 +98,7 @@ function p.getSections(apiData, args)
 	end
 	table.sort(keys)
 	for _, k in ipairs(keys) do
-		sectionBuilder.push(items, titleCase(k), signedPct(map[k]))
+		sectionBuilder.push(items, Util.titleCase(k), signedPct(map[k]))
 	end
 
 	return sectionBuilder.build(sectionBuilder.section({

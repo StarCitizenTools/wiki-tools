@@ -222,4 +222,26 @@ function suite:testFormatNumNonNumericPassthrough()
 	self:assertEquals('N/A', format.formatNum('N/A'))
 end
 
+-- gradedShortDescription
+
+function suite:testGradedShortDescriptionFull()
+	self:assertEquals(
+		'S3 Gr. A military power plant by A&R',
+		format.gradedShortDescription('Power plant', 3, 'Military', 'A', 'A&R')
+	)
+end
+
+function suite:testGradedShortDescriptionNoManufacturer()
+	self:assertEquals(
+		'S3 Gr. A military power plant',
+		format.gradedShortDescription('Power plant', 3, 'Military', 'A', nil)
+	)
+end
+
+function suite:testGradedShortDescriptionNilWhenMissing()
+	self:assertEquals(nil, format.gradedShortDescription('Power plant', 3, nil, 'A', 'A&R'))
+	self:assertEquals(nil, format.gradedShortDescription('Power plant', nil, 'Military', 'A', 'A&R'))
+	self:assertEquals(nil, format.gradedShortDescription('Power plant', 3, 'Military', nil, 'A&R'))
+end
+
 return suite

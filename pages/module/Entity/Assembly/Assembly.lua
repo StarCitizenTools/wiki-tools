@@ -101,4 +101,32 @@ function p.buildChain(leafModule)
 	return reversed
 end
 
+--- Walks `chain` leaf-first (chain[#chain]..chain[1]); returns the first link's
+--- `hookName` result accepted by `accept`. nil when none qualifies. Pure.
+--- @param chain table[] Root-first chain (walked in reverse)
+--- @param hookName string
+--- @param accept nil|fun(result: any): boolean Default: any (first defining link wins, even on nil)
+--- @param ... any Arguments forwarded to the hook
+--- @return any
+function p.resolveMostSpecific(chain, hookName, accept, ...)
+	for i = #chain, 1, -1 do
+		local hook = chain[i][hookName]
+		if hook then
+			local result = hook(...)
+			if accept == nil or accept(result) then
+				return result
+			end
+		end
+	end
+	return nil
+end
+
+--- Accept predicate for fields that ignore a nil-or-empty contribution and keep
+--- walking (subtitle, header badge).
+--- @param result any
+--- @return boolean
+function p.acceptNonEmpty(result)
+	return result ~= nil and result ~= ''
+end
+
 return p

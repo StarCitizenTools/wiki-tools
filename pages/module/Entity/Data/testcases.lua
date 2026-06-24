@@ -125,4 +125,62 @@ function suite:testResolveLeafThreadsArgsToSubtype()
 	self:assertEquals('ship', seen and seen.family)
 end
 
+-- parseArgs (frame arg parsing)
+
+local function makeFrame(args, parentArgs)
+	return {
+		args = args or {},
+		getParent = function()
+			if parentArgs == nil then
+				return nil
+			end
+			return { args = parentArgs }
+		end,
+		callParserFunction = function()
+			return ''
+		end,
+	}
+end
+
+function suite:testParseArgsStripsEmptyStrings()
+	local args = Data.parseArgs(makeFrame({ name = 'Test', blank = '' }))
+	self:assertEquals('Test', args.name)
+	self:assertEquals(nil, args.blank)
+end
+
+function suite:testParseArgsFrameWinsOverParent()
+	local args = Data.parseArgs(makeFrame({ name = 'Child' }, { name = 'Parent', extra = 'P' }))
+	self:assertEquals('Child', args.name)
+	self:assertEquals('P', args.extra)
+end
+
+function suite:testParseArgsNoUuidFallsBackToNil()
+	self:assertEquals(nil, Data.parseArgs(makeFrame({ name = 'NoUuid' })).uuid)
+end
+
+-- get({}) (public entry point with no uuid — offline safe)
+
+function suite:testGetReturnsTableShape()
+	local r = Data.get({})
+	self:assertEquals('table', type(r))
+	self:assertEquals('table', type(r.apiData))
+	self:assertEquals('table', type(r.chain))
+	self:assertEquals('table', type(r.facets))
+	self:assertEquals('boolean', type(r.hasApiError))
+	self:assertEquals('table', type(r.resolved))
+	self:assertEquals('table', type(r.editorialData))
+	self:assertEquals('boolean', type(r.hasManualApiData))
+	self:assertEquals('boolean', type(r.unresolvedReference))
+end
+
+function suite:testGetKindDefaultsToItem()
+	self:assertEquals('Item', Data.get({}).kind)
+end
+
+function suite:testGetEmptyApiDataNoError()
+	local r = Data.get({})
+	self:assertEquals(false, r.hasApiError)
+	self:assertEquals(nil, next(r.apiData))
+end
+
 return suite

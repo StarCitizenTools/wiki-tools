@@ -505,6 +505,144 @@ if vehicleLua and vehicleEditorial then
 	end
 end
 
+-- ── 9. Consumer require-path contract ────────────────────────────────────────
+local CONSUMER_REQUIRES = {
+	{
+		file = 'pages/module/WearableSet/WearableSet.lua',
+		need = { 'Module:Entity/Data', 'Module:Entity/Facet/Environment', 'Module:Entity/Facet/Armor' },
+	},
+	{ file = 'pages/module/Entity/Orders/Orders.lua', need = { 'Module:Entity/Data', 'Module:Entity/StructuredData' } },
+	{
+		file = 'pages/module/Entity/Rewards/Rewards.lua',
+		need = { 'Module:Entity/Data', 'Module:Entity/StructuredData' },
+	},
+}
+for _, c in ipairs(CONSUMER_REQUIRES) do
+	local src = readFile(c.file)
+	if src then
+		local cFailed = false
+		for _, modPath in ipairs(c.need) do
+			local pat = 'require%([\'"]' .. modPath:gsub('([%-%.%/])', '%%%1') .. '[\'"]%)'
+			if not src:match(pat) then
+				fail(c.file, "no longer requires '" .. modPath .. "' (consumer contract broken)")
+				cFailed = true
+			end
+		end
+		if not cFailed then
+			pass(c.file .. ' (consumer require-path contract)')
+		end
+	end
+end
+
+-- ── 10. properties.json %patterns shape ──────────────────────────────────────
+if props and type(props['%patterns']) == 'table' then
+	local patFailed = false
+	for i, pat in ipairs(props['%patterns']) do
+		if type(pat) ~= 'table' then
+			fail(PROPS_PATH, '%patterns[' .. i .. '] is not an object')
+			patFailed = true
+		else
+			if type(pat.keyMatch) ~= 'string' or pat.keyMatch == '' then
+				fail(PROPS_PATH, '%patterns[' .. i .. '] missing/empty .keyMatch')
+				patFailed = true
+			elseif not pcall(function()
+				return ('x'):match(pat.keyMatch)
+			end) then
+				fail(PROPS_PATH, '%patterns[' .. i .. '] .keyMatch is not a valid Lua pattern')
+				patFailed = true
+			end
+			if type(pat.property) ~= 'string' or pat.property == '' then
+				fail(PROPS_PATH, '%patterns[' .. i .. '] missing/empty .property')
+				patFailed = true
+			end
+			if pat.smw == 'Quantity' then
+				fail(PROPS_PATH, '%patterns[' .. i .. '] uses banned smw Quantity')
+				patFailed = true
+			end
+			if type(pat.bucket) ~= 'string' or not ALLOWED_BUCKETS[pat.bucket] then
+				fail(PROPS_PATH, '%patterns[' .. i .. '] invalid .bucket')
+				patFailed = true
+			end
+			if type(pat.modules) ~= 'table' or pat.modules[1] == nil then
+				fail(PROPS_PATH, '%patterns[' .. i .. '] missing/empty .modules')
+				patFailed = true
+			end
+			if type(pat.desc) ~= 'string' or pat.desc == '' then
+				fail(PROPS_PATH, '%patterns[' .. i .. '] missing/empty .desc')
+				patFailed = true
+			end
+		end
+	end
+	if not patFailed then
+		pass(PROPS_PATH .. ' (%patterns shape)')
+	end
+end
+
+-- ── 11. emitted-key -> manifest bijection ────────────────────────────────────
+-- Known blind spots (don't over-trust this guard):
+--   (a) Brand-new SINGLE-WORD keys not yet in the manifest are skipped — a
+--       single-word key is only checked once it's already registered, since
+--       matching by name alone would flood false positives from single-word
+--       locals (m, s, data, ...).
+--   (b) Only the `data['prefix_' .. k]` dynamic form is scanned; the inverse
+--       `data[var .. '_suffix']` form (used in Armor/Vehicle, currently all
+--       registered) is not.
+-- New keys of either shape must be registered in properties.json by hand.
+local function autoName(key)
+	return (key:gsub('_', ' '):gsub('^%l', string.upper))
+end
+local function patternMatches(key)
+	for _, pat in ipairs((props and props['%patterns']) or {}) do
+		if type(pat) == 'table' and type(pat.keyMatch) == 'string' and key:match(pat.keyMatch) then
+			return true
+		end
+	end
+	return false
+end
+if props then
+	local files = {}
+	local ph = io.popen('find pages/module/Entity -name "*.lua"')
+	for line in ph:lines() do
+		files[#files + 1] = line
+	end
+	ph:close()
+	local orphan = {}
+	for _, fpath in ipairs(files) do
+		local src = readFile(fpath)
+		if src then
+			for block in src:gmatch('function%s+p%.getStructuredData.-\nend') do
+				for key in block:gmatch('([%a_][%w_]*)%s*=') do
+					if key:find('_') or type(props[autoName(key)]) == 'table' then
+						if type(props[autoName(key)]) ~= 'table' and not patternMatches(key) then
+							orphan[key] = fpath
+						end
+					end
+				end
+				for lit in block:gmatch("data%['([%a_]+)'%s*%.%.") do
+					if not patternMatches(lit .. 'x') then
+						orphan[lit .. '*'] = fpath
+					end
+				end
+			end
+		end
+	end
+	local any = false
+	for key, fpath in pairs(orphan) do
+		fail(
+			PROPS_PATH,
+			"emitted key '"
+				.. key
+				.. "' ("
+				.. fpath
+				.. ') resolves to neither a properties.json entry nor a %patterns match'
+		)
+		any = true
+	end
+	if not any then
+		pass(PROPS_PATH .. ' (emitted-key bijection)')
+	end
+end
+
 -- ── Summary ───────────────────────────────────────────────────────────────────
 if #failures == 0 then
 	for _, f in ipairs(ok_files) do

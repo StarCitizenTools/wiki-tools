@@ -10,6 +10,7 @@ require('strict')
 
 local format = require('Module:Entity/Format')
 local sectionBuilder = require('Module:Entity/SectionBuilder')
+local Util = require('Module:Entity/Facet/Util')
 
 local p = {}
 
@@ -21,15 +22,6 @@ local EFFECT_LABELS = {
 	weapon_sway = 'Weapon sway',
 	atrophic = 'Atrophy',
 }
-
---- Title-cases a snake_case key: "stun_recovery" -> "Stun recovery".
----
---- @param key string
---- @return string
-local function titleCase(key)
-	local s = key:gsub('_', ' ')
-	return s:sub(1, 1):upper() .. s:sub(2)
-end
 
 --- Collects the active effect keys as a sorted, comma-joined label list.
 --- Handles both API shapes: a boolean flag map (combat_buffs /
@@ -47,7 +39,7 @@ local function effectList(effects)
 	local labels = {}
 	for k, v in pairs(effects) do
 		if v ~= false and type(k) == 'string' then
-			table.insert(labels, EFFECT_LABELS[k] or titleCase(k))
+			table.insert(labels, EFFECT_LABELS[k] or Util.titleCase(k))
 		end
 	end
 	if #labels == 0 then
@@ -106,7 +98,7 @@ end
 -- Test-only exports. Not part of the public API.
 p._internal = {
 	effectList = effectList,
-	titleCase = titleCase,
+	titleCase = Util.titleCase,
 }
 
 return p

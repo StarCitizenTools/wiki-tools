@@ -140,12 +140,13 @@ end
 --- @param matchedKind table|nil
 --- @param apiData table
 --- @param hasUuid boolean
+--- @param args table|nil
 --- @return table leafMod
 --- @return boolean hasApiError
-local function resolveLeaf(matchedKind, apiData, hasUuid)
+local function resolveLeaf(matchedKind, apiData, hasUuid, args)
 	if matchedKind then
 		if matchedKind.resolveSubtype then
-			return matchedKind.resolveSubtype(apiData) or matchedKind, false
+			return matchedKind.resolveSubtype(apiData, args) or matchedKind, false
 		end
 		return matchedKind, false
 	end
@@ -190,7 +191,7 @@ end
 local function fetchApiData(args)
 	local matchedKind, apiData, fetchedEndpoints, hasApiError = probeKind(args)
 
-	local leafMod, leafErr = resolveLeaf(matchedKind, apiData, args.uuid ~= nil)
+	local leafMod, leafErr = resolveLeaf(matchedKind, apiData, args.uuid ~= nil, args)
 	hasApiError = hasApiError or leafErr
 
 	local chain = assembly.buildChain(leafMod)
@@ -210,13 +211,67 @@ local function fetchApiData(args)
 	return apiData, chain, hasApiError, matchedKind
 end
 
+--- A genuine in-game record: the API returned a record carrying a reliable
+--- identity key (uuid). NOT "the fetch returned non-nil" — the API can return a
+--- stub/partial for some in-concept entities, so presence-of-record alone is not
+--- enough to treat a page as in-game.
+--- @param apiData table|nil
+--- @return boolean
+local function isGenuineRecord(apiData)
+	return type(apiData) == 'table' and apiData.uuid ~= nil and apiData.uuid ~= ''
+end
+
+--- Looks up a registered kind by `args.kind` that opts into editorial mode
+--- (mod.editorialMode == true). Case-insensitive on the kind name. Returns nil when
+--- args.kind is absent, unknown, or names a kind that has not opted in. Consulted
+--- only when there is no genuine record, so it is a planned-page declaration that
+--- is harmless on a page that later gets a uuid.
+--- @param args table
+--- @return table|nil
+local function resolveEditorialKind(args)
+	local kindName = args.kind
+	if type(kindName) ~= 'string' or kindName == '' then
+		return nil
+	end
+	local wanted = mw.ustring.lower(kindName)
+	for _, mod in ipairs(registry.kinds) do
+		if mod.editorialMode == true and type(mod.name) == 'string' and mw.ustring.lower(mod.name) == wanted then
+			return mod
+		end
+	end
+	return nil
+end
+
 --- Primary entry point for sibling renderers. Fetches API data, resolves the
 --- type chain, and packages everything a renderer needs into a single table.
 ---
 --- @param args table Parsed wikitext args (use p.parseArgs to produce)
---- @return { args: table, kind: string, apiData: table, chain: table[], facets: table[], typeInfo: table|nil, displayType: string|nil, hasApiError: boolean, resolved: table, editorialData: table, hasManualApiData: boolean }
+--- @return { args: table, kind: string, apiData: table, chain: table[], facets: table[], typeInfo: table|nil, displayType: string|nil, hasApiError: boolean, resolved: table, editorialData: table, hasManualApiData: boolean, unresolvedReference: boolean }
 function p.get(args)
 	local apiData, chain, hasApiError, matchedKind = fetchApiData(args)
+
+	-- Editorial mode: with no genuine in-game record (no apiData.uuid — either no
+	-- record came back, or the API returned a stub the matched kind accepted), a
+	-- page that declares an opted-in |kind= renders from editorial args alone.
+	-- apiData is reset to {} so the render is driven entirely by the editorial
+	-- `resolved` layer; sections are already data-gated, so a planned page is a
+	-- clean subset. A provided-but-unresolved uuid is surfaced as a tracking
+	-- category (result.unresolvedReference) rather than silently masquerading as a
+	-- planned page.
+	local unresolvedReference = false
+	if not isGenuineRecord(apiData) then
+		local editorialKind = resolveEditorialKind(args)
+		if editorialKind then
+			matchedKind = editorialKind
+			apiData = {}
+			local leafMod = resolveLeaf(editorialKind, apiData, false, args)
+			chain = assembly.buildChain(leafMod)
+			hasApiError = false
+			if args.uuid ~= nil and args.uuid ~= '' then
+				unresolvedReference = true
+			end
+		end
+	end
 
 	-- Canonical kind name for sibling renderers — Item when nothing matched,
 	-- mirroring resolveLeaf's fallback. Renderers branch on this instead of
@@ -275,6 +330,7 @@ function p.get(args)
 		resolved = resolved,
 		editorialData = editorialData,
 		hasManualApiData = hasManualApiData,
+		unresolvedReference = unresolvedReference,
 	}
 end
 
@@ -282,6 +338,8 @@ end
 p._internal = {
 	detectFacets = detectFacets,
 	resolveLeaf = resolveLeaf,
+	isGenuineRecord = isGenuineRecord,
+	resolveEditorialKind = resolveEditorialKind,
 }
 
 return p

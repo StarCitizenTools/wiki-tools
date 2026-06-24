@@ -89,6 +89,14 @@
 		],
 		"desc": "Tether break time of a towing beam, in seconds."
 	},
+	"Biochemical damage modifier": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Biochemical damage taken multiplier for vehicle armor (1.0 = no change)."
+	},
 	"Biochemical resistance": {
 		"smw": "Number",
 		"bucket": "INTEGER",
@@ -137,6 +145,22 @@
 		],
 		"desc": "Size of each ordnance a rack carries."
 	},
+	"Career": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Career category of a vehicle (Combat, Transport, Exploration, …)."
+	},
+	"Cargo capacity": {
+		"smw": "Number",
+		"bucket": "INTEGER",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Cargo capacity of a vehicle, in SCU."
+	},
 	"Category": {
 		"smw": "Text",
 		"bucket": "TEXT",
@@ -178,6 +202,22 @@
 		],
 		"desc": "Commodity leaf type."
 	},
+	"Concept announcement date": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Real-world concept announcement date."
+	},
+	"Concept sale date": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Real-world concept sale date."
+	},
 	"Coolant generation": {
 		"smw": "Number",
 		"bucket": "DOUBLE",
@@ -193,6 +233,14 @@
 			"Cooler"
 		],
 		"desc": "Cooling rate of a cooler."
+	},
+	"Cross section signature modifier": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Cross-section signature multiplier for vehicle armor (1.0 = no change)."
 	},
 	"Damage": {
 		"smw": "Number",
@@ -244,6 +292,14 @@
 		],
 		"desc": "Maximum distortion health of a component."
 	},
+	"Distortion damage modifier": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Distortion damage taken multiplier for vehicle armor (1.0 = no change)."
+	},
 	"Distortion resistance": {
 		"smw": "Number",
 		"bucket": "INTEGER",
@@ -285,6 +341,14 @@
 		],
 		"multi": true,
 		"desc": "Consumable effects (multi-valued)."
+	},
+	"Electromagnetic signature modifier": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Electromagnetic signature multiplier for vehicle armor (1.0 = no change)."
 	},
 	"Em signature": {
 		"smw": "Number",
@@ -334,6 +398,14 @@
 		],
 		"desc": "Radius of an EMP generator, in metres."
 	},
+	"Energy damage modifier": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Energy damage taken multiplier for vehicle armor (1.0 = no change)."
+	},
 	"Energy resistance": {
 		"smw": "Number",
 		"bucket": "INTEGER",
@@ -341,6 +413,30 @@
 			"Armor"
 		],
 		"desc": "Energy damage resistance of armor, as a percentage."
+	},
+	"Entity height": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Height of an entity."
+	},
+	"Entity length": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Length of an entity."
+	},
+	"Entity width": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Width of an entity."
 	},
 	"Error chance": {
 		"smw": "Number",
@@ -415,6 +511,14 @@
 		],
 		"desc": "G-force resistance modifier a suit confers to the wearer."
 	},
+	"Generation": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Vehicle generation within its series (e.g. II, III)."
+	},
 	"Grade": {
 		"smw": "Text",
 		"bucket": "TEXT",
@@ -430,6 +534,14 @@
 			"Component"
 		],
 		"desc": "Health (hit points) of a component."
+	},
+	"Health point": {
+		"smw": "Number",
+		"bucket": "INTEGER",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Hull hit points of a vehicle."
 	},
 	"Health repair rate": {
 		"smw": "Number",
@@ -447,6 +559,22 @@
 		],
 		"desc": "Hydration Efficacy Index of a consumable."
 	},
+	"Hydrogen fuel capacity": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Hydrogen fuel tank capacity of a vehicle."
+	},
+	"Hydrogen fuel intake rate": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Hydrogen fuel intake rate of a vehicle."
+	},
 	"Impact resistance": {
 		"smw": "Number",
 		"bucket": "INTEGER",
@@ -454,6 +582,38 @@
 			"Armor"
 		],
 		"desc": "Impact damage resistance of armor, as a percentage."
+	},
+	"Insurance claim time": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Standard insurance claim time of a vehicle, in minutes."
+	},
+	"Insurance expedite cost": {
+		"smw": "Number",
+		"bucket": "INTEGER",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Insurance expedite fee of a vehicle, in aUEC."
+	},
+	"Insurance expedite time": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Insurance expedite time of a vehicle, in minutes."
+	},
+	"Infrared signature modifier": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Infrared signature multiplier for vehicle armor (1.0 = no change)."
 	},
 	"Ir signature": {
 		"smw": "Number",
@@ -519,6 +679,22 @@
 		],
 		"desc": "Lock-on time of a missile, in seconds."
 	},
+	"Lore release date": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "In-lore release date."
+	},
+	"Lore retirement date": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "In-lore retirement date."
+	},
 	"Magnification": {
 		"smw": "Number",
 		"bucket": "DOUBLE",
@@ -534,6 +710,22 @@
 			"Base"
 		],
 		"desc": "Manufacturer of an entity."
+	},
+	"Manual API field": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Editorial field keys that were hand-supplied for API-owned data (fill or override); drives the 'Entities with manual API data' maintenance category."
+	},
+	"Mass": {
+		"smw": "Number",
+		"bucket": "INTEGER",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Mass of a vehicle, in kg."
 	},
 	"Material efficiency": {
 		"smw": "Number",
@@ -557,9 +749,18 @@
 		"smw": "Number",
 		"bucket": "DOUBLE",
 		"modules": [
-			"FlightController"
+			"FlightController",
+			"Vehicle"
 		],
-		"desc": "Maximum flight speed set by a flight controller, in m/s."
+		"desc": "Maximum flight/travel speed in m/s (a vehicle's, or set by a flight controller)."
+	},
+	"Maximum crew": {
+		"smw": "Number",
+		"bucket": "INTEGER",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Maximum crew count of a vehicle."
 	},
 	"Maximum range": {
 		"smw": "Number",
@@ -592,6 +793,14 @@
 			"Commodity"
 		],
 		"desc": "Whether a commodity is mineable."
+	},
+	"Minimum crew": {
+		"smw": "Number",
+		"bucket": "INTEGER",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Minimum crew count of a vehicle."
 	},
 	"Minimum temperature": {
 		"smw": "Number",
@@ -682,6 +891,30 @@
 		],
 		"desc": "Optimal mining range of a mining laser head, in metres."
 	},
+	"Original pledge price": {
+		"smw": "Number",
+		"bucket": "INTEGER",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Original (launch) standalone pledge price of a vehicle, in USD."
+	},
+	"Original warbond pledge price": {
+		"smw": "Number",
+		"bucket": "INTEGER",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Original (launch) warbond pledge price of a vehicle, in USD."
+	},
+	"Physical damage modifier": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Physical damage taken multiplier for vehicle armor (1.0 = no change)."
+	},
 	"Physical resistance": {
 		"smw": "Number",
 		"bucket": "INTEGER",
@@ -723,6 +956,14 @@
 		],
 		"desc": "Minimum pitch angle of a seat, in degrees."
 	},
+	"Pitch rate": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Pitch agility rate of a vehicle, in °/s."
+	},
 	"Pitch speed": {
 		"smw": "Number",
 		"bucket": "DOUBLE",
@@ -730,6 +971,22 @@
 			"Turret"
 		],
 		"desc": "Pitch rotation speed of a turret, in °/s."
+	},
+	"Pledge availability": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Pledge store availability status of a vehicle (e.g. Available, Limited, Unavailable)."
+	},
+	"Pledge price": {
+		"smw": "Number",
+		"bucket": "INTEGER",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "MSRP pledge price of a vehicle, in USD."
 	},
 	"Power generation": {
 		"smw": "Number",
@@ -754,6 +1011,22 @@
 			"PowerPlant"
 		],
 		"desc": "Power output of a power plant."
+	},
+	"Production state": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Production/flight-readiness state of a vehicle (e.g. Flight Ready, In Production)."
+	},
+	"Production state description": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Editorial per-vehicle note about its production state (shown in the production-status tooltip)."
 	},
 	"Qig charge time": {
 		"smw": "Number",
@@ -819,19 +1092,37 @@
 		],
 		"desc": "Quantum fuel requirement of a quantum drive."
 	},
+	"Quantum fuel capacity": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Quantum fuel tank capacity of a vehicle."
+	},
+	"Quantum range": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Quantum travel range of a vehicle, in Gm."
+	},
 	"Quantum speed": {
 		"smw": "Number",
 		"bucket": "DOUBLE",
 		"modules": [
-			"QuantumDrive"
+			"QuantumDrive",
+			"Vehicle"
 		],
-		"desc": "Travel speed of a quantum drive, in Mm/s."
+		"desc": "Travel speed of a quantum drive or vehicle in quantum travel, in Mm/s."
 	},
 	"Quantum spool time": {
 		"smw": "Number",
 		"bucket": "DOUBLE",
 		"modules": [
-			"QuantumDrive"
+			"QuantumDrive",
+			"Vehicle"
 		],
 		"desc": "Spool-up time of a quantum drive, in seconds."
 	},
@@ -915,6 +1206,30 @@
 		],
 		"desc": "Rarity tier of an item (Common, Uncommon, Rare, Epic, Legendary)."
 	},
+	"Retracted height": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Retracted (folded) height of a vehicle, in metres."
+	},
+	"Retracted length": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Retracted (folded) length of a vehicle, in metres."
+	},
+	"Retracted width": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Retracted (folded) width of a vehicle, in metres."
+	},
 	"Roll": {
 		"smw": "Number",
 		"bucket": "DOUBLE",
@@ -931,6 +1246,22 @@
 		],
 		"desc": "Boosted roll rate of a flight controller, in °/s."
 	},
+	"Roll rate": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Roll agility rate of a vehicle, in °/s."
+	},
+	"Role": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Role of a vehicle (e.g. Light Fighter, Heavy Bomber, Cargo)."
+	},
 	"Salvage speed multiplier": {
 		"smw": "Number",
 		"bucket": "DOUBLE",
@@ -943,9 +1274,18 @@
 		"smw": "Number",
 		"bucket": "DOUBLE",
 		"modules": [
-			"FlightController"
+			"FlightController",
+			"Vehicle"
 		],
-		"desc": "SCM (combat) flight speed set by a flight controller, in m/s."
+		"desc": "SCM (combat) speed in m/s (a vehicle's, or set by a flight controller)."
+	},
+	"Series": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Vehicle series/product line a vehicle belongs to."
 	},
 	"Scrip": {
 		"smw": "Number",
@@ -1003,6 +1343,14 @@
 		],
 		"desc": "Size (slot size) of an item."
 	},
+	"Size class": {
+		"smw": "Number",
+		"bucket": "INTEGER",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Size class of a vehicle (numeric, e.g. 1–10 small to capital)."
+	},
 	"Slash damage": {
 		"smw": "Number",
 		"bucket": "DOUBLE",
@@ -1026,6 +1374,14 @@
 			"Inventory"
 		],
 		"desc": "Inventory carrying capacity of a garment or container, in µSCU."
+	},
+	"Stun damage modifier": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Stun damage taken multiplier for vehicle armor (1.0 = no change)."
 	},
 	"Stun resistance": {
 		"smw": "Number",
@@ -1052,6 +1408,14 @@
 		],
 		"multi": true,
 		"desc": "Star systems a commodity or mission is associated with (multi-valued)."
+	},
+	"Thermal damage modifier": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Thermal damage taken multiplier for vehicle armor (1.0 = no change)."
 	},
 	"Thermal resistance": {
 		"smw": "Number",
@@ -1100,6 +1464,14 @@
 			"Item"
 		],
 		"desc": "Volume of an item, in microSCU."
+	},
+	"Warbond pledge price": {
+		"smw": "Number",
+		"bucket": "INTEGER",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Warbond pledge price of a vehicle, in USD."
 	},
 	"Warhead damage": {
 		"smw": "Number",
@@ -1158,6 +1530,14 @@
 			"Seat"
 		],
 		"desc": "Minimum yaw angle of a seat, in degrees."
+	},
+	"Yaw rate": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Yaw agility rate of a vehicle, in °/s."
 	},
 	"Yaw speed": {
 		"smw": "Number",

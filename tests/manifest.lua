@@ -60,6 +60,8 @@ local OFFICIAL_SITES_PATH = BASE .. '/officialSites.json'
 local COMM_SITES_PATH = BASE .. '/Commodity/communitySites.json'
 local PORTS_CATS_PATH = BASE .. '/Ports/categories.json'
 local ITEM_LUA_PATH = BASE .. '/Item/Item.lua'
+local VEHICLE_LUA_PATH = BASE .. '/Vehicle/Vehicle.lua'
+local VEHICLE_EDITORIAL_PATH = BASE .. '/Vehicle/editorial.json'
 
 -- ── 1. types.json ─────────────────────────────────────────────────────────────
 -- Every entry (non-%-prefixed key) has non-empty string name + category; keys unique.
@@ -324,6 +326,182 @@ if itemLua and types and classes then
 		else
 			pass(ITEM_LUA_PATH .. ' (itemSubtypeMapping cross-reference)')
 		end
+	end
+end
+
+-- ── 7. properties.json self-check + editorial.json cross-reference ────────────
+-- properties.json: every entry has a non-Quantity smw, an allowed unitless
+-- bucket, a non-empty modules list, and a desc. Each editorial.json field's smw
+-- must resolve to a declared property tagged with the owning module, so an
+-- editorial field can never reference an undeclared or mis-tagged SMW property.
+local PROPS_PATH = BASE .. '/properties.json'
+local ALLOWED_BUCKETS = { PAGE = true, TEXT = true, INTEGER = true, DOUBLE = true, BOOLEAN = true }
+local EDITORIAL_MANIFESTS = {
+	{ path = BASE .. '/Vehicle/editorial.json', module = 'Vehicle' },
+}
+
+local props = readJson(PROPS_PATH)
+if props then
+	local propsFailed = false
+	for name, def in pairs(props) do
+		if type(name) == 'string' and name:sub(1, 1) == '%' then
+			-- %doc meta, skip
+		elseif type(def) ~= 'table' then
+			fail(PROPS_PATH, 'entry ' .. tostring(name) .. ' is not an object')
+			propsFailed = true
+		else
+			if type(def.smw) ~= 'string' or def.smw == '' then
+				fail(PROPS_PATH, 'entry ' .. name .. ' has missing or empty .smw')
+				propsFailed = true
+			elseif def.smw == 'Quantity' then
+				fail(
+					PROPS_PATH,
+					'entry ' .. name .. " uses smw 'Quantity' (banned: store unitless, units are a render concern)"
+				)
+				propsFailed = true
+			end
+			if type(def.bucket) ~= 'string' or not ALLOWED_BUCKETS[def.bucket] then
+				fail(
+					PROPS_PATH,
+					'entry '
+						.. name
+						.. ' has invalid .bucket '
+						.. tostring(def.bucket)
+						.. ' (allowed: PAGE/TEXT/INTEGER/DOUBLE/BOOLEAN)'
+				)
+				propsFailed = true
+			end
+			if type(def.modules) ~= 'table' or def.modules[1] == nil then
+				fail(PROPS_PATH, 'entry ' .. name .. ' has missing or empty .modules')
+				propsFailed = true
+			end
+			if type(def.desc) ~= 'string' or def.desc == '' then
+				fail(PROPS_PATH, 'entry ' .. name .. ' has missing or empty .desc')
+				propsFailed = true
+			end
+		end
+	end
+	if not propsFailed then
+		pass(PROPS_PATH)
+	end
+
+	for _, manifest in ipairs(EDITORIAL_MANIFESTS) do
+		local ed = readJson(manifest.path)
+		if ed then
+			local edFailed = false
+			for field, def in pairs(ed) do
+				if type(field) == 'string' and field:sub(1, 1) == '%' then
+					-- %doc meta, skip
+				elseif type(def) ~= 'table' then
+					fail(manifest.path, 'field ' .. tostring(field) .. ' is not an object')
+					edFailed = true
+				else
+					-- .arg is a non-empty string, or a non-empty list of non-empty
+					-- strings (alias args tried in order, e.g. ["series", "model"]).
+					local argOk = false
+					if type(def.arg) == 'string' then
+						argOk = def.arg ~= ''
+					elseif type(def.arg) == 'table' and def.arg[1] ~= nil then
+						argOk = true
+						for _, a in ipairs(def.arg) do
+							if type(a) ~= 'string' or a == '' then
+								argOk = false
+							end
+						end
+					end
+					if not argOk then
+						fail(manifest.path, 'field ' .. field .. ' has missing or empty .arg')
+						edFailed = true
+					end
+					local smw = def.smw
+					if type(smw) ~= 'string' or smw == '' then
+						fail(manifest.path, 'field ' .. field .. ' has missing or empty .smw')
+						edFailed = true
+					elseif props[smw] == nil then
+						fail(
+							manifest.path,
+							'field ' .. field .. " smw '" .. smw .. "' is not declared in properties.json"
+						)
+						edFailed = true
+					else
+						local tagged = false
+						for _, m in ipairs(props[smw].modules or {}) do
+							if m == manifest.module then
+								tagged = true
+								break
+							end
+						end
+						if not tagged then
+							fail(
+								manifest.path,
+								'field '
+									.. field
+									.. " smw '"
+									.. smw
+									.. "' exists but is not tagged with module '"
+									.. manifest.module
+									.. "'"
+							)
+							edFailed = true
+						end
+					end
+				end
+			end
+			if not edFailed then
+				pass(manifest.path)
+			end
+		end
+	end
+end
+
+-- ── 8. Vehicle.lua editorial field references ─────────────────────────────────
+-- Every key passed to effective(resolved, '<key>') or editorialValue(resolved,
+-- '<key>') in Vehicle.lua must be a declared top-level field in editorial.json
+-- (excluding the %doc meta key). A typo'd key silently drops an infobox row;
+-- this check catches it statically before deployment.
+local vehicleLua = readFile(VEHICLE_LUA_PATH)
+local vehicleEditorial = readJson(VEHICLE_EDITORIAL_PATH)
+if vehicleLua and vehicleEditorial then
+	-- Build a set of declared editorial field names (exclude %doc meta key).
+	local editorialFields = {}
+	for field, _ in pairs(vehicleEditorial) do
+		if type(field) == 'string' and field:sub(1, 1) ~= '%' then
+			editorialFields[field] = true
+		end
+	end
+
+	-- Extract every key referenced in any of these shapes:
+	--   effective(resolved, 'key', ...)   editorialValue(resolved, 'key')   resolved.key.value
+	-- (the third covers direct reads like getHeaderBadge's resolved.production_state.value).
+	local missing = {}
+	local seen = {}
+	local function checkKey(key)
+		if not seen[key] then
+			seen[key] = true
+			if not editorialFields[key] then
+				missing[#missing + 1] = key
+			end
+		end
+	end
+	for key in vehicleLua:gmatch("effective%(resolved,%s*'([%w_]+)'") do
+		checkKey(key)
+	end
+	for key in vehicleLua:gmatch("editorialValue%(resolved,%s*'([%w_]+)'") do
+		checkKey(key)
+	end
+	for key in vehicleLua:gmatch('resolved%.([%w_]+)%.value') do
+		checkKey(key)
+	end
+
+	if #missing > 0 then
+		for _, k in ipairs(missing) do
+			fail(
+				VEHICLE_LUA_PATH,
+				"editorial field reference '" .. k .. "' is not declared in " .. VEHICLE_EDITORIAL_PATH
+			)
+		end
+	else
+		pass(VEHICLE_LUA_PATH .. ' (editorial field cross-reference)')
 	end
 end
 

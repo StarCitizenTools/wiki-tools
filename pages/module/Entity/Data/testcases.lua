@@ -66,4 +66,63 @@ function suite:testResolveLeafNoMatchNoUuidNoError()
 	self:assertEquals(false, err)
 end
 
+-- isGenuineRecord (genuine in-game record predicate)
+
+function suite:testGenuineRecordTrueWithUuid()
+	self:assertEquals(true, helpers.isGenuineRecord({ uuid = 'abc' }))
+end
+
+function suite:testGenuineRecordFalseWithoutUuid()
+	self:assertEquals(false, helpers.isGenuineRecord({ is_vehicle = true }))
+end
+
+function suite:testGenuineRecordFalseEmpty()
+	self:assertEquals(false, helpers.isGenuineRecord({}))
+end
+
+function suite:testGenuineRecordFalseEmptyUuid()
+	self:assertEquals(false, helpers.isGenuineRecord({ uuid = '' }))
+end
+
+-- resolveEditorialKind (args.kind -> opted-in registered kind)
+
+function suite:testEditorialKindResolvesVehicle()
+	local kind = helpers.resolveEditorialKind({ kind = 'Vehicle' })
+	self:assertEquals('Vehicle', kind and kind.name)
+end
+
+function suite:testEditorialKindCaseInsensitive()
+	local kind = helpers.resolveEditorialKind({ kind = 'vehicle' })
+	self:assertEquals('Vehicle', kind and kind.name)
+end
+
+function suite:testEditorialKindNilWhenAbsent()
+	self:assertEquals(nil, helpers.resolveEditorialKind({}))
+end
+
+function suite:testEditorialKindNilWhenNotOptedIn()
+	-- Commodity is registered but does NOT opt into editorial mode.
+	self:assertEquals(nil, helpers.resolveEditorialKind({ kind = 'Commodity' }))
+end
+
+function suite:testEditorialKindNilWhenUnknown()
+	self:assertEquals(nil, helpers.resolveEditorialKind({ kind = 'Nonsense' }))
+end
+
+-- resolveLeaf threads args into resolveSubtype
+
+function suite:testResolveLeafThreadsArgsToSubtype()
+	local seen
+	local subtype = { name = 'sub' }
+	local kind = {
+		resolveSubtype = function(_, a)
+			seen = a
+			return subtype
+		end,
+	}
+	local leaf = helpers.resolveLeaf(kind, {}, false, { family = 'ship' })
+	self:assertEquals(subtype, leaf)
+	self:assertEquals('ship', seen and seen.family)
+end
+
 return suite

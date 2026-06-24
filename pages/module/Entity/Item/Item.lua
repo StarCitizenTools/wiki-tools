@@ -113,8 +113,9 @@ end
 --- Module:Entity/Data invokes this after kind dispatch.
 ---
 --- @param apiData table|nil
+--- @param args table|nil  Unused (item subtype dispatches on apiData.type); present for kind-contract parity.
 --- @return table|nil The resolved subtype module, or nil
-function p.resolveSubtype(apiData)
+function p.resolveSubtype(apiData, args)
 	local subtype = apiData and apiData.type
 	if subtype and itemSubtypeMapping[subtype] then
 		return require('Module:' .. itemSubtypeMapping[subtype])

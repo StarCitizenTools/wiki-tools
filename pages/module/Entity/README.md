@@ -101,6 +101,9 @@ only Item has subtypes and the kind owns its own `resolveSubtype`.
 | `getShortDescription` | `(apiData, args, typeInfo, prefix) → string` | chain link | no | Page short description (leaf-first wins). |
 | `getShortDescriptionPrefix` | `(apiData, args) → string\|nil` | facet | no | Adjective composed into the kind's short description. |
 | `getExternalSiteItems` | `(apiData, args) → EntityItemData[]` | chain link | no | External-site links in the infobox. |
+| `getSubtitle` | `(apiData, args) → string\|nil` | chain link | no | Header subtitle override (else the display type). |
+| `getHeaderBadge` | `(apiData, args, resolved) → string\|nil` | chain link | no | Badge HTML composed into the image overlay. |
+| `getCategories` | `(apiData, args, resolved) → string[]` | kind | no | Extra browse categories appended after the structural + manufacturer categories. |
 | `parent` | `string\|nil` | chain link | no | Module path of the parent link. |
 
 See `Module:Entity/Types` for the full LuaCATS interfaces and

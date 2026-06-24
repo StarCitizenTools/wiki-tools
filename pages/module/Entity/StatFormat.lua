@@ -32,4 +32,16 @@ function p.get(key)
 	return SCALES[key]
 end
 
+--- Resistance percent from a "damage taken" multiplier: 1.0 = full damage (0%),
+--- 0.6 = 40% resistant. Whole-number percent, or nil for a non-numeric input.
+--- @param multiplier any
+--- @return number|nil
+function p.resistancePercent(multiplier)
+	local mult = tonumber(multiplier)
+	if mult == nil then
+		return nil
+	end
+	return math.floor((1 - mult) * 100 + 0.5)
+end
+
 return p

@@ -59,6 +59,21 @@ Iterates the spec and checks:
 
 Unknown keys on `component` are not inspected — `validate` only walks the spec's keys (see Gotchas).
 
+### `p.KIND_FIELDS` + `p.validateFields(component, fieldSpec) → ok, errors`
+
+`validate` type-checks every spec key as a *function*, so a kind's non-function scalar fields cannot live in `p.KIND`. They live in `p.KIND_FIELDS` and are checked by `p.validateFields`:
+
+```lua
+p.KIND_FIELDS = {
+    name          = { type = 'string',  required = true  },  -- canonical kind name (Data.get().kind)
+    editorialMode = { type = 'boolean', required = false },  -- opt in to editorial-mode rendering
+}
+```
+
+`validateFields` mirrors `validate`'s shape (non-table guard, per-field loop): a required field that is absent → `"missing required field: <field>"`; a present field whose `type()` ≠ the declared type → `"field has wrong type: <field> …"`. The [Registry conformance test](https://starcitizen.tools/Module:Entity/Registry) runs it over every kind alongside `validate`, so a mistyped `editorialMode` (or a missing `name`) fails a unit test. `name`'s additional non-empty + uniqueness guarantee is enforced separately by `testAllKindsDeclareName`.
+
+**`editorialMode`** is the opt-in for a kind to render from editorial args alone when there is no genuine API record (a planned / not-yet-in-game page) — see [Module:Entity/Data](https://starcitizen.tools/Module:Entity/Data). Only `Vehicle` sets it today.
+
 ## Data
 
 Required (`true`) and optional (`false`) hooks per role:

@@ -5,9 +5,10 @@ require('strict')
 --- kind or facet is a one-line edit here (plus the module file and a passing
 --- conformance test — see Module:Entity/Contract and Module:Entity/doc).
 ---
---- Item subtypes are intentionally NOT here: subtype dispatch is a kind-internal
---- concern owned by the kind's resolveSubtype (see Module:Entity/Item's
---- itemSubtypeMapping). Only Item has subtypes.
+--- Subtypes are intentionally NOT here: subtype dispatch is a kind-internal
+--- concern owned by each kind's resolveSubtype. Both Item (via its
+--- itemSubtypeMapping) and Vehicle (Ship/GroundVehicle/Gravlev) dispatch this
+--- way, which is why their leaves aren't registered alongside the kinds below.
 
 local p = {}
 

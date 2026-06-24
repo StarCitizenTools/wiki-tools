@@ -58,4 +58,30 @@ function suite:testNonTableComponentFails()
 	self:assertEquals(1, #errors)
 end
 
+function suite:testValidateFieldsRequiredPresent()
+	self:assertTrue((Contract.validateFields({ name = 'Vehicle' }, Contract.KIND_FIELDS)))
+end
+
+function suite:testValidateFieldsMissingRequiredFails()
+	local ok, errors = Contract.validateFields({}, Contract.KIND_FIELDS)
+	self:assertFalse(ok)
+	self:assertTrue(hasError(errors, 'name'))
+end
+
+function suite:testValidateFieldsWrongTypeFails()
+	local ok, errors = Contract.validateFields({ name = 'V', editorialMode = 'yes' }, Contract.KIND_FIELDS)
+	self:assertFalse(ok)
+	self:assertTrue(hasError(errors, 'editorialMode'))
+end
+
+function suite:testValidateFieldsOptionalAbsentPasses()
+	self:assertTrue((Contract.validateFields({ name = 'V' }, Contract.KIND_FIELDS)))
+end
+
+function suite:testValidateFieldsNonTableFails()
+	local ok, errors = Contract.validateFields(nil, Contract.KIND_FIELDS)
+	self:assertFalse(ok)
+	self:assertEquals(1, #errors)
+end
+
 return suite

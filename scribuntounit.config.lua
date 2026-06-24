@@ -20,8 +20,6 @@ return {
 		'MeterBar',
 		'FalloffChart',
 		'Tiles',
-		'Dimensions',
-		'Dimensions/presets',
 		'Rarity',
 		'CardLua',
 		'CollapsibleCard',
@@ -69,6 +67,24 @@ return {
 					html:tag('li'):wikitext(item)
 				end
 				return tostring(html)
+			end,
+		})
+
+		-- Module:FloatingUI — rich tooltip wrapper (Extension:FloatingUI). Stubbed so
+		-- getHeaderBadge runs in the runner and returns a string; render() passes the
+		-- reference through, load() returns an empty string (no parser function needed).
+		api.stub('FloatingUI', {
+			render = function(reference, _content, _inline)
+				return reference
+			end,
+			renderSection = function(_data)
+				return ''
+			end,
+			getContentHtml = function(content, _tag)
+				return content or ''
+			end,
+			load = function(_frame)
+				return ''
 			end,
 		})
 

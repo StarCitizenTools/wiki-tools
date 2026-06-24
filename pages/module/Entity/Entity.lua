@@ -17,20 +17,25 @@ local p = {}
 --- @param apiData table
 --- @param args table
 --- @param typeInfo table|nil
+--- @param resolved table|nil Editorial resolved fields (optional; {} when no manifest)
+--- @param editorialData table|nil Pre-projected SMW key-value pairs from the editorial layer
 --- @return boolean success True if the backend accepted the data
-local function storeStructuredData(chain, facets, apiData, args, typeInfo)
+local function storeStructuredData(chain, facets, apiData, args, typeInfo, resolved, editorialData)
 	local dataList = {}
 	for _, mod in ipairs(chain) do
 		if mod.getStructuredData then
-			table.insert(dataList, mod.getStructuredData(apiData, args))
+			table.insert(dataList, mod.getStructuredData(apiData, args, resolved))
 		end
 	end
 	for _, facet in ipairs(facets) do
 		if facet.getStructuredData then
-			table.insert(dataList, facet.getStructuredData(apiData, args))
+			table.insert(dataList, facet.getStructuredData(apiData, args, resolved))
 		end
 	end
 	local merged = assembly.mergeStructuredData(dataList)
+	for k, v in pairs(editorialData or {}) do
+		merged[k] = v
+	end
 	-- `subject_type` is the page's most-specific structural type (fine-grained:
 	-- "Gun", "Cooler", …), deliberately distinct from the coarse `result.kind`
 	-- (Item / Vehicle / …). It is the same value that drives the structural
@@ -54,7 +59,8 @@ end
 --- @param facets table[]
 --- @param apiData table
 --- @param args table
-local function setShortDescription(frame, typeInfo, chain, facets, apiData, args)
+--- @param resolved table|nil Editorial resolved fields (optional; {} when no manifest)
+local function setShortDescription(frame, typeInfo, chain, facets, apiData, args, resolved)
 	if not typeInfo then
 		return
 	end
@@ -72,7 +78,7 @@ local function setShortDescription(frame, typeInfo, chain, facets, apiData, args
 	local desc = typeInfo.name
 	for i = #chain, 1, -1 do
 		if chain[i].getShortDescription then
-			desc = chain[i].getShortDescription(apiData, args, typeInfo, prefix)
+			desc = chain[i].getShortDescription(apiData, args, typeInfo, prefix, resolved)
 			break
 		end
 	end
@@ -96,11 +102,28 @@ function p.main(frame)
 	end
 
 	local html = entityInfobox.render(result, args)
-	local storeSuccess = storeStructuredData(result.chain, result.facets, result.apiData, args, result.typeInfo)
+	local storeSuccess = storeStructuredData(
+		result.chain,
+		result.facets,
+		result.apiData,
+		args,
+		result.typeInfo,
+		result.resolved,
+		result.editorialData
+	)
 
-	setShortDescription(frame, result.typeInfo, result.chain, result.facets, result.apiData, args)
+	setShortDescription(frame, result.typeInfo, result.chain, result.facets, result.apiData, args, result.resolved)
 
-	return html .. categories.build(result.typeInfo, result.apiData, args, result.hasApiError, not storeSuccess)
+	return html
+		.. categories.build(
+			result.typeInfo,
+			result.apiData,
+			args,
+			result.hasApiError,
+			not storeSuccess,
+			result.hasManualApiData,
+			result.unresolvedReference
+		)
 end
 
 return p

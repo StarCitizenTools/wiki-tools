@@ -91,6 +91,34 @@ function suite:testBuildHtmlListMultiple()
 	)
 end
 
+-- splitSemi
+
+function suite:testSplitSemiEmpty()
+	self:assertEquals(0, #format.splitSemi(''))
+	self:assertEquals(0, #format.splitSemi(nil))
+end
+
+function suite:testSplitSemiSingle()
+	local r = format.splitSemi('https://a')
+	self:assertEquals(1, #r)
+	self:assertEquals('https://a', r[1])
+end
+
+function suite:testSplitSemiMultipleTrimmed()
+	local r = format.splitSemi('https://a; https://b ;https://c')
+	self:assertEquals(3, #r)
+	self:assertEquals('https://a', r[1])
+	self:assertEquals('https://b', r[2])
+	self:assertEquals('https://c', r[3])
+end
+
+function suite:testSplitSemiDropsBlanks()
+	-- empty segments (e.g. a trailing ';') are skipped
+	local r = format.splitSemi('https://a;;')
+	self:assertEquals(1, #r)
+	self:assertEquals('https://a', r[1])
+end
+
 -- buildSiteLinks
 
 function suite:testBuildSiteLinksFormatAndData()
@@ -139,6 +167,32 @@ function suite:testBuildSiteLinksJoinsMultiple()
 	self:assertEquals(
 		'[https://finder.example.com/abc-123 Finder] · [https://galactapedia.example.com/page Galactapedia]',
 		result
+	)
+end
+
+function suite:testBuildSiteLinksListSingleKeepsBareLabel()
+	-- A single-element list value renders one link with the unnumbered label.
+	local result = format.buildSiteLinks(
+		{ { label = 'Presentation', arg = 'presentation' } },
+		{ presentation = { 'https://p1' } }
+	)
+	self:assertEquals('[https://p1 Presentation]', result)
+end
+
+function suite:testBuildSiteLinksListMultipleNumbered()
+	-- A multi-element list emits one link per URL, numbering the labels.
+	local result = format.buildSiteLinks(
+		{ { label = 'Presentation', arg = 'presentation' } },
+		{ presentation = { 'https://p1', 'https://p2' } }
+	)
+	self:assertEquals('[https://p1 Presentation 1] · [https://p2 Presentation 2]', result)
+end
+
+function suite:testBuildSiteLinksEmptyListSkipped()
+	-- An empty list contributes no link (same as an absent value).
+	self:assertEquals(
+		nil,
+		format.buildSiteLinks({ { label = 'Presentation', arg = 'presentation' } }, { presentation = {} })
 	)
 end
 

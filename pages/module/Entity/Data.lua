@@ -241,6 +241,28 @@ function p.get(args)
 		hasManualApiData = editorial.hasManualApiData(resolved)
 	end
 
+	-- Kind-contributed browse categories that need editorial (resolved) data.
+	-- typeInfo may be a frozen typeResolver result, so copy before appending.
+	if matchedKind and matchedKind.getCategories then
+		local extra = matchedKind.getCategories(apiData, args, resolved)
+		if type(extra) == 'table' and extra[1] ~= nil then
+			local copy = {}
+			for k, v in pairs(typeInfo or {}) do
+				copy[k] = v
+			end
+			local cats = {}
+			for _, c in ipairs(copy.categories or {}) do
+				cats[#cats + 1] = c
+			end
+			for _, c in ipairs(extra) do
+				cats[#cats + 1] = c
+			end
+			copy.categories = cats
+			typeInfo = copy
+			displayType = displayType or copy.name
+		end
+	end
+
 	return {
 		args = args,
 		kind = kind,

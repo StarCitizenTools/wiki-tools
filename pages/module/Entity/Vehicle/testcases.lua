@@ -476,4 +476,139 @@ function suite:testExternalEmptyWhenNoData()
 	self:assertEquals(0, #Vehicle.getExternalSiteItems({}, {}))
 end
 
+function suite:testSizeDisplayMatrixAndClass()
+	local s = Vehicle.getSections({ is_spaceship = true, size = 'medium', size_class = 3 }, {}, {})
+	self:assertEquals('Medium (S3)', findItem(findSection(s, 'overview').items, 'Size').content)
+end
+
+function suite:testSizeDisplayMatrixOnly()
+	local s = Vehicle.getSections({ is_spaceship = true, size = 'large' }, {}, {})
+	self:assertEquals('Large', findItem(findSection(s, 'overview').items, 'Size').content)
+end
+
+function suite:testSizeDisplayClassOnly()
+	local s = Vehicle.getSections({ is_spaceship = true, size_class = 2 }, {}, {})
+	self:assertEquals('S2', findItem(findSection(s, 'overview').items, 'Size').content)
+end
+
+function suite:testSizeDisplayArgOverridesApi()
+	-- |size= (wiki) wins over the API matrix size (Railen: editorially Large, API medium).
+	local s = Vehicle.getSections({ is_spaceship = true, size = 'medium', size_class = 5 }, { size = 'Large' }, {})
+	self:assertEquals('Large (S5)', findItem(findSection(s, 'overview').items, 'Size').content)
+end
+
+function suite:testCategoriesSizeFromArg()
+	local cats = Vehicle.getCategories({ is_spaceship = true, size = 'medium' }, { size = 'Large' }, {})
+	local set = {}
+	for _, c in ipairs(cats) do
+		set[c] = true
+	end
+	self:assertEquals(true, set['Large ships'])
+	self:assertEquals(nil, set['Medium ships'])
+end
+
+function suite:testSizeDisplayNilWhenNeither()
+	local s = Vehicle.getSections({ is_spaceship = true }, {}, {})
+	self:assertEquals(nil, findItem(findSection(s, 'overview').items, 'Size'))
+end
+
+function suite:testModelAppendsGeneration()
+	local s = Vehicle.getSections({ is_spaceship = true }, {}, {
+		series = { value = 'Avenger', source = 'editorial' },
+		generation = { value = 'II', source = 'editorial' },
+	})
+	local model = findItem(findSection(s, 'overview').items, 'Model').content
+	self:assertTrue(model:find('Avenger', 1, true) ~= nil)
+	self:assertTrue(model:find('[[:Category:Avenger II|II]]', 1, true) ~= nil)
+end
+
+function suite:testModelNoGenerationWhenAbsent()
+	local s = Vehicle.getSections({ is_spaceship = true }, {}, {
+		series = { value = 'Avenger', source = 'editorial' },
+	})
+	local model = findItem(findSection(s, 'overview').items, 'Model').content
+	self:assertTrue(model:find('generation', 1, true) == nil)
+end
+
+function suite:testHeaderBadgeStillStringForKnownState()
+	self:assertEquals(true, type(Vehicle.getHeaderBadge({ production_status = 'flight-ready' }, {}, {})) == 'string')
+	self:assertEquals(nil, Vehicle.getHeaderBadge({ production_status = 'made up' }, {}, {}))
+end
+
+function suite:testHeaderBadgeWithNoteIncludesNote()
+	-- production_note present: badge still returns a string (FloatingUI.render is stubbed)
+	local result = Vehicle.getHeaderBadge({ production_status = 'in-concept', production_note = 'Delayed' }, {}, {})
+	self:assertEquals(true, type(result) == 'string')
+end
+
+function suite:testEditorialManifestHasGeneration()
+	local m = Vehicle.getEditorialManifest()
+	-- arg is the alias list (legacy [ARG_Generation, ARG_mark]; pages also write |Generation=).
+	self:assertEquals('generation', m.generation.arg[1])
+	self:assertEquals('Generation', m.generation.arg[2])
+	self:assertEquals('mark', m.generation.arg[3])
+	self:assertEquals('Generation', m.generation.smw)
+	self:assertEquals(nil, m.generation.apiPath)
+end
+
+function suite:testCategoriesGenerationGrouping()
+	-- "<series> <generation>" (legacy category_generation "%s %s"), e.g. "Constellation Mk4".
+	local cats = Vehicle.getCategories({ is_spaceship = true }, {}, {
+		series = { value = 'Constellation', source = 'editorial' },
+		generation = { value = 'Mk4', source = 'editorial' },
+	})
+	local set = {}
+	for _, c in ipairs(cats) do
+		set[c] = true
+	end
+	self:assertEquals(true, set['Constellation Mk4'])
+end
+
+function suite:testCategoriesShip()
+	-- Pass args.manufacturer so resolveManufacturer returns a fallback record with
+	-- name == 'Gatac Manufacture', enabling the manufacturer+series category.
+	local cats = Vehicle.getCategories(
+		{ is_spaceship = true, size = 'large', msrp = 220, production_status = 'flight-ready' },
+		{ career = 'Transport', manufacturer = 'Gatac Manufacture' },
+		{ series = { value = 'Railen', source = 'editorial' } }
+	)
+	local set = {}
+	for _, c in ipairs(cats) do
+		set[c] = true
+	end
+	self:assertEquals(true, set['Large ships'])
+	self:assertEquals(true, set['Pledge ships'])
+	self:assertEquals(true, set['Flight ready'])
+	self:assertEquals(true, set['Transport career'])
+	-- mfr+series depends on resolveManufacturer; assert the series suffix appears
+	local hasSeries = false
+	for _, c in ipairs(cats) do
+		if c:find(' Railen', 1, true) then
+			hasSeries = true
+		end
+	end
+	self:assertEquals(true, hasSeries)
+end
+
+function suite:testCategoriesGroundNoSizeAndPledgeVehicles()
+	local cats = Vehicle.getCategories(
+		{ is_vehicle = true, size = 'small', msrp = 50, production_status = 'flight-ready' },
+		{},
+		{}
+	)
+	local set = {}
+	for _, c in ipairs(cats) do
+		set[c] = true
+	end
+	self:assertEquals(nil, set['Small ships']) -- size category is ships-only
+	self:assertEquals(true, set['Pledge vehicles']) -- ground uses "Pledge vehicles"
+end
+
+function suite:testCategoriesNoPledgeNoSeries()
+	local cats = Vehicle.getCategories({ is_spaceship = true, size = 'large' }, {}, {})
+	for _, c in ipairs(cats) do
+		self:assertEquals(false, c == 'Pledge ships')
+	end
+end
+
 return suite

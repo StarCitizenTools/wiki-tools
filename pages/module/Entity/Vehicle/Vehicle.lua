@@ -7,6 +7,7 @@ require('strict')
 local base = require('Module:Entity/Base')
 local dimensions = require('Module:Dimensions')
 local dimensionsPresets = require('Module:Dimensions/presets')
+local floatingui = require('Module:FloatingUI')
 local format = require('Module:Entity/Format')
 local productionStatus = require('Module:Entity/ProductionStatus')
 local progressTiles = require('Module:ProgressTiles')
@@ -180,6 +181,35 @@ end
 local function editorialValue(resolved, field)
 	local entry = resolved and resolved[field]
 	return entry and entry.value or nil
+end
+
+--- Ship-matrix size string: the curated `|size=` arg wins over `apiData.size`.
+--- The wiki overrides the API here (e.g. the Railen is editorially Large but the
+--- API reports medium), matching the legacy infobox. nil when neither is set.
+--- @param apiData table
+--- @param args table
+--- @return string|nil
+local function matrixSize(apiData, args)
+	if type(args.size) == 'string' and args.size ~= '' then
+		return args.size
+	end
+	return type(apiData.size) == 'string' and apiData.size ~= '' and apiData.size or nil
+end
+
+--- Size as "<matrix> (S<class>)" — ship-matrix size + the in-game size class.
+--- Either part alone when the other is absent; nil when neither.
+--- @param apiData table
+--- @param args table
+--- @return string|nil
+local function sizeDisplay(apiData, args)
+	local size = matrixSize(apiData, args)
+	local matrix = size and lang:ucfirst(size) or nil
+	local cls = tonumber(apiData.size_class)
+	local game = cls and ('S' .. math.floor(cls + 0.5)) or nil
+	if matrix and game then
+		return matrix .. ' (' .. game .. ')'
+	end
+	return matrix or game
 end
 
 --- Loaner ships as a comma-joined wikilink list, or nil. Suppressed for
@@ -386,7 +416,9 @@ end
 
 --- "Model" row (legacy label for the series): the editorial series as
 --- "<mfr code> <series>" linked to the manufacturer's series browse category,
---- or the plain series when no manufacturer resolves. nil when no series.
+--- or the plain series when no manufacturer resolves. Appends a generation
+--- link when a `generation` editorial field resolves and series is present.
+--- nil when no series.
 --- @param apiData table
 --- @param args table
 --- @param resolved table|nil
@@ -397,10 +429,19 @@ local function modelLink(apiData, args, resolved)
 		return nil
 	end
 	local mfr = base.resolveManufacturer(apiData, args)
+	local out
 	if mfr and mfr.code and mfr.name then
-		return '[[:Category:' .. mfr.name .. ' ' .. series .. '|' .. mfr.code .. ' ' .. series .. ']]'
+		out = '[[:Category:' .. mfr.name .. ' ' .. series .. '|' .. mfr.code .. ' ' .. series .. ']]'
+	else
+		out = tostring(series)
 	end
-	return tostring(series)
+	local generation = editorialValue(resolved, 'generation')
+	if generation ~= nil and generation ~= '' then
+		-- Generation browse category is "<series> <generation>" (legacy
+		-- category_generation = "%s %s"), e.g. "Constellation Mk4" — no suffix.
+		out = out .. ' [[:Category:' .. series .. ' ' .. generation .. '|' .. generation .. ']]'
+	end
+	return out
 end
 
 --- @param apiData table
@@ -430,7 +471,7 @@ function p.getSections(apiData, args, resolved)
 	-- not flag every vehicle into the manual-API-data maintenance category.
 	sectionBuilder.push(overview, 'Career', careerLink(args.career or apiData.career))
 	sectionBuilder.push(overview, 'Role', apiData.role)
-	sectionBuilder.push(overview, 'Size', apiData.size and lang:ucfirst(tostring(apiData.size)) or nil)
+	sectionBuilder.push(overview, 'Size', sizeDisplay(apiData, args))
 	sectionBuilder.push(overview, 'Model', modelLink(apiData, args, resolved))
 
 	-- Capacity
@@ -656,8 +697,35 @@ function p.getSubtitle(apiData, args)
 	return manufacturerLink(apiData, args)
 end
 
+--- Build the FloatingUI tooltip content for a production state badge.
+--- Returns a section string (via FloatingUI.renderSection) for the state
+--- description, plus an additional section for the per-ship note when it is
+--- present and differs from the description. Returns nil when both are absent.
+--- @param desc string|nil  State description from ProductionStatus.tooltip()
+--- @param note string|nil  Per-ship production note from apiData.production_note
+--- @return string|nil
+local function buildProductionTooltip(desc, note)
+	local hasDesc = type(desc) == 'string' and desc ~= ''
+	-- The API returns the literal string "None" for ships with no note.
+	local hasNote = type(note) == 'string' and note ~= '' and note:lower() ~= 'none' and note ~= desc
+	if not hasDesc and not hasNote then
+		return nil
+	end
+	local content = ''
+	if hasDesc then
+		content = content .. floatingui.renderSection({ desc = desc })
+	end
+	if hasNote then
+		content = content .. floatingui.renderSection({ label = 'Note', desc = note })
+	end
+	return content ~= '' and content or nil
+end
+
 --- Vehicle production-state badge for the infobox header overlay. Uses the
 --- editorial-resolved production_state (API production_status, override-able).
+--- The badge is wrapped in a FloatingUI tooltip showing the state description
+--- and any per-ship production note. The FloatingUI JS/CSS loader is prepended
+--- so the tooltip can open on the live page.
 --- Vehicle-only: other entities are in-game by definition, so a status badge
 --- would be noise.
 --- @param apiData table
@@ -667,7 +735,20 @@ end
 function p.getHeaderBadge(apiData, args, resolved)
 	local state = resolved and resolved.production_state and resolved.production_state.value
 		or apiData.production_status
-	return productionStatus.badge(state)
+	local badge = productionStatus.badge(state)
+	if not badge then
+		return nil
+	end
+	-- Per-ship note: the editorial `productionstatedesc` (wiki-curated) wins, with the
+	-- API production_note as fallback (usually "None", dropped by buildProductionTooltip).
+	local note = editorialValue(resolved, 'production_state_desc') or apiData.production_note
+	local content = buildProductionTooltip(productionStatus.tooltip(state), note)
+	if not content then
+		return badge
+	end
+	-- floatingui.load() emits <templatestyles> + #floatingui parser function —
+	-- prepend it so the tooltip JS/CSS is guaranteed loaded on the page.
+	return floatingui.load(mw.getCurrentFrame()) .. floatingui.render(badge, content, true)
 end
 
 --- Return the Vehicle editorial manifest. Used by Module:Entity/Editorial to
@@ -759,6 +840,53 @@ function p.getExternalSiteItems(apiData, args)
 		items[#items + 1] = { label = 'Community sites', content = community }
 	end
 	return items
+end
+
+--- Legacy {{Vehicle}}-parity browse categories beyond the structural bucket
+--- (Ships / Ground vehicles) and the manufacturer category. Size/career/etc. are
+--- ALSO SMW facets; these categories are additive for navigation. Pure.
+--- @param apiData table
+--- @param args table
+--- @param resolved table
+--- @return string[]
+function p.getCategories(apiData, args, resolved)
+	local cats = {}
+	local isShip = apiData.is_spaceship and true or false
+	-- Size (ships only): "Large ships" — the curated |size= wins (API may disagree)
+	local size = matrixSize(apiData, args)
+	if isShip and size then
+		cats[#cats + 1] = lang:ucfirst(size) .. ' ships'
+	end
+	-- Pledge: ship -> "Pledge ships"; ground/gravlev -> "Pledge vehicles" (when a pledge price exists)
+	local pledge = tonumber(effective(resolved, 'pledge_price', apiData.msrp))
+	if pledge and pledge > 0 then
+		cats[#cats + 1] = isShip and 'Pledge ships' or 'Pledge vehicles'
+	end
+	-- Production state label: "Flight ready"
+	local state = (resolved.production_state and resolved.production_state.value) or apiData.production_status
+	local stateLabel = productionStatus.label(state)
+	if stateLabel then
+		cats[#cats + 1] = stateLabel
+	end
+	-- Series grouping "<mfr name> <series>" (e.g. "Gatac Manufacture Railen"), and
+	-- generation grouping "<series> <generation>" (e.g. "Constellation Mk4").
+	local series = editorialValue(resolved, 'series')
+	if series ~= nil and series ~= '' then
+		local mfr = base.resolveManufacturer(apiData, args)
+		if mfr and mfr.name then
+			cats[#cats + 1] = mfr.name .. ' ' .. series
+		end
+		local generation = editorialValue(resolved, 'generation')
+		if generation ~= nil and generation ~= '' then
+			cats[#cats + 1] = series .. ' ' .. generation
+		end
+	end
+	-- Career: "Transport career"
+	local career = args.career or apiData.career
+	if type(career) == 'string' and career ~= '' then
+		cats[#cats + 1] = lang:ucfirst(career) .. ' career'
+	end
+	return cats
 end
 
 return p

@@ -394,7 +394,20 @@ if props then
 					fail(manifest.path, 'field ' .. tostring(field) .. ' is not an object')
 					edFailed = true
 				else
-					if type(def.arg) ~= 'string' or def.arg == '' then
+					-- .arg is a non-empty string, or a non-empty list of non-empty
+					-- strings (alias args tried in order, e.g. ["series", "model"]).
+					local argOk = false
+					if type(def.arg) == 'string' then
+						argOk = def.arg ~= ''
+					elseif type(def.arg) == 'table' and def.arg[1] ~= nil then
+						argOk = true
+						for _, a in ipairs(def.arg) do
+							if type(a) ~= 'string' or a == '' then
+								argOk = false
+							end
+						end
+					end
+					if not argOk then
 						fail(manifest.path, 'field ' .. field .. ' has missing or empty .arg')
 						edFailed = true
 					end

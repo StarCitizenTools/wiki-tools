@@ -70,6 +70,24 @@ return {
 			end,
 		})
 
+		-- Module:FloatingUI — rich tooltip wrapper (Extension:FloatingUI). Stubbed so
+		-- getHeaderBadge runs in the runner and returns a string; render() passes the
+		-- reference through, load() returns an empty string (no parser function needed).
+		api.stub('FloatingUI', {
+			render = function(reference, _content, _inline)
+				return reference
+			end,
+			renderSection = function(_data)
+				return ''
+			end,
+			getContentHtml = function(content, _tag)
+				return content or ''
+			end,
+			load = function(_frame)
+				return ''
+			end,
+		})
+
 		-- mw.ext.aggrid — require-able stand-in for the AGGrid extension, required
 		-- at load time by Module:AGGridColumns / Module:DataGrid. Their suites assert
 		-- pure logic, so the builders only need to exist and return plausible shapes.

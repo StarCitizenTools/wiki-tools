@@ -41,4 +41,37 @@ function suite:testKeyNilOnEmpty()
 	self:assertEquals(nil, ProductionStatus.key(''))
 end
 
+function suite:testResolveAllStates()
+	self:assertEquals('Active production', resolve('active-production').label)
+	self:assertEquals('Active for Squadron 42', resolve('active-for-squadron-42').label)
+	self:assertEquals('Long term production', resolve('long-term-production').label)
+	self:assertEquals('In concept', resolve('in-concept').label)
+	self:assertEquals('In lore', resolve('in-lore').label)
+end
+
+function suite:testDriveReadyIsNotAState()
+	self:assertEquals(nil, resolve('drive-ready'))
+end
+
+function suite:testTooltipReturnsDescription()
+	self:assertTrue(ProductionStatus.tooltip('flight-ready'):find('full operations', 1, true) ~= nil)
+	self:assertEquals(nil, ProductionStatus.tooltip('made up'))
+end
+
+function suite:testBadgeForNewState()
+	self:assertEquals(true, type(ProductionStatus.badge('in-concept')) == 'string')
+end
+
+function suite:testLabelFlightReady()
+	self:assertEquals('Flight ready', ProductionStatus.label('flight-ready'))
+end
+
+function suite:testLabelUnknown()
+	self:assertEquals(nil, ProductionStatus.label('made up'))
+end
+
+function suite:testLabelNil()
+	self:assertEquals(nil, ProductionStatus.label(nil))
+end
+
 return suite

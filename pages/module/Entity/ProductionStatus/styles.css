@@ -3,19 +3,19 @@
    (blue-violet). Higher specificity (.t-badge.production-status-badge--*)
    overrides the BadgeLua base regardless of stylesheet order. */
 
-.t-badge.production-status-badge--flight-ready {
+.t-badge.production-status-badge--ready {
 	color: light-dark(oklch(51% 0.12 150), oklch(70% 0.16 150));
 	background-color: light-dark(oklch(95% 0.025 150), oklch(16% 0.035 150));
 	border-color: light-dark(oklch(90% 0.055 150), oklch(26% 0.055 150));
 }
 
-.t-badge.production-status-badge--in-production {
+.t-badge.production-status-badge--production {
 	color: light-dark(oklch(54% 0.13 70), oklch(76% 0.15 75));
 	background-color: light-dark(oklch(95% 0.04 75), oklch(17% 0.05 60));
 	border-color: light-dark(oklch(92% 0.075 75), oklch(29% 0.075 60));
 }
 
-.t-badge.production-status-badge--in-concept {
+.t-badge.production-status-badge--concept {
 	color: light-dark(oklch(52% 0.16 250), oklch(72% 0.13 250));
 	background-color: light-dark(oklch(95% 0.03 250), oklch(17% 0.055 250));
 	border-color: light-dark(oklch(91% 0.06 250), oklch(28% 0.085 250));

@@ -487,6 +487,14 @@
 		],
 		"desc": "G-force resistance modifier a suit confers to the wearer."
 	},
+	"Generation": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Vehicle generation within its series (e.g. II, III)."
+	},
 	"Grade": {
 		"smw": "Text",
 		"bucket": "TEXT",
@@ -987,6 +995,14 @@
 			"Vehicle"
 		],
 		"desc": "Production/flight-readiness state of a vehicle (e.g. Flight Ready, In Production)."
+	},
+	"Production state description": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Editorial per-vehicle note about its production state (shown in the production-status tooltip)."
 	},
 	"Qig charge time": {
 		"smw": "Number",

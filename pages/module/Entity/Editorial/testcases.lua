@@ -75,4 +75,15 @@ function suite:testPageTransform()
 	self:assertEquals('Aurora', r.series.value)
 end
 
+function suite:testArgAliasFirstNonEmptyWins()
+	-- A list-valued .arg tries each alias in order (mirrors legacy [ARG_Series, ARG_Model]).
+	local M = { series = { arg = { 'series', 'model' }, smw = 'Series' } }
+	self:assertEquals('Hull', Editorial.resolve({}, { series = 'Hull' }, M).series.value)
+	self:assertEquals('Railen', Editorial.resolve({}, { model = 'Railen' }, M).series.value)
+	-- First alias wins when both are set.
+	self:assertEquals('A', Editorial.resolve({}, { series = 'A', model = 'B' }, M).series.value)
+	-- Empty first alias falls through to the second.
+	self:assertEquals('B', Editorial.resolve({}, { series = '', model = 'B' }, M).series.value)
+end
+
 return suite

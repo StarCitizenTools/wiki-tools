@@ -9,7 +9,8 @@
 	"pledge_price": { "arg": "pledgecost", "smw": "Pledge price", "apiPath": "msrp", "transform": "number" },
 	"pledge_availability": { "arg": "pledgeavailability", "smw": "Pledge availability" },
 	"production_state": { "arg": "productionstate", "smw": "Production state", "apiPath": "production_status" },
-	"series": { "arg": "model", "smw": "Series" },
+	"production_state_desc": { "arg": "productionstatedesc", "smw": "Production state description" },
+	"series": { "arg": ["series", "model"], "smw": "Series" },
 	"warbond_price": { "arg": "warbondcost", "smw": "Warbond pledge price", "transform": "number" },
 	"original_pledge_price": { "arg": "originalpledgecost", "smw": "Original pledge price", "transform": "number" },
 	"original_warbond_price": { "arg": "originalwarbondcost", "smw": "Original warbond pledge price", "transform": "number" },
@@ -18,6 +19,7 @@
 	"retracted_height": { "arg": "retractedheight", "smw": "Retracted height", "transform": "number" },
 	"release_date": { "arg": "releasedate", "smw": "Lore release date" },
 	"retirement_date": { "arg": "retiredate", "smw": "Lore retirement date" },
-	"concept_announced": { "arg": "conceptannounced", "smw": "Concept announcement date" },
-	"concept_sale": { "arg": "conceptsale", "smw": "Concept sale date" }
+	"concept_announced": { "arg": "conceptdate", "smw": "Concept announcement date" },
+	"concept_sale": { "arg": "saledate", "smw": "Concept sale date" },
+	"generation": { "arg": ["generation", "Generation", "mark"], "smw": "Generation" }
 }

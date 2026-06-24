@@ -124,9 +124,25 @@ function p.resolve(apiData, args, manifest)
 	local resolved = {}
 	for field, def in pairs(manifest) do
 		if field:sub(1, 1) ~= '%' then
-			local raw = args[def.arg]
-			if type(raw) == 'string' then
-				raw = mw.text.trim(raw)
+			-- def.arg is a single template-arg name, or a list of aliases tried in
+			-- order (first non-empty wins) — mirrors the legacy `[ARG_Series, ARG_Model]`.
+			local raw
+			if type(def.arg) == 'table' then
+				for _, name in ipairs(def.arg) do
+					local v = args[name]
+					if type(v) == 'string' then
+						v = mw.text.trim(v)
+					end
+					if v ~= nil and v ~= '' then
+						raw = v
+						break
+					end
+				end
+			else
+				raw = args[def.arg]
+				if type(raw) == 'string' then
+					raw = mw.text.trim(raw)
+				end
 			end
 			if (raw == nil or raw == '') and def.default ~= nil then
 				raw = def.default

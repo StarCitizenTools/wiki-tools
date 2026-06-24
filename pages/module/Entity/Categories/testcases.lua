@@ -94,4 +94,20 @@ function suite:testBuildOmitsManualApiDataCategoryWhenFalse()
 	self:assertEquals(true, string.find(out, 'Category:Entities with manual API data', 1, true) == nil)
 end
 
+function suite:testBuildEmitsUnresolvedReferenceWhenTrue()
+	local out = Categories.build({ name = 'Ship', category = 'Ships' }, {}, {}, false, false, false, true)
+	self:assertEquals(true, string.find(out, 'Pages with an unresolved entity reference', 1, true) ~= nil)
+end
+
+function suite:testBuildOmitsUnresolvedReferenceWhenFalse()
+	local out = Categories.build({ name = 'Ship', category = 'Ships' }, {}, {}, false, false, false, false)
+	self:assertEquals(true, string.find(out, 'unresolved entity reference', 1, true) == nil)
+end
+
+function suite:testBuildOmitsUnresolvedReferenceWhenAbsent()
+	-- 6-arg legacy callers must behave exactly as before.
+	local out = Categories.build({ name = 'Ship', category = 'Ships' }, {}, {}, false, false, false)
+	self:assertEquals(true, string.find(out, 'unresolved entity reference', 1, true) == nil)
+end
+
 return suite

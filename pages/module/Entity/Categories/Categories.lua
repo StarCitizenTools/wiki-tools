@@ -10,6 +10,7 @@ local base = require('Module:Entity/Base')
 local CATEGORY_API_ERROR = '[[Category:Pages with API errors]]'
 local CATEGORY_STRUCTURED_DATA_ERROR = '[[Category:Pages with structured data errors]]'
 local CATEGORY_MANUAL_API_DATA = '[[Category:Entities with manual API data]]'
+local CATEGORY_UNRESOLVED_REFERENCE = '[[Category:Pages with an unresolved entity reference]]'
 
 local p = {}
 
@@ -63,8 +64,9 @@ end
 --- @param hasApiError boolean
 --- @param hasStructuredDataError boolean
 --- @param hasManualApiData boolean
+--- @param unresolvedReference boolean|nil
 --- @return string
-function p.build(typeInfo, apiData, args, hasApiError, hasStructuredDataError, hasManualApiData)
+function p.build(typeInfo, apiData, args, hasApiError, hasStructuredDataError, hasManualApiData, unresolvedReference)
 	local categories = ''
 
 	if mw.title.getCurrentTitle():inNamespace(0) then
@@ -81,6 +83,9 @@ function p.build(typeInfo, apiData, args, hasApiError, hasStructuredDataError, h
 	end
 	if hasManualApiData then
 		categories = categories .. CATEGORY_MANUAL_API_DATA
+	end
+	if unresolvedReference then
+		categories = categories .. CATEGORY_UNRESOLVED_REFERENCE
 	end
 	return categories
 end

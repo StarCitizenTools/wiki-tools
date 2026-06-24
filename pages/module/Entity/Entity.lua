@@ -121,7 +121,8 @@ function p.main(frame)
 			args,
 			result.hasApiError,
 			not storeSuccess,
-			result.hasManualApiData
+			result.hasManualApiData,
+			result.unresolvedReference
 		)
 end
 

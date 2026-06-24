@@ -47,6 +47,7 @@ local p = {}
 --- @field resolveSubtype nil|fun(apiData: table|nil): table|nil Refine to a subtype leaf module, or nil
 --- @field enrich nil|fun(apiData: table): table Post-fetch mutation hook (returns apiData)
 --- @field getEditorialManifest nil|fun(): table A per-kind editorial-field manifest (field -> { arg, smw, apiPath?, transform?, default? }); presence opts the kind into the editorial layer
+--- @field editorialMode boolean|nil Opt-in: when true the kind renders from editorial args alone (apiData = {}) for planned / not-yet-in-game pages with no genuine API record. See Module:Entity/Data.
 
 --- @class EntityFacet
 --- A cross-cutting additive aspect matched on a data field, independent of kind.

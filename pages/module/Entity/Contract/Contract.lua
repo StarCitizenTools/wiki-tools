@@ -15,10 +15,12 @@ local p = {}
 --- `matches` + `getApiConfigs` identify it; the rest are optional chain-link
 --- contributions a kind may also make as a chain root.
 ---
---- A kind also declares a string `name` (exposed as Data.get().result.kind). It
---- is absent from the spec below because validate() type-checks every spec key as
---- a function hook; `name` is enforced as a non-empty, unique string by the
---- Registry conformance test (Module:Entity/Registry/testcases) instead.
+--- A kind's canonical scalar fields — `name` (exposed as Data.get().result.kind)
+--- and the `editorialMode` opt-in — are absent from the spec below because
+--- validate() type-checks every spec key as a function hook. They live in
+--- p.KIND_FIELDS and are type-checked by validateFields() (run by the Registry
+--- conformance test); `name`'s non-empty + uniqueness guarantee remains enforced
+--- specifically by testAllKindsDeclareName in Module:Entity/Registry/testcases.
 --- @type table<string, boolean>
 p.KIND = {
 	matches = true,
@@ -34,6 +36,16 @@ p.KIND = {
 	getSubtitle = false,
 	getHeaderBadge = false,
 	getCategories = false,
+}
+
+--- Non-function KIND fields with declared scalar types. validate() rejects any
+--- non-function spec key, so typed scalar fields — the canonical kind `name` and
+--- the `editorialMode` opt-in — live here and are checked by validateFields(),
+--- run alongside validate() by the Registry conformance test.
+--- @type table<string, { type: string, required: boolean }>
+p.KIND_FIELDS = {
+	name = { type = 'string', required = true },
+	editorialMode = { type = 'boolean', required = false },
 }
 
 --- Facet: a cross-cutting additive aspect matched on a data field.
@@ -86,6 +98,36 @@ function p.validate(component, spec)
 			end
 		elseif type(value) ~= 'function' then
 			table.insert(errors, 'hook is not a function: ' .. hook .. ' (got ' .. type(value) .. ')')
+		end
+	end
+	return #errors == 0, errors
+end
+
+--- Validates a component's non-function declared fields against a field spec.
+--- Each required field must be present and of the declared type; each present
+--- field must match its declared type. Complements validate() (function hooks)
+--- for scalar fields like `name` and `editorialMode`.
+---
+--- @param component table The module to check
+--- @param fieldSpec table<string, { type: string, required: boolean }>
+--- @return boolean ok True when there are no errors
+--- @return string[] errors Human-readable messages (empty when ok)
+function p.validateFields(component, fieldSpec)
+	if type(component) ~= 'table' then
+		return false, { 'component is not a table (got ' .. type(component) .. ')' }
+	end
+	local errors = {}
+	for field, decl in pairs(fieldSpec) do
+		local value = component[field]
+		if value == nil then
+			if decl.required then
+				table.insert(errors, 'missing required field: ' .. field)
+			end
+		elseif type(value) ~= decl.type then
+			table.insert(
+				errors,
+				'field has wrong type: ' .. field .. ' (expected ' .. decl.type .. ', got ' .. type(value) .. ')'
+			)
 		end
 	end
 	return #errors == 0, errors

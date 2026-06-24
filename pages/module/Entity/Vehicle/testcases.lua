@@ -351,6 +351,20 @@ function suite:testDimensionsOmittedWhenIncomplete()
 	)
 end
 
+function suite:testDimensionsFromEditorial()
+	-- Planned/concept vehicle: no apiData.dimension; length/width/height/mass come
+	-- from editorial args, so the Dimensions box still renders (editorial-first).
+	local s = Vehicle.getSections({}, { family = 'ship' }, {
+		length = { value = 372, source = 'editorial' },
+		width = { value = 104, source = 'editorial' },
+		height = { value = 104, source = 'editorial' },
+		mass = { value = 1652000, source = 'editorial' },
+	})
+	local d = findSection(s, 'dimensions')
+	self:assertEquals('dimensions', d.key)
+	self:assertEquals(true, type(d.content) == 'string' and #d.content > 0)
+end
+
 function suite:testStatsFlightTabHasSpeed()
 	local s = Vehicle.getSections({ is_spaceship = true, speed = { scm = 227, max = 1230 } }, {}, {})
 	local flight = findItem(findSection(s, 'stats').sections, 'Flight')

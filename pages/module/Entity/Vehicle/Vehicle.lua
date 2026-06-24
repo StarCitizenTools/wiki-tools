@@ -722,18 +722,25 @@ end
 --- @param resolved table|nil
 --- @return table|nil
 local function buildDimensions(apiData, args, resolved)
-	local dim = type(apiData.dimension) == 'table' and apiData.dimension or nil
-	if not (dim and tonumber(dim.length) and tonumber(dim.width) and tonumber(dim.height)) then
+	local dim = type(apiData.dimension) == 'table' and apiData.dimension or {}
+	-- Editorial-first: a planned/concept vehicle supplies length/width/height/mass
+	-- via args (no API record); an in-game vehicle falls back to the API dimension
+	-- block. These are overlap fields, so an editor override is audited like the rest.
+	local length = tonumber(effective(resolved, 'length', dim.length))
+	local width = tonumber(effective(resolved, 'width', dim.width))
+	local height = tonumber(effective(resolved, 'height', dim.height))
+	if not (length and width and height) then
 		return nil
 	end
 	local metrics = {}
-	if tonumber(apiData.mass) then
-		metrics[#metrics + 1] = { label = 'Mass', value = format.formatNum(apiData.mass) .. ' kg' }
+	local mass = tonumber(effective(resolved, 'mass', apiData.mass))
+	if mass then
+		metrics[#metrics + 1] = { label = 'Mass', value = format.formatNum(mass) .. ' kg' }
 	end
 	local boxHtml = dimensions._main({
-		length = tonumber(dim.length),
-		width = tonumber(dim.width),
-		height = tonumber(dim.height),
+		length = length,
+		width = width,
+		height = height,
 		lengthAlt = tonumber(effective(resolved, 'retracted_length', nil)),
 		widthAlt = tonumber(effective(resolved, 'retracted_width', nil)),
 		heightAlt = tonumber(effective(resolved, 'retracted_height', nil)),

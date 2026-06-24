@@ -414,6 +414,30 @@
 		],
 		"desc": "Energy damage resistance of armor, as a percentage."
 	},
+	"Entity height": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Height of an entity."
+	},
+	"Entity length": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Length of an entity."
+	},
+	"Entity width": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Width of an entity."
+	},
 	"Error chance": {
 		"smw": "Number",
 		"bucket": "DOUBLE",

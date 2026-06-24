@@ -35,28 +35,36 @@ local function formatEntityTags(apiData)
 	return table.concat(parts, ', ')
 end
 
---- Builds the Metadata section.
+--- Builds the Metadata section. Returns nil when every row is empty (e.g. a
+--- planned/editorial-mode page with no uuid and no API record) so the infobox
+--- doesn't render an empty collapsible shell.
 ---
 --- @param apiData table
 --- @param args table
---- @return table section
+--- @return table|nil section
 local function buildMetadataSection(apiData, args)
-	return {
-		label = 'Metadata',
-		collapsible = true,
-		collapsed = true,
-		items = {
-			{ label = 'UUID', content = args.uuid },
-			{ label = 'Class name', content = apiData.class_name },
-			{ label = 'Classification', content = apiData.classification },
-			{
-				label = 'Tags',
-				content = apiData.tags and #apiData.tags > 0 and table.concat(apiData.tags, ', ') or nil,
-			},
-			{ label = 'Entity tags', content = formatEntityTags(apiData) },
-			{ label = 'Version', content = apiData.version },
+	local items = {
+		{ label = 'UUID', content = args.uuid },
+		{ label = 'Class name', content = apiData.class_name },
+		{ label = 'Classification', content = apiData.classification },
+		{
+			label = 'Tags',
+			content = apiData.tags and #apiData.tags > 0 and table.concat(apiData.tags, ', ') or nil,
 		},
+		{ label = 'Entity tags', content = formatEntityTags(apiData) },
+		{ label = 'Version', content = apiData.version },
 	}
+	for _, item in ipairs(items) do
+		if item.content ~= nil and item.content ~= '' then
+			return {
+				label = 'Metadata',
+				collapsible = true,
+				collapsed = true,
+				items = items,
+			}
+		end
+	end
+	return nil
 end
 
 --- Builds the External sites section by aggregating getExternalSiteItems from
@@ -191,7 +199,10 @@ local function buildSections(chain, facets, apiData, args, resolved)
 		end
 	end
 
-	table.insert(sections, buildMetadataSection(apiData, args))
+	local metadata = buildMetadataSection(apiData, args)
+	if metadata then
+		table.insert(sections, metadata)
+	end
 
 	local externalSites = buildExternalSitesSection(chain, apiData, args)
 	if externalSites then

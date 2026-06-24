@@ -153,4 +153,67 @@ function suite:testMergeSectionsKeepsContentOnlySection()
 	self:assertEquals('X', result[1].content)
 end
 
+-- resolveMostSpecific
+
+function suite:testResolveMostSpecificLeafWins()
+	local chain = {
+		{
+			getX = function()
+				return 'root'
+			end,
+		},
+		{
+			getX = function()
+				return 'leaf'
+			end,
+		},
+	}
+	self:assertEquals('leaf', assembly.resolveMostSpecific(chain, 'getX'))
+end
+
+function suite:testResolveMostSpecificDefaultTakesNil()
+	local chain = {
+		{
+			getX = function()
+				return 'root'
+			end,
+		},
+		{
+			getX = function()
+				return nil
+			end,
+		},
+	}
+	self:assertEquals(nil, assembly.resolveMostSpecific(chain, 'getX'))
+end
+
+function suite:testResolveMostSpecificAcceptNonEmptySkips()
+	local chain = {
+		{
+			getX = function()
+				return 'root'
+			end,
+		},
+		{
+			getX = function()
+				return ''
+			end,
+		},
+	}
+	self:assertEquals('root', assembly.resolveMostSpecific(chain, 'getX', assembly.acceptNonEmpty))
+end
+
+function suite:testResolveMostSpecificForwardsArgs()
+	local chain = { {
+		getX = function(a, b)
+			return a .. b
+		end,
+	} }
+	self:assertEquals('xy', assembly.resolveMostSpecific(chain, 'getX', nil, 'x', 'y'))
+end
+
+function suite:testResolveMostSpecificNoneDefined()
+	self:assertEquals(nil, assembly.resolveMostSpecific({ {}, {} }, 'getX'))
+end
+
 return suite

@@ -698,4 +698,70 @@ function suite:testShortdescSingleSeatGravlev()
 	)
 end
 
+function suite:testEditorialModeOptIn()
+	self:assertEquals(true, Vehicle.editorialMode)
+end
+
+function suite:testResolveSubtypeFamilyShipFromArgs()
+	self:assertEquals(Ship, Vehicle.resolveSubtype({}, { family = 'ship' }))
+end
+
+function suite:testResolveSubtypeFamilyGroundFromArgs()
+	self:assertEquals(GroundVehicle, Vehicle.resolveSubtype({}, { family = 'ground' }))
+end
+
+function suite:testResolveSubtypeFamilyGravlevFromArgs()
+	self:assertEquals(Gravlev, Vehicle.resolveSubtype({}, { family = 'gravlev' }))
+end
+
+function suite:testResolveSubtypeApiFlagsBeatFamily()
+	-- A genuine record's flags win even when |family= disagrees.
+	self:assertEquals(Ship, Vehicle.resolveSubtype({ is_spaceship = true }, { family = 'ground' }))
+end
+
+function suite:testResolveSubtypeNilWhenNoFlagsNoFamily()
+	self:assertEquals(nil, Vehicle.resolveSubtype({}, {}))
+end
+
+function suite:testEditorialModeShortDescription()
+	-- Planned Hull E shape: no crew -> not single-seat; matrix size from |size=.
+	self:assertEquals(
+		'MISC large heavy freight ship',
+		Vehicle.formatShortDescription(
+			{},
+			{ manufacturer = 'MISC', role = 'Heavy Freight', size = 'Large' },
+			{},
+			'ship',
+			false
+		)
+	)
+end
+
+function suite:testEditorialModeCategoriesShip()
+	-- apiData = {}: isShip must be derived from |family=, not API flags.
+	local cats = Vehicle.getCategories(
+		{},
+		{ family = 'ship', manufacturer = 'MISC', size = 'Large', career = 'Transport' },
+		{
+			series = { value = 'Hull', source = 'editorial' },
+			production_state = { value = 'In concept', source = 'override' },
+		}
+	)
+	local set = {}
+	for _, c in ipairs(cats) do
+		set[c] = true
+	end
+	self:assertEquals(true, set['Large ships'])
+	self:assertEquals(true, set['In concept'])
+	self:assertEquals(true, set['Transport career'])
+end
+
+function suite:testEditorialModeSectionsNoError()
+	-- getSections must not crash on apiData = {} and must resolve the family type.
+	local s = Vehicle.getSections({}, { family = 'ship', manufacturer = 'MISC' }, {
+		series = { value = 'Hull', source = 'editorial' },
+	})
+	self:assertEquals('Spacecraft', findItem(findSection(s, 'overview').items, 'Type').content)
+end
+
 return suite

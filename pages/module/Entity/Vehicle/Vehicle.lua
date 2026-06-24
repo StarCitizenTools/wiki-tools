@@ -302,6 +302,12 @@ end
 --- branch on. Every kind declares one (enforced by the Registry conformance test).
 p.name = 'Vehicle'
 
+--- Opt into editorial mode (Module:Entity/Data): a page declared |kind=Vehicle
+--- with no genuine API record (a planned / not-yet-in-game vehicle) renders from
+--- editorial args alone. The family subtype then comes from |family=. Harmless on
+--- a page that later gets a uuid — the genuine record takes over. See README.
+p.editorialMode = true
+
 --- @type string
 p.parent = 'Entity/Base'
 
@@ -335,23 +341,34 @@ function p.matches(apiData)
 	return apiData ~= nil and apiData.is_vehicle ~= nil
 end
 
---- Refine a vehicle to its family subtype leaf. Every vehicle record carries all
---- three family flags and exactly one is truthy (a gravlev has is_vehicle=false),
---- so order is just defensive most-specific-first. Returns nil when no family
---- flag is set (the Vehicle kind itself stays the leaf).
+--- Refine a vehicle to its family subtype leaf. A genuine record carries all
+--- three family flags (exactly one truthy), so order is defensive
+--- most-specific-first. In editorial mode (apiData = {}, no flags) the curated
+--- `|family=` arg selects the leaf instead. Returns nil when neither resolves
+--- (the Vehicle kind itself stays the leaf).
 --- @param apiData table|nil
+--- @param args table|nil
 --- @return table|nil
-function p.resolveSubtype(apiData)
-	if type(apiData) ~= 'table' then
-		return nil
+function p.resolveSubtype(apiData, args)
+	if type(apiData) == 'table' then
+		if apiData.is_gravlev then
+			return require('Module:Entity/Vehicle/Gravlev')
+		end
+		if apiData.is_spaceship then
+			return require('Module:Entity/Vehicle/Ship')
+		end
+		if apiData.is_vehicle then
+			return require('Module:Entity/Vehicle/GroundVehicle')
+		end
 	end
-	if apiData.is_gravlev then
+	local family = type(args) == 'table' and args.family or nil
+	if family == 'gravlev' then
 		return require('Module:Entity/Vehicle/Gravlev')
 	end
-	if apiData.is_spaceship then
+	if family == 'ship' then
 		return require('Module:Entity/Vehicle/Ship')
 	end
-	if apiData.is_vehicle then
+	if family == 'ground' then
 		return require('Module:Entity/Vehicle/GroundVehicle')
 	end
 	return nil
@@ -504,7 +521,7 @@ end
 --- @return table
 local function buildOverview(apiData, args, resolved)
 	local overview = {}
-	local subtype = p.resolveSubtype(apiData)
+	local subtype = p.resolveSubtype(apiData, args)
 	local typeName = nil
 	if subtype and subtype.getTypeInfo then
 		local typeInfo = subtype.getTypeInfo(apiData, args)
@@ -954,7 +971,9 @@ end
 --- @return string[]
 function p.getCategories(apiData, args, resolved)
 	local cats = {}
-	local isShip = apiData.is_spaceship and true or false
+	-- Derive the family from the resolved subtype so editorial-mode pages
+	-- (apiData = {}, no is_spaceship flag) still classify as ships via |family=.
+	local isShip = p.resolveSubtype(apiData, args) == require('Module:Entity/Vehicle/Ship')
 	-- Size (ships only): "Large ships" — the curated |size= wins (API may disagree)
 	local size = matrixSize(apiData, args)
 	if isShip and size then

@@ -665,6 +665,14 @@
 		],
 		"desc": "Quantum tuning rate of a jump module."
 	},
+	"Laser range": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"LaserPointer"
+		],
+		"desc": "Effective range of a laser pointer attachment, in metres."
+	},
 	"Lock angle": {
 		"smw": "Number",
 		"bucket": "DOUBLE",
@@ -1216,6 +1224,14 @@
 			"SalvageHead"
 		],
 		"desc": "Salvage ramp-up time of a salvage head, in seconds."
+	},
+	"Range increment": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"IronSight"
+		],
+		"desc": "Per-step range increment of an iron-sight attachment, in metres."
 	},
 	"Rarity": {
 		"smw": "Text",

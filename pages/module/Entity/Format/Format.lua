@@ -161,4 +161,27 @@ function p.buildSiteLinks(siteDefs, dataLookup)
 	return table.concat(links, ' · ')
 end
 
+--- Assembles the spec-style graded-component short description, e.g.
+--- "S3 Gr. A military power plant by A&R". Pure string builder: the caller
+--- supplies the already-resolved values (Format must not depend on Base, which
+--- already requires Format). Returns nil when size, class, or grade is missing,
+--- so the caller can fall back to the generic descriptor.
+---
+--- @param typeName string The display type name (e.g. 'Power plant')
+--- @param size number|string|nil
+--- @param class string|nil The graded class (e.g. 'Military'); lower-cased into the descriptor
+--- @param grade string|nil The grade letter (e.g. 'A')
+--- @param manufacturerShort string|nil The manufacturer short code; appends ' by <short>' when truthy
+--- @return string|nil
+function p.gradedShortDescription(typeName, size, class, grade, manufacturerShort)
+	if not (class and grade and size) then
+		return nil
+	end
+	local desc = 'S' .. tostring(size) .. ' Gr. ' .. grade .. ' ' .. class:lower() .. ' ' .. typeName:lower()
+	if manufacturerShort then
+		desc = desc .. ' by ' .. manufacturerShort
+	end
+	return desc
+end
+
 return p

@@ -71,6 +71,30 @@ p.CHAIN_LINK = {
 	getHeaderBadge = false,
 }
 
+--- Union of every hook name across all role specs; used by validate()'s strict
+--- pass to distinguish a misspelled hook from one valid in a different role.
+--- @type table<string, boolean>
+p.ALL_HOOKS = {}
+for _, spec in ipairs({ p.KIND, p.FACET, p.CHAIN_LINK }) do
+	for hook in pairs(spec) do
+		p.ALL_HOOKS[hook] = true
+	end
+end
+
+--- The minimal kind-identity interface: the dispatch/identity hooks a kind owns,
+--- as opposed to the contributor hooks it shares with every CHAIN_LINK. Exported
+--- for documentation and tooling. p.KIND remains the full validation spec
+--- (KIND = KIND_IDENTITY + ChainLink contributions); this names the small
+--- interface a kind author actually has to think about (ISP).
+--- @type table<string, boolean>
+p.KIND_IDENTITY = {
+	matches = true,
+	getApiConfigs = true,
+	resolveSubtype = false,
+	enrich = false,
+	getEditorialManifest = false,
+}
+
 --- Validates a component against a role spec. Each required hook must be present
 --- and a function; each present spec-hook must be a function. Unknown keys are
 --- not flagged (modules expose legitimate public helpers), so a misspelled
@@ -83,9 +107,10 @@ p.CHAIN_LINK = {
 ---
 --- @param component table The module to check
 --- @param spec table<string, boolean> A role spec (p.KIND / p.FACET / p.CHAIN_LINK)
+--- @param options nil|{ strict: boolean } When strict, also flag component keys that look like a misspelled hook (a function whose name is not in spec and not in p.ALL_HOOKS). Default: off (byte-identical to the pre-PR1 behavior).
 --- @return boolean ok True when there are no errors
 --- @return string[] errors Human-readable messages (empty when ok)
-function p.validate(component, spec)
+function p.validate(component, spec, options)
 	if type(component) ~= 'table' then
 		return false, { 'component is not a table (got ' .. type(component) .. ')' }
 	end
@@ -98,6 +123,18 @@ function p.validate(component, spec)
 			end
 		elseif type(value) ~= 'function' then
 			table.insert(errors, 'hook is not a function: ' .. hook .. ' (got ' .. type(value) .. ')')
+		end
+	end
+	if options and options.strict then
+		for key, value in pairs(component) do
+			if
+				type(value) == 'function'
+				and spec[key] == nil
+				and not p.ALL_HOOKS[key]
+				and (key:find('^get') or key == 'matches' or key == 'resolveSubtype' or key == 'enrich')
+			then
+				table.insert(errors, 'unknown hook (typo?): ' .. key)
+			end
 		end
 	end
 	return #errors == 0, errors

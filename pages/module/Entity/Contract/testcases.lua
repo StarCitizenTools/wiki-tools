@@ -84,4 +84,32 @@ function suite:testValidateFieldsNonTableFails()
 	self:assertEquals(1, #errors)
 end
 
+function suite:testValidateStrictFlagsTypoHook()
+	local ok, errors = Contract.validate(
+		{ matches = function() end, getApiConfigs = function() end, getSectionsn = function() end },
+		Contract.KIND,
+		{ strict = true }
+	)
+	self:assertFalse(ok)
+	self:assertTrue(hasError(errors, 'unknown hook'))
+end
+
+function suite:testValidateStrictAllowsRealHookFromOtherRole()
+	local ok = Contract.validate(
+		{ matches = function() end, getApiConfigs = function() end, getShortDescriptionPrefix = function() end },
+		Contract.KIND,
+		{ strict = true }
+	)
+	self:assertTrue(ok)
+end
+
+function suite:testValidateDefaultUnchanged()
+	self:assertTrue(
+		Contract.validate(
+			{ matches = function() end, getApiConfigs = function() end, getSectionsn = function() end },
+			Contract.KIND
+		)
+	)
+end
+
 return suite

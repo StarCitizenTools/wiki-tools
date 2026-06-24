@@ -68,6 +68,24 @@ The `resolved` table is produced by `Module:Entity/Editorial` and passed to `get
 
 `Module:Entity/Assembly.mergeSections` strips the Entity-internal `key` only at the top level (to merge sibling sections from chain links). A keyed subsection object passes straight through to InfoboxLua, which rejects it with a schema error and aborts the entire infobox render. Unit tests do not catch this because subsection rendering is browser-only. See the inline comment in `buildCost` and `buildStats` for the pattern; the Dimensions facet uses the same shape.
 
+## Planned vehicles (editorial mode)
+
+Vehicle is the first kind to opt in to **editorial mode** (`p.editorialMode = true`). A planned vehicle is the same Vehicle kind rendered from a subset of the data, the editorial args alone, when there is no genuine API record yet. It is not a separate "lite" template or mode: it is the ordinary Vehicle render with the API-sourced sections naturally empty.
+
+**How to declare one.** Set `|kind=Vehicle`, set `|family=` to one of `ship` / `ground` / `gravlev`, and provide **no** `|uuid=`. The `|family=` arg selects the subtype (Ship / GroundVehicle / Gravlev) the way the API family flags do for in-game vehicles: a planned page has no API record, so there are no `is_spaceship` / `is_vehicle` / `is_gravlev` flags to read, and `Vehicle.resolveSubtype` falls back to `args.family`. Then supply the usual editorial args (`manufacturer`, `model`, `career`, `size`, `productionstate`, `role`, the lore/development dates, the pledge prices, and so on, the same args documented in the 4-layer field model above). One caveat on `|role=`: it is not in `editorial.json`, so in editorial mode it only feeds the manufacturer-led short description (via `rolePhrase`); the Overview "Role" row reads `apiData.role` and so stays absent on a planned page. `Module:Entity/Data.get` sees the opted-in kind with no resolvable record, sets `apiData = {}`, and the chain renders editorial-first.
+
+Worked example, the planned Hull E:
+
+```wikitext
+{{Entity|kind=Vehicle|family=ship|name=Hull E|manufacturer=MISC|model=Hull|career=Transport|size=Large|productionstate=In concept|role=Heavy Freight}}
+```
+
+**What renders.** Categories and the short description reach full parity with an in-game vehicle, because both source editorial-first (the manufacturer browse category, the subtype browse category, and the manufacturer-led short description are all built from args). The production-state badge renders from `|productionstate=`. Every editorial section that has data renders (Overview, Cost's Pledge tab, Lore, Development, and so on). The API-only sections simply omit themselves, since they are data-gated and there is no API data to gate on: Ports/hardpoints, the Cost Universe tab (UEX availability and pricing), the API-derived flight stats (Stats tabs), and the Dimensions box all drop out. A planned page is therefore a clean subset of the in-game render, not a different layout.
+
+**Lifecycle.** When the vehicle enters the game and the API, add `|uuid=`. `Module:Entity/Data.get` then resolves the genuine record, and rendering hands back to the normal API path: `resolveSubtype` reads the API family flags first, so `|family=` becomes a harmless no-op, and `|kind=` is likewise ignored once a real record exists. Any editorial fields the author already wrote persist as overlay overrides, the editor-wins layer described in the 4-layer field model (overlap fields fill or override the API value, pure-editorial fields carry through unchanged). No migration or rewrite of the page is needed: adding the uuid is the whole transition.
+
+**Safety.** A planned page is the `name`-only case (no `|uuid=`), and it does **not** trigger any tracking category. But a `|uuid=` that does **not** resolve to a genuine record, a typo, or a uuid that is not yet in the API, emits `[[Category:Pages with an unresolved entity reference]]`. This stops a broken reference from silently masquerading as a planned page: a planned page deliberately has no uuid, so a present-but-unresolved uuid is always an error worth flagging.
+
 ## Operational notes
 
 **Deploy ordering.** When landing changes that affect SMW property names or the editorial manifest:

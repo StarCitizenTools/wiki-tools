@@ -611,4 +611,91 @@ function suite:testCategoriesNoPledgeNoSeries()
 	end
 end
 
+function suite:testShortdescSingleSeatFighter()
+	self:assertEquals(
+		'Aegis single-seat light fighter',
+		Vehicle.formatShortDescription(
+			{ manufacturer = { code = 'AEGS', name = 'Aegis Dynamics' }, role = 'Light Fighter', crew = { max = 1 } },
+			{},
+			{},
+			'ship',
+			false
+		)
+	)
+end
+
+function suite:testShortdescMultiRolePrimary()
+	self:assertEquals(
+		'RSI large multi-role gunship',
+		Vehicle.formatShortDescription({
+			manufacturer = { code = 'RSI', name = 'Roberts Space Industries' },
+			role = 'Gunship / Light Freight',
+			career = 'Multi-role',
+			size = 'large',
+		}, {}, {}, 'ship', false)
+	)
+end
+
+function suite:testShortdescAppendsShipWhenNoRoleSuffix()
+	self:assertEquals(
+		'MISC large heavy freight ship',
+		Vehicle.formatShortDescription({
+			manufacturer = { code = 'MISC', name = 'Musashi Industrial and Starflight Concern' },
+			role = 'Heavy Freight',
+			size = 'large',
+		}, {}, {}, 'ship', false)
+	)
+end
+
+function suite:testShortdescGroundOmitsSizeKeepsFullRole()
+	self:assertEquals(
+		'Tumbril exploration / recon ground vehicle',
+		Vehicle.formatShortDescription({
+			manufacturer = { code = 'TMBL', name = 'Tumbril Land Systems' },
+			role = 'Exploration / Recon',
+			career = 'Ground',
+			size = 'vehicle',
+			crew = { max = 2 },
+		}, {}, {}, 'ground vehicle', true)
+	)
+end
+
+function suite:testShortdescEditorialOverridesApi()
+	self:assertEquals(
+		'RSI large multi-role gunship',
+		Vehicle.formatShortDescription(
+			{ manufacturer = { code = 'RSI', name = 'Roberts Space Industries' }, role = 'Passenger', size = 'medium' },
+			{ role = 'Gunship / Light Freight', career = 'Multi-role', size = 'large' },
+			{},
+			'ship',
+			false
+		)
+	)
+end
+
+function suite:testShortdescNoRoleNoManufacturer()
+	self:assertEquals('Small ship', Vehicle.formatShortDescription({ size = 'small' }, {}, {}, 'ship', false))
+end
+
+function suite:testShortdescMultiRoleFighterSuffix()
+	-- Cutlass: Multi-role primary "Fighter" ends in a role suffix -> no "ship".
+	self:assertEquals(
+		'Drake medium multi-role fighter',
+		Vehicle.formatShortDescription({
+			manufacturer = { code = 'DRAK', name = 'Drake Interplanetary' },
+			role = 'Fighter / Light Freight',
+			career = 'Multi-role',
+			size = 'medium',
+		}, {}, {}, 'ship', false)
+	)
+end
+
+function suite:testShortdescSingleSeatGravlev()
+	-- crew==1 -> "single-seat" even for a gravlev (omitSize); type noun "gravlev vehicle".
+	self:assertEquals(
+		'Single-seat racing gravlev vehicle',
+		Vehicle.formatShortDescription({ role = 'Racing', crew = { max = 1 } }, {}, {}, 'gravlev vehicle', true)
+	)
+end
+
 return suite

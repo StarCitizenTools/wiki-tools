@@ -25,7 +25,7 @@ end
 --- @param resolved table|nil
 --- @return string
 function p.getShortDescription(apiData, args, typeInfo, prefix, resolved)
-	return vehicle.formatShortDescription(apiData, args, 'spacecraft')
+	return vehicle.formatShortDescription(apiData, args, resolved, 'ship', false)
 end
 
 return p

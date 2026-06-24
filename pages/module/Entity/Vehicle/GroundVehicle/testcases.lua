@@ -16,19 +16,22 @@ function suite:testTypeInfoCategory()
 end
 
 function suite:testShortDescriptionWithRoleAndManufacturer()
-	-- TMBL has no 'short' in data.json so short falls back to name
+	-- TMBL resolves to short='Tumbril'; size is omitted for ground vehicles.
+	-- 'combat' not in ROLE_SUFFIXES → appends 'ground vehicle'.
 	local apiData = { role = 'Combat' }
 	local desc = GroundVehicle.getShortDescription(apiData, { manufacturer = 'TMBL' }, {}, nil, {})
-	self:assertEquals('Combat ground vehicle by Tumbril Land Systems', desc)
+	self:assertEquals('Tumbril combat ground vehicle', desc)
 end
 
 function suite:testShortDescriptionWithoutRole()
+	-- No role → manufacturer + typeNoun only.
 	local apiData = {}
 	local desc = GroundVehicle.getShortDescription(apiData, { manufacturer = 'TMBL' }, {}, nil, {})
-	self:assertEquals('ground vehicle by Tumbril Land Systems', desc)
+	self:assertEquals('Tumbril ground vehicle', desc)
 end
 
 function suite:testShortDescriptionWithoutManufacturer()
+	-- No manufacturer; 'exploration' not in ROLE_SUFFIXES → appends 'ground vehicle'.
 	local apiData = { role = 'Exploration' }
 	local desc = GroundVehicle.getShortDescription(apiData, {}, {}, nil, {})
 	self:assertEquals('Exploration ground vehicle', desc)

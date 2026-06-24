@@ -127,7 +127,7 @@ function suite:testGradedShortDescription()
 		{ size = 3, grade = 'A', class = 'Military' },
 		{ manufacturer = 'Amon & Reese Co.' }
 	)
-	self:assertEquals('S3 Gr. A military power plant by Amon & Reese Co.', desc)
+	self:assertEquals('S3 Gr. A military power plant by A&R', desc)
 end
 
 function suite:testGradedShortDescriptionNoClassReturnsNil()

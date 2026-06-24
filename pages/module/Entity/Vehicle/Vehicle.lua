@@ -354,32 +354,80 @@ function p.resolveSubtype(apiData)
 	return nil
 end
 
---- Compose a vehicle short description: "<role> <familyNoun> by <manufacturer>".
---- role from apiData.role (a multi-role array joins on '/'); manufacturer from
---- the shared resolver (editorial-overridable via args.manufacturer). Pure.
+local ROLE_SUFFIXES = {
+	bomber = true,
+	carrier = true,
+	corvette = true,
+	fighter = true,
+	frigate = true,
+	gunship = true,
+	interceptor = true,
+	ship = true,
+}
+
+--- The role phrase (lowercased): "multi-role <primary>" for a Multi-role career,
+--- else the full role. nil when no role resolves.
 --- @param apiData table
 --- @param args table
---- @param familyNoun string  e.g. 'spaceship', 'ground vehicle', 'gravlev'
---- @return string
-function p.formatShortDescription(apiData, args, familyNoun)
-	local role = apiData.role
-	-- The live vehicles API returns role as a plain string; this branch is
-	-- defensive for legacy/multi-role vehicles that expose role as an array
-	-- (historically '/'-joined).
+--- @return string|nil
+local function rolePhrase(apiData, args)
+	local role = args.role or apiData.role
 	if type(role) == 'table' then
-		role = table.concat(role, '/')
+		role = table.concat(role, ' / ')
 	end
+	if type(role) ~= 'string' or role == '' then
+		return nil
+	end
+	local career = args.career or apiData.career
+	if type(career) == 'string' and mw.ustring.lower(career) == 'multi-role' then
+		local primary = mw.text.trim(mw.ustring.match(role, '^[^/]+') or role)
+		return 'multi-role ' .. mw.ustring.lower(primary)
+	end
+	return mw.ustring.lower(role)
+end
+
+--- True when the phrase's last alphabetic word is a ship-type role suffix.
+--- @param phrase string|nil
+--- @return boolean
+local function endsWithRoleSuffix(phrase)
+	if not phrase then
+		return false
+	end
+	local last = mw.ustring.match(phrase, '(%a+)%s*$')
+	return last ~= nil and ROLE_SUFFIXES[mw.ustring.lower(last)] == true
+end
+
+--- Compose a manufacturer-led vehicle short description:
+--- "<mfr-short> <size|single-seat> <role-phrase> <type-noun>". Editorial-first.
+--- @param apiData table
+--- @param args table
+--- @param resolved table|nil
+--- @param typeNoun string  'ship' | 'ground vehicle' | 'gravlev vehicle'
+--- @param omitSize boolean  true for ground/gravlev (no meaningful matrix size)
+--- @return string
+function p.formatShortDescription(apiData, args, resolved, typeNoun, omitSize)
 	local parts = {}
-	if role and role ~= '' then
-		parts[#parts + 1] = role
-	end
-	parts[#parts + 1] = familyNoun
-	local desc = table.concat(parts, ' ')
 	local mfr = base.resolveManufacturer(apiData, args)
 	if mfr and mfr.short then
-		desc = desc .. ' by ' .. mfr.short
+		parts[#parts + 1] = mfr.short
 	end
-	return mw.text.trim(desc)
+	local crewMax = tonumber(effective(resolved, 'crew_max', apiData.crew and apiData.crew.max))
+	if crewMax == 1 then
+		parts[#parts + 1] = 'single-seat'
+	elseif not omitSize then
+		local size = matrixSize(apiData, args)
+		if size and size ~= '' then
+			parts[#parts + 1] = mw.ustring.lower(size)
+		end
+	end
+	local role = rolePhrase(apiData, args)
+	if role then
+		parts[#parts + 1] = role
+	end
+	if not endsWithRoleSuffix(role) then
+		parts[#parts + 1] = typeNoun
+	end
+	return lang:ucfirst(mw.text.trim(table.concat(parts, ' ')))
 end
 
 --- Manufacturer as a wikilink ([[Page]] or [[Page|Name]]), or nil when none

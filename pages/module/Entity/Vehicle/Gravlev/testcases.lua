@@ -16,22 +16,25 @@ function suite:testTypeInfoCategory()
 end
 
 function suite:testShortDescriptionWithRoleAndManufacturer()
-	-- DRAK has short='Drake' in data.json
+	-- DRAK resolves to short='Drake'; size is omitted for gravlevs.
+	-- 'racing' not in ROLE_SUFFIXES → appends 'gravlev vehicle'.
 	local apiData = { role = 'Racing' }
 	local desc = Gravlev.getShortDescription(apiData, { manufacturer = 'DRAK' }, {}, nil, {})
-	self:assertEquals('Racing gravlev by Drake', desc)
+	self:assertEquals('Drake racing gravlev vehicle', desc)
 end
 
 function suite:testShortDescriptionWithoutRole()
+	-- No role → manufacturer + typeNoun only.
 	local apiData = {}
 	local desc = Gravlev.getShortDescription(apiData, { manufacturer = 'DRAK' }, {}, nil, {})
-	self:assertEquals('gravlev by Drake', desc)
+	self:assertEquals('Drake gravlev vehicle', desc)
 end
 
 function suite:testShortDescriptionWithoutManufacturer()
+	-- No manufacturer; 'personal transport' not in ROLE_SUFFIXES → appends 'gravlev vehicle'.
 	local apiData = { role = 'Personal transport' }
 	local desc = Gravlev.getShortDescription(apiData, {}, {}, nil, {})
-	self:assertEquals('Personal transport gravlev', desc)
+	self:assertEquals('Personal transport gravlev vehicle', desc)
 end
 
 return suite

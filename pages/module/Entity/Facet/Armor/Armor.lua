@@ -10,6 +10,7 @@ require('strict')
 
 local progressTiles = require('Module:ProgressTiles')
 local sectionBuilder = require('Module:Entity/SectionBuilder')
+local statFormat = require('Module:Entity/StatFormat')
 
 local p = {}
 
@@ -34,11 +35,7 @@ local DAMAGE_TYPES = {
 --- @param key string
 --- @return number|nil resistance as a whole-number percentage
 local function resistancePercent(map, key)
-	local mult = tonumber(map[key])
-	if mult == nil then
-		return nil
-	end
-	return math.floor((1 - mult) * 100 + 0.5)
+	return statFormat.resistancePercent(map[key])
 end
 
 -- Real armor weight classes. Other sub_types (e.g. "Helmet" on a flight helmet,

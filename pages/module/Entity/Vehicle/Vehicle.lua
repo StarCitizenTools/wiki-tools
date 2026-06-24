@@ -12,9 +12,13 @@ local format = require('Module:Entity/Format')
 local productionStatus = require('Module:Entity/ProductionStatus')
 local progressTiles = require('Module:ProgressTiles')
 local sectionBuilder = require('Module:Entity/SectionBuilder')
+local statFormat = require('Module:Entity/StatFormat')
 local uec = require('Module:UEC')
 local yesno = require('Module:Yesno')
 local lang = mw.language.getContentLanguage()
+
+local QUANTUM_SPEED_DIVISOR = 1000000
+local QUANTUM_RANGE_DIVISOR = 1000000000
 
 local p = {}
 
@@ -183,6 +187,15 @@ local function editorialValue(resolved, field)
 	return entry and entry.value or nil
 end
 
+--- Career value: the wiki `career` arg wins over the API (curated taxonomy).
+--- @param apiData table
+--- @param args table
+--- @return string|nil
+local function resolveCareer(apiData, args)
+	local c = args.career or apiData.career
+	return type(c) == 'string' and c ~= '' and c or nil
+end
+
 --- Ship-matrix size string: the curated `|size=` arg wins over `apiData.size`.
 --- The wiki overrides the API here (e.g. the Railen is editorially Large but the
 --- API reports medium), matching the legacy infobox. nil when neither is set.
@@ -266,16 +279,6 @@ local DAMAGE_TYPES = {
 	{ key = 'damage_biochemical', abbr = 'BIO', label = 'Biochemical' },
 	{ key = 'damage_stun', abbr = 'STN', label = 'Stun' },
 }
-
---- Resistance % from a damage-taken multiplier (0.6 -> 40% resistance). nil when absent.
---- @return number|nil
-local function resistancePercent(mult)
-	local m = tonumber(mult)
-	if m == nil then
-		return nil
-	end
-	return math.floor((1 - m) * 100 + 0.5)
-end
 
 --- Signed-% signature label from a multiplier (1.13 -> "+13%"), colored by sign
 --- (higher signature = worse: + uses the destructive color, - the success color).
@@ -378,8 +381,8 @@ local function rolePhrase(apiData, args)
 	if type(role) ~= 'string' or role == '' then
 		return nil
 	end
-	local career = args.career or apiData.career
-	if type(career) == 'string' and mw.ustring.lower(career) == 'multi-role' then
+	local career = resolveCareer(apiData, args)
+	if career ~= nil and mw.ustring.lower(career) == 'multi-role' then
 		local primary = mw.text.trim(mw.ustring.match(role, '^[^/]+') or role)
 		return 'multi-role ' .. mw.ustring.lower(primary)
 	end
@@ -492,19 +495,14 @@ local function modelLink(apiData, args, resolved)
 	return out
 end
 
+--- Overview section (labelless top section): type + identity rows under the title.
+--- Type comes from the resolved subtype's getTypeInfo so it stays the single
+--- source of truth (the header subtitle now shows the manufacturer instead).
 --- @param apiData table
 --- @param args table
 --- @param resolved table|nil
---- @return table[]
-function p.getSections(apiData, args, resolved)
-	local speed = type(apiData.speed) == 'table' and apiData.speed or {}
-	local agility = type(apiData.agility) == 'table' and apiData.agility or {}
-	local drive = type(apiData.drive) == 'table' and apiData.drive or {}
-	local crew = type(apiData.crew) == 'table' and apiData.crew or {}
-
-	-- Overview (labelless top section): type + identity rows under the title.
-	-- Type comes from the resolved subtype's getTypeInfo so it stays the single
-	-- source of truth (the header subtitle now shows the manufacturer instead).
+--- @return table
+local function buildOverview(apiData, args, resolved)
 	local overview = {}
 	local subtype = p.resolveSubtype(apiData)
 	local typeName = nil
@@ -517,12 +515,23 @@ function p.getSections(apiData, args, resolved)
 	-- career taxonomy, e.g. "Transport" vs the API's "Transporter"). Direct arg read
 	-- (not an editorial overlap field) — the difference is systematic, so it should
 	-- not flag every vehicle into the manual-API-data maintenance category.
-	sectionBuilder.push(overview, 'Career', careerLink(args.career or apiData.career))
+	sectionBuilder.push(overview, 'Career', careerLink(resolveCareer(apiData, args)))
 	sectionBuilder.push(overview, 'Role', apiData.role)
 	sectionBuilder.push(overview, 'Size', sizeDisplay(apiData, args))
 	sectionBuilder.push(overview, 'Model', modelLink(apiData, args, resolved))
+	-- Labelless top section: identity rows show plainly under the title (always
+	-- visible, not collapsible) — InfoboxLua renders a section with no label as
+	-- the general top group.
+	return sectionBuilder.section({ key = 'overview', items = overview })
+end
 
-	-- Capacity
+--- Capacity section: crew range, cargo, and personal inventory.
+--- @param apiData table
+--- @param args table
+--- @param resolved table|nil
+--- @return table
+local function buildCapacity(apiData, args, resolved)
+	local crew = type(apiData.crew) == 'table' and apiData.crew or {}
 	local capacity = {}
 	sectionBuilder.push(
 		capacity,
@@ -537,53 +546,16 @@ function p.getSections(apiData, args, resolved)
 	-- Personal stowage (the API's `vehicle_inventory`, in µSCU — same unit as the
 	-- item Inventory facet's scu_converted); labelled "Inventory" in the infobox.
 	sectionBuilder.push(capacity, 'Inventory', withUnit(apiData.vehicle_inventory, ' µSCU'))
+	return sectionBuilder.section({ key = 'capacity', label = 'Capacity', items = capacity })
+end
 
-	-- Stats: performance figures (later also hull/armor). Speed: ships/gravlevs use
-	-- speed.*; ground vehicles use drive.* (speed.* is null).
-	local statsItems = {}
-	sectionBuilder.push(statsItems, 'SCM speed', withUnit(effective(resolved, 'scm_speed', speed.scm), ' m/s'))
-	local maxSpeed = effective(resolved, 'max_speed', speed.max)
-	if maxSpeed == nil then
-		maxSpeed = roundInt(drive.max_speed_ms)
-	end
-	sectionBuilder.push(statsItems, 'Max speed', withUnit(maxSpeed, ' m/s'))
-	sectionBuilder.push(statsItems, 'Reverse speed', withUnit(roundInt(drive.reverse_speed_ms), ' m/s'))
-	sectionBuilder.push(statsItems, 'Roll rate', withUnit(agility.roll, ' \194\176/s'))
-	sectionBuilder.push(statsItems, 'Pitch rate', withUnit(agility.pitch, ' \194\176/s'))
-	sectionBuilder.push(statsItems, 'Yaw rate', withUnit(agility.yaw, ' \194\176/s'))
-
-	-- Hull tab: HP rows + armor resistance tiles + signature labels.
-	local armor = type(apiData.armor) == 'table' and apiData.armor or {}
-	local hull = {}
-	sectionBuilder.push(hull, 'Hull', withUnit(apiData.health, ' HP'))
-	sectionBuilder.push(hull, 'Shield', withUnit(apiData.shield_hp, ' HP'))
-	local tiles = {}
-	for _, dt in ipairs(DAMAGE_TYPES) do
-		local pct = resistancePercent(armor[dt.key])
-		if pct ~= nil then
-			tiles[#tiles + 1] = { value = pct, label = dt.abbr, title = dt.label }
-		end
-	end
-	if tiles[1] ~= nil then
-		hull[#hull + 1] = { content = progressTiles.render({ tiles = tiles }), class = 't-infobox-item--block' }
-	end
-	sectionBuilder.push(hull, 'Infrared', signatureLabel(armor.signal_infrared))
-	sectionBuilder.push(hull, 'Electromagnetic', signatureLabel(armor.signal_electromagnetic))
-	sectionBuilder.push(hull, 'Cross-section', signatureLabel(armor.signal_cross_section))
-
-	-- Stats subsection tabs (raw {label, items}, NO key): Flight | Hull here, plus
-	-- Hydrogen | Quantum appended once the fuel rows are built below (fuel collapses
-	-- into Stats rather than getting its own section). The `stats` section is created
-	-- after all four tabs are assembled.
-	local statsTabs = {}
-	if statsItems[1] ~= nil then
-		statsTabs[#statsTabs + 1] = { label = 'Flight', items = statsItems }
-	end
-	if hull[1] ~= nil then
-		statsTabs[#statsTabs + 1] = { label = 'Hull', items = hull }
-	end
-
-	-- Cost: three subsection-tabs. aUEC summary links out to {{Entity/Availability}}.
+--- Cost section: three subsection-tabs (Universe / Pledge / Insurance).
+--- aUEC summary links out to {{Entity/Availability}}.
+--- @param apiData table
+--- @param args table
+--- @param resolved table|nil
+--- @return table|nil
+local function buildCost(apiData, args, resolved)
 	local uex = type(apiData.uex_prices) == 'table' and apiData.uex_prices or {}
 	local insurance = type(apiData.insurance) == 'table' and apiData.insurance or {}
 
@@ -630,14 +602,59 @@ function p.getSections(apiData, args, resolved)
 	if insuranceItems[1] ~= nil then
 		costTabs[#costTabs + 1] = { label = 'Insurance', items = insuranceItems }
 	end
-	local cost = costTabs[1] and sectionBuilder.section({ key = 'cost', label = 'Cost', sections = costTabs }) or nil
+	return costTabs[1] and sectionBuilder.section({ key = 'cost', label = 'Cost', sections = costTabs }) or nil
+end
 
-	-- Fuel rows feed two more Stats tabs (Hydrogen | Quantum) — fuel is collapsed
-	-- into Stats rather than rendered as its own section.
+--- Stats section: performance figures across four subsection tabs
+--- (Flight | Hull | Hydrogen | Quantum). Speed uses speed.* for ships/gravlevs
+--- and drive.* for ground vehicles. Fuel tabs are included here (collapsed into
+--- Stats rather than rendered as a separate section).
+--- @param apiData table
+--- @param args table
+--- @param resolved table|nil
+--- @return table|nil
+local function buildStats(apiData, args, resolved)
+	local speed = type(apiData.speed) == 'table' and apiData.speed or {}
+	local agility = type(apiData.agility) == 'table' and apiData.agility or {}
+	local drive = type(apiData.drive) == 'table' and apiData.drive or {}
+	local armor = type(apiData.armor) == 'table' and apiData.armor or {}
 	local fuel = type(apiData.fuel) == 'table' and apiData.fuel or {}
 	local usage = type(fuel.usage) == 'table' and fuel.usage or {}
 	local quantum = type(apiData.quantum) == 'table' and apiData.quantum or {}
 
+	-- Flight tab: speed + agility rows. Ships/gravlevs use speed.*; ground vehicles
+	-- use drive.* (speed.* is null).
+	local statsItems = {}
+	sectionBuilder.push(statsItems, 'SCM speed', withUnit(effective(resolved, 'scm_speed', speed.scm), ' m/s'))
+	local maxSpeed = effective(resolved, 'max_speed', speed.max)
+	if maxSpeed == nil then
+		maxSpeed = roundInt(drive.max_speed_ms)
+	end
+	sectionBuilder.push(statsItems, 'Max speed', withUnit(maxSpeed, ' m/s'))
+	sectionBuilder.push(statsItems, 'Reverse speed', withUnit(roundInt(drive.reverse_speed_ms), ' m/s'))
+	sectionBuilder.push(statsItems, 'Roll rate', withUnit(agility.roll, ' \194\176/s'))
+	sectionBuilder.push(statsItems, 'Pitch rate', withUnit(agility.pitch, ' \194\176/s'))
+	sectionBuilder.push(statsItems, 'Yaw rate', withUnit(agility.yaw, ' \194\176/s'))
+
+	-- Hull tab: HP rows + armor resistance tiles + signature labels.
+	local hull = {}
+	sectionBuilder.push(hull, 'Hull', withUnit(apiData.health, ' HP'))
+	sectionBuilder.push(hull, 'Shield', withUnit(apiData.shield_hp, ' HP'))
+	local tiles = {}
+	for _, dt in ipairs(DAMAGE_TYPES) do
+		local pct = statFormat.resistancePercent(armor[dt.key])
+		if pct ~= nil then
+			tiles[#tiles + 1] = { value = pct, label = dt.abbr, title = dt.label }
+		end
+	end
+	if tiles[1] ~= nil then
+		hull[#hull + 1] = { content = progressTiles.render({ tiles = tiles }), class = 't-infobox-item--block' }
+	end
+	sectionBuilder.push(hull, 'Infrared', signatureLabel(armor.signal_infrared))
+	sectionBuilder.push(hull, 'Electromagnetic', signatureLabel(armor.signal_electromagnetic))
+	sectionBuilder.push(hull, 'Cross-section', signatureLabel(armor.signal_cross_section))
+
+	-- Hydrogen tab: fuel capacity, intake, and per-thruster usage.
 	local hydrogen = {}
 	sectionBuilder.push(hydrogen, 'Capacity', withUnit(fuel.capacity, ''))
 	sectionBuilder.push(hydrogen, 'Intake rate', positiveUnit(fuel.intake_rate, ''))
@@ -646,32 +663,82 @@ function p.getSections(apiData, args, resolved)
 	sectionBuilder.push(hydrogen, 'VTOL', positiveUnit(usage.vtol, ''))
 	sectionBuilder.push(hydrogen, 'Maneuvering', positiveUnit(usage.maneuvering, ''))
 
+	-- Quantum tab: QD speed, range, spool, and fuel capacity.
 	local qSpeed = tonumber(quantum.quantum_speed)
 	local quantumItems = {}
 	sectionBuilder.push(
 		quantumItems,
 		'Quantum speed',
-		qSpeed and (format.formatNum(qSpeed / 1000000) .. ' Mm/s') or nil
+		qSpeed and (format.formatNum(qSpeed / QUANTUM_SPEED_DIVISOR) .. ' Mm/s') or nil
 	)
-	sectionBuilder.push(quantumItems, 'Quantum range', scaledUnit(quantum.quantum_range, 1e9, ' Gm', 1))
+	sectionBuilder.push(
+		quantumItems,
+		'Quantum range',
+		scaledUnit(quantum.quantum_range, QUANTUM_RANGE_DIVISOR, ' Gm', 1)
+	)
 	sectionBuilder.push(quantumItems, 'Spool time', withUnit(quantum.quantum_spool_time, ' s'))
 	sectionBuilder.push(quantumItems, 'Quantum fuel', withUnit(quantum.quantum_fuel_capacity, ''))
 
+	-- Assemble tabs in order: Flight | Hull | Hydrogen | Quantum (subsection tabs are
+	-- raw {label, items} with NO key — a keyed subsection fails InfoboxLua's schema).
+	local statsTabs = {}
+	if statsItems[1] ~= nil then
+		statsTabs[#statsTabs + 1] = { label = 'Flight', items = statsItems }
+	end
+	if hull[1] ~= nil then
+		statsTabs[#statsTabs + 1] = { label = 'Hull', items = hull }
+	end
 	if hydrogen[1] ~= nil then
 		statsTabs[#statsTabs + 1] = { label = 'Hydrogen', items = hydrogen }
 	end
 	if quantumItems[1] ~= nil then
 		statsTabs[#statsTabs + 1] = { label = 'Quantum', items = quantumItems }
 	end
-	local stats = statsTabs[1] and sectionBuilder.section({ key = 'stats', label = 'Stats', sections = statsTabs })
-		or nil
+	return statsTabs[1] and sectionBuilder.section({ key = 'stats', label = 'Stats', sections = statsTabs }) or nil
+end
 
-	-- Lore (in-lore dates) + Development (real-world dates) — all editorial. Both
-	-- render below Dimensions and are collapsed by default (historical reference).
+--- Dimensions section: thin adapter over Module:Dimensions. Vehicles carry flat
+--- dimension.{length,width,height} (the item Dimensions facet reads a nested
+--- .dimensions and so does not match vehicles).
+--- @param apiData table
+--- @param args table
+--- @param resolved table|nil
+--- @return table|nil
+local function buildDimensions(apiData, args, resolved)
+	local dim = type(apiData.dimension) == 'table' and apiData.dimension or nil
+	if not (dim and tonumber(dim.length) and tonumber(dim.width) and tonumber(dim.height)) then
+		return nil
+	end
+	local metrics = {}
+	if tonumber(apiData.mass) then
+		metrics[#metrics + 1] = { label = 'Mass', value = format.formatNum(apiData.mass) .. ' kg' }
+	end
+	local boxHtml = dimensions._main({
+		length = tonumber(dim.length),
+		width = tonumber(dim.width),
+		height = tonumber(dim.height),
+		lengthAlt = tonumber(effective(resolved, 'retracted_length', nil)),
+		widthAlt = tonumber(effective(resolved, 'retracted_width', nil)),
+		heightAlt = tonumber(effective(resolved, 'retracted_height', nil)),
+		reference = dimensionsPresets.human,
+		metrics = metrics,
+	})
+	if not boxHtml then
+		return nil
+	end
+	return sectionBuilder.section({ key = 'dimensions', label = 'Dimensions', content = tostring(boxHtml) })
+end
+
+--- Lore section: in-lore dates (release / retirement). Collapsed by default.
+--- @param apiData table
+--- @param args table
+--- @param resolved table|nil
+--- @return table|nil
+local function buildLore(apiData, args, resolved)
 	local lore = {}
 	sectionBuilder.push(lore, 'Released', editorialValue(resolved, 'release_date'))
 	sectionBuilder.push(lore, 'Retired', editorialValue(resolved, 'retirement_date'))
-	local loreSection = lore[1]
+	return lore[1]
 			and sectionBuilder.section({
 				key = 'lore',
 				label = 'Lore',
@@ -680,11 +747,19 @@ function p.getSections(apiData, args, resolved)
 				collapsed = true,
 			})
 		or nil
+end
 
+--- Development section: real-world dates (concept announced / concept sale).
+--- Collapsed by default.
+--- @param apiData table
+--- @param args table
+--- @param resolved table|nil
+--- @return table|nil
+local function buildDevelopment(apiData, args, resolved)
 	local development = {}
 	sectionBuilder.push(development, 'Announced', editorialValue(resolved, 'concept_announced'))
 	sectionBuilder.push(development, 'Concept sale', editorialValue(resolved, 'concept_sale'))
-	local developmentSection = development[1]
+	return development[1]
 			and sectionBuilder.section({
 				key = 'development',
 				label = 'Development',
@@ -693,45 +768,27 @@ function p.getSections(apiData, args, resolved)
 				collapsed = true,
 			})
 		or nil
+end
 
-	-- Dimensions: thin adapter over Module:Dimensions. Vehicles carry flat
-	-- dimension.{length,width,height} (the item Dimensions facet reads a nested
-	-- .dimensions and so does not match vehicles).
-	local dimensionsSection = nil
-	local dim = type(apiData.dimension) == 'table' and apiData.dimension or nil
-	if dim and tonumber(dim.length) and tonumber(dim.width) and tonumber(dim.height) then
-		local metrics = {}
-		if tonumber(apiData.mass) then
-			metrics[#metrics + 1] = { label = 'Mass', value = format.formatNum(apiData.mass) .. ' kg' }
-		end
-		local boxHtml = dimensions._main({
-			length = tonumber(dim.length),
-			width = tonumber(dim.width),
-			height = tonumber(dim.height),
-			lengthAlt = tonumber(effective(resolved, 'retracted_length', nil)),
-			widthAlt = tonumber(effective(resolved, 'retracted_width', nil)),
-			heightAlt = tonumber(effective(resolved, 'retracted_height', nil)),
-			reference = dimensionsPresets.human,
-			metrics = metrics,
-		})
-		if boxHtml then
-			dimensionsSection =
-				sectionBuilder.section({ key = 'dimensions', label = 'Dimensions', content = tostring(boxHtml) })
+--- @param apiData table
+--- @param args table
+--- @param resolved table|nil
+--- @return table[]
+function p.getSections(apiData, args, resolved)
+	local sections = {}
+	local function add(section)
+		if section ~= nil then
+			sections[#sections + 1] = section
 		end
 	end
-
-	return sectionBuilder.build(
-		-- Labelless top section: identity rows show plainly under the title (always
-		-- visible, not collapsible) — InfoboxLua renders a section with no label as
-		-- the general top group.
-		sectionBuilder.section({ key = 'overview', items = overview }),
-		sectionBuilder.section({ key = 'capacity', label = 'Capacity', items = capacity }),
-		cost,
-		stats,
-		dimensionsSection,
-		loreSection,
-		developmentSection
-	)
+	add(buildOverview(apiData, args, resolved))
+	add(buildCapacity(apiData, args, resolved))
+	add(buildCost(apiData, args, resolved))
+	add(buildStats(apiData, args, resolved))
+	add(buildDimensions(apiData, args, resolved))
+	add(buildLore(apiData, args, resolved))
+	add(buildDevelopment(apiData, args, resolved))
+	return sections
 end
 
 --- Vehicle header subtitle: the manufacturer (linked), shown in place of the
@@ -820,8 +877,8 @@ function p.getStructuredData(apiData, args, resolved)
 	local armor = type(apiData.armor) == 'table' and apiData.armor or {}
 	local fuel = type(apiData.fuel) == 'table' and apiData.fuel or {}
 	local quantum = type(apiData.quantum) == 'table' and apiData.quantum or {}
-	return {
-		['Career'] = args.career or apiData.career, -- wiki param wins (curated taxonomy)
+	local data = {
+		['Career'] = resolveCareer(apiData, args), -- wiki param wins (curated taxonomy)
 		['Role'] = apiData.role,
 		['Size class'] = tonumber(apiData.size_class),
 		['Roll rate'] = tonumber(agility.roll),
@@ -831,12 +888,6 @@ function p.getStructuredData(apiData, args, resolved)
 		['Insurance expedite time'] = apiData.insurance and tonumber(apiData.insurance.expedite_time) or nil,
 		['Insurance expedite cost'] = apiData.insurance and tonumber(apiData.insurance.expedite_cost) or nil,
 		['Health point'] = tonumber(apiData.health),
-		['Physical damage modifier'] = armor.damage_physical and tonumber(armor.damage_physical) or nil,
-		['Energy damage modifier'] = armor.damage_energy and tonumber(armor.damage_energy) or nil,
-		['Distortion damage modifier'] = armor.damage_distortion and tonumber(armor.damage_distortion) or nil,
-		['Thermal damage modifier'] = armor.damage_thermal and tonumber(armor.damage_thermal) or nil,
-		['Biochemical damage modifier'] = armor.damage_biochemical and tonumber(armor.damage_biochemical) or nil,
-		['Stun damage modifier'] = armor.damage_stun and tonumber(armor.damage_stun) or nil,
 		['Cross section signature modifier'] = armor.signal_cross_section and tonumber(armor.signal_cross_section)
 			or nil,
 		['Electromagnetic signature modifier'] = armor.signal_electromagnetic and tonumber(
@@ -848,14 +899,18 @@ function p.getStructuredData(apiData, args, resolved)
 		['Quantum fuel capacity'] = tonumber(quantum.quantum_fuel_capacity),
 		['Quantum speed'] = (function()
 			local qsRaw = tonumber(quantum.quantum_speed)
-			return qsRaw and (qsRaw / 1000000) or nil -- Mm/s, matches QuantumDrive
+			return qsRaw and (qsRaw / QUANTUM_SPEED_DIVISOR) or nil -- Mm/s, matches QuantumDrive
 		end)(),
 		['Quantum range'] = (function()
 			local qrRaw = tonumber(quantum.quantum_range)
-			return qrRaw and (qrRaw / 1000000000) or nil -- Gm
+			return qrRaw and (qrRaw / QUANTUM_RANGE_DIVISOR) or nil -- Gm
 		end)(),
 		['Quantum spool time'] = tonumber(quantum.quantum_spool_time),
 	}
+	for _, dt in ipairs(DAMAGE_TYPES) do
+		data[dt.label .. ' damage modifier'] = tonumber(armor[dt.key])
+	end
+	return data
 end
 
 --- External-site links: Official (pledge from API + editorial galactapedia/brochure/
@@ -930,8 +985,8 @@ function p.getCategories(apiData, args, resolved)
 		end
 	end
 	-- Career: "Transport career"
-	local career = args.career or apiData.career
-	if type(career) == 'string' and career ~= '' then
+	local career = resolveCareer(apiData, args)
+	if career ~= nil then
 		cats[#cats + 1] = lang:ucfirst(career) .. ' career'
 	end
 	return cats

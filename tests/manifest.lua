@@ -60,6 +60,8 @@ local OFFICIAL_SITES_PATH = BASE .. '/officialSites.json'
 local COMM_SITES_PATH = BASE .. '/Commodity/communitySites.json'
 local PORTS_CATS_PATH = BASE .. '/Ports/categories.json'
 local ITEM_LUA_PATH = BASE .. '/Item/Item.lua'
+local VEHICLE_LUA_PATH = BASE .. '/Vehicle/Vehicle.lua'
+local VEHICLE_EDITORIAL_PATH = BASE .. '/Vehicle/editorial.json'
 
 -- ── 1. types.json ─────────────────────────────────────────────────────────────
 -- Every entry (non-%-prefixed key) has non-empty string name + category; keys unique.
@@ -449,6 +451,57 @@ if props then
 				pass(manifest.path)
 			end
 		end
+	end
+end
+
+-- ── 8. Vehicle.lua editorial field references ─────────────────────────────────
+-- Every key passed to effective(resolved, '<key>') or editorialValue(resolved,
+-- '<key>') in Vehicle.lua must be a declared top-level field in editorial.json
+-- (excluding the %doc meta key). A typo'd key silently drops an infobox row;
+-- this check catches it statically before deployment.
+local vehicleLua = readFile(VEHICLE_LUA_PATH)
+local vehicleEditorial = readJson(VEHICLE_EDITORIAL_PATH)
+if vehicleLua and vehicleEditorial then
+	-- Build a set of declared editorial field names (exclude %doc meta key).
+	local editorialFields = {}
+	for field, _ in pairs(vehicleEditorial) do
+		if type(field) == 'string' and field:sub(1, 1) ~= '%' then
+			editorialFields[field] = true
+		end
+	end
+
+	-- Extract every key referenced in any of these shapes:
+	--   effective(resolved, 'key', ...)   editorialValue(resolved, 'key')   resolved.key.value
+	-- (the third covers direct reads like getHeaderBadge's resolved.production_state.value).
+	local missing = {}
+	local seen = {}
+	local function checkKey(key)
+		if not seen[key] then
+			seen[key] = true
+			if not editorialFields[key] then
+				missing[#missing + 1] = key
+			end
+		end
+	end
+	for key in vehicleLua:gmatch("effective%(resolved,%s*'([%w_]+)'") do
+		checkKey(key)
+	end
+	for key in vehicleLua:gmatch("editorialValue%(resolved,%s*'([%w_]+)'") do
+		checkKey(key)
+	end
+	for key in vehicleLua:gmatch('resolved%.([%w_]+)%.value') do
+		checkKey(key)
+	end
+
+	if #missing > 0 then
+		for _, k in ipairs(missing) do
+			fail(
+				VEHICLE_LUA_PATH,
+				"editorial field reference '" .. k .. "' is not declared in " .. VEHICLE_EDITORIAL_PATH
+			)
+		end
+	else
+		pass(VEHICLE_LUA_PATH .. ' (editorial field cross-reference)')
 	end
 end
 

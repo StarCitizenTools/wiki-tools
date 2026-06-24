@@ -9,6 +9,7 @@ require('strict')
 
 local format = require('Module:Entity/Format')
 local sectionBuilder = require('Module:Entity/SectionBuilder')
+local statFormat = require('Module:Entity/StatFormat')
 
 local p = {}
 
@@ -49,7 +50,7 @@ local function formatResistance(resistance)
 	for _, key in ipairs(RESIST_ORDER) do
 		local factor = tonumber(resistance[key])
 		if factor and factor < 1 then
-			local pct = math.floor((1 - factor) * 100 + 0.5)
+			local pct = statFormat.resistancePercent(factor)
 			table.insert(parts, RESIST_LABEL[key] .. ' ' .. pct .. '%')
 		end
 	end

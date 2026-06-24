@@ -36,6 +36,7 @@ local p = {}
 --- @field getTypeInfo nil|fun(apiData: table, args: table): table|nil Display metadata { name, category }
 --- @field getSubtitle nil|fun(apiData: table, args: table): string|nil Header subtitle override (else the display type)
 --- @field getHeaderBadge nil|fun(apiData: table, args: table, resolved: table|nil): string|nil Header badge HTML composed into the image overlay
+--- @field getCategories nil|fun(apiData: table, args: table, resolved: table|nil): string[] Extra browse categories appended after the structural + manufacturer categories
 
 --- @class EntityKind : EntityChainLink
 --- A top-level entity with its own API endpoint and a mutually-exclusive

@@ -472,18 +472,39 @@ end
 function suite:testExternalOfficialAndCommunity()
 	local items = Vehicle.getExternalSiteItems(
 		{ pledge_url = 'https://rsi/pledge', class_name = 'AEGS_Gladius', uuid = 'ABC', shipmatrix_name = 'Gladius' },
-		{ brochure = 'https://b' }
+		{ brochureurl = 'https://b' }
 	)
 	local byLabel = {}
 	for _, it in ipairs(items) do
 		byLabel[it.label] = it.content
 	end
 	self:assertTrue(byLabel['Official sites'] ~= nil and byLabel['Official sites']:find('rsi/pledge', 1, true) ~= nil)
-	self:assertTrue(byLabel['Official sites']:find('https://b', 1, true) ~= nil)
+	-- The pledge link is labelled "Pledge store" (single brochure keeps its bare label).
+	self:assertTrue(byLabel['Official sites']:find('Pledge store', 1, true) ~= nil)
+	self:assertTrue(byLabel['Official sites']:find('[https://b Brochure]', 1, true) ~= nil)
 	self:assertTrue(
 		byLabel['Community sites'] ~= nil
 			and byLabel['Community sites']:find('erkul.games/ship/aegs_gladius', 1, true) ~= nil
 	)
+end
+
+function suite:testExternalMultipleUrlsSemicolon()
+	-- brochure/trailer/presentation/qa each accept a ;-separated list; more than one
+	-- URL numbers the labels, a single URL keeps the bare label.
+	local items = Vehicle.getExternalSiteItems({}, {
+		presentationurl = 'https://p1; https://p2',
+		qaurl = 'https://qa1',
+	})
+	local official
+	for _, it in ipairs(items) do
+		if it.label == 'Official sites' then
+			official = it.content
+		end
+	end
+	self:assertTrue(official ~= nil)
+	self:assertTrue(official:find('[https://p1 Presentation 1]', 1, true) ~= nil)
+	self:assertTrue(official:find('[https://p2 Presentation 2]', 1, true) ~= nil)
+	self:assertTrue(official:find('[https://qa1 Q&A]', 1, true) ~= nil)
 end
 
 function suite:testExternalEmptyWhenNoData()

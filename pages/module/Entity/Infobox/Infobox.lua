@@ -102,12 +102,12 @@ local function buildExternalSitesSection(chain, apiData, args)
 end
 
 --- Builds the footer section: a flex row of action buttons. The Galactapedia
---- button (when the page supplies a galactapedia_url) comes first; the Wiki API
+--- button (when the page supplies a galactapediaurl) comes first; the Wiki API
 --- button links to the entity on the Star Citizen Wiki API
 --- (api.star-citizen.wiki) — its /search/<uuid> path resolves any entity by
 --- UUID regardless of type. They sit side by side and wrap to stacked rows on
 --- narrow infoboxes (see Module:Entity/styles.css). Each button is independent:
---- a page with only one of (galactapedia_url, uuid) shows just that button, and
+--- a page with only one of (galactapediaurl, uuid) shows just that button, and
 --- the whole section collapses out when neither is present.
 ---
 --- @param apiData table
@@ -116,7 +116,9 @@ end
 local function buildFooterSection(apiData, args)
 	local buttons = {}
 
-	local galactapediaUrl = args.galactapedia_url
+	-- Canonical arg is `galactapediaurl` (the consistent <name>url form, also used by
+	-- Vehicle's external-sites row); `galactapedia_url` is kept as a back-compat alias.
+	local galactapediaUrl = args.galactapediaurl or args.galactapedia_url
 	if galactapediaUrl and galactapediaUrl ~= '' then
 		table.insert(
 			buttons,

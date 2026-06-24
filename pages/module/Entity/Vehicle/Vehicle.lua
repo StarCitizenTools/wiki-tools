@@ -937,9 +937,12 @@ function p.getStructuredData(apiData, args, resolved)
 	return data
 end
 
---- External-site links: Official (pledge from API + editorial galactapedia/brochure/
---- trailer/presentation/Q&A) and Community (ship tools from API identifiers).
---- The footer merges the "Official sites" row with Base's same-label row.
+--- External-site links: Official (pledgeurl from API + editorial galactapediaurl /
+--- brochureurl / trailerurl / presentationurl / qaurl) and Community (ship tools from
+--- API identifiers). The brochure/trailer/presentation/Q&A args each accept a
+--- semicolon-separated list for multiple URLs (e.g. presentationurl = url1; url2 — the
+--- wiki multi-value convention). The footer merges the "Official sites" row with Base's
+--- same-label row.
 --- @param apiData table
 --- @param args table
 --- @return table[]
@@ -947,11 +950,11 @@ function p.getExternalSiteItems(apiData, args)
 	local items = {}
 	local official = format.buildSiteLinks(mw.loadJsonData('Module:Entity/Vehicle/officialSites.json'), {
 		pledge_url = args.pledgeurl or apiData.pledge_url,
-		galactapedia = args.galactapedia_url,
-		brochure = args.brochure,
-		trailer = args.trailer,
-		presentations = args.presentations,
-		qa = args.qa,
+		galactapedia = args.galactapediaurl,
+		brochure = format.splitSemi(args.brochureurl),
+		trailer = format.splitSemi(args.trailerurl),
+		presentation = format.splitSemi(args.presentationurl),
+		qa = format.splitSemi(args.qaurl),
 	})
 	if official then
 		items[#items + 1] = { label = 'Official sites', content = official }

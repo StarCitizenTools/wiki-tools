@@ -98,30 +98,59 @@ function p.buildHtmlList(list)
 	return '<ul><li>' .. table.concat(list, '</li><li>') .. '</li></ul>'
 end
 
+--- Splits a semicolon-separated multi-value string into trimmed, non-empty parts
+--- — the wiki convention for multi-value template parameters (e.g. "a; b; c" ->
+--- { "a", "b", "c" }). Returns an empty list for nil/blank input.
+---
+--- @param text string|nil
+--- @return string[]
+function p.splitSemi(text)
+	local parts = {}
+	if type(text) ~= 'string' then
+		return parts
+	end
+	for part in (text .. ';'):gmatch('([^;]*);') do
+		part = mw.text.trim(part)
+		if part ~= '' then
+			parts[#parts + 1] = part
+		end
+	end
+	return parts
+end
+
 --- Builds a joined wikitext string of external links from site definitions.
---- Each definition is either { label, format, data } or { label, arg }.
---- Returns nil if no links can be built.
+--- Each definition is either { label, format, data } or { label, arg }. A
+--- { label, arg } lookup value may be a single URL string OR a list of URLs — a
+--- list emits one link per URL, numbering the labels ("Presentation 1 ·
+--- Presentation 2 …") when there is more than one (a single URL keeps the bare
+--- label). Returns nil if no links can be built.
 ---
 --- @param siteDefs table[] List of site link definitions
---- @param dataLookup table<string, string> Lookup table mapping data/arg keys to values
+--- @param dataLookup table<string, string|string[]> Lookup mapping data/arg keys to a URL or a list of URLs
 --- @return string|nil Joined wikitext (' · ' separated) or nil when empty
 function p.buildSiteLinks(siteDefs, dataLookup)
 	local links = {}
 
-	for _, def in ipairs(siteDefs) do
-		local url
+	local function add(url, label)
+		table.insert(links, '[' .. url .. ' ' .. label .. ']')
+	end
 
+	for _, def in ipairs(siteDefs) do
 		if def.arg then
-			url = dataLookup[def.arg]
+			local value = dataLookup[def.arg]
+			if type(value) == 'table' then
+				local count = #value
+				for i, url in ipairs(value) do
+					add(url, count > 1 and (def.label .. ' ' .. i) or def.label)
+				end
+			elseif value then
+				add(value, def.label)
+			end
 		elseif def.format and def.data then
 			local value = dataLookup[def.data]
 			if value then
-				url = string.format(def.format, mw.uri.encode(value, 'QUERY'))
+				add(string.format(def.format, mw.uri.encode(value, 'QUERY')), def.label)
 			end
-		end
-
-		if url then
-			table.insert(links, '[' .. url .. ' ' .. def.label .. ']')
 		end
 	end
 

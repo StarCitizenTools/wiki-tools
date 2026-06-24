@@ -77,12 +77,13 @@ local function setShortDescription(frame, typeInfo, chain, facets, apiData, args
 		end
 	end
 
-	local desc = typeInfo.name
-	for i = #chain, 1, -1 do
-		if chain[i].getShortDescription then
-			desc = chain[i].getShortDescription(apiData, args, typeInfo, prefix, resolved)
-			break
-		end
+	local desc =
+		assembly.resolveMostSpecific(chain, 'getShortDescription', nil, apiData, args, typeInfo, prefix, resolved)
+	-- resolveMostSpecific returns nil only when NO chain link defines
+	-- getShortDescription (no definer currently returns nil), so this coalesces
+	-- the no-definer case back to the type name.
+	if desc == nil then
+		desc = typeInfo.name
 	end
 
 	frame:callParserFunction('SHORTDESC', desc)

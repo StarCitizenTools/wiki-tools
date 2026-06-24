@@ -259,28 +259,24 @@ function p.render(result, args)
 
 	-- Subtitle defaults to the display type; a chain link may override it
 	-- (vehicles show their manufacturer in the header). Leaf-first wins.
-	local subtitle = result.displayType
-	for i = #result.chain, 1, -1 do
-		if result.chain[i].getSubtitle then
-			local override = result.chain[i].getSubtitle(result.apiData, args)
-			if override and override ~= '' then
-				subtitle = override
-				break
-			end
-		end
-	end
+	local subtitle = assembly.resolveMostSpecific(
+		result.chain,
+		'getSubtitle',
+		assembly.acceptNonEmpty,
+		result.apiData,
+		args
+	) or result.displayType
 
 	-- Header badge: a chain link (vehicles) may contribute a badge for the image
 	-- overlay (e.g. production status). Leaf-first wins.
-	local headerBadge = nil
-	for i = #result.chain, 1, -1 do
-		if result.chain[i].getHeaderBadge then
-			headerBadge = result.chain[i].getHeaderBadge(result.apiData, args, result.resolved)
-			if headerBadge and headerBadge ~= '' then
-				break
-			end
-		end
-	end
+	local headerBadge = assembly.resolveMostSpecific(
+		result.chain,
+		'getHeaderBadge',
+		assembly.acceptNonEmpty,
+		result.apiData,
+		args,
+		result.resolved
+	)
 
 	local html = infobox.render({
 		title = result.apiData.name or args.name or mw.title.getCurrentTitle().text,

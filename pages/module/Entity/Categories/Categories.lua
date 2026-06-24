@@ -11,6 +11,7 @@ local CATEGORY_API_ERROR = '[[Category:Pages with API errors]]'
 local CATEGORY_STRUCTURED_DATA_ERROR = '[[Category:Pages with structured data errors]]'
 local CATEGORY_MANUAL_API_DATA = '[[Category:Entities with manual API data]]'
 local CATEGORY_UNRESOLVED_REFERENCE = '[[Category:Pages with an unresolved entity reference]]'
+local CATEGORY_UNREGISTERED_PROPERTY = '[[Category:Entities with unregistered structured-data properties]]'
 
 local p = {}
 
@@ -65,8 +66,18 @@ end
 --- @param hasStructuredDataError boolean
 --- @param hasManualApiData boolean
 --- @param unresolvedReference boolean|nil
+--- @param hasUnregisteredProperty boolean|nil
 --- @return string
-function p.build(typeInfo, apiData, args, hasApiError, hasStructuredDataError, hasManualApiData, unresolvedReference)
+function p.build(
+	typeInfo,
+	apiData,
+	args,
+	hasApiError,
+	hasStructuredDataError,
+	hasManualApiData,
+	unresolvedReference,
+	hasUnregisteredProperty
+)
 	local categories = ''
 
 	if mw.title.getCurrentTitle():inNamespace(0) then
@@ -86,6 +97,9 @@ function p.build(typeInfo, apiData, args, hasApiError, hasStructuredDataError, h
 	end
 	if unresolvedReference then
 		categories = categories .. CATEGORY_UNRESOLVED_REFERENCE
+	end
+	if hasUnregisteredProperty then
+		categories = categories .. CATEGORY_UNREGISTERED_PROPERTY
 	end
 	return categories
 end

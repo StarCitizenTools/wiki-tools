@@ -20,6 +20,7 @@ local p = {}
 --- @param resolved table|nil Editorial resolved fields (optional; {} when no manifest)
 --- @param editorialData table|nil Pre-projected SMW key-value pairs from the editorial layer
 --- @return boolean success True if the backend accepted the data
+--- @return string[]|nil unregistered Emitter keys not registered in properties.json, or nil
 local function storeStructuredData(chain, facets, apiData, args, typeInfo, resolved, editorialData)
 	local dataList = {}
 	for _, mod in ipairs(chain) do
@@ -44,7 +45,8 @@ local function storeStructuredData(chain, facets, apiData, args, typeInfo, resol
 	if typeInfo and typeInfo.name then
 		merged.subject_type = typeInfo.name
 	end
-	return structuredData.store(merged)
+	local success, _err, unregistered = structuredData.store(merged)
+	return success, unregistered
 end
 
 --- Sets the page's short description via the SHORTDESC parser function.
@@ -102,7 +104,7 @@ function p.main(frame)
 	end
 
 	local html = entityInfobox.render(result, args)
-	local storeSuccess = storeStructuredData(
+	local storeSuccess, unregistered = storeStructuredData(
 		result.chain,
 		result.facets,
 		result.apiData,
@@ -122,7 +124,8 @@ function p.main(frame)
 			result.hasApiError,
 			not storeSuccess,
 			result.hasManualApiData,
-			result.unresolvedReference
+			result.unresolvedReference,
+			unregistered and #unregistered > 0 or false
 		)
 end
 

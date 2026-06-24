@@ -97,16 +97,37 @@ function suite:testShipSpeedSection()
 		speed = { scm = 227, max = 1230 },
 		agility = { roll = 137, pitch = 59, yaw = 51 },
 	}, {}, {})
-	local sp = findSection(s, 'stats')
-	self:assertEquals('227 m/s', findItem(sp.items, 'SCM speed').content)
-	self:assertEquals('1,230 m/s', findItem(sp.items, 'Max speed').content)
-	self:assertEquals('137 \194\176/s', findItem(sp.items, 'Roll rate').content)
-	self:assertEquals(nil, findItem(sp.items, 'Reverse speed'))
+	local flight = findItem(findSection(s, 'stats').sections, 'Flight')
+	self:assertEquals('227 m/s', findItem(flight.items, 'SCM speed').content)
+	self:assertEquals('1,230 m/s', findItem(flight.items, 'Max speed').content)
+	self:assertEquals('137 \194\176/s', findItem(flight.items, 'Roll rate').content)
+	self:assertEquals(nil, findItem(flight.items, 'Reverse speed'))
 	-- Overview is the labelless top section (always shown, never collapsible).
 	local ov = findSection(s, 'overview')
 	self:assertEquals(nil, ov.label)
 	self:assertEquals('Spacecraft', findItem(ov.items, 'Type').content)
-	self:assertEquals('Combat', findItem(ov.items, 'Career').content)
+	-- Career links to its browse category (legacy behavior restored).
+	self:assertEquals('[[:Category:Combat career|Combat]]', findItem(ov.items, 'Career').content)
+end
+
+function suite:testOverviewModelFromSeries()
+	-- "Model" row shows the editorial series; plain series when no manufacturer resolves.
+	local s = Vehicle.getSections({ is_spaceship = true }, {}, { series = { value = 'Avenger', source = 'editorial' } })
+	self:assertEquals('Avenger', findItem(findSection(s, 'overview').items, 'Model').content)
+end
+
+function suite:testOverviewModelOmittedWhenNoSeries()
+	local s = Vehicle.getSections({ is_spaceship = true }, {}, {})
+	self:assertEquals(nil, findItem(findSection(s, 'overview').items, 'Model'))
+end
+
+function suite:testCareerWikiParamWinsOverApi()
+	-- wiki `career` param wins over the API value (curated taxonomy).
+	local s = Vehicle.getSections({ is_spaceship = true, career = 'Transporter' }, { career = 'Transport' }, {})
+	self:assertEquals(
+		'[[:Category:Transport career|Transport]]',
+		findItem(findSection(s, 'overview').items, 'Career').content
+	)
 end
 
 function suite:testGroundVehicleSpeedUsesDrive()
@@ -117,11 +138,11 @@ function suite:testGroundVehicleSpeedUsesDrive()
 		agility = { roll = nil, pitch = nil, yaw = nil },
 		drive = { max_speed_ms = 36, reverse_speed_ms = 13.558441 },
 	}, {}, {})
-	local sp = findSection(s, 'stats')
-	self:assertEquals(nil, findItem(sp.items, 'SCM speed'))
-	self:assertEquals('36 m/s', findItem(sp.items, 'Max speed').content)
-	self:assertEquals('14 m/s', findItem(sp.items, 'Reverse speed').content)
-	self:assertEquals(nil, findItem(sp.items, 'Roll rate'))
+	local flight = findItem(findSection(s, 'stats').sections, 'Flight')
+	self:assertEquals(nil, findItem(flight.items, 'SCM speed'))
+	self:assertEquals('36 m/s', findItem(flight.items, 'Max speed').content)
+	self:assertEquals('14 m/s', findItem(flight.items, 'Reverse speed').content)
+	self:assertEquals(nil, findItem(flight.items, 'Roll rate'))
 end
 
 function suite:testCapacityCrewRangeAndCargo()
@@ -139,7 +160,8 @@ end
 
 function suite:testEditorialOverrideFlowsIntoSpeed()
 	local s = Vehicle.getSections({ speed = { scm = 227 } }, {}, { scm_speed = { value = 210, source = 'override' } })
-	self:assertEquals('210 m/s', findItem(findSection(s, 'stats').items, 'SCM speed').content)
+	local flight = findItem(findSection(s, 'stats').sections, 'Flight')
+	self:assertEquals('210 m/s', findItem(flight.items, 'SCM speed').content)
 end
 
 function suite:testEmptyApiOmitsSections()
@@ -327,6 +349,131 @@ function suite:testDimensionsOmittedWhenIncomplete()
 		nil,
 		findSection(Vehicle.getSections({ dimension = { length = 19, width = 8.75 } }, {}, {}), 'dimensions')
 	)
+end
+
+function suite:testStatsFlightTabHasSpeed()
+	local s = Vehicle.getSections({ is_spaceship = true, speed = { scm = 227, max = 1230 } }, {}, {})
+	local flight = findItem(findSection(s, 'stats').sections, 'Flight')
+	self:assertEquals('227 m/s', findItem(flight.items, 'SCM speed').content)
+end
+
+function suite:testHullTabHpAndSignature()
+	local s = Vehicle.getSections({
+		health = 6110,
+		shield_hp = 6336,
+		armor = { damage_physical = 0.75, signal_infrared = 1.13, signal_electromagnetic = 1 },
+	}, {}, {})
+	local hull = findItem(findSection(s, 'stats').sections, 'Hull')
+	self:assertEquals('6,110 HP', findItem(hull.items, 'Hull').content)
+	self:assertEquals('6,336 HP', findItem(hull.items, 'Shield').content)
+	self:assertTrue(findItem(hull.items, 'Infrared').content:find('+13%', 1, true) ~= nil)
+	self:assertEquals(nil, findItem(hull.items, 'Electromagnetic')) -- multiplier 1.0 omitted
+end
+
+function suite:testHullResistanceTileBlock()
+	-- ProgressTiles is stubbed in the runner (returns ''), so assert only that the
+	-- block item is present (label-less, string content, block CSS class).
+	local s = Vehicle.getSections({ armor = { damage_physical = 0.75 } }, {}, {})
+	local hull = findItem(findSection(s, 'stats').sections, 'Hull')
+	local block = nil
+	for _, it in ipairs(hull.items) do
+		if it.label == nil and type(it.content) == 'string' then
+			block = it
+		end
+	end
+	self:assertTrue(block ~= nil)
+	self:assertEquals('t-infobox-item--block', block.class)
+end
+
+function suite:testStructuredDataHullArmor()
+	local d = Vehicle.getStructuredData({ health = 6110, armor = { damage_physical = 0.75 } }, {}, {})
+	self:assertEquals(6110, d['Health point'])
+	self:assertEquals(0.75, d['Physical damage modifier'])
+end
+
+function suite:testFuelHydrogenAndQuantumTabs()
+	local s = Vehicle.getSections({
+		fuel = { capacity = 13.5, intake_rate = 0, usage = { main = 29.89, retro = 0 } },
+		quantum = { quantum_speed = 190000000, quantum_range = 69817400644, quantum_spool_time = 4 },
+	}, {}, {})
+	-- Fuel is collapsed into the Stats section as Hydrogen | Quantum tabs.
+	local h = findItem(findSection(s, 'stats').sections, 'Hydrogen')
+	self:assertEquals('13.5', findItem(h.items, 'Capacity').content)
+	self:assertEquals('29.89', findItem(h.items, 'Main').content)
+	self:assertEquals(nil, findItem(h.items, 'Retro')) -- 0 usage dropped
+	self:assertEquals(nil, findItem(h.items, 'Intake rate')) -- 0 intake dropped
+	local q = findItem(findSection(s, 'stats').sections, 'Quantum')
+	self:assertEquals('190 Mm/s', findItem(q.items, 'Quantum speed').content)
+	self:assertEquals('69.8 Gm', findItem(q.items, 'Quantum range').content)
+	self:assertEquals('4 s', findItem(q.items, 'Spool time').content)
+end
+
+function suite:testFuelTabsOmittedWhenNoFuelData()
+	-- A ship with flight data but no fuel/quantum: Stats has Flight but no Hydrogen/Quantum.
+	local s = Vehicle.getSections({ speed = { scm = 227 } }, {}, {})
+	local stats = findSection(s, 'stats')
+	self:assertEquals(nil, findItem(stats.sections, 'Hydrogen'))
+	self:assertEquals(nil, findItem(stats.sections, 'Quantum'))
+	self:assertEquals(true, findItem(stats.sections, 'Flight') ~= nil)
+end
+
+function suite:testNoFuelSection()
+	-- Fuel no longer renders as its own top-level section.
+	local s = Vehicle.getSections({ fuel = { capacity = 13.5 } }, {}, {})
+	self:assertEquals(nil, findSection(s, 'fuel'))
+end
+
+function suite:testStructuredDataFuelQuantumCommunityUnits()
+	local d = Vehicle.getStructuredData({
+		fuel = { capacity = 13.5 },
+		quantum = { quantum_speed = 190000000, quantum_range = 70000000000 },
+	}, {}, {})
+	self:assertEquals(13.5, d['Hydrogen fuel capacity'])
+	self:assertEquals(190, d['Quantum speed']) -- Mm/s, not raw
+	self:assertEquals(70, d['Quantum range']) -- Gm
+end
+
+function suite:testLoreAndDevelopmentSections()
+	local s = Vehicle.getSections({}, {}, {
+		release_date = { value = '2772', source = 'editorial' },
+		concept_sale = { value = '2021-06-05', source = 'editorial' },
+	})
+	self:assertEquals('2772', findItem(findSection(s, 'lore').items, 'Released').content)
+	self:assertEquals('2021-06-05', findItem(findSection(s, 'development').items, 'Concept sale').content)
+	self:assertEquals(nil, findItem(findSection(s, 'lore').items, 'Retired')) -- absent → dropped
+end
+
+function suite:testLoreDevelopmentOmittedWhenNoDates()
+	local s = Vehicle.getSections({}, {}, {})
+	self:assertEquals(nil, findSection(s, 'lore'))
+	self:assertEquals(nil, findSection(s, 'development'))
+end
+
+function suite:testEditorialManifestDatesPureEditorial()
+	local m = Vehicle.getEditorialManifest()
+	self:assertEquals('Lore release date', m.release_date.smw)
+	self:assertEquals(nil, m.release_date.apiPath)
+end
+
+function suite:testExternalOfficialAndCommunity()
+	local items = Vehicle.getExternalSiteItems(
+		{ pledge_url = 'https://rsi/pledge', class_name = 'AEGS_Gladius', uuid = 'ABC', shipmatrix_name = 'Gladius' },
+		{ brochure = 'https://b' }
+	)
+	local byLabel = {}
+	for _, it in ipairs(items) do
+		byLabel[it.label] = it.content
+	end
+	self:assertTrue(byLabel['Official sites'] ~= nil and byLabel['Official sites']:find('rsi/pledge', 1, true) ~= nil)
+	self:assertTrue(byLabel['Official sites']:find('https://b', 1, true) ~= nil)
+	self:assertTrue(
+		byLabel['Community sites'] ~= nil
+			and byLabel['Community sites']:find('erkul.games/ship/aegs_gladius', 1, true) ~= nil
+	)
+end
+
+function suite:testExternalEmptyWhenNoData()
+	self:assertEquals(0, #Vehicle.getExternalSiteItems({}, {}))
 end
 
 return suite

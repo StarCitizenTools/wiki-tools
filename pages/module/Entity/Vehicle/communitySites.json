@@ -1,0 +1,8 @@
+[
+	{ "label": "Universal Item Finder", "format": "https://finder.cstone.space/search/%s", "data": "uuid" },
+	{ "label": "#DPSCalculator", "format": "https://erkul.games/ship/%s", "data": "class_name" },
+	{ "label": "SPViewer", "format": "https://www.spviewer.eu/pages/performance.html?ship=%s", "data": "class_name" },
+	{ "label": "FleetYards", "format": "https://fleetyards.net/ships/%s/", "data": "ship_matrix" },
+	{ "label": "CCU Game", "format": "https://ccugame.app/rsi/all-ships/%s", "data": "ship_matrix" },
+	{ "label": "Wiki API", "format": "https://api.star-citizen.wiki/api/v3/vehicles/%s", "data": "uuid" }
+]

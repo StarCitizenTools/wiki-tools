@@ -68,10 +68,17 @@ end
 --- @return table|nil section
 local function buildExternalSitesSection(chain, apiData, args)
 	local items = {}
+	local byLabel = {}
 	for _, mod in ipairs(chain) do
 		if mod.getExternalSiteItems then
 			for _, item in ipairs(mod.getExternalSiteItems(apiData, args)) do
-				table.insert(items, item)
+				local existing = byLabel[item.label]
+				if existing and type(existing.content) == 'string' and type(item.content) == 'string' then
+					existing.content = existing.content .. ' \194\183 ' .. item.content
+				elseif existing == nil then
+					byLabel[item.label] = item
+					table.insert(items, item)
+				end
 			end
 		end
 	end

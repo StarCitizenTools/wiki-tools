@@ -1,0 +1,8 @@
+[
+	{ "label": "RSI Pledge Store", "arg": "pledge_url" },
+	{ "label": "Galactapedia", "arg": "galactapedia" },
+	{ "label": "Brochure", "arg": "brochure" },
+	{ "label": "Trailer", "arg": "trailer" },
+	{ "label": "Presentation", "arg": "presentations" },
+	{ "label": "Q&A", "arg": "qa" }
+]

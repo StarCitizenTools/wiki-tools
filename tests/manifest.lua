@@ -505,6 +505,35 @@ if vehicleLua and vehicleEditorial then
 	end
 end
 
+-- ── 9. Consumer require-path contract ────────────────────────────────────────
+local CONSUMER_REQUIRES = {
+	{
+		file = 'pages/module/WearableSet/WearableSet.lua',
+		need = { 'Module:Entity/Data', 'Module:Entity/Facet/Environment', 'Module:Entity/Facet/Armor' },
+	},
+	{ file = 'pages/module/Entity/Orders/Orders.lua', need = { 'Module:Entity/Data', 'Module:Entity/StructuredData' } },
+	{
+		file = 'pages/module/Entity/Rewards/Rewards.lua',
+		need = { 'Module:Entity/Data', 'Module:Entity/StructuredData' },
+	},
+}
+for _, c in ipairs(CONSUMER_REQUIRES) do
+	local src = readFile(c.file)
+	if src then
+		local cFailed = false
+		for _, modPath in ipairs(c.need) do
+			local pat = 'require%([\'"]' .. modPath:gsub('([%-%.%/])', '%%%1') .. '[\'"]%)'
+			if not src:match(pat) then
+				fail(c.file, "no longer requires '" .. modPath .. "' (consumer contract broken)")
+				cFailed = true
+			end
+		end
+		if not cFailed then
+			pass(c.file .. ' (consumer require-path contract)')
+		end
+	end
+end
+
 -- ── Summary ───────────────────────────────────────────────────────────────────
 if #failures == 0 then
 	for _, f in ipairs(ok_files) do

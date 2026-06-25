@@ -36,7 +36,7 @@ local p = {}
 --- @field getTypeInfo nil|fun(apiData: table, args: table): table|nil Display metadata { name, category }
 --- @field getSubtitle nil|fun(apiData: table, args: table): string|nil Header subtitle override (else the display type)
 --- @field getHeaderBadge nil|fun(apiData: table, args: table, resolved: table|nil): string|nil Header badge HTML composed into the image overlay
---- @field getCategories nil|fun(apiData: table, args: table, resolved: table|nil): string[] Extra browse categories appended after the structural + manufacturer categories
+--- @field getCategories nil|fun(apiData: table, args: table, resolved: table|nil, family: string|nil): string[] Extra browse categories appended after the structural + manufacturer categories
 
 --- @class EntityKind : EntityChainLink
 --- A top-level entity with its own API endpoint and a mutually-exclusive
@@ -48,6 +48,7 @@ local p = {}
 --- @field enrich nil|fun(apiData: table): table Post-fetch mutation hook (returns apiData)
 --- @field getEditorialManifest nil|fun(): table A per-kind editorial-field manifest (field -> { arg, smw, apiPath?, transform?, default? }); presence opts the kind into the editorial layer
 --- @field editorialMode boolean|nil Opt-in: when true the kind renders from editorial args alone (apiData = {}) for planned / not-yet-in-game pages with no genuine API record. See Module:Entity/Data.
+--- @field getAcquisition nil|fun(apiData: table, args: table): { summary: table[], cards: table[] }|nil Per-kind acquisition data for {{Entity/Availability}}: summary flag rows + render-ready cards. Absent → no acquisition block.
 
 --- @class EntityFacet
 --- A cross-cutting additive aspect matched on a data field, independent of kind.

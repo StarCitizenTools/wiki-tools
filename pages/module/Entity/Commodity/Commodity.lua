@@ -12,6 +12,7 @@ require('strict')
 local format = require('Module:Entity/Format')
 local mining = require('Module:Entity/Commodity/Mining')
 local records = require('Module:Entity/Commodity/Records')
+local acq = require('Module:Entity/Acquisition')
 
 -- API commodity_groups token → singular display label. Drives the infobox Type
 -- row, the short description, and the stored Commodity group / Commodity type
@@ -249,6 +250,65 @@ function p.getShortDescription(apiData, args, typeInfo)
 	parts[#parts + 1] = (typeInfo and typeInfo.name and typeInfo.name:lower()) or 'commodity'
 	local desc = table.concat(parts, ' ')
 	return desc:gsub('^%l', string.upper)
+end
+
+--- Acquisition data for {{Entity/Availability}}: Mine/Harvest/Buy summary flags
+--- and a Mining deposit card (pre-rendered HTML) + a Trade card (UEX terminal
+--- table when priced, else a SC-Trade-Tools/UEX link-out keyed on slug).
+---
+--- @param apiData table
+--- @param args table
+--- @return { summary: table[], cards: table[] }
+function p.getAcquisition(apiData, args)
+	local raw = apiData._rawRecord or apiData
+	local refined = apiData._refinedRecord or apiData
+	local purchase = type(refined.uex_prices) == 'table' and refined.uex_prices.purchase or nil
+
+	local summary = {
+		{ label = 'Mine', icon = '⛏️', value = acq.resolveFlag(args.canMine, raw.is_mineable) },
+		{ label = 'Harvest', icon = '🌿', value = acq.resolveFlag(args.canHarvest, raw.has_harvestables) },
+		{
+			label = 'Buy',
+			icon = '🛒',
+			value = acq.resolveFlag(args.canBuy, acq.inferCanAcquire(purchase, 'price_buy')),
+		},
+	}
+
+	local cards = {}
+	local miningHtml = mining.renderMiningCard(apiData._rawRecord)
+	if miningHtml then
+		cards[#cards + 1] = { type = 'html', html = miningHtml }
+	end
+
+	local purchasePrices = type(purchase) == 'table' and purchase or {}
+	if #purchasePrices > 0 then
+		local hasSell = acq.priceRange(purchasePrices, 'price_sell') ~= nil
+		local priceColumns = { { id = 'buy', key = 'price_buy', label = 'Buy' } }
+		if hasSell then
+			priceColumns[#priceColumns + 1] = { id = 'sell', key = 'price_sell', label = 'Sell' }
+		end
+		cards[#cards + 1] = {
+			type = 'terminals',
+			title = '<span aria-hidden="true">🛒</span> Trade',
+			caption = 'Trade terminals',
+			description = hasSell and acq.buildShopTerminalsDescription(purchasePrices)
+				or acq.buildSinglePriceDescription(purchasePrices, 'price_buy'),
+			prices = purchasePrices,
+			priceColumns = priceColumns,
+		}
+	else
+		local slug = mw.uri.encode(refined.slug or apiData.slug or '', 'PATH')
+		cards[#cards + 1] = {
+			type = 'links',
+			title = 'Browse trade data',
+			buttons = {
+				{ label = 'SC Trade Tools', url = 'https://sc-trade.tools/commodities/' .. slug, weight = 'normal' },
+				{ label = 'UEX', url = 'https://uexcorp.space/commodities/info/name/' .. slug, weight = 'normal' },
+			},
+		}
+	end
+
+	return { summary = summary, cards = cards }
 end
 
 --- Contributes commodity community-site links (UEX, SC Trade Tools) to the

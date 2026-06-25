@@ -8,6 +8,8 @@ require('strict')
 --- Editorial overlap fields are read through Module:Entity/Editorial's view.
 
 local base = require('Module:Entity/Base')
+local subtypeResolver = require('Module:Entity/SubtypeResolver')
+local acq = require('Module:Entity/Acquisition')
 local capacity = require('Module:Entity/Vehicle/Capacity')
 local cost = require('Module:Entity/Vehicle/Cost')
 local development = require('Module:Entity/Vehicle/Development')
@@ -79,6 +81,35 @@ function p.matches(apiData)
 	return apiData ~= nil and apiData.is_vehicle ~= nil
 end
 
+--- Vehicle family → subtype leaf module path. The keys are the family tokens
+--- (also each leaf's p.family tag and the curated |family= arg value).
+local VEHICLE_FAMILY_MAP = {
+	gravlev = 'Entity/Vehicle/Gravlev',
+	ship = 'Entity/Vehicle/Ship',
+	ground = 'Entity/Vehicle/GroundVehicle',
+}
+
+--- Derive the family token: a genuine record's boolean flags (ordered
+--- most-specific-first) win; in editorial mode (apiData = {}) the curated
+--- |family= arg selects it. nil when neither resolves.
+--- @param apiData table|nil
+--- @param args table|nil
+--- @return string|nil
+local function deriveFamily(apiData, args)
+	if type(apiData) == 'table' then
+		if apiData.is_gravlev then
+			return 'gravlev'
+		end
+		if apiData.is_spaceship then
+			return 'ship'
+		end
+		if apiData.is_vehicle then
+			return 'ground'
+		end
+	end
+	return type(args) == 'table' and args.family or nil
+end
+
 --- Refine a vehicle to its family subtype leaf. A genuine record carries all
 --- three family flags (exactly one truthy), so order is defensive
 --- most-specific-first. In editorial mode (apiData = {}, no flags) the curated
@@ -88,28 +119,7 @@ end
 --- @param args table|nil
 --- @return table|nil
 function p.resolveSubtype(apiData, args)
-	if type(apiData) == 'table' then
-		if apiData.is_gravlev then
-			return require('Module:Entity/Vehicle/Gravlev')
-		end
-		if apiData.is_spaceship then
-			return require('Module:Entity/Vehicle/Ship')
-		end
-		if apiData.is_vehicle then
-			return require('Module:Entity/Vehicle/GroundVehicle')
-		end
-	end
-	local family = type(args) == 'table' and args.family or nil
-	if family == 'gravlev' then
-		return require('Module:Entity/Vehicle/Gravlev')
-	end
-	if family == 'ship' then
-		return require('Module:Entity/Vehicle/Ship')
-	end
-	if family == 'ground' then
-		return require('Module:Entity/Vehicle/GroundVehicle')
-	end
-	return nil
+	return subtypeResolver.resolve(deriveFamily(apiData, args), VEHICLE_FAMILY_MAP)
 end
 
 local ROLE_SUFFIXES = {
@@ -396,14 +406,14 @@ end
 --- @param apiData table
 --- @param args table
 --- @param resolved table
+--- @param family string|nil  the leaf family token, threaded from Data.get (no re-resolve)
 --- @return string[]
-function p.getCategories(apiData, args, resolved)
+function p.getCategories(apiData, args, resolved, family)
 	local ed = Editorial.view(resolved)
 	local cats = {}
-	-- Derive the family from the resolved subtype's declared tag so editorial-mode
-	-- pages (apiData = {}, no is_spaceship flag) still classify as ships via |family=.
-	local subtype = p.resolveSubtype(apiData, args)
-	local isShip = subtype ~= nil and subtype.family == 'ship'
+	-- Family is threaded from Data.get (the leaf's p.family); editorial-mode pages
+	-- (apiData = {}, no is_spaceship flag) still classify as ships via |family=.
+	local isShip = family == 'ship'
 	-- Size (ships only): "Large ships" — the curated |size= wins (API may disagree)
 	local size = vehicleUtil.matrixSize(apiData, args)
 	if isShip and size then
@@ -439,6 +449,70 @@ function p.getCategories(apiData, args, resolved)
 		cats[#cats + 1] = lang:ucfirst(career) .. ' career'
 	end
 	return cats
+end
+
+--- Acquisition data for {{Entity/Availability}}: Buy/Rent/Pledge summary flags
+--- (Loot/Craft omitted — neither applies to vehicles) and Shops + Rentals
+--- terminal cards from uex_prices.{purchase,rental}. Pledge derives from msrp.
+--- @param apiData table
+--- @param args table
+--- @return { summary: table[], cards: table[] }
+function p.getAcquisition(apiData, args)
+	local prices = type(apiData.uex_prices) == 'table' and apiData.uex_prices or {}
+	local purchase = type(prices.purchase) == 'table' and prices.purchase or {}
+	local rental = type(prices.rental) == 'table' and prices.rental or {}
+
+	local summary = {
+		{
+			label = 'Buy',
+			icon = '🛒',
+			value = acq.resolveFlag(args.canBuy, acq.inferCanAcquire(purchase, 'price_buy')),
+		},
+		{
+			label = 'Rent',
+			icon = '⏳',
+			value = acq.resolveFlag(args.canRent, acq.inferCanAcquire(rental, 'price_rent')),
+		},
+		{ label = 'Pledge', icon = '💵', value = acq.resolveFlag(args.canPledge, apiData.msrp ~= nil) },
+	}
+
+	local hasPurchase = #purchase > 0
+	local hasSell = hasPurchase and acq.priceRange(purchase, 'price_sell') ~= nil
+	local shopColumns = { { id = 'buy', key = 'price_buy', label = 'Buy' } }
+	if hasSell then
+		shopColumns[#shopColumns + 1] = { id = 'sell', key = 'price_sell', label = 'Sell' }
+	end
+	local shopDescription
+	if hasPurchase then
+		shopDescription = hasSell and acq.buildShopTerminalsDescription(purchase)
+			or acq.buildSinglePriceDescription(purchase, 'price_buy')
+	else
+		shopDescription = 'No shop data in UEX'
+	end
+
+	local hasRental = #rental > 0
+	return {
+		summary = summary,
+		cards = {
+			{
+				type = 'terminals',
+				title = '<span aria-hidden="true">🛒</span> Shops',
+				caption = 'Shop terminals',
+				description = shopDescription,
+				prices = hasPurchase and purchase or nil,
+				priceColumns = shopColumns,
+			},
+			{
+				type = 'terminals',
+				title = '<span aria-hidden="true">⏳</span> Rentals',
+				caption = 'Vehicle rental terminals',
+				description = hasRental and acq.buildSinglePriceDescription(rental, 'price_rent')
+					or 'No rental data in UEX',
+				prices = hasRental and rental or nil,
+				priceColumns = { { id = 'rent', key = 'price_rent', label = 'Rent' } },
+			},
+		},
+	}
 end
 
 return p

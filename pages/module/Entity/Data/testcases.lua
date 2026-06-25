@@ -183,4 +183,11 @@ function suite:testGetEmptyApiDataNoError()
 	self:assertEquals(nil, next(r.apiData))
 end
 
+function suite:testGetExposesFamilyAndMatchedKind()
+	local r = Data.get({})
+	-- No uuid → no match → Item fallback leaf (no p.family) and matchedKind nil.
+	self:assertEquals(nil, r.family)
+	self:assertEquals(nil, r.matchedKind)
+end
+
 return suite

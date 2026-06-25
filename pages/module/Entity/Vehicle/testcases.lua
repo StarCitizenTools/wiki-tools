@@ -533,7 +533,16 @@ function suite:testSizeDisplayArgOverridesApi()
 end
 
 function suite:testCategoriesSizeFromArg()
-	local cats = Vehicle.getCategories({ is_spaceship = true, size = 'medium' }, { size = 'Large' }, {})
+	local apiData, args = { is_spaceship = true, size = 'medium' }, { size = 'Large' }
+	local cats = Vehicle.getCategories(
+		apiData,
+		args,
+		{},
+		(function()
+			local s = Vehicle.resolveSubtype(apiData, args)
+			return s and s.family
+		end)()
+	)
 	local set = {}
 	for _, c in ipairs(cats) do
 		set[c] = true
@@ -588,10 +597,19 @@ end
 
 function suite:testCategoriesGenerationGrouping()
 	-- "<series> <generation>" (legacy category_generation "%s %s"), e.g. "Constellation Mk4".
-	local cats = Vehicle.getCategories({ is_spaceship = true }, {}, {
-		series = { value = 'Constellation', source = 'editorial' },
-		generation = { value = 'Mk4', source = 'editorial' },
-	})
+	local apiData, args = { is_spaceship = true }, {}
+	local cats = Vehicle.getCategories(
+		apiData,
+		args,
+		{
+			series = { value = 'Constellation', source = 'editorial' },
+			generation = { value = 'Mk4', source = 'editorial' },
+		},
+		(function()
+			local s = Vehicle.resolveSubtype(apiData, args)
+			return s and s.family
+		end)()
+	)
 	local set = {}
 	for _, c in ipairs(cats) do
 		set[c] = true
@@ -602,10 +620,16 @@ end
 function suite:testCategoriesShip()
 	-- Pass args.manufacturer so resolveManufacturer returns a fallback record with
 	-- name == 'Gatac Manufacture', enabling the manufacturer+series category.
+	local apiData = { is_spaceship = true, size = 'large', msrp = 220, production_status = 'flight-ready' }
+	local args = { career = 'Transport', manufacturer = 'Gatac Manufacture' }
 	local cats = Vehicle.getCategories(
-		{ is_spaceship = true, size = 'large', msrp = 220, production_status = 'flight-ready' },
-		{ career = 'Transport', manufacturer = 'Gatac Manufacture' },
-		{ series = { value = 'Railen', source = 'editorial' } }
+		apiData,
+		args,
+		{ series = { value = 'Railen', source = 'editorial' } },
+		(function()
+			local s = Vehicle.resolveSubtype(apiData, args)
+			return s and s.family
+		end)()
 	)
 	local set = {}
 	for _, c in ipairs(cats) do
@@ -626,10 +650,15 @@ function suite:testCategoriesShip()
 end
 
 function suite:testCategoriesGroundNoSizeAndPledgeVehicles()
+	local apiData, args = { is_vehicle = true, size = 'small', msrp = 50, production_status = 'flight-ready' }, {}
 	local cats = Vehicle.getCategories(
-		{ is_vehicle = true, size = 'small', msrp = 50, production_status = 'flight-ready' },
+		apiData,
+		args,
 		{},
-		{}
+		(function()
+			local s = Vehicle.resolveSubtype(apiData, args)
+			return s and s.family
+		end)()
 	)
 	local set = {}
 	for _, c in ipairs(cats) do
@@ -640,7 +669,16 @@ function suite:testCategoriesGroundNoSizeAndPledgeVehicles()
 end
 
 function suite:testCategoriesNoPledgeNoSeries()
-	local cats = Vehicle.getCategories({ is_spaceship = true, size = 'large' }, {}, {})
+	local apiData, args = { is_spaceship = true, size = 'large' }, {}
+	local cats = Vehicle.getCategories(
+		apiData,
+		args,
+		{},
+		(function()
+			local s = Vehicle.resolveSubtype(apiData, args)
+			return s and s.family
+		end)()
+	)
 	for _, c in ipairs(cats) do
 		self:assertEquals(false, c == 'Pledge ships')
 	end
@@ -774,13 +812,19 @@ end
 
 function suite:testEditorialModeCategoriesShip()
 	-- apiData = {}: isShip must be derived from |family=, not API flags.
+	local apiData = {}
+	local args = { family = 'ship', manufacturer = 'MISC', size = 'Large', career = 'Transport' }
 	local cats = Vehicle.getCategories(
-		{},
-		{ family = 'ship', manufacturer = 'MISC', size = 'Large', career = 'Transport' },
+		apiData,
+		args,
 		{
 			series = { value = 'Hull', source = 'editorial' },
 			production_state = { value = 'In concept', source = 'override' },
-		}
+		},
+		(function()
+			local s = Vehicle.resolveSubtype(apiData, args)
+			return s and s.family
+		end)()
 	)
 	local set = {}
 	for _, c in ipairs(cats) do
@@ -797,6 +841,29 @@ function suite:testEditorialModeSectionsNoError()
 		series = { value = 'Hull', source = 'editorial' },
 	})
 	self:assertEquals('Spacecraft', findItem(findSection(s, 'overview').items, 'Type').content)
+end
+
+function suite:testFamilyTagsMatchDispatchTokens()
+	-- p.family on each leaf must equal the family token that dispatches to it,
+	-- so the leaf tag and VEHICLE_FAMILY_MAP can't drift apart.
+	self:assertEquals(Ship, Vehicle.resolveSubtype({}, { family = Ship.family }))
+	self:assertEquals(GroundVehicle, Vehicle.resolveSubtype({}, { family = GroundVehicle.family }))
+	self:assertEquals(Gravlev, Vehicle.resolveSubtype({}, { family = Gravlev.family }))
+end
+
+function suite:testGetAcquisitionVehicle()
+	local a = Vehicle.getAcquisition(
+		{ uex_prices = { purchase = { { price_buy = 500000 } }, rental = {} }, msrp = 200 },
+		{}
+	)
+	local byLabel = {}
+	for _, r in ipairs(a.summary) do
+		byLabel[r.label] = r.value
+	end
+	self:assertEquals(true, byLabel['Buy'])
+	self:assertEquals(true, byLabel['Pledge'])
+	self:assertEquals(2, #a.cards) -- Shops + Rentals
+	self:assertEquals('No rental data in UEX', a.cards[2].description)
 end
 
 return suite

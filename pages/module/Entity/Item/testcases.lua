@@ -211,4 +211,17 @@ function suite:testGetVolumeMissingUnitTreatedAsScu()
 	self:assertEquals(1000000, Item._internal.getVolume({ dimension = { volume_converted = 1 } }))
 end
 
+function suite:testGetAcquisitionItem()
+	local a = Item.getAcquisition({ uex_prices = { purchase = { { price_buy = 500 } } }, is_lootable = true }, {})
+	local byLabel = {}
+	for _, r in ipairs(a.summary) do
+		byLabel[r.label] = r.value
+	end
+	self:assertEquals(true, byLabel['Buy'])
+	self:assertEquals(true, byLabel['Loot'])
+	self:assertEquals(nil, byLabel['Rent']) -- no canRent → Rent row absent
+	self:assertEquals('terminals', a.cards[1].type)
+	self:assertEquals('Shop terminals', a.cards[1].caption)
+end
+
 return suite

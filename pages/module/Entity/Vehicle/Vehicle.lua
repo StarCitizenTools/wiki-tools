@@ -9,6 +9,7 @@ require('strict')
 
 local base = require('Module:Entity/Base')
 local subtypeResolver = require('Module:Entity/SubtypeResolver')
+local acq = require('Module:Entity/Acquisition')
 local capacity = require('Module:Entity/Vehicle/Capacity')
 local cost = require('Module:Entity/Vehicle/Cost')
 local development = require('Module:Entity/Vehicle/Development')
@@ -448,6 +449,70 @@ function p.getCategories(apiData, args, resolved, family)
 		cats[#cats + 1] = lang:ucfirst(career) .. ' career'
 	end
 	return cats
+end
+
+--- Acquisition data for {{Entity/Availability}}: Buy/Rent/Pledge summary flags
+--- (Loot/Craft omitted — neither applies to vehicles) and Shops + Rentals
+--- terminal cards from uex_prices.{purchase,rental}. Pledge derives from msrp.
+--- @param apiData table
+--- @param args table
+--- @return { summary: table[], cards: table[] }
+function p.getAcquisition(apiData, args)
+	local prices = type(apiData.uex_prices) == 'table' and apiData.uex_prices or {}
+	local purchase = type(prices.purchase) == 'table' and prices.purchase or {}
+	local rental = type(prices.rental) == 'table' and prices.rental or {}
+
+	local summary = {
+		{
+			label = 'Buy',
+			icon = '🛒',
+			value = acq.resolveFlag(args.canBuy, acq.inferCanAcquire(purchase, 'price_buy')),
+		},
+		{
+			label = 'Rent',
+			icon = '⏳',
+			value = acq.resolveFlag(args.canRent, acq.inferCanAcquire(rental, 'price_rent')),
+		},
+		{ label = 'Pledge', icon = '💵', value = acq.resolveFlag(args.canPledge, apiData.msrp ~= nil) },
+	}
+
+	local hasPurchase = #purchase > 0
+	local hasSell = hasPurchase and acq.priceRange(purchase, 'price_sell') ~= nil
+	local shopColumns = { { id = 'buy', key = 'price_buy', label = 'Buy' } }
+	if hasSell then
+		shopColumns[#shopColumns + 1] = { id = 'sell', key = 'price_sell', label = 'Sell' }
+	end
+	local shopDescription
+	if hasPurchase then
+		shopDescription = hasSell and acq.buildShopTerminalsDescription(purchase)
+			or acq.buildSinglePriceDescription(purchase, 'price_buy')
+	else
+		shopDescription = 'No shop data in UEX'
+	end
+
+	local hasRental = #rental > 0
+	return {
+		summary = summary,
+		cards = {
+			{
+				type = 'terminals',
+				title = '<span aria-hidden="true">🛒</span> Shops',
+				caption = 'Shop terminals',
+				description = shopDescription,
+				prices = hasPurchase and purchase or nil,
+				priceColumns = shopColumns,
+			},
+			{
+				type = 'terminals',
+				title = '<span aria-hidden="true">⏳</span> Rentals',
+				caption = 'Vehicle rental terminals',
+				description = hasRental and acq.buildSinglePriceDescription(rental, 'price_rent')
+					or 'No rental data in UEX',
+				prices = hasRental and rental or nil,
+				priceColumns = { { id = 'rent', key = 'price_rent', label = 'Rent' } },
+			},
+		},
+	}
 end
 
 return p

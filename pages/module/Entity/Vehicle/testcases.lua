@@ -851,4 +851,19 @@ function suite:testFamilyTagsMatchDispatchTokens()
 	self:assertEquals(Gravlev, Vehicle.resolveSubtype({}, { family = Gravlev.family }))
 end
 
+function suite:testGetAcquisitionVehicle()
+	local a = Vehicle.getAcquisition(
+		{ uex_prices = { purchase = { { price_buy = 500000 } }, rental = {} }, msrp = 200 },
+		{}
+	)
+	local byLabel = {}
+	for _, r in ipairs(a.summary) do
+		byLabel[r.label] = r.value
+	end
+	self:assertEquals(true, byLabel['Buy'])
+	self:assertEquals(true, byLabel['Pledge'])
+	self:assertEquals(2, #a.cards) -- Shops + Rentals
+	self:assertEquals('No rental data in UEX', a.cards[2].description)
+end
+
 return suite

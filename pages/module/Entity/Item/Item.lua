@@ -7,6 +7,8 @@ require('strict')
 local format = require('Module:Entity/Format')
 local base = require('Module:Entity/Base')
 local subtypeResolver = require('Module:Entity/SubtypeResolver')
+local acq = require('Module:Entity/Acquisition')
+local yesno = require('Module:Yesno')
 
 local p = {}
 
@@ -322,6 +324,69 @@ function p.getExternalSiteItems(apiData, args)
 		return {}
 	end
 	return { { label = 'Community sites', content = links } }
+end
+
+--- Acquisition data for {{Entity/Availability}}: Buy/Loot/Craft/Pledge summary
+--- flags (+ Rent only when the editor sets it — items aren't structurally
+--- rentable) and a single Shops terminal card from uex_prices.purchase.
+--- @param apiData table
+--- @param args table
+--- @return { summary: table[], cards: table[] }
+function p.getAcquisition(apiData, args)
+	local prices = type(apiData.uex_prices) == 'table' and apiData.uex_prices or {}
+	local purchase = type(prices.purchase) == 'table' and prices.purchase or {}
+
+	local summary = {
+		{
+			label = 'Buy',
+			icon = '🛒',
+			value = acq.resolveFlag(args.canBuy, acq.inferCanAcquire(purchase, 'price_buy')),
+		},
+	}
+	local rentValue = yesno(args.canRent)
+	if rentValue ~= nil then
+		summary[#summary + 1] = { label = 'Rent', icon = '⏳', value = rentValue }
+	end
+	summary[#summary + 1] =
+		{ label = 'Loot', icon = '📦', value = acq.resolveFlag(args.canLoot, apiData.is_lootable) }
+	summary[#summary + 1] =
+		{ label = 'Craft', icon = '🔨', value = acq.resolveFlag(args.canCraft, apiData.is_craftable) }
+	summary[#summary + 1] = {
+		label = 'Pledge',
+		icon = '💵',
+		value = acq.resolveFlag(
+			args.canPledge,
+			acq.hasEntityTag(apiData, 'PromotionalItem') or acq.hasEntityTag(apiData, 'SubscriberFlair')
+		),
+	}
+
+	local hasPurchase = #purchase > 0
+	local hasSell = hasPurchase and acq.priceRange(purchase, 'price_sell') ~= nil
+	local priceColumns = { { id = 'buy', key = 'price_buy', label = 'Buy' } }
+	if hasSell then
+		priceColumns[#priceColumns + 1] = { id = 'sell', key = 'price_sell', label = 'Sell' }
+	end
+	local description
+	if hasPurchase then
+		description = hasSell and acq.buildShopTerminalsDescription(purchase)
+			or acq.buildSinglePriceDescription(purchase, 'price_buy')
+	else
+		description = 'No shop data in UEX'
+	end
+
+	return {
+		summary = summary,
+		cards = {
+			{
+				type = 'terminals',
+				title = '<span aria-hidden="true">🛒</span> Shops',
+				caption = 'Shop terminals',
+				description = description,
+				prices = hasPurchase and purchase or nil,
+				priceColumns = priceColumns,
+			},
+		},
+	}
 end
 
 -- Test-only exports. Not part of the public API.

@@ -242,4 +242,28 @@ function suite:testGetShortDescriptionBare()
 	self:assertEquals('Mineral', Commodity.getShortDescription({ key = 'Aslarite' }, {}, { name = 'Mineral' }))
 end
 
+function suite:testGetAcquisitionCommodityLinkOut()
+	-- No refined prices → Trade is a link-out card keyed on slug; no locations → no mining card.
+	local a = Commodity.getAcquisition(
+		{ _rawRecord = { is_mineable = true, slug = 'gold' }, _refinedRecord = { slug = 'gold' } },
+		{}
+	)
+	local byLabel = {}
+	for _, r in ipairs(a.summary) do
+		byLabel[r.label] = r.value
+	end
+	self:assertEquals(true, byLabel['Mine'])
+	self:assertEquals('links', a.cards[#a.cards].type)
+	self:assertTrue(a.cards[#a.cards].buttons[1].url:find('gold', 1, true) ~= nil)
+end
+
+function suite:testGetAcquisitionCommodityTradeTerminals()
+	local a = Commodity.getAcquisition({
+		_rawRecord = { is_mineable = false },
+		_refinedRecord = { uex_prices = { purchase = { { price_buy = 5, price_sell = 7 } } } },
+	}, {})
+	self:assertEquals('terminals', a.cards[#a.cards].type)
+	self:assertEquals('Trade terminals', a.cards[#a.cards].caption)
+end
+
 return suite

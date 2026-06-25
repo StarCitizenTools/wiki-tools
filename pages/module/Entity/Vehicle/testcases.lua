@@ -799,4 +799,12 @@ function suite:testEditorialModeSectionsNoError()
 	self:assertEquals('Spacecraft', findItem(findSection(s, 'overview').items, 'Type').content)
 end
 
+function suite:testFamilyTagsMatchDispatchTokens()
+	-- p.family on each leaf must equal the family token that dispatches to it,
+	-- so the leaf tag and VEHICLE_FAMILY_MAP can't drift apart.
+	self:assertEquals(Ship, Vehicle.resolveSubtype({}, { family = Ship.family }))
+	self:assertEquals(GroundVehicle, Vehicle.resolveSubtype({}, { family = GroundVehicle.family }))
+	self:assertEquals(Gravlev, Vehicle.resolveSubtype({}, { family = Gravlev.family }))
+end
+
 return suite

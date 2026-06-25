@@ -6,6 +6,7 @@ require('strict')
 
 local format = require('Module:Entity/Format')
 local base = require('Module:Entity/Base')
+local subtypeResolver = require('Module:Entity/SubtypeResolver')
 
 local p = {}
 
@@ -116,11 +117,7 @@ end
 --- @param args table|nil  Unused (item subtype dispatches on apiData.type); present for kind-contract parity.
 --- @return table|nil The resolved subtype module, or nil
 function p.resolveSubtype(apiData, args)
-	local subtype = apiData and apiData.type
-	if subtype and itemSubtypeMapping[subtype] then
-		return require('Module:' .. itemSubtypeMapping[subtype])
-	end
-	return nil
+	return subtypeResolver.resolve(apiData and apiData.type, itemSubtypeMapping)
 end
 
 --- Class (Military / Civilian / Industrial / Competition / ...) is populated

@@ -8,6 +8,7 @@ require('strict')
 --- Editorial overlap fields are read through Module:Entity/Editorial's view.
 
 local base = require('Module:Entity/Base')
+local subtypeResolver = require('Module:Entity/SubtypeResolver')
 local capacity = require('Module:Entity/Vehicle/Capacity')
 local cost = require('Module:Entity/Vehicle/Cost')
 local development = require('Module:Entity/Vehicle/Development')
@@ -79,6 +80,35 @@ function p.matches(apiData)
 	return apiData ~= nil and apiData.is_vehicle ~= nil
 end
 
+--- Vehicle family → subtype leaf module path. The keys are the family tokens
+--- (also each leaf's p.family tag and the curated |family= arg value).
+local VEHICLE_FAMILY_MAP = {
+	gravlev = 'Entity/Vehicle/Gravlev',
+	ship = 'Entity/Vehicle/Ship',
+	ground = 'Entity/Vehicle/GroundVehicle',
+}
+
+--- Derive the family token: a genuine record's boolean flags (ordered
+--- most-specific-first) win; in editorial mode (apiData = {}) the curated
+--- |family= arg selects it. nil when neither resolves.
+--- @param apiData table|nil
+--- @param args table|nil
+--- @return string|nil
+local function deriveFamily(apiData, args)
+	if type(apiData) == 'table' then
+		if apiData.is_gravlev then
+			return 'gravlev'
+		end
+		if apiData.is_spaceship then
+			return 'ship'
+		end
+		if apiData.is_vehicle then
+			return 'ground'
+		end
+	end
+	return type(args) == 'table' and args.family or nil
+end
+
 --- Refine a vehicle to its family subtype leaf. A genuine record carries all
 --- three family flags (exactly one truthy), so order is defensive
 --- most-specific-first. In editorial mode (apiData = {}, no flags) the curated
@@ -88,28 +118,7 @@ end
 --- @param args table|nil
 --- @return table|nil
 function p.resolveSubtype(apiData, args)
-	if type(apiData) == 'table' then
-		if apiData.is_gravlev then
-			return require('Module:Entity/Vehicle/Gravlev')
-		end
-		if apiData.is_spaceship then
-			return require('Module:Entity/Vehicle/Ship')
-		end
-		if apiData.is_vehicle then
-			return require('Module:Entity/Vehicle/GroundVehicle')
-		end
-	end
-	local family = type(args) == 'table' and args.family or nil
-	if family == 'gravlev' then
-		return require('Module:Entity/Vehicle/Gravlev')
-	end
-	if family == 'ship' then
-		return require('Module:Entity/Vehicle/Ship')
-	end
-	if family == 'ground' then
-		return require('Module:Entity/Vehicle/GroundVehicle')
-	end
-	return nil
+	return subtypeResolver.resolve(deriveFamily(apiData, args), VEHICLE_FAMILY_MAP)
 end
 
 local ROLE_SUFFIXES = {

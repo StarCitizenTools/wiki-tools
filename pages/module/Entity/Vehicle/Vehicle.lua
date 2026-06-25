@@ -8,9 +8,8 @@ local base = require('Module:Entity/Base')
 local capacity = require('Module:Entity/Vehicle/Capacity')
 local cost = require('Module:Entity/Vehicle/Cost')
 local Editorial = require('Module:Entity/Editorial')
-local dimensions = require('Module:Dimensions')
-local dimensionsPresets = require('Module:Dimensions/presets')
 local floatingui = require('Module:FloatingUI')
+local vehicleDimensions = require('Module:Entity/Vehicle/Dimensions')
 local format = require('Module:Entity/Format')
 local overview = require('Module:Entity/Vehicle/Overview')
 local productionStatus = require('Module:Entity/ProductionStatus')
@@ -202,45 +201,6 @@ local function manufacturerLink(apiData, args)
 	return '[[' .. mfr.page .. ']]'
 end
 
---- Dimensions section: thin adapter over Module:Dimensions. Vehicles carry flat
---- dimension.{length,width,height} (the item Dimensions facet reads a nested
---- .dimensions and so does not match vehicles).
---- @param apiData table
---- @param args table
---- @param ed table  Editorial.view(resolved)
---- @return table|nil
-local function buildDimensions(apiData, args, ed)
-	local dim = type(apiData.dimension) == 'table' and apiData.dimension or {}
-	-- Editorial-first: a planned/concept vehicle supplies length/width/height/mass
-	-- via args (no API record); an in-game vehicle falls back to the API dimension
-	-- block. These are overlap fields, so an editor override is audited like the rest.
-	local length = tonumber(ed:value('length', dim.length))
-	local width = tonumber(ed:value('width', dim.width))
-	local height = tonumber(ed:value('height', dim.height))
-	if not (length and width and height) then
-		return nil
-	end
-	local metrics = {}
-	local mass = tonumber(ed:value('mass', apiData.mass))
-	if mass then
-		metrics[#metrics + 1] = { label = 'Mass', value = format.formatNum(mass) .. ' kg' }
-	end
-	local boxHtml = dimensions._main({
-		length = length,
-		width = width,
-		height = height,
-		lengthAlt = tonumber(ed:value('retracted_length', nil)),
-		widthAlt = tonumber(ed:value('retracted_width', nil)),
-		heightAlt = tonumber(ed:value('retracted_height', nil)),
-		reference = dimensionsPresets.human,
-		metrics = metrics,
-	})
-	if not boxHtml then
-		return nil
-	end
-	return sectionBuilder.section({ key = 'dimensions', label = 'Dimensions', content = tostring(boxHtml) })
-end
-
 --- Lore section: in-lore dates (release / retirement). Collapsed by default.
 --- @param apiData table
 --- @param args table
@@ -304,7 +264,7 @@ function p.getSections(apiData, args, resolved)
 	add(capacity.build(apiData, args, ed))
 	add(cost.build(apiData, args, ed))
 	add(stats.build(apiData, args, ed))
-	add(buildDimensions(apiData, args, ed))
+	add(vehicleDimensions.build(apiData, args, ed))
 	add(buildLore(apiData, args, ed))
 	add(buildDevelopment(apiData, args, ed))
 	return sections

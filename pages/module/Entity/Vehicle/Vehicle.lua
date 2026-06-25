@@ -405,14 +405,14 @@ end
 --- @param apiData table
 --- @param args table
 --- @param resolved table
+--- @param family string|nil  the leaf family token, threaded from Data.get (no re-resolve)
 --- @return string[]
-function p.getCategories(apiData, args, resolved)
+function p.getCategories(apiData, args, resolved, family)
 	local ed = Editorial.view(resolved)
 	local cats = {}
-	-- Derive the family from the resolved subtype's declared tag so editorial-mode
-	-- pages (apiData = {}, no is_spaceship flag) still classify as ships via |family=.
-	local subtype = p.resolveSubtype(apiData, args)
-	local isShip = subtype ~= nil and subtype.family == 'ship'
+	-- Family is threaded from Data.get (the leaf's p.family); editorial-mode pages
+	-- (apiData = {}, no is_spaceship flag) still classify as ships via |family=.
+	local isShip = family == 'ship'
 	-- Size (ships only): "Large ships" — the curated |size= wins (API may disagree)
 	local size = vehicleUtil.matrixSize(apiData, args)
 	if isShip and size then

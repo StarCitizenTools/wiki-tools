@@ -246,7 +246,7 @@ end
 --- type chain, and packages everything a renderer needs into a single table.
 ---
 --- @param args table Parsed wikitext args (use p.parseArgs to produce)
---- @return { args: table, kind: string, apiData: table, chain: table[], facets: table[], typeInfo: table|nil, displayType: string|nil, hasApiError: boolean, resolved: table, editorialData: table, hasManualApiData: boolean, unresolvedReference: boolean }
+--- @return { args: table, kind: string, apiData: table, chain: table[], facets: table[], typeInfo: table|nil, displayType: string|nil, hasApiError: boolean, resolved: table, editorialData: table, hasManualApiData: boolean, unresolvedReference: boolean, matchedKind: table|nil, family: string|nil }
 function p.get(args)
 	local apiData, chain, hasApiError, matchedKind = fetchApiData(args)
 
@@ -279,6 +279,7 @@ function p.get(args)
 	local kind = (matchedKind and matchedKind.name) or 'Item'
 
 	local leaf = chain[#chain]
+	local family = leaf and leaf.family
 	local typeInfo, displayType
 	if leaf and leaf.getTypeInfo then
 		typeInfo = leaf.getTypeInfo(apiData, args)
@@ -299,7 +300,7 @@ function p.get(args)
 	-- Kind-contributed browse categories that need editorial (resolved) data.
 	-- typeInfo may be a frozen typeResolver result, so copy before appending.
 	if matchedKind and matchedKind.getCategories then
-		local extra = matchedKind.getCategories(apiData, args, resolved)
+		local extra = matchedKind.getCategories(apiData, args, resolved, family)
 		if type(extra) == 'table' and extra[1] ~= nil then
 			local copy = {}
 			for k, v in pairs(typeInfo or {}) do
@@ -331,6 +332,8 @@ function p.get(args)
 		editorialData = editorialData,
 		hasManualApiData = hasManualApiData,
 		unresolvedReference = unresolvedReference,
+		matchedKind = matchedKind,
+		family = family,
 	}
 end
 

@@ -86,4 +86,47 @@ function suite:testArgAliasFirstNonEmptyWins()
 	self:assertEquals('B', Editorial.resolve({}, { series = '', model = 'B' }, M).series.value)
 end
 
+function suite:testViewValueReturnsEntryValue()
+	local r = Editorial.resolve({ msrp = 30 }, {}, MANIFEST)
+	self:assertEquals(30, Editorial.view(r):value('pledge_price'))
+end
+
+function suite:testViewValueFallbackWhenAbsent()
+	local ed = Editorial.view({})
+	self:assertEquals('fb', ed:value('missing', 'fb'))
+	self:assertEquals(nil, ed:value('missing'))
+end
+
+function suite:testViewNilResolvedIsSafe()
+	local ed = Editorial.view(nil)
+	self:assertEquals('fb', ed:value('x', 'fb'))
+	self:assertEquals(nil, ed:source('x'))
+end
+
+function suite:testViewSourceApi()
+	local r = Editorial.resolve({ msrp = 30 }, {}, MANIFEST)
+	self:assertEquals('api', Editorial.view(r):source('pledge_price'))
+end
+
+function suite:testViewSourceOverride()
+	local r = Editorial.resolve({ speed = { scm = 220 } }, { scmspeed = '210' }, MANIFEST)
+	self:assertEquals('override', Editorial.view(r):source('scm_speed'))
+end
+
+function suite:testViewSourceWikiFromFill()
+	local r = Editorial.resolve({}, { scmspeed = '210' }, MANIFEST)
+	self:assertEquals('fill', r.scm_speed.source) -- internal vocabulary unchanged
+	self:assertEquals('wiki', Editorial.view(r):source('scm_speed')) -- collapses to wiki
+end
+
+function suite:testViewSourceWikiFromEditorial()
+	local r = Editorial.resolve({}, { pledgeavailability = 'Time-limited' }, MANIFEST)
+	self:assertEquals('editorial', r.availability.source) -- internal vocabulary unchanged
+	self:assertEquals('wiki', Editorial.view(r):source('availability')) -- collapses to wiki
+end
+
+function suite:testViewSourceNilWhenUnresolved()
+	self:assertEquals(nil, Editorial.view({}):source('missing'))
+end
+
 return suite

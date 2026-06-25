@@ -216,4 +216,53 @@ function p.hasManualApiData(resolved)
 	return false
 end
 
+--- A read-only display-merge view over a `resolved` editorial table
+--- (field -> { value, source, apiValue }). Wraps the table once so section
+--- builders read the display value and its provenance without poking at entry
+--- internals. Replaces the per-kind `effective`/`editorialValue` helpers.
+local View = {}
+View.__index = View
+
+--- The display value for a field: the editorial-resolved value when the field
+--- resolved (encodes override/fill/api), else the caller's `fallback` (default
+--- nil). Pass the API fallback for overlap fields; omit it for pure-editorial
+--- fields. Returns the raw stored value — callers do their own formatting.
+--- @param field string
+--- @param fallback any|nil
+--- @return any
+function View:value(field, fallback)
+	local entry = self._resolved[field]
+	if entry ~= nil then
+		return entry.value
+	end
+	return fallback
+end
+
+--- The provenance of a field's displayed value (for future "where did this come
+--- from" display). nil when the field did not resolve.
+---   'api'      — the API's value (no editor input, or editor == API)
+---   'override' — an editor value replacing a *different* API value
+---   'wiki'     — editor-authored, nothing displaced (internal `fill` ∪ `editorial`)
+--- @param field string
+--- @return string|nil
+function View:source(field)
+	local entry = self._resolved[field]
+	if entry == nil then
+		return nil
+	end
+	local s = entry.source
+	if s == 'api' or s == 'override' then
+		return s
+	end
+	return 'wiki' -- 'fill' and 'editorial' both: editor-authored, nothing displaced
+end
+
+--- Wrap a `resolved` table in a display-merge view. Nil-safe: `view(nil)`
+--- behaves like an empty resolved set (the getHeaderBadge path may pass nil).
+--- @param resolved table|nil  field -> { value, source, apiValue }
+--- @return table  view with :value(field[, fallback]) and :source(field)
+function p.view(resolved)
+	return setmetatable({ _resolved = type(resolved) == 'table' and resolved or {} }, View)
+end
+
 return p

@@ -37,4 +37,8 @@ function suite:testShortDescriptionWithoutManufacturer()
 	self:assertEquals('Personal transport gravlev vehicle', desc)
 end
 
+function suite:testFamilyTag()
+	self:assertEquals('gravlev', Gravlev.family)
+end
+
 return suite

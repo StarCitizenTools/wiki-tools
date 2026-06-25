@@ -10,6 +10,7 @@ local dimensions = require('Module:Dimensions')
 local dimensionsPresets = require('Module:Dimensions/presets')
 local floatingui = require('Module:FloatingUI')
 local format = require('Module:Entity/Format')
+local overview = require('Module:Entity/Vehicle/Overview')
 local productionStatus = require('Module:Entity/ProductionStatus')
 local progressTiles = require('Module:ProgressTiles')
 local sectionBuilder = require('Module:Entity/SectionBuilder')
@@ -157,22 +158,6 @@ local function pledgeCell(current, original)
 		s = s .. ' (was $' .. format.formatNum(o) .. ')'
 	end
 	return s
-end
-
---- Size as "<matrix> (S<class>)" — ship-matrix size + the in-game size class.
---- Either part alone when the other is absent; nil when neither.
---- @param apiData table
---- @param args table
---- @return string|nil
-local function sizeDisplay(apiData, args)
-	local size = vehicleUtil.matrixSize(apiData, args)
-	local matrix = size and lang:ucfirst(size) or nil
-	local cls = tonumber(apiData.size_class)
-	local game = cls and ('S' .. math.floor(cls + 0.5)) or nil
-	if matrix and game then
-		return matrix .. ' (' .. game .. ')'
-	end
-	return matrix or game
 end
 
 --- Loaner ships as a comma-joined wikilink list, or nil. Suppressed for
@@ -405,82 +390,6 @@ local function manufacturerLink(apiData, args)
 		return '[[' .. mfr.page .. '|' .. mfr.name .. ']]'
 	end
 	return '[[' .. mfr.page .. ']]'
-end
-
---- Career as a link to its browse category ("[[:Category:Combat career|Combat]]").
---- Capitalizes the first letter; "Multi" → "Multi-role" (matches the legacy module).
---- nil when no career.
---- @param career any
---- @return string|nil
-local function careerLink(career)
-	if type(career) ~= 'string' or career == '' then
-		return nil
-	end
-	local c = lang:ucfirst(career)
-	if c == 'Multi' then
-		c = 'Multi-role'
-	end
-	return '[[:Category:' .. c .. ' career|' .. c .. ']]'
-end
-
---- "Model" row (legacy label for the series): the editorial series as
---- "<mfr code> <series>" linked to the manufacturer's series browse category,
---- or the plain series when no manufacturer resolves. Appends a generation
---- link when a `generation` editorial field resolves and series is present.
---- nil when no series.
---- @param apiData table
---- @param args table
---- @param ed table  Editorial.view(resolved)
---- @return string|nil
-local function modelLink(apiData, args, ed)
-	local series = ed:value('series')
-	if series == nil or series == '' then
-		return nil
-	end
-	local mfr = base.resolveManufacturer(apiData, args)
-	local out
-	if mfr and mfr.code and mfr.name then
-		out = '[[:Category:' .. mfr.name .. ' ' .. series .. '|' .. mfr.code .. ' ' .. series .. ']]'
-	else
-		out = tostring(series)
-	end
-	local generation = ed:value('generation')
-	if generation ~= nil and generation ~= '' then
-		-- Generation browse category is "<series> <generation>" (legacy
-		-- category_generation = "%s %s"), e.g. "Constellation Mk4" — no suffix.
-		out = out .. ' [[:Category:' .. series .. ' ' .. generation .. '|' .. generation .. ']]'
-	end
-	return out
-end
-
---- Overview section (labelless top section): type + identity rows under the title.
---- Type comes from the resolved subtype's getTypeInfo so it stays the single
---- source of truth (the header subtitle now shows the manufacturer instead).
---- @param apiData table
---- @param args table
---- @param ed table  Editorial.view(resolved)
---- @return table
-local function buildOverview(apiData, args, ed)
-	local overview = {}
-	local subtype = p.resolveSubtype(apiData, args)
-	local typeName = nil
-	if subtype and subtype.getTypeInfo then
-		local typeInfo = subtype.getTypeInfo(apiData, args)
-		typeName = typeInfo and typeInfo.name
-	end
-	sectionBuilder.push(overview, 'Type', typeName)
-	-- Career: the wiki `career` param wins over the API value (the wiki curates the
-	-- career taxonomy, e.g. "Transport" vs the API's "Transporter"). Direct arg read
-	-- (not an editorial overlap field) — the difference is systematic, so it should
-	-- not flag every vehicle into the manual-API-data maintenance category.
-	sectionBuilder.push(overview, 'Career', careerLink(vehicleUtil.resolveCareer(apiData, args)))
-	sectionBuilder.push(overview, 'Role', apiData.role)
-	sectionBuilder.push(overview, 'Size', sizeDisplay(apiData, args))
-	sectionBuilder.push(overview, 'Model', modelLink(apiData, args, ed))
-	-- Labelless top section: identity rows show plainly under the title (always
-	-- visible, not collapsible) — InfoboxLua renders a section with no label as
-	-- the general top group.
-	return sectionBuilder.section({ key = 'overview', items = overview })
 end
 
 --- Capacity section: crew range, cargo, and personal inventory.
@@ -729,13 +638,19 @@ end
 --- @return table[]
 function p.getSections(apiData, args, resolved)
 	local ed = Editorial.view(resolved)
+	local subtype = p.resolveSubtype(apiData, args)
+	local typeName = nil
+	if subtype and subtype.getTypeInfo then
+		local typeInfo = subtype.getTypeInfo(apiData, args)
+		typeName = typeInfo and typeInfo.name
+	end
 	local sections = {}
 	local function add(section)
 		if section ~= nil then
 			sections[#sections + 1] = section
 		end
 	end
-	add(buildOverview(apiData, args, ed))
+	add(overview.build(apiData, args, ed, typeName))
 	add(buildCapacity(apiData, args, ed))
 	add(buildCost(apiData, args, ed))
 	add(buildStats(apiData, args, ed))

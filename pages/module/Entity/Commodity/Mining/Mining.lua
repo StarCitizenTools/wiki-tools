@@ -8,6 +8,9 @@ require('strict')
 
 local p = {}
 
+local tableLua = require('Module:TableLua')
+local collapsibleCard = require('Module:CollapsibleCard')
+
 local KIND_VERBS = { mineable = 'mining', harvestable = 'harvesting', salvage = 'salvage' }
 
 -- API `methods` tokens → display label. `Harvestable` is intentionally absent:
@@ -77,6 +80,90 @@ function p.qualityRange(raw)
 		return nil
 	end
 	return tostring(lo) .. '–' .. tostring(hi)
+end
+
+--- Groups a commodity's raw mining `locations[]` by star system, in first-seen
+--- order, normalizing each entry to the cells the Mining table renders. Safe on
+--- nil / non-table input (returns {}).
+--- @param locations table[]|nil
+--- @return table[] groups of { system, rows = { { body, type, spawn_pct, quality } } }
+function p.groupBySystem(locations)
+	local order, bySystem = {}, {}
+	if type(locations) ~= 'table' then
+		return {}
+	end
+	for _, l in ipairs(locations) do
+		local sys = l.system or 'Unknown'
+		if not bySystem[sys] then
+			bySystem[sys] = { system = sys, rows = {} }
+			order[#order + 1] = sys
+		end
+		local quality = nil
+		if l.quality_min and l.quality_max then
+			quality = tostring(l.quality_min) .. '–' .. tostring(l.quality_max)
+		end
+		table.insert(bySystem[sys].rows, {
+			body = l.display_name or l.name,
+			type = l.type,
+			spawn_pct = l.relative_probability_percent,
+			quality = quality,
+		})
+	end
+	local groups = {}
+	for _, sys in ipairs(order) do
+		groups[#groups + 1] = bySystem[sys]
+	end
+	return groups
+end
+
+--- Renders the commodity Mining card: the raw record's deposit `locations[]`,
+--- one sortable table per star system inside a single collapsible card. Returns
+--- nil when there are no locations.
+--- @param raw table|nil
+--- @return string|nil
+function p.renderMiningCard(raw)
+	local groups = p.groupBySystem(raw and raw.locations)
+	if #groups == 0 then
+		return nil
+	end
+
+	local parts, total = {}, 0
+	for _, g in ipairs(groups) do
+		local rows = {}
+		for _, r in ipairs(g.rows) do
+			rows[#rows + 1] = {
+				r.body or '-',
+				r.type or '-',
+				r.spawn_pct and (tostring(r.spawn_pct) .. '%') or '-',
+				r.quality or '-',
+			}
+		end
+		total = total + #g.rows
+		parts[#parts + 1] = tableLua.render({
+			caption = g.system,
+			class = 'wikitable--fluid',
+			columns = {
+				{ id = 'body', label = 'Body', textAlign = 'start' },
+				{ id = 'type', label = 'Type', textAlign = 'start' },
+				{ id = 'spawn', label = 'Spawn %', textAlign = 'number' },
+				{ id = 'quality', label = 'Quality', textAlign = 'end' },
+			},
+			data = rows,
+		})
+	end
+
+	local depositLabel = total == 1 and '1 deposit' or (total .. ' deposits')
+	local systemLabel = #groups == 1 and '1 system' or (#groups .. ' systems')
+
+	local kind = raw.kind
+	local title = p.acquisitionLabel(raw, kind) or (kind == 'remains' and 'Collection') or 'Mining'
+	local icon = kind == 'harvestable' and '🌿' or '⛏️'
+
+	return collapsibleCard.render({
+		title = '<span aria-hidden="true">' .. icon .. '</span> ' .. title,
+		description = depositLabel .. ' · ' .. systemLabel,
+		content = table.concat(parts, '\n'),
+	})
 end
 
 return p

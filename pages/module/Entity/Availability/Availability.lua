@@ -13,9 +13,9 @@ local collapsibleCard = require('Module:CollapsibleCard')
 local cardLua = require('Module:CardLua')
 local tableLua = require('Module:TableLua')
 local yesno = require('Module:Yesno')
-local commodity = require('Module:Entity/Commodity')
 local uec = require('Module:UEC')
 local acq = require('Module:Entity/Acquisition')
+local mining = require('Module:Entity/Commodity/Mining')
 
 local p = {}
 
@@ -185,41 +185,6 @@ local function flagState(value)
 		return 'no'
 	end
 	return 'unknown'
-end
-
---- Groups a commodity's raw mining `locations[]` by star system, in first-seen
---- order, normalizing each entry to the cells the Mining table renders. Safe on
---- nil / non-table input (returns {}).
----
---- @param locations table[]|nil
---- @return table[] groups of { system, rows = { { body, type, spawn_pct, quality } } }
-local function groupBySystem(locations)
-	local order, bySystem = {}, {}
-	if type(locations) ~= 'table' then
-		return {}
-	end
-	for _, l in ipairs(locations) do
-		local sys = l.system or 'Unknown'
-		if not bySystem[sys] then
-			bySystem[sys] = { system = sys, rows = {} }
-			order[#order + 1] = sys
-		end
-		local quality = nil
-		if l.quality_min and l.quality_max then
-			quality = tostring(l.quality_min) .. '–' .. tostring(l.quality_max)
-		end
-		table.insert(bySystem[sys].rows, {
-			body = l.display_name or l.name,
-			type = l.type,
-			spawn_pct = l.relative_probability_percent,
-			quality = quality,
-		})
-	end
-	local groups = {}
-	for _, sys in ipairs(order) do
-		groups[#groups + 1] = bySystem[sys]
-	end
-	return groups
 end
 
 --- Builds the ordered list of summary rows for an item entity:
@@ -431,60 +396,6 @@ local function uexFooter(url)
 	return '[[File:UEX logo.svg|class=metadata|link=' .. url .. '|alt=powered by UEX|x12px|powered by UEX]]'
 end
 
---- Renders the commodity Mining card: the raw record's deposit `locations[]`,
---- one sortable table per star system inside a single collapsible card.
---- Returns nil when there are no locations so the card collapses out.
----
---- @param raw table|nil
---- @return string|nil
-local function renderMiningCard(raw)
-	local groups = groupBySystem(raw and raw.locations)
-	if #groups == 0 then
-		return nil
-	end
-
-	local parts, total = {}, 0
-	for _, g in ipairs(groups) do
-		local rows = {}
-		for _, r in ipairs(g.rows) do
-			rows[#rows + 1] = {
-				r.body or '-',
-				r.type or '-',
-				r.spawn_pct and (tostring(r.spawn_pct) .. '%') or '-',
-				r.quality or '-',
-			}
-		end
-		total = total + #g.rows
-		parts[#parts + 1] = tableLua.render({
-			caption = g.system,
-			class = 'wikitable--fluid',
-			columns = {
-				{ id = 'body', label = 'Body', textAlign = 'start' },
-				{ id = 'type', label = 'Type', textAlign = 'start' },
-				{ id = 'spawn', label = 'Spawn %', textAlign = 'number' },
-				{ id = 'quality', label = 'Quality', textAlign = 'end' },
-			},
-			data = rows,
-		})
-	end
-
-	local depositLabel = total == 1 and '1 deposit' or (total .. ' deposits')
-	local systemLabel = #groups == 1 and '1 system' or (#groups .. ' systems')
-
-	-- Method-aware title so ship / FPS / vehicle mining and harvesting read
-	-- distinctly (e.g. "Ship mining", "FPS mining", "Harvesting"). Falls back
-	-- to a generic noun for kinds acquisitionLabel returns nil for (remains).
-	local kind = raw.kind
-	local title = commodity.acquisitionLabel(raw, kind) or (kind == 'remains' and 'Collection') or 'Mining'
-	local icon = kind == 'harvestable' and '🌿' or '⛏️'
-
-	return collapsibleCard.render({
-		title = '<span aria-hidden="true">' .. icon .. '</span> ' .. title,
-		description = depositLabel .. ' · ' .. systemLabel,
-		content = table.concat(parts, '\n'),
-	})
-end
-
 --- Renders commodity acquisition detail: the Mining card (deposit locations)
 --- plus a Trade card. When the API carries UEX commodity prices, the Trade
 --- card is a buy/sell terminal table (same entry shape as the item/vehicle
@@ -497,9 +408,9 @@ end
 local function renderCommodityDetail(apiData)
 	local out = {}
 
-	local mining = renderMiningCard(apiData._rawRecord)
-	if mining then
-		out[#out + 1] = mining
+	local miningCard = mining.renderMiningCard(apiData._rawRecord)
+	if miningCard then
+		out[#out + 1] = miningCard
 	end
 
 	local refined = apiData._refinedRecord or apiData
@@ -649,7 +560,6 @@ end
 
 -- Test-only exports. Not part of the public API.
 p._internal = {
-	groupBySystem = groupBySystem,
 	buildCommoditySummaryRows = buildCommoditySummaryRows,
 	buildSummaryRows = buildSummaryRows,
 }

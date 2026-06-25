@@ -5,6 +5,7 @@ require('strict')
 --- infobox sections (Overview, Capacity, Speed) from API data.
 
 local base = require('Module:Entity/Base')
+local Editorial = require('Module:Entity/Editorial')
 local dimensions = require('Module:Dimensions')
 local dimensionsPresets = require('Module:Dimensions/presets')
 local floatingui = require('Module:FloatingUI')
@@ -69,18 +70,6 @@ local function roundInt(value)
 		return nil
 	end
 	return math.floor(n + 0.5)
-end
-
---- Effective value for an overridable field: the editorial-resolved value when
---- present (encodes override/fill/api), else the API fallback. Forward-compatible
---- with the editorial manifest landing later.
---- @return any
-local function effective(resolved, field, apiFallback)
-	local entry = resolved and resolved[field]
-	if entry ~= nil then
-		return entry.value
-	end
-	return apiFallback
 end
 
 --- Min–max of non-zero numeric values at `key` across an array, as "lo – hi aUEC"
@@ -167,15 +156,6 @@ local function pledgeCell(current, original)
 		s = s .. ' (was $' .. format.formatNum(o) .. ')'
 	end
 	return s
-end
-
---- Editorial-resolved value for a pure-editorial field (no API fallback). nil when absent.
---- @param resolved table|nil
---- @param field string
---- @return any
-local function editorialValue(resolved, field)
-	local entry = resolved and resolved[field]
-	return entry and entry.value or nil
 end
 
 --- Career value: the wiki `career` arg wins over the API (curated taxonomy).
@@ -417,12 +397,13 @@ end
 --- @param omitSize boolean  true for ground/gravlev (no meaningful matrix size)
 --- @return string
 function p.formatShortDescription(apiData, args, resolved, typeNoun, omitSize)
+	local ed = Editorial.view(resolved)
 	local parts = {}
 	local mfr = base.resolveManufacturer(apiData, args)
 	if mfr and mfr.short then
 		parts[#parts + 1] = mfr.short
 	end
-	local crewMax = tonumber(effective(resolved, 'crew_max', apiData.crew and apiData.crew.max))
+	local crewMax = tonumber(ed:value('crew_max', apiData.crew and apiData.crew.max))
 	if crewMax == 1 then
 		parts[#parts + 1] = 'single-seat'
 	elseif not omitSize then
@@ -480,10 +461,10 @@ end
 --- nil when no series.
 --- @param apiData table
 --- @param args table
---- @param resolved table|nil
+--- @param ed table  Editorial.view(resolved)
 --- @return string|nil
-local function modelLink(apiData, args, resolved)
-	local series = editorialValue(resolved, 'series')
+local function modelLink(apiData, args, ed)
+	local series = ed:value('series')
 	if series == nil or series == '' then
 		return nil
 	end
@@ -494,7 +475,7 @@ local function modelLink(apiData, args, resolved)
 	else
 		out = tostring(series)
 	end
-	local generation = editorialValue(resolved, 'generation')
+	local generation = ed:value('generation')
 	if generation ~= nil and generation ~= '' then
 		-- Generation browse category is "<series> <generation>" (legacy
 		-- category_generation = "%s %s"), e.g. "Constellation Mk4" — no suffix.
@@ -508,9 +489,9 @@ end
 --- source of truth (the header subtitle now shows the manufacturer instead).
 --- @param apiData table
 --- @param args table
---- @param resolved table|nil
+--- @param ed table  Editorial.view(resolved)
 --- @return table
-local function buildOverview(apiData, args, resolved)
+local function buildOverview(apiData, args, ed)
 	local overview = {}
 	local subtype = p.resolveSubtype(apiData, args)
 	local typeName = nil
@@ -526,7 +507,7 @@ local function buildOverview(apiData, args, resolved)
 	sectionBuilder.push(overview, 'Career', careerLink(resolveCareer(apiData, args)))
 	sectionBuilder.push(overview, 'Role', apiData.role)
 	sectionBuilder.push(overview, 'Size', sizeDisplay(apiData, args))
-	sectionBuilder.push(overview, 'Model', modelLink(apiData, args, resolved))
+	sectionBuilder.push(overview, 'Model', modelLink(apiData, args, ed))
 	-- Labelless top section: identity rows show plainly under the title (always
 	-- visible, not collapsible) — InfoboxLua renders a section with no label as
 	-- the general top group.
@@ -536,21 +517,13 @@ end
 --- Capacity section: crew range, cargo, and personal inventory.
 --- @param apiData table
 --- @param args table
---- @param resolved table|nil
+--- @param ed table  Editorial.view(resolved)
 --- @return table
-local function buildCapacity(apiData, args, resolved)
+local function buildCapacity(apiData, args, ed)
 	local crew = type(apiData.crew) == 'table' and apiData.crew or {}
 	local capacity = {}
-	sectionBuilder.push(
-		capacity,
-		'Crew',
-		crewRange(effective(resolved, 'crew_min', crew.min), effective(resolved, 'crew_max', crew.max))
-	)
-	sectionBuilder.push(
-		capacity,
-		'Cargo',
-		Util.withUnit(effective(resolved, 'cargo_capacity', apiData.cargo_capacity), ' SCU')
-	)
+	sectionBuilder.push(capacity, 'Crew', crewRange(ed:value('crew_min', crew.min), ed:value('crew_max', crew.max)))
+	sectionBuilder.push(capacity, 'Cargo', Util.withUnit(ed:value('cargo_capacity', apiData.cargo_capacity), ' SCU'))
 	-- Personal stowage (the API's `vehicle_inventory`, in µSCU — same unit as the
 	-- item Inventory facet's scu_converted); labelled "Inventory" in the infobox.
 	sectionBuilder.push(capacity, 'Inventory', Util.withUnit(apiData.vehicle_inventory, ' µSCU'))
@@ -561,9 +534,9 @@ end
 --- aUEC summary links out to {{Entity/Availability}}.
 --- @param apiData table
 --- @param args table
---- @param resolved table|nil
+--- @param ed table  Editorial.view(resolved)
 --- @return table|nil
-local function buildCost(apiData, args, resolved)
+local function buildCost(apiData, args, ed)
 	local uex = type(apiData.uex_prices) == 'table' and apiData.uex_prices or {}
 	local insurance = type(apiData.insurance) == 'table' and apiData.insurance or {}
 
@@ -571,7 +544,7 @@ local function buildCost(apiData, args, resolved)
 	-- "Yes" linking to the Acquisition section for the full per-shop price table. A
 	-- flight-ready ship always shows the rows (no price = a definitive "No"); an
 	-- unreleased ship with no data drops them (Unknown).
-	local effectiveState = effective(resolved, 'production_state', apiData.production_status)
+	local effectiveState = ed:value('production_state', apiData.production_status)
 	local flightReady = productionStatus.key(effectiveState) == 'flightready'
 	local universe = {}
 	sectionBuilder.push(universe, 'Buyable', acquireRow(args.canbuy, uex.purchase, 'price_buy', flightReady))
@@ -581,14 +554,10 @@ local function buildCost(apiData, args, resolved)
 	sectionBuilder.push(
 		pledge,
 		'Standalone',
-		pledgeCell(effective(resolved, 'pledge_price', apiData.msrp), editorialValue(resolved, 'original_pledge_price'))
+		pledgeCell(ed:value('pledge_price', apiData.msrp), ed:value('original_pledge_price'))
 	)
-	sectionBuilder.push(
-		pledge,
-		'Warbond',
-		pledgeCell(editorialValue(resolved, 'warbond_price'), editorialValue(resolved, 'original_warbond_price'))
-	)
-	sectionBuilder.push(pledge, 'Availability', editorialValue(resolved, 'pledge_availability'))
+	sectionBuilder.push(pledge, 'Warbond', pledgeCell(ed:value('warbond_price'), ed:value('original_warbond_price')))
+	sectionBuilder.push(pledge, 'Availability', ed:value('pledge_availability'))
 	sectionBuilder.push(pledge, 'Loaner', loanerList(apiData, effectiveState))
 
 	local insuranceItems = {}
@@ -619,9 +588,9 @@ end
 --- Stats rather than rendered as a separate section).
 --- @param apiData table
 --- @param args table
---- @param resolved table|nil
+--- @param ed table  Editorial.view(resolved)
 --- @return table|nil
-local function buildStats(apiData, args, resolved)
+local function buildStats(apiData, args, ed)
 	local speed = type(apiData.speed) == 'table' and apiData.speed or {}
 	local agility = type(apiData.agility) == 'table' and apiData.agility or {}
 	local drive = type(apiData.drive) == 'table' and apiData.drive or {}
@@ -633,8 +602,8 @@ local function buildStats(apiData, args, resolved)
 	-- Flight tab: speed + agility rows. Ships/gravlevs use speed.*; ground vehicles
 	-- use drive.* (speed.* is null).
 	local statsItems = {}
-	sectionBuilder.push(statsItems, 'SCM speed', Util.withUnit(effective(resolved, 'scm_speed', speed.scm), ' m/s'))
-	local maxSpeed = effective(resolved, 'max_speed', speed.max)
+	sectionBuilder.push(statsItems, 'SCM speed', Util.withUnit(ed:value('scm_speed', speed.scm), ' m/s'))
+	local maxSpeed = ed:value('max_speed', speed.max)
 	if maxSpeed == nil then
 		maxSpeed = roundInt(drive.max_speed_ms)
 	end
@@ -710,21 +679,21 @@ end
 --- .dimensions and so does not match vehicles).
 --- @param apiData table
 --- @param args table
---- @param resolved table|nil
+--- @param ed table  Editorial.view(resolved)
 --- @return table|nil
-local function buildDimensions(apiData, args, resolved)
+local function buildDimensions(apiData, args, ed)
 	local dim = type(apiData.dimension) == 'table' and apiData.dimension or {}
 	-- Editorial-first: a planned/concept vehicle supplies length/width/height/mass
 	-- via args (no API record); an in-game vehicle falls back to the API dimension
 	-- block. These are overlap fields, so an editor override is audited like the rest.
-	local length = tonumber(effective(resolved, 'length', dim.length))
-	local width = tonumber(effective(resolved, 'width', dim.width))
-	local height = tonumber(effective(resolved, 'height', dim.height))
+	local length = tonumber(ed:value('length', dim.length))
+	local width = tonumber(ed:value('width', dim.width))
+	local height = tonumber(ed:value('height', dim.height))
 	if not (length and width and height) then
 		return nil
 	end
 	local metrics = {}
-	local mass = tonumber(effective(resolved, 'mass', apiData.mass))
+	local mass = tonumber(ed:value('mass', apiData.mass))
 	if mass then
 		metrics[#metrics + 1] = { label = 'Mass', value = format.formatNum(mass) .. ' kg' }
 	end
@@ -732,9 +701,9 @@ local function buildDimensions(apiData, args, resolved)
 		length = length,
 		width = width,
 		height = height,
-		lengthAlt = tonumber(effective(resolved, 'retracted_length', nil)),
-		widthAlt = tonumber(effective(resolved, 'retracted_width', nil)),
-		heightAlt = tonumber(effective(resolved, 'retracted_height', nil)),
+		lengthAlt = tonumber(ed:value('retracted_length', nil)),
+		widthAlt = tonumber(ed:value('retracted_width', nil)),
+		heightAlt = tonumber(ed:value('retracted_height', nil)),
 		reference = dimensionsPresets.human,
 		metrics = metrics,
 	})
@@ -747,12 +716,12 @@ end
 --- Lore section: in-lore dates (release / retirement). Collapsed by default.
 --- @param apiData table
 --- @param args table
---- @param resolved table|nil
+--- @param ed table  Editorial.view(resolved)
 --- @return table|nil
-local function buildLore(apiData, args, resolved)
+local function buildLore(apiData, args, ed)
 	local lore = {}
-	sectionBuilder.push(lore, 'Released', editorialValue(resolved, 'release_date'))
-	sectionBuilder.push(lore, 'Retired', editorialValue(resolved, 'retirement_date'))
+	sectionBuilder.push(lore, 'Released', ed:value('release_date'))
+	sectionBuilder.push(lore, 'Retired', ed:value('retirement_date'))
 	return lore[1]
 			and sectionBuilder.section({
 				key = 'lore',
@@ -768,12 +737,12 @@ end
 --- Collapsed by default.
 --- @param apiData table
 --- @param args table
---- @param resolved table|nil
+--- @param ed table  Editorial.view(resolved)
 --- @return table|nil
-local function buildDevelopment(apiData, args, resolved)
+local function buildDevelopment(apiData, args, ed)
 	local development = {}
-	sectionBuilder.push(development, 'Announced', editorialValue(resolved, 'concept_announced'))
-	sectionBuilder.push(development, 'Concept sale', editorialValue(resolved, 'concept_sale'))
+	sectionBuilder.push(development, 'Announced', ed:value('concept_announced'))
+	sectionBuilder.push(development, 'Concept sale', ed:value('concept_sale'))
 	return development[1]
 			and sectionBuilder.section({
 				key = 'development',
@@ -790,19 +759,20 @@ end
 --- @param resolved table|nil
 --- @return table[]
 function p.getSections(apiData, args, resolved)
+	local ed = Editorial.view(resolved)
 	local sections = {}
 	local function add(section)
 		if section ~= nil then
 			sections[#sections + 1] = section
 		end
 	end
-	add(buildOverview(apiData, args, resolved))
-	add(buildCapacity(apiData, args, resolved))
-	add(buildCost(apiData, args, resolved))
-	add(buildStats(apiData, args, resolved))
-	add(buildDimensions(apiData, args, resolved))
-	add(buildLore(apiData, args, resolved))
-	add(buildDevelopment(apiData, args, resolved))
+	add(buildOverview(apiData, args, ed))
+	add(buildCapacity(apiData, args, ed))
+	add(buildCost(apiData, args, ed))
+	add(buildStats(apiData, args, ed))
+	add(buildDimensions(apiData, args, ed))
+	add(buildLore(apiData, args, ed))
+	add(buildDevelopment(apiData, args, ed))
 	return sections
 end
 
@@ -853,15 +823,15 @@ end
 --- @param resolved table|nil
 --- @return string|nil
 function p.getHeaderBadge(apiData, args, resolved)
-	local state = resolved and resolved.production_state and resolved.production_state.value
-		or apiData.production_status
+	local ed = Editorial.view(resolved)
+	local state = ed:value('production_state', apiData.production_status)
 	local badge = productionStatus.badge(state)
 	if not badge then
 		return nil
 	end
 	-- Per-ship note: the editorial `productionstatedesc` (wiki-curated) wins, with the
 	-- API production_note as fallback (usually "None", dropped by buildProductionTooltip).
-	local note = editorialValue(resolved, 'production_state_desc') or apiData.production_note
+	local note = ed:value('production_state_desc') or apiData.production_note
 	local content = buildProductionTooltip(productionStatus.tooltip(state), note)
 	if not content then
 		return badge
@@ -971,6 +941,7 @@ end
 --- @param resolved table
 --- @return string[]
 function p.getCategories(apiData, args, resolved)
+	local ed = Editorial.view(resolved)
 	local cats = {}
 	-- Derive the family from the resolved subtype so editorial-mode pages
 	-- (apiData = {}, no is_spaceship flag) still classify as ships via |family=.
@@ -981,25 +952,25 @@ function p.getCategories(apiData, args, resolved)
 		cats[#cats + 1] = lang:ucfirst(size) .. ' ships'
 	end
 	-- Pledge: ship -> "Pledge ships"; ground/gravlev -> "Pledge vehicles" (when a pledge price exists)
-	local pledge = tonumber(effective(resolved, 'pledge_price', apiData.msrp))
+	local pledge = tonumber(ed:value('pledge_price', apiData.msrp))
 	if pledge and pledge > 0 then
 		cats[#cats + 1] = isShip and 'Pledge ships' or 'Pledge vehicles'
 	end
 	-- Production state label: "Flight ready"
-	local state = (resolved.production_state and resolved.production_state.value) or apiData.production_status
+	local state = ed:value('production_state', apiData.production_status)
 	local stateLabel = productionStatus.label(state)
 	if stateLabel then
 		cats[#cats + 1] = stateLabel
 	end
 	-- Series grouping "<mfr name> <series>" (e.g. "Gatac Manufacture Railen"), and
 	-- generation grouping "<series> <generation>" (e.g. "Constellation Mk4").
-	local series = editorialValue(resolved, 'series')
+	local series = ed:value('series')
 	if series ~= nil and series ~= '' then
 		local mfr = base.resolveManufacturer(apiData, args)
 		if mfr and mfr.name then
 			cats[#cats + 1] = mfr.name .. ' ' .. series
 		end
-		local generation = editorialValue(resolved, 'generation')
+		local generation = ed:value('generation')
 		if generation ~= nil and generation ~= '' then
 			cats[#cats + 1] = series .. ' ' .. generation
 		end

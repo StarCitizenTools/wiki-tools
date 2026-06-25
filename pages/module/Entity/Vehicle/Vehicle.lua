@@ -16,6 +16,7 @@ local sectionBuilder = require('Module:Entity/SectionBuilder')
 local statFormat = require('Module:Entity/StatFormat')
 local uec = require('Module:UEC')
 local Util = require('Module:Entity/Facet/Util')
+local vehicleUtil = require('Module:Entity/Vehicle/Util')
 local yesno = require('Module:Yesno')
 local lang = mw.language.getContentLanguage()
 
@@ -158,35 +159,13 @@ local function pledgeCell(current, original)
 	return s
 end
 
---- Career value: the wiki `career` arg wins over the API (curated taxonomy).
---- @param apiData table
---- @param args table
---- @return string|nil
-local function resolveCareer(apiData, args)
-	local c = args.career or apiData.career
-	return type(c) == 'string' and c ~= '' and c or nil
-end
-
---- Ship-matrix size string: the curated `|size=` arg wins over `apiData.size`.
---- The wiki overrides the API here (e.g. the Railen is editorially Large but the
---- API reports medium), matching the legacy infobox. nil when neither is set.
---- @param apiData table
---- @param args table
---- @return string|nil
-local function matrixSize(apiData, args)
-	if type(args.size) == 'string' and args.size ~= '' then
-		return args.size
-	end
-	return type(apiData.size) == 'string' and apiData.size ~= '' and apiData.size or nil
-end
-
 --- Size as "<matrix> (S<class>)" — ship-matrix size + the in-game size class.
 --- Either part alone when the other is absent; nil when neither.
 --- @param apiData table
 --- @param args table
 --- @return string|nil
 local function sizeDisplay(apiData, args)
-	local size = matrixSize(apiData, args)
+	local size = vehicleUtil.matrixSize(apiData, args)
 	local matrix = size and lang:ucfirst(size) or nil
 	local cls = tonumber(apiData.size_class)
 	local game = cls and ('S' .. math.floor(cls + 0.5)) or nil
@@ -240,16 +219,6 @@ local function crewRange(minV, maxV)
 	end
 	return nil
 end
-
---- Armor damage types for the resistance tiles (abbr under tile, full name on hover).
-local DAMAGE_TYPES = {
-	{ key = 'damage_physical', abbr = 'PHY', label = 'Physical' },
-	{ key = 'damage_energy', abbr = 'ENG', label = 'Energy' },
-	{ key = 'damage_distortion', abbr = 'DST', label = 'Distortion' },
-	{ key = 'damage_thermal', abbr = 'THM', label = 'Thermal' },
-	{ key = 'damage_biochemical', abbr = 'BIO', label = 'Biochemical' },
-	{ key = 'damage_stun', abbr = 'STN', label = 'Stun' },
-}
 
 --- Signed-% signature label from a multiplier (1.13 -> "+13%"), colored by sign
 --- (higher signature = worse: + uses the destructive color, - the success color).
@@ -369,7 +338,7 @@ local function rolePhrase(apiData, args)
 	if type(role) ~= 'string' or role == '' then
 		return nil
 	end
-	local career = resolveCareer(apiData, args)
+	local career = vehicleUtil.resolveCareer(apiData, args)
 	if career ~= nil and mw.ustring.lower(career) == 'multi-role' then
 		local primary = mw.text.trim(mw.ustring.match(role, '^[^/]+') or role)
 		return 'multi-role ' .. mw.ustring.lower(primary)
@@ -407,7 +376,7 @@ function p.formatShortDescription(apiData, args, resolved, typeNoun, omitSize)
 	if crewMax == 1 then
 		parts[#parts + 1] = 'single-seat'
 	elseif not omitSize then
-		local size = matrixSize(apiData, args)
+		local size = vehicleUtil.matrixSize(apiData, args)
 		if size and size ~= '' then
 			parts[#parts + 1] = mw.ustring.lower(size)
 		end
@@ -504,7 +473,7 @@ local function buildOverview(apiData, args, ed)
 	-- career taxonomy, e.g. "Transport" vs the API's "Transporter"). Direct arg read
 	-- (not an editorial overlap field) — the difference is systematic, so it should
 	-- not flag every vehicle into the manual-API-data maintenance category.
-	sectionBuilder.push(overview, 'Career', careerLink(resolveCareer(apiData, args)))
+	sectionBuilder.push(overview, 'Career', careerLink(vehicleUtil.resolveCareer(apiData, args)))
 	sectionBuilder.push(overview, 'Role', apiData.role)
 	sectionBuilder.push(overview, 'Size', sizeDisplay(apiData, args))
 	sectionBuilder.push(overview, 'Model', modelLink(apiData, args, ed))
@@ -618,7 +587,7 @@ local function buildStats(apiData, args, ed)
 	sectionBuilder.push(hull, 'Hull', Util.withUnit(apiData.health, ' HP'))
 	sectionBuilder.push(hull, 'Shield', Util.withUnit(apiData.shield_hp, ' HP'))
 	local tiles = {}
-	for _, dt in ipairs(DAMAGE_TYPES) do
+	for _, dt in ipairs(vehicleUtil.DAMAGE_TYPES) do
 		local pct = statFormat.resistancePercent(armor[dt.key])
 		if pct ~= nil then
 			tiles[#tiles + 1] = { value = pct, label = dt.abbr, title = dt.label }
@@ -863,7 +832,7 @@ function p.getStructuredData(apiData, args, resolved)
 	local fuel = type(apiData.fuel) == 'table' and apiData.fuel or {}
 	local quantum = type(apiData.quantum) == 'table' and apiData.quantum or {}
 	local data = {
-		['Career'] = resolveCareer(apiData, args), -- wiki param wins (curated taxonomy)
+		['Career'] = vehicleUtil.resolveCareer(apiData, args), -- wiki param wins (curated taxonomy)
 		['Role'] = apiData.role,
 		['Size class'] = tonumber(apiData.size_class),
 		['Roll rate'] = tonumber(agility.roll),
@@ -892,7 +861,7 @@ function p.getStructuredData(apiData, args, resolved)
 		end)(),
 		['Quantum spool time'] = tonumber(quantum.quantum_spool_time),
 	}
-	for _, dt in ipairs(DAMAGE_TYPES) do
+	for _, dt in ipairs(vehicleUtil.DAMAGE_TYPES) do
 		data[dt.label .. ' damage modifier'] = tonumber(armor[dt.key])
 	end
 	return data
@@ -947,7 +916,7 @@ function p.getCategories(apiData, args, resolved)
 	-- (apiData = {}, no is_spaceship flag) still classify as ships via |family=.
 	local isShip = p.resolveSubtype(apiData, args) == require('Module:Entity/Vehicle/Ship')
 	-- Size (ships only): "Large ships" — the curated |size= wins (API may disagree)
-	local size = matrixSize(apiData, args)
+	local size = vehicleUtil.matrixSize(apiData, args)
 	if isShip and size then
 		cats[#cats + 1] = lang:ucfirst(size) .. ' ships'
 	end
@@ -976,7 +945,7 @@ function p.getCategories(apiData, args, resolved)
 		end
 	end
 	-- Career: "Transport career"
-	local career = resolveCareer(apiData, args)
+	local career = vehicleUtil.resolveCareer(apiData, args)
 	if career ~= nil then
 		cats[#cats + 1] = lang:ucfirst(career) .. ' career'
 	end

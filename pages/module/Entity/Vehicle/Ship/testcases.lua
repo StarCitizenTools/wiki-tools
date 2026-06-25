@@ -44,4 +44,8 @@ function suite:testShortDescriptionMultiRole()
 	self:assertEquals('RSI combat / exploration ship', desc)
 end
 
+function suite:testFamilyTag()
+	self:assertEquals('ship', Ship.family)
+end
+
 return suite

@@ -37,4 +37,8 @@ function suite:testShortDescriptionWithoutManufacturer()
 	self:assertEquals('Exploration ground vehicle', desc)
 end
 
+function suite:testFamilyTag()
+	self:assertEquals('ground', GroundVehicle.family)
+end
+
 return suite

@@ -11,6 +11,11 @@ local p = {}
 --- @type string
 p.parent = 'Entity/Vehicle'
 
+--- @type string
+--- Family discriminator read by Vehicle.getCategories (replaces a module-identity
+--- comparison) and available to any future carried-family logic.
+p.family = 'gravlev'
+
 --- @param apiData table
 --- @param args table
 --- @return { name: string, category: string }

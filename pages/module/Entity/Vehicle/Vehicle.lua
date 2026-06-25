@@ -397,9 +397,10 @@ end
 function p.getCategories(apiData, args, resolved)
 	local ed = Editorial.view(resolved)
 	local cats = {}
-	-- Derive the family from the resolved subtype so editorial-mode pages
-	-- (apiData = {}, no is_spaceship flag) still classify as ships via |family=.
-	local isShip = p.resolveSubtype(apiData, args) == require('Module:Entity/Vehicle/Ship')
+	-- Derive the family from the resolved subtype's declared tag so editorial-mode
+	-- pages (apiData = {}, no is_spaceship flag) still classify as ships via |family=.
+	local subtype = p.resolveSubtype(apiData, args)
+	local isShip = subtype ~= nil and subtype.family == 'ship'
 	-- Size (ships only): "Large ships" — the curated |size= wins (API may disagree)
 	local size = vehicleUtil.matrixSize(apiData, args)
 	if isShip and size then

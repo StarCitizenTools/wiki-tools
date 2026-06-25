@@ -1,8 +1,11 @@
 require('strict')
 
 --- @module Entity/Vehicle
---- Vehicle type module. Exposes the vehicles API endpoint and renders core
---- infobox sections (Overview, Capacity, Speed) from API data.
+--- Vehicle kind module: the orchestrator for the vehicle family. Exposes the
+--- vehicles API endpoint, resolves the family subtype leaf (Ship / GroundVehicle
+--- / Gravlev), and dispatches infobox sections to the per-section sub-builders
+--- under Vehicle/ (Overview, Capacity, Cost, Stats, Dimensions, Lore, Development).
+--- Editorial overlap fields are read through Module:Entity/Editorial's view.
 
 local base = require('Module:Entity/Base')
 local capacity = require('Module:Entity/Vehicle/Capacity')

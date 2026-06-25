@@ -7,13 +7,14 @@ require('strict')
 local base = require('Module:Entity/Base')
 local capacity = require('Module:Entity/Vehicle/Capacity')
 local cost = require('Module:Entity/Vehicle/Cost')
+local development = require('Module:Entity/Vehicle/Development')
 local Editorial = require('Module:Entity/Editorial')
 local floatingui = require('Module:FloatingUI')
 local vehicleDimensions = require('Module:Entity/Vehicle/Dimensions')
 local format = require('Module:Entity/Format')
+local lore = require('Module:Entity/Vehicle/Lore')
 local overview = require('Module:Entity/Vehicle/Overview')
 local productionStatus = require('Module:Entity/ProductionStatus')
-local sectionBuilder = require('Module:Entity/SectionBuilder')
 local stats = require('Module:Entity/Vehicle/Stats')
 local vehicleUtil = require('Module:Entity/Vehicle/Util')
 local lang = mw.language.getContentLanguage()
@@ -201,47 +202,6 @@ local function manufacturerLink(apiData, args)
 	return '[[' .. mfr.page .. ']]'
 end
 
---- Lore section: in-lore dates (release / retirement). Collapsed by default.
---- @param apiData table
---- @param args table
---- @param ed table  Editorial.view(resolved)
---- @return table|nil
-local function buildLore(apiData, args, ed)
-	local lore = {}
-	sectionBuilder.push(lore, 'Released', ed:value('release_date'))
-	sectionBuilder.push(lore, 'Retired', ed:value('retirement_date'))
-	return lore[1]
-			and sectionBuilder.section({
-				key = 'lore',
-				label = 'Lore',
-				items = lore,
-				collapsible = true,
-				collapsed = true,
-			})
-		or nil
-end
-
---- Development section: real-world dates (concept announced / concept sale).
---- Collapsed by default.
---- @param apiData table
---- @param args table
---- @param ed table  Editorial.view(resolved)
---- @return table|nil
-local function buildDevelopment(apiData, args, ed)
-	local development = {}
-	sectionBuilder.push(development, 'Announced', ed:value('concept_announced'))
-	sectionBuilder.push(development, 'Concept sale', ed:value('concept_sale'))
-	return development[1]
-			and sectionBuilder.section({
-				key = 'development',
-				label = 'Development',
-				items = development,
-				collapsible = true,
-				collapsed = true,
-			})
-		or nil
-end
-
 --- @param apiData table
 --- @param args table
 --- @param resolved table|nil
@@ -265,8 +225,8 @@ function p.getSections(apiData, args, resolved)
 	add(cost.build(apiData, args, ed))
 	add(stats.build(apiData, args, ed))
 	add(vehicleDimensions.build(apiData, args, ed))
-	add(buildLore(apiData, args, ed))
-	add(buildDevelopment(apiData, args, ed))
+	add(lore.build(apiData, args, ed))
+	add(development.build(apiData, args, ed))
 	return sections
 end
 

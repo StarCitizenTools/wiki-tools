@@ -12,10 +12,7 @@ local data = require('Module:Entity/Data')
 local collapsibleCard = require('Module:CollapsibleCard')
 local cardLua = require('Module:CardLua')
 local tableLua = require('Module:TableLua')
-local yesno = require('Module:Yesno')
 local uec = require('Module:UEC')
-local acq = require('Module:Entity/Acquisition')
-local mining = require('Module:Entity/Commodity/Mining')
 
 local p = {}
 
@@ -187,134 +184,6 @@ local function flagState(value)
 	return 'unknown'
 end
 
---- Builds the ordered list of summary rows for an item entity:
---- Buy, Loot, Craft, Pledge (Rent only when the editor explicitly
---- sets canRent — items aren't structurally rentable). All derived
---- values can be overridden via the matching `canX` arg.
----
---- @param args table
---- @param apiData table
---- @return { label: string, icon: string, value: boolean|nil }[]
-local function buildItemSummaryRows(args, apiData)
-	local prices = type(apiData.uex_prices) == 'table' and apiData.uex_prices or {}
-	local rows = {
-		{
-			label = 'Buy',
-			icon = '🛒',
-			value = acq.resolveFlag(args.canBuy, acq.inferCanAcquire(prices.purchase, 'price_buy')),
-		},
-	}
-
-	local rentValue = yesno(args.canRent)
-	if rentValue ~= nil then
-		table.insert(rows, { label = 'Rent', icon = '⏳', value = rentValue })
-	end
-
-	-- `is_lootable` is the upstream's direct loot flag; it supersedes the
-	-- older scan for the `CanGenerateAsLoot` entity tag (the two agree, and
-	-- the flag reads the same derived signal without walking entity_tag_map).
-	table.insert(rows, {
-		label = 'Loot',
-		icon = '📦',
-		value = acq.resolveFlag(args.canLoot, apiData.is_lootable),
-	})
-	table.insert(rows, {
-		label = 'Craft',
-		icon = '🔨',
-		value = acq.resolveFlag(args.canCraft, apiData.is_craftable),
-	})
-	-- Pledge derivation covers two tag families:
-	--   PromotionalItem — generic pledge-store items
-	--   SubscriberFlair — subscriber-exclusive monthly flair (only
-	--                     acquirable through pledge subscriptions)
-	-- Either tag makes the item pledge-acquirable. `or` works correctly
-	-- because both calls inspect the same entity_tag_map — they both
-	-- return nil together when the map is missing.
-	table.insert(rows, {
-		label = 'Pledge',
-		icon = '💵',
-		value = acq.resolveFlag(
-			args.canPledge,
-			acq.hasEntityTag(apiData, 'PromotionalItem') or acq.hasEntityTag(apiData, 'SubscriberFlair')
-		),
-	})
-
-	return rows
-end
-
---- Builds the ordered list of summary rows for a vehicle entity:
---- Buy, Rent, Pledge. Loot and Craft are omitted — neither concept
---- applies to vehicles in the live game today, and rendering them as
---- "Unknown" forever is noise. Pledge derives from `msrp` presence
---- (vehicle pledge prices are at the top level, not in entity tags).
----
---- @param args table
---- @param apiData table
---- @return { label: string, icon: string, value: boolean|nil }[]
-local function buildVehicleSummaryRows(args, apiData)
-	local prices = type(apiData.uex_prices) == 'table' and apiData.uex_prices or {}
-	return {
-		{
-			label = 'Buy',
-			icon = '🛒',
-			value = acq.resolveFlag(args.canBuy, acq.inferCanAcquire(prices.purchase, 'price_buy')),
-		},
-		{
-			label = 'Rent',
-			icon = '⏳',
-			value = acq.resolveFlag(args.canRent, acq.inferCanAcquire(prices.rental, 'price_rent')),
-		},
-		{
-			label = 'Pledge',
-			icon = '💵',
-			value = acq.resolveFlag(args.canPledge, apiData.msrp ~= nil),
-		},
-	}
-end
-
---- Builds the ordered summary rows for a commodity entity: Mine, Harvest,
---- Buy. Mine/Harvest derive from the raw record's mineability flags; Buy
---- derives from UEX purchase listings (Unknown when the record carries no
---- price rows). All overridable via canMine / canHarvest / canBuy.
----
---- @param args table
---- @param apiData table
---- @return { label: string, icon: string, value: boolean|nil }[]
-local function buildCommoditySummaryRows(args, apiData)
-	local raw = apiData._rawRecord or apiData
-	local refined = apiData._refinedRecord or apiData
-	local purchase = type(refined.uex_prices) == 'table' and refined.uex_prices.purchase or nil
-	return {
-		{ label = 'Mine', icon = '⛏️', value = acq.resolveFlag(args.canMine, raw.is_mineable) },
-		{ label = 'Harvest', icon = '🌿', value = acq.resolveFlag(args.canHarvest, raw.has_harvestables) },
-		{
-			label = 'Buy',
-			icon = '🛒',
-			value = acq.resolveFlag(args.canBuy, acq.inferCanAcquire(purchase, 'price_buy')),
-		},
-	}
-end
-
---- Dispatches to the commodity, vehicle, or item summary builder by kind. The
---- `icon` field on each row is a category-level decorative glyph (emoji for now
---- — no Codex icons feel right for these specific concepts). Each card renders
---- it before the label; `aria-hidden` on the icon span keeps screen readers from
---- announcing it on top of the already-clear label text.
----
---- @param args table
---- @param apiData table
---- @param kind string The Data.get() result.kind ('Commodity'/'Vehicle'/'Item'/…)
---- @return { label: string, icon: string, value: boolean|nil }[]
-local function buildSummaryRows(args, apiData, kind)
-	if kind == 'Commodity' then
-		return buildCommoditySummaryRows(args, apiData)
-	end
-	if kind == 'Vehicle' then
-		return buildVehicleSummaryRows(args, apiData)
-	end
-	return buildItemSummaryRows(args, apiData)
-end
-
 --- Renders the summary rows as a grid of label/value items. Each item
 --- has a category icon + label on the left and a value `<dd>` on the
 --- right styled as a 16×16 mask-image icon. The state ("yes" / "no" /
@@ -396,172 +265,68 @@ local function uexFooter(url)
 	return '[[File:UEX logo.svg|class=metadata|link=' .. url .. '|alt=powered by UEX|x12px|powered by UEX]]'
 end
 
---- Renders commodity acquisition detail: the Mining card (deposit locations)
---- plus a Trade card. When the API carries UEX commodity prices, the Trade
---- card is a buy/sell terminal table (same entry shape as the item/vehicle
---- terminals) with the UEX attribution footer. When prices are absent, it
---- falls back to a link-out card pointing at SC Trade Tools and UEX, keyed on
---- the commodity slug.
+--- Renders one acquisition card from a kind's getAcquisition spec. A `terminals`
+--- card becomes a collapsible card wrapping renderTerminalTable + the UEX footer;
+--- a `links` card is a link-out; an `html` card (e.g. the commodity mining card,
+--- pre-rendered by Module:Entity/Commodity/Mining) passes through verbatim.
 ---
---- @param apiData table
+--- @param card table
 --- @return string
-local function renderCommodityDetail(apiData)
-	local out = {}
-
-	local miningCard = mining.renderMiningCard(apiData._rawRecord)
-	if miningCard then
-		out[#out + 1] = miningCard
+local function renderCard(card)
+	if card.type == 'html' then
+		return card.html
 	end
-
-	local refined = apiData._refinedRecord or apiData
-	local uexPrices = type(refined.uex_prices) == 'table' and refined.uex_prices or {}
-	local purchasePrices = type(uexPrices.purchase) == 'table' and uexPrices.purchase or {}
-
-	if #purchasePrices > 0 then
-		-- Live UEX terminal prices: a collapsible buy/sell terminal table with
-		-- the UEX attribution footer (the data is supplied by UEX).
-		local hasSellSide = acq.priceRange(purchasePrices, 'price_sell') ~= nil
-		local priceColumns = { { id = 'buy', key = 'price_buy', label = 'Buy' } }
-		if hasSellSide then
-			table.insert(priceColumns, { id = 'sell', key = 'price_sell', label = 'Sell' })
-		end
-		out[#out + 1] = collapsibleCard.render({
-			title = '<span aria-hidden="true">🛒</span> Trade',
-			description = hasSellSide and acq.buildShopTerminalsDescription(purchasePrices)
-				or acq.buildSinglePriceDescription(purchasePrices, 'price_buy'),
-			content = renderTerminalTable({
-				prices = purchasePrices,
-				caption = 'Trade terminals',
-				priceColumns = priceColumns,
-			}),
-			footer = uexFooter(firstUexLink(purchasePrices) or UEX_FALLBACK_URL),
-		})
-	else
-		-- No embedded prices: a link-out card to the live commodity price
-		-- sources (SC Trade Tools + UEX), keyed on slug.
-		local slug = mw.uri.encode(refined.slug or apiData.slug or '', 'PATH')
-		out[#out + 1] = cardLua.renderLinkCard({
-			title = 'Browse trade data',
-			buttons = {
-				{
-					label = 'SC Trade Tools',
-					url = 'https://sc-trade.tools/commodities/' .. slug,
-					weight = 'normal',
-				},
-				{
-					label = 'UEX',
-					url = 'https://uexcorp.space/commodities/info/name/' .. slug,
-					weight = 'normal',
-				},
-			},
-		})
+	if card.type == 'links' then
+		return cardLua.renderLinkCard({ title = card.title, buttons = card.buttons })
 	end
-
-	return table.concat(out, '\n')
+	-- 'terminals'
+	local prices = card.prices
+	return collapsibleCard.render({
+		title = card.title,
+		description = card.description,
+		content = (prices and #prices > 0) and renderTerminalTable({
+			prices = prices,
+			caption = card.caption,
+			priceColumns = card.priceColumns,
+		}) or nil,
+		footer = uexFooter(firstUexLink(prices) or UEX_FALLBACK_URL),
+	})
 end
 
---- Renders the Shops card from `uex_prices.purchase` and, for vehicles
---- only, a Rentals card from `uex_prices.rental`. Items and vehicles
---- now share the same `uex_prices` dict shape, so a single path covers
---- both kinds:
----  * Sell column is added when any purchase row has a non-zero
----    `price_sell` — items pass this check, vehicles don't, so the
----    column appears or disappears without a kind branch.
----  * The Rentals card is gated on kind: rentals aren't structurally
----    available for items today, so the "No rental data in UEX"
----    placeholder would be misleading noise.
----
---- @param apiData table
---- @param kind string The Data.get() result.kind
---- @return string
-local function renderDetail(apiData, kind)
-	if kind == 'Commodity' then
-		return renderCommodityDetail(apiData)
-	end
-
-	local uexPrices = type(apiData.uex_prices) == 'table' and apiData.uex_prices or {}
-	local purchasePrices = type(uexPrices.purchase) == 'table' and uexPrices.purchase or {}
-	local hasPurchase = #purchasePrices > 0
-	local hasSellSide = hasPurchase and acq.priceRange(purchasePrices, 'price_sell') ~= nil
-
-	local priceColumns = { { id = 'buy', key = 'price_buy', label = 'Buy' } }
-	if hasSellSide then
-		table.insert(priceColumns, { id = 'sell', key = 'price_sell', label = 'Sell' })
-	end
-
-	local shopDescription
-	if hasPurchase then
-		shopDescription = hasSellSide and acq.buildShopTerminalsDescription(purchasePrices)
-			or acq.buildSinglePriceDescription(purchasePrices, 'price_buy')
-	else
-		shopDescription = 'No shop data in UEX'
-	end
-
-	local shopCard = collapsibleCard.render({
-		title = '<span aria-hidden="true">🛒</span> Shops',
-		description = shopDescription,
-		content = hasPurchase and renderTerminalTable({
-			prices = purchasePrices,
-			caption = 'Shop terminals',
-			priceColumns = priceColumns,
-		}) or nil,
-		footer = uexFooter(firstUexLink(purchasePrices) or UEX_FALLBACK_URL),
-	})
-
-	if kind ~= 'Vehicle' then
-		return shopCard
-	end
-
-	local rentalPrices = type(uexPrices.rental) == 'table' and uexPrices.rental or {}
-	local hasRental = #rentalPrices > 0
-	local rentalCard = collapsibleCard.render({
-		title = '<span aria-hidden="true">⏳</span> Rentals',
-		description = hasRental and acq.buildSinglePriceDescription(rentalPrices, 'price_rent')
-			or 'No rental data in UEX',
-		content = hasRental and renderTerminalTable({
-			prices = rentalPrices,
-			caption = 'Vehicle rental terminals',
-			priceColumns = { { id = 'rent', key = 'price_rent', label = 'Rent' } },
-		}) or nil,
-		footer = uexFooter(firstUexLink(rentalPrices) or UEX_FALLBACK_URL),
-	})
-
-	return shopCard .. rentalCard
-end
-
---- Main entry point. Renders:
----   1. Summary — a plain responsive grid of acquisition flags. For
----      items: Buy / Loot / Craft / Pledge (+ Rent when editor sets it).
----      For vehicles: Buy / Rent / Pledge. No card wrapper because the
----      grid already reads as a scannable header above the first card.
----   2. Detail — a 🛒 Shops card from `uex_prices.purchase` (with a
----      Sell column when the entity has a two-sided market), plus a
----      ⏳ Rentals card for vehicles.
---- Future sibling cards (loot table, crafting recipes, etc.) can drop in
---- alongside the detail cards without reshuffling.
+--- Main entry point. Dispatches to `result.matchedKind.getAcquisition` and
+--- renders the returned summary + cards. Returns just the styles tag when the
+--- matched kind carries no getAcquisition hook (e.g. Contract).
 ---
 --- @param frame table
 --- @return string
 function p.main(frame)
 	local args = data.parseArgs(frame)
 	local result = data.get(args)
-	local apiData = result.apiData
 
 	local styles = mw.getCurrentFrame():extensionTag({
 		name = 'templatestyles',
 		args = { src = 'Module:Entity/Availability/styles.css' },
 	})
 
-	local summary = renderSummary(buildSummaryRows(args, apiData, result.kind))
-	local detail = renderDetail(apiData, result.kind)
+	local kind = result.matchedKind
+	if not (kind and kind.getAcquisition) then
+		return styles
+	end
+	local a = kind.getAcquisition(result.apiData, args)
+	if not a then
+		return styles
+	end
 
-	return styles .. summary .. detail
+	local cards = {}
+	for _, card in ipairs(a.cards or {}) do
+		cards[#cards + 1] = renderCard(card)
+	end
+	return styles .. renderSummary(a.summary or {}) .. table.concat(cards, '\n')
 end
 
 -- Test-only exports. Not part of the public API.
 p._internal = {
-	buildCommoditySummaryRows = buildCommoditySummaryRows,
-	buildSummaryRows = buildSummaryRows,
+	renderCard = renderCard,
 }
 
 return p

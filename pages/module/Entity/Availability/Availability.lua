@@ -15,6 +15,7 @@ local tableLua = require('Module:TableLua')
 local yesno = require('Module:Yesno')
 local commodity = require('Module:Entity/Commodity')
 local uec = require('Module:UEC')
+local acq = require('Module:Entity/Acquisition')
 
 local p = {}
 
@@ -61,92 +62,6 @@ local function formatVersion(version)
 		return '-'
 	end
 	return version:match('^[^-]+') or '-'
-end
-
---- Min and max of non-zero numeric entries for `key`. Skips zeros because
---- UEX uses 0 to signal "not sold here" — including them would collapse
---- the minimum to 0 and misrepresent the actual price players see.
----
---- @param prices table[]
---- @param key string
---- @return number|nil min, number|nil max
-local function priceRange(prices, key)
-	local min, max
-	for _, entry in ipairs(prices) do
-		local p = entry[key]
-		if type(p) == 'number' and p > 0 then
-			if not min or p < min then
-				min = p
-			end
-			if not max or p > max then
-				max = p
-			end
-		end
-	end
-	return min, max
-end
-
---- The UEC component for the price span (Module:UEC): the currency glyph
---- followed by "7" when min == max, or "7–12" otherwise. Returns nil when
---- no non-zero prices exist, so callers can distinguish "no market" from
---- "market with zero price" (which shouldn't happen but is guarded against
---- in priceRange).
----
---- @param min number|nil
---- @param max number|nil
---- @return string|nil
-local function formatPriceRange(min, max)
-	if not min then
-		return nil
-	end
-	return uec._range(min, max)
-end
-
---- "N locations" or "1 location". Pulled out so both description
---- builders share the same phrasing.
----
---- @param prices table[]
---- @return string
-local function locationCountLabel(prices)
-	local n = #prices
-	return n == 1 and '1 location' or (n .. ' locations')
-end
-
---- Two-sided market description: "N locations · Buy X · Sell Y".
---- Only called when at least one row has a non-zero `price_sell`
---- (the caller in renderDetail gates on this), so the sell side is
---- always present here. Buy may be absent on sell-only listings.
----
---- @param prices table[]
---- @return string
-local function buildShopTerminalsDescription(prices)
-	local buyText = formatPriceRange(priceRange(prices, 'price_buy'))
-	local sellText = formatPriceRange(priceRange(prices, 'price_sell'))
-
-	local parts = { locationCountLabel(prices) }
-	if buyText then
-		table.insert(parts, 'Buy ' .. buyText)
-	end
-	table.insert(parts, 'Sell ' .. sellText)
-
-	return table.concat(parts, ' · ')
-end
-
---- Vehicle (and any other single-axis market) description:
---- "N locations · <range>". The label is dropped because there's only
---- one price column to talk about — no ambiguity for the reader to
---- resolve.
----
---- @param prices table[]
---- @param key string price field on each entry (`price_buy`, `price_rent`)
---- @return string
-local function buildSinglePriceDescription(prices, key)
-	local rangeText = formatPriceRange(priceRange(prices, key))
-	local parts = { locationCountLabel(prices) }
-	if rangeText then
-		table.insert(parts, rangeText)
-	end
-	return table.concat(parts, ' · ')
 end
 
 --- Wikilink to the parent star system, e.g. `[[Stanton system|Stanton]]`.
@@ -272,60 +187,6 @@ local function flagState(value)
 	return 'unknown'
 end
 
---- If arg is true/false, honours the arg (editor override). Otherwise
---- falls back to the derived value (when it's a boolean) or nil (unknown).
----
---- @param arg string|nil
---- @param derived boolean|nil
---- @return boolean|nil
-local function resolveFlag(arg, derived)
-	local override = yesno(arg)
-	if override ~= nil then
-		return override
-	end
-	if type(derived) == 'boolean' then
-		return derived
-	end
-	return nil
-end
-
---- Infers whether the entity can be acquired through a given UEX price
---- channel. Present non-zero prices for `key` → Yes; rows exist but all
---- are zero → No (UEX explicitly saw no listings on that side); the
---- array is missing or empty → nil (Unknown), so the editor can supply
---- a direct override via the matching `canX` arg.
----
---- @param prices table[]|nil
---- @param key string price field on each entry (`price_buy`, `price_rent`)
---- @return boolean|nil
-local function inferCanAcquire(prices, key)
-	if type(prices) ~= 'table' or #prices == 0 then
-		return nil
-	end
-	local min = priceRange(prices, key)
-	return min ~= nil
-end
-
---- Scans apiData.entity_tag_map (array of { uuid, name }) for a tag by
---- name. Present → true; map exists without the tag → false; map missing
---- or not an array → nil so the editor can override.
----
---- @param apiData table
---- @param tagName string
---- @return boolean|nil
-local function hasEntityTag(apiData, tagName)
-	local tags = apiData.entity_tag_map
-	if type(tags) ~= 'table' then
-		return nil
-	end
-	for _, tag in ipairs(tags) do
-		if tag.name == tagName then
-			return true
-		end
-	end
-	return false
-end
-
 --- Groups a commodity's raw mining `locations[]` by star system, in first-seen
 --- order, normalizing each entry to the cells the Mining table renders. Safe on
 --- nil / non-table input (returns {}).
@@ -375,7 +236,7 @@ local function buildItemSummaryRows(args, apiData)
 		{
 			label = 'Buy',
 			icon = '🛒',
-			value = resolveFlag(args.canBuy, inferCanAcquire(prices.purchase, 'price_buy')),
+			value = acq.resolveFlag(args.canBuy, acq.inferCanAcquire(prices.purchase, 'price_buy')),
 		},
 	}
 
@@ -390,12 +251,12 @@ local function buildItemSummaryRows(args, apiData)
 	table.insert(rows, {
 		label = 'Loot',
 		icon = '📦',
-		value = resolveFlag(args.canLoot, apiData.is_lootable),
+		value = acq.resolveFlag(args.canLoot, apiData.is_lootable),
 	})
 	table.insert(rows, {
 		label = 'Craft',
 		icon = '🔨',
-		value = resolveFlag(args.canCraft, apiData.is_craftable),
+		value = acq.resolveFlag(args.canCraft, apiData.is_craftable),
 	})
 	-- Pledge derivation covers two tag families:
 	--   PromotionalItem — generic pledge-store items
@@ -407,9 +268,9 @@ local function buildItemSummaryRows(args, apiData)
 	table.insert(rows, {
 		label = 'Pledge',
 		icon = '💵',
-		value = resolveFlag(
+		value = acq.resolveFlag(
 			args.canPledge,
-			hasEntityTag(apiData, 'PromotionalItem') or hasEntityTag(apiData, 'SubscriberFlair')
+			acq.hasEntityTag(apiData, 'PromotionalItem') or acq.hasEntityTag(apiData, 'SubscriberFlair')
 		),
 	})
 
@@ -431,17 +292,17 @@ local function buildVehicleSummaryRows(args, apiData)
 		{
 			label = 'Buy',
 			icon = '🛒',
-			value = resolveFlag(args.canBuy, inferCanAcquire(prices.purchase, 'price_buy')),
+			value = acq.resolveFlag(args.canBuy, acq.inferCanAcquire(prices.purchase, 'price_buy')),
 		},
 		{
 			label = 'Rent',
 			icon = '⏳',
-			value = resolveFlag(args.canRent, inferCanAcquire(prices.rental, 'price_rent')),
+			value = acq.resolveFlag(args.canRent, acq.inferCanAcquire(prices.rental, 'price_rent')),
 		},
 		{
 			label = 'Pledge',
 			icon = '💵',
-			value = resolveFlag(args.canPledge, apiData.msrp ~= nil),
+			value = acq.resolveFlag(args.canPledge, apiData.msrp ~= nil),
 		},
 	}
 end
@@ -459,9 +320,13 @@ local function buildCommoditySummaryRows(args, apiData)
 	local refined = apiData._refinedRecord or apiData
 	local purchase = type(refined.uex_prices) == 'table' and refined.uex_prices.purchase or nil
 	return {
-		{ label = 'Mine', icon = '⛏️', value = resolveFlag(args.canMine, raw.is_mineable) },
-		{ label = 'Harvest', icon = '🌿', value = resolveFlag(args.canHarvest, raw.has_harvestables) },
-		{ label = 'Buy', icon = '🛒', value = resolveFlag(args.canBuy, inferCanAcquire(purchase, 'price_buy')) },
+		{ label = 'Mine', icon = '⛏️', value = acq.resolveFlag(args.canMine, raw.is_mineable) },
+		{ label = 'Harvest', icon = '🌿', value = acq.resolveFlag(args.canHarvest, raw.has_harvestables) },
+		{
+			label = 'Buy',
+			icon = '🛒',
+			value = acq.resolveFlag(args.canBuy, acq.inferCanAcquire(purchase, 'price_buy')),
+		},
 	}
 end
 
@@ -644,15 +509,15 @@ local function renderCommodityDetail(apiData)
 	if #purchasePrices > 0 then
 		-- Live UEX terminal prices: a collapsible buy/sell terminal table with
 		-- the UEX attribution footer (the data is supplied by UEX).
-		local hasSellSide = priceRange(purchasePrices, 'price_sell') ~= nil
+		local hasSellSide = acq.priceRange(purchasePrices, 'price_sell') ~= nil
 		local priceColumns = { { id = 'buy', key = 'price_buy', label = 'Buy' } }
 		if hasSellSide then
 			table.insert(priceColumns, { id = 'sell', key = 'price_sell', label = 'Sell' })
 		end
 		out[#out + 1] = collapsibleCard.render({
 			title = '<span aria-hidden="true">🛒</span> Trade',
-			description = hasSellSide and buildShopTerminalsDescription(purchasePrices)
-				or buildSinglePriceDescription(purchasePrices, 'price_buy'),
+			description = hasSellSide and acq.buildShopTerminalsDescription(purchasePrices)
+				or acq.buildSinglePriceDescription(purchasePrices, 'price_buy'),
 			content = renderTerminalTable({
 				prices = purchasePrices,
 				caption = 'Trade terminals',
@@ -706,7 +571,7 @@ local function renderDetail(apiData, kind)
 	local uexPrices = type(apiData.uex_prices) == 'table' and apiData.uex_prices or {}
 	local purchasePrices = type(uexPrices.purchase) == 'table' and uexPrices.purchase or {}
 	local hasPurchase = #purchasePrices > 0
-	local hasSellSide = hasPurchase and priceRange(purchasePrices, 'price_sell') ~= nil
+	local hasSellSide = hasPurchase and acq.priceRange(purchasePrices, 'price_sell') ~= nil
 
 	local priceColumns = { { id = 'buy', key = 'price_buy', label = 'Buy' } }
 	if hasSellSide then
@@ -715,8 +580,8 @@ local function renderDetail(apiData, kind)
 
 	local shopDescription
 	if hasPurchase then
-		shopDescription = hasSellSide and buildShopTerminalsDescription(purchasePrices)
-			or buildSinglePriceDescription(purchasePrices, 'price_buy')
+		shopDescription = hasSellSide and acq.buildShopTerminalsDescription(purchasePrices)
+			or acq.buildSinglePriceDescription(purchasePrices, 'price_buy')
 	else
 		shopDescription = 'No shop data in UEX'
 	end
@@ -740,7 +605,8 @@ local function renderDetail(apiData, kind)
 	local hasRental = #rentalPrices > 0
 	local rentalCard = collapsibleCard.render({
 		title = '<span aria-hidden="true">⏳</span> Rentals',
-		description = hasRental and buildSinglePriceDescription(rentalPrices, 'price_rent') or 'No rental data in UEX',
+		description = hasRental and acq.buildSinglePriceDescription(rentalPrices, 'price_rent')
+			or 'No rental data in UEX',
 		content = hasRental and renderTerminalTable({
 			prices = rentalPrices,
 			caption = 'Vehicle rental terminals',

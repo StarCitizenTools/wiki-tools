@@ -36,6 +36,7 @@ p.KIND = {
 	getSubtitle = false,
 	getHeaderBadge = false,
 	getCategories = false,
+	getAcquisition = false,
 }
 
 --- Non-function KIND fields with declared scalar types. validate() rejects any

@@ -28,6 +28,19 @@ local function getEnglishDescription(apiData)
 	return nil
 end
 
+--- Converts the game's `<EMn>` emphasis markup into themed spans so the
+--- colored highlight survives into the rendered HTML. `%1` carries the
+--- emphasis level (1-4) through to the matching `.t-entity-description-emN`
+--- CSS class.
+---
+--- @param description string
+--- @return string
+local function formatDescription(description)
+	description = string.gsub(description, '<EM(%d)>', '<span class="t-entity-description-em%1">')
+	description = string.gsub(description, '</EM(%d)>', '</span>')
+	return description
+end
+
 --- Main entry point. Always renders the container so the layout is stable
 --- whether or not the API has a description; falls back to an empty-state
 --- message when the description is missing.
@@ -54,7 +67,7 @@ function p.main(frame)
 			:addClass('t-entity-description-text')
 			:attr('aria-label', 'In-game description')
 			:tag('p')
-			:wikitext(description)
+			:wikitext(formatDescription(description))
 	else
 		-- No quote to render, so fall back to <p> rather than an empty
 		-- <blockquote> that would mislead semantic parsers.

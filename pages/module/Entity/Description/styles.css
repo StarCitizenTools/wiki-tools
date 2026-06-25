@@ -27,9 +27,25 @@
 
 .t-entity-description-source {
 	color: var(--color-subtle);
-    font-size: var(--font-size-x-small);
-    line-height: var(--line-height-x-small);
+	font-size: var(--font-size-x-small);
+	line-height: var(--line-height-x-small);
 	border-top: var(--border-subtle);
-    margin-top: var(--space-sm);
-    padding-top: var(--space-xs);
+	margin-top: var(--space-sm);
+	padding-top: var(--space-xs);
+}
+
+.t-entity-description-em1 {
+	color: var(--color-syntax-cyan);
+}
+
+.t-entity-description-em2 {
+	color: var(--color-syntax-green);
+}
+
+.t-entity-description-em3 {
+	color: var(--color-syntax-yellow);
+}
+
+.t-entity-description-em4 {
+	color: var(--color-syntax-red);
 }

@@ -5,6 +5,7 @@ require('strict')
 --- infobox sections (Overview, Capacity, Speed) from API data.
 
 local base = require('Module:Entity/Base')
+local capacity = require('Module:Entity/Vehicle/Capacity')
 local Editorial = require('Module:Entity/Editorial')
 local dimensions = require('Module:Dimensions')
 local dimensionsPresets = require('Module:Dimensions/presets')
@@ -192,19 +193,6 @@ local function shipMatrixSlug(name)
 	return (mw.ustring.lower(name):gsub(' ', '-'))
 end
 
---- Crew as "min–max" (en dash) or a single value. nil when neither present.
---- @return string|nil
-local function crewRange(minV, maxV)
-	minV, maxV = tonumber(minV), tonumber(maxV)
-	if minV and maxV and minV ~= maxV then
-		return format.formatNum(minV) .. '\226\128\147' .. format.formatNum(maxV)
-	end
-	if minV or maxV then
-		return format.formatNum(minV or maxV)
-	end
-	return nil
-end
-
 --- Signed-% signature label from a multiplier (1.13 -> "+13%"), colored by sign
 --- (higher signature = worse: + uses the destructive color, - the success color).
 --- nil when absent or exactly 1.0 (no effect -> row omitted).
@@ -390,22 +378,6 @@ local function manufacturerLink(apiData, args)
 		return '[[' .. mfr.page .. '|' .. mfr.name .. ']]'
 	end
 	return '[[' .. mfr.page .. ']]'
-end
-
---- Capacity section: crew range, cargo, and personal inventory.
---- @param apiData table
---- @param args table
---- @param ed table  Editorial.view(resolved)
---- @return table
-local function buildCapacity(apiData, args, ed)
-	local crew = type(apiData.crew) == 'table' and apiData.crew or {}
-	local capacity = {}
-	sectionBuilder.push(capacity, 'Crew', crewRange(ed:value('crew_min', crew.min), ed:value('crew_max', crew.max)))
-	sectionBuilder.push(capacity, 'Cargo', Util.withUnit(ed:value('cargo_capacity', apiData.cargo_capacity), ' SCU'))
-	-- Personal stowage (the API's `vehicle_inventory`, in µSCU — same unit as the
-	-- item Inventory facet's scu_converted); labelled "Inventory" in the infobox.
-	sectionBuilder.push(capacity, 'Inventory', Util.withUnit(apiData.vehicle_inventory, ' µSCU'))
-	return sectionBuilder.section({ key = 'capacity', label = 'Capacity', items = capacity })
 end
 
 --- Cost section: three subsection-tabs (Universe / Pledge / Insurance).
@@ -651,7 +623,7 @@ function p.getSections(apiData, args, resolved)
 		end
 	end
 	add(overview.build(apiData, args, ed, typeName))
-	add(buildCapacity(apiData, args, ed))
+	add(capacity.build(apiData, args, ed))
 	add(buildCost(apiData, args, ed))
 	add(buildStats(apiData, args, ed))
 	add(buildDimensions(apiData, args, ed))

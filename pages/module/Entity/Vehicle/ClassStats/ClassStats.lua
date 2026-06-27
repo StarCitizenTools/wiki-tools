@@ -72,7 +72,7 @@ local function buildQuery(category, size)
 		-- {{Entity}} pages out). After migrating ships it can lag a render or two until
 		-- SMW indexes the new pages' namespace data — a forcelinkupdate re-parse of the
 		-- cohort pages settles it.
-		'[[:+]] [[Category:' .. category .. ']][[Size class::' .. tostring(size) .. ']]',
+		'[[:+]] [[Category:' .. category .. ']][[Size::' .. tostring(size) .. ']]',
 		'mainlabel=-',
 		'limit=500',
 	}

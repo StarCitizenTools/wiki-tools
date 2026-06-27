@@ -1487,17 +1487,10 @@
 		"smw": "Number",
 		"bucket": "INTEGER",
 		"modules": [
-			"Item"
-		],
-		"desc": "Size (slot size) of an item."
-	},
-	"Size class": {
-		"smw": "Number",
-		"bucket": "INTEGER",
-		"modules": [
+			"Item",
 			"Vehicle"
 		],
-		"desc": "Size class of a vehicle (numeric, e.g. 1–10 small to capital)."
+		"desc": "Numeric size of an entity: a component's slot size, or a vehicle's size class (1–10)."
 	},
 	"Slash damage": {
 		"smw": "Number",

@@ -196,7 +196,7 @@ function suite:testStructuredDataPureApiStats()
 		{}
 	)
 	self:assertEquals('Combat', d['Career'])
-	self:assertEquals(2, d['Size class'])
+	self:assertEquals(2, d['Size'])
 	self:assertEquals(137, d['Roll rate'])
 end
 

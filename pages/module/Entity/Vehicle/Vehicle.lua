@@ -317,7 +317,7 @@ function p.getEditorialManifest()
 end
 
 --- Return structured data for the pure-API vehicle fields not covered by the
---- editorial manifest (Career, Role, Size class, agility rates). Fields owned
+--- editorial manifest (Career, Role, Size, agility rates). Fields owned
 --- by the editorial layer (crew/cargo/speed/mass/pledge) are intentionally
 --- absent here — the editorial resolver handles their SMW storage.
 --- @param apiData table
@@ -336,7 +336,7 @@ function p.getStructuredData(apiData, args, resolved)
 	local data = {
 		['Career'] = vehicleUtil.resolveCareer(apiData, args), -- wiki param wins (curated taxonomy)
 		['Role'] = apiData.role,
-		['Size class'] = tonumber(apiData.size_class),
+		['Size'] = tonumber(apiData.size_class),
 		['Roll rate'] = tonumber(agility.roll),
 		['Pitch rate'] = tonumber(agility.pitch),
 		['Yaw rate'] = tonumber(agility.yaw),

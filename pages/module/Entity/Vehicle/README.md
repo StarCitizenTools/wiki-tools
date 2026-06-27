@@ -34,7 +34,7 @@ For any field that can be curated by an editor *and* has an API counterpart — 
 
 2. **`properties.json`** (`modules: ["Vehicle"]`) — declares the SMW property type and storage bucket for each `smw` key. Must be deployed **before** `Vehicle.lua` changes that write new properties.
 
-3. **`getStructuredData`** — writes SMW values for the *pure-API* fields not covered by the editorial manifest (Career, Role, Size class, agility rates, armor signatures, fuel/quantum stats, insurance). Editorial-manifest fields are stored by `Module:Entity/Editorial` and are intentionally absent here.
+3. **`getStructuredData`** — writes SMW values for the *pure-API* fields not covered by the editorial manifest (Career, Role, Size, agility rates, armor signatures, fuel/quantum stats, insurance). Editorial-manifest fields are stored by `Module:Entity/Editorial` and are intentionally absent here.
 
 4. **Section builders** — `buildOverview`, `buildCapacity`, `buildCost`, `buildStats`, `buildDimensions`, `buildLore`, `buildDevelopment` — read values through the two resolver helpers:
    - `effective(resolved, field, apiFallback)` — returns the editorial-resolved value when present, else the API fallback. Use for overlap fields.

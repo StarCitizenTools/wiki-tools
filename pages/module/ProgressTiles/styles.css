@@ -1,7 +1,9 @@
 .t-progress-tiles { display: flex; gap: var(--space-xxs); }
 .t-progress-tiles__cell { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: var(--space-xxs); }
 .t-progress-tiles__gauge { position: relative; width: 100%; aspect-ratio: 1; }
-.t-progress-tiles__ring { position: absolute; inset: 0; border-radius: var(--border-radius-base); background: var(--t-progress-tiles-ring); }
-.t-progress-tiles__center { position: absolute; inset: 2px; border-radius: var(--border-radius-base); background: var(--color-surface-1); }
+/* A tooltip-bearing tile wraps its gauge in a FloatingUI reference element; make it fill the cell so the gauge's width:100% still resolves. */
+.t-progress-tiles__cell > .ext-floatingui-reference { width: 100%; }
+.t-progress-tiles__ring { position: absolute; inset: 0; border-radius: var(--border-radius-circle); background: var(--t-progress-tiles-ring); }
+.t-progress-tiles__center { position: absolute; inset: 4px; border-radius: var(--border-radius-circle); background: var(--color-surface-1); }
 .t-progress-tiles__value { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: var(--font-size-small); line-height: var(--line-height-small); font-weight: var(--font-weight-semi-bold); color: var(--color-base); z-index: 2; }
 .t-progress-tiles__label { font-size: var(--font-size-x-small); line-height: var(--line-height-x-small); letter-spacing: 0.05em; text-transform: uppercase; color: var(--color-subtle); }

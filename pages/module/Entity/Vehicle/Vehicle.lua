@@ -327,8 +327,12 @@ end
 function p.getStructuredData(apiData, args, resolved)
 	local agility = type(apiData.agility) == 'table' and apiData.agility or {}
 	local armor = type(apiData.armor) == 'table' and apiData.armor or {}
+	local emission = type(apiData.emission) == 'table' and apiData.emission or {}
 	local fuel = type(apiData.fuel) == 'table' and apiData.fuel or {}
 	local quantum = type(apiData.quantum) == 'table' and apiData.quantum or {}
+	local speed = type(apiData.speed) == 'table' and apiData.speed or {}
+	local weaponry = type(apiData.weaponry) == 'table' and apiData.weaponry or {}
+	local missiles = type(weaponry.missiles) == 'table' and weaponry.missiles or {}
 	local data = {
 		['Career'] = vehicleUtil.resolveCareer(apiData, args), -- wiki param wins (curated taxonomy)
 		['Role'] = apiData.role,
@@ -340,6 +344,20 @@ function p.getStructuredData(apiData, args, resolved)
 		['Insurance expedite time'] = apiData.insurance and tonumber(apiData.insurance.expedite_time) or nil,
 		['Insurance expedite cost'] = apiData.insurance and tonumber(apiData.insurance.expedite_cost) or nil,
 		['Health point'] = tonumber(apiData.health),
+		['Shield health point'] = tonumber(apiData.shield_hp),
+		['Pilot DPS'] = tonumber(weaponry.pilot_dps),
+		['Turret DPS'] = tonumber(weaponry.turret_dps),
+		['Pilot sustained DPS'] = tonumber(weaponry.pilot_sustained_dps),
+		['Turret sustained DPS'] = tonumber(weaponry.turret_sustained_dps),
+		['Missile damage'] = type(missiles.damage) == 'table' and tonumber(missiles.damage.total) or nil,
+		['Infrared emission'] = tonumber(emission.ir),
+		['Electromagnetic emission'] = tonumber(emission.em_max),
+		['Cross section'] = vehicleUtil.meanCrossSection(apiData.cross_section),
+		['Armor resistance'] = vehicleUtil.meanArmorResistance(armor),
+		['Armor deflection'] = vehicleUtil.meanDeflection(armor),
+		['Physical deflection'] = type(armor.deflection) == 'table' and tonumber(armor.deflection.physical) or nil,
+		['Energy deflection'] = type(armor.deflection) == 'table' and tonumber(armor.deflection.energy) or nil,
+		['Zero to Maximum speed time'] = tonumber(speed.zero_to_max),
 		['Cross section signature modifier'] = armor.signal_cross_section and tonumber(armor.signal_cross_section)
 			or nil,
 		['Electromagnetic signature modifier'] = armor.signal_electromagnetic and tonumber(

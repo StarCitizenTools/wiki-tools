@@ -950,6 +950,102 @@
 		],
 		"desc": "Physical damage resistance of armor, as a percentage."
 	},
+	"Pilot DPS": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Total damage per second of a vehicle's pilot-controlled weapons (stock loadout)."
+	},
+	"Turret DPS": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Total damage per second of a vehicle's crew/turret weapons (stock loadout)."
+	},
+	"Pilot sustained DPS": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Sustained (capacitor/heat-limited) damage per second of a vehicle's pilot-controlled weapons (stock loadout)."
+	},
+	"Turret sustained DPS": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Sustained (capacitor/heat-limited) damage per second of a vehicle's crew/turret weapons (stock loadout)."
+	},
+	"Missile damage": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Total damage of a vehicle's missile loadout."
+	},
+	"Armor resistance": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Mean damage resistance across damage types, as a percent (0-100)."
+	},
+	"Armor deflection": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Mean armor deflection threshold (physical and energy): the minimum per-shot damage needed to penetrate; higher is tougher."
+	},
+	"Physical deflection": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Physical armor deflection threshold: the minimum per-shot physical damage needed to penetrate; higher is tougher."
+	},
+	"Energy deflection": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Energy armor deflection threshold: the minimum per-shot energy damage needed to penetrate; higher is tougher."
+	},
+	"Infrared emission": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Infrared signature emission of a vehicle (lower is stealthier)."
+	},
+	"Electromagnetic emission": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Maximum electromagnetic signature emission of a vehicle (lower is stealthier)."
+	},
+	"Cross section": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Mean radar cross-section signature of a vehicle across its three axes (lower is stealthier)."
+	},
 	"Pitch": {
 		"smw": "Text",
 		"bucket": "TEXT",
@@ -1363,6 +1459,14 @@
 		],
 		"desc": "Shield regeneration rate of a shield generator."
 	},
+	"Shield health point": {
+		"smw": "Number",
+		"bucket": "INTEGER",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Shield hit points of a vehicle."
+	},
 	"Signal type": {
 		"smw": "Text",
 		"bucket": "TEXT",
@@ -1590,5 +1694,13 @@
 			"Turret"
 		],
 		"desc": "Yaw rotation speed of a turret, in °/s."
+	},
+	"Zero to Maximum speed time": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Time in seconds to accelerate from a standstill to maximum speed."
 	}
 }

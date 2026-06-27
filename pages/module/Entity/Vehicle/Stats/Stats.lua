@@ -1,14 +1,20 @@
 require('strict')
 
 --- @module Entity/Vehicle/Stats
---- Vehicle Stats sub-builder: four keyless subsection tabs —
---- Flight (speed + agility), Hull (HP + armor resistance tiles + signature
---- labels), Hydrogen (fuel), Quantum (QD). Ships/gravlevs use speed.*; ground
---- vehicles fall back to drive.*.
+--- Vehicle Stats sub-builder: keyless subsection tabs mirroring the Overview ring
+--- axes — Offense (DPS + missiles), Defense (HP + armor), Mobility (SCM speed +
+--- agility), Travel (max/quantum speed + fuel), Stealth (signatures). So the ring
+--- and its detail tab share a name and contents. Ships/gravlevs use speed.*; ground
+--- vehicles fall back to drive.*. Comparable rows render as PercentileBar items
+--- (with a rank) when a cohort is available.
 
+local classStats = require('Module:Entity/Vehicle/ClassStats')
 local format = require('Module:Entity/Format')
+local overview = require('Module:Entity/Vehicle/Stats/Overview')
+local percentileBar = require('Module:Entity/Vehicle/Stats/PercentileBar')
 local progressTiles = require('Module:ProgressTiles')
 local sectionBuilder = require('Module:Entity/SectionBuilder')
+local standing = require('Module:Entity/Vehicle/Stats/Standing')
 local statFormat = require('Module:Entity/StatFormat')
 local Util = require('Module:Entity/Facet/Util')
 local vehicleUtil = require('Module:Entity/Vehicle/Util')
@@ -73,6 +79,54 @@ local function signatureLabel(mult)
 	return tostring(mw.html.create('span'):css('color', color):wikitext(sign .. math.abs(pct) .. '%'))
 end
 
+--- Push a percentile bar row: the stat's displayed value + where the ship places
+--- in its size class on that stat (the bar fills to the percentile, labelled with
+--- the rank). Degrades to a plain row when no cohort. `invert` ranks
+--- lower-as-better (the Stealth signatures), matching the Stealth ring.
+--- @param items table[]  accumulator
+--- @param label string
+--- @param value number|nil  the ship's numeric value for this stat
+--- @param valueText string|nil  the displayed value (with unit)
+--- @param statKey string|nil  the cohort column to rank against
+--- @param rows table[]|nil  classStats.cohortRows result
+--- @param invert boolean|nil  rank lower-as-better (signatures/emissions)
+local function percentileRow(items, label, value, valueText, statKey, rows, invert)
+	if valueText == nil then
+		return
+	end
+	local pct, rank = nil, nil
+	if rows ~= nil and statKey ~= nil and value ~= nil then
+		local cohortValues = {}
+		local hasPeer = false -- a cohort member whose value differs from the ship's
+		for _, row in ipairs(rows) do
+			local v = row[statKey]
+			if v ~= nil then
+				cohortValues[#cohortValues + 1] = v
+				if v ~= value then
+					hasPeer = true
+				end
+			end
+		end
+		-- Only rank against a real distribution. If the ship is the lone member with
+		-- this stat (e.g. the only missile carrier in its class) or the whole cohort is
+		-- tied at its value, the percentile collapses to a vacuous 50 and the rank to a
+		-- vacuous 1st — show a plain value instead of a contradictory "1st at 50%" bar.
+		if hasPeer then
+			if invert then
+				local negated = {}
+				for i, v in ipairs(cohortValues) do
+					negated[i] = -v
+				end
+				pct = classStats.percentile(negated, -value)
+			else
+				pct = classStats.percentile(cohortValues, value)
+			end
+			rank = standing.position(cohortValues, value, invert)
+		end
+	end
+	items[#items + 1] = percentileBar.item({ label = label, valueText = valueText, percentile = pct, rank = rank })
+end
+
 --- @param apiData table
 --- @param args table
 --- @param ed table  Editorial.view
@@ -82,27 +136,72 @@ function p.build(apiData, args, ed)
 	local agility = type(apiData.agility) == 'table' and apiData.agility or {}
 	local drive = type(apiData.drive) == 'table' and apiData.drive or {}
 	local armor = type(apiData.armor) == 'table' and apiData.armor or {}
+	local emission = type(apiData.emission) == 'table' and apiData.emission or {}
 	local fuel = type(apiData.fuel) == 'table' and apiData.fuel or {}
-	local usage = type(fuel.usage) == 'table' and fuel.usage or {}
 	local quantum = type(apiData.quantum) == 'table' and apiData.quantum or {}
+	local weaponry = type(apiData.weaponry) == 'table' and apiData.weaponry or {}
 
-	-- Flight tab: speed + agility. Ships/gravlevs use speed.*; ground vehicles drive.*.
-	local statsItems = {}
-	sectionBuilder.push(statsItems, 'SCM speed', Util.withUnit(ed:value('scm_speed', speed.scm), ' m/s'))
-	local maxSpeed = ed:value('max_speed', speed.max)
-	if maxSpeed == nil then
-		maxSpeed = roundInt(drive.max_speed_ms)
+	-- Cohort data for percentile ranking (nil in headless/non-ship context).
+	local fam = (apiData.is_spaceship and 'ship') or (apiData.is_gravlev and 'gravlev') or 'ground'
+	local size = tonumber(apiData.size_class)
+	local cohortRows = classStats.cohortRows(fam, size)
+
+	-- Offense tab: pilot/crew DPS + missiles.
+	local firepower = {}
+	percentileRow(
+		firepower,
+		'Pilot DPS',
+		tonumber(weaponry.pilot_dps),
+		positiveUnit(weaponry.pilot_dps, ''),
+		'pilot_dps',
+		cohortRows
+	)
+	percentileRow(
+		firepower,
+		'Crew DPS',
+		tonumber(weaponry.turret_dps),
+		positiveUnit(weaponry.turret_dps, ''),
+		'turret_dps',
+		cohortRows
+	)
+	local missiles = type(weaponry.missiles) == 'table' and weaponry.missiles or {}
+	local missileDmg = type(missiles.damage) == 'table' and tonumber(missiles.damage.total) or nil
+	if missileDmg ~= nil then
+		-- The salvo's total damage. The missile count is omitted: it is uninformative
+		-- and inconsistent with the gun DPS rows, which don't show gun counts either.
+		percentileRow(firepower, 'Missiles', missileDmg, format.formatNum(missileDmg), 'missile_damage', cohortRows)
 	end
-	sectionBuilder.push(statsItems, 'Max speed', Util.withUnit(maxSpeed, ' m/s'))
-	sectionBuilder.push(statsItems, 'Reverse speed', Util.withUnit(roundInt(drive.reverse_speed_ms), ' m/s'))
-	sectionBuilder.push(statsItems, 'Roll rate', Util.withUnit(agility.roll, ' \194\176/s'))
-	sectionBuilder.push(statsItems, 'Pitch rate', Util.withUnit(agility.pitch, ' \194\176/s'))
-	sectionBuilder.push(statsItems, 'Yaw rate', Util.withUnit(agility.yaw, ' \194\176/s'))
 
-	-- Hull tab: HP rows + armor resistance tiles + signature labels.
-	local hull = {}
-	sectionBuilder.push(hull, 'Hull', Util.withUnit(apiData.health, ' HP'))
-	sectionBuilder.push(hull, 'Shield', Util.withUnit(apiData.shield_hp, ' HP'))
+	-- Defense tab: hull + shield + armor deflection thresholds + per-type resistance
+	-- tiles. Deflection is split into its physical and energy thresholds — the mean
+	-- behind the ring score reads as a value matching neither, so it is not shown.
+	local defense = {}
+	percentileRow(defense, 'Hull', tonumber(apiData.health), Util.withUnit(apiData.health, ' HP'), 'health', cohortRows)
+	percentileRow(
+		defense,
+		'Shield',
+		tonumber(apiData.shield_hp),
+		Util.withUnit(apiData.shield_hp, ' HP'),
+		'shield_hp',
+		cohortRows
+	)
+	local deflection = type(armor.deflection) == 'table' and armor.deflection or {}
+	percentileRow(
+		defense,
+		'Physical deflection',
+		tonumber(deflection.physical),
+		positiveUnit(roundInt(deflection.physical), ''),
+		'physical_deflection',
+		cohortRows
+	)
+	percentileRow(
+		defense,
+		'Energy deflection',
+		tonumber(deflection.energy),
+		positiveUnit(roundInt(deflection.energy), ''),
+		'energy_deflection',
+		cohortRows
+	)
 	local tiles = {}
 	for _, dt in ipairs(vehicleUtil.DAMAGE_TYPES) do
 		local pct = statFormat.resistancePercent(armor[dt.key])
@@ -111,50 +210,148 @@ function p.build(apiData, args, ed)
 		end
 	end
 	if tiles[1] ~= nil then
-		hull[#hull + 1] = { content = progressTiles.render({ tiles = tiles }), class = 't-infobox-item--block' }
+		defense[#defense + 1] = { content = progressTiles.render({ tiles = tiles }), class = 't-infobox-item--block' }
 	end
-	sectionBuilder.push(hull, 'Infrared', signatureLabel(armor.signal_infrared))
-	sectionBuilder.push(hull, 'Electromagnetic', signatureLabel(armor.signal_electromagnetic))
-	sectionBuilder.push(hull, 'Cross-section', signatureLabel(armor.signal_cross_section))
 
-	-- Hydrogen tab: fuel capacity, intake, per-thruster usage.
-	local hydrogen = {}
-	sectionBuilder.push(hydrogen, 'Capacity', Util.withUnit(fuel.capacity, ''))
-	sectionBuilder.push(hydrogen, 'Intake rate', positiveUnit(fuel.intake_rate, ''))
-	sectionBuilder.push(hydrogen, 'Main', positiveUnit(usage.main, ''))
-	sectionBuilder.push(hydrogen, 'Retro', positiveUnit(usage.retro, ''))
-	sectionBuilder.push(hydrogen, 'VTOL', positiveUnit(usage.vtol, ''))
-	sectionBuilder.push(hydrogen, 'Maneuvering', positiveUnit(usage.maneuvering, ''))
+	-- Mobility tab: SCM speed + agility rates + reverse speed.
+	local mobility = {}
+	local scmValue = ed:value('scm_speed', speed.scm)
+	percentileRow(mobility, 'SCM speed', tonumber(scmValue), Util.withUnit(scmValue, ' m/s'), 'scm_speed', cohortRows)
+	percentileRow(
+		mobility,
+		'Pitch rate',
+		tonumber(agility.pitch),
+		Util.withUnit(agility.pitch, ' \194\176/s'),
+		'pitch_rate',
+		cohortRows
+	)
+	percentileRow(
+		mobility,
+		'Yaw rate',
+		tonumber(agility.yaw),
+		Util.withUnit(agility.yaw, ' \194\176/s'),
+		'yaw_rate',
+		cohortRows
+	)
+	percentileRow(
+		mobility,
+		'Roll rate',
+		tonumber(agility.roll),
+		Util.withUnit(agility.roll, ' \194\176/s'),
+		'roll_rate',
+		cohortRows
+	)
+	sectionBuilder.push(mobility, 'Reverse speed', Util.withUnit(roundInt(drive.reverse_speed_ms), ' m/s'))
 
-	-- Quantum tab: QD speed, range, spool, fuel.
+	-- Travel tab: max speed + quantum drive + fuel/endurance.
+	local travel = {}
+	local maxSpeed = ed:value('max_speed', speed.max)
+	if maxSpeed == nil then
+		maxSpeed = roundInt(drive.max_speed_ms)
+	end
+	percentileRow(travel, 'Max speed', tonumber(maxSpeed), Util.withUnit(maxSpeed, ' m/s'), 'max_speed', cohortRows)
 	local qSpeed = tonumber(quantum.quantum_speed)
-	local quantumItems = {}
-	sectionBuilder.push(
-		quantumItems,
+	local qSpeedGm = qSpeed and (qSpeed / QUANTUM_SPEED_DIVISOR) or nil
+	percentileRow(
+		travel,
 		'Quantum speed',
-		qSpeed and (format.formatNum(qSpeed / QUANTUM_SPEED_DIVISOR) .. ' Mm/s') or nil
+		qSpeedGm,
+		qSpeed and (format.formatNum(qSpeedGm) .. ' Mm/s') or nil,
+		'quantum_speed',
+		cohortRows
 	)
-	sectionBuilder.push(
-		quantumItems,
+	local qRangeRaw = tonumber(quantum.quantum_range)
+	local qRangeGm = qRangeRaw and (qRangeRaw / QUANTUM_RANGE_DIVISOR) or nil
+	percentileRow(
+		travel,
 		'Quantum range',
-		scaledUnit(quantum.quantum_range, QUANTUM_RANGE_DIVISOR, ' Gm', 1)
+		qRangeGm,
+		scaledUnit(quantum.quantum_range, QUANTUM_RANGE_DIVISOR, ' Gm', 1),
+		'quantum_range',
+		cohortRows
 	)
-	sectionBuilder.push(quantumItems, 'Spool time', Util.withUnit(quantum.quantum_spool_time, ' s'))
-	sectionBuilder.push(quantumItems, 'Quantum fuel', Util.withUnit(quantum.quantum_fuel_capacity, ''))
+	percentileRow(
+		travel,
+		'Spool time',
+		tonumber(quantum.quantum_spool_time),
+		Util.withUnit(quantum.quantum_spool_time, ' s'),
+		'quantum_spool_time',
+		cohortRows,
+		true -- a faster spool is better
+	)
+	percentileRow(
+		travel,
+		'Quantum fuel',
+		tonumber(quantum.quantum_fuel_capacity),
+		Util.withUnit(quantum.quantum_fuel_capacity, ''),
+		'quantum_fuel',
+		cohortRows
+	)
+	percentileRow(
+		travel,
+		'Hydrogen fuel',
+		tonumber(fuel.capacity),
+		Util.withUnit(fuel.capacity, ''),
+		'hydrogen_fuel',
+		cohortRows
+	)
 
-	-- Assemble tabs: Flight | Hull | Hydrogen | Quantum (raw {label, items}, NO key).
+	-- Stealth tab: IR / EM / cross-section signatures (lower = better, the ring
+	-- drivers) + the armor signature modifiers.
+	local stealth = {}
+	percentileRow(
+		stealth,
+		'IR emission',
+		tonumber(emission.ir),
+		emission.ir and format.formatNum(roundInt(emission.ir)) or nil,
+		'ir_emission',
+		cohortRows,
+		true
+	)
+	percentileRow(
+		stealth,
+		'EM emission',
+		tonumber(emission.em_max),
+		emission.em_max and format.formatNum(roundInt(emission.em_max)) or nil,
+		'em_emission',
+		cohortRows,
+		true
+	)
+	local crossSection = vehicleUtil.meanCrossSection(apiData.cross_section)
+	percentileRow(
+		stealth,
+		'Cross-section',
+		crossSection,
+		crossSection and format.formatNum(roundInt(crossSection)) or nil,
+		'cross_section',
+		cohortRows,
+		true
+	)
+	sectionBuilder.push(stealth, 'IR modifier', signatureLabel(armor.signal_infrared))
+	sectionBuilder.push(stealth, 'EM modifier', signatureLabel(armor.signal_electromagnetic))
+	sectionBuilder.push(stealth, 'Cross-section modifier', signatureLabel(armor.signal_cross_section))
+
+	-- Assemble tabs: Overview | Offense | Defense | Mobility | Travel | Stealth
+	-- (mirroring the Overview ring axes; raw {label, items}, NO key).
 	local statsTabs = {}
-	if statsItems[1] ~= nil then
-		statsTabs[#statsTabs + 1] = { label = 'Flight', items = statsItems }
+	local overviewTab = overview.build(apiData, args, ed)
+	if overviewTab ~= nil then
+		statsTabs[#statsTabs + 1] = overviewTab
 	end
-	if hull[1] ~= nil then
-		statsTabs[#statsTabs + 1] = { label = 'Hull', items = hull }
+	if firepower[1] ~= nil then
+		statsTabs[#statsTabs + 1] = { label = 'Offense', items = firepower }
 	end
-	if hydrogen[1] ~= nil then
-		statsTabs[#statsTabs + 1] = { label = 'Hydrogen', items = hydrogen }
+	if defense[1] ~= nil then
+		statsTabs[#statsTabs + 1] = { label = 'Defense', items = defense }
 	end
-	if quantumItems[1] ~= nil then
-		statsTabs[#statsTabs + 1] = { label = 'Quantum', items = quantumItems }
+	if mobility[1] ~= nil then
+		statsTabs[#statsTabs + 1] = { label = 'Mobility', items = mobility }
+	end
+	if travel[1] ~= nil then
+		statsTabs[#statsTabs + 1] = { label = 'Travel', items = travel }
+	end
+	if stealth[1] ~= nil then
+		statsTabs[#statsTabs + 1] = { label = 'Stealth', items = stealth }
 	end
 	return statsTabs[1] and sectionBuilder.section({ key = 'stats', label = 'Stats', sections = statsTabs }) or nil
 end

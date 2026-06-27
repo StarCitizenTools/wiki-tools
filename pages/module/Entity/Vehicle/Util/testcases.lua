@@ -37,4 +37,18 @@ function suite:testDamageTypesOrderAndKeys()
 	self:assertEquals(6, #Util.DAMAGE_TYPES)
 end
 
+function suite:testMeanDeflectionMeansPhysicalAndEnergy()
+	self:assertEquals(10, Util.meanDeflection({ deflection = { physical = 11, energy = 9 } }))
+end
+
+function suite:testMeanDeflectionIgnoresOtherDamageTypes()
+	self:assertEquals(500, Util.meanDeflection({ deflection = { physical = 600, energy = 400, thermal = 0 } }))
+end
+
+function suite:testMeanDeflectionNilWhenAbsent()
+	self:assertEquals(nil, Util.meanDeflection(nil))
+	self:assertEquals(nil, Util.meanDeflection({}))
+	self:assertEquals(nil, Util.meanDeflection({ deflection = {} }))
+end
+
 return suite

@@ -29,6 +29,7 @@ local STYLES = 'Module:ProgressTiles/styles.css'
 --- @field title string|nil Full name surfaced as a hover tooltip. Optional.
 --- @field color string|nil CSS colour for the arc (a token string). Defaults to a neutral accent. The value text is always --color-base for legibility.
 --- @field text string|nil Overrides the displayed text (e.g. "40%"). Defaults to the value.
+--- @field tooltip string|nil Rich hover-tooltip content (HTML); when set, the tile's gauge is wrapped via Module:FloatingUI. Optional.
 
 --- @class ProgressTilesData
 --- @field tiles ProgressTile[] The tiles to render, left to right.
@@ -86,6 +87,9 @@ function p.render(data)
 	local tiles = data.tiles or {}
 	local max = tonumber(data.max) or DEFAULT_MAX
 
+	-- Lazily required only when a tile asks for a tooltip, so the common
+	-- (tooltip-less) path keeps no dependency on Module:FloatingUI.
+	local floatingui
 	local root = mw.html.create('div'):addClass('t-progress-tiles')
 	for _, tile in ipairs(tiles) do
 		local value = tonumber(tile.value) or 0
@@ -93,7 +97,7 @@ function p.render(data)
 		local pct = clampPct(value, max)
 
 		local cell = root:tag('div'):addClass('t-progress-tiles__cell')
-		local gauge = cell:tag('div'):addClass('t-progress-tiles__gauge')
+		local gauge = mw.html.create('div'):addClass('t-progress-tiles__gauge')
 		if tile.title then
 			gauge:attr('title', tile.title)
 		end
@@ -105,13 +109,22 @@ function p.render(data)
 			:addClass('t-progress-tiles__center')
 		gauge:tag('span'):addClass('t-progress-tiles__value'):wikitext(tile.text or tostring(value))
 
+		if tile.tooltip and tile.tooltip ~= '' then
+			floatingui = floatingui or require('Module:FloatingUI')
+			cell:wikitext(floatingui.render(tostring(gauge), tile.tooltip))
+		else
+			cell:node(gauge)
+		end
+
 		if tile.label then
 			cell:tag('span'):addClass('t-progress-tiles__label'):wikitext(tile.label)
 		end
 	end
 
-	local styles = mw.getCurrentFrame():extensionTag({ name = 'templatestyles', args = { src = STYLES } })
-	return styles .. tostring(root)
+	local frame = mw.getCurrentFrame()
+	local styles = frame:extensionTag({ name = 'templatestyles', args = { src = STYLES } })
+	local loader = floatingui and floatingui.load(frame) or ''
+	return loader .. styles .. tostring(root)
 end
 
 -- Test-only exports. Not part of the public API.

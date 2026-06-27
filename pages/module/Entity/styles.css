@@ -73,3 +73,29 @@
 .t-button--galactapedia.cdx-button:hover {
     background-color: #111d29;
 }
+
+/* Vehicle Overview ring-gauge profile: fit 5 word-labelled tiles at infobox width. */
+.t-stats-overview-profile .t-progress-tiles {
+    justify-content: space-between;
+}
+
+.t-stats-overview-profile .t-progress-tiles__label {
+    font-size: var(--font-size-small);
+    line-height: var(--line-height-small);
+    /* Axis names ("Offense", "Mobility") sit one line under each ~57px ring. The
+       gauge's default label is an overline (all-caps + letter-spacing) that widens
+       and wraps them; dropping both keeps the longest name ("Mobility") on one line.
+       overflow-wrap is the safety net for any future longer label. */
+    text-transform: none;
+    letter-spacing: normal;
+    overflow-wrap: anywhere;
+}
+
+/* Cohort footer beneath the ring row: subtle, centered, smaller than the labels. */
+.t-stats-overview-footnote {
+    margin-top: var(--space-xs);
+    color: var(--color-subtle);
+    font-size: var(--font-size-x-small);
+    line-height: var(--line-height-x-small);
+    text-align: center;
+}

@@ -97,11 +97,12 @@ function suite:testShipSpeedSection()
 		speed = { scm = 227, max = 1230 },
 		agility = { roll = 137, pitch = 59, yaw = 51 },
 	}, {}, {})
-	local flight = findItem(findSection(s, 'stats').sections, 'Flight')
-	self:assertEquals('227 m/s', findItem(flight.items, 'SCM speed').content)
-	self:assertEquals('1,230 m/s', findItem(flight.items, 'Max speed').content)
-	self:assertEquals('137 \194\176/s', findItem(flight.items, 'Roll rate').content)
-	self:assertEquals(nil, findItem(flight.items, 'Reverse speed'))
+	local mobility = findItem(findSection(s, 'stats').sections, 'Mobility')
+	self:assertEquals('227 m/s', findItem(mobility.items, 'SCM speed').content)
+	self:assertEquals('137 \194\176/s', findItem(mobility.items, 'Roll rate').content)
+	self:assertEquals(nil, findItem(mobility.items, 'Reverse speed'))
+	local travel = findItem(findSection(s, 'stats').sections, 'Travel')
+	self:assertEquals('1,230 m/s', findItem(travel.items, 'Max speed').content)
 	-- Overview is the labelless top section (always shown, never collapsible).
 	local ov = findSection(s, 'overview')
 	self:assertEquals(nil, ov.label)
@@ -138,11 +139,12 @@ function suite:testGroundVehicleSpeedUsesDrive()
 		agility = { roll = nil, pitch = nil, yaw = nil },
 		drive = { max_speed_ms = 36, reverse_speed_ms = 13.558441 },
 	}, {}, {})
-	local flight = findItem(findSection(s, 'stats').sections, 'Flight')
-	self:assertEquals(nil, findItem(flight.items, 'SCM speed'))
-	self:assertEquals('36 m/s', findItem(flight.items, 'Max speed').content)
-	self:assertEquals('14 m/s', findItem(flight.items, 'Reverse speed').content)
-	self:assertEquals(nil, findItem(flight.items, 'Roll rate'))
+	local mobility = findItem(findSection(s, 'stats').sections, 'Mobility')
+	self:assertEquals(nil, findItem(mobility.items, 'SCM speed'))
+	self:assertEquals('14 m/s', findItem(mobility.items, 'Reverse speed').content)
+	self:assertEquals(nil, findItem(mobility.items, 'Roll rate'))
+	local travel = findItem(findSection(s, 'stats').sections, 'Travel')
+	self:assertEquals('36 m/s', findItem(travel.items, 'Max speed').content)
 end
 
 function suite:testCapacityCrewRangeAndCargo()
@@ -160,8 +162,8 @@ end
 
 function suite:testEditorialOverrideFlowsIntoSpeed()
 	local s = Vehicle.getSections({ speed = { scm = 227 } }, {}, { scm_speed = { value = 210, source = 'override' } })
-	local flight = findItem(findSection(s, 'stats').sections, 'Flight')
-	self:assertEquals('210 m/s', findItem(flight.items, 'SCM speed').content)
+	local mobility = findItem(findSection(s, 'stats').sections, 'Mobility')
+	self:assertEquals('210 m/s', findItem(mobility.items, 'SCM speed').content)
 end
 
 function suite:testEmptyApiOmitsSections()
@@ -365,32 +367,33 @@ function suite:testDimensionsFromEditorial()
 	self:assertEquals(true, type(d.content) == 'string' and #d.content > 0)
 end
 
-function suite:testStatsFlightTabHasSpeed()
+function suite:testStatsMobilityTabHasSpeed()
 	local s = Vehicle.getSections({ is_spaceship = true, speed = { scm = 227, max = 1230 } }, {}, {})
-	local flight = findItem(findSection(s, 'stats').sections, 'Flight')
-	self:assertEquals('227 m/s', findItem(flight.items, 'SCM speed').content)
+	local mobility = findItem(findSection(s, 'stats').sections, 'Mobility')
+	self:assertEquals('227 m/s', findItem(mobility.items, 'SCM speed').content)
 end
 
-function suite:testHullTabHpAndSignature()
+function suite:testDefenseAndStealthTabs()
 	local s = Vehicle.getSections({
 		health = 6110,
 		shield_hp = 6336,
 		armor = { damage_physical = 0.75, signal_infrared = 1.13, signal_electromagnetic = 1 },
 	}, {}, {})
-	local hull = findItem(findSection(s, 'stats').sections, 'Hull')
-	self:assertEquals('6,110 HP', findItem(hull.items, 'Hull').content)
-	self:assertEquals('6,336 HP', findItem(hull.items, 'Shield').content)
-	self:assertTrue(findItem(hull.items, 'Infrared').content:find('+13%', 1, true) ~= nil)
-	self:assertEquals(nil, findItem(hull.items, 'Electromagnetic')) -- multiplier 1.0 omitted
+	local defense = findItem(findSection(s, 'stats').sections, 'Defense')
+	self:assertEquals('6,110 HP', findItem(defense.items, 'Hull').content)
+	self:assertEquals('6,336 HP', findItem(defense.items, 'Shield').content)
+	local stealth = findItem(findSection(s, 'stats').sections, 'Stealth')
+	self:assertTrue(findItem(stealth.items, 'IR modifier').content:find('+13%', 1, true) ~= nil)
+	self:assertEquals(nil, findItem(stealth.items, 'EM modifier')) -- multiplier 1.0 omitted
 end
 
 function suite:testHullResistanceTileBlock()
 	-- ProgressTiles is stubbed in the runner (returns ''), so assert only that the
 	-- block item is present (label-less, string content, block CSS class).
 	local s = Vehicle.getSections({ armor = { damage_physical = 0.75 } }, {}, {})
-	local hull = findItem(findSection(s, 'stats').sections, 'Hull')
+	local defense = findItem(findSection(s, 'stats').sections, 'Defense')
 	local block = nil
-	for _, it in ipairs(hull.items) do
+	for _, it in ipairs(defense.items) do
 		if it.label == nil and type(it.content) == 'string' then
 			block = it
 		end
@@ -407,28 +410,24 @@ end
 
 function suite:testFuelHydrogenAndQuantumTabs()
 	local s = Vehicle.getSections({
-		fuel = { capacity = 13.5, intake_rate = 0, usage = { main = 29.89, retro = 0 } },
+		fuel = { capacity = 13.5 },
 		quantum = { quantum_speed = 190000000, quantum_range = 69817400644, quantum_spool_time = 4 },
 	}, {}, {})
-	-- Fuel is collapsed into the Stats section as Hydrogen | Quantum tabs.
-	local h = findItem(findSection(s, 'stats').sections, 'Hydrogen')
-	self:assertEquals('13.5', findItem(h.items, 'Capacity').content)
-	self:assertEquals('29.89', findItem(h.items, 'Main').content)
-	self:assertEquals(nil, findItem(h.items, 'Retro')) -- 0 usage dropped
-	self:assertEquals(nil, findItem(h.items, 'Intake rate')) -- 0 intake dropped
-	local q = findItem(findSection(s, 'stats').sections, 'Quantum')
-	self:assertEquals('190 Mm/s', findItem(q.items, 'Quantum speed').content)
-	self:assertEquals('69.8 Gm', findItem(q.items, 'Quantum range').content)
-	self:assertEquals('4 s', findItem(q.items, 'Spool time').content)
+	-- Fuel capacity + quantum drive fold into the Travel tab; consumption rows dropped.
+	local travel = findItem(findSection(s, 'stats').sections, 'Travel')
+	self:assertEquals('13.5', findItem(travel.items, 'Hydrogen fuel').content)
+	self:assertEquals('190 Mm/s', findItem(travel.items, 'Quantum speed').content)
+	self:assertEquals('69.8 Gm', findItem(travel.items, 'Quantum range').content)
+	self:assertEquals('4 s', findItem(travel.items, 'Spool time').content)
+	self:assertEquals(nil, findItem(travel.items, 'Main thruster')) -- consumption dropped
 end
 
-function suite:testFuelTabsOmittedWhenNoFuelData()
-	-- A ship with flight data but no fuel/quantum: Stats has Flight but no Hydrogen/Quantum.
+function suite:testTravelTabOmittedWhenNoTravelData()
+	-- A ship with mobility data but no max speed / fuel / quantum: Mobility but no Travel.
 	local s = Vehicle.getSections({ speed = { scm = 227 } }, {}, {})
 	local stats = findSection(s, 'stats')
-	self:assertEquals(nil, findItem(stats.sections, 'Hydrogen'))
-	self:assertEquals(nil, findItem(stats.sections, 'Quantum'))
-	self:assertEquals(true, findItem(stats.sections, 'Flight') ~= nil)
+	self:assertEquals(nil, findItem(stats.sections, 'Travel'))
+	self:assertEquals(true, findItem(stats.sections, 'Mobility') ~= nil)
 end
 
 function suite:testNoFuelSection()
@@ -864,6 +863,58 @@ function suite:testGetAcquisitionVehicle()
 	self:assertEquals(true, byLabel['Pledge'])
 	self:assertEquals(2, #a.cards) -- Shops + Rentals
 	self:assertEquals('No rental data in UEX', a.cards[2].description)
+end
+
+function suite:testStructuredDataStoresNewCohortStats()
+	local data = Vehicle.getStructuredData({
+		is_spaceship = true,
+		shield_hp = 100000,
+		weaponry = { pilot_dps = 4909.6 },
+		speed = { scm = 190, max = 1000, zero_to_max = 17.36 },
+	}, {}, {})
+	self:assertEquals(100000, data['Shield health point'])
+	self:assertEquals(4909.6, data['Pilot DPS'])
+	self:assertEquals(17.36, data['Zero to Maximum speed time'])
+end
+
+function suite:testStructuredDataNewStatsNilSafe()
+	local data = Vehicle.getStructuredData({ is_spaceship = true }, {}, {})
+	self:assertEquals(nil, data['Shield health point'])
+	self:assertEquals(nil, data['Pilot DPS'])
+	self:assertEquals(nil, data['Zero to Maximum speed time'])
+end
+
+function suite:testStructuredDataStoresScoringStats()
+	local data = Vehicle.getStructuredData({
+		is_spaceship = true,
+		weaponry = { pilot_dps = 4909.6, turret_dps = 2182.4, missiles = { damage = { total = 56600 } } },
+		emission = { ir = 7441, em_max = 63969 },
+		cross_section = { length = 100, width = 110, height = 120 },
+		armor = { damage_physical = 0.75, damage_energy = 0.5 },
+	}, {}, {})
+	self:assertEquals(2182.4, data['Turret DPS'])
+	self:assertEquals(56600, data['Missile damage'])
+	self:assertEquals(7441, data['Infrared emission'])
+	self:assertEquals(63969, data['Electromagnetic emission'])
+	self:assertEquals(110, data['Cross section']) -- mean of length/width/height (100,110,120)
+	self:assertEquals(37.5, data['Armor resistance']) -- mean of (1-0.75)*100=25 and (1-0.5)*100=50
+end
+
+function suite:testStructuredDataScoringStatsNilSafe()
+	local data = Vehicle.getStructuredData({ is_spaceship = true }, {}, {})
+	self:assertEquals(nil, data['Turret DPS'])
+	self:assertEquals(nil, data['Infrared emission'])
+	self:assertEquals(nil, data['Armor resistance'])
+end
+
+function suite:testStructuredDataSustainedDpsAndDeflection()
+	local d = Vehicle.getStructuredData({
+		weaponry = { pilot_sustained_dps = 1455.5, turret_sustained_dps = 200 },
+		armor = { deflection = { physical = 11, energy = 9 } },
+	}, {}, {})
+	self:assertEquals(1455.5, d['Pilot sustained DPS'])
+	self:assertEquals(200, d['Turret sustained DPS'])
+	self:assertEquals(10, d['Armor deflection'])
 end
 
 return suite

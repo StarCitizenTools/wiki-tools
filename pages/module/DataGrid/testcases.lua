@@ -38,6 +38,12 @@ function suite:testParseColumnsFilterFlag()
 	self:assertEquals(true, dg.parseColumns('Manufacturer ; filter')[1].filter)
 end
 
+function suite:testParseColumnsKindClause()
+	local cols = dg.parseColumns('Effects ; kind=effect')
+	self:assertEquals('Effects', cols[1].property)
+	self:assertEquals('effect', cols[1].kind)
+end
+
 function suite:testParseColumnsSpacingStyles()
 	self:assertEquals('Size', dg.parseColumns('Size ; filter')[1].property)
 	self:assertEquals('Size', dg.parseColumns('Size;filter')[1].property)

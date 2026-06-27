@@ -15,4 +15,5 @@ return {
 	card = require('Module:AGGridColumns/Kind/Card'),
 	stackedValue = require('Module:AGGridColumns/Kind/StackedValue'),
 	badge = require('Module:AGGridColumns/Kind/Badge'),
+	badgeList = require('Module:AGGridColumns/Kind/BadgeList'),
 }

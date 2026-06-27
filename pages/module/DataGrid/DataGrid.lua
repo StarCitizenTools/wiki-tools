@@ -41,11 +41,12 @@ local EYEBROW_ROW_HEIGHT = 60
 --- @field size? string    Parsed for forward-compatibility; unused (see README).
 --- @field filter? boolean
 --- @field eyebrow? boolean Promote this column into the lead card's eyebrow.
+--- @field kind? string  Override the auto-classified column kind (e.g. `effect`).
 
 --- Parse the multi-line `columns` value. Carried over from Module:DataTableLua:
 --- one column per non-blank line; within a line, `;`-separated clauses where the
 --- first is the SMW property and the rest are modifiers (`label=X`, `size=X`, or
---- the bare flags `filter` / `eyebrow`). `eyebrow` promotes the column into the
+--- the bare flags `filter` / `eyebrow`, or `kind=X`). `eyebrow` promotes the column into the
 --- lead card instead of rendering it as its own column. Unknown clauses are
 --- ignored. Empty-property lines drop.
 --- @param raw string
@@ -68,6 +69,8 @@ function p.parseColumns(raw)
 						column.label = value
 					elseif key == 'size' then
 						column.size = value
+					elseif key == 'kind' then
+						column.kind = value
 					elseif clause == 'filter' then
 						column.filter = true
 					elseif clause == 'eyebrow' then
@@ -193,19 +196,33 @@ local function buildSpecs(results, columns, eyebrowColumn)
 	for i, column in ipairs(columns) do
 		if not column.eyebrow then
 			local alias = p.columnAlias(column)
-			local values = {}
-			for _, result in ipairs(results) do
-				if result[alias] ~= nil then
-					values[#values + 1] = result[alias]
+			local header = (column.label and column.label ~= '') and column.label or column.property
+			if column.kind == 'effect' then
+				-- Dietary-effect badge list: each value classified by Module:DietaryEffect;
+				-- the set filter splits the cell into one option per effect.
+				specs[#specs + 1] = {
+					kind = 'badgeList',
+					field = 'c' .. i,
+					header = header,
+					label = alias,
+					classify = require('Module:DietaryEffect').gridClassify,
+					filter = 'aggridSet',
+				}
+			else
+				local values = {}
+				for _, result in ipairs(results) do
+					if result[alias] ~= nil then
+						values[#values + 1] = result[alias]
+					end
 				end
+				specs[#specs + 1] = {
+					kind = KINDS[Util.classifyColumn(values)],
+					field = 'c' .. i,
+					header = header,
+					label = alias,
+					filter = column.filter and 'aggridSet' or 'agTextColumnFilter',
+				}
 			end
-			specs[#specs + 1] = {
-				kind = KINDS[Util.classifyColumn(values)],
-				field = 'c' .. i,
-				header = (column.label and column.label ~= '') and column.label or column.property,
-				label = alias,
-				filter = column.filter and 'aggridSet' or 'agTextColumnFilter',
-			}
 		end
 	end
 	return specs

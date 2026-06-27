@@ -1,0 +1,9 @@
+/* Wrapping row of dietary-effect badges (Module:DietaryEffect). The badges
+   themselves are Module:BadgeLua; this only lays them out. End-aligned to match
+   the infobox value column. */
+.t-dietary-effects {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	gap: var(--space-xxs);
+}

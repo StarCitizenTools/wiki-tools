@@ -26,6 +26,9 @@
  *      { value: <number>, text: <primary string>, sub: <secondary string>|null }
  *  - scwBadge: a BadgeLua-style pill. Value shape:
  *      { text, variant: 'error'|'success'|'warning'|null }
+ *  - scwBadgeList: a wrapping row of BadgeLua-style pills, each with an optional
+ *    currentColor mask icon and optional whole-pill link. Value shape:
+ *      { list: [{ text, variant, iconSrc, href }] }
  *  - scwSmart: a plain text column with numeric-aware sort and per-cell right-
  *    align of numeric-looking values. Cell value is a display string (no object).
  */
@@ -223,20 +226,55 @@
 	// variant } where variant is 'error' | 'success' | 'warning' (else a neutral
 	// base badge). An absent value renders an empty cell.
 	var BADGE_VARIANTS = { error: true, success: true, warning: true };
+	// One badge pill: text + optional currentColor mask icon + optional whole-pill
+	// link. Shared by scwBadge (single) and scwBadgeList.
+	function buildBadgeEl( b ) {
+		var badge = document.createElement( 'span' );
+		badge.className = 't-badge';
+		if ( b.variant && BADGE_VARIANTS[ b.variant ] ) {
+			badge.classList.add( 't-badge--' + b.variant );
+		}
+		if ( b.iconSrc && SAFE_HREF.test( b.iconSrc ) && !/["')]/.test( b.iconSrc ) ) {
+			var icon = document.createElement( 'span' );
+			icon.className = 't-badge__icon';
+			icon.style.setProperty( '--t-badge-icon', 'url("' + b.iconSrc + '")' );
+			badge.appendChild( icon );
+		}
+		var text = document.createElement( 'span' );
+		text.className = 't-badge__text';
+		text.textContent = b.text;
+		badge.appendChild( text );
+		if ( b.href && SAFE_HREF.test( b.href ) ) {
+			var a = document.createElement( 'a' );
+			a.href = b.href;
+			a.appendChild( badge );
+			return a;
+		}
+		return badge;
+	}
+
+	// scwBadge cell. Value: { text, variant }. Absent value -> empty cell.
 	function buildBadge( v ) {
 		if ( !v || !v.text ) {
 			return document.createTextNode( '' );
 		}
-		var badge = document.createElement( 'span' );
-		badge.className = 't-badge';
-		if ( v.variant && BADGE_VARIANTS[ v.variant ] ) {
-			badge.classList.add( 't-badge--' + v.variant );
+		return buildBadgeEl( v );
+	}
+
+	// scwBadgeList cell. Value: { list: [{ text, variant, iconSrc, href }] }. A
+	// wrapping row of pills; absent/empty list renders an empty cell.
+	function buildBadgeList( v ) {
+		var wrap = document.createElement( 'span' );
+		wrap.className = 't-badge-list';
+		var list = v && v.list;
+		if ( list ) {
+			list.forEach( function ( b ) {
+				if ( b && b.text ) {
+					wrap.appendChild( buildBadgeEl( b ) );
+				}
+			} );
 		}
-		var text = document.createElement( 'span' );
-		text.className = 't-badge__text';
-		text.textContent = v.text;
-		badge.appendChild( text );
-		return badge;
+		return wrap;
 	}
 
 	// eyebrow label -> resolved eyebrow-icon src, harvested from scwEntityCard rows
@@ -367,6 +405,30 @@
 			comparator: function ( a, b ) {
 				return String( ( a && a.text ) || '' )
 					.localeCompare( String( ( b && b.text ) || '' ) );
+			}
+		};
+
+		// Multi-value badge list (Module:DataGrid `kind=effect`). Value:
+		// { list: [{ text, variant, iconSrc, href }] }. Sort / quick-search on the
+		// joined labels; the set filter splits per badge text via filterValueGetter.
+		reg.columnTypes.scwBadgeList = {
+			cellRenderer: function ( params ) {
+				return buildBadgeList( params.value );
+			},
+			valueFormatter: function ( params ) {
+				var l = params.value && params.value.list;
+				return l ? l.map( function ( b ) { return b.text; } ).join( ', ' ) : '';
+			},
+			filterValueGetter: function ( params ) {
+				var v = params.data && params.data[ params.colDef.field ];
+				var l = v && v.list;
+				return l ? l.map( function ( b ) { return b.text; } ) : null;
+			},
+			comparator: function ( a, b ) {
+				function join( v ) {
+					return ( v && v.list ) ? v.list.map( function ( x ) { return x.text; } ).join( ', ' ) : '';
+				}
+				return join( a ).localeCompare( join( b ) );
 			}
 		};
 

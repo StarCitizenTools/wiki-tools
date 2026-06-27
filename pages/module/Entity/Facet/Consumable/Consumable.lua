@@ -9,6 +9,7 @@ require('strict')
 --- data-driven below.
 
 local format = require('Module:Entity/Format')
+local DietaryEffect = require('Module:DietaryEffect')
 
 local p = {}
 
@@ -40,13 +41,10 @@ function p.getSections(apiData, args)
 		table.insert(items, { label = 'HEI', content = tostring(food.hydration_efficacy_index) })
 	end
 
-	-- Each effect has a wiki page at its own name, so link them. A missing page
-	-- redlinks, which is the normal wiki signal to create it.
-	local effectLinks = {}
-	for _, effect in ipairs(food.effects or {}) do
-		table.insert(effectLinks, '[[' .. effect .. ']]')
-	end
-	local effectsContent = format.buildHtmlList(effectLinks)
+	-- Effects render as coloured badges (green up = beneficial, red down =
+	-- detrimental, grey = None / unknown) linking to their canonical effect page.
+	-- See Module:DietaryEffect.
+	local effectsContent = DietaryEffect.renderBadges(food.effects)
 	if effectsContent then
 		table.insert(items, { label = 'Effects', content = effectsContent })
 	end

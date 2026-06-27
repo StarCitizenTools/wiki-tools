@@ -20,14 +20,17 @@ function suite:testRingTabFromCohort()
 		{ health = '120000' },
 		{ health = '130000' },
 	})
-	local tab = Overview.build({ is_spaceship = true, size_class = 994, health = 150000 }, {}, {})
+	local tab = Overview.build({ is_spaceship = true, size_class = 3, health = 150000 }, {}, {})
 	mw.smw = real
 	self:assertEquals('Overview', tab.label)
 	self:assertEquals(nil, tab.key)
 	self:assertEquals(1, #tab.items) -- one block holding the ring row + cohort footer
 	self:assertEquals('t-infobox-item--block', tab.items[1].class)
-	-- The cohort footer is plain Lua concat, independent of the stubbed ProgressTiles.
-	self:assertTrue(tab.items[1].content:find('Ranked among 5 same-size ships', 1, true) ~= nil)
+	-- The cohort footer is plain Lua concat (BadgeLua stubbed to echo its text),
+	-- independent of the stubbed ProgressTiles: a Beta badge + "vs. N S<class> ships"
+	-- (5 = cohort size, 3 = size class).
+	self:assertTrue(tab.items[1].content:find('Beta', 1, true) ~= nil)
+	self:assertTrue(tab.items[1].content:find('vs. 5 S3 ships', 1, true) ~= nil)
 end
 
 function suite:testNilWithoutCohort()

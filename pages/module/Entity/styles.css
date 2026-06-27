@@ -91,11 +91,21 @@
     overflow-wrap: anywhere;
 }
 
-/* Cohort footer beneath the ring row: subtle, centered, smaller than the labels. */
+/* Cohort footer beneath the ring row: a subtle divider row carrying a Beta badge
+   (left) and the cohort caption (right). */
 .t-stats-overview-footnote {
-    margin-top: var(--space-xs);
-    color: var(--color-subtle);
-    font-size: var(--font-size-x-small);
-    line-height: var(--line-height-x-small);
-    text-align: center;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-xs);
+	margin-top: var(--space-sm);
+	border-top: var(--border-subtle);
+	padding-top: var(--space-xs);
+	font-size: var(--font-size-x-small);
+	line-height: var(--line-height-x-small);
+	color: var(--color-subtle);
+}
+
+.t-stats-overview-footnote .t-badge {
+	font-size: inherit;
 }

@@ -8,6 +8,7 @@ require('strict')
 --- tabs, so the rings carry no tooltip. Renders nil when there is no cohort
 --- (pre-swap) or no axis has data.
 
+local badge = require('Module:BadgeLua')
 local profile = require('Module:Entity/Vehicle/Stats/Profile')
 local progressTiles = require('Module:ProgressTiles')
 local standing = require('Module:Entity/Vehicle/Stats/Standing')
@@ -41,10 +42,19 @@ function p.build(apiData, args, ed)
 			color = standing.color(axis.score),
 		}
 	end
-	-- Footer naming the cohort the rings are scored against (every axis shares it).
-	local footer = '<div class="t-stats-overview-footnote">Ranked among '
+	-- Footer beneath the rings: a Beta badge (left) and the cohort caption (right),
+	-- "vs. N S<class> ships" — naming the size class the cohort is grouped by, which
+	-- matches the infobox Size row's "S<class>". size_class is guaranteed present
+	-- here: a nil size yields no cohort, so axes[1] would be nil above.
+	local sizeClass = math.floor(tonumber(apiData.size_class) + 0.5)
+	local footer = '<div class="t-stats-overview-footnote">'
+		.. badge.render({ text = 'Beta' })
+		.. '<span class="t-stats-overview-footnote__cohort">vs. '
 		.. axes[1].cohortSize
-		.. ' same-size ships</div>'
+		.. ' S'
+		.. sizeClass
+		.. ' ships</span>'
+		.. '</div>'
 	return {
 		label = 'Overview',
 		items = {

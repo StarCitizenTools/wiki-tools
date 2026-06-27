@@ -2,12 +2,16 @@ require('strict')
 
 --- Lua interface for building a badge.
 
+local Icon = require('Module:Icon')
+
 --- @class BadgeProps
 --- @field text string
 --- @field variant 'error'|'success'|'warning'
 --- @field color string
 --- @field backgroundColor string
 --- @field icon string
+--- @field mask boolean             Render the icon as a currentColor mask (matches the badge colour)
+--- @field link string             Wrap the whole badge in a link to this page
 --- @field class string
 
 local VARIANTS = {
@@ -17,25 +21,6 @@ local VARIANTS = {
 }
 
 local p = {}
-
---- @param file string
---- @param size string
---- @return string
-local function getFileWikitext(file, size)
-	-- `metadata` class is needed to be excluded from MultimediaViewer.
-	-- `link=` is needed make sure the image is not clickable.
-	return string.format('[[File:%s|%s|class=metadata|link=]]', file, size)
-end
-
---- @param root mw.html
---- @param icon string
-local function renderIcon(root, icon)
-	local html = mw.html.create('span')
-
-	html:addClass('t-badge__icon'):wikitext(getFileWikitext(icon, '16px'))
-
-	root:node(html)
-end
 
 --- @param props BadgeProps
 --- @return string
@@ -59,15 +44,38 @@ function p.render(props)
 	end
 
 	if type(props.icon) == 'string' then
-		renderIcon(root, props.icon)
+		root:wikitext(Icon.render({
+			icon = props.icon,
+			size = '16px',
+			mask = props.mask,
+			class = 't-badge__icon',
+		}))
 	end
 
 	root:tag('span'):addClass('t-badge__text'):wikitext(props.text)
 
-	return mw.getCurrentFrame():extensionTag({
+	local frame = mw.getCurrentFrame()
+	local styles = frame:extensionTag({
 		name = 'templatestyles',
 		args = { src = 'Module:BadgeLua/styles.css' },
-	}) .. tostring(root)
+	})
+	-- Icon ships its own stylesheet; only needed when the badge has an icon.
+	if type(props.icon) == 'string' then
+		styles = styles
+			.. frame:extensionTag({
+				name = 'templatestyles',
+				args = { src = 'Module:Icon/styles.css' },
+			})
+	end
+
+	local badge = tostring(root)
+	-- Wrap the whole pill in one anchor so the entire badge is the link, not just
+	-- its text. The templatestyles tags stay outside the link label.
+	if type(props.link) == 'string' and props.link ~= '' then
+		badge = string.format('[[%s|%s]]', props.link, badge)
+	end
+
+	return styles .. badge
 end
 
 --- Wikitext entry point for the module
@@ -88,6 +96,10 @@ function p.main(frame)
 
 	if args.backgroundColor == nil then
 		args.backgroundColor = args.bg
+	end
+
+	if args.mask ~= nil then
+		args.mask = require('Module:Yesno')(args.mask)
 	end
 
 	return p.render(args)

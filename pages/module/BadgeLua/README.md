@@ -2,7 +2,7 @@
 
 Lua interface for rendering an inline badge — a small pill-shaped label with optional icon, custom color, and custom background. Suited for status tags, version markers, faction labels, or any short metadata that should read as a distinct chip rather than plain text.
 
-The module emits a `<span class="t-badge">` with bundled TemplateStyles. The icon (when supplied) is rendered as a `[[File:…]]` thumb sized at `16px`, marked with the `metadata` class to be excluded from the MediaWiki MultimediaViewer and stripped of its link target so the badge as a whole stays inert.
+The module emits a `<span class="t-badge">` with bundled TemplateStyles. The icon (when supplied) is rendered through [Module:Icon](https://starcitizen.tools/Module:Icon) at `16px` — a `metadata` thumbnail by default, or a `currentColor` mask when `mask` is set (so it recolours with the badge). When `link` is set the whole pill is wrapped in a single anchor, so the entire badge is the link rather than just its text.
 
 ## Usage
 
@@ -50,7 +50,9 @@ Builds and returns the badge.
 |---|---|---|---|---|
 | `text` | `string` | Yes | | Badge label. Wikitext allowed. |
 | `variant` | `'error'\|'success'\|'warning'` | No | | Semantic preset that themes the badge via Citizen design tokens. Unknown values are ignored. |
-| `icon` | `string` | No | | File name (without the `File:` prefix) of an icon to render before the text at 16px. |
+| `icon` | `string` | No | | File name (without the `File:` prefix) of an icon to render before the text at 16px (via Module:Icon). |
+| `mask` | `boolean` | No | `false` | Render the icon as a `currentColor` mask instead of a thumbnail, so it matches the badge colour. |
+| `link` | `string` | No | | Wrap the whole badge in a single anchor to this page, so the entire pill is the link. |
 | `color` | `string` | No | | CSS color applied to the badge text. Any valid CSS color value. Overrides `variant` (rendered as inline style). |
 | `backgroundColor` | `string` | No | | CSS background color applied to the badge. Any valid CSS color value. Overrides `variant` (rendered as inline style). |
 | `class` | `string` | No | | Extra class appended to the badge root. |
@@ -82,6 +84,6 @@ CSS lives in [Module:BadgeLua/styles.css](https://starcitizen.tools/Module:Badge
 
 ```
 BadgeLua/
-├── BadgeLua.lua    # Render function, icon helper
-└── styles.css      # Badge layout + icon slot
+├── BadgeLua.lua    # Render function (icon delegated to Module:Icon)
+└── styles.css      # Badge layout + variants
 ```

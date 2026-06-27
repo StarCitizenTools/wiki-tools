@@ -11,10 +11,8 @@
 	line-height: 1;
 	column-gap: var(--space-xxs);
 	white-space: nowrap;
-}
-
-.t-badge__icon {
-	user-select: none;
+	/* Badges are never underlined, even when wrapped in a link (link prop). */
+	text-decoration: none;
 }
 
 .t-badge--error {

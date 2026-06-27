@@ -1,6 +1,7 @@
 require('strict')
 
 local yesno = require('Module:Yesno')
+local Icon = require('Module:Icon')
 
 local p = {}
 
@@ -17,30 +18,9 @@ local function getProps(args)
 	}
 end
 
---- Resolve the icon's file URL for use as a CSS mask image.
----
---- @param icon string
---- @return string
-local function getIconSrc(icon)
-	return mw.getCurrentFrame():callParserFunction('filepath', {
-		icon,
-		'nowiki',
-	})
-end
-
---- @param icon string
---- @param size string
---- @param iconTitle string|nil
---- @return string
-local function getIconWikitext(icon, size, iconTitle)
-	if iconTitle then
-		return string.format('[[File:%s|%s|link=|class=metadata|%s]]', icon, size, iconTitle)
-	end
-
-	return string.format('[[File:%s|%s|link=|class=metadata]]', icon, size)
-end
-
---- Render the icon text
+--- Render the icon text. The icon is delegated to Module:Icon, carrying the
+--- `t-icon-text__icon` slot class so existing selectors (e.g. Module:UEC sizing
+--- it to 1em) keep working.
 ---
 --- @param args table
 --- @return mw.html
@@ -49,24 +29,13 @@ local function getIconTextHtml(args)
 
 	root:addClass('t-icon-text'):addClass(args.class)
 
-	local iconSpan = root:tag('span'):addClass('t-icon-text__icon')
-
-	if args.mask then
-		iconSpan:addClass('t-icon-text__icon--mask'):cssText(
-			string.format(
-				'--t-icon-text-icon-url: "%s"; width: %s; height: %s;',
-				getIconSrc(args.icon),
-				args.size,
-				args.size
-			)
-		)
-
-		if args.iconTitle then
-			iconSpan:attr('title', args.iconTitle)
-		end
-	else
-		iconSpan:wikitext(getIconWikitext(args.icon, args.size, args.iconTitle))
-	end
+	root:wikitext(Icon.render({
+		icon = args.icon,
+		size = args.size,
+		mask = args.mask,
+		title = args.iconTitle,
+		class = 't-icon-text__icon',
+	}))
 
 	root:tag('span'):addClass('t-icon-text__text'):wikitext(args.text)
 
@@ -97,10 +66,16 @@ function p._main(args)
 		error('No text provided')
 	end
 
-	return mw.getCurrentFrame():extensionTag({
+	local frame = mw.getCurrentFrame()
+	local styles = frame:extensionTag({
 		name = 'templatestyles',
 		args = { src = 'Module:IconText/styles.css' },
-	}) .. tostring(getIconTextHtml(props))
+	}) .. frame:extensionTag({
+		name = 'templatestyles',
+		args = { src = 'Module:Icon/styles.css' },
+	})
+
+	return styles .. tostring(getIconTextHtml(props))
 end
 
 return p

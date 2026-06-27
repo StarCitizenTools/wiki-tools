@@ -1,6 +1,7 @@
 require('strict')
 
 local yesno = require('Module:Yesno')
+local Icon = require('Module:Icon')
 
 local p = {}
 
@@ -17,43 +18,8 @@ local function getProps(args)
 	}
 end
 
---- Resolve the icon's file URL for use as a CSS mask image.
----
---- @param icon string
---- @return string
-local function getIconSrc(icon)
-	return mw.getCurrentFrame():callParserFunction('filepath', {
-		icon,
-		'nowiki',
-	})
-end
-
---- @param icon string
---- @param link string
---- @param size string
---- @return string
-local function getIconWikitext(icon, link, size)
-	return string.format('[[File:%s|%s|link=%s|class=metadata]]', icon, size, link)
-end
-
---- Build the icon as a recolorable CSS mask, wrapped in a link to the target page.
----
---- @param args table
---- @return string
-local function getIconMaskWikitext(args)
-	local mask = mw.html.create('span'):addClass('t-icon-link__icon--mask'):cssText(
-		string.format(
-			'--t-icon-link-icon-url: "%s"; width: %s; height: %s;',
-			getIconSrc(args.icon),
-			args.size,
-			args.size
-		)
-	)
-
-	return string.format('[[%s|%s]]', args.link, tostring(mask))
-end
-
---- Render the icon link
+--- Render the icon link: a linked icon (delegated to Module:Icon, carrying the
+--- `t-icon-link__icon` slot class) followed by the linked text.
 ---
 --- @param args table
 --- @return mw.html
@@ -62,8 +28,13 @@ local function getIconLinkHtml(args)
 
 	root:addClass('t-icon-link'):addClass(args.class)
 
-	local icon = args.mask and getIconMaskWikitext(args) or getIconWikitext(args.icon, args.link, args.size)
-	root:tag('span'):addClass('t-icon-link__icon'):wikitext(icon)
+	root:wikitext(Icon.render({
+		icon = args.icon,
+		size = args.size,
+		mask = args.mask,
+		link = args.link,
+		class = 't-icon-link__icon',
+	}))
 
 	root:tag('span'):addClass('t-icon-link__text'):wikitext(string.format('[[%s|%s]]', args.link, args.text))
 
@@ -94,10 +65,16 @@ function p._main(args)
 		error('No link or text provided')
 	end
 
-	return mw.getCurrentFrame():extensionTag({
+	local frame = mw.getCurrentFrame()
+	local styles = frame:extensionTag({
 		name = 'templatestyles',
 		args = { src = 'Module:IconLink/styles.css' },
-	}) .. tostring(getIconLinkHtml(props))
+	}) .. frame:extensionTag({
+		name = 'templatestyles',
+		args = { src = 'Module:Icon/styles.css' },
+	})
+
+	return styles .. tostring(getIconLinkHtml(props))
 end
 
 return p

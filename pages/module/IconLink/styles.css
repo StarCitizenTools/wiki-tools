@@ -5,25 +5,3 @@
 	vertical-align: middle;
 	line-height: 1; /* Avoid icon affecting the line height */
 }
-
-.t-icon-link__icon {
-	user-select: none;
-}
-
-/*
- * Mask mode: render the icon as a CSS mask filled with currentColor, so it
- * matches the linked text and recolors with it. The file URL is stashed in
- * --t-icon-link-icon-url inline (a quoted string); it is consumed here via
- * image-set() + bare var() because the sanitizer rejects url(var()) inline.
- * inline-block so the inline width/height apply inside the wrapping <a>.
- */
-.t-icon-link__icon--mask {
-	display: inline-block;
-	--t-icon-link-icon-mask: image-set(var(--t-icon-link-icon-url) 1x);
-	mask-image: var(--t-icon-link-icon-mask);
-	mask-size: contain;
-	mask-repeat: no-repeat;
-	mask-position: center;
-	background-color: currentColor;
-	vertical-align: middle;
-}

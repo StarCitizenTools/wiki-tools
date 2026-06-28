@@ -333,6 +333,7 @@ function p.getStructuredData(apiData, args, resolved)
 	local speed = type(apiData.speed) == 'table' and apiData.speed or {}
 	local weaponry = type(apiData.weaponry) == 'table' and apiData.weaponry or {}
 	local missiles = type(weaponry.missiles) == 'table' and weaponry.missiles or {}
+	local uex = type(apiData.uex_prices) == 'table' and apiData.uex_prices or {}
 	local data = {
 		['Career'] = vehicleUtil.resolveCareer(apiData, args), -- wiki param wins (curated taxonomy)
 		['Role'] = apiData.role,
@@ -343,6 +344,10 @@ function p.getStructuredData(apiData, args, resolved)
 		['Insurance claim time'] = apiData.insurance and tonumber(apiData.insurance.claim_time) or nil,
 		['Insurance expedite time'] = apiData.insurance and tonumber(apiData.insurance.expedite_time) or nil,
 		['Insurance expedite cost'] = apiData.insurance and tonumber(apiData.insurance.expedite_cost) or nil,
+		-- Estimated in-game prices: same median-of-latest-patch UEX value the Cost
+		-- infobox shows (Module:Entity/Acquisition.estimatePrice), stored unitless (aUEC).
+		['Average purchase price'] = acq.estimatePrice(uex.purchase, 'price_buy'),
+		['Average rental price'] = acq.estimatePrice(uex.rental, 'price_rent'),
 		['Health point'] = tonumber(apiData.health),
 		['Shield health point'] = tonumber(apiData.shield_hp),
 		['Pilot DPS'] = tonumber(weaponry.pilot_dps),

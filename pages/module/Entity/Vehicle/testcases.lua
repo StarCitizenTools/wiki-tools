@@ -1003,4 +1003,34 @@ function suite:testStructuredDataSustainedDpsAndDeflection()
 	self:assertEquals(10, d['Armor deflection'])
 end
 
+function suite:testStructuredDataStoresEstimatedPrices()
+	-- Same estimate the infobox shows: median of the latest-patch UEX terminals.
+	local d = Vehicle.getStructuredData({
+		uex_prices = {
+			purchase = { { price_buy = 1290370 }, { price_buy = 1358280 } },
+			rental = { { price_rent = 27165 } },
+		},
+	}, {}, {})
+	self:assertEquals(1324325, d['Average purchase price']) -- median of the two terminals
+	self:assertEquals(27165, d['Average rental price'])
+end
+
+function suite:testStructuredDataEstimatedPriceLatestPatchOnly()
+	local d = Vehicle.getStructuredData({
+		uex_prices = {
+			purchase = {
+				{ price_buy = 1000000, game_version = '4.8.2-LIVE.100' },
+				{ price_buy = 5000000, game_version = '4.10.0-LIVE.100' },
+			},
+		},
+	}, {}, {})
+	self:assertEquals(5000000, d['Average purchase price']) -- newest patch only
+end
+
+function suite:testStructuredDataEstimatedPricesNilSafe()
+	local d = Vehicle.getStructuredData({}, {}, {})
+	self:assertEquals(nil, d['Average purchase price'])
+	self:assertEquals(nil, d['Average rental price'])
+end
+
 return suite

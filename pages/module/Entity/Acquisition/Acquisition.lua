@@ -61,6 +61,111 @@ function p.inferCanAcquire(prices, key)
 	return min ~= nil
 end
 
+--- All maximal digit runs in a version string as a numeric vector, so versions
+--- compare component-wise (4.10 > 4.8) rather than lexicographically (where the
+--- string "4.8" sorts after "4.10"). The trailing build number becomes the last,
+--- tie-breaking component. e.g. "4.10.0-LIVE.100" → { 4, 10, 0, 100 }.
+--- @param version string
+--- @return number[]
+local function versionVector(version)
+	local v = {}
+	for digits in version:gmatch('%d+') do
+		v[#v + 1] = tonumber(digits)
+	end
+	return v
+end
+
+--- True when version vector `a` is strictly newer than `b`, compared
+--- component-wise (missing components count as 0).
+--- @param a number[]
+--- @param b number[]
+--- @return boolean
+local function versionNewer(a, b)
+	for i = 1, math.max(#a, #b) do
+		local x, y = a[i] or 0, b[i] or 0
+		if x ~= y then
+			return x > y
+		end
+	end
+	return false
+end
+
+--- The newest `game_version` present across price rows, or nil when none carry
+--- one (older UEX records that predate version stamping).
+--- @param rows table[]
+--- @return string|nil
+local function latestVersion(rows)
+	local best, bestVec
+	for _, row in ipairs(rows) do
+		local gv = row.game_version
+		if type(gv) == 'string' and gv ~= '' then
+			local vec = versionVector(gv)
+			if not best or versionNewer(vec, bestVec) then
+				best, bestVec = gv, vec
+			end
+		end
+	end
+	return best
+end
+
+--- Non-zero numeric prices at `key`, restricted to rows matching `version` when
+--- given (nil → every row). Skips UEX zero-sentinels.
+--- @param rows table[]
+--- @param key string
+--- @param version string|nil
+--- @return number[]
+local function collectPrices(rows, key, version)
+	local out = {}
+	for _, row in ipairs(rows) do
+		if version == nil or row.game_version == version then
+			local v = tonumber(row[key])
+			if v and v > 0 then
+				out[#out + 1] = v
+			end
+		end
+	end
+	return out
+end
+
+--- Median of a numeric list, rounded to the nearest integer (prices are whole
+--- aUEC); even counts average the middle pair. nil for an empty list.
+--- @param values number[]
+--- @return number|nil
+local function median(values)
+	local n = #values
+	if n == 0 then
+		return nil
+	end
+	table.sort(values)
+	local m
+	if n % 2 == 1 then
+		m = values[(n + 1) / 2]
+	else
+		m = (values[n / 2] + values[n / 2 + 1]) / 2
+	end
+	return math.floor(m + 0.5)
+end
+
+--- Estimated in-game price at `key` (price_buy / price_rent): the median across
+--- the newest patch's terminals, falling back to all patches when the newest
+--- carries no usable price for this side. Median over mean resists a single
+--- mispriced terminal (they coincide for the common 1–2 terminal case). nil when
+--- there is no non-zero price at all.
+--- @param rows table[]|nil
+--- @param key string
+--- @return number|nil
+function p.estimatePrice(rows, key)
+	if type(rows) ~= 'table' or rows[1] == nil then
+		return nil
+	end
+	local version = latestVersion(rows)
+	local values = collectPrices(rows, key, version)
+	if #values == 0 and version ~= nil then
+		values = collectPrices(rows, key, nil) -- newest patch lacks this side → any patch
+	end
+	return median(values)
+end
+
 --- Scans apiData.entity_tag_map for a tag by name: present → true; map without
 --- the tag → false; map missing → nil.
 --- @param apiData table

@@ -51,6 +51,22 @@
 		],
 		"desc": "Whether a mission is currently available."
 	},
+	"Average purchase price": {
+		"smw": "Number",
+		"bucket": "INTEGER",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Estimated in-game purchase price of a vehicle (median of the latest patch's UEX terminal prices), in aUEC."
+	},
+	"Average rental price": {
+		"smw": "Number",
+		"bucket": "INTEGER",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Estimated in-game rental price of a vehicle (median of the latest patch's UEX terminal prices), in aUEC."
+	},
 	"Base variant": {
 		"smw": "Boolean",
 		"bucket": "BOOLEAN",

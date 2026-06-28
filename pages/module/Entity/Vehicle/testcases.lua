@@ -251,28 +251,114 @@ function suite:testProductionStatusResolvesOverrideAndApiForms()
 	self:assertEquals('Flight ready', ProductionStatus._internal.resolve('flight-ready').label)
 end
 
-function suite:testCostUniverseBuyableRentable()
+function suite:testCostUniverseBuyShowsEstimatedPrice()
+	-- Buy row shows the estimated (median) UEC price; rental with only a zero price is "No".
 	local s = Vehicle.getSections({
 		uex_prices = { purchase = { { price_buy = 500000 } }, rental = { { price_rent = 0 } } },
 	}, {}, {})
 	local universe = findItem(findSection(s, 'cost').sections, 'Universe')
-	self:assertEquals('[[#Acquisition|Yes]]', findItem(universe.items, 'Buyable').content)
-	self:assertEquals('No', findItem(universe.items, 'Rentable').content)
+	-- Relabelled Buy/Rent (was Buyable/Rentable).
+	self:assertEquals(nil, findItem(universe.items, 'Buyable'))
+	local buy = findItem(universe.items, 'Buy').content
+	self:assertEquals('~', buy:sub(1, 1)) -- estimate marker
+	self:assertTrue(buy:find('500,000', 1, true) ~= nil) -- UEC-formatted price
+	self:assertTrue(buy:find('aUEC', 1, true) == nil) -- formatted via Module:UEC, no bare unit
+	-- Rental has an entry but no non-zero price → definitively No (not Unknown).
+	self:assertEquals('No', findItem(universe.items, 'Rent').content)
 end
 
-function suite:testCostUniverseCanBuyOverride()
-	-- editorial canbuy override beats inferred (no UEX data → would be Unknown)
+function suite:testCostUniverseBuyPriceIsMedianAcrossTerminals()
+	-- Three terminals, same patch → median of buy prices (not min/max/mean-of-extremes).
+	local s = Vehicle.getSections({
+		uex_prices = {
+			purchase = { { price_buy = 1000000 }, { price_buy = 2000000 }, { price_buy = 3000000 } },
+		},
+	}, {}, {})
+	local buy = findItem(findItem(findSection(s, 'cost').sections, 'Universe').items, 'Buy').content
+	self:assertTrue(buy:find('2,000,000', 1, true) ~= nil)
+	self:assertTrue(buy:find('1,000,000', 1, true) == nil)
+	self:assertTrue(buy:find('3,000,000', 1, true) == nil)
+end
+
+function suite:testCostUniverseRentShowsEstimatedPrice()
+	local s = Vehicle.getSections({
+		uex_prices = { rental = { { price_rent = 27000 }, { price_rent = 27000 }, { price_rent = 30000 } } },
+	}, {}, {})
+	local rent = findItem(findItem(findSection(s, 'cost').sections, 'Universe').items, 'Rent').content
+	self:assertEquals('~', rent:sub(1, 1))
+	self:assertTrue(rent:find('27,000', 1, true) ~= nil) -- median of 27k, 27k, 30k
+end
+
+function suite:testCostUniversePriceUsesLatestPatchOnly()
+	-- Older-patch terminal is excluded; median is taken over the newest game_version only.
+	local s = Vehicle.getSections({
+		uex_prices = {
+			purchase = {
+				{ price_buy = 1000000, game_version = '4.8.2-LIVE.100' },
+				{ price_buy = 2000000, game_version = '4.9.0-LIVE.200' },
+				{ price_buy = 4000000, game_version = '4.9.0-LIVE.200' },
+			},
+		},
+	}, {}, {})
+	local buy = findItem(findItem(findSection(s, 'cost').sections, 'Universe').items, 'Buy').content
+	self:assertTrue(buy:find('3,000,000', 1, true) ~= nil) -- median of 2M, 4M (latest patch)
+	self:assertTrue(buy:find('1,000,000', 1, true) == nil) -- older patch dropped
+end
+
+function suite:testCostUniverseLatestPatchHandlesMinorVersionRollover()
+	-- 4.10 is newer than 4.8 despite a smaller build suffix: versions compare numerically
+	-- component-wise, not lexicographically (where "4.8" > "4.10").
+	local s = Vehicle.getSections({
+		uex_prices = {
+			purchase = {
+				{ price_buy = 1000000, game_version = '4.8.2-LIVE.999' },
+				{ price_buy = 5000000, game_version = '4.10.0-LIVE.100' },
+			},
+		},
+	}, {}, {})
+	local buy = findItem(findItem(findSection(s, 'cost').sections, 'Universe').items, 'Buy').content
+	self:assertTrue(buy:find('5,000,000', 1, true) ~= nil)
+	self:assertTrue(buy:find('1,000,000', 1, true) == nil)
+end
+
+function suite:testCostUniverseSkipsZeroPrices()
+	local s = Vehicle.getSections({
+		uex_prices = { purchase = { { price_buy = 0 }, { price_buy = 2000000 } } },
+	}, {}, {})
+	local buy = findItem(findItem(findSection(s, 'cost').sections, 'Universe').items, 'Buy').content
+	self:assertTrue(buy:find('2,000,000', 1, true) ~= nil)
+end
+
+function suite:testCostUniverseEvenTerminalCountAveragesMiddlePair()
+	local s = Vehicle.getSections({
+		uex_prices = { purchase = { { price_buy = 1000000 }, { price_buy = 2000002 } } },
+	}, {}, {})
+	local buy = findItem(findItem(findSection(s, 'cost').sections, 'Universe').items, 'Buy').content
+	self:assertTrue(buy:find('1,500,001', 1, true) ~= nil) -- median = (1,000,000 + 2,000,002) / 2
+end
+
+function suite:testCostUniverseCanBuyOverrideNoBeatsPrice()
+	-- Editorial canbuy=no asserts "not buyable" even when UEX has a price → No, no number.
+	local s = Vehicle.getSections({
+		uex_prices = { purchase = { { price_buy = 2000000 } } },
+	}, { canbuy = 'no' }, {})
+	local buy = findItem(findItem(findSection(s, 'cost').sections, 'Universe').items, 'Buy').content
+	self:assertEquals('No', buy)
+end
+
+function suite:testCostUniverseCanBuyOverrideYesNoData()
+	-- canbuy=yes with no UEX data → Yes (no price to show)
 	local s = Vehicle.getSections({ uex_prices = {} }, { canbuy = 'yes' }, {})
-	local universe = findItem(findSection(s, 'cost').sections, 'Universe')
-	self:assertEquals('[[#Acquisition|Yes]]', findItem(universe.items, 'Buyable').content)
+	local buy = findItem(findItem(findSection(s, 'cost').sections, 'Universe').items, 'Buy').content
+	self:assertEquals('Yes', buy)
 end
 
 function suite:testCostUniverseFlightReadyNoDataIsNo()
-	-- flight-ready ship, no UEX data: Universe stays, Buyable/Rentable = No (in-game → definitive)
+	-- flight-ready ship, no UEX data: Universe stays, Buy/Rent = No (in-game → definitive)
 	local s = Vehicle.getSections({ production_status = 'flight-ready', uex_prices = {} }, {}, {})
 	local universe = findItem(findSection(s, 'cost').sections, 'Universe')
-	self:assertEquals('No', findItem(universe.items, 'Buyable').content)
-	self:assertEquals('No', findItem(universe.items, 'Rentable').content)
+	self:assertEquals('No', findItem(universe.items, 'Buy').content)
+	self:assertEquals('No', findItem(universe.items, 'Rent').content)
 end
 
 function suite:testCostUniverseUnreleasedNoDataDrops()

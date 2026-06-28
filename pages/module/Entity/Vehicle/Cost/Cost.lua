@@ -2,7 +2,7 @@ require('strict')
 
 --- @module Entity/Vehicle/Cost
 --- Vehicle Cost sub-builder: three keyless subsection tabs — Universe
---- (buyable/rentable, linking to {{Entity/Availability}}), Pledge
+--- (estimated in-game buy/rent prices from UEX, latest patch), Pledge
 --- (standalone/warbond/availability/loaner), and Insurance.
 
 local format = require('Module:Entity/Format')
@@ -14,60 +14,139 @@ local yesno = require('Module:Yesno')
 
 local p = {}
 
---- Min–max of non-zero numeric values at `key` across an array, as "lo – hi aUEC"
---- (single value when lo==hi, en dash between). nil when no non-zero entry.
---- @return string|nil
-local function priceRange(rows, key)
-	if type(rows) ~= 'table' then
-		return nil
+--- All maximal digit runs in a version string as a numeric vector, so versions
+--- compare component-wise (4.10 > 4.8) rather than lexicographically (where the
+--- string "4.8" sorts after "4.10"). The trailing build number becomes the last,
+--- tie-breaking component. e.g. "4.10.0-LIVE.100" → { 4, 10, 0, 100 }.
+--- @param version string
+--- @return number[]
+local function versionVector(version)
+	local v = {}
+	for digits in version:gmatch('%d+') do
+		v[#v + 1] = tonumber(digits)
 	end
-	local lo, hi
-	for _, row in ipairs(rows) do
-		local v = tonumber(row[key])
-		if v and v > 0 then
-			lo = (lo == nil or v < lo) and v or lo
-			hi = (hi == nil or v > hi) and v or hi
+	return v
+end
+
+--- True when version vector `a` is strictly newer than `b`, compared
+--- component-wise (missing components count as 0).
+--- @param a number[]
+--- @param b number[]
+--- @return boolean
+local function versionNewer(a, b)
+	for i = 1, math.max(#a, #b) do
+		local x, y = a[i] or 0, b[i] or 0
+		if x ~= y then
+			return x > y
 		end
 	end
-	if not lo then
-		return nil
-	end
-	if lo == hi then
-		return format.formatNum(lo) .. ' aUEC'
-	end
-	return format.formatNum(lo) .. ' \226\128\147 ' .. format.formatNum(hi) .. ' aUEC' -- en dash
+	return false
 end
 
---- Whether the vehicle can be acquired (bought/rented) per UEX data: true when a
---- real price exists, false when there are entries but no price for this side,
---- nil (Unknown) when there's no price array to judge from.
---- @return boolean|nil
-local function inferCanAcquire(prices, key)
-	if type(prices) ~= 'table' or prices[1] == nil then
-		return nil
-	end
-	return priceRange(prices, key) ~= nil
-end
-
---- A Universe acquisition row value: an editorial `canX` override (yes/no) wins,
---- else inferred from UEX prices. "Yes" links to the page's Acquisition section;
---- a flight-ready ship with no price is a definitive "No"; an unreleased ship
---- with no data stays Unknown and the row drops.
+--- The newest `game_version` present across price rows, or nil when none carry
+--- one (older UEX records that predate version stamping).
+--- @param rows table[]
 --- @return string|nil
-local function acquireRow(override, prices, key, flightReady)
-	local flag = nil
+local function latestVersion(rows)
+	local best, bestVec
+	for _, row in ipairs(rows) do
+		local gv = row.game_version
+		if type(gv) == 'string' and gv ~= '' then
+			local vec = versionVector(gv)
+			if not best or versionNewer(vec, bestVec) then
+				best, bestVec = gv, vec
+			end
+		end
+	end
+	return best
+end
+
+--- Non-zero numeric prices at `key`, restricted to rows matching `version` when
+--- given (nil → every row). Skips UEX zero-sentinels.
+--- @param rows table[]
+--- @param key string
+--- @param version string|nil
+--- @return number[]
+local function collectPrices(rows, key, version)
+	local out = {}
+	for _, row in ipairs(rows) do
+		if version == nil or row.game_version == version then
+			local v = tonumber(row[key])
+			if v and v > 0 then
+				out[#out + 1] = v
+			end
+		end
+	end
+	return out
+end
+
+--- Median of a numeric list, rounded to the nearest integer (prices are whole
+--- aUEC); even counts average the middle pair. nil for an empty list. Median over
+--- mean resists a single mispriced terminal; with the common 1–2 terminal case
+--- the two coincide.
+--- @param values number[]
+--- @return number|nil
+local function median(values)
+	local n = #values
+	if n == 0 then
+		return nil
+	end
+	table.sort(values)
+	local m
+	if n % 2 == 1 then
+		m = values[(n + 1) / 2]
+	else
+		m = (values[n / 2] + values[n / 2 + 1]) / 2
+	end
+	return math.floor(m + 0.5)
+end
+
+--- Estimated in-game price at `key` (price_buy / price_rent): the median across
+--- the newest patch's terminals, falling back to all patches when the newest
+--- carries no usable price for this side. nil when there is no non-zero price.
+--- @param rows table[]|nil
+--- @param key string
+--- @return number|nil
+local function estimatePrice(rows, key)
+	if type(rows) ~= 'table' or rows[1] == nil then
+		return nil
+	end
+	local version = latestVersion(rows)
+	local values = collectPrices(rows, key, version)
+	if #values == 0 and version ~= nil then
+		values = collectPrices(rows, key, nil) -- newest patch lacks this side → any patch
+	end
+	return median(values)
+end
+
+--- A Universe acquisition cell. An editorial `canX=no` override is a hard "No";
+--- otherwise show the estimated UEC price (prefixed "~" — it is a cross-terminal
+--- market estimate, not a fixed price). With no price: `canX=yes` → "Yes"; a
+--- flight-ready ship, or one with market data but none for this side, → definitive
+--- "No"; an unreleased ship with no data at all → nil (row drops, Unknown).
+--- @param override string|nil
+--- @param rows table[]|nil
+--- @param key string
+--- @param flightReady boolean
+--- @return string|nil
+local function universeCell(override, rows, key, flightReady)
+	local overrideFlag = nil
 	if override ~= nil and override ~= '' then
-		flag = yesno(override)
+		overrideFlag = yesno(override) -- explicit: `x and yesno() or nil` would lose a false result
 	end
-	if flag == nil then
-		flag = inferCanAcquire(prices, key)
+	if overrideFlag == false then
+		return 'No'
 	end
-	if flag == nil and flightReady then
-		flag = false
+
+	local estimate = estimatePrice(rows, key)
+	if estimate ~= nil then
+		return '~' .. uec._main(estimate)
 	end
-	if flag == true then
-		return '[[#Acquisition|Yes]]'
-	elseif flag == false then
+
+	if overrideFlag == true then
+		return 'Yes'
+	end
+	if (type(rows) == 'table' and rows[1] ~= nil) or flightReady then
 		return 'No'
 	end
 	return nil
@@ -130,8 +209,8 @@ function p.build(apiData, args, ed)
 	local effectiveState = ed:value('production_state', apiData.production_status)
 	local flightReady = productionStatus.key(effectiveState) == 'flightready'
 	local universe = {}
-	sectionBuilder.push(universe, 'Buyable', acquireRow(args.canbuy, uex.purchase, 'price_buy', flightReady))
-	sectionBuilder.push(universe, 'Rentable', acquireRow(args.canrent, uex.rental, 'price_rent', flightReady))
+	sectionBuilder.push(universe, 'Buy', universeCell(args.canbuy, uex.purchase, 'price_buy', flightReady))
+	sectionBuilder.push(universe, 'Rent', universeCell(args.canrent, uex.rental, 'price_rent', flightReady))
 
 	local pledge = {}
 	sectionBuilder.push(

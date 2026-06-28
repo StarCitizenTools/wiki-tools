@@ -18,6 +18,7 @@ Consumers (Module:DataGrid for `{{Data table}}`, Module:PledgeVehicleGrid) build
 | `card` | `scwEntityCard` | thumb + eyebrow + title | pledge vehicle, DataGrid lead |
 | `stackedValue` | `scwStackedValue` | primary over muted secondary | pledge prices |
 | `badge` | `scwBadge` | BadgeLua-style pill | pledge production state |
+| `boolean` | `scwBoolean` | icon-only tri-state yes/no/unknown | DataGrid `kind=boolean` columns |
 
 ## API
 

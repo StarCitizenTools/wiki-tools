@@ -208,6 +208,16 @@ local function buildSpecs(results, columns, eyebrowColumn)
 					classify = require('Module:DietaryEffect').gridClassify,
 					filter = 'aggridSet',
 				}
+			elseif column.kind == 'boolean' then
+				-- Tri-state boolean: each value classified by Module:Boolean,
+				-- rendered icon-only; the set filter keys on "Yes"/"No".
+				specs[#specs + 1] = {
+					kind = 'boolean',
+					field = 'c' .. i,
+					header = header,
+					label = alias,
+					filter = 'aggridSet',
+				}
 			else
 				local values = {}
 				for _, result in ipairs(results) do

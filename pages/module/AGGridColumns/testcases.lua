@@ -128,4 +128,14 @@ function suite:testBadgeCellUnmappedVariant()
 	self:assertEquals(nil, v.variant)
 end
 
+-- boolean kind: colDef carries the scwBoolean JS type
+function suite:testBooleanColDefType()
+	self:assertEquals('scwBoolean', colDefOf({ kind = 'boolean', field = 'c', header = 'C', label = 'C' }).type)
+end
+
+-- boolean kind: an absent field yields an empty cell (no Icon.src call)
+function suite:testBooleanCellEmpty()
+	self:assertEquals(nil, cellOf({ kind = 'boolean', field = 'c', label = 'C' }, {}))
+end
+
 return suite

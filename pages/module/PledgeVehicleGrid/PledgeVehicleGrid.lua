@@ -45,12 +45,12 @@ end
 -- separators come for free. Decimals are left unset to preserve each value's
 -- natural precision.
 local FMT_AUEC = { style = 'number', suffix = ' aUEC' } -- in-game currency
+local FMT_USCU = { style = 'number', suffix = ' µSCU' } -- personal inventory / storage capacity
 local FMT_METERS = { style = 'number', suffix = ' m' }
 local FMT_KG = { style = 'number', suffix = ' kg' }
 local FMT_SCU = { style = 'number', suffix = ' SCU' }
 local FMT_SPEED = { style = 'number', suffix = ' m/s' }
 local FMT_RATE = { style = 'number', suffix = ' °/s' }
-local FMT_PLAIN = { style = 'number' } -- grouping only; SMW stores no unit
 
 -- Production state -> BadgeLua variant. Flight ready is done (success); active /
 -- long-term production is in progress (warning); concept is not yet flyable
@@ -97,7 +97,15 @@ local COLUMNS = {
 	},
 	{ field = 'career', header = 'Career', kind = 'text', label = 'Career', filter = 'aggridSet', width = 110 },
 	{ field = 'role', header = 'Role', kind = 'text', label = 'Role', filter = 'aggridSet', width = 180 },
-	{ field = 'size', header = 'Size', kind = 'text', label = 'Size', filter = 'aggridSet', width = 80 },
+	{ field = 'size', header = 'Size', kind = 'number', label = 'Size', filter = 'aggridSet', width = 80 },
+	{
+		field = 'storeSize',
+		header = 'Store size',
+		kind = 'text',
+		label = 'Store size',
+		filter = 'aggridSet',
+		width = 100,
+	},
 	{
 		field = 'production',
 		header = 'Production state',
@@ -154,7 +162,7 @@ local COLUMNS = {
 	{ field = 'mass', header = 'Mass', kind = 'number', label = 'Mass', format = FMT_KG, width = 90 },
 	{ field = 'minCrew', header = 'Min crew', kind = 'number', label = 'Min crew', width = 80 },
 	{ field = 'maxCrew', header = 'Max crew', kind = 'number', label = 'Max crew', width = 80 },
-	{ field = 'stowage', header = 'Stowage', kind = 'number', label = 'Stowage', format = FMT_PLAIN, width = 95 },
+	{ field = 'inventory', header = 'Inventory', kind = 'number', label = 'Inventory', format = FMT_USCU, width = 110 },
 	{ field = 'cargo', header = 'Cargo', kind = 'number', label = 'Cargo', format = FMT_SCU, width = 80 },
 	{ field = 'scm', header = 'SCM speed', kind = 'number', label = 'SCM speed', format = FMT_SPEED, width = 85 },
 	{ field = 'maxSpeed', header = 'Max speed', kind = 'number', label = 'Max speed', format = FMT_SPEED, width = 90 },
@@ -172,7 +180,8 @@ local function buildQuery()
 		'?Manufacturer',
 		'?Career',
 		'?Role',
-		'?Ship matrix size=Size',
+		'?Size#-=Size',
+		'?Ship matrix size=Store size',
 		'?Production state#-=Production state',
 		'?Pledge availability#-=Pledge availability',
 		'?Pledge price#-=Pledge',
@@ -180,18 +189,18 @@ local function buildQuery()
 		'?Warbond pledge price#-=Warbond',
 		'?Original warbond pledge price#-=Orig warbond',
 		'?Loaner vehicle=Loaner',
-		'?Average price=Avg purchase',
-		'?Average rental price (1 day)=Avg daily rental',
+		'?Average purchase price#-=Avg purchase',
+		'?Average rental price#-=Avg daily rental',
 		'?Entity length#-=Length',
 		'?Entity width#-=Width',
 		'?Entity height#-=Height',
 		'?Mass#-=Mass',
 		'?Minimum crew#-=Min crew',
 		'?Maximum crew#-=Max crew',
-		'?Vehicle inventory#-=Stowage',
+		'?Storage capacity#-=Inventory',
 		'?Cargo capacity#-=Cargo',
-		'?SCM speed#-=SCM speed',
-		'?Maximum speed#-=Max speed',
+		'?Scm speed#-=SCM speed',
+		'?Max speed#-=Max speed',
 		'?Roll rate#-=Roll',
 		'?Pitch rate#-=Pitch',
 		'?Yaw rate#-=Yaw',

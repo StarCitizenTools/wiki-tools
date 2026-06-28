@@ -689,6 +689,14 @@
 		],
 		"desc": "Effective range of a laser pointer attachment, in metres."
 	},
+	"Loaner vehicle": {
+		"smw": "Page",
+		"bucket": "PAGE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Loaner vehicles granted while an unreleased vehicle is in production (suppressed for flight-ready vehicles)."
+	},
 	"Lock angle": {
 		"smw": "Number",
 		"bucket": "DOUBLE",
@@ -1499,6 +1507,14 @@
 		],
 		"desc": "Material signature of a commodity."
 	},
+	"Ship matrix size": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Curated ship-matrix size name of a vehicle (Small, Medium, Large, ...); the numeric size class is stored as Size."
+	},
 	"Size": {
 		"smw": "Number",
 		"bucket": "INTEGER",
@@ -1528,9 +1544,10 @@
 		"smw": "Number",
 		"bucket": "INTEGER",
 		"modules": [
-			"Inventory"
+			"Inventory",
+			"Vehicle"
 		],
-		"desc": "Inventory carrying capacity of a garment or container, in µSCU."
+		"desc": "Inventory carrying capacity of a garment, container, or vehicle (personal stowage), in µSCU."
 	},
 	"Stun damage modifier": {
 		"smw": "Number",

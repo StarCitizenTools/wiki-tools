@@ -334,10 +334,31 @@ function p.getStructuredData(apiData, args, resolved)
 	local weaponry = type(apiData.weaponry) == 'table' and apiData.weaponry or {}
 	local missiles = type(weaponry.missiles) == 'table' and weaponry.missiles or {}
 	local uex = type(apiData.uex_prices) == 'table' and apiData.uex_prices or {}
+	local ed = Editorial.view(resolved)
+	-- Loaner ship names (Page list), suppressed for flight-ready ships (implemented →
+	-- no loaner granted, even though the API may still return stale loaner data).
+	local loaner = nil
+	if productionStatus.key(ed:value('production_state', apiData.production_status)) ~= 'flightready' then
+		local raw = type(apiData.loaner) == 'table' and apiData.loaner or {}
+		local names = {}
+		for _, entry in ipairs(raw) do
+			if type(entry) == 'table' and type(entry.name) == 'string' and entry.name ~= '' then
+				names[#names + 1] = entry.name
+			end
+		end
+		loaner = names[1] and names or nil
+	end
+	-- Curated matrix size name (|size= wins over API), ucfirst'd. The numeric size
+	-- class is stored separately as Size; in-game ships have both, concept-only
+	-- (legacy {{Vehicle}}) ships carry just the matrix name.
+	local matrixSize = vehicleUtil.matrixSize(apiData, args)
 	local data = {
 		['Career'] = vehicleUtil.resolveCareer(apiData, args), -- wiki param wins (curated taxonomy)
 		['Role'] = apiData.role,
 		['Size'] = tonumber(apiData.size_class),
+		['Ship matrix size'] = (matrixSize and matrixSize ~= '') and lang:ucfirst(matrixSize) or nil,
+		['Storage capacity'] = tonumber(apiData.vehicle_inventory),
+		['Loaner vehicle'] = loaner,
 		['Roll rate'] = tonumber(agility.roll),
 		['Pitch rate'] = tonumber(agility.pitch),
 		['Yaw rate'] = tonumber(agility.yaw),

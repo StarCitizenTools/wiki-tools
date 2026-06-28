@@ -31,6 +31,10 @@
  *      { list: [{ text, variant, iconSrc, href }] }
  *  - scwSmart: a plain text column with numeric-aware sort and per-cell right-
  *    align of numeric-looking values. Cell value is a display string (no object).
+ *  - scwBoolean: an icon-only tri-state boolean (check / cross / help), tinted per
+ *    state with visually-hidden text + title + data-state for sort / filter / AT /
+ *    scrapers. Value shape:
+ *      { text, state: 'yes'|'no'|'unknown', iconSrc }
  */
 ( function () {
 	'use strict';
@@ -277,6 +281,33 @@
 		return wrap;
 	}
 
+	// scwBoolean cell. Value: { text, state, iconSrc }. Icon-only render matching
+	// Module:Boolean.render: the visible glyph is a currentColor mask tinted per
+	// state, machine-readable three ways like the infobox -- a visually-hidden text
+	// span (sort / set-filter / AT), a title (hover), and data-state (scrapers / AI
+	// agents query [data-state]). Absent value -> empty cell.
+	function buildBoolean( v ) {
+		if ( !v || !v.text ) {
+			return document.createTextNode( '' );
+		}
+		var state = v.state || 'unknown';
+		var wrap = document.createElement( 'span' );
+		wrap.className = 't-boolean-cell t-boolean-cell--' + state;
+		wrap.setAttribute( 'data-state', state );
+		wrap.setAttribute( 'title', v.text );
+		if ( v.iconSrc && SAFE_HREF.test( v.iconSrc ) && !/["')]/.test( v.iconSrc ) ) {
+			var icon = document.createElement( 'span' );
+			icon.className = 't-boolean-cell__icon';
+			icon.style.setProperty( '--t-boolean-cell-icon', 'url("' + v.iconSrc + '")' );
+			wrap.appendChild( icon );
+		}
+		var sr = document.createElement( 'span' );
+		sr.className = 't-boolean-cell__sr';
+		sr.textContent = v.text;
+		wrap.appendChild( sr );
+		return wrap;
+	}
+
 	// eyebrow label -> resolved eyebrow-icon src, harvested from scwEntityCard rows
 	// on mount. The card's set-filter itemRenderer reads it to show the glyph beside
 	// each value. Global (icons are the same across grids); merged per mount.
@@ -399,6 +430,20 @@
 				return buildBadge( params.value );
 			},
 			// Sort / set filter key on the badge text.
+			valueFormatter: function ( params ) {
+				return ( params.value && params.value.text ) || '';
+			},
+			comparator: function ( a, b ) {
+				return String( ( a && a.text ) || '' )
+					.localeCompare( String( ( b && b.text ) || '' ) );
+			}
+		};
+
+		reg.columnTypes.scwBoolean = {
+			cellRenderer: function ( params ) {
+				return buildBoolean( params.value );
+			},
+			// Sort / set filter key on the boolean text (same as scwBadge).
 			valueFormatter: function ( params ) {
 				return ( params.value && params.value.text ) || '';
 			},

@@ -4,5 +4,6 @@
 	{ "label": "Brochure", "arg": "brochure" },
 	{ "label": "Trailer", "arg": "trailer" },
 	{ "label": "Presentation", "arg": "presentation" },
-	{ "label": "Q&A", "arg": "qa" }
+	{ "label": "Q&A", "arg": "qa" },
+	{ "label": "Whitley's Guide", "arg": "whitleys_guide" }
 ]

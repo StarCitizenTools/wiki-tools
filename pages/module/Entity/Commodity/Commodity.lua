@@ -13,6 +13,7 @@ local format = require('Module:Entity/Format')
 local mining = require('Module:Entity/Commodity/Mining')
 local records = require('Module:Entity/Commodity/Records')
 local acq = require('Module:Entity/Acquisition')
+local Boolean = require('Module:Boolean')
 
 -- API commodity_groups token → singular display label. Drives the infobox Type
 -- row, the short description, and the stored Commodity group / Commodity type
@@ -159,7 +160,9 @@ function p.getSections(apiData, args)
 			{ label = 'Type', content = typeInfo and typeInfo.name },
 			{ label = 'Rarity', content = tier and (tier:gsub('^%l', string.upper)) },
 			{ label = 'Acquisition', content = mining.acquisitionLabel(raw, apiData.kind or (raw and raw.kind)) },
-			{ label = 'Refinable', content = refinable ~= nil and (refinable and 'Yes' or 'No') or nil },
+			-- `refinable` is a uuid / version object (presence = refinable), not a
+			-- boolean, so render the presence flag rather than the raw value.
+			{ label = 'Refinable', content = refinable ~= nil and Boolean.render(true) or nil },
 		},
 	}
 

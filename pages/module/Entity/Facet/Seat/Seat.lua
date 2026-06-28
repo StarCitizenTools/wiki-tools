@@ -11,6 +11,7 @@ require('strict')
 
 local format = require('Module:Entity/Format')
 local sectionBuilder = require('Module:Entity/SectionBuilder')
+local Boolean = require('Module:Boolean')
 
 local p = {}
 
@@ -61,7 +62,7 @@ function p.getSections(apiData, args)
 	sectionBuilder.push(items, 'Yaw', formatRange(seat.yaw))
 	sectionBuilder.push(items, 'Pitch', formatRange(seat.pitch))
 	if type(seat.has_ejection) == 'boolean' then
-		sectionBuilder.push(items, 'Ejection seat', seat.has_ejection and 'Yes' or 'No')
+		sectionBuilder.push(items, 'Ejection seat', Boolean.render(seat.has_ejection))
 	end
 
 	return sectionBuilder.build(sectionBuilder.section({

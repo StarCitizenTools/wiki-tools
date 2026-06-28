@@ -3,6 +3,7 @@ require('strict')
 --- @module Entity/Mission
 
 local format = require('Module:Entity/Format')
+local Boolean = require('Module:Boolean')
 
 local CATEGORIES = {
 	['Bounty Hunter'] = 'Bounty hunter contracts',
@@ -171,7 +172,7 @@ function p.getSections(apiData, args)
 			{ label = 'Category', content = data.category },
 			{ label = 'Type', content = data.type },
 			{ label = 'Contract Pickup', content = linked(data.pickup) },
-			{ label = 'Shareable', content = data.shareable },
+			{ label = 'Shareable', content = Boolean.render(data.shareable) },
 			{ label = 'Availability', content = data.available },
 			{ label = 'Cooldown', content = data.cooldown },
 		},

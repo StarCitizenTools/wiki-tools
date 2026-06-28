@@ -40,7 +40,9 @@ function suite:testRows()
 	-- Signed range: typographic minus (U+2212) on bounds, em dash (U+2014) separator.
 	self:assertEquals('−20° — 20°', findItem(sections[1].items, 'Yaw').content)
 	self:assertEquals('−20° — 80°', findItem(sections[1].items, 'Pitch').content)
-	self:assertEquals('No', findItem(sections[1].items, 'Ejection seat').content)
+	-- boolean rows render via Module:Boolean (icon markup); assert the canonical
+	-- data-state marker, not the literal word.
+	self:assertStringContains('data-state="no"', findItem(sections[1].items, 'Ejection seat').content, true)
 end
 
 -- An ejection seat reports Yes.
@@ -48,7 +50,7 @@ function suite:testEjectionYes()
 	local sections = Seat.getSections({
 		seat = { yaw = { min = 0, max = 0 }, pitch = { min = -90, max = 90 }, has_ejection = true },
 	}, {})
-	self:assertEquals('Yes', findItem(sections[1].items, 'Ejection seat').content)
+	self:assertStringContains('data-state="yes"', findItem(sections[1].items, 'Ejection seat').content, true)
 	self:assertEquals('−90° — 90°', findItem(sections[1].items, 'Pitch').content)
 end
 

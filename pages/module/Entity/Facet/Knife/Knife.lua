@@ -9,6 +9,7 @@ require('strict')
 
 local format = require('Module:Entity/Format')
 local sectionBuilder = require('Module:Entity/SectionBuilder')
+local Boolean = require('Module:Boolean')
 
 local p = {}
 
@@ -52,16 +53,17 @@ local function modeDamage(b, category)
 	return nil
 end
 
---- Maps the API's 1/0 (or boolean) capability flag to Yes/No, or nil.
+--- Maps the API's 1/0 (or boolean) capability flag to a rendered Yes/No boolean
+--- icon (Module:Boolean), or nil when the flag is absent so the row is omitted.
 ---
 --- @param v any
 --- @return string|nil
 local function yesNo(v)
 	if v == true or v == 1 then
-		return 'Yes'
+		return Boolean.render(true)
 	end
 	if v == false or v == 0 then
-		return 'No'
+		return Boolean.render(false)
 	end
 	return nil
 end

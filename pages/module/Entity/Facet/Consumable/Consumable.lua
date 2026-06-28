@@ -10,6 +10,7 @@ require('strict')
 
 local format = require('Module:Entity/Format')
 local DietaryEffect = require('Module:DietaryEffect')
+local Boolean = require('Module:Boolean')
 
 local p = {}
 
@@ -50,13 +51,13 @@ function p.getSections(apiData, args)
 	end
 
 	if food.one_shot_consume ~= nil then
-		table.insert(items, { label = 'Single use', content = food.one_shot_consume and 'Yes' or 'No' })
+		table.insert(items, { label = 'Single use', content = Boolean.render(food.one_shot_consume) })
 	end
 
 	-- Reclosable was Drink-only under the old subtypes. Gate on presence so it
 	-- collapses for food and appears for drink, without branching on kind.
 	if food.can_be_reclosed ~= nil then
-		table.insert(items, { label = 'Reclosable', content = food.can_be_reclosed and 'Yes' or 'No' })
+		table.insert(items, { label = 'Reclosable', content = Boolean.render(food.can_be_reclosed) })
 	end
 
 	if #items == 0 then

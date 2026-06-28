@@ -43,7 +43,9 @@ function suite:testCollapsesEqualDamage()
 	self:assertEquals('Melee', sections[1].label)
 	self:assertEquals('30', findItem(sections[1].items, 'Damage').content)
 	self:assertEquals(nil, findItem(sections[1].items, 'Slash damage'))
-	self:assertEquals('Yes', findItem(sections[1].items, 'Takedown').content)
+	-- boolean rows render via Module:Boolean (icon markup); assert the canonical
+	-- data-state marker, not the literal word.
+	self:assertStringContains('data-state="yes"', findItem(sections[1].items, 'Takedown').content, true)
 end
 
 function suite:testSeparateWhenDamageDiffers()

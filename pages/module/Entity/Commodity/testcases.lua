@@ -198,7 +198,9 @@ function suite:testGetSectionsOverviewAndMining()
 	self:assertEquals('Mineral', item(overview.items, 'Type'))
 	self:assertEquals('Uncommon', item(overview.items, 'Rarity'))
 	self:assertEquals('Ship mining', item(overview.items, 'Acquisition'))
-	self:assertEquals('Yes', item(overview.items, 'Refinable'))
+	-- boolean rows render via Module:Boolean (icon markup); assert the canonical
+	-- data-state marker, not the literal word.
+	self:assertStringContains('data-state="yes"', item(overview.items, 'Refinable'), true)
 	-- `systems` is deliberately not an infobox row (unscalable); it lives in
 	-- structured data instead. Confirm no "Found in" row is emitted.
 	self:assertEquals(nil, item(overview.items, 'Found in'))

@@ -389,8 +389,8 @@ function p.getStructuredData(apiData, args, resolved)
 end
 
 --- External-site links: Official (pledgeurl from API + editorial galactapediaurl /
---- brochureurl / trailerurl / presentationurl / qaurl) and Community (ship tools from
---- API identifiers). The brochure/trailer/presentation/Q&A args each accept a
+--- brochureurl / trailerurl / presentationurl / qaurl / whitleysguideurl) and Community
+--- (ship tools from API identifiers). The brochure/trailer/presentation/Q&A args each accept a
 --- semicolon-separated list for multiple URLs (e.g. presentationurl = url1; url2 — the
 --- wiki multi-value convention). The footer merges the "Official sites" row with Base's
 --- same-label row.
@@ -406,6 +406,7 @@ function p.getExternalSiteItems(apiData, args)
 		trailer = format.splitSemi(args.trailerurl),
 		presentation = format.splitSemi(args.presentationurl),
 		qa = format.splitSemi(args.qaurl),
+		whitleys_guide = format.splitSemi(args.whitleysguideurl),
 	})
 	if official then
 		items[#items + 1] = { label = 'Official sites', content = official }

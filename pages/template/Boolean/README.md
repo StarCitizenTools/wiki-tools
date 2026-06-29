@@ -26,6 +26,10 @@ Machine-readable three ways: a `title` tooltip, a `data-state`
 			"label": "Value",
 			"description": "The boolean value. yes/1/true, no/0/false; empty or unrecognised renders the unknown glyph.",
 			"type": "string",
+			"suggestedvalues": [
+				"yes",
+				"no"
+			],
 			"required": false
 		}
 	}

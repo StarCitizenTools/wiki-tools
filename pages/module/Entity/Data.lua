@@ -90,7 +90,11 @@ function p.parseArgs(frame)
 			end
 		end
 	end
-	if not args.uuid then
+	-- Fall back to the page's stored SMW uuid only when the editor hasn't declared an
+	-- explicit kind. An editorial page (|kind=…) states its identity in wikitext; it
+	-- must not resurrect a stale/placeholder SMW uuid (e.g. an all-zeros or legacy
+	-- dev-stub value) — that would defeat editorial mode and re-store the bad uuid.
+	if not args.uuid and not args.kind then
 		args.uuid = readSmwUuid(frame)
 	end
 	return args

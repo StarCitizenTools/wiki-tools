@@ -158,6 +158,24 @@ function suite:testParseArgsNoUuidFallsBackToNil()
 	self:assertEquals(nil, Data.parseArgs(makeFrame({ name = 'NoUuid' })).uuid)
 end
 
+function suite:testParseArgsNoKindReadsSmwUuid()
+	-- No |kind= and no wikitext uuid: fall back to the page's stored SMW uuid.
+	local frame = makeFrame({ name = 'InGame' })
+	frame.callParserFunction = function()
+		return 'stored-uuid-1'
+	end
+	self:assertEquals('stored-uuid-1', Data.parseArgs(frame).uuid)
+end
+
+function suite:testParseArgsKindSkipsSmwUuid()
+	-- Editorial page (|kind=): must NOT resurrect a stale/placeholder SMW uuid.
+	local frame = makeFrame({ name = 'Concept', kind = 'Vehicle' })
+	frame.callParserFunction = function()
+		return 'stale-placeholder-uuid'
+	end
+	self:assertEquals(nil, Data.parseArgs(frame).uuid)
+end
+
 -- get({}) (public entry point with no uuid — offline safe)
 
 function suite:testGetReturnsTableShape()

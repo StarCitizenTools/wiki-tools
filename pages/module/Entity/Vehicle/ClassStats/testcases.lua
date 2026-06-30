@@ -58,7 +58,13 @@ function suite:testCohortRowsFoldsSignatureModifier()
 	mw.smw = {
 		ask = function()
 			return {
-				{ ir_emission = '10000', ir_modifier = '0.5' }, -- stealth coating → effective 5000
+				-- stealth coating ×0.5 folds into IR and every cross-section axis
+				{
+					ir_emission = '10000',
+					ir_modifier = '0.5',
+					cross_section_length = '10000',
+					cross_section_modifier = '0.5',
+				},
 				{ ir_emission = '8000' }, -- no modifier → unchanged
 				{ ir_emission = '6000', em_emission = '4000', em_modifier = '2' }, -- louder EM → 8000
 				{ ir_emission = '4000' },
@@ -72,7 +78,9 @@ function suite:testCohortRowsFoldsSignatureModifier()
 	self:assertEquals(5000, rows[1].ir_emission) -- 10000 × 0.5
 	self:assertEquals(8000, rows[2].ir_emission) -- absent multiplier → raw
 	self:assertEquals(8000, rows[3].em_emission) -- 4000 × 2
+	self:assertEquals(5000, rows[1].cross_section_length) -- per-axis folds the same modifier
 	self:assertEquals(nil, rows[1].ir_modifier) -- modifier key dropped, never a phantom stat
+	self:assertEquals(nil, rows[1].cross_section_modifier)
 end
 
 return suite

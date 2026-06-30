@@ -216,4 +216,49 @@ function suite:testStealthCrossSectionPerAxis()
 	self:assertTrue(content('CS (height)'):find('1,500', 1, true) ~= nil)
 end
 
+-- With a cohort, each cross-section axis ranks into a bar block, and the three CS rows
+-- lead the Stealth tab (before IR/EM).
+function suite:testStealthCrossSectionRanksAndLeads()
+	local real = mw.smw
+	mw.smw = {
+		ask = function()
+			return {
+				{ cross_section_length = '1000', cross_section_width = '1000', cross_section_height = '1000' },
+				{ cross_section_length = '2000', cross_section_width = '2000', cross_section_height = '2000' },
+				{ cross_section_length = '3000', cross_section_width = '3000', cross_section_height = '3000' },
+				{ cross_section_length = '4000', cross_section_width = '4000', cross_section_height = '4000' },
+				{ cross_section_length = '5000', cross_section_width = '5000', cross_section_height = '5000' },
+			}
+		end,
+	}
+	-- size 983: unique across the vehicle suites (rowCache is shared per family|size).
+	-- emission is set so IR/EM rows ARE emitted — only then does the ordering assertion
+	-- (CS leads, before IR/EM) actually mean something. The cohort carries no ir/em data,
+	-- so IR/EM fall through to plain labelled rows after the three ranked CS bars.
+	local section = Stats.build({
+		is_spaceship = true,
+		size_class = 983,
+		cross_section = { length = 1000, width = 3000, height = 5000 },
+		emission = { ir = 4000, em_max = 6000 },
+	}, {}, ed())
+	mw.smw = real
+
+	local stealth
+	for _, t in ipairs(section.sections) do
+		if t.label == 'Stealth' then
+			stealth = t
+		end
+	end
+	-- The three cross-section axes lead, each a ranked bar block. RangeBar is stubbed, so
+	-- a bar carries no label field — identify the CS rows by the block class. IR and EM
+	-- have no cohort data here, so they fall through to plain labelled rows after the bars,
+	-- which is what proves the CS rows lead.
+	self:assertEquals(5, #stealth.items)
+	self:assertEquals('t-infobox-item--block', stealth.items[1].class)
+	self:assertEquals('t-infobox-item--block', stealth.items[2].class)
+	self:assertEquals('t-infobox-item--block', stealth.items[3].class)
+	self:assertEquals('IR', stealth.items[4].label)
+	self:assertEquals('EM', stealth.items[5].label)
+end
+
 return suite

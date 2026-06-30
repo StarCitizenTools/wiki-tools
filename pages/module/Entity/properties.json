@@ -1078,6 +1078,30 @@
 		],
 		"desc": "Mean radar cross-section signature of a vehicle across its three axes (lower is stealthier)."
 	},
+	"Cross section length": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Radar cross-section signature of a vehicle along its length axis (lower is stealthier)."
+	},
+	"Cross section width": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Radar cross-section signature of a vehicle along its width axis (lower is stealthier)."
+	},
+	"Cross section height": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Radar cross-section signature of a vehicle along its height axis (lower is stealthier)."
+	},
 	"Pitch": {
 		"smw": "Text",
 		"bucket": "TEXT",

@@ -315,10 +315,31 @@ function p.build(apiData, args, ed)
 		cohortRows
 	)
 
-	-- Stealth tab. IR and EM are effective signatures (raw × the armor signal multiplier;
-	-- lower = better), ranked against the size class like the ring. Each value carries its
+	-- Stealth tab. All rows are effective signatures (raw × the armor signal multiplier;
+	-- lower = better), ranked against the size class like the ring, each carrying its
 	-- multiplier as a colored signed-% suffix, e.g. "884 (−40%)".
 	local stealth = {}
+	-- Cross-section per axis (length / width / height) leads: the per-axis spread is the
+	-- shape signal the single mean hides — a flat, wide hull is nearly invisible head-on
+	-- but exposed broadside — telling players how to angle. (The ring score still uses the
+	-- mean.) The armor cross-section multiplier applies to all three axes equally.
+	local cs = type(apiData.cross_section) == 'table' and apiData.cross_section or {}
+	for _, axis in ipairs({
+		{ key = 'length', stat = 'cross_section_length' },
+		{ key = 'width', stat = 'cross_section_width' },
+		{ key = 'height', stat = 'cross_section_height' },
+	}) do
+		local eff = vehicleUtil.applySignatureModifier(tonumber(cs[axis.key]), armor.signal_cross_section)
+		percentileRow(
+			stealth,
+			'CS (' .. axis.key .. ')',
+			eff,
+			stealthValueText(eff, armor.signal_cross_section),
+			axis.stat,
+			cohortRows,
+			true
+		)
+	end
 	local irEffective = vehicleUtil.effectiveIrEmission(apiData)
 	percentileRow(
 		stealth,
@@ -339,16 +360,6 @@ function p.build(apiData, args, ed)
 		cohortRows,
 		true
 	)
-	-- Cross-section is broken out per axis (length / width / height) instead of the single
-	-- mean: the spread is shape information the mean hides — a flat, wide hull is nearly
-	-- invisible head-on but exposed broadside — telling players how to angle. Shown as
-	-- plain values; the mean still drives the ring score (per-axis cohort ranking would
-	-- need stored per-axis properties). The armor multiplier applies to all three axes.
-	local cs = type(apiData.cross_section) == 'table' and apiData.cross_section or {}
-	for _, axis in ipairs({ 'length', 'width', 'height' }) do
-		local eff = vehicleUtil.applySignatureModifier(tonumber(cs[axis]), armor.signal_cross_section)
-		percentileRow(stealth, 'CS (' .. axis .. ')', eff, stealthValueText(eff, armor.signal_cross_section))
-	end
 
 	-- Assemble tabs: Overview | Offense | Defense | Mobility | Travel | Stealth
 	-- (mirroring the Overview ring axes; raw {label, items}, NO key).

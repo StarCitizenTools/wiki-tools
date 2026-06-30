@@ -1022,6 +1022,9 @@ function suite:testStructuredDataStoresScoringStats()
 	self:assertEquals(7441, data['Infrared emission'])
 	self:assertEquals(63969, data['Electromagnetic emission'])
 	self:assertEquals(110, data['Cross section']) -- mean of length/width/height (100,110,120)
+	self:assertEquals(100, data['Cross section length']) -- raw per-axis (cohort ranks these)
+	self:assertEquals(110, data['Cross section width'])
+	self:assertEquals(120, data['Cross section height'])
 	self:assertEquals(37.5, data['Armor resistance']) -- mean of (1-0.75)*100=25 and (1-0.5)*100=50
 end
 

@@ -40,6 +40,9 @@ local COHORT_PROPS = {
 	ir_emission = 'Infrared emission',
 	em_emission = 'Electromagnetic emission',
 	cross_section = 'Cross section',
+	cross_section_length = 'Cross section length',
+	cross_section_width = 'Cross section width',
+	cross_section_height = 'Cross section height',
 	ir_modifier = 'Infrared signature modifier',
 	em_modifier = 'Electromagnetic signature modifier',
 	cross_section_modifier = 'Cross section signature modifier',
@@ -124,6 +127,12 @@ function p.cohortRows(family, size)
 				row.ir_emission = vehicleUtil.applySignatureModifier(row.ir_emission, row.ir_modifier)
 				row.em_emission = vehicleUtil.applySignatureModifier(row.em_emission, row.em_modifier)
 				row.cross_section = vehicleUtil.applySignatureModifier(row.cross_section, row.cross_section_modifier)
+				row.cross_section_length =
+					vehicleUtil.applySignatureModifier(row.cross_section_length, row.cross_section_modifier)
+				row.cross_section_width =
+					vehicleUtil.applySignatureModifier(row.cross_section_width, row.cross_section_modifier)
+				row.cross_section_height =
+					vehicleUtil.applySignatureModifier(row.cross_section_height, row.cross_section_modifier)
 				row.ir_modifier, row.em_modifier, row.cross_section_modifier = nil, nil, nil
 				rows[#rows + 1] = row
 			end

@@ -286,6 +286,7 @@ end
 function p.getStructuredData(apiData, args, resolved)
 	local agility = type(apiData.agility) == 'table' and apiData.agility or {}
 	local armor = type(apiData.armor) == 'table' and apiData.armor or {}
+	local crossSection = type(apiData.cross_section) == 'table' and apiData.cross_section or {}
 	local emission = type(apiData.emission) == 'table' and apiData.emission or {}
 	local fuel = type(apiData.fuel) == 'table' and apiData.fuel or {}
 	local quantum = type(apiData.quantum) == 'table' and apiData.quantum or {}
@@ -338,6 +339,12 @@ function p.getStructuredData(apiData, args, resolved)
 		['Infrared emission'] = tonumber(emission.ir),
 		['Electromagnetic emission'] = tonumber(emission.em_max),
 		['Cross section'] = vehicleUtil.meanCrossSection(apiData.cross_section),
+		-- Per-axis cross-section (raw): the Stats tab ranks each axis against the size
+		-- class. The armor cross-section multiplier is stored separately and folded in at
+		-- cohort/render time (like the mean), so these stay raw.
+		['Cross section length'] = tonumber(crossSection.length),
+		['Cross section width'] = tonumber(crossSection.width),
+		['Cross section height'] = tonumber(crossSection.height),
 		['Armor resistance'] = vehicleUtil.meanArmorResistance(armor),
 		['Armor deflection'] = vehicleUtil.meanDeflection(armor),
 		['Physical deflection'] = type(armor.deflection) == 'table' and tonumber(armor.deflection.physical) or nil,

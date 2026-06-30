@@ -84,6 +84,18 @@ local function manufacturerEyebrow(result)
 	return eyebrow
 end
 
+-- "Added in version" is an SMW Page (the canonical Update: patch). This is a
+-- vehicle-only grid, so the column shows just the version label: strip the
+-- "Update:Star Citizen " / "Star Citizen " prefix the page value carries
+-- ("Update:Star Citizen Alpha 3.24.3" -> "Alpha 3.24.3"). nil when absent.
+local function flightReadyLabel(value)
+	local target = Util.parseLink(value) or Util.toText(value)
+	if not target or target == '' then
+		return nil
+	end
+	return (target:gsub('^Update:', ''):gsub('^Star Citizen ', ''))
+end
+
 local COLUMNS = {
 	{
 		field = 'vehicle',
@@ -171,6 +183,14 @@ local COLUMNS = {
 	{ field = 'pitch', header = 'Pitch', kind = 'number', label = 'Pitch', format = FMT_RATE, width = 75 },
 	{ field = 'yaw', header = 'Yaw', kind = 'number', label = 'Yaw', format = FMT_RATE, width = 75 },
 	{ field = 'conceptDate', header = 'Concept date', kind = 'text', label = 'Concept date', width = 110 },
+	{
+		field = 'flightReady',
+		header = 'Flight ready',
+		kind = 'text',
+		label = 'Flight ready',
+		filter = 'aggridSet',
+		width = 110,
+	},
 }
 
 local function buildQuery()
@@ -207,6 +227,7 @@ local function buildQuery()
 		'?Pitch rate#-=Pitch',
 		'?Yaw rate#-=Yaw',
 		'?Concept announcement date#-=Concept date',
+		'?Added in version=Flight ready',
 		'mainlabel=-',
 		'limit=1000',
 	}
@@ -219,6 +240,12 @@ function p.main(frame)
 	local results = mw.smw.ask(buildQuery())
 	if type(results) ~= 'table' then
 		return '<strong class="error">Module:PledgeVehicleGrid: no results from SMW.</strong>'
+	end
+
+	-- Pre-clean the "Added in version" Page value to a bare version label for the
+	-- "Flight ready" column (the text kind otherwise renders the full page title).
+	for _, result in ipairs(results) do
+		result['Flight ready'] = flightReadyLabel(result['Flight ready'])
 	end
 
 	local gridOptions = {

@@ -81,7 +81,8 @@ Concept or unreleased ship with no in-game record. Declare the page as a planned
 | `originalwarbondcost` | Original warbond price | number | No |  | Original warbond pledge price, in USD. Editorial only. | `200` |
 | `pledgeavailability` | Pledge availability | string | No |  | Free-text pledge-availability note. Editorial only. | `Limited` |
 | `productionstate` | Production state | string | No | (API value) | Production status: one of `Flight ready`, `In production`, `Active production`, `Active for Squadron 42`, `Long term production`, `In concept`, `In lore`. (concept/unreleased ships; in-game ships use the API value) | `In concept` |
-| `productionstatedesc` | Production state note | string | No |  | Per-ship note shown in the production-status badge tooltip. Editorial only. | `Awaiting gold-standard pass` |
+| `flightreadyversion` | Flight ready version | string | No |  | Game update the vehicle became flight ready (e.g. `Alpha 4.8.0`); rendered as a linked patch in the Development section and stored as the `Flight ready version` SMW property (the canonical `Update:` page). Editorial only. | `Alpha 4.8.0` |
+| `productionstatenote` | Production state note | string | No |  | Free-text production note shown in the Development section (e.g. rework status). Display-only, not stored in SMW. Editorial only. | `Rework in progress` |
 | `series` | Series | string | No |  | Series/model grouping (the "Model" row). Alias: `model`. Editorial only. | `Constellation` |
 | `generation` | Generation | string | No |  | Generation/mark within the series. Aliases: `Generation`, `mark`. Editorial only. | `Mk IV` |
 | `releasedate` | Release date | string | No |  | In-game release date. Editorial only. | `2014-12-19` |

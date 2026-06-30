@@ -883,10 +883,10 @@ function suite:testShortdescMultiRoleFighterSuffix()
 end
 
 function suite:testShortdescSingleSeatGravlev()
-	-- crew==1 -> "single-seat" even for a gravlev (omitSize); type noun "gravlev vehicle".
+	-- crew==1 -> "single-seat" even for a gravlev (omitSize); type noun "grav-lev vehicle".
 	self:assertEquals(
-		'Single-seat racing gravlev vehicle',
-		Vehicle.formatShortDescription({ role = 'Racing', crew = { max = 1 } }, {}, {}, 'gravlev vehicle', true)
+		'Single-seat racing grav-lev vehicle',
+		Vehicle.formatShortDescription({ role = 'Racing', crew = { max = 1 } }, {}, {}, 'grav-lev vehicle', true)
 	)
 end
 

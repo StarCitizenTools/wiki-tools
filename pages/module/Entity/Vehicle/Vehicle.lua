@@ -169,7 +169,7 @@ end
 --- @param apiData table
 --- @param args table
 --- @param resolved table|nil
---- @param typeNoun string  'ship' | 'ground vehicle' | 'gravlev vehicle'
+--- @param typeNoun string  'ship' | 'ground vehicle' | 'grav-lev vehicle'
 --- @param omitSize boolean  true for ground/gravlev (no meaningful matrix size)
 --- @return string
 function p.formatShortDescription(apiData, args, resolved, typeNoun, omitSize)

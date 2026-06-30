@@ -20,7 +20,7 @@ p.family = 'gravlev'
 --- @param args table
 --- @return { name: string, category: string }
 function p.getTypeInfo(apiData, args)
-	return { name = 'Gravlev', category = 'Gravlevs' }
+	return { name = 'Grav-lev vehicle', category = 'Grav-lev vehicles' }
 end
 
 --- @param apiData table
@@ -30,7 +30,7 @@ end
 --- @param resolved table|nil
 --- @return string
 function p.getShortDescription(apiData, args, typeInfo, prefix, resolved)
-	return vehicle.formatShortDescription(apiData, args, resolved, 'gravlev vehicle', true)
+	return vehicle.formatShortDescription(apiData, args, resolved, 'grav-lev vehicle', true)
 end
 
 return p

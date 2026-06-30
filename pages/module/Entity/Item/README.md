@@ -1,6 +1,6 @@
 # Module:Entity/Item
 
-The Item kind is the dominant branch of the Entity pipeline. It covers every equippable in-game object served by Apiunto's `/items/{uuid}` endpoint — vehicle components (power plants, coolers, shields, quantum drives, flight blades, guns, turrets, racks), personal weapons, attachments, ordnance, mining and salvage equipment, FPS consumables, and habitat flair.
+The Item kind is the dominant branch of the Entity pipeline. It covers every equippable in-game object served by Apiunto's `/items/{uuid}` endpoint: vehicle components (power plants, coolers, shields, quantum drives, flight blades, guns, turrets, racks), personal weapons, attachments, ordnance, mining and salvage equipment, FPS consumables, and habitat flair.
 
 Over [Module:Entity/Base](https://starcitizen.tools/Module:Entity/Base), Item adds the items API endpoint, the size / grade / class / volume structured-data facets, and the community-sites external-link block. Its defining job is **subtype dispatch**: Item resolves the active leaf module from `apiData.type`, letting each subtype contribute its own stats section without Item knowing anything about the stat blocks involved.
 
@@ -16,9 +16,11 @@ Module:Entity/Item               ← kind module
 Module:Entity/Item/<Subtype>     ← leaf (replaces Item in the chain)
 ```
 
-Item is probed first among the registered kinds in [Module:Entity/Registry](https://starcitizen.tools/Module:Entity/Registry). `matches()` returns true whenever Apiunto returned a record with a `uuid` field — the items endpoint never follows the `items → vehicles` 302, so a vehicle UUID probed here returns nil data and `matches` returns false cleanly.
+Item is probed first among the registered kinds in [Module:Entity/Registry](https://starcitizen.tools/Module:Entity/Registry). `matches()` returns true whenever Apiunto returned a record with a `uuid` field. The items endpoint never follows the `items → vehicles` 302, so a vehicle UUID probed here returns nil data and `matches` returns false cleanly.
 
 When a subtype resolves, `Module:Entity/Data` uses the subtype module as the chain leaf in place of Item. Hooks on the subtype (`getSections`, `getStructuredData`, `getShortDescription`) are called directly; hooks on Item itself (`getSections`, `getStructuredData`) are called because Item is the subtype's `parent` and the chain walks root-first. This means Item always contributes its General section (Manufacturer / Size / Class / Grade) and its structured-data facets (size, grade, class, item\_type, volume, base\_variant, rarity) regardless of which subtype is active.
+
+Item declares the canonical kind name `p.name = 'Item'` (the `result.kind` value sibling renderers branch on, enforced by the Registry conformance test). It also implements `getAcquisition`, a **kind-level** hook dispatched on the matched kind (not on the subtype leaf), so the Availability / Acquisition block is driven by Item's `getAcquisition` for *every* item page, whatever the subtype.
 
 ## API
 
@@ -32,27 +34,24 @@ function p.matches(apiData)
 end
 ```
 
-Positive identification heuristic: `uuid` present. Relies on Apiunto *not* following the items→vehicles 302 redirect — a vehicle UUID through the items endpoint yields nil data, so vehicles never pass this check accidentally. If Apiunto ever changes to follow the redirect, the test `testMatchesVehicleShapedDataCurrentlyReturnsTrue` documents what to tighten.
+Positive identification heuristic: `uuid` present. Relies on Apiunto *not* following the items→vehicles 302 redirect. A vehicle UUID through the items endpoint yields nil data, so vehicles never pass this check accidentally. If Apiunto ever changes to follow the redirect, the test `testMatchesVehicleShapedDataCurrentlyReturnsTrue` documents what to tighten.
 
 ### `p.getApiConfigs() → EntityApiConfig[]`
 
 Returns a single config targeting `items/%s` with `locale=en_EN` and `include=related_items,blueprints,vehicles,ports`. The `ports` include is required for two consumers: Turret reads the embedded `vehicle_weapon` off the equipped item in a locked gun port (the PDC case), and `Entity/Ports` needs the full port detail (type, editable flag) to render the Ports section correctly.
 
-### `p.resolveSubtype(apiData) → table|nil`
+### `p.resolveSubtype(apiData, args) → table|nil`
 
 ```lua
 --- @param apiData table|nil
+--- @param args table|nil  Unused (item subtype dispatches on apiData.type); present for kind-contract parity.
 --- @return table|nil  The resolved subtype module, or nil
-function p.resolveSubtype(apiData)
-    local subtype = apiData and apiData.type
-    if subtype and itemSubtypeMapping[subtype] then
-        return require('Module:' .. itemSubtypeMapping[subtype])
-    end
-    return nil
+function p.resolveSubtype(apiData, args)
+    return subtypeResolver.resolve(apiData and apiData.type, itemSubtypeMapping)
 end
 ```
 
-Exact-match lookup on `apiData.type` against `itemSubtypeMapping`. Returns the required module table, or nil when the type is absent or unrecognised (meaning Item itself acts as the leaf). See [Subtype dispatch](#subtype-dispatch) and [Gotchas](#gotchas).
+Item supplies the dispatch token (`apiData.type`) and the `itemSubtypeMapping`; the mechanical exact-match lookup and `require` of the resolved path live in the shared [Module:Entity/SubtypeResolver](https://starcitizen.tools/Module:Entity/SubtypeResolver) (`subtypeResolver.resolve(token, map)`), which both Item and Vehicle's family dispatch use. Returns the required module table, or nil when the type is absent or unrecognised (meaning Item itself acts as the leaf). See [Subtype dispatch](#subtype-dispatch) and [Gotchas](#gotchas).
 
 ### `p.getSections(apiData, args) → table[]`
 
@@ -60,7 +59,7 @@ Contributes one section (`key = 'general'`) with four items: Manufacturer (wikil
 
 ### `p.getStructuredData(apiData, args) → table`
 
-Emits seven flat facet keys for the structured-data backend: `size`, `grade`, `class`, `item_type` (from `description_data`, the in-game "Item Type" label), `volume` (in µSCU — reads `dimension.volume_converted` + `volume_converted_unit`, converting SCU to µSCU; returns nil for unrecognised units rather than guessing), `base_variant` (the `is_base_variant` boolean when present), and `rarity`.
+Emits seven flat facet keys for the structured-data backend: `size`, `grade`, `class`, `item_type` (from `description_data`, the in-game "Item Type" label), `volume` (in µSCU: reads `dimension.volume_converted` + `volume_converted_unit`, converting SCU to µSCU; returns nil for unrecognised units rather than guessing), `base_variant` (the `is_base_variant` boolean when present), and `rarity`.
 
 ### `p.getShortDescription(apiData, args, typeInfo, prefix) → string`
 
@@ -72,7 +71,7 @@ Entry point for Item-level short descriptions. Tries `formatGradedShortDescripti
 --- @return string|nil  e.g. "S3 Gr. A military power plant by Amon & Reese Co."
 ```
 
-Produces the spec-style descriptor for graded vehicle components — those the API marks with both a `class` (Military / Civilian / Industrial / Competition / …) and a `grade` (A–D). Returns nil when any of class, grade, or size is missing, so the caller falls back to the generic form. Gating on `class` keeps this off vehicle weapons (constant grade 'A', no class) and FPS items (no grade or class).
+Produces the spec-style descriptor for graded vehicle components: those the API marks with both a `class` (Military / Civilian / Industrial / Competition / …) and a `grade` (A–D). Returns nil when any of class, grade, or size is missing, so the caller falls back to the generic form. Gating on `class` keeps this off vehicle weapons (constant grade 'A', no class) and FPS items (no grade or class).
 
 ### `p.formatShortDescription(typeInfo, apiData, args, prefix) → string`
 
@@ -86,6 +85,20 @@ Generic item descriptor: `[<prefix> ]<type> [by <manufacturer>]`. Subtypes call 
 ### `p.getExternalSiteItems(apiData, args) → EntityItemData[]`
 
 Reads `Module:Entity/Item/communitySites.json` and returns a "Community sites" external-link block when any configured site has a URL pattern that resolves for the current item's uuid / name. Returns `{}` when no links resolve.
+
+### `p.getAcquisition(apiData, args) → { summary, cards }`
+
+The kind-level lifecycle hook (declared on `EntityKind` in `Module:Entity/Types`) that supplies the data behind the [{{Entity/Availability}}](https://starcitizen.tools/Template:Entity/Availability) block. `Module:Entity/Availability` dispatches it on the **matched kind** (`result.matchedKind.getAcquisition`), so for items it is always Item's implementation that runs; subtypes do not participate. It returns two parts:
+
+- **`summary`**: the Buy / Rent / Loot / Craft / Pledge flag rows, each `{ label, icon, value }` where `value` is `true` / `false` / `nil` (yes / no / unknown). Every flag can be forced by an editor with a `{{Entity}}` template parameter, otherwise it is derived:
+  - **Buy** (`canBuy`): derived from a non-zero `uex_prices.purchase[].price_buy`.
+  - **Rent** (`canRent`): *only* appears when the editor sets it; items aren't structurally rentable, so there's no derived value and no row otherwise.
+  - **Loot** (`canLoot`): derived from `apiData.is_lootable`.
+  - **Craft** (`canCraft`): derived from `apiData.is_craftable`.
+  - **Pledge** (`canPledge`): derived from a `PromotionalItem` or `SubscriberFlair` entity tag.
+- **`cards`**: a single "Shops" terminal card built from `uex_prices.purchase` (Buy column always; a Sell column when any terminal sells). Falls back to a "No shop data in UEX" description when the array is empty.
+
+The flag-resolution precedence (editor override → derived boolean → Unknown), UEX price-range math, and terminal-card text are pure helpers in `Module:Entity/Acquisition`, shared with the other kinds' `getAcquisition` hooks.
 
 ## Subtype dispatch
 
@@ -123,20 +136,20 @@ local itemSubtypeMapping = {
 }
 ```
 
-`resolveSubtype` does an exact case-sensitive match on `apiData.type` and immediately `require`s the resolved path. Adding a new subtype means: (1) write `pages/module/Entity/Item/<Subtype>.lua` with `p.parent = 'Entity/Item'`, (2) add one entry here. The mapping is the only place that wires the API type string to the implementation; `Module:Entity/Data` is oblivious to the details.
+`resolveSubtype` hands the token (`apiData.type`) and this map to `Module:Entity/SubtypeResolver`, which does an exact case-sensitive match and immediately `require`s the resolved path. That helper is shared: Vehicle's family dispatch resolves through the same `subtypeResolver.resolve(token, map)`, so only the *token derivation* differs per kind. Adding a new item subtype means: (1) write `pages/module/Entity/Item/<Subtype>.lua` with `p.parent = 'Entity/Item'`, (2) add one entry here. The mapping is the only place that wires the API type string to the implementation; `Module:Entity/Data` is oblivious to the details.
 
 ## Subtype catalog
 
 One row per unique subtype module; the "API `type` key(s)" column reproduces `itemSubtypeMapping` exactly. The "Kind" column classifies each module's primary nature:
 
-- **stat-block** — reads a named API block and renders its rows as an infobox section.
-- **algorithmic** — derives a display value or category from multi-field API logic, not a simple read.
-- **routing-shim** — has no stat section of its own. It exists either to route `sub_type` values to a browse category via `getTypeInfo` (WeaponAttachment, FPSConsumable, Misc), or to supply a type-specific `getShortDescription` — typically a size-prefixed form — that the generic Item fallback can't produce (Beam, MiningModule). Any stats come from facets.
+- **stat-block**: reads a named API block and renders its rows as an infobox section.
+- **algorithmic**: derives a display value or category from multi-field API logic, not a simple read.
+- **routing-shim**: has no stat section of its own. It exists either to route `sub_type` values to a browse category via `getTypeInfo` (WeaponAttachment, FPSConsumable, Misc), or to supply a type-specific `getShortDescription` (typically a size-prefixed form) that the generic Item fallback can't produce (Beam, MiningModule). Any stats come from facets.
 
 | Subtype | API `type` key(s) | API block read | Section rows | SMW keys | Kind | Notes |
 |---|---|---|---|---|---|---|
 | **Module** | `Module` | `vehicles`, `related_items.set_name` | General: Vehicle(s) | `vehicle` | algorithmic | Vehicle resolution prefers `vehicles[]` relation; falls back to `related_items.set_name`. Multi-vehicle modules carry `vehicles[2..]` names as extra categories. Short desc: "Vehicle module for the \<vehicle\>". |
-| **Turret** | `Turret` | `turret` (yaw\_axis, pitch\_axis, mounts) | Turret: Mounts, Yaw speed, Pitch speed; conditionally Weapon (locked gun) | `yaw_speed`, `pitch_speed` | algorithmic | For PDC turrets: finds the first port with `editable == false` and a `vehicle_weapon` block, then delegates to `WeaponGun.getVehicleWeaponSections`. Outer turret-housing types (TMSB-5, ball/nose) leave speed null — falls back to nil rather than reading from the inner gimbal mount. |
+| **Turret** | `Turret` | `turret` (yaw\_axis, pitch\_axis, mounts) | Turret: Mounts, Yaw speed, Pitch speed; conditionally Weapon (locked gun) | `yaw_speed`, `pitch_speed` | algorithmic | For PDC turrets: finds the first port with `editable == false` and a `vehicle_weapon` block, then delegates to `WeaponGun.getVehicleWeaponSections`. Outer turret-housing types (TMSB-5, ball/nose) leave speed null, falling back to nil rather than reading from the inner gimbal mount. |
 | **WeaponPersonal** | `WeaponPersonal` | `personal_weapon` (damage, ammunition, modes, range) | Weapon: Type, Class, Damage, DPS, Ammo, Muzzle velocity, Range; Fire modes | `weapon_class`, `damage_class`, `damage`, `dps`, `muzzle_velocity`, `max_range`, `ammo` | algorithmic | Routes sub\_types Knife/Grenade/Gadget to their own categories via `getTypeInfo`; Gadgets return an empty Weapon section (function is on the tool). Short desc: `S<size> <pw.type lowercase> by <mfr>`. Slated for its own deep doc in a later phase. |
 | **WeaponAttachment** | `WeaponAttachment` | — | None | — | routing-shim | Routes sub\_types Magazine → Magazines, IronSight → Optics attachments, Barrel → Barrel attachments, BottomAttachment → Underbarrel attachments, Utility → Multi-Tool attachments. Actual stats come from per-sub\_type facets (Magazine, IronSight, WeaponModifier, etc.). |
 | **FPSConsumable** | `FPS_Consumable` | — | None | — | routing-shim | Routes Medical / MedPack / OxygenCap → Medical consumables, Hacking → Cryptokeys. Stats rendered by Medical / Hacking / Consumable facets. |
@@ -150,11 +163,11 @@ One row per unique subtype module; the "API `type` key(s)" column reproduces `it
 | **Radar** | `Radar` | `radar` (sensitivity: infrared, resource; cooldown, aim\_assist.distance\_max\_assignment) | Radar: Sensitivity, Resource sensitivity, Cooldown, Aim assist range | `radar_sensitivity`, `radar_resource_sensitivity`, `radar_cooldown`, `radar_aim_assist_range` | stat-block | IR / cross-section / EM share one sensitivity rating; infrared is representative. Sensitivity rendered as percentage (0..1 → %). Component facet renders hardware stats. |
 | **EMP** | `EMP` | `emp` (emp\_radius, distortion\_damage, charge\_duration, unleash\_duration, cooldown\_duration) | EMP: Radius, Distortion damage, Charge time, Duration, Cooldown | `emp_radius`, `emp_distortion_damage`, `emp_charge_time`, `emp_duration`, `emp_cooldown` | stat-block | Component facet renders hardware stats. |
 | **QuantumInterdictionGenerator** | `QuantumInterdictionGenerator` | `quantum_interdiction_generator` (pulse: radius, charge\_time, discharge\_time, cooldown\_time; jamming.range) | Quantum interdiction: Mode, Snare range, Dampener range, Charge time, Duration, Cooldown | `qig_mode`, `qig_snare_range`, `qig_dampener_range`, `qig_charge_time`, `qig_duration`, `qig_cooldown` | algorithmic | Derives wiki device class (QED / QDMP / QID) from the API: `pulse.radius > 1 m` = can snare (`radius == 1` is the "no snare" placeholder); `jamming.range > 0` = can dampen. QED = snare + dampener, QDMP = dampener only, QID = snare only. Short desc uses the full subdivision name ("Quantum enforcement device", "Quantum dampener", "Quantum interdiction device") instead of the umbrella type. |
-| **FlightController** | `FlightController` | `flight_controller` (scm\_speed, boost\_speed\_forward, max\_speed, pitch/yaw/roll + \_boosted) | Flight performance: SCM speed (boost), Max speed, Pitch, Yaw, Roll | `scm_speed`, `boost_speed`, `max_speed`, `pitch`, `pitch_boosted`, `yaw`, `yaw_boosted`, `roll`, `roll_boosted` | stat-block | Boosted values are formatted as `base (boosted) unit`, e.g. "226 (520) m/s". No Component facet — flight blades have no durability block. |
+| **FlightController** | `FlightController` | `flight_controller` (scm\_speed, boost\_speed\_forward, max\_speed, pitch/yaw/roll + \_boosted) | Flight performance: SCM speed (boost), Max speed, Pitch, Yaw, Roll | `scm_speed`, `boost_speed`, `max_speed`, `pitch`, `pitch_boosted`, `yaw`, `yaw_boosted`, `roll`, `roll_boosted` | stat-block | Boosted values are formatted as `base (boosted) unit`, e.g. "226 (520) m/s". No Component facet, because flight blades have no durability block. |
 | **Missile** | `Missile`, `WeaponMissile` | `missile` (signal\_type, damage\_total, explosion\_radius\_{min,max}, lock\_{time,range\_min/max,angle}, speed; flight.range) | Missile or Torpedo: Signal type, Damage, Explosion radius, Lock time, Lock range, Lock angle, Speed, Range | `signal_type`, `warhead_damage`, `explosion_radius`, `lock_time`, `lock_range`, `lock_angle`, `missile_speed`, `missile_range` | algorithmic | Two API `type`s route here: `Missile` (standard) and `WeaponMissile` (legacy). Torpedoes share the `missile` block: they arrive as `type=Missile, sub_type=Torpedo`; the stat section label switches to "Torpedo" on that sub\_type; their category routes via `classifications.json`. Lock signal type is normalised from CamelCase (`CrossSection` → `Cross Section`). Short desc surface signal type as the specific kind: "S1 infrared missile by Behring". |
 | **Bomb** | `Bomb` | `bomb` (damage\_total, explosion\_radius\_{min,max}, arm\_time, maximum\_drop\_angle; nested under `explosion` / `delays` fallbacks) | Bomb: Damage, Explosion radius, Arm time, Drop angle | `warhead_damage`, `explosion_radius`, `arm_time`, `drop_angle` | stat-block | Unguided, so no signal/lock block. Radii and arm time have dual API locations (`bomb.*` top-level or `bomb.explosion.*` / `bomb.delays.*`); both paths checked. Fractional damage totals (API) rounded to whole numbers. Component facet fires. |
 | **Rack** | `MissileLauncher`, `BombLauncher` | `missile_rack` (missile\_count, missile\_size) or top-level `max_bombs` + `max_size` | Missile rack or Bomb launcher: Capacity ("N × S\<size\>") | `capacity_count`, `capacity_size` | algorithmic | Two API `type`s share one module. MissileLauncher reads `missile_rack.missile_count/size`; BombLauncher reads top-level `max_bombs/max_size`. Section label and short desc noun are dynamically switched on `apiData.type`. Component facet fires. |
-| **Beam** | `TractorBeam`, `TowingBeam` | — | None | — | routing-shim | Beam STATS (force, range, max angle, tether break, heavy-lift) live in `Module:Entity/Facet/Beam`, which fires on any entity with a `tractor_beam` block — this covers FPS handheld tractor beams as well. The subtype exists only to produce the size-prefixed short description ("S1 tractor beam by Greycat"). |
+| **Beam** | `TractorBeam`, `TowingBeam` | — | None | — | routing-shim | Beam STATS (force, range, max angle, tether break, heavy-lift) live in `Module:Entity/Facet/Beam`, which fires on any entity with a `tractor_beam` block, covering FPS handheld tractor beams as well. The subtype exists only to produce the size-prefixed short description ("S1 tractor beam by Greycat"). |
 | **MiningModule** | `MiningModifier` | — | None | — | routing-shim | Stats rendered by `Module:Entity/Facet/Mining`. Short desc only: `S<size> mining module by <mfr>`. Component facet renders hardware stats. |
 | **WeaponMining** | `WeaponMining` | `mining_laser` (laser\_power, module\_slots, optimal/maximum\_range, extraction\_throughput, modifier\_map) | Mining laser: Mining power, Module slots, Optimal range, Maximum range, Extraction rate, then each `modifier_map` effect as a signed % | `mining_power_min`, `mining_power_max`, `module_slots`, `optimal_range`, `maximum_range`, `extraction_throughput`, `modifier_<effect>` (dynamic) | stat-block | `modifier_map` is variable per head; all keys are sorted and rendered as signed percentages. The same effect vocabulary as MiningModule, so heads and modules compare directly. Component facet fires. |
 | **Scraper** | `SalvageModifier` | `salvage_modifier` (salvage\_speed\_multiplier, radius\_multiplier, extraction\_efficiency) | Salvage: Salvage speed, Radius, Extraction efficiency | `salvage_speed_multiplier`, `radius_multiplier`, `extraction_efficiency` | stat-block | Speed and radius multipliers are colour-coded: green above ×1 (better), red below (worse), uncoloured at ×1 (neutral ReadyGrip). Efficiency displayed as a percentage. Component facet renders hardware stats where present (the ReadyGrip variant has no durability block). |
@@ -162,15 +175,15 @@ One row per unique subtype module; the "API `type` key(s)" column reproduces `it
 
 ## Gotchas
 
-**`resolveSubtype`'s `require` is unguarded.** The lookup is an exact string match; if the module path in `itemSubtypeMapping` is misspelled (e.g. `'Entity/Item/PowerPlatn'`), `require` throws a module-not-found error, crashing the infobox for every page of that API type on the live wiki. There is no fallback. Test new entries in a sandbox before deploying.
+**The subtype `require` is unguarded.** The lookup is an exact string match; if the module path in `itemSubtypeMapping` is misspelled (e.g. `'Entity/Item/PowerPlatn'`), the `require` (which lives in the shared `Module:Entity/SubtypeResolver`, not in Item itself) throws a module-not-found error, crashing the infobox for every page of that API type on the live wiki. There is no fallback. Test new entries in a sandbox before deploying.
 
-**Exact-match on `apiData.type` — no partial matching, no fallback chain.** A type string that slightly differs from the key (different capitalisation, an underscore vs. no underscore) silently returns nil from `resolveSubtype`, meaning Item itself acts as the leaf with no subtype stats. If CIG renames a type in the API, the mapping entry must be updated.
+**Exact-match on `apiData.type`: no partial matching, no fallback chain.** A type string that slightly differs from the key (different capitalisation, an underscore vs. no underscore) silently returns nil from `resolveSubtype`, meaning Item itself acts as the leaf with no subtype stats. If CIG renames a type in the API, the mapping entry must be updated.
 
-**Stats shared across multiple API `type`s must be a facet, not a subtype.** Subtypes are single-type (one `type` key → one module). When a stat block appears on items of different API types — for example, the `tractor_beam` block appears on both `TractorBeam` and `TowingBeam` items, and also on FPS handheld tractor beams (a different `type` entirely) — a subtype cannot cover all cases. The right tool is a data-driven facet that fires on the presence of the block regardless of type. `Module:Entity/Facet/Beam` is the canonical example: Beam tractor-beam stats live there, and the Beam subtype is a routing-shim that delegates to it. See [Module:Entity/Registry](https://starcitizen.tools/Module:Entity/Registry) for the facet catalog.
+**Stats shared across multiple API `type`s must be a facet, not a subtype.** Subtypes are single-type (one `type` key → one module). When a stat block appears on items of different API types, a subtype cannot cover all cases. For example, the `tractor_beam` block appears on both `TractorBeam` and `TowingBeam` items, and also on FPS handheld tractor beams (a different `type` entirely). The right tool is a data-driven facet that fires on the presence of the block regardless of type. `Module:Entity/Facet/Beam` is the canonical example: Beam tractor-beam stats live there, and the Beam subtype is a routing-shim that delegates to it. See [Module:Entity/Registry](https://starcitizen.tools/Module:Entity/Registry) for the facet catalog.
 
 **Food / Drink exclusion is explicit, not accidental.** The test `testResolveSubtypeFoodReturnsNil` and `testResolveSubtypeDrinkReturnsNil` document this choice. If those types are ever added to `itemSubtypeMapping`, the consumable facet path breaks.
 
-**`WeaponMissile` is a legacy alias.** Both `Missile` and `WeaponMissile` map to the same `Missile` module. If CIG drops `WeaponMissile` from the API, remove the entry — it does nothing if no item has that type string.
+**`WeaponMissile` is a legacy alias.** Both `Missile` and `WeaponMissile` map to the same `Missile` module. If CIG drops `WeaponMissile` from the API, remove the entry; it does nothing if no item has that type string.
 
 **Volume precision.** `getVolume` reads `volume_converted` + `volume_converted_unit` rather than the raw `dimension.volume` field, which rounds sub-SCU items (like a 1 µSCU PDC) to zero. Missing `volume_converted_unit` is treated as SCU (the API default). An unrecognised unit returns nil rather than silently converting wrong.
 

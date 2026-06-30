@@ -53,4 +53,26 @@ function suite:testCohortRowsStubbedDecodes()
 	self:assertEquals(nil, rows[2].pilot_dps) -- missing decodes to absent, not 0
 end
 
+function suite:testCohortRowsFoldsSignatureModifier()
+	local realSmw = mw.smw
+	mw.smw = {
+		ask = function()
+			return {
+				{ ir_emission = '10000', ir_modifier = '0.5' }, -- stealth coating → effective 5000
+				{ ir_emission = '8000' }, -- no modifier → unchanged
+				{ ir_emission = '6000', em_emission = '4000', em_modifier = '2' }, -- louder EM → 8000
+				{ ir_emission = '4000' },
+				{ ir_emission = '2000' },
+			}
+		end,
+	}
+	-- size 985: unique across the vehicle suites (rowCache is shared per family|size).
+	local rows = ClassStats.cohortRows('ship', 985)
+	mw.smw = realSmw
+	self:assertEquals(5000, rows[1].ir_emission) -- 10000 × 0.5
+	self:assertEquals(8000, rows[2].ir_emission) -- absent multiplier → raw
+	self:assertEquals(8000, rows[3].em_emission) -- 4000 × 2
+	self:assertEquals(nil, rows[1].ir_modifier) -- modifier key dropped, never a phantom stat
+end
+
 return suite

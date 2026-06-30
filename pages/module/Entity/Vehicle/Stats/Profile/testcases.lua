@@ -34,6 +34,33 @@ function suite:testFirepowerAndStealth()
 	self:assertEquals(90, byKey.stealth) -- lowest IR emission -> inverted top
 end
 
+function suite:testStealthAppliesArmorModifier()
+	-- Ship has a loud raw IR (10000) but stealth-coating armor (×0.5) → effective 5000.
+	-- The cohort folds each member's own multiplier, so ranking is effective-vs-effective:
+	-- the modifier lifts the ship from near-worst (raw) to upper-mid (effective).
+	local real = stub({
+		{ ir_emission = '10000', ir_modifier = '1' }, -- effective 10000
+		{ ir_emission = '8000', ir_modifier = '1' }, -- 8000
+		{ ir_emission = '6000', ir_modifier = '1' }, -- 6000
+		{ ir_emission = '4000', ir_modifier = '1' }, -- 4000
+		{ ir_emission = '10000', ir_modifier = '0.5' }, -- 5000
+	})
+	-- size 984: unique across the vehicle suites (rowCache is shared per family|size).
+	local axes = Profile.axisScores(
+		{ is_spaceship = true, emission = { ir = 10000 }, armor = { signal_infrared = 0.5 } },
+		'ship',
+		984
+	)
+	mw.smw = real
+	local byKey = {}
+	for _, a in ipairs(axes) do
+		byKey[a.key] = a.score
+	end
+	-- Effective cohort {10000,8000,6000,4000,5000}; ship effective 5000 (lower = better,
+	-- inverted): 3 louder + the tie → Hazen (3 + 0.5)/5 = 70. Raw-only would score 20.
+	self:assertEquals(70, byKey.stealth)
+end
+
 function suite:testNoCohortNoScores()
 	local real = mw.smw
 	mw.smw = nil

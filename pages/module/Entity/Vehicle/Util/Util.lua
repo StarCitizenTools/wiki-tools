@@ -100,6 +100,51 @@ function p.meanCrossSection(cs)
 	return count > 0 and (sum / count) or nil
 end
 
+--- Apply an armor signature multiplier to a raw signature value. The API reports the
+--- raw emission / cross-section and the armor's `signal_*` multiplier (1.0 = no change,
+--- <1 stealthier, >1 louder) as *separate* fields; the effective signature a sensor
+--- sees is raw × multiplier. A missing or non-numeric multiplier is treated as 1.0 (no
+--- change); nil raw stays nil. Shared by the ship side (Stats / Profile) and the cohort
+--- side (ClassStats) so the two ends of the percentile seam apply the same math.
+--- @param raw number|nil
+--- @param modifier any  armor signal multiplier, or nil/absent for no change
+--- @return number|nil
+function p.applySignatureModifier(raw, modifier)
+	if raw == nil then
+		return nil
+	end
+	return raw * (tonumber(modifier) or 1)
+end
+
+--- Effective IR signature: raw `emission.ir` × the armor IR multiplier. nil when the
+--- ship reports no IR emission. See applySignatureModifier.
+--- @param apiData table
+--- @return number|nil
+function p.effectiveIrEmission(apiData)
+	local emission = type(apiData.emission) == 'table' and apiData.emission or {}
+	local armor = type(apiData.armor) == 'table' and apiData.armor or {}
+	return p.applySignatureModifier(tonumber(emission.ir), armor.signal_infrared)
+end
+
+--- Effective EM signature: raw `emission.em_max` × the armor EM multiplier. nil when the
+--- ship reports no EM emission. See applySignatureModifier.
+--- @param apiData table
+--- @return number|nil
+function p.effectiveEmEmission(apiData)
+	local emission = type(apiData.emission) == 'table' and apiData.emission or {}
+	local armor = type(apiData.armor) == 'table' and apiData.armor or {}
+	return p.applySignatureModifier(tonumber(emission.em_max), armor.signal_electromagnetic)
+end
+
+--- Effective cross-section: the mean axis cross-section × the armor cross-section
+--- multiplier. nil when the ship reports no cross-section. See applySignatureModifier.
+--- @param apiData table
+--- @return number|nil
+function p.effectiveCrossSection(apiData)
+	local armor = type(apiData.armor) == 'table' and apiData.armor or {}
+	return p.applySignatureModifier(p.meanCrossSection(apiData.cross_section), armor.signal_cross_section)
+end
+
 --- Mean armor deflection threshold across the physical and energy damage types,
 --- or nil when absent. The live (Alpha 4.7) "Armor Damage Deflection Threshold"
 --- is a per-shot damage gate: a shot below the threshold is fully deflected.

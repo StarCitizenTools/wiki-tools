@@ -79,6 +79,26 @@ local function signatureLabel(mult)
 	return tostring(mw.html.create('span'):css('color', color):wikitext(sign .. math.abs(pct) .. '%'))
 end
 
+--- Stealth value cell: the (already effective) signature, thousands-grouped, with the
+--- armor signal multiplier appended as a colored signed-% suffix — e.g. "2,451 (−40%)"
+--- — so the armor's contribution is visible in the figure the bar and ring rank. Just
+--- the value when the multiplier is absent or neutral (1.0). nil value → nil (the row
+--- is skipped by percentileRow).
+--- @param value number|nil  effective signature (raw × armor multiplier)
+--- @param modifier any  armor signal multiplier for this axis
+--- @return string|nil
+local function stealthValueText(value, modifier)
+	if value == nil then
+		return nil
+	end
+	local text = format.formatNum(roundInt(value))
+	local label = signatureLabel(modifier)
+	if label ~= nil then
+		text = text .. ' (' .. label .. ')'
+	end
+	return text
+end
+
 --- Push a percentile bar row: the stat's displayed value + where the ship places
 --- in its size class on that stat (the bar fills to the percentile, labelled with
 --- the rank). Degrades to a plain row when no cohort. `invert` ranks
@@ -136,7 +156,6 @@ function p.build(apiData, args, ed)
 	local agility = type(apiData.agility) == 'table' and apiData.agility or {}
 	local drive = type(apiData.drive) == 'table' and apiData.drive or {}
 	local armor = type(apiData.armor) == 'table' and apiData.armor or {}
-	local emission = type(apiData.emission) == 'table' and apiData.emission or {}
 	local fuel = type(apiData.fuel) == 'table' and apiData.fuel or {}
 	local quantum = type(apiData.quantum) == 'table' and apiData.quantum or {}
 	local weaponry = type(apiData.weaponry) == 'table' and apiData.weaponry or {}
@@ -296,40 +315,41 @@ function p.build(apiData, args, ed)
 		cohortRows
 	)
 
-	-- Stealth tab: IR / EM / cross-section signatures (lower = better, the ring
-	-- drivers) + the armor signature modifiers.
+	-- Stealth tab: effective IR / EM / cross-section signatures (raw × the armor signal
+	-- multiplier; lower = better, the ring drivers). Each value carries the multiplier as
+	-- a colored signed-% suffix — "2,451 (−40%)" — so the armor's contribution shows in
+	-- the figure the bar and ring rank.
 	local stealth = {}
+	local irEffective = vehicleUtil.effectiveIrEmission(apiData)
 	percentileRow(
 		stealth,
 		'IR emission',
-		tonumber(emission.ir),
-		emission.ir and format.formatNum(roundInt(emission.ir)) or nil,
+		irEffective,
+		stealthValueText(irEffective, armor.signal_infrared),
 		'ir_emission',
 		cohortRows,
 		true
 	)
+	local emEffective = vehicleUtil.effectiveEmEmission(apiData)
 	percentileRow(
 		stealth,
 		'EM emission',
-		tonumber(emission.em_max),
-		emission.em_max and format.formatNum(roundInt(emission.em_max)) or nil,
+		emEffective,
+		stealthValueText(emEffective, armor.signal_electromagnetic),
 		'em_emission',
 		cohortRows,
 		true
 	)
-	local crossSection = vehicleUtil.meanCrossSection(apiData.cross_section)
+	local crossSection = vehicleUtil.effectiveCrossSection(apiData)
 	percentileRow(
 		stealth,
 		'Cross-section',
 		crossSection,
-		crossSection and format.formatNum(roundInt(crossSection)) or nil,
+		stealthValueText(crossSection, armor.signal_cross_section),
 		'cross_section',
 		cohortRows,
 		true
 	)
-	sectionBuilder.push(stealth, 'IR modifier', signatureLabel(armor.signal_infrared))
-	sectionBuilder.push(stealth, 'EM modifier', signatureLabel(armor.signal_electromagnetic))
-	sectionBuilder.push(stealth, 'Cross-section modifier', signatureLabel(armor.signal_cross_section))
 
 	-- Assemble tabs: Overview | Offense | Defense | Mobility | Travel | Stealth
 	-- (mirroring the Overview ring axes; raw {label, items}, NO key).

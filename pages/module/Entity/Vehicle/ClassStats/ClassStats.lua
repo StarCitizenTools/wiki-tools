@@ -7,11 +7,15 @@ require('strict')
 --- Returns nil when comparison is unavailable: no SMW (headless tests),
 --- a non-ship family, or a cohort below MIN_COHORT.
 
+local vehicleUtil = require('Module:Entity/Vehicle/Util')
+
 local p = {}
 
 --- Stat key to SMW property. Queried with the `#-` plain formatter so values come
 --- back unitless. Keys match the stat fields accessed by cohortRows callers (the
---- scoring profile).
+--- scoring profile). The three `*_modifier` keys carry the armor signal multipliers,
+--- folded into the matching emission/cross-section value in cohortRows so callers see a
+--- single effective stealth figure (see the fold below).
 local COHORT_PROPS = {
 	scm_speed = 'Scm speed',
 	max_speed = 'Max speed',
@@ -36,6 +40,9 @@ local COHORT_PROPS = {
 	ir_emission = 'Infrared emission',
 	em_emission = 'Electromagnetic emission',
 	cross_section = 'Cross section',
+	ir_modifier = 'Infrared signature modifier',
+	em_modifier = 'Electromagnetic signature modifier',
+	cross_section_modifier = 'Cross section signature modifier',
 }
 
 --- Only ships have a cohort large enough to average; ground/gravlev return nil.
@@ -110,6 +117,14 @@ function p.cohortRows(family, size)
 						row[key] = n
 					end
 				end
+				-- Fold each armor signal multiplier into its raw signature so callers
+				-- rank the effective stealth figure (raw × multiplier), matching the
+				-- ship side. A missing multiplier is treated as 1.0; the modifier keys
+				-- are then dropped so they never surface as phantom stats.
+				row.ir_emission = vehicleUtil.applySignatureModifier(row.ir_emission, row.ir_modifier)
+				row.em_emission = vehicleUtil.applySignatureModifier(row.em_emission, row.em_modifier)
+				row.cross_section = vehicleUtil.applySignatureModifier(row.cross_section, row.cross_section_modifier)
+				row.ir_modifier, row.em_modifier, row.cross_section_modifier = nil, nil, nil
 				rows[#rows + 1] = row
 			end
 			entry = { rows = rows }

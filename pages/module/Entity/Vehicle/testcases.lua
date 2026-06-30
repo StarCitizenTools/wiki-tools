@@ -496,14 +496,19 @@ function suite:testDefenseAndStealthTabs()
 	local s = Vehicle.getSections({
 		health = 6110,
 		shield_hp = 6336,
+		emission = { ir = 4000 },
 		armor = { damage_physical = 0.75, signal_infrared = 1.13, signal_electromagnetic = 1 },
 	}, {}, {})
 	local defense = findItem(findSection(s, 'stats').sections, 'Defense')
 	self:assertEquals('6,110 HP', findItem(defense.items, 'Hull').content)
 	self:assertEquals('6,336 HP', findItem(defense.items, 'Shield').content)
 	local stealth = findItem(findSection(s, 'stats').sections, 'Stealth')
-	self:assertTrue(findItem(stealth.items, 'IR modifier').content:find('+13%', 1, true) ~= nil)
-	self:assertEquals(nil, findItem(stealth.items, 'EM modifier')) -- multiplier 1.0 omitted
+	-- Effective IR = 4000 × 1.13 = 4520; the +13% armor modifier rides as a colored suffix.
+	local ir = findItem(stealth.items, 'IR emission').content
+	self:assertTrue(ir:find('4,520', 1, true) ~= nil)
+	self:assertTrue(ir:find('+13%', 1, true) ~= nil)
+	-- No EM emission value → no EM row at all (a lone multiplier never surfaces).
+	self:assertEquals(nil, findItem(stealth.items, 'EM emission'))
 end
 
 function suite:testHullResistanceTileBlock()

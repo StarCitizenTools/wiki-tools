@@ -163,24 +163,28 @@ local AXES = {
 		key = 'stealth',
 		label = 'Stealth',
 		components = {
+			-- Effective signatures (raw × the armor signal multiplier): the Eclipse's
+			-- stealth-coating armor cuts its detectable IR/EM/cross-section, so the score
+			-- must rank the modified figure, not the raw emission. The cohort side folds
+			-- the same multiplier in ClassStats, keeping both ends of the seam aligned.
 			{
 				stat = 'ir_emission',
 				value = function(apiData)
-					return path(apiData, 'emission', 'ir')
+					return vehicleUtil.effectiveIrEmission(apiData)
 				end,
 				invert = true,
 			},
 			{
 				stat = 'em_emission',
 				value = function(apiData)
-					return path(apiData, 'emission', 'em_max')
+					return vehicleUtil.effectiveEmEmission(apiData)
 				end,
 				invert = true,
 			},
 			{
 				stat = 'cross_section',
 				value = function(apiData)
-					return vehicleUtil.meanCrossSection(apiData.cross_section)
+					return vehicleUtil.effectiveCrossSection(apiData)
 				end,
 				invert = true,
 			},

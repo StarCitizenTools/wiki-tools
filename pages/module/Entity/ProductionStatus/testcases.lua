@@ -53,10 +53,6 @@ function suite:testDriveReadyIsNotAState()
 	self:assertEquals(nil, resolve('drive-ready'))
 end
 
-function suite:testTooltipReturnsDescription()
-	self:assertTrue(ProductionStatus.tooltip('flight-ready'):find('full operations', 1, true) ~= nil)
-	self:assertEquals(nil, ProductionStatus.tooltip('made up'))
-end
 
 function suite:testBadgeForNewState()
 	self:assertEquals(true, type(ProductionStatus.badge('in-concept')) == 'string')

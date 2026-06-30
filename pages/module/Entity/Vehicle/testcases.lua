@@ -697,10 +697,11 @@ function suite:testHeaderBadgeStillStringForKnownState()
 	self:assertEquals(nil, Vehicle.getHeaderBadge({ production_status = 'made up' }, {}, {}))
 end
 
-function suite:testHeaderBadgeWithNoteIncludesNote()
-	-- production_note present: badge still returns a string (FloatingUI.render is stubbed)
-	local result = Vehicle.getHeaderBadge({ production_status = 'in-concept', production_note = 'Delayed' }, {}, {})
-	self:assertEquals(true, type(result) == 'string')
+function suite:testHeaderBadgeIgnoresProductionNote()
+	-- Tooltip removed: production_note no longer affects the header badge.
+	local withNote = Vehicle.getHeaderBadge({ production_status = 'in-concept', production_note = 'Delayed' }, {}, {})
+	local without = Vehicle.getHeaderBadge({ production_status = 'in-concept' }, {}, {})
+	self:assertEquals(without, withNote)
 end
 
 function suite:testEditorialManifestHasGeneration()

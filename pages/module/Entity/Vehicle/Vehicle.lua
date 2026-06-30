@@ -14,7 +14,6 @@ local capacity = require('Module:Entity/Vehicle/Capacity')
 local cost = require('Module:Entity/Vehicle/Cost')
 local development = require('Module:Entity/Vehicle/Development')
 local Editorial = require('Module:Entity/Editorial')
-local floatingui = require('Module:FloatingUI')
 local vehicleDimensions = require('Module:Entity/Vehicle/Dimensions')
 local format = require('Module:Entity/Format')
 local lore = require('Module:Entity/Vehicle/Lore')
@@ -254,58 +253,18 @@ function p.getSubtitle(apiData, args)
 	return manufacturerLink(apiData, args)
 end
 
---- Build the FloatingUI tooltip content for a production state badge.
---- Returns a section string (via FloatingUI.renderSection) for the state
---- description, plus an additional section for the per-ship note when it is
---- present and differs from the description. Returns nil when both are absent.
---- @param desc string|nil  State description from ProductionStatus.tooltip()
---- @param note string|nil  Per-ship production note from apiData.production_note
---- @return string|nil
-local function buildProductionTooltip(desc, note)
-	local hasDesc = type(desc) == 'string' and desc ~= ''
-	-- The API returns the literal string "None" for ships with no note.
-	local hasNote = type(note) == 'string' and note ~= '' and note:lower() ~= 'none' and note ~= desc
-	if not hasDesc and not hasNote then
-		return nil
-	end
-	local content = ''
-	if hasDesc then
-		content = content .. floatingui.renderSection({ desc = desc })
-	end
-	if hasNote then
-		content = content .. floatingui.renderSection({ label = 'Note', desc = note })
-	end
-	return content ~= '' and content or nil
-end
-
 --- Vehicle production-state badge for the infobox header overlay. Uses the
 --- editorial-resolved production_state (API production_status, override-able).
---- The badge is wrapped in a FloatingUI tooltip showing the state description
---- and any per-ship production note. The FloatingUI JS/CSS loader is prepended
---- so the tooltip can open on the live page.
 --- Vehicle-only: other entities are in-game by definition, so a status badge
---- would be noise.
+--- would be noise. The per-ship milestone/note now lives in the Development
+--- section (Flight ready version + production note), so the badge is a plain pill.
 --- @param apiData table
 --- @param args table
 --- @param resolved table|nil
 --- @return string|nil
 function p.getHeaderBadge(apiData, args, resolved)
 	local ed = Editorial.view(resolved)
-	local state = ed:value('production_state', apiData.production_status)
-	local badge = productionStatus.badge(state)
-	if not badge then
-		return nil
-	end
-	-- Per-ship note: the editorial `productionstatedesc` (wiki-curated) wins, with the
-	-- API production_note as fallback (usually "None", dropped by buildProductionTooltip).
-	local note = ed:value('production_state_desc') or apiData.production_note
-	local content = buildProductionTooltip(productionStatus.tooltip(state), note)
-	if not content then
-		return badge
-	end
-	-- floatingui.load() emits <templatestyles> + #floatingui parser function —
-	-- prepend it so the tooltip JS/CSS is guaranteed loaded on the page.
-	return floatingui.load(mw.getCurrentFrame()) .. floatingui.render(badge, content, true)
+	return productionStatus.badge(ed:value('production_state', apiData.production_status))
 end
 
 --- Return the Vehicle editorial manifest. Used by Module:Entity/Editorial to

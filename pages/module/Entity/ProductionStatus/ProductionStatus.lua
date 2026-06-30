@@ -12,42 +12,35 @@ local badge = require('Module:BadgeLua')
 
 local STYLES = 'Module:Entity/ProductionStatus/styles.css'
 
---- @type table<string, { label: string, class: string, desc: string }>
+--- @type table<string, { label: string, class: string }>
 local TIERS = {
 	flightready = {
 		label = 'Flight ready',
 		class = 'production-status-badge--ready',
-		desc = 'The vehicle can fly/drive with full operations including physics, interactions, systems, fuel, cargo, and more.',
 	},
 	inproduction = {
 		label = 'In production',
 		class = 'production-status-badge--production',
-		desc = 'The vehicle is in active development.',
 	},
 	activeproduction = {
 		label = 'Active production',
 		class = 'production-status-badge--production',
-		desc = 'Development, designers, and QA work from start to finish on the vehicle.',
 	},
 	activeforsquadron42 = {
 		label = 'Active for Squadron 42',
 		class = 'production-status-badge--production',
-		desc = 'The vehicle is mentioned to be in development for Squadron 42, but is not available in the Persistent Universe.',
 	},
 	longtermproduction = {
 		label = 'Long term production',
 		class = 'production-status-badge--production',
-		desc = 'Development work is planned and added to the Roadmap.',
 	},
 	inconcept = {
 		label = 'In concept',
 		class = 'production-status-badge--concept',
-		desc = 'Artists and designers determine the concept look, 3D renders, and functional design for a vehicle.',
 	},
 	inlore = {
 		label = 'In lore',
 		class = 'production-status-badge--concept',
-		desc = 'The vehicle is mentioned in lore only.',
 	},
 }
 
@@ -97,14 +90,6 @@ end
 function p.label(status)
 	local tier = resolve(status)
 	return tier and tier.label or nil
-end
-
---- The description for a production status (for a tooltip), or nil for unknown.
---- @param status string|nil
---- @return string|nil
-function p.tooltip(status)
-	local tier = resolve(status)
-	return tier and tier.desc or nil
 end
 
 -- Test-only exports. Not part of the public API.

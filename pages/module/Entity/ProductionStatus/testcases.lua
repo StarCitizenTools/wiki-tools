@@ -53,7 +53,6 @@ function suite:testDriveReadyIsNotAState()
 	self:assertEquals(nil, resolve('drive-ready'))
 end
 
-
 function suite:testBadgeForNewState()
 	self:assertEquals(true, type(ProductionStatus.badge('in-concept')) == 'string')
 end

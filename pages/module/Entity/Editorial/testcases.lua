@@ -146,7 +146,11 @@ function suite:testPatchPageAlreadyNamespaced()
 end
 
 function suite:testPatchPageExtractsLinkTarget()
-	local r = Editorial.resolve({}, { flightreadyversion = '[[Update:Star Citizen Patch V0.8.5|Alpha 0.8.5]]' }, MANIFEST)
+	local r = Editorial.resolve(
+		{},
+		{ flightreadyversion = '[[Update:Star Citizen Patch V0.8.5|Alpha 0.8.5]]' },
+		MANIFEST
+	)
 	self:assertEquals('Update:Star Citizen Patch V0.8.5', r.flight_ready_version.value)
 end
 

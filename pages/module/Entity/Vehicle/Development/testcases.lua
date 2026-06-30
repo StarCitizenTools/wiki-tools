@@ -25,7 +25,8 @@ function suite:testBuildNilWhenNoMilestones()
 end
 
 function suite:testBuildNonNilWithFlightReadyOnly()
-	local ed = Editorial.view({ flight_ready_version = { value = 'Update:Star Citizen Alpha 4.8.0', source = 'editorial' } })
+	local ed =
+		Editorial.view({ flight_ready_version = { value = 'Update:Star Citizen Alpha 4.8.0', source = 'editorial' } })
 	self:assertEquals(false, Development.build({}, {}, ed) == nil)
 end
 

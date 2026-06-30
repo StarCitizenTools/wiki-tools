@@ -12,7 +12,7 @@
 	"pledge_price": { "arg": "pledgecost", "smw": "Pledge price", "apiPath": "msrp", "transform": "number" },
 	"pledge_availability": { "arg": "pledgeavailability", "smw": "Pledge availability" },
 	"production_state": { "arg": "productionstate", "smw": "Production state", "apiPath": "production_status" },
-	"flight_ready_version": { "arg": "flightreadyversion", "smw": "Flight ready version", "transform": "patchPage" },
+	"added_in_version": { "arg": "addedinversion", "smw": "Added in version", "transform": "patchPage" },
 	"production_state_note": { "arg": "productionstatenote" },
 	"series": { "arg": ["series", "model"], "smw": "Series" },
 	"warbond_price": { "arg": "warbondcost", "smw": "Warbond pledge price", "transform": "number" },

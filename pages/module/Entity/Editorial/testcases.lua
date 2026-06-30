@@ -10,7 +10,7 @@ local MANIFEST = {
 	scm_speed = { arg = 'scmspeed', smw = 'SCM Speed', apiPath = 'speed.scm', transform = 'number' },
 	availability = { arg = 'pledgeavailability', smw = 'Pledge Availability' },
 	series = { arg = 'series', smw = 'Series', transform = 'page' },
-	flight_ready_version = { arg = 'flightreadyversion', smw = 'Flight ready version', transform = 'patchPage' },
+	added_in_version = { arg = 'addedinversion', smw = 'Added in version', transform = 'patchPage' },
 }
 
 function suite:testApiOnlyWhenNoEditor()
@@ -131,27 +131,23 @@ function suite:testViewSourceNilWhenUnresolved()
 end
 
 function suite:testPatchPageBareVersion()
-	local r = Editorial.resolve({}, { flightreadyversion = 'Alpha 4.8.0' }, MANIFEST)
-	self:assertEquals('Update:Star Citizen Alpha 4.8.0', r.flight_ready_version.value)
+	local r = Editorial.resolve({}, { addedinversion = 'Alpha 4.8.0' }, MANIFEST)
+	self:assertEquals('Update:Star Citizen Alpha 4.8.0', r.added_in_version.value)
 end
 
 function suite:testPatchPageBareRedirectTitle()
-	local r = Editorial.resolve({}, { flightreadyversion = 'Star Citizen Alpha 3.2.0' }, MANIFEST)
-	self:assertEquals('Update:Star Citizen Alpha 3.2.0', r.flight_ready_version.value)
+	local r = Editorial.resolve({}, { addedinversion = 'Star Citizen Alpha 3.2.0' }, MANIFEST)
+	self:assertEquals('Update:Star Citizen Alpha 3.2.0', r.added_in_version.value)
 end
 
 function suite:testPatchPageAlreadyNamespaced()
-	local r = Editorial.resolve({}, { flightreadyversion = 'Update:Star Citizen Patch V0.8.5' }, MANIFEST)
-	self:assertEquals('Update:Star Citizen Patch V0.8.5', r.flight_ready_version.value)
+	local r = Editorial.resolve({}, { addedinversion = 'Update:Star Citizen Patch V0.8.5' }, MANIFEST)
+	self:assertEquals('Update:Star Citizen Patch V0.8.5', r.added_in_version.value)
 end
 
 function suite:testPatchPageExtractsLinkTarget()
-	local r = Editorial.resolve(
-		{},
-		{ flightreadyversion = '[[Update:Star Citizen Patch V0.8.5|Alpha 0.8.5]]' },
-		MANIFEST
-	)
-	self:assertEquals('Update:Star Citizen Patch V0.8.5', r.flight_ready_version.value)
+	local r = Editorial.resolve({}, { addedinversion = '[[Update:Star Citizen Patch V0.8.5|Alpha 0.8.5]]' }, MANIFEST)
+	self:assertEquals('Update:Star Citizen Patch V0.8.5', r.added_in_version.value)
 end
 
 return suite

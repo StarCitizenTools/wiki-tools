@@ -18,6 +18,14 @@
 		],
 		"desc": "Acquisition kind of a commodity record."
 	},
+	"Added in version": {
+		"smw": "Page",
+		"bucket": "PAGE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Game update in which an entity first became available in-game (the canonical Update: patch page). For vehicles this is the flight-ready patch, rendered as the Development \"Flight ready in\" row."
+	},
 	"Alpha damage": {
 		"smw": "Number",
 		"bucket": "DOUBLE",
@@ -520,14 +528,6 @@
 			"WeaponGun"
 		],
 		"desc": "Firing mechanism of a vehicle weapon (Cannon, Repeater, …)."
-	},
-	"Flight ready version": {
-		"smw": "Page",
-		"bucket": "PAGE",
-		"modules": [
-			"Vehicle"
-		],
-		"desc": "Game update in which the vehicle first became flight ready (the Update: patch page)."
 	},
 	"Full damage range": {
 		"smw": "Number",

@@ -257,7 +257,7 @@ end
 --- editorial-resolved production_state (API production_status, override-able).
 --- Vehicle-only: other entities are in-game by definition, so a status badge
 --- would be noise. The per-ship milestone/note now lives in the Development
---- section (Flight ready version + production note), so the badge is a plain pill.
+--- section (Added in version + production note), so the badge is a plain pill.
 --- @param apiData table
 --- @param args table
 --- @param resolved table|nil

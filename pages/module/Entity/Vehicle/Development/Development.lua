@@ -28,7 +28,7 @@ function p.build(apiData, args, ed)
 	local development = {}
 	sectionBuilder.push(development, 'Announced', ed:value('concept_announced'))
 	sectionBuilder.push(development, 'Concept sale', ed:value('concept_sale'))
-	sectionBuilder.push(development, 'Flight ready in', patchRow(ed:value('flight_ready_version')))
+	sectionBuilder.push(development, 'Flight ready in', patchRow(ed:value('added_in_version')))
 	sectionBuilder.push(development, 'Note', ed:value('production_state_note'))
 	return development[1]
 			and sectionBuilder.section({

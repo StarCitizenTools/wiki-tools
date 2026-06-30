@@ -59,7 +59,7 @@ One row per builder in the subtree:
 | `Vehicle/ClassStats` | — | The size-class cohort: one memoized `mw.smw.ask` + the Hazen `percentile` helper |
 | `Vehicle/Dimensions` | `Dimensions` | Thin adapter over `Module:Dimensions` (vehicles carry flat `dimension.*`) |
 | `Vehicle/Lore` | `Lore` | In-lore release / retirement dates, collapsed |
-| `Vehicle/Development` | `Development` | Real-world concept announced / sale dates, flight-ready patch (`flightreadyversion`), and production note (`productionstatenote`), collapsed |
+| `Vehicle/Development` | `Development` | Real-world concept announced / sale dates, flight-ready patch (`addedinversion`), and production note (`productionstatenote`), collapsed |
 | `Vehicle/Util` | — | Vehicle-domain shared helpers: `resolveCareer`, `matrixSize`, `DAMAGE_TYPES`, `meanArmorResistance` / `meanCrossSection` / `meanDeflection` |
 
 **Adding a section.** Create `pages/module/Entity/Vehicle/<Name>/<Name>.lua` exposing `p.build(apiData, args, ed)` that returns a `Module:Entity/SectionBuilder.section{…}` (or nil), `require` it at the top of `Vehicle.lua`, and add one `add(<name>.build(apiData, args, ed))` line in `getSections`. Sections are data-gated (returning nil keeps an empty section out of the render), so order is the only other thing `getSections` decides.
@@ -94,7 +94,7 @@ For any field that can be curated by an editor *and* has an API counterpart, nam
 | `stats` | `Stats` | Subsection tabs: Overview ring + Offense / Defense / Mobility / Travel / Stealth |
 | `dimensions` | `Dimensions` | `Module:Dimensions` box. Length/width/height/mass (and the retracted dimensions) are editorial overlap fields, so a planned vehicle renders the box from `|length=`/`|width=`/`|height=`/`|mass=`; in-game vehicles fill from `apiData.dimension` |
 | `lore` | `Lore` | In-lore release / retirement dates, collapsed by default |
-| `development` | `Development` | Real-world concept announced / concept sale dates, flight-ready patch (`flightreadyversion`, linked `Update:` page) and free-text production note (`productionstatenote`), collapsed by default |
+| `development` | `Development` | Real-world concept announced / concept sale dates, flight-ready patch (`addedinversion`, linked `Update:` page) and free-text production note (`productionstatenote`), collapsed by default |
 
 **Cost › Universe tab** displays an estimated in-game price rather than a Yes/No flag. `universeCell` resolves each side (Buy / Rent) as: an editorial `canBuy`/`canRent` `=no` override is a hard **No**; otherwise it shows the estimated UEC price (`~<price>`, via `Module:Entity/Acquisition.estimatePrice`, the median of the latest patch's UEX terminal rows, prefixed `~` because it is a cross-terminal estimate). With no price: a `=yes` override → **Yes**; a flight-ready ship, or one with market data but none on this side, → a definitive **No** (the vehicle is in-game, so a missing UEX price means it is simply not sold); an unreleased ship with no data at all → nil (the row drops, Unknown). The Buy/Rent/Pledge *availability flags* that feed `{{Entity/Availability}}` are a separate concern (see [Acquisition](#acquisition)).
 

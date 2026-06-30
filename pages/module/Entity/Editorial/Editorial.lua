@@ -85,6 +85,22 @@ local TRANSFORMS = {
 		end
 		return out
 	end,
+	-- Star-Citizen-specific: normalize a patch reference to its canonical Update
+	-- page. "Alpha 4.8.0" -> "Update:Star Citizen Alpha 4.8.0"; a [[link]] yields
+	-- its target; a bare "Star Citizen …" redirect title is namespaced.
+	patchPage = function(v)
+		local t = mw.text.trim(pageTitle(v))
+		if t == '' then
+			return nil
+		end
+		if t:match('^Update:') then
+			return t
+		end
+		if t:match('^Star Citizen ') then
+			return 'Update:' .. t
+		end
+		return 'Update:Star Citizen ' .. t
+	end,
 }
 
 --- Dig a dotted path out of a possibly-nil table. "speed.scm" -> apiData.speed.scm.

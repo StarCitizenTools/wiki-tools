@@ -182,4 +182,38 @@ function suite:testPercentileRowRanksPeersNotLoners()
 	self:assertEquals(1, stealthBars)
 end
 
+-- Cross-section is shown per axis (length/width/height), each effective (raw × the armor
+-- cross-section multiplier) with the modifier suffix. No cohort here, so they are plain
+-- labelled rows, not bars.
+function suite:testStealthCrossSectionPerAxis()
+	local real = mw.smw
+	mw.smw = nil -- no cohort -> plain rows
+	local section = Stats.build({
+		is_spaceship = true,
+		cross_section = { length = 1000, width = 2000, height = 3000 },
+		armor = { signal_cross_section = 0.5 },
+	}, {}, ed())
+	mw.smw = real
+
+	local stealth
+	for _, t in ipairs(section.sections) do
+		if t.label == 'Stealth' then
+			stealth = t
+		end
+	end
+	local function content(label)
+		for _, item in ipairs(stealth.items) do
+			if item.label == label then
+				return item.content
+			end
+		end
+	end
+	-- effective = raw × 0.5; modifier suffix -50%.
+	local len = content('Cross-section (length)')
+	self:assertTrue(len:find('500', 1, true) ~= nil)
+	self:assertTrue(len:find('50%', 1, true) ~= nil)
+	self:assertTrue(content('Cross-section (width)'):find('1,000', 1, true) ~= nil)
+	self:assertTrue(content('Cross-section (height)'):find('1,500', 1, true) ~= nil)
+end
+
 return suite

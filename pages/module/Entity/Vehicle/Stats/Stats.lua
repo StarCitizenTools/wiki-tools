@@ -322,7 +322,7 @@ function p.build(apiData, args, ed)
 	local irEffective = vehicleUtil.effectiveIrEmission(apiData)
 	percentileRow(
 		stealth,
-		'IR emission',
+		'IR',
 		irEffective,
 		stealthValueText(irEffective, armor.signal_infrared),
 		'ir_emission',
@@ -332,7 +332,7 @@ function p.build(apiData, args, ed)
 	local emEffective = vehicleUtil.effectiveEmEmission(apiData)
 	percentileRow(
 		stealth,
-		'EM emission',
+		'EM',
 		emEffective,
 		stealthValueText(emEffective, armor.signal_electromagnetic),
 		'em_emission',
@@ -347,7 +347,7 @@ function p.build(apiData, args, ed)
 	local cs = type(apiData.cross_section) == 'table' and apiData.cross_section or {}
 	for _, axis in ipairs({ 'length', 'width', 'height' }) do
 		local eff = vehicleUtil.applySignatureModifier(tonumber(cs[axis]), armor.signal_cross_section)
-		percentileRow(stealth, 'Cross-section (' .. axis .. ')', eff, stealthValueText(eff, armor.signal_cross_section))
+		percentileRow(stealth, 'CS (' .. axis .. ')', eff, stealthValueText(eff, armor.signal_cross_section))
 	end
 
 	-- Assemble tabs: Overview | Offense | Defense | Mobility | Travel | Stealth

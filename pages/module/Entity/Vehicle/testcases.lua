@@ -504,11 +504,11 @@ function suite:testDefenseAndStealthTabs()
 	self:assertEquals('6,336 HP', findItem(defense.items, 'Shield').content)
 	local stealth = findItem(findSection(s, 'stats').sections, 'Stealth')
 	-- Effective IR = 4000 × 1.13 = 4520; the +13% armor modifier rides as a colored suffix.
-	local ir = findItem(stealth.items, 'IR emission').content
+	local ir = findItem(stealth.items, 'IR').content
 	self:assertTrue(ir:find('4,520', 1, true) ~= nil)
 	self:assertTrue(ir:find('+13%', 1, true) ~= nil)
 	-- No EM emission value → no EM row at all (a lone multiplier never surfaces).
-	self:assertEquals(nil, findItem(stealth.items, 'EM emission'))
+	self:assertEquals(nil, findItem(stealth.items, 'EM'))
 end
 
 function suite:testHullResistanceTileBlock()

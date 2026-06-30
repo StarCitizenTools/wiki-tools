@@ -209,11 +209,11 @@ function suite:testStealthCrossSectionPerAxis()
 		end
 	end
 	-- effective = raw × 0.5; modifier suffix -50%.
-	local len = content('Cross-section (length)')
+	local len = content('CS (length)')
 	self:assertTrue(len:find('500', 1, true) ~= nil)
 	self:assertTrue(len:find('50%', 1, true) ~= nil)
-	self:assertTrue(content('Cross-section (width)'):find('1,000', 1, true) ~= nil)
-	self:assertTrue(content('Cross-section (height)'):find('1,500', 1, true) ~= nil)
+	self:assertTrue(content('CS (width)'):find('1,000', 1, true) ~= nil)
+	self:assertTrue(content('CS (height)'):find('1,500', 1, true) ~= nil)
 end
 
 return suite

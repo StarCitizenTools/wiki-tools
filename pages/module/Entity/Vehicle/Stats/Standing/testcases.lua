@@ -25,10 +25,13 @@ function suite:testPositionTiesShareRank()
 end
 
 function suite:testMedalPodium()
-	-- Emoji only; the ordinal rides in the title so it doubles as a hover tooltip.
-	self:assertEquals('<span title="1st of the size class">\240\159\165\135</span>', Standing.medal(1)) -- 🥇
-	self:assertEquals('<span title="2nd of the size class">\240\159\165\136</span>', Standing.medal(2)) -- 🥈
-	self:assertEquals('<span title="3rd of the size class">\240\159\165\137</span>', Standing.medal(3)) -- 🥉
+	-- Emoji only; the ordinal rides in the title so it doubles as a hover tooltip. The
+	-- emoji is an icon: user-select:none keeps it out of the copyable value, and the
+	-- margin spaces it from the value without a literal whitespace character.
+	local style = ' style="user-select:none;-webkit-user-select:none;margin-right:0.35em"'
+	self:assertEquals('<span title="1st of the size class"' .. style .. '>\240\159\165\135</span>', Standing.medal(1)) -- 🥇
+	self:assertEquals('<span title="2nd of the size class"' .. style .. '>\240\159\165\136</span>', Standing.medal(2)) -- 🥈
+	self:assertEquals('<span title="3rd of the size class"' .. style .. '>\240\159\165\137</span>', Standing.medal(3)) -- 🥉
 end
 
 function suite:testMedalNilBeyondPodium()

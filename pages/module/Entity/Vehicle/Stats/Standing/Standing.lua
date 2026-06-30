@@ -69,6 +69,13 @@ end
 --- Podium medal for a top-3 rank: just the emoji, with the full ordinal in a
 --- `title` so it doubles as a hover tooltip (🥇 titled "1st of the size class").
 --- nil beyond 3rd — later ranks in a small size class are noise, not signal.
+---
+--- The medal is an icon, not part of the copyable value: `user-select: none` keeps
+--- it out of text selection (so copying the value doesn't drag in the emoji), and a
+--- right margin spaces it from the value via CSS rather than a literal whitespace
+--- character (which would highlight and copy along with the value). Inline styles —
+--- not a class — because the inline-style sanitiser is a permissive blocklist, while
+--- TemplateStyles' allowlist may drop `user-select`.
 --- @param position number
 --- @return string|nil  HTML span for ranks 1-3, nil otherwise
 function p.medal(position)
@@ -77,7 +84,14 @@ function p.medal(position)
 		return nil
 	end
 	local ordinal = position .. ordinalSuffix(position)
-	return tostring(mw.html.create('span'):attr('title', ordinal .. ' of the size class'):wikitext(emoji))
+	return tostring(mw
+		.html
+		.create('span')
+		:attr('title', ordinal .. ' of the size class')
+		:css('user-select', 'none')
+		:css('-webkit-user-select', 'none') -- Safari/iOS still need the prefix
+		:css('margin-right', '0.35em')
+		:wikitext(emoji))
 end
 
 --- Interpolated colour for a 0-100 score along the percentile scale (olive ->

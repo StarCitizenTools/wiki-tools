@@ -49,7 +49,7 @@ Concept or unreleased ship with no in-game record. Declare the page as a planned
 | `name` | Name | string | No | (API name) | Display-name override for the infobox title. | `Constellation Andromeda` |
 | `kind` | Kind | string | No |  | Declares the page as a planned/concept vehicle when there is no in-game record (no UUID). Set to `Vehicle`. Leave blank for live in-game vehicles. | `Vehicle` |
 | `family` | Family | string | No | (derived from the API) | Vehicle family for concept/editorial pages without a UUID: one of `ship`, `ground`, or `gravlev`. In-game vehicles derive this automatically and ignore the value. | `ship` |
-| `role` | Role | string | No | (API value) | Role used in the page's generated short description. Note: the infobox Role row and the stored Role property always use the API value, so this only affects the short description. | `Heavy fighter` |
+| `role` | Role | string | No | (API value) | Role override (curated taxonomy). The wiki value wins over the API in the short description, the infobox Role row, and the stored Role property. | `Heavy fighter` |
 | `career` | Career | string | No | (API value) | Career override (curated taxonomy). The wiki value wins over the API. | `Transport` |
 | `size` | Size | string | No | (API value) | Ship-matrix size name: one of `Small`, `Medium`, `Large`, or `Capital`. Wins over the API size when both exist. | `Large` |
 | `manufacturer` | Manufacturer | string | No | (API value) | Manufacturer override, as a manufacturer code (e.g. `AEGS`) or a full name. Wins over the API. | `AEGS` |

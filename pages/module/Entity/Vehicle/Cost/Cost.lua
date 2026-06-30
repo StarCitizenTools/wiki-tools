@@ -105,8 +105,8 @@ function p.build(apiData, args, ed)
 	local effectiveState = ed:value('production_state', apiData.production_status)
 	local flightReady = productionStatus.key(effectiveState) == 'flightready'
 	local universe = {}
-	sectionBuilder.push(universe, 'Buy', universeCell(args.canbuy, uex.purchase, 'price_buy', flightReady))
-	sectionBuilder.push(universe, 'Rent', universeCell(args.canrent, uex.rental, 'price_rent', flightReady))
+	sectionBuilder.push(universe, 'Buy', universeCell(args.canBuy, uex.purchase, 'price_buy', flightReady))
+	sectionBuilder.push(universe, 'Rent', universeCell(args.canRent, uex.rental, 'price_rent', flightReady))
 
 	local pledge = {}
 	sectionBuilder.push(

@@ -139,7 +139,7 @@ local ROLE_SUFFIXES = {
 --- @param args table
 --- @return string|nil
 local function rolePhrase(apiData, args)
-	local role = args.role or apiData.role
+	local role = vehicleUtil.resolveRole(apiData, args)
 	if type(role) == 'table' then
 		role = table.concat(role, ' / ')
 	end
@@ -354,7 +354,7 @@ function p.getStructuredData(apiData, args, resolved)
 	local matrixSize = vehicleUtil.matrixSize(apiData, args)
 	local data = {
 		['Career'] = vehicleUtil.resolveCareer(apiData, args), -- wiki param wins (curated taxonomy)
-		['Role'] = apiData.role,
+		['Role'] = vehicleUtil.resolveRole(apiData, args),
 		['Size'] = tonumber(apiData.size_class),
 		['Ship matrix size'] = (matrixSize and matrixSize ~= '') and lang:ucfirst(matrixSize) or nil,
 		['Storage capacity'] = tonumber(apiData.vehicle_inventory),

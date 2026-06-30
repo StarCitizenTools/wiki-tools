@@ -81,7 +81,11 @@ function p.build(apiData, args, ed, typeName)
 	-- read (not an editorial overlap field) — the difference is systematic, so it
 	-- must not flag every vehicle into the manual-API-data maintenance category.
 	sectionBuilder.push(overview, 'Career', careerLink(vehicleUtil.resolveCareer(apiData, args)))
-	sectionBuilder.push(overview, 'Role', apiData.role)
+	local role = vehicleUtil.resolveRole(apiData, args)
+	if type(role) == 'table' then
+		role = table.concat(role, ' / ')
+	end
+	sectionBuilder.push(overview, 'Role', role)
 	sectionBuilder.push(overview, 'Size', sizeDisplay(apiData, args))
 	sectionBuilder.push(overview, 'Model', modelLink(apiData, args, ed))
 	return sectionBuilder.section({ key = 'overview', items = overview })

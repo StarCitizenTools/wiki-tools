@@ -19,6 +19,23 @@ function p.resolveCareer(apiData, args)
 	return type(c) == 'string' and c ~= '' and c or nil
 end
 
+--- Role value: the wiki `role` arg wins over the API (curated taxonomy, mirroring
+--- resolveCareer). Returns the raw value — the override string, or the API role
+--- (a string, or a slash-joinable table on the rare multi-role record). nil when neither.
+--- @param apiData table
+--- @param args table
+--- @return string|table|nil
+function p.resolveRole(apiData, args)
+	if type(args.role) == 'string' and args.role ~= '' then
+		return args.role
+	end
+	local r = apiData.role
+	if type(r) == 'table' then
+		return r
+	end
+	return type(r) == 'string' and r ~= '' and r or nil
+end
+
 --- Ship-matrix size string: the curated `|size=` arg wins over `apiData.size`
 --- (e.g. the Railen is editorially Large but the API reports medium). nil when neither.
 --- @param apiData table

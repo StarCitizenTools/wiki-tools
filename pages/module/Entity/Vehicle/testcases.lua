@@ -131,6 +131,18 @@ function suite:testCareerWikiParamWinsOverApi()
 	)
 end
 
+function suite:testRoleWikiParamWinsOverApi()
+	-- wiki `role` param wins over the API in the Role row (curated taxonomy, like Career).
+	local s = Vehicle.getSections({ is_spaceship = true, role = 'Light Fighter' }, { role = 'Heavy Fighter' }, {})
+	self:assertEquals('Heavy Fighter', findItem(findSection(s, 'overview').items, 'Role').content)
+end
+
+function suite:testRoleFromApiWhenNoArg()
+	-- with no wiki override, the Role row shows the API role.
+	local s = Vehicle.getSections({ is_spaceship = true, role = 'Light Fighter' }, {}, {})
+	self:assertEquals('Light Fighter', findItem(findSection(s, 'overview').items, 'Role').content)
+end
+
 function suite:testGroundVehicleSpeedUsesDrive()
 	local s = Vehicle.getSections({
 		crew = { min = 1, max = 2 },
@@ -198,6 +210,17 @@ function suite:testStructuredDataPureApiStats()
 	self:assertEquals('Combat', d['Career'])
 	self:assertEquals(2, d['Size'])
 	self:assertEquals(137, d['Roll rate'])
+end
+
+function suite:testStructuredDataRoleWikiParamWins()
+	-- the stored Role property honors the wiki `role` override (matches the Role row + short desc).
+	local d = Vehicle.getStructuredData({ role = 'Light Fighter' }, { role = 'Heavy Fighter' }, {})
+	self:assertEquals('Heavy Fighter', d['Role'])
+end
+
+function suite:testStructuredDataRoleFromApiWhenNoArg()
+	local d = Vehicle.getStructuredData({ role = 'Light Fighter' }, {}, {})
+	self:assertEquals('Light Fighter', d['Role'])
 end
 
 function suite:testStructuredDataOmitsManifestOwnedFields()
@@ -338,19 +361,29 @@ function suite:testCostUniverseEvenTerminalCountAveragesMiddlePair()
 end
 
 function suite:testCostUniverseCanBuyOverrideNoBeatsPrice()
-	-- Editorial canbuy=no asserts "not buyable" even when UEX has a price → No, no number.
+	-- canBuy=no asserts "not buyable" even when UEX has a price → No, no number. canBuy is the
+	-- canonical casing shared with {{Entity/Availability}} (the same arg getAcquisition reads).
 	local s = Vehicle.getSections({
 		uex_prices = { purchase = { { price_buy = 2000000 } } },
-	}, { canbuy = 'no' }, {})
+	}, { canBuy = 'no' }, {})
 	local buy = findItem(findItem(findSection(s, 'cost').sections, 'Universe').items, 'Buy').content
 	self:assertEquals('No', buy)
 end
 
 function suite:testCostUniverseCanBuyOverrideYesNoData()
-	-- canbuy=yes with no UEX data → Yes (no price to show)
-	local s = Vehicle.getSections({ uex_prices = {} }, { canbuy = 'yes' }, {})
+	-- canBuy=yes with no UEX data → Yes (no price to show)
+	local s = Vehicle.getSections({ uex_prices = {} }, { canBuy = 'yes' }, {})
 	local buy = findItem(findItem(findSection(s, 'cost').sections, 'Universe').items, 'Buy').content
 	self:assertEquals('Yes', buy)
+end
+
+function suite:testCostUniverseCanRentOverrideNo()
+	-- canRent=no asserts "not rentable" even with a rental price → No (camelCase, shared casing).
+	local s = Vehicle.getSections({
+		uex_prices = { rental = { { price_rent = 27000 } } },
+	}, { canRent = 'no' }, {})
+	local rent = findItem(findItem(findSection(s, 'cost').sections, 'Universe').items, 'Rent').content
+	self:assertEquals('No', rent)
 end
 
 function suite:testCostUniverseFlightReadyNoDataIsNo()

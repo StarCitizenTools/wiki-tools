@@ -413,36 +413,40 @@ if props then
 						fail(manifest.path, 'field ' .. field .. ' has missing or empty .arg')
 						edFailed = true
 					end
+					-- .smw is optional: absence means display-only (no SMW storage).
+					-- If present it must be a non-empty string declared in properties.json.
 					local smw = def.smw
-					if type(smw) ~= 'string' or smw == '' then
-						fail(manifest.path, 'field ' .. field .. ' has missing or empty .smw')
-						edFailed = true
-					elseif props[smw] == nil then
-						fail(
-							manifest.path,
-							'field ' .. field .. " smw '" .. smw .. "' is not declared in properties.json"
-						)
-						edFailed = true
-					else
-						local tagged = false
-						for _, m in ipairs(props[smw].modules or {}) do
-							if m == manifest.module then
-								tagged = true
-								break
-							end
-						end
-						if not tagged then
+					if smw ~= nil then
+						if type(smw) ~= 'string' or smw == '' then
+							fail(manifest.path, 'field ' .. field .. ' has non-string or empty .smw')
+							edFailed = true
+						elseif props[smw] == nil then
 							fail(
 								manifest.path,
-								'field '
-									.. field
-									.. " smw '"
-									.. smw
-									.. "' exists but is not tagged with module '"
-									.. manifest.module
-									.. "'"
+								'field ' .. field .. " smw '" .. smw .. "' is not declared in properties.json"
 							)
 							edFailed = true
+						else
+							local tagged = false
+							for _, m in ipairs(props[smw].modules or {}) do
+								if m == manifest.module then
+									tagged = true
+									break
+								end
+							end
+							if not tagged then
+								fail(
+									manifest.path,
+									'field '
+										.. field
+										.. " smw '"
+										.. smw
+										.. "' exists but is not tagged with module '"
+										.. manifest.module
+										.. "'"
+								)
+								edFailed = true
+							end
 						end
 					end
 				end

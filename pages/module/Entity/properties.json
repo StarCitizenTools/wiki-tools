@@ -521,6 +521,14 @@
 		],
 		"desc": "Firing mechanism of a vehicle weapon (Cannon, Repeater, …)."
 	},
+	"Flight ready version": {
+		"smw": "Page",
+		"bucket": "PAGE",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Game update in which the vehicle first became flight ready (the Update: patch page)."
+	},
 	"Full damage range": {
 		"smw": "Number",
 		"bucket": "DOUBLE",
@@ -1166,14 +1174,6 @@
 			"Vehicle"
 		],
 		"desc": "Production/flight-readiness state of a vehicle (e.g. Flight Ready, In Production)."
-	},
-	"Production state description": {
-		"smw": "Text",
-		"bucket": "TEXT",
-		"modules": [
-			"Vehicle"
-		],
-		"desc": "Editorial per-vehicle note about its production state (shown in the production-status tooltip)."
 	},
 	"Qig charge time": {
 		"smw": "Number",

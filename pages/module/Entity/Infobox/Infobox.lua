@@ -279,7 +279,10 @@ function p.render(result, args)
 	)
 
 	local html = infobox.render({
-		title = result.apiData.name or args.name or mw.title.getCurrentTitle().text,
+		-- The curated |name= wins over the API record name (which may carry an
+		-- internal suffix, e.g. "85X Limited" for the page titled "85X"), matching
+		-- the args-first name convention used for SMW/external-sites everywhere else.
+		title = args.name or result.apiData.name or mw.title.getCurrentTitle().text,
 		subtitle = subtitle,
 		image = buildImage(result.apiData, args, headerBadge),
 		sections = sections,

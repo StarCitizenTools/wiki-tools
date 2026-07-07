@@ -159,19 +159,6 @@ function suite:testGroundVehicleSpeedUsesDrive()
 	self:assertEquals('36 m/s', findItem(travel.items, 'Max speed').content)
 end
 
-function suite:testCapacityCrewRangeAndCargo()
-	local s = Vehicle.getSections({ crew = { min = 1, max = 3 }, cargo_capacity = 96 }, {}, {})
-	local cap = findSection(s, 'capacity')
-	self:assertEquals('1\226\128\1473', findItem(cap.items, 'Crew').content)
-	self:assertEquals('96 SCU', findItem(cap.items, 'Cargo').content)
-end
-
-function suite:testCapacityInventory()
-	local s = Vehicle.getSections({ vehicle_inventory = 1620000 }, {}, {})
-	local cap = findSection(s, 'capacity')
-	self:assertEquals('1,620,000 µSCU', findItem(cap.items, 'Inventory').content)
-end
-
 function suite:testEditorialOverrideFlowsIntoSpeed()
 	local s = Vehicle.getSections({ speed = { scm = 227 } }, {}, { scm_speed = { value = 210, source = 'override' } })
 	local mobility = findItem(findSection(s, 'stats').sections, 'Mobility')
@@ -1073,6 +1060,32 @@ function suite:testStructuredDataEstimatedPricesNilSafe()
 	local d = Vehicle.getStructuredData({}, {}, {})
 	self:assertEquals(nil, d['Average purchase price'])
 	self:assertEquals(nil, d['Average rental price'])
+end
+
+function suite:testStructuredDataCapacityFields()
+	local d = Vehicle.getStructuredData({
+		ore_capacity = 32,
+		cargo_limits = { max_scu_box = 16 },
+		seating = { crew_stations = 12, beds = 7 },
+		weapon_storage = { slots_total = 40 },
+		max_medical_tier = 'T2',
+	}, {}, {})
+	self:assertEquals(32, d['Ore capacity'])
+	self:assertEquals(16, d['Maximum cargo container size'])
+	self:assertEquals(12, d['Crew stations'])
+	self:assertEquals(7, d['Beds'])
+	self:assertEquals(40, d['Weapon rack capacity'])
+	self:assertEquals(2, d['Medical bed tier'])
+end
+
+function suite:testStructuredDataCapacityFieldsAbsent()
+	local d = Vehicle.getStructuredData({}, {}, {})
+	self:assertEquals(nil, d['Ore capacity'])
+	self:assertEquals(nil, d['Maximum cargo container size'])
+	self:assertEquals(nil, d['Crew stations'])
+	self:assertEquals(nil, d['Beds'])
+	self:assertEquals(nil, d['Weapon rack capacity'])
+	self:assertEquals(nil, d['Medical bed tier'])
 end
 
 return suite

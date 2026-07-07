@@ -26,6 +26,21 @@ local lang = mw.language.getContentLanguage()
 local QUANTUM_SPEED_DIVISOR = 1000000
 local QUANTUM_RANGE_DIVISOR = 1000000000
 
+--- Medical facility tier as an integer: "T2" -> 2. Passes through a numeric
+--- value; nil when absent or unparseable.
+--- @param tier any
+--- @return number|nil
+local function medicalTierNum(tier)
+	if type(tier) == 'number' then
+		return tier
+	end
+	if type(tier) ~= 'string' then
+		return nil
+	end
+	local digits = tier:match('%d+')
+	return digits and tonumber(digits) or nil
+end
+
 local p = {}
 
 --- Normalize a ship-matrix name to a URL slug (lowercase, spaces → hyphens). nil-safe.
@@ -286,11 +301,14 @@ end
 function p.getStructuredData(apiData, args, resolved)
 	local agility = type(apiData.agility) == 'table' and apiData.agility or {}
 	local armor = type(apiData.armor) == 'table' and apiData.armor or {}
+	local cargoLimits = type(apiData.cargo_limits) == 'table' and apiData.cargo_limits or {}
 	local crossSection = type(apiData.cross_section) == 'table' and apiData.cross_section or {}
 	local emission = type(apiData.emission) == 'table' and apiData.emission or {}
 	local fuel = type(apiData.fuel) == 'table' and apiData.fuel or {}
 	local quantum = type(apiData.quantum) == 'table' and apiData.quantum or {}
+	local seating = type(apiData.seating) == 'table' and apiData.seating or {}
 	local speed = type(apiData.speed) == 'table' and apiData.speed or {}
+	local weaponStorage = type(apiData.weapon_storage) == 'table' and apiData.weapon_storage or {}
 	local weaponry = type(apiData.weaponry) == 'table' and apiData.weaponry or {}
 	local missiles = type(weaponry.missiles) == 'table' and weaponry.missiles or {}
 	local uex = type(apiData.uex_prices) == 'table' and apiData.uex_prices or {}
@@ -318,6 +336,12 @@ function p.getStructuredData(apiData, args, resolved)
 		['Size'] = tonumber(apiData.size_class),
 		['Ship matrix size'] = (matrixSize and matrixSize ~= '') and lang:ucfirst(matrixSize) or nil,
 		['Storage capacity'] = tonumber(apiData.vehicle_inventory),
+		['Ore capacity'] = tonumber(apiData.ore_capacity),
+		['Maximum cargo container size'] = tonumber(cargoLimits.max_scu_box),
+		['Crew stations'] = tonumber(seating.crew_stations),
+		['Beds'] = tonumber(seating.beds),
+		['Medical bed tier'] = medicalTierNum(apiData.max_medical_tier),
+		['Weapon rack capacity'] = tonumber(weaponStorage.slots_total),
 		['Loaner vehicle'] = loaner,
 		['Roll rate'] = tonumber(agility.roll),
 		['Pitch rate'] = tonumber(agility.pitch),

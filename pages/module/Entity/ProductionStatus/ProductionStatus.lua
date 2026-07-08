@@ -12,6 +12,13 @@ local badge = require('Module:BadgeLua')
 
 local STYLES = 'Module:Entity/ProductionStatus/styles.css'
 
+--- Legacy / alternate status strings (already normalized) that map onto a
+--- canonical tier key. "In lore" was the old label for the Lore-only tier.
+--- @type table<string, string>
+local ALIASES = {
+	inlore = 'loreonly',
+}
+
 --- @type table<string, { label: string, class: string }>
 local TIERS = {
 	flightready = {
@@ -38,18 +45,20 @@ local TIERS = {
 		label = 'In concept',
 		class = 'production-status-badge--concept',
 	},
-	inlore = {
-		label = 'In lore',
+	loreonly = {
+		label = 'Lore-only',
 		class = 'production-status-badge--concept',
 	},
 }
 
 local p = {}
 
---- Normalized tier key for a status string (lowercase, non-alphanumerics
---- stripped) — e.g. "flight-ready" / "Flight ready" → "flightready". Lets callers
---- branch on production state (e.g. suppress loaners for flight-ready ships)
---- without re-implementing the normalization. nil for an empty / non-string value.
+--- Canonical tier key for a status string: lowercase, non-alphanumerics stripped,
+--- then aliases applied — e.g. "flight-ready" / "Flight ready" → "flightready",
+--- and both "In lore" and "Lore-only" → "loreonly". Lets callers branch on
+--- production state (e.g. suppress loaners for flight-ready ships, drop pledge
+--- availability for lore-only ships) without re-implementing the normalization.
+--- nil for an empty / non-string value.
 ---
 --- @param status string|nil
 --- @return string|nil
@@ -57,7 +66,8 @@ function p.key(status)
 	if type(status) ~= 'string' or status == '' then
 		return nil
 	end
-	return (status:lower():gsub('[^%a%d]', ''))
+	local key = (status:lower():gsub('[^%a%d]', ''))
+	return ALIASES[key] or key
 end
 
 --- Resolve a production status string (any case, non-alphanumerics stripped) to

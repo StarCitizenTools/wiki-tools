@@ -46,7 +46,16 @@ function suite:testResolveAllStates()
 	self:assertEquals('Active for Squadron 42', resolve('active-for-squadron-42').label)
 	self:assertEquals('Long term production', resolve('long-term-production').label)
 	self:assertEquals('In concept', resolve('in-concept').label)
-	self:assertEquals('In lore', resolve('in-lore').label)
+	self:assertEquals('Lore-only', resolve('in-lore').label)
+end
+
+function suite:testLoreOnlyAliasAndLabel()
+	-- Legacy "In lore" and canonical "Lore-only" resolve to the same tier/label
+	-- and normalize to the same canonical key.
+	self:assertEquals('Lore-only', resolve('In lore').label)
+	self:assertEquals('Lore-only', resolve('Lore-only').label)
+	self:assertEquals('loreonly', ProductionStatus.key('In lore'))
+	self:assertEquals('loreonly', ProductionStatus.key('Lore-only'))
 end
 
 function suite:testDriveReadyIsNotAState()

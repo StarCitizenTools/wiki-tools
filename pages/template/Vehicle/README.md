@@ -1,10 +1,10 @@
 # Template:Vehicle
 
-Renders a vehicle's infobox through Module:Entity, the same engine that powers Template:Entity. {{Vehicle}} is the recommended entry point for ship and ground-vehicle pages: the invocation is identical to {{Entity}}, but the editing form lists only the parameters that apply to vehicles, so you are not wading through item or weapon fields that a vehicle never uses. For an in-game vehicle, supply the entity UUID (or let it fall back to the UUID already stored on the page) and the infobox fills itself from the live API. The curated and editorial parameters below are for overriding a wrong API value or for documenting concept and unreleased ships that have no in-game record yet.
+Renders a vehicle's infobox through Module:Entity, the same engine that powers Template:Entity. `{{Vehicle}}` is the recommended entry point for ship and ground-vehicle pages: the invocation is identical to `{{Entity}}`, but the editing form lists only the parameters that apply to vehicles, so you are not wading through item or weapon fields that a vehicle never uses. For an in-game vehicle, supply the entity UUID (or let it fall back to the UUID already stored on the page) and the infobox fills itself from the live API. The curated and editorial parameters below are for overriding a wrong API value or for documenting concept and unreleased ships that have no in-game record yet.
 
 ## Usage
 
-In-game vehicle, everything from the API. The UUID can be omitted if {{Vehicle}} or {{Entity}} was invoked earlier on the page (it falls back to the UUID stored on the page):
+In-game vehicle, everything from the API. The UUID can be omitted if `{{Vehicle}}` or `{{Entity}}` was invoked earlier on the page (it falls back to the UUID stored on the page):
 
 ```wikitext
 {{Vehicle|uuid=08a5bfdb-1972-421f-83fe-be03b7ac5222}}
@@ -43,10 +43,18 @@ Concept or unreleased ship with no in-game record. Declare the page as a planned
 
 ## Parameters
 
+<!-- templatedata: format=block -->
+<!-- templatedata: suggestedvalues kind = Vehicle -->
+<!-- templatedata: suggestedvalues family = ship; ground; gravlev -->
+<!-- templatedata: suggestedvalues size = Small; Medium; Large; Capital -->
+<!-- templatedata: suggestedvalues career = Combat; Transport; Exploration; Industrial; Support; Competition; Ground; Multi-role -->
+<!-- templatedata: suggestedvalues productionstate = Flight ready; In production; Active production; Active for Squadron 42; Long term production; In concept; Lore-only -->
+
 | Name | Label | Type | Required | Default | Description | Example |
 |------|-------|------|----------|---------|-------------|---------|
 | `uuid` | UUID | string | No | (falls back to the UUID stored on the current page) | In-game entity UUID. If omitted, defaults to the UUID stored on the page by a prior {{Vehicle}}/{{Entity}} invocation. Required for an in-game vehicle if nothing has set the stored UUID yet. | `08a5bfdb-1972-421f-83fe-be03b7ac5222` |
 | `name` | Name | string | No | (API name) | Display-name override for the infobox title. | `Constellation Andromeda` |
+| `image` | Image | wiki-file-name | No |  | Infobox image, as a file name on the wiki (no `File:` prefix). Overrides the image otherwise resolved for the page. | `Gladius.jpg` |
 | `kind` | Kind | string | No |  | Declares the page as a planned/concept vehicle when there is no in-game record (no UUID). Set to `Vehicle`. Leave blank for live in-game vehicles. | `Vehicle` |
 | `family` | Family | string | No | (derived from the API) | Vehicle family for concept/editorial pages without a UUID: one of `ship`, `ground`, or `gravlev`. In-game vehicles derive this automatically and ignore the value. | `ship` |
 | `role` | Role | string | No | (API value) | Role override (curated taxonomy). The wiki value wins over the API in the short description, the infobox Role row, and the stored Role property. | `Heavy fighter` |
@@ -80,7 +88,7 @@ Concept or unreleased ship with no in-game record. Declare the page as a planned
 | `originalpledgecost` | Original pledge price | number | No |  | Original standalone pledge price, in USD; shown as "was $M" when it differs from the current price. Editorial only. | `225` |
 | `originalwarbondcost` | Original warbond price | number | No |  | Original warbond pledge price, in USD. Editorial only. | `200` |
 | `pledgeavailability` | Pledge availability | string | No |  | Free-text pledge-availability note. Editorial only. | `Limited` |
-| `productionstate` | Production state | string | No | (API value) | Production status: one of `Flight ready`, `In production`, `Active production`, `Active for Squadron 42`, `Long term production`, `In concept`, `In lore`. (concept/unreleased ships; in-game ships use the API value) | `In concept` |
+| `productionstate` | Production state | string | No | (API value) | Production status: one of `Flight ready`, `In production`, `Active production`, `Active for Squadron 42`, `Long term production`, `In concept`, `Lore-only`. (concept/unreleased ships; in-game ships use the API value) | `In concept` |
 | `addedinversion` | Added in version | string | No |  | Game update the vehicle became flight ready (e.g. `Alpha 4.8.0`); rendered as the "Flight ready in" row in the Development section and stored as the `Added in version` SMW property (the canonical `Update:` page). Editorial only. | `Alpha 4.8.0` |
 | `productionstatenote` | Production state note | string | No |  | Free-text production note shown in the Development section (e.g. rework status). Display-only, not stored in SMW. Editorial only. | `Rework in progress` |
 | `series` | Series | string | No |  | Series/model grouping (the "Model" row). Alias: `model`. Editorial only. | `Constellation` |
@@ -92,7 +100,7 @@ Concept or unreleased ship with no in-game record. Declare the page as a planned
 
 ## Behavior
 
-- {{Vehicle}} is a pure passthrough to Module:Entity, byte-identical to {{Entity}} in what it invokes. The only difference is the TemplateData below, which scopes the editing form to vehicle parameters. Because it injects no `kind` default, a live page that relies on its stored UUID keeps reading that UUID exactly as it does under {{Entity}}.
+- `{{Vehicle}}` is a pure passthrough to Module:Entity, byte-identical to `{{Entity}}` in what it invokes. The only difference is the TemplateData below, which scopes the editing form to vehicle parameters. Because it injects no `kind` default, a live page that relies on its stored UUID keeps reading that UUID exactly as it does under `{{Entity}}`.
 - For an in-game vehicle the infobox pulls its stats from the API. The editorial/planned parameters (speeds, crew, cargo, mass, dimensions, prices, production state, dates) are primarily for concept and unreleased ships; where the same value also exists in the API, the wikitext value overrides the API value.
 - A page with no in-game record (a concept or unreleased ship) is declared planned with `kind=Vehicle`; its family then comes from `family=` (`ship`, `ground`, or `gravlev`) and every stat is supplied by hand.
 - The multi-value URL parameters (`brochureurl`, `trailerurl`, `presentationurl`, `qaurl`, `whitleysguideurl`) each accept a `;`-separated list to register more than one link.

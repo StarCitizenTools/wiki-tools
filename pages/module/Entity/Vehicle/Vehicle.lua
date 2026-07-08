@@ -459,11 +459,16 @@ function p.getCategories(apiData, args, resolved, family)
 	if pledge and pledge > 0 then
 		cats[#cats + 1] = isShip and 'Pledge ships' or 'Pledge vehicles'
 	end
-	-- Production state label: "Flight ready"
+	-- Production state category: the label ("Flight ready"), except lore-only
+	-- vehicles get the dedicated "Lore-only vehicles" browse category.
 	local state = ed:value('production_state', apiData.production_status)
-	local stateLabel = productionStatus.label(state)
-	if stateLabel then
-		cats[#cats + 1] = stateLabel
+	if productionStatus.key(state) == 'loreonly' then
+		cats[#cats + 1] = 'Lore-only vehicles'
+	else
+		local stateLabel = productionStatus.label(state)
+		if stateLabel then
+			cats[#cats + 1] = stateLabel
+		end
 	end
 	-- Series grouping "<mfr name> <series>" (e.g. "Gatac Manufacture Railen"), and
 	-- generation grouping "<series> <generation>" (e.g. "Constellation Mk4").

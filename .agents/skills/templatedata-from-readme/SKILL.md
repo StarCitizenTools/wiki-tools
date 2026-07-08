@@ -103,6 +103,7 @@ Unrecognized types fall back to `unknown` with a warning printed to the user.
 5. **Look for HTML comment overrides** anywhere in the README:
    - `<!-- templatedata: format=block -->` → `format: "block"`
    - `<!-- templatedata: format=inline -->` → `format: "inline"`
+   - `<!-- templatedata: suggestedvalues <param> = a; b; c -->` → adds `"suggestedvalues": ["a", "b", "c"]` to that param. Values are `;`-separated (so a value may contain commas/spaces, e.g. `Active for Squadron 42`); trimmed; empty entries dropped. `<param>` must be a key in the Parameters table (silently ignored otherwise). Use one directive per param. suggestedvalues are non-restrictive hints VE offers as a dropdown/autocomplete — right for closed or curated vocabularies (a `family` of `ship; ground; gravlev`, a size or production-state enum).
 6. **Emit the block** with the JSON pretty-printed and wrapped in `<templatedata>...</templatedata>`.
 
 ## Edge cases
@@ -111,7 +112,8 @@ Unrecognized types fall back to `unknown` with a warning printed to the user.
 - **Empty table body** (header only) → emit `<templatedata>` with empty `params` so VisualEditor doesn't show "Unknown template parameters".
 - **Pipe character in cell content** must be escaped as `\|` per CommonMark; the parser must respect that.
 - **Multi-line cell content** — Markdown tables don't natively support newlines in cells. Use `<br>` (HTML) — passes through to TemplateData fine.
-- **Aliases / suggested / autovalue / sets / maps** — not supported by the basic 6-column table. Either add escape-hatch HTML comments later, or extend the table when needed. v1 doesn't handle these; report as out-of-scope.
+- **suggestedvalues** — supported via the `<!-- templatedata: suggestedvalues <param> = a; b; c -->` escape-hatch comment (see Process step 5), not a table column.
+- **Aliases / autovalue / sets / maps** — not supported by the basic table. Add an escape-hatch HTML comment convention (as done for suggestedvalues) or extend the table when needed; otherwise report as out-of-scope.
 
 ## Output discipline
 

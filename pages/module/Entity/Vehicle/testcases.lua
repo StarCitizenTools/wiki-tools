@@ -277,6 +277,30 @@ function suite:testCostUniverseBuyShowsEstimatedPrice()
 	self:assertEquals('No', findItem(universe.items, 'Rent').content)
 end
 
+function suite:testCostAvailabilitySkippedForLoreOnly()
+	-- Lore-only vehicles were never for sale: the Pledge Availability row is
+	-- suppressed even when a value is present, while other pledge rows still show.
+	local s = Vehicle.getSections({}, { family = 'ship', manufacturer = 'MISC' }, {
+		production_state = { value = 'Lore-only', source = 'editorial' },
+		pledge_price = { value = 100, source = 'editorial' },
+		pledge_availability = { value = 'Never sold', source = 'editorial' },
+	})
+	local pledge = findItem(findSection(s, 'cost').sections, 'Pledge')
+	self:assertEquals(nil, findItem(pledge.items, 'Availability'))
+	self:assertTrue(findItem(pledge.items, 'Standalone') ~= nil)
+end
+
+function suite:testCostAvailabilityShownForNonLore()
+	-- A non-lore vehicle still shows the Availability row.
+	local s = Vehicle.getSections({}, { family = 'ship', manufacturer = 'MISC' }, {
+		production_state = { value = 'In concept', source = 'editorial' },
+		pledge_price = { value = 100, source = 'editorial' },
+		pledge_availability = { value = 'Limited', source = 'editorial' },
+	})
+	local pledge = findItem(findSection(s, 'cost').sections, 'Pledge')
+	self:assertEquals('Limited', findItem(pledge.items, 'Availability').content)
+end
+
 function suite:testCostUniverseBuyPriceIsMedianAcrossTerminals()
 	-- Three terminals, same patch → median of buy prices (not min/max/mean-of-extremes).
 	local s = Vehicle.getSections({
@@ -944,6 +968,30 @@ function suite:testEditorialModeCategoriesShip()
 	self:assertEquals(true, set['Large ships'])
 	self:assertEquals(true, set['In concept'])
 	self:assertEquals(true, set['Transport career'])
+end
+
+function suite:testEditorialModeCategoriesLoreOnly()
+	-- Lore-only vehicles get the dedicated "Lore-only vehicles" browse category,
+	-- not the plain state label. Both the canonical "Lore-only" and the legacy
+	-- "In lore" value land in it.
+	local apiData = {}
+	local args = { family = 'ship', manufacturer = 'MISC', size = 'Large' }
+	local family = (function()
+		local s = Vehicle.resolveSubtype(apiData, args)
+		return s and s.family
+	end)()
+	for _, value in ipairs({ 'Lore-only', 'In lore' }) do
+		local cats = Vehicle.getCategories(apiData, args, {
+			production_state = { value = value, source = 'editorial' },
+		}, family)
+		local set = {}
+		for _, c in ipairs(cats) do
+			set[c] = true
+		end
+		self:assertEquals(true, set['Lore-only vehicles'])
+		self:assertEquals(nil, set['Lore-only'])
+		self:assertEquals(nil, set['In lore'])
+	end
 end
 
 function suite:testEditorialModeSectionsNoError()

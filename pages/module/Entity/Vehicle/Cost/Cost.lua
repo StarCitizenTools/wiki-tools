@@ -115,7 +115,10 @@ function p.build(apiData, args, ed)
 		pledgeCell(ed:value('pledge_price', apiData.msrp), ed:value('original_pledge_price'))
 	)
 	sectionBuilder.push(pledge, 'Warbond', pledgeCell(ed:value('warbond_price'), ed:value('original_warbond_price')))
-	sectionBuilder.push(pledge, 'Availability', ed:value('pledge_availability'))
+	-- Lore-only vehicles were never for sale, so pledge availability is moot — skip it.
+	if productionStatus.key(effectiveState) ~= 'loreonly' then
+		sectionBuilder.push(pledge, 'Availability', ed:value('pledge_availability'))
+	end
 	sectionBuilder.push(pledge, 'Loaner', loanerList(apiData, effectiveState))
 
 	local insuranceItems = {}

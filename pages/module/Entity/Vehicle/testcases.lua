@@ -994,6 +994,26 @@ function suite:testEditorialModeCategoriesLoreOnly()
 	end
 end
 
+function suite:testEditorialModeCategoriesUnconfirmed()
+	-- Unconfirmed vehicles get the dedicated "Unconfirmed vehicles" browse
+	-- category, not the plain state label.
+	local apiData = {}
+	local args = { family = 'ship', manufacturer = 'MISC', size = 'Large' }
+	local family = (function()
+		local s = Vehicle.resolveSubtype(apiData, args)
+		return s and s.family
+	end)()
+	local cats = Vehicle.getCategories(apiData, args, {
+		production_state = { value = 'Unconfirmed', source = 'editorial' },
+	}, family)
+	local set = {}
+	for _, c in ipairs(cats) do
+		set[c] = true
+	end
+	self:assertEquals(true, set['Unconfirmed vehicles'])
+	self:assertEquals(nil, set['Unconfirmed'])
+end
+
 function suite:testEditorialModeSectionsNoError()
 	-- getSections must not crash on apiData = {} and must resolve the family type.
 	local s = Vehicle.getSections({}, { family = 'ship', manufacturer = 'MISC' }, {

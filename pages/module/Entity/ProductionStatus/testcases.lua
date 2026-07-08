@@ -47,6 +47,7 @@ function suite:testResolveAllStates()
 	self:assertEquals('Long term production', resolve('long-term-production').label)
 	self:assertEquals('In concept', resolve('in-concept').label)
 	self:assertEquals('Lore-only', resolve('in-lore').label)
+	self:assertEquals('Unconfirmed', resolve('unconfirmed').label)
 end
 
 function suite:testLoreOnlyAliasAndLabel()

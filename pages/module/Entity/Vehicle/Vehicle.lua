@@ -435,6 +435,14 @@ function p.getExternalSiteItems(apiData, args)
 	return items
 end
 
+--- Production states whose browse category is not the plain label. Keyed by the
+--- normalized ProductionStatus key (see Module:Entity/ProductionStatus.key).
+--- @type table<string, string>
+local STATE_BROWSE_CATEGORY = {
+	loreonly = 'Lore-only vehicles',
+	unconfirmed = 'Unconfirmed vehicles',
+}
+
 --- Legacy {{Vehicle}}-parity browse categories beyond the structural bucket
 --- (Ships / Ground vehicles) and the manufacturer category. Size/career/etc. are
 --- ALSO SMW facets; these categories are additive for navigation. Pure.
@@ -459,11 +467,12 @@ function p.getCategories(apiData, args, resolved, family)
 	if pledge and pledge > 0 then
 		cats[#cats + 1] = isShip and 'Pledge ships' or 'Pledge vehicles'
 	end
-	-- Production state category: the label ("Flight ready"), except lore-only
-	-- vehicles get the dedicated "Lore-only vehicles" browse category.
+	-- Production state category: the label ("Flight ready"), except states with a
+	-- dedicated browse category ("Lore-only vehicles" / "Unconfirmed vehicles").
 	local state = ed:value('production_state', apiData.production_status)
-	if productionStatus.key(state) == 'loreonly' then
-		cats[#cats + 1] = 'Lore-only vehicles'
+	local stateCat = STATE_BROWSE_CATEGORY[productionStatus.key(state)]
+	if stateCat then
+		cats[#cats + 1] = stateCat
 	else
 		local stateLabel = productionStatus.label(state)
 		if stateLabel then

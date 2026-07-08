@@ -1,8 +1,9 @@
 /* Production status palette: hardcoded, theme-aware (light-dark), a traffic-light
    progression from flight-ready (green) through in-production (amber) to
-   in-concept (red, furthest from playable). Higher specificity
-   (.t-badge.production-status-badge--*) overrides the BadgeLua base regardless
-   of stylesheet order. */
+   in-concept (red, furthest from playable). Unconfirmed sits outside that
+   progression — it is about confirmation, not production progress — so it takes
+   a neutral grey. Higher specificity (.t-badge.production-status-badge--*)
+   overrides the BadgeLua base regardless of stylesheet order. */
 
 .t-badge.production-status-badge--ready {
 	color: light-dark(oklch(51% 0.12 150), oklch(70% 0.16 150));
@@ -20,4 +21,10 @@
 	color: light-dark(oklch(52% 0.16 25), oklch(72% 0.15 25));
 	background-color: light-dark(oklch(95% 0.04 25), oklch(17% 0.055 25));
 	border-color: light-dark(oklch(91% 0.07 25), oklch(28% 0.085 25));
+}
+
+.t-badge.production-status-badge--unconfirmed {
+	color: light-dark(oklch(48% 0.015 250), oklch(72% 0.02 250));
+	background-color: light-dark(oklch(95% 0.008 250), oklch(20% 0.012 250));
+	border-color: light-dark(oklch(88% 0.015 250), oklch(30% 0.02 250));
 }

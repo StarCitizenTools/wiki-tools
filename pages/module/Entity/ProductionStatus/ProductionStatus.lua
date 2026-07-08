@@ -49,6 +49,10 @@ local TIERS = {
 		label = 'Lore-only',
 		class = 'production-status-badge--concept',
 	},
+	unconfirmed = {
+		label = 'Unconfirmed',
+		class = 'production-status-badge--unconfirmed',
+	},
 }
 
 local p = {}

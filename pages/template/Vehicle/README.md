@@ -48,7 +48,7 @@ Concept or unreleased ship with no in-game record. Declare the page as a planned
 <!-- templatedata: suggestedvalues family = ship; ground; gravlev -->
 <!-- templatedata: suggestedvalues size = Small; Medium; Large; Capital -->
 <!-- templatedata: suggestedvalues career = Combat; Transport; Exploration; Industrial; Support; Competition; Ground; Multi-role -->
-<!-- templatedata: suggestedvalues productionstate = Flight ready; In production; Active production; Active for Squadron 42; Long term production; In concept; Lore-only -->
+<!-- templatedata: suggestedvalues productionstate = Flight ready; In production; Active production; Active for Squadron 42; Long term production; In concept; Lore-only; Unconfirmed -->
 
 | Name | Label | Type | Required | Default | Description | Example |
 |------|-------|------|----------|---------|-------------|---------|
@@ -88,7 +88,7 @@ Concept or unreleased ship with no in-game record. Declare the page as a planned
 | `originalpledgecost` | Original pledge price | number | No |  | Original standalone pledge price, in USD; shown as "was $M" when it differs from the current price. Editorial only. | `225` |
 | `originalwarbondcost` | Original warbond price | number | No |  | Original warbond pledge price, in USD. Editorial only. | `200` |
 | `pledgeavailability` | Pledge availability | string | No |  | Free-text pledge-availability note. Editorial only. | `Limited` |
-| `productionstate` | Production state | string | No | (API value) | Production status: one of `Flight ready`, `In production`, `Active production`, `Active for Squadron 42`, `Long term production`, `In concept`, `Lore-only`. (concept/unreleased ships; in-game ships use the API value) | `In concept` |
+| `productionstate` | Production state | string | No | (API value) | Production status: one of `Flight ready`, `In production`, `Active production`, `Active for Squadron 42`, `Long term production`, `In concept`, `Lore-only`, `Unconfirmed`. (concept/unreleased ships; in-game ships use the API value) | `In concept` |
 | `addedinversion` | Added in version | string | No |  | Game update the vehicle became flight ready (e.g. `Alpha 4.8.0`); rendered as the "Flight ready in" row in the Development section and stored as the `Added in version` SMW property (the canonical `Update:` page). Editorial only. | `Alpha 4.8.0` |
 | `productionstatenote` | Production state note | string | No |  | Free-text production note shown in the Development section (e.g. rework status). Display-only, not stored in SMW. Editorial only. | `Rework in progress` |
 | `series` | Series | string | No |  | Series/model grouping (the "Model" row). Alias: `model`. Editorial only. | `Constellation` |

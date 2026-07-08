@@ -2,8 +2,11 @@ require('strict')
 
 --- 'card' kind — a compact entity cell (thumbnail + eyebrow + title) rendered by
 --- the gadget's scwEntityCard type. Generalised from PledgeVehicleGrid's buildCard.
---- Spec: { field, header, titleLabel, imageLabel?, filter?, filterOn?, width?,
+--- Spec: { field, header, titleLabel, imageLabel?, filter?, filterOn?,
+---         width? | (flex?, minWidth?),
 ---         eyebrow? = fun(result): { text, full?, href?, icon? }|nil }.
+--- Sizing is either fixed (`width`) or flexible (`flex`, with `minWidth` as its
+--- floor) so the card can absorb a grid's leftover horizontal space.
 --- The eyebrow resolver is consumer-supplied (e.g. PledgeVehicleGrid maps a
 --- manufacturer to its short name + brand glyph), so this kind stays generic.
 --- `filterOn` ('title'|'eyebrow') tells the gadget which packed field the filter
@@ -24,9 +27,17 @@ function p.buildColDef(spec)
 		type = 'scwEntityCard',
 		filter = spec.filter or 'aggridSet',
 		sortable = true,
-		width = spec.width,
 		suppressAutoSize = true,
 	}
+	-- Sizing: a fixed `width`, or `flex` (with `minWidth` as its floor) to absorb
+	-- the grid's leftover horizontal space. flex and width are mutually exclusive
+	-- in AG Grid, so emit only one.
+	if spec.flex then
+		def.flex = spec.flex
+		def.minWidth = spec.minWidth
+	else
+		def.width = spec.width
+	end
 	-- Which packed field the filter keys on. The gadget's scwEntityCard
 	-- filterValueGetter reads this; unset = its default (eyebrow → title), so
 	-- PledgeVehicleGrid (no filterOn) is unaffected.

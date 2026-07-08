@@ -29,8 +29,11 @@ local NAME_ALIAS = 'Name'
 -- Fixed query tail.
 local QUERY_OPTIONS = { 'mainlabel=-', 'limit=1000' }
 
--- Lead card geometry. The lead is a fixed-width card; rows are compact when the
--- card is just thumbnail + name, and taller when an eyebrow adds a second line.
+-- Lead card geometry. The lead flexes to absorb any leftover horizontal space
+-- (the data columns auto-size to content, so short tables would otherwise leave a
+-- ragged gap on the right); LEAD_WIDTH is its floor, not a fixed width. Rows are
+-- compact when the card is just thumbnail + name, taller when an eyebrow adds a
+-- second line.
 local LEAD_WIDTH = 260
 local ROW_HEIGHT = 48
 local EYEBROW_ROW_HEIGHT = 60
@@ -186,7 +189,11 @@ local function buildSpecs(results, columns, eyebrowColumn)
 		imageLabel = IMAGE_ALIAS,
 		filterOn = 'title',
 		filter = 'agTextColumnFilter',
-		width = LEAD_WIDTH,
+		-- Grow to fill horizontal slack left by the content-sized data columns, so
+		-- rows span the full container instead of ending short. LEAD_WIDTH floors it;
+		-- when the columns already overflow there is no slack and it sits at the floor.
+		flex = 1,
+		minWidth = LEAD_WIDTH,
 	}
 	if eyebrowColumn then
 		leadSpec.eyebrow = eyebrowResolver(p.columnAlias(eyebrowColumn))

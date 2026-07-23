@@ -15,7 +15,7 @@ Pure transformation skill: takes a README.md following the wiki-tools template-d
 
 ## Input format
 
-A README.md following the wiki-tools convention. The Parameters table can be **6 columns** (Label is derived from Name) or **7 columns** (Label provided explicitly). The skill detects column count from the header row.
+A README.md following the wiki-tools convention. The Parameters table can be **6 columns** (Label is derived from Name) or **7 columns** (Label provided explicitly). Either form may append an optional trailing **Aliases** column. The skill detects the shape from the header row names, not the count.
 
 **6-column form (default):**
 
@@ -47,6 +47,16 @@ the TemplateData top-level `description`.
 |------|-------|------|----------|---------|-------------|---------|
 | `uuid` | UUID | string | No | (falls back to SMW) | Entity UUID. | `80ee3b95-...` |
 | `paramB` | Param B | number | No | `0` | Another desc. | `42` |
+```
+
+**Optional trailing Aliases column** (on either form) — for parameters the underlying module accepts under alternative arg names:
+
+```markdown
+| Name | Label | Type | Required | Default | Description | Example | Aliases |
+|------|-------|------|----------|---------|-------------|---------|---------|
+| `model` | Model | string | No |  | Series/model grouping. | `Constellation` | `series` |
+| `generation` | Generation | string | No |  | Mark within the series. | `Mk IV` | `Generation`; `mark` |
+| `name` | Name | string | No |  | Display name. | `Andromeda` |  |
 ```
 
 ## Output format
@@ -84,6 +94,7 @@ Column indices below assume the 6-column form. For the 7-column form, shift Type
 | Top-level | `description` | First paragraph after the H1 title. **Strip link syntax to plain text** — both Markdown `[Text](URL)` → `Text` and wikitext `[[Page\|Text]]` → `Text`, `[[Page]]` → `Page`. TemplateData descriptions are rendered as plain text by VisualEditor; link syntax leaks through ugly. |
 | Top-level | `paramOrder` | Order of rows in the table. |
 | Top-level | `format` | Default `inline`. Override via HTML comment in the README: `<!-- templatedata: format=block -->`. |
+| Aliases (optional trailing column) | `aliases` | `;`-separated arg names, backticks optional (same separator convention as suggestedvalues); trimmed; empty entries dropped. Empty cell → omit `aliases`. Names are case-sensitive and used verbatim (`Generation` ≠ `generation`). Only list names the module actually reads — check its editorial manifest / arg handling before documenting an alias. |
 | Derived `label` (6-col only) | `label` | Name with first letter capitalized; underscores replaced with spaces. For acronyms or other custom labels, use the 7-column form. |
 
 ### Type vocabulary
@@ -98,7 +109,7 @@ Unrecognized types fall back to `unknown` with a warning printed to the user.
 
 1. **Locate the H1 title** (first `# ...` line). Everything after it up to the next blank line is the top-level `description`.
 2. **Find the Parameters section** — heading `## Parameters` followed by a Markdown table. If absent, return `nil` and tell the caller (the template has no params; the caller decides whether to omit the block or report an error).
-3. **Parse the table** — header row, separator (`|---|---|...`), then body rows. Detect form by the header: `Name | Type | Required | Default | Description | Example` is 6-column; `Name | Label | Type | Required | Default | Description | Example` is 7-column. Reject other shapes — halt with an error pointing at the offending row.
+3. **Parse the table** — header row, separator (`|---|---|...`), then body rows. Detect form by the header names: `Name | Type | Required | Default | Description | Example` is 6-column; `Name | Label | Type | Required | Default | Description | Example` is 7-column; either may carry a trailing `Aliases` column. Reject other shapes — halt with an error pointing at the offending row.
 4. **Apply the conversion rules above** to each row.
 5. **Look for HTML comment overrides** anywhere in the README:
    - `<!-- templatedata: format=block -->` → `format: "block"`
@@ -113,7 +124,8 @@ Unrecognized types fall back to `unknown` with a warning printed to the user.
 - **Pipe character in cell content** must be escaped as `\|` per CommonMark; the parser must respect that.
 - **Multi-line cell content** — Markdown tables don't natively support newlines in cells. Use `<br>` (HTML) — passes through to TemplateData fine.
 - **suggestedvalues** — supported via the `<!-- templatedata: suggestedvalues <param> = a; b; c -->` escape-hatch comment (see Process step 5), not a table column.
-- **Aliases / autovalue / sets / maps** — not supported by the basic table. Add an escape-hatch HTML comment convention (as done for suggestedvalues) or extend the table when needed; otherwise report as out-of-scope.
+- **Aliases** — supported via the optional trailing Aliases column. When the column is present, empty cells simply omit `aliases` — no need to strip the column for alias-free params.
+- **autovalue / sets / maps** — not supported. Add an escape-hatch HTML comment convention (as done for suggestedvalues) or extend the table when needed; otherwise report as out-of-scope.
 
 ## Output discipline
 

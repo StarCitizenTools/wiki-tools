@@ -130,7 +130,7 @@ Unrecognized types fall back to `unknown` with a warning printed to the user.
 ## Output discipline
 
 - JSON must be valid and parseable. Use a JSON serializer, not string concatenation.
-- 4-space indent for the JSON body (matches existing on-wiki style).
+- Tab indent for the JSON body (matches the existing on-wiki blocks; a 4-space emission re-indents the entire block and buries the real diff in whitespace noise).
 - Never inject extra whitespace before `<templatedata>` or after `</templatedata>` — callers control surrounding whitespace.
 
 ## Validation

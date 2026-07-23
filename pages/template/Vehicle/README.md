@@ -52,7 +52,6 @@ Concept or unreleased ship with no in-game record. Declare the page as a planned
 
 | Name | Label | Type | Required | Default | Description | Example | Aliases |
 |------|-------|------|----------|---------|-------------|---------|---------|
-| `novariant` | Suppress variant category | boolean | No |  | Use for vehicles with no variants such as the Aegis Gladius | `yes` |  |
 | `uuid` | UUID | string | No | (falls back to the UUID stored on the current page) | In-game entity UUID. If omitted, defaults to the UUID stored on the page by a prior {{Vehicle}}/{{Entity}} invocation. Required for an in-game vehicle if nothing has set the stored UUID yet. | `08a5bfdb-1972-421f-83fe-be03b7ac5222` |  |
 | `name` | Name | string | No | (API name) | Display-name override for the infobox title. | `Constellation Andromeda` |  |
 | `image` | Image | wiki-file-name | No |  | Infobox image, as a file name on the wiki (no `File:` prefix). Overrides the image otherwise resolved for the page. | `Gladius.jpg` |  |
@@ -92,12 +91,13 @@ Concept or unreleased ship with no in-game record. Declare the page as a planned
 | `productionstate` | Production state | string | No | (API value) | Production status: one of `Flight ready`, `In production`, `Active production`, `Active for Squadron 42`, `Long term production`, `In concept`, `Lore-only`, `Unconfirmed`. (concept/unreleased ships; in-game ships use the API value) | `In concept` |  |
 | `addedinversion` | Added in version | string | No |  | Game update the vehicle became flight ready (e.g. `Alpha 4.8.0`); rendered as the "Flight ready in" row in the Development section and stored as the `Added in version` SMW property (the canonical `Update:` page). Editorial only. | `Alpha 4.8.0` |  |
 | `productionstatenote` | Production state note | string | No |  | Free-text production note shown in the Development section (e.g. rework status). Display-only, not stored in SMW. Editorial only. | `Rework in progress` |  |
-| `model` | Model | string | No |  | Series/model grouping (the "Model" row). Alias: `series`. Editorial only. | `Constellation` | [ "series" ] |
-| `generation` | Generation | string | No |  | Generation/mark within the series. Aliases: `Generation`, `mark`. Editorial only. | `Mk IV` | [ "mark" ] |
-| `releasedate` | Release date | string | No |  | In-game release date. Editorial only. | `2014-12-19` |  |
+| `model` | Model | string | No |  | Series/model grouping (the "Model" row). Editorial only. | `Constellation` | `series` |
+| `generation` | Generation | string | No |  | Generation/mark within the series. Editorial only. | `Mk IV` | `Generation`; `mark` |
+| `releasedate` | Release date | string | No |  | Lore release date. Editorial only. | `2956-12-19` |  |
 | `retiredate` | Retirement date | string | No |  | Retirement date (removed from sale or game). Editorial only. | `2018-11-30` |  |
 | `conceptdate` | Concept announcement date | string | No |  | Date the concept was announced. Editorial only. | `2012-11-26` |  |
 | `saledate` | Concept sale date | string | No |  | Date of the concept sale. Editorial only. | `2012-11-26` |  |
+| `novariant` | Suppress variant category | boolean | No |  | Suppress the variant category for vehicles with no variants (e.g. the Aegis Gladius). Legacy parameter: accepted for compatibility, but the current Entity pipeline does not emit variant categories, so it has no effect. | `yes` |  |
 
 ## Behavior
 

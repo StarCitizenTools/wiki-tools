@@ -27,6 +27,14 @@ local LABELS = {
 	['Wikelo - Vehicles'] = 'Collection',
 }
 
+local SCOPE = {
+	['BountyHunter_BountyHuntersGuild'] = 'Bounty Hunter',
+}
+
+local function resolveReputationScope(scope)
+	return SCOPE[scope] or scope
+end
+
 --- @param apiData table
 --- @return { parent: string, leaf: string }|nil
 local function resolveTypes(apiData)
@@ -42,6 +50,12 @@ local function linked(str)
 		return '[[' .. str .. ']]'
 	end
 	return str
+end
+
+local function fixTitle(title)
+	title = string.gsub(title, '[%[%]]', '')
+	title = string.gsub(title, '|', '-')
+	return title
 end
 
 local p = {}
@@ -105,6 +119,10 @@ function p.getSections(apiData, args)
 				amount = 0,
 			},
 		},
+		requirements = {
+			fee = nil,
+			missions = {},
+		},
 		reputation = {
 			scope = nil,
 			gain = nil,
@@ -142,6 +160,25 @@ function p.getSections(apiData, args)
 	elseif apiData.mission_giver == 'Wikelo' then
 		data.pickup = 'Wikelo Emporium'
 	end
+	if apiData.cost then
+		data.requirements.fee = apiData.cost
+	end
+	if apiData.prerequisite_groups and #apiData.prerequisite_groups > 0 then
+		for _, group in ipairs(apiData.prerequisite_groups) do
+			if group.missions and #group.missions > 0 then
+				for _, mission in ipairs(group.missions) do
+					if mission.variant_count then
+						table.insert(
+							data.requirements.missions,
+							linked(fixTitle(mission.title)) .. ' x' .. tostring(mission.variant_count)
+						)
+					else
+						table.insert(data.requirements.missions, linked(fixTitle(mission.title)))
+					end
+				end
+			end
+		end
+	end
 
 	data.payout.uec = args['payout'] or apiData.reward_min or data.payout.uec
 
@@ -150,17 +187,17 @@ function p.getSections(apiData, args)
 			if reward.name == 'MG Scrip' or reward.name == 'Council Scrip' then
 				data.payout.scrip.name = reward.name
 				data.payout.scrip.amount = data.payout.scrip.amount + reward.amount
-			else
-				table.insert(data.reward.items, { name = reward.name, amount = reward.amount })
 			end
 		end
 	end
 
 	data.reputation.min = apiData.min_standing and apiData.min_standing.name
+		or (apiData.reputation_prerequisite and apiData.reputation_prerequisite.min_standing.name)
 	data.reputation.max = apiData.max_standing and apiData.max_standing.name
+		or (apiData.reputation_prerequisite and apiData.reputation_prerequisite.max_standing.name)
 	data.reputation.scope = apiData.reputation_gained
 		and #apiData.reputation_gained > 0
-		and apiData.reputation_gained[1].scope
+		and resolveReputationScope(apiData.reputation_gained[1].scope)
 	data.reputation.gain = apiData.reputation_amount
 
 	data.location.systems = apiData.star_systems
@@ -195,15 +232,30 @@ function p.getSections(apiData, args)
 		})
 	end
 
+	if data.reputation.min or data.reputation.max or data.reputation.scope or data.reputation.gain then
+		table.insert(sections, {
+			key = 'reputation',
+			label = 'Reputation',
+			collapsible = true,
+			items = {
+				{ label = 'Min', content = data.reputation.min },
+				{ label = 'Max', content = data.reputation.max },
+				{ label = 'Scope', content = data.reputation.scope },
+				{ label = 'Gain', content = format.formatNum(data.reputation.gain) },
+			},
+		})
+	end
+
 	table.insert(sections, {
-		key = 'reputation',
-		label = 'Reputation',
+		key = 'requirements',
+		label = 'Requirements',
 		collapsible = true,
 		items = {
-			{ label = 'Min', content = data.reputation.min },
-			{ label = 'Max', content = data.reputation.max },
-			{ label = 'Scope', content = data.reputation.scope },
-			{ label = 'Gain', content = format.formatNum(data.reputation.gain) },
+			{ label = 'Fee', content = data.requirements.fee and format.formatNum(data.requirements.fee) .. ' aUEC' },
+			{
+				label = 'Contracts',
+				content = #data.requirements.missions > 0 and table.concat(data.requirements.missions, ',<br/>'),
+			},
 		},
 	})
 
@@ -259,12 +311,18 @@ function p.getStructuredData(apiData, args)
 	end
 
 	return {
-		category = apiData.illegal and 'unverified' or 'verified',
+		legality = apiData.illegal and 'unverified' or 'verified',
 		type = typeInfo.name,
 		faction = faction,
 		systems = apiData.star_systems,
 		uec = args['payout'] or apiData.reward_min or nil,
 		scrip = scrip,
+		reputation_min = apiData.min_standing and apiData.min_standing.name
+			or (apiData.reputation_prerequisite and apiData.reputation_prerequisite.min_standing.name)
+			or 'None',
+		reputation_max = apiData.max_standing and apiData.max_standing.name
+			or (apiData.reputation_prerequisite and apiData.reputation_prerequisite.max_standing.name)
+			or 'None',
 		available = available,
 	}
 end

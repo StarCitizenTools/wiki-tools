@@ -10,12 +10,12 @@ end
 
 local function formatQuantity(item)
 	if item.min_scu then
-		return tostring(item.min_scu) .. ' SCU'
+		return tostring(item.min_scu) .. ' SCU', 0, item.min_scu
 	end
 	if item.min_amount or item.max_amount then
-		return tostring(item.min_amount or item.max_amount) .. 'x'
+		return tostring(item.min_amount or item.max_amount) .. 'x', item.min_amount or item.max_amount, 0
 	end
-	return ''
+	return '?', 0, 0
 end
 
 local function formatSize(item)
@@ -39,12 +39,18 @@ end
 
 local function processOrders(orders, ordersTable)
 	local data = {}
+	local total = {
+		unique = 0,
+		units = 0,
+		scu = 0,
+	}
 
 	for _, order in ipairs(orders) do
 		local x = {}
 		local quantity, cargo = '', ''
+		local units, scu = 0, 0
 
-		quantity = formatQuantity(order)
+		quantity, units, scu = formatQuantity(order)
 
 		if order.kind == 'TagMatch' then
 			if order.max_container_size then
@@ -62,9 +68,23 @@ local function processOrders(orders, ordersTable)
 		table.insert(data, x)
 
 		table.insert(ordersTable, string.format('%s %s', quantity, cargo))
+
+		total.unique = total.unique + 1
+		total.units = total.units + units
+		total.scu = total.scu + scu
 	end
 
-	return TableLua.render({
+	return tostring(TableLua.render({
+		caption = 'Total amount of orders',
+		hideCaption = true,
+		class = 'wikitable--fluid t-entity-orders-table',
+		columns = {
+			{ id = 'uniqueItems', label = 'Unique Items' },
+			{ id = 'totalUnits', label = 'Total Units' },
+			{ id = 'totalScu', label = 'Total SCU' },
+		},
+		data = { { total.unique, total.units, total.scu } },
+	})) .. tostring(TableLua.render({
 		caption = 'Orders',
 		hideCaption = true,
 		class = 'wikitable--fluid t-entity-orders-table',
@@ -74,7 +94,7 @@ local function processOrders(orders, ordersTable)
 			{ id = 'size', label = 'Size', textAlign = 'start' },
 		},
 		data = data,
-	})
+	}))
 end
 
 local p = {}

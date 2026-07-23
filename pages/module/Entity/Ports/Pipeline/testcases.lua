@@ -384,6 +384,104 @@ function suite:testNarrowKeepsTractorBeamInTurret()
 	self:assertEquals('SureGrip S2 Tractor Beam', narrowed[1].children[1].equippedItem.name)
 end
 
+function suite:testNarrowKeepsMiningLaserUnderMiningArm()
+	-- Prospector: a ToolArm (Mining & Salvage) holds a WeaponMining laser.
+	-- "WeaponMining" is in the category's expandIntoTypes, so the laser
+	-- survives narrowChildren.
+	local arm = helpers.normalizePort({
+		name = 'hardpoint_mining_arm',
+		type = 'ToolArm',
+		category_label = 'Mining & Salvage',
+		compatible_types = { { type = 'ToolArm' } },
+		equipped_item = { name = 'Mining Arm' },
+		ports = {
+			{
+				name = 'hardpoint_mining_laser',
+				type = 'WeaponMining',
+				compatible_types = { { type = 'WeaponMining' } },
+				equipped_item = { name = 'Arbor MH1 Mining Laser' },
+			},
+		},
+	}, 1)
+	local narrowed = helpers.narrowChildren({ arm })
+	self:assertEquals(1, #narrowed[1].children)
+	self:assertEquals('Arbor MH1 Mining Laser', narrowed[1].children[1].equippedItem.name)
+end
+
+function suite:testNarrowKeepsSalvageChainTwoLevels()
+	-- Vulture: ToolArm (Mining & Salvage) → SalvageHead → SalvageModifier
+	-- modules. SalvageHead aliases to Mining & Salvage so it inherits the
+	-- same allowlist (which includes SalvageModifier), letting the modules
+	-- survive narrowing two levels deep.
+	local arm = helpers.normalizePort({
+		name = 'hardpoint_salvage_arm',
+		type = 'ToolArm',
+		category_label = 'Mining & Salvage',
+		compatible_types = { { type = 'ToolArm' } },
+		equipped_item = { name = 'Salvage Arm' },
+		ports = {
+			{
+				name = 'hardpoint_salvage_laser',
+				type = 'SalvageHead',
+				compatible_types = { { type = 'SalvageHead' } },
+				equipped_item = { name = 'Baler Salvage Head' },
+				ports = {
+					{
+						name = 'subItem01',
+						type = 'SalvageModifier',
+						compatible_types = { { type = 'SalvageModifier' } },
+						equipped_item = { name = 'Cinch Scraper Module' },
+					},
+					{
+						name = 'subItem02',
+						type = 'SalvageModifier',
+						compatible_types = { { type = 'SalvageModifier' } },
+						equipped_item = { name = 'Abrade Scraper Module' },
+					},
+				},
+			},
+		},
+	}, 1)
+	local narrowed = helpers.narrowChildren({ arm })
+	self:assertEquals(1, #narrowed[1].children)
+	local head = narrowed[1].children[1]
+	self:assertEquals('Baler Salvage Head', head.equippedItem.name)
+	self:assertEquals(2, #head.children)
+	self:assertEquals('Cinch Scraper Module', head.children[1].equippedItem.name)
+	self:assertEquals('Abrade Scraper Module', head.children[2].equippedItem.name)
+end
+
+function suite:testNarrowKeepsSalvageHeadUnderRemoteTurret()
+	-- Reclaimer: a Remote Turret (Utility) holds a SalvageHead plus a Room
+	-- (cockpit interior). "SalvageHead" is in the Remote Turrets allowlist,
+	-- "Room" is not — so the head survives and the room is dropped.
+	local turret = helpers.normalizePort({
+		name = 'hardpoint_remote_turret_salvage',
+		type = 'Turret',
+		sub_type = 'Utility',
+		category_label = 'Remote Turrets',
+		compatible_types = { { type = 'Turret' } },
+		equipped_item = { name = 'Remote Turret' },
+		ports = {
+			{
+				name = 'hardpoint_weapon_salvage',
+				type = 'SalvageHead',
+				compatible_types = { { type = 'SalvageHead' } },
+				equipped_item = { name = 'Baler Salvage Head' },
+			},
+			{
+				name = 'hardpoint_interior',
+				type = 'Room',
+				compatible_types = { { type = 'Room' } },
+				equipped_item = { name = 'Interior' },
+			},
+		},
+	}, 1)
+	local narrowed = helpers.narrowChildren({ turret })
+	self:assertEquals(1, #narrowed[1].children)
+	self:assertEquals('Baler Salvage Head', narrowed[1].children[1].equippedItem.name)
+end
+
 function suite:testFilterRecursesIntoChildren()
 	local input = helpers.normalizePort({
 		name = 'turret',
@@ -557,6 +655,19 @@ function suite:testAggregatePrecomputesExpandableTrueForWeapon()
 	}, 1)
 	local agg = helpers.aggregateSiblings({ w })
 	self:assertEquals(true, agg[1].expandable)
+end
+
+function suite:testAggregatePrecomputesExpandableFalseForLeafCategory()
+	-- A category with no expandIntoTypes (Coolers) → expandable false.
+	local c = helpers.normalizePort({
+		name = 'c',
+		type = 'Cooler',
+		category_label = 'Coolers',
+		compatible_types = { { type = 'Cooler' } },
+		equipped_item = { name = 'Snowfall' },
+	}, 1)
+	local agg = helpers.aggregateSiblings({ c })
+	self:assertEquals(false, agg[1].expandable)
 end
 
 function suite:testAggregateStripsSignatureKey()
@@ -809,6 +920,54 @@ function suite:testProcessItemPathSkipsNarrow()
 	local itemGroups = pipeline.process(rawPorts, { isVehicle = false })
 	-- Item path: narrow is skipped, so the attachment survives alongside the gun.
 	self:assertEquals(2, #itemGroups[1].rows[1].children)
+end
+
+function suite:testProcessExpandsSalvageChainTwoLevels()
+	-- Full vehicle pipeline over a Vulture-style salvage arm: the arm
+	-- expands its salvage head, and the head expands its modules. Both
+	-- levels must report expandable=true so Render walks the L-tree down
+	-- to the modules.
+	local rawPorts = {
+		{
+			name = 'hardpoint_salvage_arm',
+			type = 'ToolArm',
+			category_label = 'Mining & Salvage',
+			size = 2,
+			compatible_types = { { type = 'ToolArm' } },
+			equipped_item = { name = 'Salvage Arm', size = 2 },
+			ports = {
+				{
+					name = 'hardpoint_salvage_laser',
+					type = 'SalvageHead',
+					compatible_types = { { type = 'SalvageHead' } },
+					equipped_item = { name = 'Baler Salvage Head' },
+					ports = {
+						{
+							name = 'subItem01',
+							type = 'SalvageModifier',
+							compatible_types = { { type = 'SalvageModifier' } },
+							equipped_item = { name = 'Cinch Scraper Module' },
+						},
+						{
+							name = 'subItem02',
+							type = 'SalvageModifier',
+							compatible_types = { { type = 'SalvageModifier' } },
+							equipped_item = { name = 'Abrade Scraper Module' },
+						},
+					},
+				},
+			},
+		},
+	}
+	local groups = pipeline.process(rawPorts, { isVehicle = true })
+	self:assertEquals('Mining & Salvage', groups[1].label)
+	local arm = groups[1].rows[1]
+	self:assertEquals(true, arm.expandable)
+	self:assertEquals(1, #arm.children)
+	local head = arm.children[1]
+	self:assertEquals('Baler Salvage Head', head.representative.equippedItem.name)
+	self:assertEquals(true, head.expandable) -- head inherits Mining & Salvage allowlist
+	self:assertEquals(2, #head.children) -- both modules survive
 end
 
 -- collectEquippedUuids / applyResolvedLinks

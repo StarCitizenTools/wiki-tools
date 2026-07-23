@@ -81,12 +81,13 @@
  * the size pills line up vertically. Lua zero-pads to two digits,
  * so every count is exactly 3 characters in monospace ("01×", "04×",
  * "13×") and cells naturally align without an explicit min-width.
- * Letter-spacing widens the gaps between glyphs for a more readout-y
- * feel. Revisit if real data ever exceeds two-digit counts (a 100+
- * row would render wider than its siblings; the simplest fix would
- * be to bump the pad to three digits or add `min-width: 4ch` back).
- * When every row in the group is solo, Lua omits the cell entirely
- * and the pill sits at the natural start. */
+ * Letter-spacing uses the Citizen overline token so the count reads
+ * with the same widened glyph spacing as the sub-cat headings.
+ * Revisit if real data ever exceeds two-digit counts (a 100+ row
+ * would render wider than its siblings; the simplest fix would be to
+ * bump the pad to three digits or add `min-width: 4ch` back). When
+ * every row in the group is solo, Lua omits the cell entirely and the
+ * pill sits at the natural start. */
 .t-entity-ports-count {
 	color: var(--color-emphasized);
 	font-weight: var(--font-weight-medium);

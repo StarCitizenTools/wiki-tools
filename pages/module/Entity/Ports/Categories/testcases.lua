@@ -122,6 +122,22 @@ function suite:testDeriveLabelTypeAliasBeatsItemTypeCategory()
 	self:assertEquals('Weapons', categories.deriveLabel({ type = 'WeaponGun' }, {}))
 end
 
+function suite:testDeriveLabelSalvageHeadAliasesToMiningSalvage()
+	-- Salvage heads are children of salvage arms / remote turrets. Aliasing
+	-- SalvageHead → "Mining & Salvage" routes them under that card and lets
+	-- them inherit its expandIntoTypes (so the head's SalvageModifier modules
+	-- expand). types.json says "Salvage beams"; the alias wins.
+	self:assertEquals('Mining & Salvage', categories.deriveLabel({ type = 'SalvageHead' }, {}))
+end
+
+function suite:testLookupMiningSalvageHasExpandAllowlist()
+	-- Mining & Salvage carries an expandIntoTypes allowlist so salvage arms /
+	-- mining arms surface their heads + modules in the L-tree.
+	local c = categories.lookup('Mining & Salvage')
+	self:assertEquals(false, c.collapsed)
+	self:assertNotEquals(nil, c.expandIntoTypes)
+end
+
 function suite:testDeriveLabelFallsBackToSplitCamel()
 	-- Type not in typeAliases AND not in types.json — synthesize a primary
 	-- label from the type slug itself.

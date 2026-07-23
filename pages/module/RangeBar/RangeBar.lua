@@ -5,7 +5,7 @@ require('strict')
 --- axis with the active value band highlighted. The band is drawn vividly; the
 --- rest of the axis is shown dimmed and gap-separated, so the bar reads as "this
 --- slice of the whole range." An optional reference tick marks a notable value
---- (e.g. 0) as a bare line. The header (label + value) matches Module:ProgressBars
+--- (e.g. 0) as a bare line. The header (label + value) matches Module:MeterBar
 --- so range bars and meter bars sit together consistently.
 ---
 --- Domain-agnostic: the caller supplies the header text, the axis extent, the

@@ -1425,6 +1425,22 @@
 		],
 		"desc": "Rarity tier of an item (Common, Uncommon, Rare, Epic, Legendary)."
 	},
+	"Reputation max": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Mission"
+		],
+		"desc": "Maximum reputation standing at which a mission is offered."
+	},
+	"Reputation min": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Mission"
+		],
+		"desc": "Minimum reputation standing required for a mission."
+	},
 	"Retracted height": {
 		"smw": "Number",
 		"bucket": "DOUBLE",

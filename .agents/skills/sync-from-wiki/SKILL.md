@@ -103,6 +103,7 @@ Informational (off-mirror):
 
 ## Gotchas
 
+- **`.json` pages never byte-match** — MediaWiki's `json` content model re-serializes on save (pretty-printed, tab-indented, `<`/`>`/`&` escaped as `<`-style sequences), so a compact local file and its wiki copy always differ textually. Compare **parsed** JSON for equality; only a semantic difference is drift.
 - **`module.json` is local-only** — module metadata never appears on the wiki, so don't expect to find it there or reverse-create it.
 - **`/doc` pages are one-way** — `deploy-to-wiki` converts README.md → wikitext via `doc-page-from-readme`. There's no reverse conversion; pulling a `/doc` edit means hand-editing the README.
 - **Lint reformats** — pulled files will be tab-indented after `mise run fix` even if the wiki author used spaces. This is fine; just don't claim "perfect parity" with the wiki after linting.

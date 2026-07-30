@@ -367,7 +367,7 @@
 			cellRenderer: function ( params ) {
 				return buildCard( params.value );
 			},
-			// Sort / quick-search / CSV export key on the title (ship name). The
+			// Sort and CSV export key on the title (ship name). The *column*
 			// filter value is chosen by colDef.scwCardFilterOn: 'title' (text
 			// filter on the name, used by Module:DataGrid) or 'eyebrow' (set
 			// filter on e.g. the manufacturer). Unset uses the eyebrow when
@@ -389,6 +389,24 @@
 				}
 				return v.eyebrowFull || v.eyebrow || v.title || null;
 			},
+			// Quick-search keys on BOTH the ship name and the manufacturer label,
+			// independent of which the column filter (filterValueGetter, above)
+			// keys on. AG Grid derives quick-filter text from the *filter* value
+			// unless getQuickFilterText is set -- and the card's filter value is
+			// only one of the two (manufacturer on PledgeVehicleGrid, title on
+			// Module:DataGrid), so without this the other half of the card would
+			// be unsearchable. valueFormatter is never consulted by quick-search.
+			// Read the packed value from row data: params.value here is the filter
+			// scalar, not the card object.
+			getQuickFilterText: function ( params ) {
+				var v = params.data && params.data[ params.colDef.field ];
+				if ( !v ) {
+					return '';
+				}
+				return [ v.title, v.eyebrowFull || v.eyebrow ]
+					.filter( Boolean )
+					.join( ' ' );
+			},
 			// Show the eyebrow glyph beside each value in the set filter.
 			filterParams: {
 				itemRenderer: eyebrowFilterItem
@@ -403,9 +421,15 @@
 			cellRenderer: function ( params ) {
 				return buildStack( params.value );
 			},
-			// Display/quick-search/export use the primary string; sort and the
-			// number filter operate on the raw number (filterValueGetter so the
-			// built-in agNumberColumnFilter compares numerically, not on the object).
+			// Display uses the primary string, and so does CSV export (valueFormatter).
+			// Sort, the number filter, AND quick-search all key on the raw number
+			// (filterValueGetter): the number filter's agNumberColumnFilter compares
+			// numerically rather than on the object, and quick-search -- which derives
+			// its text from the filter value, never valueFormatter -- therefore matches
+			// the underlying number (e.g. "1500"), not the formatted "$1,500" display
+			// or the secondary line. That is the intended behaviour for these price
+			// columns; add a getQuickFilterText here if the formatted text ever needs
+			// to be searchable.
 			valueFormatter: function ( params ) {
 				return ( params.value && params.value.text ) || '';
 			},
@@ -433,6 +457,14 @@
 			valueFormatter: function ( params ) {
 				return ( params.value && params.value.text ) || '';
 			},
+			// Quick-search on the badge text. AG Grid hands getQuickFilterText the
+			// column's *formatted* value (params.value is the string, not the packed
+			// object), so read the object straight from row data -- same pattern as
+			// scwEntityCard -- to pull its .text reliably.
+			getQuickFilterText: function ( params ) {
+				var v = params.data && params.data[ params.colDef.field ];
+				return ( v && v.text ) || '';
+			},
 			comparator: function ( a, b ) {
 				return String( ( a && a.text ) || '' )
 					.localeCompare( String( ( b && b.text ) || '' ) );
@@ -446,6 +478,13 @@
 			// Sort / set filter key on the boolean text (same as scwBadge).
 			valueFormatter: function ( params ) {
 				return ( params.value && params.value.text ) || '';
+			},
+			// Quick-search on the boolean text (Yes / No / Unknown). Read the packed
+			// object from row data, not params.value (AG Grid passes the formatted
+			// value string there, not the object) -- same pattern as scwEntityCard.
+			getQuickFilterText: function ( params ) {
+				var v = params.data && params.data[ params.colDef.field ];
+				return ( v && v.text ) || '';
 			},
 			comparator: function ( a, b ) {
 				return String( ( a && a.text ) || '' )

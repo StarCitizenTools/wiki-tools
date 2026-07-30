@@ -21,6 +21,12 @@ Use the latest commit that touched `pages/`:
 git log -1 --format=%aI -- pages/
 ```
 
+**But that commit must be a wiki *reconciliation*, not a local→wiki deploy.** If the newest `pages/` commit is local work you authored and pushed to the wiki (a fix/feat commit), its timestamp is "now" and yields a zero-width window that reports no changes. In that case anchor on the last actual sync instead:
+
+```sh
+git log -1 --format='%h %aI %s' --grep='^sync' -- pages/
+```
+
 If the working tree has uncommitted edits to `pages/`, fall back to a wider window (e.g., the prior commit) and warn the user — uncommitted local work has no timestamp anchor.
 
 ### 3. Fetch Recent Changes
@@ -28,7 +34,7 @@ If the working tree has uncommitted edits to `pages/`, fall back to a wider wind
 Call `get-recent-changes` with:
 
 - `since` — the ISO timestamp from step 2.
-- `namespace` — `[828, 10]` (Module, Template — the namespaces this repo mirrors).
+- `namespace` — `[828, 10, 8]` (Module, Template, MediaWiki — the namespaces this repo mirrors). **Don't drop 8**: `pages/mediawiki/` mirrors the gadget sources (`MediaWiki:Gadget-*.js` / `.css`), so omitting it silently hides all gadget drift.
 - `hideBots` — `true`.
 
 If the result is paginated (continuation token), keep fetching until exhausted.
@@ -72,6 +78,10 @@ For each row, classify into one of four buckets:
    - `Template:<Name>/<Sub...>.css` → `pages/template/<Name>/<Sub...>.css`
    - `Template:<Name>/doc` → **flag, don't pull** (same reason)
 
+   **MediaWiki namespace (gadget sources, flat — no per-page directory):**
+   - `MediaWiki:<Name>` → `pages/mediawiki/<Name>` (e.g. `MediaWiki:Gadget-aggridRenderers.js` → `pages/mediawiki/Gadget-aggridRenderers.js`)
+   - Only pull pages we already mirror or that are clearly ours; the MediaWiki namespace is full of interface messages this repo does not own.
+
 3. `mkdir -p` any new directory, then `Write` the file.
 
 ### 6. Lint
@@ -105,6 +115,7 @@ Informational (off-mirror):
 
 - **`.json` pages never byte-match** — MediaWiki's `json` content model re-serializes on save (pretty-printed, tab-indented, `<`/`>`/`&` escaped as `<`-style sequences), so a compact local file and its wiki copy always differ textually. Compare **parsed** JSON for equality; only a semantic difference is drift.
 - **`module.json` is local-only** — module metadata never appears on the wiki, so don't expect to find it there or reverse-create it.
+- **Non-breaking spaces never survive a deploy** — the MCP normalizes U+00A0 → a normal space on save, so a source file containing a literal nbsp (e.g. `Gadget-aggridRenderers.js`'s `scwClean` regex) permanently differs from its wiki copy by that byte. Not drift; don't "fix" it in either direction. Compare with that line excluded, and remember MediaWiki also strips the trailing newline.
 - **`/doc` pages are one-way** — `deploy-to-wiki` converts README.md → wikitext via `doc-page-from-readme`. There's no reverse conversion; pulling a `/doc` edit means hand-editing the README.
 - **Lint reformats** — pulled files will be tab-indented after `mise run fix` even if the wiki author used spaces. This is fine; just don't claim "perfect parity" with the wiki after linting.
 - **Bots are filtered** — `hideBots: true` skips `MaintenanceBot` and friends. If you need to see bot activity, drop the flag.

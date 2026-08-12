@@ -27,12 +27,24 @@ local function bodyNode(body)
 	local node = mw.html.create('span'):addClass('t-system-map__node')
 
 	if body.current then
-		node:attr('aria-current', 'page')
+		-- data-current, NOT aria-current: MediaWiki's HTML sanitizer does not
+		-- allowlist aria-current and silently strips it, so the CSS hook would
+		-- never match. Nothing local catches this — the off-wiki runner asserts on
+		-- mw.html output, which is upstream of the sanitizer, so an aria-current
+		-- assertion is a false pass. Verified against the live parser: aria-label
+		-- and aria-level survive, aria-current does not.
+		node:attr('data-current', 'page')
 	end
 
 	-- The disc is a real element rather than a ::before, because its diameter is
 	-- per-body and a pseudo-element cannot carry an inline style.
 	local glyph = node:tag('span'):addClass('t-system-map__glyph')
+
+	-- Publish the disc diameter to CSS so the you-are-here ring can be drawn at
+	-- the right size for image bodies too, where there is no .__disc element to
+	-- hang a box-shadow on. Custom properties in an inline style survive the
+	-- sanitizer (probed against the live parser).
+	glyph:cssText(string.format('--t-system-map-disc:%.1fpx', body.disc))
 
 	if body.icon then
 		-- Height-constrained (x<N>px), never width. A ringed body's icon is much
@@ -59,7 +71,17 @@ local function bodyNode(body)
 	glyph:done()
 
 	local label = node:tag('span'):addClass('t-system-map__label')
-	label:tag('span'):addClass('t-system-map__name'):wikitext(linkFor(body)):done()
+	local name = label:tag('span'):addClass('t-system-map__name')
+	name:wikitext(linkFor(body))
+
+	-- The sighted cue is a ring plus a trailing dot, both drawn in CSS and so
+	-- invisible to assistive technology. With aria-current stripped by the
+	-- sanitizer, a visually-hidden phrase is what actually carries "you are here"
+	-- to a screen reader. Mirrors Module:Boolean's __sr pattern.
+	if body.current then
+		name:tag('span'):addClass('t-system-map__sr'):wikitext(' (current page)'):done()
+	end
+	name:done()
 
 	-- Bodies CIG never named carry their designation as the article title too
 	-- (Pyro I, Nyx III, Delamar), so printing both would repeat the same string

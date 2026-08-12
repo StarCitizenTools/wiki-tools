@@ -39,16 +39,19 @@
 	list-style: none;
 }
 
-/* The orbit line. Fades out at the far end rather than stopping hard, so it
-   reads as "the system continues" instead of "the list ends here". */
-.t-system-map__rail::before {
+/* The orbit line is drawn as one segment per body rather than a single line
+   across the rail, so it stops at the last body instead of running past it and
+   implying the system continues. Each segment spans from its own body's centre
+   to the next one's; the last body has no segment. Direct children only —
+   moons sit in their own nested list and must not draw rail segments. */
+.t-system-map__rail > .t-system-map__item:not(:last-child)::after {
 	content: '';
 	position: absolute;
 	left: var(--t-system-map-centre);
-	right: 0;
+	right: calc(0px - var(--space-md) - var(--t-system-map-centre));
 	top: var(--t-system-map-centre);
 	height: 1px;
-	background: linear-gradient(90deg, var(--border-color-base) 0%, var(--border-color-base) 92%, transparent 100%);
+	background: var(--border-color-base);
 }
 
 .t-system-map__item {
@@ -281,12 +284,14 @@
 		width: auto;
 	}
 
-	.t-system-map__rail::before {
+	/* Same per-segment logic rotated: from this body's centre down to the next
+	   one's. `bottom` is relative to this item's own box, so it works whatever
+	   height the item has once its moons are stacked under it. */
+	.t-system-map__rail > .t-system-map__item:not(:last-child)::after {
 		right: auto;
-		bottom: var(--space-md);
+		bottom: calc(0px - var(--space-xs) - var(--t-system-map-centre));
 		width: 1px;
 		height: auto;
-		background: linear-gradient(180deg, var(--border-color-base) 0%, var(--border-color-base) 94%, transparent 100%);
 	}
 
 	.t-system-map__item--has-moons::before {
@@ -294,19 +299,22 @@
 	}
 
 	.t-system-map__item--star,
-	.t-system-map__item--planet {
+	.t-system-map__item--planet,
+	.t-system-map__item--belt {
 		min-width: 0;
 	}
 
 	.t-system-map__item--star > .t-system-map__node,
-	.t-system-map__item--planet > .t-system-map__node {
+	.t-system-map__item--planet > .t-system-map__node,
+	.t-system-map__item--belt > .t-system-map__node {
 		flex-direction: row;
 		align-items: center;
 		gap: var(--space-xxs);
 	}
 
 	.t-system-map__item--star > .t-system-map__node .t-system-map__label,
-	.t-system-map__item--planet > .t-system-map__node .t-system-map__label {
+	.t-system-map__item--planet > .t-system-map__node .t-system-map__label,
+	.t-system-map__item--belt > .t-system-map__node .t-system-map__label {
 		flex-direction: row;
 		flex-wrap: wrap;
 		align-items: baseline;

@@ -399,15 +399,21 @@ function suite:testRenderEmitsWikitextLinks()
 	self:assertTrue(html:find('%[%[MicroTech %(planet%)|microTech%]%]') ~= nil, 'disambiguated planet link')
 end
 
+-- data-current, not aria-current: MediaWiki's sanitizer allowlist does not
+-- include aria-current and strips it from the output, so a CSS hook keyed on it
+-- can never match. This suite runs upstream of that sanitizer, so an
+-- aria-current assertion here passed for weeks while the highlight was dead on
+-- the live wiki. Verified against the live parser: aria-label and aria-level
+-- survive, aria-current does not.
 function suite:testRenderMarksExactlyOneCurrent()
 	local html = renderStanton('Cellin')
-	local count = select(2, html:gsub('aria%-current="page"', ''))
+	local count = select(2, html:gsub('data%-current="page"', ''))
 	self:assertEquals(1, count)
 end
 
 function suite:testRenderMarksNoCurrentOnSystemArticle()
 	local html = renderStanton('Stanton system')
-	self:assertEquals(nil, html:find('aria%-current'))
+	self:assertEquals(nil, html:find('data%-current'))
 end
 
 function suite:testRenderEmitsDataKind()
@@ -500,14 +506,27 @@ end
 
 local SystemMap = require('Module:SystemMap')
 
+-- The 5th argument is the main-namespace flag: tracking categories exist to
+-- flag ARTICLE problems, so they are suppressed elsewhere.
 function suite:testMainUnknownSystemEmitsTrackingCategoryOnly()
-	local out = SystemMap.render('Terra', 'Whatever')
+	local out = SystemMap.render('Terra', 'Whatever', nil, nil, true)
 	self:assertEquals('[[Category:System map with unknown system]]', out)
 end
 
+-- A sandbox or module subpage with a bad call should not pollute a category
+-- documented as "should normally be empty" -- once it permanently holds
+-- non-articles, editors learn to ignore it.
+function suite:testTrackingCategoriesAreSuppressedOutsideMainNamespace()
+	self:assertEquals('', SystemMap.render('Terra', 'Whatever', nil, nil, false))
+	local html = SystemMap.render('Stanton', '', function()
+		return false
+	end, nil, false)
+	self:assertEquals(nil, html:find('Category:Pages with a broken system map link'))
+end
+
 function suite:testMainMissingArgumentIsTreatedAsUnknown()
-	self:assertEquals('[[Category:System map with unknown system]]', SystemMap.render(nil, 'Whatever'))
-	self:assertEquals('[[Category:System map with unknown system]]', SystemMap.render('', 'Whatever'))
+	self:assertEquals('[[Category:System map with unknown system]]', SystemMap.render(nil, 'Whatever', nil, nil, true))
+	self:assertEquals('[[Category:System map with unknown system]]', SystemMap.render('', 'Whatever', nil, nil, true))
 end
 
 function suite:testAnnotateExistenceFlagsMissingBodies()
@@ -809,6 +828,27 @@ function suite:testBodiesWithoutAnIconKeepTheProceduralDisc()
 	local html = tostring(Renderer.renderRail(Data.buildModel('Nyx', '')))
 	self:assertTrue(html:find('t%-system%-map__disc') ~= nil, 'the star still draws a disc')
 	self:assertEquals(nil, html:find('Nyx %(star%)|x'), 'and no icon is invented for it')
+end
+
+-- Guards the sanitizer trap directly. mw.html will happily emit any attribute;
+-- MediaWiki decides at parse time which survive, and this suite never sees that
+-- step. Pinning the attribute name here means a well-meaning swap back to the
+-- "more semantic" aria-current fails loudly instead of silently killing the
+-- highlight on every page.
+function suite:testCurrentMarkerUsesASanitizerSafeAttribute()
+	local html = tostring(Renderer.renderRail(Data.buildModel('Stanton', 'Cellin')))
+	self:assertTrue(html:find('data%-current="page"') ~= nil, 'uses data-current')
+	self:assertEquals(nil, html:find('aria%-current'), 'never aria-current, which MediaWiki strips')
+end
+
+-- The ring and dot are CSS-only, so without this the highlight is invisible to
+-- assistive technology entirely.
+function suite:testCurrentBodyCarriesAScreenReaderMarker()
+	local html = tostring(Renderer.renderRail(Data.buildModel('Stanton', 'Cellin')))
+	self:assertTrue(html:find('t%-system%-map__sr') ~= nil, 'visually-hidden marker present')
+	self:assertTrue(html:find('%(current page%)') ~= nil, 'and says so in words')
+	local count = select(2, html:gsub('t%-system%-map__sr', ''))
+	self:assertEquals(1, count, 'exactly one body is marked')
 end
 
 return suite

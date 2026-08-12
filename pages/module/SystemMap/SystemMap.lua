@@ -82,16 +82,24 @@ end
 --- @param currentTitle string     Page title being rendered
 --- @param exists (fun(page: string): boolean)|nil Existence probe; skipped when nil
 --- @param collapsed boolean|nil   Render the box closed
+--- @param track boolean|nil       Emit tracking categories. Main namespace only:
+---                                these flag ARTICLE problems, and a category
+---                                documented as "should normally be empty" stops
+---                                being useful the moment it permanently holds
+---                                sandboxes and module subpages.
 --- @return string
-function p.render(input, currentTitle, exists, collapsed)
+function p.render(input, currentTitle, exists, collapsed, track)
 	local model = Data.buildModel(input, currentTitle)
 	if not model then
-		return CATEGORY_UNKNOWN_SYSTEM
+		return track and CATEGORY_UNKNOWN_SYSTEM or ''
 	end
 
 	local category = ''
 	if exists then
 		category = p.annotateExistence(model, exists)
+		if not track then
+			category = ''
+		end
 	end
 
 	-- The shell — card frame, header row, collapse affordance and chevron — comes
@@ -137,7 +145,8 @@ function p.main(frame)
 		return result
 	end
 
-	local body = p.render(args[1], mw.title.getCurrentTitle().text, exists, yesno(args.collapsed, false))
+	local title = mw.title.getCurrentTitle()
+	local body = p.render(args[1], title.text, exists, yesno(args.collapsed, false), title.namespace == 0)
 
 	return styles .. body
 end

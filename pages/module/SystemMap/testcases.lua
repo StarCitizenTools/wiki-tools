@@ -506,14 +506,27 @@ end
 
 local SystemMap = require('Module:SystemMap')
 
+-- The 5th argument is the main-namespace flag: tracking categories exist to
+-- flag ARTICLE problems, so they are suppressed elsewhere.
 function suite:testMainUnknownSystemEmitsTrackingCategoryOnly()
-	local out = SystemMap.render('Terra', 'Whatever')
+	local out = SystemMap.render('Terra', 'Whatever', nil, nil, true)
 	self:assertEquals('[[Category:System map with unknown system]]', out)
 end
 
+-- A sandbox or module subpage with a bad call should not pollute a category
+-- documented as "should normally be empty" -- once it permanently holds
+-- non-articles, editors learn to ignore it.
+function suite:testTrackingCategoriesAreSuppressedOutsideMainNamespace()
+	self:assertEquals('', SystemMap.render('Terra', 'Whatever', nil, nil, false))
+	local html = SystemMap.render('Stanton', '', function()
+		return false
+	end, nil, false)
+	self:assertEquals(nil, html:find('Category:Pages with a broken system map link'))
+end
+
 function suite:testMainMissingArgumentIsTreatedAsUnknown()
-	self:assertEquals('[[Category:System map with unknown system]]', SystemMap.render(nil, 'Whatever'))
-	self:assertEquals('[[Category:System map with unknown system]]', SystemMap.render('', 'Whatever'))
+	self:assertEquals('[[Category:System map with unknown system]]', SystemMap.render(nil, 'Whatever', nil, nil, true))
+	self:assertEquals('[[Category:System map with unknown system]]', SystemMap.render('', 'Whatever', nil, nil, true))
 end
 
 function suite:testAnnotateExistenceFlagsMissingBodies()

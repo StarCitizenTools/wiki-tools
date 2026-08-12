@@ -38,6 +38,9 @@ planet, moon) and is not a measurement; see [[Module:SystemMap]] for why.
 
 ## Tracking categories
 
+Both categories apply in the article namespace only, so sandboxes and module
+subpages cannot fill a category that is meant to stay empty.
+
 - `Category:System map with unknown system` — the first parameter did not match
   a supported system.
 - `Category:Pages with a broken system map link` — a body in the map points at a

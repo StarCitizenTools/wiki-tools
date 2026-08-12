@@ -22,11 +22,9 @@ return {
 		'Tiles',
 		'Rarity',
 		'CardLua',
-		'CollapsibleCard',
 		'TableLua',
 		'ButtonLua',
 		'InfoboxLua',
-		'Details',
 	},
 
 	setup = function(api)
@@ -47,6 +45,58 @@ return {
 			end
 			return default
 		end)
+
+		-- Module:Details — <details>/<summary> wrapper (Extension:Details). Echoing
+		-- rather than inert: an inert stub makes the entire collapsible body
+		-- unobservable, so a suite could not tell a correct wrapper from one that
+		-- dropped its content or inverted the open flag. Mirrors the real module's
+		-- contract, including `open` serialising as the string 'yes'/'no' — a
+		-- boolean does not work with Extension:Details. The real module builds this
+		-- via frame:extensionTag, which the runner's frame stub returns '' for.
+		api.stub('Details', {
+			getWikitext = function(d)
+				return string.format(
+					'<details class="%s" open="%s"><summary class="%s">%s</summary>%s</details>',
+					d.details.class or '',
+					d.details.open ~= false and 'yes' or 'no',
+					d.summary.class or '',
+					d.summary.content,
+					d.details.content
+				)
+			end,
+		})
+
+		-- Module:CollapsibleCard — card shell + collapse mechanics. Echoing rather
+		-- than inert for the same reason as Details above: Module:SystemMap hands
+		-- it the whole rail, so an inert stub would make the map body unobservable
+		-- and a suite could not tell a correct card from one that dropped its
+		-- content or inverted the open flag. Mirrors the real module's contract:
+		-- the caller's `class` lands on the CardLua root, `open` gates the
+		-- <details>, and title/description render in the card header.
+		api.stub('CollapsibleCard', {
+			render = function(props)
+				props = props or {}
+				local description = ''
+				if props.description and props.description ~= '' then
+					description = '<div class="t-card__description">' .. tostring(props.description) .. '</div>'
+				end
+				return table.concat({
+					'<div class="t-card t-collapsible-card ',
+					tostring(props.class or ''),
+					'"><details class="t-collapsible-card__body" open="',
+					props.open == true and 'yes' or 'no',
+					'"><summary class="t-card__header t-collapsible-card__header">',
+					'<div class="t-card__header-content"><div class="t-card__title">',
+					tostring(props.title or ''),
+					'</div>',
+					description,
+					'</div><div class="t-collapsible-card__icon"></div></summary>',
+					'<div class="t-card__content">',
+					tostring(props.content or ''),
+					'</div></details></div>',
+				})
+			end,
+		})
 
 		-- Module:BadgeLua — echoes its text so Module:Rarity's badge test exercises
 		-- the resolve→label logic; BadgeLua's own HTML is out of scope.

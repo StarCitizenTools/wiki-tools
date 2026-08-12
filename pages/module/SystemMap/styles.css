@@ -1,0 +1,339 @@
+/* Module:SystemMap — horizontal orbit rail for {{System map}}.
+ *
+ * Geometry contract: every disc is centred in a 32px box, so the horizontal
+ * rail line (top: 16px) and the vertical moon connectors (left: 16px) pass
+ * exactly through disc centres at every tier. Change 32/16 together or not
+ * at all.
+ *
+ * Disc diameters are NOT set here — Module:SystemMap/Renderer emits them inline
+ * per body, log-scaled within each tier by Module:SystemMap/Data. That is
+ * rank-preserving, not proportional: planets span 472:1, so a true-scale map
+ * would put the smallest at 0.05px. Gas and ice giants are additionally
+ * distinguished by gradient banding rather than by diameter alone. */
+
+/* The card frame, header row, collapse affordance and chevron all come from
+   Module:CollapsibleCard — this sheet styles only the rail inside it. */
+
+/* Wide rails scroll inside their own container so the article body never
+   scrolls sideways. Pyro is the widest at six columns. */
+.t-system-map__scroll {
+	/* Declared here, not on an ancestor: this element and every var() consumer
+	   below are emitted by Module:SystemMap/Renderer, so no wrapper change
+	   elsewhere can orphan them. They previously sat on a root a different module
+	   owned, which silently voided the whole 32/16 contract. */
+	--t-system-map-track: 32px;
+	--t-system-map-centre: 16px;
+	overflow-x: auto;
+	padding: var(--space-md) var(--space-sm) var(--space-sm);
+}
+
+.t-system-map__rail {
+	position: relative;
+	display: flex;
+	align-items: flex-start;
+	gap: var(--space-md);
+	width: max-content;
+	min-width: 100%;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+/* The orbit line is drawn as one segment per body rather than a single line
+   across the rail, so it stops at the last body instead of running past it and
+   implying the system continues. Each segment spans from its own body's centre
+   to the next one's; the last body has no segment. Direct children only —
+   moons sit in their own nested list and must not draw rail segments. */
+.t-system-map__rail > .t-system-map__item:not(:last-child)::after {
+	content: '';
+	position: absolute;
+	left: var(--t-system-map-centre);
+	right: calc(0px - var(--space-md) - var(--t-system-map-centre));
+	top: var(--t-system-map-centre);
+	height: 1px;
+	background: var(--border-color-base);
+}
+
+.t-system-map__item {
+	position: relative;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+/* Equal columns. `width: max-content` + `min-width: 100%` on the rail means it
+   is at least the container width, so when the content is narrower there IS
+   free space for flex to distribute, and when it overflows there is none and
+   __scroll takes over. The min-width is the floor that triggers that handover.
+
+   Even spacing is also the honest choice: horizontal position here is orbital
+   ORDER, not distance. Orbital distance is derivable (Kepler, from the periods
+   upstream stores) but ranges 20:1 in Pyro, which would collide its three inner
+   planets — and irregular gaps would imply a precision the layout does not have. */
+.t-system-map__item--star,
+.t-system-map__item--planet,
+.t-system-map__item--belt {
+	flex: 1 1 0;
+	min-width: 7.5rem;
+}
+
+/* Vertical connector from a planet down through its moon column. Keyed off the
+   --has-moons modifier Renderer.lua emits rather than matching structurally:
+   the :has pseudo-class is not in TemplateStyles' allowlist, and an
+   unrecognised selector makes the whole sheet fail to save. */
+.t-system-map__item--has-moons::before {
+	content: '';
+	position: absolute;
+	left: var(--t-system-map-centre);
+	top: var(--t-system-map-track);
+	bottom: var(--space-sm);
+	width: 1px;
+	background: var(--border-color-base);
+}
+
+.t-system-map__node {
+	position: relative;
+	z-index: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: var(--space-xxs);
+}
+
+.t-system-map__glyph {
+	flex: none;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	inline-size: var(--t-system-map-track);
+	block-size: var(--t-system-map-track);
+}
+
+.t-system-map__disc {
+	display: block;
+	border-radius: var(--border-radius-circle);
+	/* Ring in the surface colour punches the disc out of the rail line. */
+	box-shadow: 0 0 0 3px var(--color-surface-1);
+	background: radial-gradient(circle at 32% 28%, oklch(78% 0.01 250), oklch(63% 0.012 250) 58%, oklch(45% 0.014 250));
+}
+
+.t-system-map__label {
+	display: flex;
+	flex-direction: column;
+}
+
+.t-system-map__name {
+	font-size: var(--font-size-small);
+	line-height: var(--line-height-small);
+	font-weight: var(--font-weight-medium);
+}
+
+/* Formal designations run long on belts ("Stanton Belt Alpha") — far longer
+   than a planet's "Stanton II". Wrap inside the column rather than letting the
+   text set the column's width, which is what happened while belts sat outside
+   the flex distribution. */
+.t-system-map__desig {
+	overflow-wrap: anywhere;
+	color: var(--color-subtle);
+	font-family: var(--font-family-monospace);
+	font-size: var(--font-size-x-small);
+	line-height: var(--line-height-x-small);
+}
+
+.t-system-map__moons {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-xxs);
+	margin: var(--space-xs) 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+/* Moons are a row: disc sitting on the connector, label to its right. */
+.t-system-map__item--moon .t-system-map__node {
+	flex-direction: row;
+	align-items: center;
+	gap: var(--space-xxs);
+}
+
+.t-system-map__item--moon .t-system-map__label {
+	flex-direction: row;
+	align-items: baseline;
+	gap: var(--space-xs);
+}
+
+/* Body palette. Semantic, and deliberately separate from the Citizen link
+   accent: these encode what a body is, not UI state. */
+.t-system-map__item[data-kind='star-g'] .t-system-map__disc {
+	background: radial-gradient(circle at 38% 32%, oklch(98% 0.03 95), oklch(87% 0.13 85) 52%, oklch(74% 0.16 68) 100%);
+}
+
+.t-system-map__item[data-kind='star-k'] .t-system-map__disc {
+	background: radial-gradient(circle at 38% 32%, oklch(96% 0.04 70), oklch(80% 0.14 58) 52%, oklch(66% 0.16 45) 100%);
+}
+
+.t-system-map__item[data-kind='star-f'] .t-system-map__disc {
+	background: radial-gradient(circle at 38% 32%, oklch(99% 0.005 250), oklch(91% 0.04 250) 52%, oklch(78% 0.07 258) 100%);
+}
+
+.t-system-map__item[data-kind='super-earth'] .t-system-map__disc {
+	background: radial-gradient(circle at 32% 28%, oklch(78% 0.05 120), oklch(63% 0.06 118) 56%, oklch(44% 0.05 118) 100%);
+}
+
+.t-system-map__item[data-kind='gas-giant'] .t-system-map__disc {
+	background: repeating-linear-gradient(
+			174deg,
+			rgba(255, 255, 255, 0.16) 0,
+			rgba(255, 255, 255, 0.16) 2px,
+			rgba(0, 0, 0, 0.11) 2px,
+			rgba(0, 0, 0, 0.11) 4px
+		),
+		radial-gradient(circle at 32% 28%, oklch(86% 0.07 75), oklch(71% 0.1 68) 56%, oklch(52% 0.09 62) 100%);
+}
+
+.t-system-map__item[data-kind='ice-giant'] .t-system-map__disc {
+	background: repeating-linear-gradient(
+			174deg,
+			rgba(255, 255, 255, 0.14) 0,
+			rgba(255, 255, 255, 0.14) 2px,
+			rgba(0, 0, 0, 0.08) 2px,
+			rgba(0, 0, 0, 0.08) 4px
+		),
+		radial-gradient(circle at 32% 28%, oklch(92% 0.04 220), oklch(78% 0.07 225) 56%, oklch(58% 0.07 230) 100%);
+}
+
+.t-system-map__item[data-kind='smog'] .t-system-map__disc {
+	background: radial-gradient(circle at 32% 28%, oklch(84% 0.06 85), oklch(67% 0.07 82) 56%, oklch(48% 0.06 80) 100%);
+}
+
+.t-system-map__item[data-kind='protoplanet'] .t-system-map__disc {
+	background: radial-gradient(circle at 32% 28%, oklch(78% 0.008 250), oklch(63% 0.01 250) 56%, oklch(45% 0.012 250) 100%);
+}
+
+.t-system-map__item[data-kind='rocky'] .t-system-map__disc {
+	background: radial-gradient(circle at 32% 28%, oklch(80% 0.035 60), oklch(64% 0.04 55) 56%, oklch(45% 0.038 52) 100%);
+}
+
+.t-system-map__item[data-kind='moon'] .t-system-map__disc {
+	background: radial-gradient(circle at 32% 28%, oklch(84% 0.006 250), oklch(70% 0.008 250) 56%, oklch(50% 0.01 250) 100%);
+}
+
+/* An asteroid belt is a region, not a body: upstream reports its size as 0 or
+   null, and giving it a diameter would invent data. A speckled band that the
+   orbit line runs through says "somewhere you cross" instead. */
+.t-system-map__item--belt .t-system-map__disc {
+	border-radius: 2px;
+	box-shadow: none;
+	background: transparent;
+	background-image: radial-gradient(circle, var(--color-subtle) 1.1px, transparent 1.4px);
+	background-size: 5px 5px;
+	background-position: center;
+}
+
+/* A body with a wiki render uses it instead of the procedural disc. The image
+   is sized by height in the Renderer (x<N>px), so a ringed body like Terminus
+   keeps its planet at the tier's diameter while the rings extend past the 32px
+   track. Overflow is deliberate — the column is far wider than the track. */
+.t-system-map__glyph--image {
+	overflow: visible;
+}
+
+.t-system-map__glyph--image img {
+	display: block;
+	max-width: none;
+}
+
+/* You-are-here. A ring plus a trailing dot, never colour alone. */
+.t-system-map__node[aria-current='page'] .t-system-map__disc {
+	box-shadow: 0 0 0 3px var(--color-surface-1), 0 0 0 5px var(--color-progressive);
+}
+
+.t-system-map__node[aria-current='page'] .t-system-map__name {
+	color: var(--color-emphasized);
+	font-weight: var(--font-weight-semi-bold);
+}
+
+.t-system-map__node[aria-current='page'] .t-system-map__name::after {
+	content: '';
+	display: inline-block;
+	inline-size: 0.36em;
+	block-size: 0.36em;
+	margin-left: 0.4em;
+	vertical-align: 0.18em;
+	border-radius: var(--border-radius-circle);
+	background: var(--color-progressive);
+}
+
+/* A moved or deleted target. MediaWiki already red-links it; this dims the
+   disc so the break is visible in the map itself. */
+.t-system-map__item--missing .t-system-map__disc {
+	opacity: 0.45;
+}
+
+/* Narrow: the rail becomes a column and the orbit line becomes vertical,
+   landing on the nested-tree layout. @container is not allowlisted in
+   MediaWiki 1.43, so this keys off the viewport. */
+@media (max-width: 720px) {
+	.t-system-map__scroll {
+		overflow-x: visible;
+	}
+
+	.t-system-map__rail {
+		flex-direction: column;
+		gap: var(--space-xs);
+		width: auto;
+	}
+
+	/* Same per-segment logic rotated: from this body's centre down to the next
+	   one's. `bottom` is relative to this item's own box, so it works whatever
+	   height the item has once its moons are stacked under it. */
+	.t-system-map__rail > .t-system-map__item:not(:last-child)::after {
+		right: auto;
+		bottom: calc(0px - var(--space-xs) - var(--t-system-map-centre));
+		width: 1px;
+		height: auto;
+	}
+
+	.t-system-map__item--has-moons::before {
+		display: none;
+	}
+
+	.t-system-map__item--star,
+	.t-system-map__item--planet,
+	.t-system-map__item--belt {
+		min-width: 0;
+	}
+
+	.t-system-map__item--star > .t-system-map__node,
+	.t-system-map__item--planet > .t-system-map__node,
+	.t-system-map__item--belt > .t-system-map__node {
+		flex-direction: row;
+		align-items: center;
+		gap: var(--space-xxs);
+	}
+
+	.t-system-map__item--star > .t-system-map__node .t-system-map__label,
+	.t-system-map__item--planet > .t-system-map__node .t-system-map__label,
+	.t-system-map__item--belt > .t-system-map__node .t-system-map__label {
+		flex-direction: row;
+		flex-wrap: wrap;
+		align-items: baseline;
+		gap: var(--space-xs);
+	}
+
+	.t-system-map__moons {
+		position: relative;
+		margin-top: var(--space-xxs);
+		padding-left: var(--t-system-map-track);
+	}
+
+	.t-system-map__moons::before {
+		content: '';
+		position: absolute;
+		left: calc(var(--t-system-map-track) + var(--t-system-map-centre));
+		top: 0;
+		bottom: var(--space-xs);
+		width: 1px;
+		background: var(--border-color-base);
+	}
+}

@@ -851,13 +851,4 @@ function suite:testCurrentBodyCarriesAScreenReaderMarker()
 	self:assertEquals(1, count, 'exactly one body is marked')
 end
 
--- The ring is drawn on the glyph and sized from this custom property, because
--- most bodies render as an <img> with no .__disc element to hang a box-shadow
--- on. Custom properties in an inline style survive MediaWiki's sanitizer
--- (probed against the live parser) -- unlike aria-current.
-function suite:testGlyphPublishesItsDiscSize()
-	local html = tostring(Renderer.renderRail(Data.buildModel('Stanton', '')))
-	self:assertTrue(html:find('%-%-t%-system%-map%-disc:%d') ~= nil, 'glyph carries the disc size')
-end
-
 return suite

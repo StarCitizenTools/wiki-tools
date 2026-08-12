@@ -40,12 +40,6 @@ local function bodyNode(body)
 	-- per-body and a pseudo-element cannot carry an inline style.
 	local glyph = node:tag('span'):addClass('t-system-map__glyph')
 
-	-- Publish the disc diameter to CSS so the you-are-here ring can be drawn at
-	-- the right size for image bodies too, where there is no .__disc element to
-	-- hang a box-shadow on. Custom properties in an inline style survive the
-	-- sanitizer (probed against the live parser).
-	glyph:cssText(string.format('--t-system-map-disc:%.1fpx', body.disc))
-
 	if body.icon then
 		-- Height-constrained (x<N>px), never width. A ringed body's icon is much
 		-- wider than tall — Terminus is 2.8:1 — so sizing by width would shrink

@@ -101,7 +101,6 @@
 }
 
 .t-system-map__glyph {
-	position: relative;
 	flex: none;
 	display: flex;
 	align-items: center;
@@ -258,28 +257,10 @@
 	white-space: nowrap;
 }
 
-/* You-are-here. A ring plus a trailing dot, never colour alone.
-   Keyed off data-current: MediaWiki strips aria-current.
-
-   Drawn on the glyph rather than the disc, because most bodies render as an
-   <img> and have no .__disc element to hang a box-shadow on. Sized from the
-   --t-system-map-disc custom property the Renderer publishes per body, so the
-   ring matches the planet at every tier — and on a ringed body like Terminus it
-   circles the planet rather than the whole ring span. */
-.t-system-map__node[data-current='page'] .t-system-map__glyph::after {
-	content: '';
-	position: absolute;
-	top: 0;
-	right: 0;
-	bottom: 0;
-	left: 0;
-	margin: auto;
-	inline-size: var(--t-system-map-disc, 20px);
-	block-size: var(--t-system-map-disc, 20px);
-	border-radius: var(--border-radius-circle);
-	box-shadow: 0 0 0 2px var(--color-progressive);
-}
-
+/* You-are-here. Bolder, brighter, and a trailing dot — never colour alone.
+   Deliberately no ring around the glyph: most bodies render as an image, and a
+   circle looks wrong around the ones that are not circular (a belt's speckled
+   band, or Terminus and Pyro IV with their rings extending sideways). */
 .t-system-map__node[data-current='page'] .t-system-map__name {
 	color: var(--color-emphasized);
 	font-weight: var(--font-weight-semi-bold);

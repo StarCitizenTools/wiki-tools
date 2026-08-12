@@ -29,7 +29,8 @@ Asteroid belts appear in the rail at their orbital position, drawn as a speckled
 band rather than a disc — they are regions rather than bodies, and have no
 meaningful diameter to draw.
 
-The body matching the current page is marked with a ring and a trailing dot.
+The body matching the current page is marked with a bolder, brighter name and
+a trailing dot, plus a visually hidden "(current page)" for screen readers.
 On a system article nothing is marked, because the map is the subject of the
 page rather than a location within it.
 

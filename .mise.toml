@@ -1,4 +1,5 @@
 [tools]
+go = "1.23"
 lefthook = "latest"
 rust = "latest"
 stylua = "latest"
@@ -10,16 +11,37 @@ stylua = "latest"
 "github:StarCitizenTools/mediawiki-scribuntounit" = { version = "0.2.0", bin_path = "bin" }
 
 [tasks.lint]
-run = ["stylua --check pages/module/ tests/ scribuntounit.config.lua", "gale 'pages/module/**/*.css'"]
+run = [
+  "stylua --check pages/module/ tests/ scribuntounit.config.lua",
+  "gale 'pages/module/**/*.css'",
+  # gofmt -l only *lists* offenders and still exits 0, so test the output.
+  'cd scripts && if [ -n "$(gofmt -l .)" ]; then echo "gofmt: needs formatting:"; gofmt -l .; exit 1; fi',
+  "cd scripts && go vet ./...",
+]
 description = "Check formatting"
 
 [tasks.fix]
-run = ["stylua pages/module/ tests/ scribuntounit.config.lua", "gale --fix 'pages/module/**/*.css'"]
+run = ["stylua pages/module/ tests/ scribuntounit.config.lua", "gale --fix 'pages/module/**/*.css'", "cd scripts && gofmt -w ."]
 description = "Fix formatting"
 
+[tasks.starmap]
+dir = "scripts"
+run = "go run ./cmd/starmap"
+description = "Regenerate the Starmap JSON into scripts/out/ (gitignored); publish it via the MediaWiki MCP server"
+
+[tasks."starmap:diff"]
+dir = "scripts"
+run = "go run ./cmd/starmap -diff"
+description = "Regenerate and report drift against the live wiki page (exit 1 if they differ). Read-only; deployment goes through the MediaWiki MCP server."
+
 [tasks.test]
-depends = ["test:lua"]
+depends = ["test:lua", "test:go"]
 description = "Run all local tests"
+
+[tasks."test:go"]
+dir = "scripts"
+run = "go test ./..."
+description = "Run the Go unit tests for scripts/ (no network access required)"
 
 [tasks."test:lua"]
 depends = ["test:lua:manifest", "test:lua:unit"]

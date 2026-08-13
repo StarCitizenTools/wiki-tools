@@ -5,3 +5,7 @@ docs/superpowers
 
 # Scribunto lualib cache fetched by scribuntounit-fetch (see scribuntounit.config.lua)
 .scribuntounit/
+
+# Generated wiki payloads from scripts/ (see scripts/README.md). These mirror
+# upstream APIs and are deployed via MCP, not stored here.
+scripts/out/

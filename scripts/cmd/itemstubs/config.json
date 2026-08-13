@@ -1,0 +1,708 @@
+{
+  "kinds": {
+    "component": {
+      "sections": [
+        "Description",
+        "Ports",
+        "Acquisition",
+        "Crafting",
+        "Related",
+        "Used by"
+      ],
+      "leadSize": true
+    },
+    "item": {
+      "sections": [
+        "Description",
+        "Ports",
+        "Acquisition",
+        "Crafting",
+        "Related"
+      ]
+    },
+    "wearable": {
+      "sections": [
+        "Description",
+        "Ports",
+        "Acquisition",
+        "Crafting",
+        "Related"
+      ]
+    },
+    "consumable": {
+      "sections": [
+        "Description",
+        "Acquisition",
+        "Related"
+      ]
+    }
+  },
+  "types": {
+    "AIModule.UNDEFINED": {
+      "skip": true
+    },
+    "AmmoBox.Grenade": {
+      "skip": true
+    },
+    "AmmoBox.Magazine": {
+      "skip": true
+    },
+    "Armor.Heavy": {
+      "skip": true
+    },
+    "Armor.Medium": {
+      "skip": true
+    },
+    "Armor.UNDEFINED": {
+      "skip": true
+    },
+    "AttachedPart.UNDEFINED": {
+      "skip": true
+    },
+    "Audio.UNDEFINED": {
+      "skip": true
+    },
+    "Battery.UNDEFINED": {
+      "skip": true
+    },
+    "BombLauncher.BombRack": {
+      "skip": true
+    },
+    "Bottle.Default": {
+      "skip": true
+    },
+    "CapacitorAssignmentController.UNDEFINED": {
+      "skip": true
+    },
+    "Cargo.Cargo": {
+      "skip": true
+    },
+    "Cargo.Small": {
+      "skip": true
+    },
+    "Cargo.UNDEFINED": {
+      "skip": true
+    },
+    "CargoGrid.Cargo": {
+      "skip": true
+    },
+    "CargoGrid.UNDEFINED": {
+      "skip": true
+    },
+    "Char_Accessory_Eyes.UNDEFINED": {
+      "kind": "wearable",
+      "label": "eyewear"
+    },
+    "Char_Accessory_Head.UNDEFINED": {
+      "kind": "wearable",
+      "label": "head accessory"
+    },
+    "Char_Armor_Arms.Heavy": {
+      "kind": "wearable",
+      "label": "arms armor",
+      "navplate": "personal armor"
+    },
+    "Char_Armor_Arms.Light": {
+      "kind": "wearable",
+      "label": "arms armor",
+      "navplate": "personal armor"
+    },
+    "Char_Armor_Arms.Medium": {
+      "kind": "wearable",
+      "label": "arms armor",
+      "navplate": "personal armor"
+    },
+    "Char_Armor_Backpack.LightArmor": {
+      "kind": "wearable",
+      "label": "backpack",
+      "navplate": "personal armor"
+    },
+    "Char_Armor_Backpack.Medium": {
+      "kind": "wearable",
+      "label": "backpack",
+      "navplate": "personal armor"
+    },
+    "Char_Armor_Backpack.Personal": {
+      "kind": "wearable",
+      "label": "backpack",
+      "navplate": "personal armor"
+    },
+    "Char_Armor_Backpack.UNDEFINED": {
+      "kind": "wearable",
+      "label": "backpack",
+      "navplate": "personal armor"
+    },
+    "Char_Armor_Helmet.Heavy": {
+      "kind": "wearable",
+      "label": "helmet",
+      "navplate": "helmets"
+    },
+    "Char_Armor_Helmet.Helmet": {
+      "kind": "wearable",
+      "label": "helmet",
+      "navplate": "helmets"
+    },
+    "Char_Armor_Helmet.Light": {
+      "kind": "wearable",
+      "label": "helmet",
+      "navplate": "helmets"
+    },
+    "Char_Armor_Helmet.Medium": {
+      "kind": "wearable",
+      "label": "helmet",
+      "navplate": "helmets"
+    },
+    "Char_Armor_Helmet.UNDEFINED": {
+      "kind": "wearable",
+      "label": "helmet",
+      "navplate": "helmets"
+    },
+    "Char_Armor_Legs.Heavy": {
+      "kind": "wearable",
+      "label": "legs armor",
+      "navplate": "personal armor"
+    },
+    "Char_Armor_Legs.Light": {
+      "kind": "wearable",
+      "label": "legs armor",
+      "navplate": "personal armor"
+    },
+    "Char_Armor_Legs.Medium": {
+      "kind": "wearable",
+      "label": "legs armor",
+      "navplate": "personal armor"
+    },
+    "Char_Armor_Torso.Heavy": {
+      "kind": "wearable",
+      "label": "torso armor",
+      "navplate": "personal armor"
+    },
+    "Char_Armor_Torso.Light": {
+      "kind": "wearable",
+      "label": "torso armor",
+      "navplate": "personal armor"
+    },
+    "Char_Armor_Torso.Medium": {
+      "kind": "wearable",
+      "label": "torso armor",
+      "navplate": "personal armor"
+    },
+    "Char_Armor_Torso.UNDEFINED": {
+      "kind": "wearable",
+      "label": "torso armor",
+      "navplate": "personal armor"
+    },
+    "Char_Armor_Undersuit.Heavy": {
+      "kind": "wearable",
+      "label": "undersuit",
+      "navplate": "personal armor"
+    },
+    "Char_Armor_Undersuit.UNDEFINED": {
+      "kind": "wearable",
+      "label": "undersuit",
+      "navplate": "personal armor"
+    },
+    "Char_Clothing_Backpack.UNDEFINED": {
+      "kind": "wearable",
+      "label": "backpack"
+    },
+    "Char_Clothing_Feet.UNDEFINED": {
+      "kind": "wearable",
+      "label": "footwear"
+    },
+    "Char_Clothing_Hands.Medical": {
+      "skip": true
+    },
+    "Char_Clothing_Hands.UNDEFINED": {
+      "kind": "wearable",
+      "label": "gloves"
+    },
+    "Char_Clothing_Hat.Medium": {
+      "kind": "wearable",
+      "label": "headgear"
+    },
+    "Char_Clothing_Hat.UNDEFINED": {
+      "kind": "wearable",
+      "label": "headgear"
+    },
+    "Char_Clothing_Legs.Female": {
+      "skip": true
+    },
+    "Char_Clothing_Legs.Medical": {
+      "skip": true
+    },
+    "Char_Clothing_Legs.UNDEFINED": {
+      "kind": "wearable",
+      "label": "legwear"
+    },
+    "Char_Clothing_Torso_0.Medical": {
+      "skip": true
+    },
+    "Char_Clothing_Torso_0.UNDEFINED": {
+      "kind": "wearable",
+      "label": "shirt"
+    },
+    "Char_Clothing_Torso_1.Female": {
+      "skip": true
+    },
+    "Char_Clothing_Torso_1.Male": {
+      "skip": true
+    },
+    "Char_Clothing_Torso_1.Medium": {
+      "kind": "wearable",
+      "label": "outerwear"
+    },
+    "Char_Clothing_Torso_1.UNDEFINED": {
+      "kind": "wearable",
+      "label": "outerwear"
+    },
+    "Char_Clothing_Torso_2.UNDEFINED": {
+      "kind": "wearable",
+      "label": "torso clothing",
+      "labelLink": "Clothing"
+    },
+    "Cooler.UNDEFINED": {
+      "kind": "component",
+      "label": "cooler",
+      "navplate": "coolers"
+    },
+    "FPS_Consumable.Hacking": {
+      "kind": "item",
+      "label": "cryptokey"
+    },
+    "FPS_Consumable.MedPack": {
+      "kind": "item",
+      "label": "medical consumable"
+    },
+    "FPS_Consumable.Medical": {
+      "kind": "item",
+      "label": "medical consumable"
+    },
+    "FPS_Deployable.Medium": {
+      "kind": "item",
+      "label": "deployable"
+    },
+    "FPS_Deployable.Small": {
+      "kind": "item",
+      "label": "deployable"
+    },
+    "FlightController.UNDEFINED": {
+      "kind": "component",
+      "label": "flight blade"
+    },
+    "JumpDrive.UNDEFINED": {
+      "kind": "component",
+      "label": "jump module",
+      "navplate": "jump modules"
+    },
+    "LifeSupportGenerator.UNDEFINED": {
+      "kind": "component",
+      "label": "life support generator",
+      "navplate": "life support generators"
+    },
+    "Missile.Missile": {
+      "kind": "component",
+      "label": "missile",
+      "navplate": "vehicle ordnances"
+    },
+    "Missile.Torpedo": {
+      "kind": "component",
+      "label": "torpedo",
+      "navplate": "vehicle ordnances"
+    },
+    "MissileLauncher.MissileRack": {
+      "skip": true
+    },
+    "PowerPlant.Power": {
+      "kind": "component",
+      "label": "power plant",
+      "navplate": "power plants"
+    },
+    "QuantumDrive.UNDEFINED": {
+      "kind": "component",
+      "label": "quantum drive",
+      "navplate": "quantum drives"
+    },
+    "QuantumInterdictionGenerator.UNDEFINED": {
+      "kind": "component",
+      "label": "quantum enforcement device"
+    },
+    "Radar.MidRangeRadar": {
+      "kind": "component",
+      "label": "radar",
+      "navplate": "radars"
+    },
+    "SalvageHead.UNDEFINED": {
+      "kind": "component",
+      "label": "salvage head"
+    },
+    "Shield.UNDEFINED": {
+      "kind": "component",
+      "label": "shield generator",
+      "navplate": "shield generators"
+    },
+    "TractorBeam.UNDEFINED": {
+      "kind": "component",
+      "label": "tractor beam",
+      "navplate": "tractor beams"
+    },
+    "WeaponAttachment.Barrel": {
+      "kind": "item",
+      "label": "barrel attachment"
+    },
+    "WeaponAttachment.BottomAttachment": {
+      "kind": "item",
+      "label": "underbarrel attachment"
+    },
+    "WeaponAttachment.FiringMechanism": {
+      "skip": true
+    },
+    "WeaponAttachment.IronSight": {
+      "kind": "item",
+      "label": "optics attachment"
+    },
+    "WeaponAttachment.Magazine": {
+      "kind": "item",
+      "label": "magazine"
+    },
+    "WeaponAttachment.Missile": {
+      "kind": "item",
+      "label": "weapon attachment"
+    },
+    "WeaponAttachment.PowerArray": {
+      "skip": true
+    },
+    "WeaponAttachment.Utility": {
+      "kind": "item",
+      "label": "multi-tool attachment"
+    },
+    "WeaponAttachment.Ventilation": {
+      "skip": true
+    },
+    "WeaponGun.Gun": {
+      "kind": "component",
+      "label": "vehicle weapon",
+      "labelLink": "Gun",
+      "navplate": "vehicle weapons"
+    },
+    "WeaponGun.Rocket": {
+      "kind": "component",
+      "label": "rocket pod",
+      "navplate": "vehicle weapons"
+    },
+    "WeaponGun.UNDEFINED": {
+      "kind": "component",
+      "label": "gun",
+      "navplate": "vehicle weapons"
+    },
+    "WeaponMining.Gun": {
+      "kind": "component",
+      "label": "mining laser"
+    },
+    "WeaponPersonal.Gadget": {
+      "kind": "item",
+      "label": "gadget",
+      "navplate": "personal weapons"
+    },
+    "WeaponPersonal.Grenade": {
+      "kind": "item",
+      "label": "grenade",
+      "navplate": "personal weapons"
+    },
+    "WeaponPersonal.Knife": {
+      "kind": "item",
+      "label": "knife",
+      "navplate": "personal weapons"
+    },
+    "WeaponPersonal.Medium": {
+      "kind": "item",
+      "label": "stocked weapon",
+      "navplate": "personal weapons"
+    },
+    "WeaponPersonal.Small": {
+      "kind": "item",
+      "label": "sidearm weapon",
+      "navplate": "personal weapons"
+    },
+    "WeaponPersonal.UNDEFINED": {
+      "kind": "item",
+      "label": "personal weapon",
+      "navplate": "personal weapons"
+    },
+    "WeaponPersonal.Weapon": {
+      "kind": "item",
+      "label": "personal weapon",
+      "navplate": "personal weapons"
+    }
+  },
+  "blocklist": [
+    {
+      "id": "isPlaceholder",
+      "nameContains": [
+        "placeholder"
+      ],
+      "namePrefixes": [
+        "@item",
+        "PH - ",
+        "- ",
+        "TEST STRING NAME"
+      ],
+      "classSuffixes": [
+        "_placeholder"
+      ],
+      "nameExact": [
+        "PH",
+        "PH1",
+        "PH2",
+        "TBD"
+      ]
+    },
+    {
+      "id": "testItem",
+      "namePrefixes": [
+        "ELD - "
+      ],
+      "classSuffixes": [
+        "_debug",
+        "_test",
+        "_TEST",
+        "_invis",
+        "_Template",
+        "_TEMPLATE",
+        "_template",
+        "_TEMP",
+        "_TEMPL",
+        "_Dummy",
+        "_LowPoly",
+        "_Active"
+      ]
+    },
+    {
+      "id": "aiOnlyItem",
+      "classSuffixes": [
+        "_ai_exclusive",
+        "_AI"
+      ]
+    },
+    {
+      "id": "characterCreatorItem",
+      "classSuffixes": [
+        "_DNA",
+        "_noDNA",
+        "_hair_extension"
+      ],
+      "classPrefixes": [
+        "mannequin_"
+      ]
+    },
+    {
+      "id": "nonPuItem",
+      "namePrefixes": [
+        "Treat Injuries"
+      ],
+      "classSuffixes": [
+        "_tow",
+        "_gungame",
+        "_gungame_rotated",
+        "_ea_elim"
+      ]
+    }
+  ],
+  "review": [
+    {
+      "id": "bespoke",
+      "classContains": [
+        "_Bespoke",
+        "_bespoke"
+      ],
+      "descContains": [
+        "bespoke",
+        "designed specifically for",
+        "built specifically for"
+      ]
+    }
+  ],
+  "manufacturers": {
+    "renames": {
+      "AEG": "AEGS",
+      "BEH": "BEHR",
+      "CUR": "CRLF",
+      "GEM": "GMNI"
+    },
+    "byPrefix": {
+      "basl_": "BASL",
+      "eld_": "ELD",
+      "kap_": "KAP",
+      "ops_": "OPS",
+      "nvs_": "NVS",
+      "srvl_": "SRVL",
+      "volt_": "VOLT",
+      "none_": "NONE",
+      "cds_": "CDS"
+    },
+    "byName": {
+      "Quirinus Tech": "QRT"
+    },
+    "names": {
+      "987": "987",
+      "ABIN": "Abernathy Interiors",
+      "ACAS": "Ace Astrogation",
+      "ACDO": "Aciedo Communications",
+      "ACOM": "ACOM",
+      "AEHA": "Aeroview Hangars",
+      "AEGS": "Aegis Dynamics",
+      "ALB": "Alejo Brothers",
+      "ALST": "Alliance Startech",
+      "AMD": "Accelerated Mass Design",
+      "AMRS": "Amon & Reese Co.",
+      "ANVL": "Anvil Aerospace",
+      "APAR": "Apocalypse Arms",
+      "ARCC": "ArcCorp",
+      "ARGO": "Argo Astronautics",
+      "ARMA": "ArmaMod",
+      "ASAS": "Ascension Astro",
+      "ASAD": "Associated Sciences & Development",
+      "ATK": "A-Tek",
+      "AVNG": "adVance NanoGraph",
+      "BASL": "Basilisk",
+      "BANU": "Banu Souli",
+      "BEHR": "Behring Applied Technology",
+      "BLTR": "Blue Triangle Inc.",
+      "BREC": "Beijing Reactor and Enrichment Company",
+      "BRRA": "Broad & Rabiee",
+      "CBA": "Code Blue Apparel",
+      "CBD": "Custom Built Duds",
+      "CCC": "CC's Conversions",
+      "CCTI": "Cole, Carlson & Taylor Inc.",
+      "CDS": "Clark Defense Systems",
+      "CHCO": "Chimera Communications",
+      "CLDA": "Caldera",
+      "CNOU": "Consolidated Outland",
+      "CRLF": "CureLife",
+      "CRUS": "Crusader Industries",
+      "CTL": "City Lights",
+      "DMC": "Denim Manufacture Corporation",
+      "DNN": "DoNoNo",
+      "DOOM": "Doomsday",
+      "DRAK": "Drake Interplanetary",
+      "DRN": "Derion",
+      "DSTC": "Dragon Stellar",
+      "DYL": "Dyna Lei",
+      "ELD": "Escar Limited",
+      "ESPR": "Esperia",
+      "EVL": "EvaLight",
+      "FFSY": "Flashfire Systems",
+      "FIO": "Fiore",
+      "FRO": "Feroh",
+      "FSIN": "Friskers Semiconductor",
+      "FSKI": "FireStorm Kinetics",
+      "FTA": "Fortified Armor",
+      "GAMA": "Gatac Manufacture",
+      "GATS": "Gallenson Tactical Systems",
+      "GLSN": "Grey's Market",
+      "GMNI": "Gemini",
+      "GODI": "Gorgon Defender Industries",
+      "GRIN": "Greycat Industrial",
+      "GRNP": "Groupe Nouveau Paradigme",
+      "GSB": "Grindstone Boots",
+      "GYS": "Gyson Inc.",
+      "HAPR": "Hammer Propulsion",
+      "HDGW": "Hedeby Gunworks",
+      "HDH": "Habidash",
+      "HDTC": "Hardin Tactical",
+      "HRST": "Hurston Dynamics",
+      "HWK": "Hawksworth's",
+      "HYPR": "Hydra Propulsion",
+      "IOLO": "Iolo Industries",
+      "JOKR": "Joker Engineering",
+      "JSPN": "J-Span",
+      "JUST": "Juno Starwerk",
+      "KAP": "Kilgore and Poole",
+      "KSAR": "Kastak Arms",
+      "KEGR": "KE Group",
+      "KBAR": "KnightBridge Arms",
+      "KLWE": "Klaus & Werner",
+      "KODK": "Kosmicheskie Dvigateli Kunayeva",
+      "KRIG": "Kruger Intergalactic",
+      "KRON": "Kroneg",
+      "LBCO": "Lightning Bolt Co.",
+      "LNA": "Luna",
+      "LOCO": "Lortell Computing",
+      "LPLT": "Lightning Power Ltd.",
+      "MXOX": "MaxOx",
+      "MITE": "microTech",
+      "MRAI": "Mirai",
+      "MISC": "Musashi Industrial and Starflight Concern",
+      "MYM": "MuyMuy",
+      "NAVE": "Nav-E7 Gadgets",
+      "NONE": "No manufacturer",
+      "NOVP": "Nova Pyrotechnica",
+      "NRS": "NorthStar",
+      "NVS": "Navy Surplus",
+      "NVTC": "NV-TAC",
+      "NVY": "United Empire of Earth Navy",
+      "OCT": "Octagon",
+      "OKBV": "OKB Voskhod",
+      "OMC": "Odin Munitions Corporation",
+      "OPS": "OpalSky",
+      "ORIG": "Origin Jumpworks",
+      "POIR": "Polaris Ironworks",
+      "PRAR": "Preacher Armament",
+      "R6P": "R6 Pro",
+      "RACO": "RAMP Corporation",
+      "REYO": "Revel & York",
+      "RMB": "Rambler",
+      "ROO": "Republic of One",
+      "RRS": "Roussimoff Rehabilitation Systems",
+      "RSI": "Roberts Space Industries",
+      "QRT": "Quirinus Tech",
+      "SADA": "Saga Datasystems",
+      "SASU": "Sakura Sun",
+      "SCH": "Schui",
+      "SCU": "Stegman's Clothing and Uniforms",
+      "SECO": "Seal Corporation",
+      "SELA": "SELF-LAND",
+      "SHIN": "Shubin Interstellar",
+      "SPV": "Spar Van Miles",
+      "SRVL": "Survivalist",
+      "STOR": "Stor*All",
+      "SYFB": "Syang Fabrication",
+      "TALN": "Talon Weapons Systems",
+      "TARS": "Tarsus",
+      "TBD": "To be determined",
+      "THP": "Tehachapi",
+      "TKSU": "Takuetsu Starships",
+      "TMBL": "Tumbril Land Systems",
+      "TOAG": "Torral Aggregate",
+      "THCN": "Thermyte Concern",
+      "TRAS": "Trident Attack Systems",
+      "TYDT": "Tyler Design & Tech",
+      "UBA": "Universal Body Armor",
+      "UEE": "United Empire of Earth",
+      "UTFL": "UltiFlex",
+      "UNKN": "Unknown manufacturer",
+      "UPS": "Upsiders",
+      "VFGI": "VFG Industrial",
+      "VGL": "Virgil Ltd",
+      "VNCL": "Vanduul Clans",
+      "VOLT": "Verified Offworld Laser Technologies",
+      "VPW": "Vaporwear",
+      "WCPR": "Wen-Cassel Propulsion",
+      "WETK": "Wei-Tek",
+      "WLOP": "WillsOp",
+      "XFRG": "X-Forge",
+      "XIAN": "Xi'an",
+      "XNAA": "Aopoa",
+      "YORM": "Yorm"
+    },
+    "omitInLead": [
+      "UNKN",
+      "NONE",
+      "GEND"
+    ],
+    "aliases": {
+      "MISC": "MRAI",
+      "QRT": "ALB"
+    }
+  }
+}

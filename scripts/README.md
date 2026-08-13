@@ -1,11 +1,15 @@
 # scripts
 
-Go programs that build wiki content from external data sources.
+Go programs that build wiki content, or plans for changing it, from data the
+wiki does not maintain by hand.
 
 Each one **generates a file and tells you how it differs from the live wiki**.
 None of them write to the wiki: publishing goes through the MediaWiki MCP
 server, where an agent can resolve conflicts and make editorial calls. Nothing
 here touches credentials, and every command runs unauthenticated.
+
+Most tools mirror an upstream API. `uuidindex` is the other shape: its source
+is the wiki itself, and its output is a plan of edits rather than page content.
 
 ## Requirements
 
@@ -16,6 +20,7 @@ Go 1.23+, provided by `mise install`. There are no other dependencies.
 | Tool | Generates | Source |
 |---|---|---|
 | `starmap` | `Module:Starmap/starmap.json` | [ARK Starmap API](https://robertsspaceindustries.com/starmap) |
+| `uuidindex` | reconciliation plan for the `UUID:` redirect namespace | the wiki itself (SMW `Uuid` annotations vs `UUID:` pages) |
 
 ## Usage
 
@@ -69,8 +74,15 @@ exists because the previous starmap generator ignored unknown fields silently
 and an upstream renaming pass went unnoticed for about nine months.
 
 **Refusing to write.** A run aborts if the upstream returns implausibly little
-data (`-min-systems` / `-min-objects` for starmap). That is a degraded API, not
-a real change; overriding the floor is almost never the right response.
+data (`-min-systems` / `-min-objects` for starmap, `-min-uuids` / `-min-pages`
+for uuidindex). That is a degraded API, not a real change; overriding the floor
+is almost never the right response.
+
+**Refusing to delete.** `uuidindex` is the only tool whose plan can remove
+pages, so it also caps how many (`-max-delete`, default 100). Tripping the cap
+writes the plan to `<out>.rejected.json` and exits **2** rather than 1, so the
+deletions can be read before anyone decides they are real. Raise the cap only
+after reading them.
 
 ## Adding a tool
 
@@ -85,4 +97,5 @@ above. Keep the tool read-only: generating and publishing are separate steps on
 purpose, so that a bad generation cannot become a bad edit without someone
 looking at it first.
 
-Per-tool notes live next to the tool — see [`cmd/starmap`](cmd/starmap/README.md).
+Per-tool notes live next to the tool — see [`cmd/starmap`](cmd/starmap/README.md)
+and [`cmd/uuidindex`](cmd/uuidindex/README.md).

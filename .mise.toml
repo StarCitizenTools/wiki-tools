@@ -34,6 +34,16 @@ dir = "scripts"
 run = "go run ./cmd/starmap -diff"
 description = "Regenerate and report drift against the live wiki page (exit 1 if they differ). Read-only; deployment goes through the MediaWiki MCP server."
 
+[tasks.uuidindex]
+dir = "scripts"
+run = "go run ./cmd/uuidindex"
+description = "Scan the wiki and write the UUID: namespace reconciliation plan to scripts/out/ (gitignored); apply it via the MediaWiki MCP server"
+
+[tasks."uuidindex:diff"]
+dir = "scripts"
+run = "go run ./cmd/uuidindex -diff"
+description = "Scan and report UUID: namespace drift (exit 1 if reconciliation is pending). Read-only; changes go through the MediaWiki MCP server."
+
 [tasks.test]
 depends = ["test:lua", "test:go"]
 description = "Run all local tests"

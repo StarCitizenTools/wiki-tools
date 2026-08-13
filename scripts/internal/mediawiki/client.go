@@ -201,12 +201,27 @@ const (
 // TitleStatuses reports, for each title, whether a page exists there. Results
 // are keyed by the titles as passed, with the API's normalisation reversed, so
 // callers can look up their own strings. Titles are checked in batches of 50
-// (the anonymous API limit).
+// (the anonymous API limit). A title containing "|" is reported TitleInvalid
+// without being sent, and a title that resolves outside the main namespace
+// (e.g. "Template: Foo") is reported TitleInvalid rather than TitleMissing.
 func (c *Client) TitleStatuses(ctx context.Context, titles []string) (map[string]TitleStatus, error) {
 	const batch = 50
 	out := make(map[string]TitleStatus, len(titles))
-	for start := 0; start < len(titles); start += batch {
-		chunk := titles[start:min(start+batch, len(titles))]
+
+	// A "|" in a title would splice into the batched titles= parameter and
+	// mis-key every result after it, so it is rejected locally and never
+	// sent.
+	var toQuery []string
+	for _, title := range titles {
+		if strings.Contains(title, "|") {
+			out[title] = TitleInvalid
+			continue
+		}
+		toQuery = append(toQuery, title)
+	}
+
+	for start := 0; start < len(toQuery); start += batch {
+		chunk := toQuery[start:min(start+batch, len(toQuery))]
 
 		var res struct {
 			Response
@@ -217,6 +232,7 @@ func (c *Client) TitleStatuses(ctx context.Context, titles []string) (map[string
 				} `json:"normalized"`
 				Pages []struct {
 					Title   string `json:"title"`
+					Ns      int    `json:"ns"`
 					Missing bool   `json:"missing"`
 					Invalid bool   `json:"invalid"`
 				} `json:"pages"`
@@ -257,6 +273,12 @@ func (c *Client) TitleStatuses(ctx context.Context, titles []string) (map[string
 			var status TitleStatus
 			switch {
 			case p.Invalid:
+				status = TitleInvalid
+			case p.Ns != 0:
+				// The title resolved into a namespace other than main (e.g.
+				// "Template: Foo" -> the Template namespace): free there says
+				// nothing about whether it's free as an article, so it must
+				// not be read as creatable.
 				status = TitleInvalid
 			case p.Missing:
 				status = TitleMissing

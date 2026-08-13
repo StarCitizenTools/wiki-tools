@@ -23,12 +23,15 @@ type StubData struct {
 	Name, UUID       string
 	MfrCode, MfrPage string
 	Label, LabelLink string
-	Navplate         string
-	Sections         []string
-	LeadSize         bool
-	Size             *int
-	Version          string // "4.9.0"
-	Date             string // accessdate, YYYY-MM-DD
+	// NoLabelLink renders Label as plain text instead of [[Label]] or
+	// [[LabelLink|Label]]. Set alongside LabelLink is a config error.
+	NoLabelLink bool
+	Navplate    string
+	Sections    []string
+	LeadSize    bool
+	Size        *int
+	Version     string // "4.9.0"
+	Date        string // accessdate, YYYY-MM-DD
 }
 
 // RenderStub renders the canonical {{Entity}} stub. Layout mirrors the
@@ -46,8 +49,11 @@ func RenderStub(d StubData) string {
 		subject = fmt.Sprintf("size %d %s", *d.Size, d.Label)
 	}
 	label := "[[" + d.Label + "]]"
-	if d.LabelLink != "" {
+	switch {
+	case d.LabelLink != "":
 		label = "[[" + d.LabelLink + "|" + d.Label + "]]"
+	case d.NoLabelLink:
+		label = d.Label
 	}
 	lead := fmt.Sprintf("The '''%s''' is %s ", d.Name, article(subject))
 	if d.LeadSize && d.Size != nil {

@@ -139,6 +139,27 @@ func TestBuildPlanManufacturerMismatch(t *testing.T) {
 		t.Fatalf("create = %+v, want all 4 items planned regardless of the mismatch", plan.Create)
 	}
 
+	// The create entry itself must carry the mismatch flag: an agent applying
+	// create[] verbatim has to see it there, not only in the separate
+	// Mismatches array.
+	var mismatchCreate *CreateEntry
+	for i := range plan.Create {
+		if plan.Create[i].Title == "APX Fire Extinguisher" {
+			mismatchCreate = &plan.Create[i]
+		}
+	}
+	if mismatchCreate == nil {
+		t.Fatal("expected APX Fire Extinguisher in create")
+	}
+	if mismatchCreate.MismatchFromClass != "KEGR" {
+		t.Errorf("create[APX Fire Extinguisher].MismatchFromClass = %q, want %q", mismatchCreate.MismatchFromClass, "KEGR")
+	}
+	for _, c := range plan.Create {
+		if c.Title != "APX Fire Extinguisher" && c.MismatchFromClass != "" {
+			t.Errorf("create[%s].MismatchFromClass = %q, want empty (no mismatch)", c.Title, c.MismatchFromClass)
+		}
+	}
+
 	if len(plan.Mismatches) != 1 {
 		t.Fatalf("mismatches = %+v, want exactly 1", plan.Mismatches)
 	}

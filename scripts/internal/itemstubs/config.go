@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 )
 
@@ -25,12 +26,17 @@ type TypeRule struct {
 	// LabelLink pipes the lead's label link ([[LabelLink|label]]) when the
 	// article name differs from the label; empty links [[label]] directly.
 	LabelLink string `json:"labelLink,omitempty"`
+	// NoLabelLink renders the lead's label as plain text. Some labels have no
+	// article to link ("deployable"), and a red link on every page of a type
+	// is worse than an unlinked noun.
+	NoLabelLink bool `json:"noLabelLink,omitempty"`
 	// Navplate names the type navplate ({{Navplate <value>}}); empty omits it.
 	Navplate string `json:"navplate,omitempty"`
 }
 
-// PatternRule matches items by name or class name. Class checks are exact;
-// name checks are case-insensitive (dump names vary freely in case).
+// PatternRule matches items by name or class name. NameContains and
+// DescContains are case-insensitive; NameExact, NamePrefixes and all class
+// checks are case-sensitive.
 type PatternRule struct {
 	ID string `json:"id"`
 	// NameExact matches the whole name. Short placeholder names ("PH") are
@@ -167,6 +173,9 @@ func (c *Config) validate() error {
 		if rule.Label == "" {
 			return fmt.Errorf("type %q: label is required", typ)
 		}
+		if rule.LabelLink != "" && rule.NoLabelLink {
+			return fmt.Errorf("type %q: labelLink and noLabelLink are mutually exclusive", typ)
+		}
 	}
 	seen := map[string]bool{}
 	for _, list := range [][]PatternRule{c.Blocklist, c.Review} {
@@ -178,6 +187,31 @@ func (c *Config) validate() error {
 				return fmt.Errorf("duplicate pattern rule id %q", rule.ID)
 			}
 			seen[rule.ID] = true
+		}
+	}
+	// A code referenced by one of these maps' values but absent from Names is
+	// a typo: today it silently falls back to the dump's own manufacturer
+	// name instead of failing, so the map appears to work while doing
+	// nothing.
+	for _, ref := range []struct {
+		field string
+		m     map[string]string
+	}{
+		{"renames", c.Manufacturers.Renames},
+		{"byPrefix", c.Manufacturers.ByPrefix},
+		{"byName", c.Manufacturers.ByName},
+		{"aliases", c.Manufacturers.Aliases},
+	} {
+		keys := make([]string, 0, len(ref.m))
+		for k := range ref.m {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		for _, k := range keys {
+			code := ref.m[k]
+			if _, ok := c.Manufacturers.Names[code]; !ok {
+				return fmt.Errorf("manufacturers.%s: code %q is not in manufacturers.names", ref.field, code)
+			}
 		}
 	}
 	return nil

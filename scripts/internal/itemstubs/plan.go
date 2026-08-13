@@ -29,8 +29,13 @@ type CreateEntry struct {
 	Type         string `json:"type"`
 	Kind         string `json:"kind"`
 	Manufacturer string `json:"manufacturer"`
-	Summary      string `json:"summary"`
-	Wikitext     string `json:"wikitext"`
+	// MismatchFromClass is non-empty when the item's class name implies a
+	// different manufacturer than Manufacturer (see Mismatch). It means this
+	// entry needs checking against the class name before it is published,
+	// not applied verbatim.
+	MismatchFromClass string `json:"mismatchFromClass,omitempty"`
+	Summary           string `json:"summary"`
+	Wikitext          string `json:"wikitext"`
 }
 
 // ConflictEntry is an item the tool refuses to decide: the applying agent
@@ -146,6 +151,10 @@ func BuildPlan(ctx context.Context, items []Item, wiki map[string]bool, cfg *Con
 		filtered Filtered
 		code     string
 		wikitext string
+		// mismatchFromClass mirrors Mismatch.FromClass for this item, carried
+		// alongside the candidate so a resulting CreateEntry can surface it
+		// too — see BuildPlan's Mismatches handling below.
+		mismatchFromClass string
 	}
 	candidateUUIDs := func(cands []candidate) []string {
 		uuids := make([]string, len(cands))
@@ -183,8 +192,10 @@ func BuildPlan(ctx context.Context, items []Item, wiki map[string]bool, cfg *Con
 				})
 				continue
 			}
+			var mismatchFromClass string
 			if fromClass := ClassManufacturer(it.ClassName, known); fromClass != "" && fromClass != code &&
 				cfg.Manufacturers.Aliases[fromClass] != code {
+				mismatchFromClass = fromClass
 				plan.Mismatches = append(plan.Mismatches, Mismatch{
 					Title: it.Name, UUID: it.UUID, Resolved: code,
 					FromClass: fromClass, ClassName: it.ClassName,
@@ -194,12 +205,12 @@ func BuildPlan(ctx context.Context, items []Item, wiki map[string]bool, cfg *Con
 			wikitext := RenderStub(StubData{
 				Name: it.Name, UUID: it.UUID,
 				MfrCode: code, MfrPage: page,
-				Label: f.Rule.Label, LabelLink: f.Rule.LabelLink, Navplate: f.Rule.Navplate,
+				Label: f.Rule.Label, LabelLink: f.Rule.LabelLink, NoLabelLink: f.Rule.NoLabelLink, Navplate: f.Rule.Navplate,
 				Sections: kind.Sections, LeadSize: kind.LeadSize, Size: it.Size,
 				Version: version, Date: date,
 			})
 			key := titleKey(it.Name)
-			byTitle[key] = append(byTitle[key], candidate{f, code, wikitext})
+			byTitle[key] = append(byTitle[key], candidate{f, code, wikitext, mismatchFromClass})
 		}
 	}
 
@@ -275,9 +286,10 @@ func BuildPlan(ctx context.Context, items []Item, wiki map[string]bool, cfg *Con
 		default:
 			plan.Create = append(plan.Create, CreateEntry{
 				Title: title, UUID: it.UUID, Type: it.Type, Kind: c.filtered.Rule.Kind,
-				Manufacturer: c.code,
-				Summary:      fmt.Sprintf("Create item stub from Alpha %s datamine", version),
-				Wikitext:     c.wikitext,
+				Manufacturer:      c.code,
+				MismatchFromClass: c.mismatchFromClass,
+				Summary:           fmt.Sprintf("Create item stub from Alpha %s datamine", version),
+				Wikitext:          c.wikitext,
 			})
 		}
 	}

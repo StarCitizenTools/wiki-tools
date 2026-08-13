@@ -32,11 +32,35 @@ func TestConfigValidation(t *testing.T) {
 		"unknown section":    `{"kinds":{"item":{"sections":["Bogus"]}},"types":{}}`,
 		"duplicate rule id":  `{"kinds":{},"types":{},"blocklist":[{"id":"x"},{"id":"x"}]}`,
 		"unknown json field": `{"kinds":{},"types":{},"surprise":1}`,
+		"labelLink and noLabelLink both set": `{"kinds":{"item":{"sections":["Description"]}},
+			"types":{"A.B":{"kind":"item","label":"x","labelLink":"X","noLabelLink":true}}}`,
+		"renames value missing from names": `{"kinds":{},"types":{},
+			"manufacturers":{"renames":{"OLD":"NEW"},"names":{}}}`,
+		"byPrefix value missing from names": `{"kinds":{},"types":{},
+			"manufacturers":{"byPrefix":{"foo_":"FOO"},"names":{}}}`,
+		"byName value missing from names": `{"kinds":{},"types":{},
+			"manufacturers":{"byName":{"Foo Inc":"FOO"},"names":{}}}`,
+		"aliases value missing from names": `{"kinds":{},"types":{},
+			"manufacturers":{"aliases":{"FOO":"BAR"},"names":{}}}`,
 	}
 	for name, raw := range cases {
 		if _, err := ParseConfig([]byte(raw)); err == nil {
 			t.Errorf("%s: want validation error, got nil", name)
 		}
+	}
+}
+
+func TestConfigValidationManufacturerRefsOK(t *testing.T) {
+	raw := `{"kinds":{},"types":{},
+		"manufacturers":{
+			"renames":{"OLD":"NEW"},
+			"byPrefix":{"foo_":"FOO"},
+			"byName":{"Foo Inc":"FOO"},
+			"aliases":{"FOO":"BAR"},
+			"names":{"NEW":"New Co.","FOO":"Foo Co.","BAR":"Bar Co."}
+		}}`
+	if _, err := ParseConfig([]byte(raw)); err != nil {
+		t.Errorf("want no error when every referenced code is in names, got: %v", err)
 	}
 }
 

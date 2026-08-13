@@ -48,6 +48,7 @@ resolution and the title check against the live wiki can still turn a
 | `duplicate-name` | two or more missing items would render the same title |
 | `title-exists` | a page already exists at that title, but without this uuid |
 | `review:<ruleId>` | the item matched a `review` pattern (see below) |
+| `unknown-title-status` | the wiki's title-check response didn't classify this title at all (an API quirk); resolve by hand |
 
 ## Config semantics
 
@@ -68,11 +69,22 @@ the same:**
   that); an active entry must carry both.
 
 **`review` rules never decide — they only flag.** A pattern rule under
-`review` (matched the same way as `blocklist`, by name/class-name substrings
-or prefixes/suffixes, plus `descContains` against the dump's description) does
-not skip the item and does not create it either: it downgrades an
-otherwise-createable item into a `conflicts` entry, with the rendered wikitext
-attached so the applying agent only has to judge, not draft.
+`review` (matched the same way as `blocklist`: whole-name matches
+(`nameExact`), name/class-name substrings or prefixes/suffixes, plus
+`descContains` against the dump's description) does not skip the item and
+does not create it either: it downgrades an otherwise-createable item into a
+`conflicts` entry, with the rendered wikitext attached so the applying agent
+only has to judge, not draft. `nameExact` matches the whole name rather than a
+substring or prefix — it exists for short placeholder names ("PH", "TBD")
+that would otherwise swallow real items sharing the same start or fragment.
+
+**A type's lead links its `label`** to a wiki article: `[[label]]` by
+default, `[[labelLink|label]]` when the article name differs from the label
+text (`WeaponGun.Gun`'s label "vehicle weapon" links to `[[Gun|vehicle
+weapon]]`), and `"noLabelLink": true` when no article exists for the label at
+all — the label then renders as plain text instead of a red link repeated on
+every page of that type. `labelLink` and `noLabelLink` are mutually
+exclusive; config validation rejects a type that sets both.
 
 The seeded config uses this for **built-in ship hardware**: gear bolted to one
 hull that a player can never buy, fit, or replace, which earns no page. Whole
@@ -95,6 +107,15 @@ successfully but with an empty page, which drops the lead's "manufactured by"
 clause and the manufacturer navplate — linking `[[Consumable]]` as if it were
 a company would be wrong.
 
+Separately, `ClassManufacturer` reads the manufacturer a class name's leading
+token claims and, when it disagrees with the resolved code, records it in the
+plan's `manufacturerMismatches` array — advisory, not a filter: the item is
+still planned, and the disagreement is surfaced for a human to judge which
+side is wrong (see "What the plan contains" and "Applying the plan" below).
+`manufacturers.aliases` (keyed class-token code -> resolved code) suppresses
+known-legitimate disagreements — Mirai's items still carry `MISC` class names
+from before the rename — so a pair listed there is never reported.
+
 ## What the plan contains
 
 ```jsonc
@@ -115,6 +136,16 @@ a company would be wrong.
       "manufacturer": "HRST",
       "summary": "Create item stub from Alpha 4.9.0 datamine",
       "wikitext": "{{Entity\n|uuid = aaaaaaaa-0000-4000-8000-000000000010\n|name = Dominance-1 Scattergun\n...\n"
+    },
+    {
+      "title": "APX Fire Extinguisher",
+      "uuid": "aaaaaaaa-0000-4000-8000-000000000040",
+      "type": "WeaponGun.Gun",
+      "kind": "component",
+      "manufacturer": "ANVL",
+      "mismatchFromClass": "KEGR",
+      "summary": "Create item stub from Alpha 4.9.0 datamine",
+      "wikitext": "{{Entity\n|uuid = aaaaaaaa-0000-4000-8000-000000000040\n|name = APX Fire Extinguisher\n...\n"
     }
   ],
   "conflicts": [
@@ -135,15 +166,27 @@ a company would be wrong.
   "skipped": { "exists": 18201, "blocked": { "isPlaceholder": 340, "testItem": 52 }, "excluded": 1877, "unusable": 6 },
   "unmappedTypes": [
     { "type": "Misc.Harvestable", "count": 214, "sample": "Stone Fruit" }
+  ],
+  "manufacturerMismatches": [
+    {
+      "title": "APX Fire Extinguisher",
+      "uuid": "aaaaaaaa-0000-4000-8000-000000000040",
+      "resolved": "ANVL",
+      "fromClass": "KEGR",
+      "className": "kegr_fire_extinguisher_01"
+    }
   ]
 }
 ```
 
-`create` entries are ready to apply mechanically. `conflicts` is the
-editorial worklist — every entry names a `reason` and, where a stub was
-rendered, carries its `wikitext` so resolving the conflict doesn't mean
-re-deriving it. `unmappedTypes` is sorted by count, so the highest-volume gaps
-in the allowlist surface first.
+`create` entries are ready to apply mechanically — with one caveat:
+`mismatchFromClass` is set (and the same disagreement also appears in
+`manufacturerMismatches`) when the class name implies a different maker than
+`manufacturer`, so an apply that skips checking it can publish the wrong
+manufacturer. `conflicts` is the editorial worklist — every entry names a
+`reason` and, where a stub was rendered, carries its `wikitext` so resolving
+the conflict doesn't mean re-deriving it. `unmappedTypes` is sorted by count,
+so the highest-volume gaps in the allowlist surface first.
 
 `plan.Drift()` (used by `-diff`) is `len(create) + len(conflicts) > 0` — both
 mean somebody has work to do. This differs from `uuidindex`, where conflicts
@@ -161,6 +204,13 @@ signal as `create`.
 | wiki floor | `-min-uuids` (5000) | fewer annotated uuids scanned than this | 1 |
 | creation cap | `-max-create` (500) | more `create` entries than this | **2** |
 | drift check | `-diff` | `plan.Drift()` is true | **1** |
+
+The two floors' exit code 1 is an ordinary error exit, not a dedicated rail
+code: tripping one returns a plain Go `error` from `run()`, and `main()`
+reports and exits 1 for that the same way it would for any other failure.
+Only the creation cap has a dedicated exit code (`exitRailTripped` = 2) —
+the same split as `cmd/uuidindex`, where `-min-uuids`/`-min-pages` exit via
+the ordinary error path and only `-max-delete` gets its own exit 2.
 
 The two floors are checked before a plan is built: a truncated dump download
 or a degraded SMW (mid-rebuild, API hiccup) would otherwise be read as "these
@@ -186,7 +236,11 @@ This tool never writes to the wiki and holds no credentials. Applying a plan
 means an agent works through it via the MediaWiki MCP server:
 
 - `create` entries become `create-page` calls, verbatim `wikitext` and
-  `summary`, from a bot-flagged account.
+  `summary`, from a bot-flagged account — but check `mismatchFromClass` first:
+  a non-empty value means the item's class name implies a different
+  manufacturer than the one baked into `manufacturer`/the wikitext (the same
+  disagreement also appears in `manufacturerMismatches`), so the entry needs a
+  human read before publishing, not a mechanical apply.
 - `conflicts` are the editorial worklist — each one needs a human or agent
   judgement call before anything is created (disambiguate a duplicate title,
   decide whether a bespoke variant deserves its own page, resolve a missing

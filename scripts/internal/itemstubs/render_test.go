@@ -100,3 +100,20 @@ func TestRenderIndefiniteArticleAndLabelLink(t *testing.T) {
 		t.Errorf("lead: want %q in:\n%s", wantLead, got)
 	}
 }
+
+func TestRenderNoLabelLink(t *testing.T) {
+	got := RenderStub(StubData{
+		Name: "FieldWorks Bunker", UUID: "aaaaaaaa-0000-4000-8000-00000000000b",
+		MfrCode: "ARGO", MfrPage: "X",
+		Label: "deployable", NoLabelLink: true,
+		Sections: []string{"Description"},
+		Version:  "4.9.0", Date: "2026-08-13",
+	})
+	wantLead := "is a deployable manufactured by [[X]]."
+	if !strings.Contains(got, wantLead) {
+		t.Errorf("lead: want %q in:\n%s", wantLead, got)
+	}
+	if strings.Contains(got, "[[deployable") {
+		t.Errorf("noLabelLink label must not be linked, got:\n%s", got)
+	}
+}

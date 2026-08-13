@@ -27,7 +27,7 @@ type Filtered struct {
 	Rule TypeRule
 }
 
-// unnamedRule is built-in rather than config: a nameless item is structurally
+// unnamed is built-in rather than config: a nameless item is structurally
 // unusable (its name IS the page title), not an editorial judgment.
 func unnamed(it Item) bool {
 	return it.Name == "" || it.Name == it.ClassName

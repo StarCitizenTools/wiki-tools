@@ -133,3 +133,73 @@ func TestTitleStatusesNormalizationCollision(t *testing.T) {
 		t.Errorf("result len = %d, want 2 (both inputs must appear)", len(got))
 	}
 }
+
+func TestTitleStatusesNamespaceMismatch(t *testing.T) {
+	client, _ := newTestClient(t, func(form url.Values) string {
+		resp := map[string]any{"query": map[string]any{
+			// "Template: Foo" normalises to "Template:Foo" and resolves into
+			// the Template namespace (10), not main; a page missing there
+			// says nothing about whether the title is free as an article.
+			"normalized": []map[string]string{{"from": "Template: Foo", "to": "Template:Foo"}},
+			"pages": []map[string]any{
+				{"title": "Template:Foo", "ns": 10, "missing": true},
+			},
+		}}
+		b, _ := json.Marshal(resp)
+		return string(b)
+	})
+
+	got, err := client.TitleStatuses(context.Background(), []string{"Template: Foo"})
+	if err != nil {
+		t.Fatalf("TitleStatuses: %v", err)
+	}
+	if got["Template: Foo"] != TitleInvalid {
+		t.Errorf(`got["Template: Foo"] = %q, want %q (namespace != 0 must not read as free to create)`, got["Template: Foo"], TitleInvalid)
+	}
+}
+
+func TestTitleStatusesRejectsPipeTitle(t *testing.T) {
+	client, requests := newTestClient(t, func(form url.Values) string {
+		titles := strings.Split(form.Get("titles"), "|")
+		if len(titles) != 1 || titles[0] != "Good Title" {
+			t.Fatalf("titles sent to API = %v, want just [\"Good Title\"] (pipe title must not be batched)", titles)
+		}
+		resp := map[string]any{"query": map[string]any{
+			"pages": []map[string]any{{"title": "Good Title", "missing": true}},
+		}}
+		b, _ := json.Marshal(resp)
+		return string(b)
+	})
+
+	got, err := client.TitleStatuses(context.Background(), []string{"Bad|Title", "Good Title"})
+	if err != nil {
+		t.Fatalf("TitleStatuses: %v", err)
+	}
+	if got["Bad|Title"] != TitleInvalid {
+		t.Errorf(`got["Bad|Title"] = %q, want %q`, got["Bad|Title"], TitleInvalid)
+	}
+	if got["Good Title"] != TitleMissing {
+		t.Errorf(`got["Good Title"] = %q, want %q`, got["Good Title"], TitleMissing)
+	}
+	if *requests != 1 {
+		t.Errorf("requests = %d, want 1 (the pipe title must not trigger its own request)", *requests)
+	}
+}
+
+func TestTitleStatusesAllPipeTitlesSendsNoRequest(t *testing.T) {
+	client, requests := newTestClient(t, func(form url.Values) string {
+		t.Fatal("no request should be sent when every title is rejected locally")
+		return ""
+	})
+
+	got, err := client.TitleStatuses(context.Background(), []string{"Bad|One", "Bad|Two"})
+	if err != nil {
+		t.Fatalf("TitleStatuses: %v", err)
+	}
+	if got["Bad|One"] != TitleInvalid || got["Bad|Two"] != TitleInvalid {
+		t.Errorf("got = %+v, want both TitleInvalid", got)
+	}
+	if *requests != 0 {
+		t.Errorf("requests = %d, want 0", *requests)
+	}
+}

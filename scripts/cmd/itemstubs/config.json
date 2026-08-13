@@ -33,6 +33,7 @@
       "sections": [
         "Description",
         "Acquisition",
+        "Crafting",
         "Related"
       ]
     }
@@ -95,7 +96,8 @@
     },
     "Char_Accessory_Head.UNDEFINED": {
       "kind": "wearable",
-      "label": "head accessory"
+      "label": "head accessory",
+      "noLabelLink": true
     },
     "Char_Armor_Arms.Heavy": {
       "kind": "wearable",
@@ -280,11 +282,13 @@
     },
     "FPS_Deployable.Medium": {
       "kind": "item",
-      "label": "deployable"
+      "label": "deployable",
+      "noLabelLink": true
     },
     "FPS_Deployable.Small": {
       "kind": "item",
-      "label": "deployable"
+      "label": "deployable",
+      "noLabelLink": true
     },
     "FlightController.UNDEFINED": {
       "kind": "component",
@@ -367,14 +371,16 @@
     },
     "WeaponAttachment.Missile": {
       "kind": "item",
-      "label": "weapon attachment"
+      "label": "weapon attachment",
+      "noLabelLink": true
     },
     "WeaponAttachment.PowerArray": {
       "skip": true
     },
     "WeaponAttachment.Utility": {
       "kind": "item",
-      "label": "multi-tool attachment"
+      "label": "multi-tool attachment",
+      "labelLink": "Multi-Tool attachment"
     },
     "WeaponAttachment.Ventilation": {
       "skip": true
@@ -444,7 +450,7 @@
       "namePrefixes": [
         "@item",
         "PH - ",
-        "- ",
+        "-",
         "TEST STRING NAME"
       ],
       "classSuffixes": [
@@ -519,6 +525,12 @@
         "bespoke",
         "designed specifically for",
         "built specifically for"
+      ]
+    },
+    {
+      "id": "superheavy",
+      "classPrefixes": [
+        "cds_combat_superheavy"
       ]
     }
   ],
@@ -698,7 +710,8 @@
     "omitInLead": [
       "UNKN",
       "NONE",
-      "GEND"
+      "GEND",
+      "TBD"
     ],
     "aliases": {
       "MISC": "MRAI",

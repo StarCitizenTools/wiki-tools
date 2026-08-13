@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/StarCitizenTools/wiki-tools/scripts/internal/httpx"
@@ -186,4 +187,86 @@ func (c *Client) Fetch(ctx context.Context, title string) (*Page, error) {
 		page.Content = p.Revisions[0].Slots.Main.Content
 	}
 	return page, nil
+}
+
+// TitleStatus classifies whether a title is free to create.
+type TitleStatus string
+
+const (
+	TitleExists  TitleStatus = "exists"
+	TitleMissing TitleStatus = "missing"
+	TitleInvalid TitleStatus = "invalid"
+)
+
+// TitleStatuses reports, for each title, whether a page exists there. Results
+// are keyed by the titles as passed, with the API's normalisation reversed, so
+// callers can look up their own strings. Titles are checked in batches of 50
+// (the anonymous API limit).
+func (c *Client) TitleStatuses(ctx context.Context, titles []string) (map[string]TitleStatus, error) {
+	const batch = 50
+	out := make(map[string]TitleStatus, len(titles))
+	for start := 0; start < len(titles); start += batch {
+		chunk := titles[start:min(start+batch, len(titles))]
+
+		var res struct {
+			Response
+			Query struct {
+				Normalized []struct {
+					From string `json:"from"`
+					To   string `json:"to"`
+				} `json:"normalized"`
+				Pages []struct {
+					Title   string `json:"title"`
+					Missing bool   `json:"missing"`
+					Invalid bool   `json:"invalid"`
+				} `json:"pages"`
+			} `json:"query"`
+		}
+		form := url.Values{
+			"action":        {"query"},
+			"titles":        {strings.Join(chunk, "|")},
+			"format":        {"json"},
+			"formatversion": {"2"},
+		}
+		if err := c.Request(ctx, form, &res); err != nil {
+			return nil, err
+		}
+
+		// The API answers under normalised titles; map them back to what the
+		// caller sent so the result keys are the caller's own strings.
+		// First, build a map from input strings to their canonical forms
+		normalizedMap := make(map[string]string)
+		for _, n := range res.Query.Normalized {
+			normalizedMap[n.From] = n.To
+		}
+
+		// Then, group all inputs by their canonical form. This handles
+		// collisions: if "Cup" and "cup" both normalize to "Cup", both
+		// inputs map to the same canonical title.
+		denormalize := make(map[string][]string)
+		for _, title := range chunk {
+			canonical := title
+			if norm, ok := normalizedMap[title]; ok {
+				canonical = norm
+			}
+			denormalize[canonical] = append(denormalize[canonical], title)
+		}
+
+		// Process pages and assign the status to all original inputs that map to each canonical title
+		for _, p := range res.Query.Pages {
+			var status TitleStatus
+			switch {
+			case p.Invalid:
+				status = TitleInvalid
+			case p.Missing:
+				status = TitleMissing
+			default:
+				status = TitleExists
+			}
+			for _, originalTitle := range denormalize[p.Title] {
+				out[originalTitle] = status
+			}
+		}
+	}
+	return out, nil
 }

@@ -16,6 +16,7 @@ Go 1.23+, provided by `mise install`. There are no other dependencies.
 | Tool | Generates | Source |
 |---|---|---|
 | `starmap` | `Module:Starmap/starmap.json` | [ARK Starmap API](https://robertsspaceindustries.com/starmap) |
+| `uuidindex` | reconciliation plan for the `UUID:` redirect namespace | the wiki itself (SMW `Uuid` annotations vs `UUID:` pages) |
 
 ## Usage
 

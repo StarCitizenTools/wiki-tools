@@ -130,10 +130,17 @@ type Manufacturers struct {
 	Renames  map[string]string `json:"renames,omitempty"`
 	ByPrefix map[string]string `json:"byPrefix,omitempty"`
 	ByName   map[string]string `json:"byName,omitempty"`
-	// OmitInLead lists codes whose "manufactured by" clause and navplate are
-	// dropped (UNKN, generic consumable makers): a lead linking [[Consumable]]
-	// as a company would be wrong.
+	// OmitInLead lists codes with no company to name: the lead's "manufactured
+	// by" clause and the manufacturer navplate are dropped, but the code still
+	// fills the infobox because it is real data. NONE tags an item as
+	// hand-made or without a proper maker, and UNKN as unidentified; both
+	// categorise the page, and 221 pages already sit in Category:Unknown.
 	OmitInLead []string `json:"omitInLead,omitempty"`
+	// NotAManufacturer lists codes that are not makers at all, only generic
+	// consumable markers. These are dropped from the infobox too: writing one
+	// there invents a category (Category:GEND), and live food and drink pages
+	// leave the field blank.
+	NotAManufacturer []string `json:"notAManufacturer,omitempty"`
 	// Aliases suppress known-legitimate disagreements between the code in a
 	// class name and the resolved manufacturer, keyed classToken -> resolved
 	// code (Mirai's items still carry MISC class names from before the
@@ -278,9 +285,25 @@ func (c *Config) Validate(reg *Registry) error {
 			}
 		}
 	}
-	for _, code := range c.Manufacturers.OmitInLead {
-		if !known(code) {
-			return fmt.Errorf("manufacturers.omitInLead: code %q is not in the manufacturers registry or manufacturers.synthetic", code)
+	for _, ref := range []struct {
+		field string
+		codes []string
+	}{
+		{"omitInLead", c.Manufacturers.OmitInLead},
+		{"notAManufacturer", c.Manufacturers.NotAManufacturer},
+	} {
+		for _, code := range ref.codes {
+			if !known(code) {
+				return fmt.Errorf("manufacturers.%s: code %q is not in the manufacturers registry or manufacturers.synthetic", ref.field, code)
+			}
+		}
+	}
+	// A code too generic for the infobox has no company article either, and
+	// without omitInLead the resolver falls back to the dump's manufacturer
+	// name and writes "manufactured by [[Generic Food]]" into the lead.
+	for _, code := range c.Manufacturers.NotAManufacturer {
+		if !slices.Contains(c.Manufacturers.OmitInLead, code) {
+			return fmt.Errorf("manufacturers.notAManufacturer: code %q must also be listed in omitInLead", code)
 		}
 	}
 	return nil

@@ -670,19 +670,25 @@
       "cds_": "CDS"
     },
     "omitInLead": [
-      "UNKN",
-      "NONE",
       "GEND",
-      "TBD"
+      "GENF",
+      "NONE",
+      "TBD",
+      "UNKN"
     ],
     "aliases": {
       "MISC": "MRAI",
       "QRT": "ALB"
     },
     "synthetic": [
+      "GEND",
+      "GENF",
       "NONE",
-      "TBD",
-      "GEND"
+      "TBD"
+    ],
+    "notAManufacturer": [
+      "GEND",
+      "GENF"
     ]
   }
 }

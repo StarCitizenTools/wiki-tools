@@ -3,6 +3,7 @@ package itemstubs
 import (
 	"context"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -219,10 +220,17 @@ func BuildPlan(ctx context.Context, items []Item, wiki map[string]bool, wikiByPa
 					FromClass: fromClass, ClassName: it.ClassName,
 				})
 			}
+			// A code that is not a manufacturer at all stays out of the
+			// infobox; one that is simply unnamed (NONE, UNKN) still belongs
+			// there, because {{Entity}} categorises on it.
+			infoboxCode := code
+			if slices.Contains(cfg.Manufacturers.NotAManufacturer, code) {
+				infoboxCode = ""
+			}
 			kind := cfg.Kinds[f.Rule.Kind]
 			wikitext := RenderStub(StubData{
 				Name: it.Name, UUID: it.UUID,
-				MfrCode: code, MfrPage: page,
+				MfrCode: infoboxCode, MfrPage: page,
 				Label: cfg.LabelFor(it.Type, reg), LabelLink: f.Rule.LabelLink, NoLabelLink: f.Rule.NoLabelLink, Navplate: f.Rule.Navplate,
 				Sections: kind.Sections, LeadSize: kind.LeadSize, Size: it.Size,
 				Version: version, Date: date,

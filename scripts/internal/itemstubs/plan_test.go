@@ -351,3 +351,40 @@ func TestBuildPlanDuplicateTitleNormalization(t *testing.T) {
 		t.Errorf("uuids = %v, want [%s %s]", dup[0].UUIDs, want1, want2)
 	}
 }
+
+func TestBuildPlanNotAManufacturerBlanksTheInfobox(t *testing.T) {
+	cfg := testConfig()
+	cfg.Manufacturers.OmitInLead = []string{"NONE", "GENF"}
+	cfg.Manufacturers.NotAManufacturer = []string{"GENF"}
+
+	generic := item("Pickle", "Food_Pickle_01", "WeaponGun.Gun", "aaaaaaaa-0000-4000-8000-000000000050")
+	generic.Manufacturer = Manufacturer{Code: "GENF"}
+	handmade := item("Argon", "none_gadget_01", "WeaponGun.Gun", "aaaaaaaa-0000-4000-8000-000000000051")
+	handmade.Manufacturer = Manufacturer{Code: "NONE"}
+
+	statuses := func(_ context.Context, titles []string) (map[string]mediawiki.TitleStatus, error) {
+		out := map[string]mediawiki.TitleStatus{}
+		for _, title := range titles {
+			out[title] = mediawiki.TitleMissing
+		}
+		return out, nil
+	}
+	plan, err := BuildPlan(context.Background(), []Item{generic, handmade}, map[string]bool{}, nil, cfg, testRegistry(), Meta{
+		Build: "4.9.0-LIVE.12232306", Generated: time.Date(2026, 8, 13, 12, 0, 0, 0, time.UTC),
+	}, statuses)
+	if err != nil {
+		t.Fatalf("BuildPlan: %v", err)
+	}
+	byTitle := map[string]CreateEntry{}
+	for _, c := range plan.Create {
+		byTitle[c.Title] = c
+	}
+	if got := byTitle["Pickle"].Wikitext; !strings.Contains(got, "|manufacturer =\n") {
+		t.Errorf("a generic marker must not reach the infobox, got:\n%s", got)
+	}
+	// NONE is a real classification: hand-made, no proper maker. It categorises
+	// the page, so it belongs in the infobox even with no company to name.
+	if got := byTitle["Argon"].Wikitext; !strings.Contains(got, "|manufacturer = NONE") {
+		t.Errorf("an unnamed maker still fills the infobox, got:\n%s", got)
+	}
+}

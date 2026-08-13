@@ -96,17 +96,21 @@ function p.getApiConfigs()
 	}
 end
 
---- Positive identification for items. Items don't carry an explicit
---- type-kind flag at the top level the way vehicles carry
---- `is_vehicle`, so we identify by "the items endpoint returned a
---- record with a uuid." This is safe because Apiunto doesn't follow
---- the items→vehicles 302 redirect, so a vehicle UUID via the items
---- endpoint returns empty/nil data.
+--- Positive identification for items, independent of probe order. Items carry no
+--- type-kind flag the way vehicles carry `is_vehicle`, so identity rests on
+--- `class_name`: every item record has one, and no commodity, mission, blueprint
+--- or starmap-location record does. Vehicles carry `class_name` too, hence the
+--- `is_vehicle` exclusion — the one cross-kind fact this test encodes, and the
+--- same one the API asserts by redirecting a vehicle UUID off `items/`.
+---
+--- Order-independence matters: Module:Entity/Data resolves a UUID through the
+--- API's `search/` endpoint, so a single payload of *any* kind is offered to
+--- every kind's matches(). A looser "has a uuid" test would claim all of them.
 ---
 --- @param apiData table|nil
 --- @return boolean
 function p.matches(apiData)
-	return apiData ~= nil and apiData.uuid ~= nil
+	return apiData ~= nil and apiData.uuid ~= nil and apiData.class_name ~= nil and apiData.is_vehicle == nil
 end
 
 --- Refines the leaf module from the kind module to a subtype leaf

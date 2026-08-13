@@ -66,6 +66,76 @@ function suite:testResolveLeafNoMatchNoUuidNoError()
 	self:assertEquals(false, err)
 end
 
+-- buildResolverConfig (the single search/<uuid> config, derived from the registry)
+
+function suite:testResolverConfigTargetsSearchEndpoint()
+	local config = helpers.buildResolverConfig()
+	self:assertEquals('search/%s', config.endpoint)
+	self:assertEquals('StarCitizenWikiAPI', config.name)
+	self:assertEquals('data', config.responseDataPath)
+end
+
+-- The union must cover every kind's includes, or the resolver would return a
+-- thinner payload than the kind's own endpoint does.
+function suite:testResolverConfigUnionsEveryKindsIncludes()
+	local config = helpers.buildResolverConfig()
+	local present = {}
+	for token in string.gmatch(config.params.include or '', '[^,]+') do
+		present[token] = true
+	end
+	for _, mod in ipairs(require('Module:Entity/Registry').kinds) do
+		local params = (mod.getApiConfigs()[1] or {}).params or {}
+		for token in string.gmatch(params.include or '', '[^,]+') do
+			self:assertTrue(present[token] == true)
+		end
+	end
+end
+
+function suite:testResolverConfigDoesNotRepeatIncludes()
+	local config = helpers.buildResolverConfig()
+	local seen = {}
+	for token in string.gmatch(config.params.include or '', '[^,]+') do
+		self:assertEquals(nil, seen[token])
+		seen[token] = true
+	end
+end
+
+-- identifyKind (single payload -> kind, order-independent)
+
+function suite:testIdentifyKindNilSafe()
+	self:assertEquals(nil, helpers.identifyKind(nil))
+end
+
+function suite:testIdentifyKindVehicle()
+	local mod = helpers.identifyKind({ uuid = 'abc', class_name = 'AEGS_Avenger', is_vehicle = false })
+	self:assertEquals('Vehicle', mod and mod.name)
+end
+
+function suite:testIdentifyKindItem()
+	local mod = helpers.identifyKind({ uuid = 'abc', class_name = 'Paint_100i', type = 'Paints' })
+	self:assertEquals('Item', mod and mod.name)
+end
+
+function suite:testIdentifyKindCommodity()
+	local mod = helpers.identifyKind({ uuid = 'abc', box_sizes_scu = { 1, 2 } })
+	self:assertEquals('Commodity', mod and mod.name)
+end
+
+function suite:testIdentifyKindMission()
+	local mod = helpers.identifyKind({ uuid = 'abc', mission_type = 'Delivery' })
+	self:assertEquals('Mission', mod and mod.name)
+end
+
+-- The resolver also resolves blueprints and starmap locations. Neither is a kind
+-- Entity models, so nothing may claim them — Item least of all.
+function suite:testIdentifyKindNilForUnmodelledLocation()
+	self:assertEquals(nil, helpers.identifyKind({ uuid = 'abc', type = 'PLANET', system = 'Stanton' }))
+end
+
+function suite:testIdentifyKindNilForUnmodelledBlueprint()
+	self:assertEquals(nil, helpers.identifyKind({ uuid = 'abc', output_class = 'Foo', ingredients = {} }))
+end
+
 -- isGenuineRecord (genuine in-game record predicate)
 
 function suite:testGenuineRecordTrueWithUuid()

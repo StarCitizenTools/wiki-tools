@@ -67,7 +67,9 @@ Primary entry point for sibling renderers. Takes the `args` table returned by `p
 
 `p.get` calls `fetchApiData` and then resolves `typeInfo`/`displayType`. The full ordered sequence is:
 
-1. **`probeKind`** iterates `registry.kinds` in registration order. For each kind, it fetches its primary API endpoint (the first config returned by `kind.getApiConfigs()`). If `kind.matches(data)` is true, that kind wins and the loop short-circuits; later kinds are never fetched. Probe errors on a *non-matching* kind are discarded: a 404 on the items endpoint for a vehicle UUID is expected and does not set `hasApiError`. Only the matched kind's own fetch error is propagated.
+1. **`probeKind`** resolves the UUID's kind in a single request. `buildResolverConfig` composes the API's `search/<uuid>` endpoint — which answers with an HTTP redirect to the canonical typed record — carrying the union of every kind's primary query params (params survive the redirect; endpoints ignore includes they don't recognise, so the union is free). `identifyKind` then offers that one payload to every registered kind's `matches()`. Because all of them see the same payload, **each `matches()` must be positive and order-independent**; the registry order is not a tiebreaker here. The matched kind's own primary endpoint is marked fetched alongside the resolver's, so step 4 doesn't request it again.
+
+   `probeKindByEndpoint` is the fallback, and is what the module did unconditionally before the resolver existed: it walks `registry.kinds` in registration order, fetching each kind's primary endpoint until one matches, at up to one request per kind. It runs only when the resolver produces no kind — an unknown UUID, a kind Entity doesn't model (the resolver also resolves blueprints and starmap locations), or a transient failure such as a rate-limit rejection on the throttled `search` endpoint. Errors on a *non-matching* kind are discarded there: the items endpoint rejecting a vehicle UUID is expected and does not set `hasApiError`. Only the matched kind's own fetch error is propagated.
 
 2. **`resolveLeaf`** resolves the leaf module from the matched kind (or `nil`):
    - If the kind has `resolveSubtype`, calls `kind.resolveSubtype(apiData, args)` (the `args` let a kind resolve its sub-identity editorially, e.g. Vehicle reads `|family=` when the API family flags are absent). If it returns a module, that module is the leaf; if it returns `nil`, the kind itself is the leaf.
@@ -119,20 +121,23 @@ The SMW read is namespace-aware: on non-mainspace pages (e.g. `User:` or `Module
 
 `hasApiError` is `true` when:
 - The matched kind's primary endpoint returned an error, **or**
-- A UUID was provided but no kind matched it (signalling an unexpected 404 across all probed endpoints), **or**
+- A UUID was provided but neither the resolver nor the endpoint fallback matched a kind, **or**
 - Any supplemental endpoint fetched by `fetchChainExtras` returned an error.
 
 It is `false` when:
 - No UUID was provided (nothing was fetched; not an error), **or**
-- A kind probed and *rejected* an endpoint: the items endpoint returning 404 for a vehicle UUID is discarded before `hasApiError` can be set for it.
+- A kind probed and *rejected* an endpoint: the items endpoint rejecting a vehicle UUID is discarded before `hasApiError` can be set for it, **or**
+- The resolver failed and the endpoint fallback then matched a kind. A rate-limited or unavailable `search` endpoint costs latency, not correctness.
 
 Renderers use `hasApiError` to display an error notice instead of an empty infobox.
 
 ## Gotchas
 
-**`p._internal` exports `detectFacets`, `resolveLeaf`, `isGenuineRecord`, and `resolveEditorialKind`.** `probeKind`, `fetchChainExtras`, and `fetchApiData` are local functions with no test export; they are covered only indirectly, through the suite's `p.get({})` calls (which take the no-uuid path and never fetch). The editorial-mode dispatch glue inside `p.get` (the genuine-record branch on a real API miss) is browser-verified, not unit-tested (the runner has no live API), but its constituent predicates (`isGenuineRecord`, `resolveEditorialKind`, `resolveLeaf` arg-threading) are unit-tested in isolation.
+**`p._internal` exports `detectFacets`, `resolveLeaf`, `isGenuineRecord`, `resolveEditorialKind`, `buildResolverConfig`, and `identifyKind`.** `probeKind`, `probeKindByEndpoint`, `fetchChainExtras`, and `fetchApiData` are local functions with no test export; they are covered only indirectly, through the suite's `p.get({})` calls (which take the no-uuid path and never fetch). The editorial-mode dispatch glue inside `p.get` (the genuine-record branch on a real API miss) is browser-verified, not unit-tested (the runner has no live API), but its constituent predicates (`isGenuineRecord`, `resolveEditorialKind`, `resolveLeaf` arg-threading) are unit-tested in isolation.
 
-**Item-first registry probe is load-bearing external behaviour.** `Registry.kinds` registers `Module:Entity/Item` first deliberately: it matches the majority of pages, so the common case pays one fetch and short-circuits. This relies on Apiunto *not* following the items→vehicles HTTP 302 redirect: if Apiunto transparently followed redirects, a vehicle UUID would match Item and be misclassified. The probe order and Apiunto's redirect behaviour are therefore coupled; changing either without the other will silently misroute vehicle entities.
+**The resolver depends on Apiunto following redirects.** `search/<uuid>` answers with a `302` to the typed record, so the `StarCitizenWikiAPI` source must set `followRedirects => true` in `$wgApiuntoSources` (Apiunto ≥ 3.1; MediaWiki's HTTP client does not follow redirects by default). Without it every resolver fetch returns the upstream's redirect *body*, `matches()` sees nothing, and every page silently falls back to `probeKindByEndpoint` — correct output at the old cost, which is why the regression is easy to miss. The unit suite cannot catch it: the test runner has no live API.
+
+**Every `matches()` must be positive and order-independent.** The resolver hands one payload of unknown kind to all of them, so a catch-all test claims everything. `Module:Entity/Item` is the one to watch: items carry no kind flag, so it identifies on `class_name` (present on every item, absent from commodities, missions, blueprints and starmap locations) while excluding `is_vehicle` (vehicles carry `class_name` too). `Registry.kinds` order now governs only the `probeKindByEndpoint` fallback, where it is a fetch-cost optimisation — Item first because it dominates the page mix — and no longer a correctness guarantee.
 
 **A given-but-unmatched UUID surfaces as `hasApiError = true`.** If a UUID is provided but every kind's `matches()` returns false (for example because the API is down or the item is unlisted), `resolveLeaf` falls back to `Module:Entity/Item` *and* sets `hasApiError`. The infobox renders with an error notice rather than silently producing an empty result. Pages without a UUID do not trigger this: `hasApiError` stays false.
 
@@ -155,7 +160,8 @@ The suite is auto-discovered and run headless by the off-wiki runner (`mise run 
 
 ```
 Entity/
-├── Data.lua          # parseArgs + p.get public API; probeKind/resolveLeaf/fetchChainExtras/fetchApiData local
+├── Data.lua          # parseArgs + p.get public API; buildResolverConfig/identifyKind/probeKind/
+│                     #   probeKindByEndpoint/resolveLeaf/fetchChainExtras/fetchApiData local
 └── Data/
     └── testcases.lua # ScribuntoUnit suite (detectFacets, resolveLeaf, isGenuineRecord, resolveEditorialKind, parseArgs, p.get)
 ```

@@ -15,21 +15,41 @@ function suite:testMatchesEmptyTableReturnsFalse()
 	self:assertEquals(false, Item.matches({}))
 end
 
-function suite:testMatchesUuidPresentReturnsTrue()
-	self:assertEquals(true, Item.matches({ uuid = 'abc-123' }))
+-- A uuid alone is not an item: Module:Entity/Data resolves a UUID through the
+-- API's search endpoint and offers that one payload to every kind, so matches()
+-- must identify items positively rather than acting as a catch-all.
+function suite:testMatchesUuidAloneReturnsFalse()
+	self:assertEquals(false, Item.matches({ uuid = 'abc-123' }))
+end
+
+function suite:testMatchesUuidWithClassNameReturnsTrue()
+	self:assertEquals(true, Item.matches({ uuid = 'abc-123', class_name = 'Paint_100i' }))
 end
 
 function suite:testMatchesUuidWithItemTypeReturnsTrue()
-	self:assertEquals(true, Item.matches({ uuid = 'abc-123', type = 'Food' }))
+	self:assertEquals(true, Item.matches({ uuid = 'abc-123', class_name = 'Food_Water', type = 'Food' }))
 end
 
--- Documents current permissive behavior: Item.matches doesn't check
--- `is_vehicle`. The items endpoint never returns is_vehicle in practice
--- (Apiunto doesn't follow the items→vehicles redirect), so this is
--- safe. If Apiunto ever changes to follow the redirect, tighten matches
--- to also check `not apiData.is_vehicle` and flip this assertion.
-function suite:testMatchesVehicleShapedDataCurrentlyReturnsTrue()
-	self:assertEquals(true, Item.matches({ uuid = 'abc-123', is_vehicle = true }))
+-- Vehicles carry class_name too, so the is_vehicle exclusion is what separates
+-- them. This is the one cross-kind fact Item.matches encodes.
+function suite:testMatchesVehicleShapedDataReturnsFalse()
+	self:assertEquals(false, Item.matches({ uuid = 'abc-123', class_name = 'AEGS_Avenger', is_vehicle = false }))
+end
+
+-- Kinds that reach matches() only because the resolver answers for every kind.
+-- None of them carry class_name.
+function suite:testMatchesCommodityShapedDataReturnsFalse()
+	self:assertEquals(false, Item.matches({ uuid = 'abc-123', box_sizes_scu = { 1, 2 } }))
+end
+
+function suite:testMatchesMissionShapedDataReturnsFalse()
+	self:assertEquals(false, Item.matches({ uuid = 'abc-123', mission_type = 'Delivery' }))
+end
+
+-- Starmap locations carry uuid + type but no class_name; Entity doesn't model
+-- them, so Item must not claim them.
+function suite:testMatchesLocationShapedDataReturnsFalse()
+	self:assertEquals(false, Item.matches({ uuid = 'abc-123', type = 'PLANET' }))
 end
 
 -- resolveSubtype()

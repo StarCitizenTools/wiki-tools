@@ -73,7 +73,16 @@ function suite:testWeightClass()
 	self:assertEquals('Heavy', wc({ sub_type = 'Heavy' }))
 	self:assertEquals('Medium', wc({ sub_type = 'Medium' }))
 	self:assertEquals('Light', wc({ sub_type = 'Light' }))
-	self:assertEquals('Super Heavy', wc({ sub_type = 'SuperHeavy' }))
+	self:assertEquals('Super heavy', wc({ sub_type = 'SuperHeavy' }))
+	-- CIG ships the BUL-H4 exo-suits as ordinary Heavy armor in the undersuit
+	-- slot; the class name is the only field that says otherwise.
+	self:assertEquals('Super heavy', wc({ sub_type = 'Heavy', class_name = 'cds_combat_superheavy_suit_01_01_01' }))
+	self:assertEquals(
+		'Super heavy',
+		wc({ sub_type = 'Personal', class_name = 'cds_combat_superheavy_backpack_01_01_01' })
+	)
+	-- An ordinary heavy piece keeps its own weight class.
+	self:assertEquals('Heavy', wc({ sub_type = 'Heavy', class_name = 'cds_combat_heavy_core_01_02_02' }))
 	-- "Helmet" (flight helmet) is NOT a weight class — gating it prevents the
 	-- "Helmet helmet" short description.
 	self:assertEquals(nil, wc({ sub_type = 'Helmet' }))

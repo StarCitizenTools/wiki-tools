@@ -1758,7 +1758,7 @@
 		"modules": [
 			"Armor"
 		],
-		"desc": "Weight class of an armor piece (Light, Medium, Heavy, Super Heavy)."
+		"desc": "Weight class of an armor piece (Light, Medium, Heavy, Super heavy)."
 	},
 	"Yaw": {
 		"smw": "Text",

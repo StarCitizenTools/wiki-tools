@@ -375,6 +375,12 @@
       "label": "knife",
       "navplate": "personal weapons"
     },
+    "WeaponPersonal.Large": {
+      "kind": "item",
+      "label": "heavy weapon",
+      "labelLink": "Personal weapon",
+      "navplate": "personal weapons"
+    },
     "WeaponPersonal.Medium": {
       "kind": "item",
       "label": "stocked weapon",

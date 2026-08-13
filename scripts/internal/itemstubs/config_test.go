@@ -85,11 +85,23 @@ func TestConfigValidationManufacturerRefsOK(t *testing.T) {
 
 func TestConfigValidationRedundantLabelRejected(t *testing.T) {
 	reg := &Registry{Types: map[string]TypeRecord{"Cooler": {Name: "Cooler", Category: "Coolers"}}}
+	// An exact copy of what LabelFor would derive is redundant and rejected.
 	raw := `{"kinds":{"item":{"sections":["Description"]}},
-		"types":{"Cooler.UNDEFINED":{"kind":"item","label":"Cooler"}}}`
-	_, err := ParseConfig([]byte(raw), reg)
-	if err == nil {
+		"types":{"Cooler.UNDEFINED":{"kind":"item","label":"cooler"}}}`
+	if _, err := ParseConfig([]byte(raw), reg); err == nil {
 		t.Fatal("want error: an explicit label that only restates the registry's name must be rejected")
+	}
+}
+
+func TestConfigValidationCaseCorrectingLabelAllowed(t *testing.T) {
+	// LabelFor lowercases, which is right for "Arm armor" and wrong for a brand:
+	// mobiGlas' article is not "Mobiglas", so the label must be able to restore
+	// the casing without tripping the redundancy gate.
+	reg := &Registry{Types: map[string]TypeRecord{"MobiGlas": {Name: "mobiGlas", Category: "mobiGlas"}}}
+	raw := `{"kinds":{"item":{"sections":["Description"]}},
+		"types":{"MobiGlas.Personal":{"kind":"item","label":"mobiGlas"}}}`
+	if _, err := ParseConfig([]byte(raw), reg); err != nil {
+		t.Fatalf("a case-correcting label must be allowed, got: %v", err)
 	}
 }
 

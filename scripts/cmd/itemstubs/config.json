@@ -232,9 +232,38 @@
       "label": "torso clothing",
       "labelLink": "Clothing"
     },
+    "Char_Head_Beard.UNDEFINED": {
+      "skip": true
+    },
+    "Char_Head_Piercings.UNDEFINED": {
+      "skip": true
+    },
+    "ControlPanel.DoorPart": {
+      "skip": true
+    },
     "Cooler.UNDEFINED": {
       "kind": "component",
       "navplate": "coolers"
+    },
+    "Decal.DoorPart": {
+      "skip": true
+    },
+    "Display.UNDEFINED": {
+      "skip": true
+    },
+    "DockingCollar.UNDEFINED": {
+      "skip": true
+    },
+    "Door.UNDEFINED": {
+      "skip": true
+    },
+    "Drink.Bottle": {
+      "kind": "consumable",
+      "navplate": "food and drinks"
+    },
+    "Drink.Can": {
+      "kind": "consumable",
+      "navplate": "food and drinks"
     },
     "FPS_Consumable.Hacking": {
       "kind": "item",
@@ -258,8 +287,60 @@
       "label": "deployable",
       "noLabelLink": true
     },
+    "Flair_Cockpit.Flair_Static": {
+      "kind": "item"
+    },
+    "Flair_Floor.Default": {
+      "kind": "item",
+      "noLabelLink": true
+    },
+    "Flair_Surface.Flair_Surface_DisplayCase": {
+      "kind": "item",
+      "noLabelLink": true
+    },
+    "Flair_Wall.Flair_Wall_Picture": {
+      "kind": "item",
+      "noLabelLink": true
+    },
     "FlightController.UNDEFINED": {
       "kind": "component"
+    },
+    "Food.Bar": {
+      "kind": "consumable",
+      "navplate": "food and drinks"
+    },
+    "Food.Box": {
+      "kind": "consumable",
+      "navplate": "food and drinks"
+    },
+    "Food.Consumable": {
+      "kind": "consumable",
+      "navplate": "food and drinks"
+    },
+    "Food.Junk": {
+      "kind": "consumable",
+      "navplate": "food and drinks"
+    },
+    "Food.Sachet": {
+      "kind": "consumable",
+      "navplate": "food and drinks"
+    },
+    "Food.Tin": {
+      "kind": "consumable",
+      "navplate": "food and drinks"
+    },
+    "FuelIntake.Fuel": {
+      "skip": true
+    },
+    "FuelTank.Fuel": {
+      "skip": true
+    },
+    "Hangar.UNDEFINED": {
+      "skip": true
+    },
+    "InventoryContainer.Cargo": {
+      "kind": "item",
+      "noLabelLink": true
     },
     "JumpDrive.UNDEFINED": {
       "kind": "component",
@@ -268,6 +349,30 @@
     "LifeSupportGenerator.UNDEFINED": {
       "kind": "component",
       "navplate": "life support generators"
+    },
+    "MainThruster.FixedThruster": {
+      "skip": true
+    },
+    "MainThruster.UNDEFINED": {
+      "skip": true
+    },
+    "ManneuverThruster.FixedThruster": {
+      "skip": true
+    },
+    "ManneuverThruster.FlexThruster": {
+      "skip": true
+    },
+    "ManneuverThruster.JointThruster": {
+      "skip": true
+    },
+    "ManneuverThruster.Retro": {
+      "skip": true
+    },
+    "ManneuverThruster.UNDEFINED": {
+      "skip": true
+    },
+    "MiningModifier.Gun": {
+      "kind": "component"
     },
     "Missile.Missile": {
       "kind": "component",
@@ -281,6 +386,20 @@
     "MissileLauncher.MissileRack": {
       "skip": true
     },
+    "MobiGlas.Personal": {
+      "kind": "item",
+      "label": "mobiGlas"
+    },
+    "Module.UNDEFINED": {
+      "kind": "component",
+      "noLabelLink": true
+    },
+    "Paints.UNDEFINED": {
+      "skip": true
+    },
+    "Player.UNDEFINED": {
+      "skip": true
+    },
     "PowerPlant.Power": {
       "kind": "component",
       "navplate": "power plants"
@@ -288,6 +407,9 @@
     "QuantumDrive.UNDEFINED": {
       "kind": "component",
       "navplate": "quantum drives"
+    },
+    "QuantumFuelTank.QuantumFuel": {
+      "skip": true
     },
     "QuantumInterdictionGenerator.UNDEFINED": {
       "kind": "component"
@@ -299,13 +421,41 @@
     "SalvageHead.UNDEFINED": {
       "kind": "component"
     },
+    "Seat.UNDEFINED": {
+      "skip": true
+    },
+    "SeatAccess.UNDEFINED": {
+      "skip": true
+    },
+    "SeatDashboard.UNDEFINED": {
+      "skip": true
+    },
+    "Sensor.DoorPart": {
+      "skip": true
+    },
     "Shield.UNDEFINED": {
       "kind": "component",
       "navplate": "shield generators"
     },
+    "ShieldController.UNDEFINED": {
+      "skip": true
+    },
+    "ShopDisplay.Default": {
+      "skip": true
+    },
+    "ShopDisplay.UNDEFINED": {
+      "skip": true
+    },
     "TractorBeam.UNDEFINED": {
       "kind": "component",
       "navplate": "tractor beams"
+    },
+    "Turret.MannedTurret": {
+      "skip": true
+    },
+    "Usable.Cargo": {
+      "kind": "item",
+      "noLabelLink": true
     },
     "WeaponAttachment.Barrel": {
       "kind": "item",
@@ -340,6 +490,9 @@
       "labelLink": "Multi-Tool attachment"
     },
     "WeaponAttachment.Ventilation": {
+      "skip": true
+    },
+    "WeaponDefensive.CountermeasureLauncher": {
       "skip": true
     },
     "WeaponGun.Gun": {

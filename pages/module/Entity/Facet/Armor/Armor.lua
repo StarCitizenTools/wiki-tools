@@ -45,7 +45,7 @@ local WEIGHT_CLASSES = {
 	['Heavy'] = true,
 	['Medium'] = true,
 	['Light'] = true,
-	['Super Heavy'] = true,
+	['Super heavy'] = true,
 }
 
 --- The in-game "Item Type" label from description_data (e.g. "Flight Helmet",
@@ -67,18 +67,29 @@ local function getItemType(apiData)
 end
 
 --- The armor weight class from `sub_type`, but ONLY when it is a real weight
---- class (Heavy / Medium / Light / Super Heavy). Flight helmets report sub_type
+--- class (Heavy / Medium / Light / Super heavy). Flight helmets report sub_type
 --- "Helmet" and undersuits "UNDEFINED"; those are not weight classes and return
---- nil. CamelCase ("SuperHeavy") is spaced before matching.
+--- nil. CamelCase ("SuperHeavy") is spaced and sentence-cased before matching,
+--- so the stored value reads "Super heavy" like every other label on the wiki.
+---
+--- Super heavy armor is read from the class name first, because nothing else
+--- reports it: the BUL-H4 suits arrived in 4.9 typed as ordinary `Heavy` armor
+--- in the undersuit slot, and only `cds_combat_superheavy_*` distinguishes a
+--- powered exo-suit from the cloth undersuit it is filed beside.
 ---
 --- @param apiData table
 --- @return string|nil
 local function weightClass(apiData)
+	local class = apiData.class_name
+	if type(class) == 'string' and class:lower():find('superheavy', 1, true) then
+		return 'Super heavy'
+	end
 	local sub = apiData.sub_type
 	if type(sub) ~= 'string' or sub == '' then
 		return nil
 	end
 	local norm = (sub:gsub('(%l)(%u)', '%1 %2'))
+	norm = norm:sub(1, 1):upper() .. norm:sub(2):lower()
 	return WEIGHT_CLASSES[norm] and norm or nil
 end
 

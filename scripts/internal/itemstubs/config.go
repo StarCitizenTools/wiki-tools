@@ -53,6 +53,14 @@ type PatternRule struct {
 	// how built-in hardware announces itself ("bespoke", "designed
 	// specifically for the …") when the name and class name do not.
 	DescContains []string `json:"descContains,omitempty"`
+	// DescPrefixes and DescSuffixes match the ends of the description, where
+	// CIG's own stub markers live: a description opening "(PH)" or "PH " is
+	// flagged provisional, and one closing " Description" is the shape of an
+	// unwritten localisation string ("Schematic: Aegis Hammerhead
+	// Description") rather than prose. Both are case-sensitive: the markers
+	// are literal.
+	DescPrefixes []string `json:"descPrefixes,omitempty"`
+	DescSuffixes []string `json:"descSuffixes,omitempty"`
 }
 
 // Matches reports whether the rule matches an item's name, class name, or
@@ -67,6 +75,17 @@ func (r PatternRule) Matches(name, className, description string) bool {
 	}
 	for _, s := range r.DescContains {
 		if strings.Contains(lowerDesc, strings.ToLower(s)) {
+			return true
+		}
+	}
+	trimmedDesc := strings.TrimSpace(description)
+	for _, s := range r.DescPrefixes {
+		if strings.HasPrefix(trimmedDesc, s) {
+			return true
+		}
+	}
+	for _, s := range r.DescSuffixes {
+		if strings.HasSuffix(trimmedDesc, s) {
 			return true
 		}
 	}

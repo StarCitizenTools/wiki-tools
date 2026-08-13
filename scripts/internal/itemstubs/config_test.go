@@ -173,3 +173,20 @@ func TestPatternRuleNameExact(t *testing.T) {
 		t.Error("nameExact must not match a real name that merely starts with it")
 	}
 }
+
+func TestPatternRuleMatchesDescriptionEnds(t *testing.T) {
+	rule := PatternRule{ID: "isPlaceholder", DescPrefixes: []string{"(PH)", "PH "}, DescSuffixes: []string{" Description"}}
+	// CIG's own stub markers, taken verbatim from the dump.
+	if !rule.Matches("Jukebox", "Flair_Jukebox", "(PH) Jukebox Description") {
+		t.Error("a (PH)-prefixed description is a stub")
+	}
+	if !rule.Matches("Origin 85X Schematic", "Flair_Schematic_Orig_85X", "PH Schematic: Get to know every inch of the 85X.") {
+		t.Error("a PH-marked description is provisional even when it carries prose")
+	}
+	if !rule.Matches("Aegis Hammerhead Schematic", "x", "Schematic: Aegis Hammerhead Description") {
+		t.Error("a description ending in \" Description\" is an unwritten loc string")
+	}
+	if rule.Matches("Pickle", "Food_Pickle_01", "A pickled cucumber fermented in a brine flavored with dill.") {
+		t.Error("real prose must not match")
+	}
+}

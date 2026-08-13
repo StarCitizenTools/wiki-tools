@@ -571,6 +571,13 @@
       ],
       "descContains": [
         "<= PLACEHOLDER =>"
+      ],
+      "descPrefixes": [
+        "(PH)",
+        "PH "
+      ],
+      "descSuffixes": [
+        " Description"
       ]
     },
     {

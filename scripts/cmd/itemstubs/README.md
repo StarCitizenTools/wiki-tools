@@ -33,6 +33,22 @@ the built-in rules rather than config: a nameless item has no page title to
 give it, and the all-zeros uuid is never indexed by the wiki, so both are
 structural facts about the dump, not editorial judgements.
 
+**The blocklist splits on what kind of evidence a pattern is.** `isPlaceholder`
+fires when the item's own text admits it is a stand-in — a name or description
+saying so. `testItem` fires when the *asset* is a development artifact rather
+than a shipped item: templates, dummies, low-poly and invisible stand-ins,
+`nodraw_` renders, `_Fake` ship props (fake doors and cargo), `_test_` builds,
+`_reference` assets. Keep new patterns in whichever of those two they belong to
+rather than opening a third rule; the per-rule counts in the report are the
+diagnostic, and a third bucket straddling both makes them meaningless.
+
+Audit the patterns against a fresh dump when the game updates: a pattern that
+matches nothing is either fixed upstream or was always aimed at the wrong
+field. Case variants are worth keeping even at zero hits — CIG ships
+`_Template`, `_template` and `_TEMPLATE` side by side — but a pattern that
+cannot match this data source at all (a raw `@item_Desc` localisation key never
+appears in the dump, only in the web API) is not insurance, it is noise.
+
 A note on `nonPuItem`'s class suffixes: `_tow` marks items that exist only in
 the Theatre of War game mode, not the persistent universe — same reasoning as
 `_gungame` and `_ea_elim`. The suffix has nothing to do with towing.

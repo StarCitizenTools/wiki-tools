@@ -463,6 +463,24 @@
         "_gungame_rotated",
         "_ea_elim"
       ]
+    },
+    {
+      "id": "unimplemented",
+      "descContains": [
+        "<= PLACEHOLDER =>",
+        "@item_Desc"
+      ],
+      "classPrefixes": [
+        "nodraw_"
+      ],
+      "classContains": [
+        "_test_",
+        "_fake",
+        "_Fake"
+      ],
+      "classSuffixes": [
+        "_reference"
+      ]
     }
   ],
   "review": [

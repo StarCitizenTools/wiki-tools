@@ -39,7 +39,7 @@ func TestBuildPlan(t *testing.T) {
 		return out, nil
 	}
 
-	plan, err := BuildPlan(context.Background(), items, wiki, cfg, testRegistry(), Meta{
+	plan, err := BuildPlan(context.Background(), items, wiki, nil, cfg, testRegistry(), Meta{
 		Build: "4.9.0-LIVE.12232306", Source: "scunpacked-data@abc1234",
 		Generated: time.Date(2026, 8, 13, 12, 0, 0, 0, time.UTC),
 	}, statuses)
@@ -128,7 +128,7 @@ func TestBuildPlanManufacturerMismatch(t *testing.T) {
 		return out, nil
 	}
 
-	plan, err := BuildPlan(context.Background(), items, wiki, cfg, testRegistry(), Meta{
+	plan, err := BuildPlan(context.Background(), items, wiki, nil, cfg, testRegistry(), Meta{
 		Build: "4.9.0-LIVE.12232306", Generated: time.Date(2026, 8, 13, 12, 0, 0, 0, time.UTC),
 	}, statuses)
 	if err != nil {
@@ -196,7 +196,7 @@ func TestBuildPlanUnknownTitleStatus(t *testing.T) {
 		return map[string]mediawiki.TitleStatus{}, nil // omits every title queried
 	}
 
-	plan, err := BuildPlan(context.Background(), []Item{mystery}, wiki, cfg, testRegistry(), Meta{
+	plan, err := BuildPlan(context.Background(), []Item{mystery}, wiki, nil, cfg, testRegistry(), Meta{
 		Build: "4.9.0-LIVE.12232306", Generated: time.Date(2026, 8, 13, 12, 0, 0, 0, time.UTC),
 	}, statuses)
 	if err != nil {
@@ -211,6 +211,97 @@ func TestBuildPlanUnknownTitleStatus(t *testing.T) {
 	}
 	if plan.Conflicts[0].Title != "Mystery Item" || plan.Conflicts[0].UUID != mystery.UUID {
 		t.Errorf("conflict = %+v, want title/uuid for the queried item", plan.Conflicts[0])
+	}
+}
+
+// T4: a title-exists conflict attaches evidence about what the existing page
+// already documents — the on-page item's uuid, class name, and whether its
+// description matches the flagged item's — but only when wikiByPage actually
+// names a page for that title and that uuid resolves to a dump item.
+func TestBuildPlanTitleExistsEvidence(t *testing.T) {
+	cfg := testConfig()
+
+	onPageSame := item("Old Page Item", "on_page_class_a", "WeaponGun.Gun", "bbbbbbbb-0000-4000-8000-000000000001")
+	onPageSame.Description = "A weapon description."
+	onPageDiff := item("Old Page Item 2", "on_page_class_b", "WeaponGun.Gun", "bbbbbbbb-0000-4000-8000-000000000002")
+	onPageDiff.Description = "A different weapon."
+	onPageEmpty := item("Old Page Item 3", "on_page_class_c", "WeaponGun.Gun", "bbbbbbbb-0000-4000-8000-000000000003")
+	onPageEmpty.Description = ""
+
+	sameDesc := item("Same Desc Item", "class_a", "WeaponGun.Gun", "aaaaaaaa-0000-4000-8000-000000000061")
+	sameDesc.Description = "  A weapon description.  " // TrimSpace must still equate this with onPageSame's
+	diffDesc := item("Diff Desc Item", "class_b", "WeaponGun.Gun", "aaaaaaaa-0000-4000-8000-000000000062")
+	diffDesc.Description = "Not matching text."
+	emptyDesc := item("Empty Desc Item", "class_d", "WeaponGun.Gun", "aaaaaaaa-0000-4000-8000-000000000064")
+	emptyDesc.Description = ""
+	noPageRecord := item("No Page Record Item", "class_c", "WeaponGun.Gun", "aaaaaaaa-0000-4000-8000-000000000063")
+	noPageRecord.Description = "whatever"
+
+	wiki := map[string]bool{onPageSame.UUID: true, onPageDiff.UUID: true, onPageEmpty.UUID: true}
+	wikiByPage := map[string]string{
+		"Same Desc Item":  onPageSame.UUID,
+		"Diff Desc Item":  onPageDiff.UUID,
+		"Empty Desc Item": onPageEmpty.UUID,
+		// "No Page Record Item" is deliberately absent: title-exists but no
+		// page recorded in the uuidindex scan.
+	}
+
+	items := []Item{onPageSame, onPageDiff, onPageEmpty, sameDesc, diffDesc, emptyDesc, noPageRecord}
+
+	statuses := func(_ context.Context, titles []string) (map[string]mediawiki.TitleStatus, error) {
+		out := map[string]mediawiki.TitleStatus{}
+		for _, title := range titles {
+			out[title] = mediawiki.TitleExists
+		}
+		return out, nil
+	}
+
+	plan, err := BuildPlan(context.Background(), items, wiki, wikiByPage, cfg, testRegistry(), Meta{
+		Build: "4.9.0-LIVE.12232306", Generated: time.Date(2026, 8, 13, 12, 0, 0, 0, time.UTC),
+	}, statuses)
+	if err != nil {
+		t.Fatalf("BuildPlan: %v", err)
+	}
+
+	byTitle := map[string]ConflictEntry{}
+	for _, c := range plan.Conflicts {
+		if c.Reason == "title-exists" {
+			byTitle[c.Title] = c
+		}
+	}
+	if len(byTitle) != 4 {
+		t.Fatalf("title-exists conflicts = %+v, want 4", plan.Conflicts)
+	}
+
+	same := byTitle["Same Desc Item"]
+	if same.OnPageUUID != onPageSame.UUID || same.OnPageClass != "on_page_class_a" || !same.SameDescription {
+		t.Errorf("same-description conflict = %+v, want OnPageUUID/OnPageClass set and SameDescription true", same)
+	}
+
+	diff := byTitle["Diff Desc Item"]
+	if diff.OnPageUUID != onPageDiff.UUID || diff.OnPageClass != "on_page_class_b" || diff.SameDescription {
+		t.Errorf("different-description conflict = %+v, want OnPageUUID/OnPageClass set and SameDescription false", diff)
+	}
+
+	empty := byTitle["Empty Desc Item"]
+	if empty.OnPageUUID != onPageEmpty.UUID || empty.OnPageClass != "on_page_class_c" || empty.SameDescription {
+		t.Errorf("both-empty-description conflict = %+v, want SameDescription false even though both sides are empty", empty)
+	}
+
+	noPage := byTitle["No Page Record Item"]
+	if noPage.OnPageUUID != "" || noPage.OnPageClass != "" || noPage.SameDescription {
+		t.Errorf("conflict with no wikiByPage entry = %+v, want none of the three evidence fields set", noPage)
+	}
+
+	// The terminal report surfaces a same-description match inline, so it's
+	// visible without opening the JSON — but only for the entry that actually
+	// has one.
+	report := strings.Join(Report(plan), "\n")
+	if !strings.Contains(report, "title-exists: Same Desc Item (same description as the item already on the page)") {
+		t.Errorf("report should flag the same-description title-exists conflict, got:\n%s", report)
+	}
+	if strings.Contains(report, "Diff Desc Item (same description") {
+		t.Errorf("report must not flag a title-exists conflict whose descriptions differ, got:\n%s", report)
 	}
 }
 
@@ -233,7 +324,7 @@ func TestBuildPlanDuplicateTitleNormalization(t *testing.T) {
 		return out, nil
 	}
 
-	plan, err := BuildPlan(context.Background(), []Item{cupUpper, cupLower}, wiki, cfg, testRegistry(), Meta{
+	plan, err := BuildPlan(context.Background(), []Item{cupUpper, cupLower}, wiki, nil, cfg, testRegistry(), Meta{
 		Build: "4.9.0-LIVE.12232306", Generated: time.Date(2026, 8, 13, 12, 0, 0, 0, time.UTC),
 	}, statuses)
 	if err != nil {

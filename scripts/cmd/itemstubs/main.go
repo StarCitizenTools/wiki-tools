@@ -183,6 +183,15 @@ func run() error {
 	for uuid := range props.Holders {
 		wiki[uuid] = true
 	}
+	// wikiByPage is a page title -> uuid, so a title-exists conflict can look
+	// up which item the existing page already documents. A page holding more
+	// than one uuid is already a uuidindex conflict; last-wins is fine here.
+	wikiByPage := make(map[string]string, len(props.Holders))
+	for uuid, holders := range props.Holders {
+		for _, h := range holders {
+			wikiByPage[h.Page] = uuid
+		}
+	}
 	if len(wiki) < *minUUIDs {
 		return fmt.Errorf("refusing to plan: only %d annotated uuids, expected at least %d "+
 			"(SMW may be degraded; override with -min-uuids)", len(wiki), *minUUIDs)
@@ -190,7 +199,7 @@ func run() error {
 
 	// --- build the plan -----------------------------------------------------
 	meta := itemstubs.Meta{Generated: time.Now(), Build: buildID, Source: source}
-	plan, err := itemstubs.BuildPlan(ctx, items, wiki, cfg, reg, meta, client.TitleStatuses)
+	plan, err := itemstubs.BuildPlan(ctx, items, wiki, wikiByPage, cfg, reg, meta, client.TitleStatuses)
 	if err != nil {
 		return err
 	}

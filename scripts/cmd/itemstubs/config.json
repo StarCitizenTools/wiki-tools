@@ -415,6 +415,9 @@
       ],
       "nameExact": [
         "PH"
+      ],
+      "descContains": [
+        "<= PLACEHOLDER =>"
       ]
     },
     {
@@ -423,17 +426,26 @@
         "ELD - "
       ],
       "classSuffixes": [
-        "_debug",
-        "_test",
-        "_TEST",
-        "_invis",
-        "_Template",
-        "_TEMPLATE",
-        "_template",
-        "_TEMP",
+        "_Active",
         "_Dummy",
         "_LowPoly",
-        "_Active"
+        "_TEMP",
+        "_TEMPLATE",
+        "_TEST",
+        "_Template",
+        "_debug",
+        "_invis",
+        "_reference",
+        "_template",
+        "_test"
+      ],
+      "classPrefixes": [
+        "nodraw_"
+      ],
+      "classContains": [
+        "_Fake",
+        "_fake",
+        "_test_"
       ]
     },
     {

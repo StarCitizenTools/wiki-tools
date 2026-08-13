@@ -47,6 +47,15 @@ type ConflictEntry struct {
 	UUIDs    []string `json:"uuids,omitempty"`
 	Note     string   `json:"note,omitempty"`
 	Wikitext string   `json:"wikitext,omitempty"`
+	// OnPageUUID is the uuid the existing page already documents, with that
+	// item's class name and whether its description is identical to this
+	// one's. A match is the fingerprint of a name CIG reused for an
+	// unimplemented item — evidence for the reviewer, never grounds for the
+	// tool to drop the item, because the page sometimes holds the placeholder
+	// and the flagged item is the real one.
+	OnPageUUID      string `json:"onPageUuid,omitempty"`
+	OnPageClass     string `json:"onPageClass,omitempty"`
+	SameDescription bool   `json:"sameDescription,omitempty"`
 }
 
 // Skipped summarises everything filtered out, by reason.
@@ -122,7 +131,7 @@ func titleKey(name string) string {
 // BuildPlan classifies every item, renders stubs, checks titles against the
 // live wiki through statuses (injected so tests stay offline), and assembles
 // the plan. Meta's WikiUUIDs/Items are filled here from the inputs.
-func BuildPlan(ctx context.Context, items []Item, wiki map[string]bool, cfg *Config, reg *Registry,
+func BuildPlan(ctx context.Context, items []Item, wiki map[string]bool, wikiByPage map[string]string, cfg *Config, reg *Registry,
 	meta Meta, statuses func(context.Context, []string) (map[string]mediawiki.TitleStatus, error)) (*Plan, error) {
 
 	plan := &Plan{
@@ -145,6 +154,15 @@ func BuildPlan(ctx context.Context, items []Item, wiki map[string]bool, cfg *Con
 	known := make(map[string]bool, len(reg.Manufacturers))
 	for code := range reg.Manufacturers {
 		known[strings.ToUpper(code)] = true
+	}
+
+	// itemsByUUID resolves a title-exists conflict's on-page uuid to the dump
+	// item it names, so the conflict can carry that item's class name and a
+	// description comparison — evidence for the reviewer, built once here
+	// rather than per-conflict.
+	itemsByUUID := make(map[string]Item, len(items))
+	for _, it := range items {
+		itemsByUUID[it.UUID] = it
 	}
 
 	type candidate struct {
@@ -269,10 +287,19 @@ func BuildPlan(ctx context.Context, items []Item, wiki map[string]bool, cfg *Con
 		}
 		switch {
 		case status == mediawiki.TitleExists:
-			plan.Conflicts = append(plan.Conflicts, ConflictEntry{
+			entry := ConflictEntry{
 				Reason: "title-exists", Title: title, UUID: it.UUID, Wikitext: c.wikitext,
 				Note: "page exists without this uuid; disambiguate or merge",
-			})
+			}
+			if onPageUUID, hit := wikiByPage[title]; hit {
+				entry.OnPageUUID = onPageUUID
+				if onPageItem, found := itemsByUUID[onPageUUID]; found {
+					entry.OnPageClass = onPageItem.ClassName
+					desc, onPageDesc := strings.TrimSpace(it.Description), strings.TrimSpace(onPageItem.Description)
+					entry.SameDescription = desc != "" && onPageDesc != "" && desc == onPageDesc
+				}
+			}
+			plan.Conflicts = append(plan.Conflicts, entry)
 		case status == mediawiki.TitleInvalid:
 			plan.Conflicts = append(plan.Conflicts, ConflictEntry{
 				Reason: "invalid-title", Title: title, UUID: it.UUID,
@@ -359,10 +386,42 @@ func Report(p *Plan) []string {
 		c := p.Create[i]
 		return fmt.Sprintf("%s (%s, %s)", c.Title, c.Kind, c.Type)
 	})
-	sample(len(p.Conflicts), "conflicts  %d for agent judgment", func(i int) string {
-		c := p.Conflicts[i]
-		return fmt.Sprintf("%s: %s", c.Reason, c.Title)
-	})
+	// Conflicts are sampled per reason rather than off the top of the sorted
+	// list: they sort by reason, so a flat sample only ever shows whichever
+	// reason happens to sort first and says nothing about the rest.
+	if n := len(p.Conflicts); n > 0 {
+		lines = append(lines, fmt.Sprintf("conflicts  %d for agent judgment", n))
+		byReason := map[string][]ConflictEntry{}
+		var order []string
+		for _, c := range p.Conflicts {
+			if _, seen := byReason[c.Reason]; !seen {
+				order = append(order, c.Reason)
+			}
+			byReason[c.Reason] = append(byReason[c.Reason], c)
+		}
+		sort.Strings(order)
+		for _, reason := range order {
+			group := byReason[reason]
+			noise := 0
+			for _, c := range group {
+				if c.SameDescription {
+					noise++
+				}
+			}
+			head := fmt.Sprintf("  %5d  %s", len(group), reason)
+			if noise > 0 {
+				head += fmt.Sprintf("  (%d share the description of the item already on the page)", noise)
+			}
+			lines = append(lines, head)
+			const per = 3
+			for i := 0; i < len(group) && i < per; i++ {
+				lines = append(lines, "         "+group[i].Title)
+			}
+			if len(group) > per {
+				lines = append(lines, fmt.Sprintf("         … and %d more", len(group)-per))
+			}
+		}
+	}
 	sample(len(p.Unmapped), "unmapped   %d types nobody has decided on", func(i int) string {
 		u := p.Unmapped[i]
 		return fmt.Sprintf("%5d  %s (e.g. %q)", u.Count, u.Type, u.Sample)

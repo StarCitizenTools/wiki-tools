@@ -33,6 +33,22 @@ the built-in rules rather than config: a nameless item has no page title to
 give it, and the all-zeros uuid is never indexed by the wiki, so both are
 structural facts about the dump, not editorial judgements.
 
+**The blocklist splits on what kind of evidence a pattern is.** `isPlaceholder`
+fires when the item's own text admits it is a stand-in — a name or description
+saying so. `testItem` fires when the *asset* is a development artifact rather
+than a shipped item: templates, dummies, low-poly and invisible stand-ins,
+`nodraw_` renders, `_Fake` ship props (fake doors and cargo), `_test_` builds,
+`_reference` assets. Keep new patterns in whichever of those two they belong to
+rather than opening a third rule; the per-rule counts in the report are the
+diagnostic, and a third bucket straddling both makes them meaningless.
+
+Audit the patterns against a fresh dump when the game updates: a pattern that
+matches nothing is either fixed upstream or was always aimed at the wrong
+field. Case variants are worth keeping even at zero hits — CIG ships
+`_Template`, `_template` and `_TEMPLATE` side by side — but a pattern that
+cannot match this data source at all (a raw `@item_Desc` localisation key never
+appears in the dump, only in the web API) is not insurance, it is noise.
+
 A note on `nonPuItem`'s class suffixes: `_tow` marks items that exist only in
 the Theatre of War game mode, not the persistent universe — same reasoning as
 `_gungame` and `_ea_elim`. The suffix has nothing to do with towing.
@@ -49,6 +65,31 @@ resolution and the title check against the live wiki can still turn a
 | `title-exists` | a page already exists at that title, but without this uuid |
 | `review:<ruleId>` | the item matched a `review` pattern (see below) |
 | `unknown-title-status` | the wiki's title-check response didn't classify this title at all (an API quirk); resolve by hand |
+
+**Why most `title-exists` conflicts are noise.** CIG reuses localisation
+strings for items that were never implemented, so a large share of
+`title-exists` hits are an unimplemented item sharing a name with the real
+one the wiki already documents — measured at 87 of 101 on a sample dump. The
+two are structurally identical in the API (same `is_base_variant`, `rarity`,
+price presence), so the tool cannot tell which one deserves the page — and
+one case even inverts: the wiki page holds the placeholder and the flagged
+item is the real one. It therefore never auto-dismisses or auto-picks a
+`title-exists` conflict; it only attaches evidence about what the page
+already documents, so a human can judge at a glance:
+
+- `onPageUuid` — the uuid the existing page already documents (looked up from
+  the same `uuidindex` scan `wiki` comes from), when known.
+- `onPageClass` — that item's dump class name, when its uuid also resolves to
+  an item in the current dump.
+- `sameDescription` — whether that item's `Description` is byte-identical
+  (after trimming whitespace) to the flagged item's. **A match is evidence
+  for the reviewer, not grounds for the tool to drop the item** — the page
+  sometimes documents the placeholder, so a `true` here still needs a human
+  read, not an automatic skip.
+
+All three fields are set together or not at all: they're omitted when
+`onPageUuid` has no entry in `wikiByPage` (the page wasn't found by the
+uuidindex scan) or when that uuid doesn't resolve to an item in the dump.
 
 ## Config semantics
 
@@ -161,6 +202,16 @@ from before the rename — so a pair listed there is never reported.
       "title": "Cup",
       "uuids": ["aaaaaaaa-0000-4000-8000-000000000012", "aaaaaaaa-0000-4000-8000-000000000013"],
       "note": "several missing items share this name; needs disambiguation"
+    },
+    {
+      "reason": "title-exists",
+      "title": "Widowmaker",
+      "uuid": "aaaaaaaa-0000-4000-8000-000000000050",
+      "note": "page exists without this uuid; disambiguate or merge",
+      "wikitext": "{{Entity\n...",
+      "onPageUuid": "bbbbbbbb-0000-4000-8000-000000000001",
+      "onPageClass": "behr_widowmaker_01",
+      "sameDescription": true
     }
   ],
   "skipped": { "exists": 18201, "blocked": { "isPlaceholder": 340, "testItem": 52 }, "excluded": 1877, "unusable": 6 },
@@ -185,8 +236,12 @@ from before the rename — so a pair listed there is never reported.
 `manufacturer`, so an apply that skips checking it can publish the wrong
 manufacturer. `conflicts` is the editorial worklist — every entry names a
 `reason` and, where a stub was rendered, carries its `wikitext` so resolving
-the conflict doesn't mean re-deriving it. `unmappedTypes` is sorted by count,
-so the highest-volume gaps in the allowlist surface first.
+the conflict doesn't mean re-deriving it. A `title-exists` entry additionally
+carries `onPageUuid`/`onPageClass`/`sameDescription` when they're known (see
+"Why most `title-exists` conflicts are noise" above) — read `sameDescription`
+as a hint to check the page against the flagged item, never as a signal to
+skip either one. `unmappedTypes` is sorted by count, so the highest-volume
+gaps in the allowlist surface first.
 
 `plan.Drift()` (used by `-diff`) is `len(create) + len(conflicts) > 0` — both
 mean somebody has work to do. This differs from `uuidindex`, where conflicts
@@ -244,7 +299,12 @@ means an agent works through it via the MediaWiki MCP server:
 - `conflicts` are the editorial worklist — each one needs a human or agent
   judgement call before anything is created (disambiguate a duplicate title,
   decide whether a bespoke variant deserves its own page, resolve a missing
-  manufacturer), not a mechanical apply.
+  manufacturer), not a mechanical apply. For `title-exists`, read
+  `onPageClass`/`sameDescription` before deciding: a `sameDescription: true`
+  usually means the flagged item is CIG's unimplemented reuse of the page's
+  name and the page should stay as-is, but not always — the page itself
+  sometimes holds the placeholder, so confirm which item is real before
+  discarding either one.
 - `unmappedTypes` isn't something to apply at all; it's config drift. Feed it
   back into `config.json` (allowlist with a `kind`/`label`, or `"skip": true`)
   and re-run.

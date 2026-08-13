@@ -17,6 +17,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"time"
 )
 
 // Namespace is the id of the UUID: namespace on starcitizen.tools.
@@ -73,7 +74,9 @@ type Holder struct {
 type InvalidValue struct {
 	Page     string `json:"page"`
 	Property string `json:"property"`
-	Value    string `json:"value"`
+	// Value is the annotation exactly as stored, so it can be found in the
+	// page source; normalising it here would hide the thing to search for.
+	Value string `json:"value"`
 }
 
 // IgnoredValue is a property value deliberately left out of the index.
@@ -102,7 +105,10 @@ func NewPropertyScan() *PropertyScan {
 // namespace are ignored (sandboxes and drafts must not own index entries), as
 // is the placeholder uuid.
 func (s *PropertyScan) Add(page string, namespace int, property, value string) {
-	// Subobject subjects arrive as "Page#fragment"; the page owns the value.
+	// Subobject subjects arrive as "Page#fragment", and the page owns the
+	// value. This holds while only page-level templates annotate Uuid; a
+	// module that emitted per-row subobject uuids would make its list page a
+	// co-holder of every uuid on it, and the plan would fill with conflicts.
 	if i := strings.IndexByte(page, '#'); i >= 0 {
 		page = page[:i]
 	}
@@ -113,7 +119,7 @@ func (s *PropertyScan) Add(page string, namespace int, property, value string) {
 	case uuid == PlaceholderUUID:
 		s.Ignored = append(s.Ignored, IgnoredValue{page, property, uuid, "placeholder uuid"})
 	case !Valid(uuid):
-		s.Invalid = append(s.Invalid, InvalidValue{page, property, uuid})
+		s.Invalid = append(s.Invalid, InvalidValue{page, property, value})
 	default:
 		for i, h := range s.Holders[uuid] {
 			if h.Page == page {
@@ -135,8 +141,6 @@ type NSPage struct {
 	// Target is where the redirect points (empty for non-redirects, and for
 	// redirects the API could not resolve, e.g. interwiki).
 	Target string
-	// TargetMissing reports a redirect whose target page does not exist.
-	TargetMissing bool
 }
 
 // ScanResult is everything a reconciliation needs, as read from the wiki.
@@ -186,6 +190,9 @@ type Review struct {
 // Plan is the reconciliation: what to change, what to leave, what to flag.
 type Plan struct {
 	Endpoint string `json:"endpoint"`
+	// GeneratedAt stamps the scan. A plan is a snapshot of live wiki state
+	// that something else applies later, so its age is part of reading it.
+	GeneratedAt time.Time `json:"generated_at"`
 	// UUIDs is how many distinct uuids are annotated; Pages how many pages
 	// the UUID: namespace holds; InSync how many index entries are correct.
 	UUIDs  int `json:"uuids"`
@@ -198,6 +205,7 @@ type Plan struct {
 
 	Conflicts []Conflict     `json:"conflicts"`
 	Invalid   []InvalidValue `json:"invalid_values"`
+	Ignored   []IgnoredValue `json:"ignored_values"`
 	Review    []Review       `json:"review"`
 
 	// LegacyPages annotate uuids via the deprecated property — migration debt.
@@ -213,12 +221,14 @@ func (p *Plan) Drift() bool {
 
 // Reconcile computes the plan that brings the namespace in step with the
 // property annotations. It is pure: both sides come from the scan.
-func Reconcile(scan *ScanResult, endpoint string) *Plan {
+func Reconcile(scan *ScanResult, endpoint string, at time.Time) *Plan {
 	plan := &Plan{
-		Endpoint: endpoint,
-		UUIDs:    len(scan.Properties.Holders),
-		Pages:    len(scan.Pages),
-		Invalid:  append([]InvalidValue{}, scan.Properties.Invalid...),
+		Endpoint:    endpoint,
+		GeneratedAt: at.UTC(),
+		UUIDs:       len(scan.Properties.Holders),
+		Pages:       len(scan.Pages),
+		Invalid:     append([]InvalidValue{}, scan.Properties.Invalid...),
+		Ignored:     append([]IgnoredValue{}, scan.Properties.Ignored...),
 	}
 
 	// Group namespace pages by the uuid their title indexes. First-letter
@@ -253,9 +263,10 @@ func Reconcile(scan *ScanResult, endpoint string) *Plan {
 		target := holders[0].Page
 
 		existing := byUUID[uuid]
+		canonical := TitleFor(uuid)
 		switch {
 		case len(existing) == 0:
-			plan.Create = append(plan.Create, Create{uuid, TitleFor(uuid), target})
+			plan.Create = append(plan.Create, Create{uuid, canonical, target})
 		case len(existing) > 1:
 			for _, p := range existing {
 				plan.Review = append(plan.Review, Review{p.Title,
@@ -264,6 +275,15 @@ func Reconcile(scan *ScanResult, endpoint string) *Plan {
 		case !existing[0].Redirect:
 			plan.Review = append(plan.Review, Review{existing[0].Title,
 				fmt.Sprintf("not a redirect, but %q holds its uuid", target)})
+		case existing[0].Title != canonical:
+			// A case variant serves the uuid, but MediaWiki normalises only
+			// the first letter: the canonical title a consumer builds from a
+			// lowercase API uuid still resolves to nothing. Treating this as
+			// in-sync would leave that lookup broken permanently, so plan the
+			// real entry and leave the variant to a human.
+			plan.Create = append(plan.Create, Create{uuid, canonical, target})
+			plan.Review = append(plan.Review, Review{existing[0].Title,
+				fmt.Sprintf("non-canonical case variant of %s; canonical entry planned", canonical)})
 		case existing[0].Target != target:
 			plan.Retarget = append(plan.Retarget, Retarget{uuid, existing[0].Title, existing[0].Target, target})
 		default:
@@ -277,9 +297,17 @@ func Reconcile(scan *ScanResult, endpoint string) *Plan {
 			continue
 		}
 		for _, p := range byUUID[uuid] {
-			if p.Redirect {
+			switch {
+			case uuid == PlaceholderUUID:
+				// Nothing ever annotates the placeholder, by design, so the
+				// orphan rule would delete its page every run. The exclusion
+				// is enforced here rather than left to rest on the page
+				// happening not to be a redirect.
+				plan.Review = append(plan.Review, Review{p.Title,
+					"placeholder uuid; never indexed and never deleted"})
+			case p.Redirect:
 				plan.Delete = append(plan.Delete, Delete{p.Title, p.Target})
-			} else {
+			default:
 				plan.Review = append(plan.Review, Review{p.Title,
 					"no page holds this uuid, but it is not a redirect; left alone"})
 			}
@@ -333,11 +361,11 @@ func Report(p *Plan) []string {
 	})
 	sample(len(p.Retarget), "retarget   %d", func(i int) string {
 		r := p.Retarget[i]
-		return fmt.Sprintf("%s: %s -> %s", r.Title, orDash(r.From), r.To)
+		return fmt.Sprintf("%s: %s -> %s", r.Title, orUnresolved(r.From), r.To)
 	})
 	sample(len(p.Delete), "delete     %d", func(i int) string {
 		d := p.Delete[i]
-		return fmt.Sprintf("%s (pointed at %s)", d.Title, orDash(d.Target))
+		return fmt.Sprintf("%s (pointed at %s)", d.Title, orUnresolved(d.Target))
 	})
 	sample(len(p.Conflicts), "conflicts  %d uuids held by more than one page", func(i int) string {
 		c := p.Conflicts[i]
@@ -354,7 +382,7 @@ func Report(p *Plan) []string {
 	return lines
 }
 
-func orDash(s string) string {
+func orUnresolved(s string) string {
 	if s == "" {
 		return "(unresolved)"
 	}

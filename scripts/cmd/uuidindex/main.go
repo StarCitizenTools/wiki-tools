@@ -17,10 +17,11 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
-	"github.com/StarCitizenTools/wiki-tools/scripts/internal/httpx"
+	"github.com/StarCitizenTools/wiki-tools/scripts/internal/mediawiki"
 	"github.com/StarCitizenTools/wiki-tools/scripts/internal/uuidindex"
 )
 
@@ -31,6 +32,11 @@ const (
 	defaultOut   = "out/uuid-index.json"
 	wikiEndpoint = "https://starcitizen.tools/api.php"
 	userAgent    = "StarCitizenTools-wiki-tools/1.0 (https://github.com/StarCitizenTools/wiki-tools)"
+
+	// Distinct exit codes: a scheduled -diff run should be able to tell "the
+	// index is stale" from "a safety rail stopped the run".
+	exitDrift       = 1
+	exitRailTripped = 2
 )
 
 func main() {
@@ -60,27 +66,30 @@ func run() error {
 		progress = func(s string) { fmt.Fprintln(os.Stderr, s) }
 	}
 
-	client := httpx.New(httpx.Options{
-		Interval:  *interval,
+	client, err := mediawiki.New(mediawiki.Config{
+		Endpoint:  wikiEndpoint,
 		UserAgent: userAgent,
-		MaxTries:  4,
-		Timeout:   90 * time.Second,
+		Interval:  *interval,
 	})
+	if err != nil {
+		return err
+	}
 	defer client.Close()
 
 	started := time.Now()
 	scan, err := uuidindex.Scan(ctx, uuidindex.ScanOptions{
 		Client:   client,
-		Endpoint: wikiEndpoint,
 		Progress: progress,
 	})
 	if err != nil {
 		return err
 	}
-	progress(fmt.Sprintf("scan finished in %s", time.Since(started).Round(time.Second)))
+	progress(fmt.Sprintf("scan finished in %s (%d requests)", time.Since(started).Round(time.Second), scan.Requests))
 
 	// A half-empty scan is a degraded API (an SMW rebuild, a truncated list),
 	// not a real change; planning from it would schedule a mass deletion.
+	// These are checked before the plan exists because a plan built on them
+	// would be actively misleading to have on disk.
 	if got := len(scan.Properties.Holders); got < *minUUIDs {
 		return fmt.Errorf("refusing to plan: only %d annotated uuids, expected at least %d "+
 			"(SMW may be degraded; override with -min-uuids)", got, *minUUIDs)
@@ -90,34 +99,19 @@ func run() error {
 			"(the API may be degraded; override with -min-pages)", got, *minPages)
 	}
 
-	plan := uuidindex.Reconcile(scan, wikiEndpoint)
+	plan := uuidindex.Reconcile(scan, wikiEndpoint, time.Now())
 
-	if len(plan.Delete) > *maxDelete {
-		return fmt.Errorf("refusing to plan %d deletions (limit %d); inspect the wiki, "+
-			"then override with -max-delete if they are real", len(plan.Delete), *maxDelete)
+	// The deletion cap is evaluated after writing, so that a tripped rail
+	// leaves the evidence behind. Judging whether the deletions are real means
+	// reading them, and re-running a multi-minute scan to find that out is how
+	// a safety rail teaches people to raise it unread.
+	rejected := len(plan.Delete) > *maxDelete
+	dest := *out
+	if rejected && dest != "" && dest != "-" {
+		dest = strings.TrimSuffix(dest, ".json") + ".rejected.json"
 	}
-
-	encoded, err := json.MarshalIndent(plan, "", "  ")
-	if err != nil {
+	if err := write(dest, plan, progress); err != nil {
 		return err
-	}
-	encoded = append(encoded, '\n')
-
-	switch *out {
-	case "-":
-		if _, err := os.Stdout.Write(encoded); err != nil {
-			return err
-		}
-	case "":
-		// Explicitly discarded: useful with -diff, which only needs the report.
-	default:
-		if err := os.MkdirAll(filepath.Dir(*out), 0o755); err != nil {
-			return err
-		}
-		if err := os.WriteFile(*out, encoded, 0o644); err != nil {
-			return err
-		}
-		progress(fmt.Sprintf("wrote %s (%d bytes)", *out, len(encoded)))
 	}
 
 	fmt.Fprintf(os.Stderr, "\nUUID index against %s\n", wikiEndpoint)
@@ -125,9 +119,48 @@ func run() error {
 		fmt.Fprintf(os.Stderr, "  %s\n", line)
 	}
 
+	if rejected {
+		fmt.Fprintf(os.Stderr, "\nrefusing to apply %d deletions (limit %d)\n", len(plan.Delete), *maxDelete)
+		if dest != "" && dest != "-" {
+			fmt.Fprintf(os.Stderr, "the rejected plan is at %s; read the deletions, then re-run "+
+				"with -max-delete if they are real\n", dest)
+		}
+		os.Exit(exitRailTripped)
+	}
+
 	if *doDiff && plan.Drift() {
-		fmt.Fprintf(os.Stderr, "\nTo apply, work through %s via the MediaWiki MCP server.\n", *out)
-		os.Exit(1)
+		if *out == "" || *out == "-" {
+			fmt.Fprintln(os.Stderr, "\nRe-run without -out to write the plan, then apply it via the MediaWiki MCP server.")
+		} else {
+			fmt.Fprintf(os.Stderr, "\nTo apply, work through %s via the MediaWiki MCP server.\n", *out)
+		}
+		os.Exit(exitDrift)
 	}
 	return nil
+}
+
+// write emits the plan to a path, to stdout ("-"), or nowhere ("").
+func write(dest string, plan *uuidindex.Plan, progress func(string)) error {
+	encoded, err := json.MarshalIndent(plan, "", "  ")
+	if err != nil {
+		return err
+	}
+	encoded = append(encoded, '\n')
+
+	switch dest {
+	case "":
+		return nil // Explicitly discarded; -diff only needs the report.
+	case "-":
+		_, err := os.Stdout.Write(encoded)
+		return err
+	default:
+		if err := os.MkdirAll(filepath.Dir(dest), 0o755); err != nil {
+			return err
+		}
+		if err := os.WriteFile(dest, encoded, 0o644); err != nil {
+			return err
+		}
+		progress(fmt.Sprintf("wrote %s (%d bytes)", dest, len(encoded)))
+		return nil
+	}
 }

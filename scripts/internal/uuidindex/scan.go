@@ -4,21 +4,18 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"net/url"
 	"sort"
 	"strconv"
 	"strings"
 
-	"github.com/StarCitizenTools/wiki-tools/scripts/internal/httpx"
+	"github.com/StarCitizenTools/wiki-tools/scripts/internal/mediawiki"
 )
 
 // ScanOptions configures a scan.
 type ScanOptions struct {
-	// Client issues the (rate-limited) HTTP requests.
-	Client *httpx.Client
-	// Endpoint is the full action API URL, e.g. https://starcitizen.tools/api.php
-	Endpoint string
+	// Client reads the wiki. It is rate-limited and read-only.
+	Client *mediawiki.Client
 	// Progress, when set, receives human-readable progress lines.
 	Progress func(string)
 }
@@ -28,6 +25,21 @@ type ScanOptions struct {
 // target. Anonymous and read-only throughout.
 func Scan(ctx context.Context, opts ScanOptions) (*ScanResult, error) {
 	s := &scanner{opts: opts}
+
+	// TitleFor assumes the namespace capitalises the first letter of a title.
+	// That is configurable per namespace ($wgCapitalLinkOverrides), and if it
+	// were ever turned off here every planned title would differ from the
+	// existing one — the apply step would duplicate the entire index rather
+	// than fail. One request buys a startup error instead.
+	s.requests++
+	nsCase, err := opts.Client.NamespaceCase(ctx, Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("checking namespace %d: %w", Namespace, err)
+	}
+	if nsCase != "first-letter" {
+		return nil, fmt.Errorf("namespace %d is %q, not first-letter: title normalisation in "+
+			"TitleFor no longer holds and the plan would target the wrong titles", Namespace, nsCase)
+	}
 
 	props := NewPropertyScan()
 	for _, prop := range Properties {
@@ -73,30 +85,6 @@ func (s *scanner) logf(format string, args ...any) {
 	}
 }
 
-// get performs one API request and decodes the response, surfacing API-level
-// errors (which arrive with HTTP 200) as Go errors.
-func (s *scanner) get(ctx context.Context, form url.Values, out any) error {
-	s.requests++
-	// POST keeps long title batches clear of URL-length limits.
-	body, err := s.opts.Client.Do(ctx, http.MethodPost, s.opts.Endpoint, form.Encode())
-	if err != nil {
-		return err
-	}
-	var apiErr struct {
-		Error *struct {
-			Code string `json:"code"`
-			Info string `json:"info"`
-		} `json:"error"`
-	}
-	if err := json.Unmarshal(body, &apiErr); err != nil {
-		return fmt.Errorf("decoding response: %w", err)
-	}
-	if apiErr.Error != nil {
-		return fmt.Errorf("api error %s: %s", apiErr.Error.Code, apiErr.Error.Info)
-	}
-	return json.Unmarshal(body, out)
-}
-
 // askProperty pages through [[<prop>::+]] and feeds every value into the scan.
 //
 // The limit is deliberately large: SMW's $smwgQMaxOffset (default 5000)
@@ -109,6 +97,7 @@ func (s *scanner) askProperty(ctx context.Context, prop string, into *PropertySc
 	const limit = 10000
 	for offset := 0; ; {
 		var res struct {
+			mediawiki.Response
 			Continue *int `json:"query-continue-offset"`
 			Query    struct {
 				Results json.RawMessage `json:"results"`
@@ -119,26 +108,35 @@ func (s *scanner) askProperty(ctx context.Context, prop string, into *PropertySc
 			"query":  {fmt.Sprintf("[[%s::+]]|?%s|limit=%d|offset=%d", prop, prop, limit, offset)},
 			"format": {"json"},
 		}
-		if err := s.get(ctx, form, &res); err != nil {
+		s.requests++
+		if err := s.opts.Client.Request(ctx, form, &res); err != nil {
 			return err
 		}
 
-		// SMW serialises an empty result map as a JSON array.
-		if !strings.HasPrefix(strings.TrimSpace(string(res.Query.Results)), "{") {
-			return nil
-		}
-		var subjects map[string]struct {
-			Fulltext  string              `json:"fulltext"`
-			Namespace int                 `json:"namespace"`
-			Printouts map[string][]string `json:"printouts"`
-		}
-		if err := json.Unmarshal(res.Query.Results, &subjects); err != nil {
-			return fmt.Errorf("decoding subjects at offset %d: %w", offset, err)
-		}
-		for _, subject := range subjects {
-			for _, value := range subject.Printouts[prop] {
-				into.Add(subject.Fulltext, subject.Namespace, prop, value)
+		// SMW serialises results as an object, except that an empty result set
+		// comes back as an array. Anything else means the response was not
+		// what we think it is, and treating that as "no annotations" would
+		// hand the reconciler an empty side — so it is an error, not a return.
+		switch head := firstRune(res.Query.Results); head {
+		case '{':
+			var subjects map[string]struct {
+				Fulltext  string              `json:"fulltext"`
+				Namespace int                 `json:"namespace"`
+				Printouts map[string][]string `json:"printouts"`
 			}
+			if err := json.Unmarshal(res.Query.Results, &subjects); err != nil {
+				return fmt.Errorf("decoding subjects at offset %d: %w", offset, err)
+			}
+			for _, subject := range subjects {
+				for _, value := range subject.Printouts[prop] {
+					into.Add(subject.Fulltext, subject.Namespace, prop, value)
+				}
+			}
+		case '[':
+			return nil // empty result set
+		default:
+			return fmt.Errorf("unexpected ask results at offset %d: wanted an object or an empty "+
+				"array, got %s", offset, snippet(res.Query.Results))
 		}
 
 		if res.Continue == nil {
@@ -154,11 +152,17 @@ func (s *scanner) askProperty(ctx context.Context, prop string, into *PropertySc
 
 // allPages lists the titles of the UUID: namespace, filtered to redirects or
 // non-redirects.
+//
+// Listing and resolving are separate passes because they cannot be combined:
+// the API rejects list=allpages as a generator together with redirect
+// resolution ("Use gapfilterredir=nonredirects instead of redirects"), so a
+// generator cannot both enumerate redirects and report their targets.
 func (s *scanner) allPages(ctx context.Context, filter string) ([]string, error) {
 	var titles []string
 	continueFrom := ""
 	for {
 		var res struct {
+			mediawiki.Response
 			Continue *struct {
 				Apcontinue string `json:"apcontinue"`
 			} `json:"continue"`
@@ -180,7 +184,8 @@ func (s *scanner) allPages(ctx context.Context, filter string) ([]string, error)
 		if continueFrom != "" {
 			form.Set("apcontinue", continueFrom)
 		}
-		if err := s.get(ctx, form, &res); err != nil {
+		s.requests++
+		if err := s.opts.Client.Request(ctx, form, &res); err != nil {
 			return nil, err
 		}
 		for _, p := range res.Query.Allpages {
@@ -188,6 +193,12 @@ func (s *scanner) allPages(ctx context.Context, filter string) ([]string, error)
 		}
 		if res.Continue == nil {
 			return titles, nil
+		}
+		// Same reasoning as askProperty: a continuation that does not move
+		// forward is an infinite loop, so fail rather than spin.
+		if res.Continue.Apcontinue <= continueFrom {
+			return nil, fmt.Errorf("allpages continuation did not advance (%q -> %q)",
+				continueFrom, res.Continue.Apcontinue)
 		}
 		continueFrom = res.Continue.Apcontinue
 	}
@@ -199,19 +210,17 @@ func (s *scanner) allPages(ctx context.Context, filter string) ([]string, error)
 func (s *scanner) resolve(ctx context.Context, titles []string) ([]NSPage, error) {
 	const batchSize = 50 // anonymous cap on titles per query
 	pages := make([]NSPage, 0, len(titles))
+	logged := 0
 	for start := 0; start < len(titles); start += batchSize {
 		batch := titles[start:min(start+batchSize, len(titles))]
 
 		var res struct {
+			mediawiki.Response
 			Query struct {
 				Redirects []struct {
 					From string `json:"from"`
 					To   string `json:"to"`
 				} `json:"redirects"`
-				Pages []struct {
-					Title   string `json:"title"`
-					Missing bool   `json:"missing"`
-				} `json:"pages"`
 			} `json:"query"`
 		}
 		form := url.Values{
@@ -221,21 +230,19 @@ func (s *scanner) resolve(ctx context.Context, titles []string) ([]NSPage, error
 			"format":        {"json"},
 			"formatversion": {"2"},
 		}
-		if err := s.get(ctx, form, &res); err != nil {
+		s.requests++
+		if err := s.opts.Client.Request(ctx, form, &res); err != nil {
 			return nil, err
 		}
 
 		// The redirects list covers every hop of a chain; only the first hop
-		// away from a requested title is that title's own target.
+		// away from a requested title is that title's own target. A double
+		// redirect therefore resolves to the next redirect, which is what
+		// MediaWiki itself serves, so the plan retargets it rather than
+		// silently following the chain.
 		requested := map[string]struct{}{}
 		for _, t := range batch {
 			requested[t] = struct{}{}
-		}
-		missing := map[string]struct{}{}
-		for _, p := range res.Query.Pages {
-			if p.Missing {
-				missing[p.Title] = struct{}{}
-			}
 		}
 		targets := map[string]string{}
 		for _, r := range res.Query.Redirects {
@@ -244,18 +251,34 @@ func (s *scanner) resolve(ctx context.Context, titles []string) ([]NSPage, error
 			}
 		}
 		for _, title := range batch {
-			target := targets[title]
-			_, targetMissing := missing[target]
-			pages = append(pages, NSPage{
-				Title:         title,
-				Redirect:      true,
-				Target:        target,
-				TargetMissing: target != "" && targetMissing,
-			})
+			pages = append(pages, NSPage{Title: title, Redirect: true, Target: targets[title]})
 		}
-		if len(pages)%2500 < batchSize {
+		if len(pages)-logged >= 2500 {
+			logged = len(pages)
 			s.logf("resolving redirect targets: %d/%d", len(pages), len(titles))
 		}
 	}
 	return pages, nil
+}
+
+// firstRune returns the first non-space byte of raw JSON, or 0 if it is empty.
+func firstRune(raw json.RawMessage) byte {
+	trimmed := strings.TrimSpace(string(raw))
+	if trimmed == "" {
+		return 0
+	}
+	return trimmed[0]
+}
+
+// snippet trims a JSON fragment for inclusion in an error message.
+func snippet(raw json.RawMessage) string {
+	const max = 120
+	s := strings.TrimSpace(string(raw))
+	if s == "" {
+		return "nothing"
+	}
+	if len(s) > max {
+		return s[:max] + "…"
+	}
+	return s
 }

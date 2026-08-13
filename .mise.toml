@@ -44,6 +44,16 @@ dir = "scripts"
 run = "go run ./cmd/uuidindex -diff"
 description = "Scan and report UUID: namespace drift (exit 1 if reconciliation is pending). Read-only; changes go through the MediaWiki MCP server."
 
+[tasks.itemstubs]
+dir = "scripts"
+run = "go run ./cmd/itemstubs"
+description = "Reconcile the scunpacked item dump against wiki uuids and write the stub-creation plan to scripts/out/ (gitignored); apply it via the MediaWiki MCP server"
+
+[tasks."itemstubs:diff"]
+dir = "scripts"
+run = "go run ./cmd/itemstubs -diff"
+description = "Report pending item-stub creations/conflicts (exit 1 if any). Read-only; changes go through the MediaWiki MCP server."
+
 [tasks.test]
 depends = ["test:lua", "test:go"]
 description = "Run all local tests"

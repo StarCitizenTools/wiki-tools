@@ -372,3 +372,26 @@ func TestResolveTakesOnlyTheFirstHopOfAChain(t *testing.T) {
 		t.Errorf("%s target = %q, want %q", second, targets[second], "Real Page")
 	}
 }
+
+func TestScanPropertiesOnly(t *testing.T) {
+	_, client := newStub(t, func(form map[string]string) string {
+		if form["action"] != "ask" {
+			t.Fatalf("unexpected action %q — ScanProperties must not list namespace pages", form["action"])
+		}
+		if strings.Contains(form["query"], "[[Uuid::+]]") {
+			return `{"query":{"results":{"Page A":{"fulltext":"Page A","namespace":0,"printouts":{"Uuid":["aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"]}}}}}`
+		}
+		return `{"query":{"results":[]}}` // legacy UUID property: empty
+	})
+
+	props, requests, err := ScanProperties(context.Background(), client, nil)
+	if err != nil {
+		t.Fatalf("ScanProperties: %v", err)
+	}
+	if got := len(props.Holders); got != 1 {
+		t.Fatalf("holders = %d, want 1", got)
+	}
+	if requests != 2 {
+		t.Fatalf("requests = %d, want 2 (one per property)", requests)
+	}
+}

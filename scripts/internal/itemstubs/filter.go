@@ -84,22 +84,26 @@ func Classify(it Item, wiki map[string]bool, cfg *Config) Filtered {
 // wiki article to link. ok=false means no code could be determined at all —
 // a plan conflict. An empty page with ok=true means "known but not an
 // article-worthy maker": the lead's manufacturer clause and navplate are
-// omitted (OmitInLead codes, or a code with no name anywhere).
-func ResolveManufacturer(it Item, m Manufacturers) (code, page string, ok bool) {
-	lowerClass := strings.ToLower(it.ClassName)
-	for _, prefix := range sortedMapKeys(m.ByPrefix) {
-		if strings.HasPrefix(lowerClass, prefix) {
-			code = m.ByPrefix[prefix]
-			break
-		}
+// omitted (OmitInLead codes, or a code with no record anywhere).
+//
+// The dump's own code (after ByName/Renames) wins; ByPrefix is consulted only
+// when that yields nothing usable ("" or "UNKN") — see Manufacturers' doc
+// comment for why it no longer overrides.
+func ResolveManufacturer(it Item, m Manufacturers, reg *Registry) (code, page string, ok bool) {
+	code = it.Manufacturer.Code
+	if override, hit := m.ByName[it.Manufacturer.Name]; hit {
+		code = override
 	}
-	if code == "" {
-		code = it.Manufacturer.Code
-		if override, hit := m.ByName[it.Manufacturer.Name]; hit {
-			code = override
-		}
-		if renamed, hit := m.Renames[code]; hit {
-			code = renamed
+	if renamed, hit := m.Renames[code]; hit {
+		code = renamed
+	}
+	if code == "" || code == "UNKN" {
+		lowerClass := strings.ToLower(it.ClassName)
+		for _, prefix := range sortedMapKeys(m.ByPrefix) {
+			if strings.HasPrefix(lowerClass, prefix) {
+				code = m.ByPrefix[prefix]
+				break
+			}
 		}
 	}
 	if code == "" {
@@ -108,7 +112,7 @@ func ResolveManufacturer(it Item, m Manufacturers) (code, page string, ok bool) 
 	if slices.Contains(m.OmitInLead, code) {
 		return code, "", true
 	}
-	page = m.Names[code]
+	page = reg.ManufacturerPage(code)
 	if page == "" {
 		page = it.Manufacturer.Name
 	}

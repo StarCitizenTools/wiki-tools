@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"slices"
 	"sort"
 	"strings"
 )
@@ -98,15 +99,18 @@ func (r PatternRule) Matches(name, className, description string) bool {
 }
 
 // Manufacturers configures how an item's maker resolves to a code and a wiki
-// article. ByPrefix wins over the dump's own data (it exists for items whose
-// manufacturer field is missing or wrong); Renames fix stale dump codes.
+// article. The dump's own code wins (after ByName/Renames); ByPrefix only
+// fills in when that yields nothing usable ("" or "UNKN"), never overrides
+// it. It used to override outright, and that silently discarded 73 real
+// manufacturers on the 4.9 dump — srvl_ overwrote Doomsday 52 times, volt_
+// overwrote Klaus & Werner 9 times, none_ overwrote Hurston Dynamics 3
+// times — while the dump agreed with the prefix in 812 other cases; those
+// disagreements now surface in the mismatch report instead of being thrown
+// away. Renames fix stale dump codes.
 type Manufacturers struct {
 	Renames  map[string]string `json:"renames,omitempty"`
 	ByPrefix map[string]string `json:"byPrefix,omitempty"`
 	ByName   map[string]string `json:"byName,omitempty"`
-	// Names maps a code to its wiki article title; missing codes fall back to
-	// the dump's own manufacturer name.
-	Names map[string]string `json:"names,omitempty"`
 	// OmitInLead lists codes whose "manufactured by" clause and navplate are
 	// dropped (UNKN, generic consumable makers): a lead linking [[Consumable]]
 	// as a company would be wrong.
@@ -116,6 +120,12 @@ type Manufacturers struct {
 	// code (Mirai's items still carry MISC class names from before the
 	// rename). A pair listed here is not reported as a mismatch.
 	Aliases map[string]string `json:"aliases,omitempty"`
+	// Synthetic lists manufacturer codes this tool works with that are not in
+	// the wiki's manufacturer registry because they are not real
+	// manufacturers — sentinels for "no manufacturer" that the dump or this
+	// tool's own rules produce (NONE from the none_ byPrefix rule, TBD from
+	// the dump itself). Validate accepts these in place of a registry entry.
+	Synthetic []string `json:"synthetic,omitempty"`
 }
 
 // Config is everything editorial about the tool, committed next to the
@@ -128,31 +138,49 @@ type Config struct {
 	Manufacturers Manufacturers       `json:"manufacturers"`
 }
 
-// ParseConfig decodes and validates a config document. Unknown fields are
-// errors: a typoed key silently doing nothing is how allowlists rot.
-func ParseConfig(b []byte) (*Config, error) {
+// LabelFor resolves the label a type's stub lead should use: the rule's
+// explicit Label when it has one, otherwise the wiki's own name for the
+// type's base (everything before the first "."), lowercased. "" means
+// neither source has an answer.
+func (c *Config) LabelFor(dumpType string, reg *Registry) string {
+	if rule, ok := c.Types[dumpType]; ok && rule.Label != "" {
+		return rule.Label
+	}
+	base, _, _ := strings.Cut(dumpType, ".")
+	return strings.ToLower(reg.TypeName(base))
+}
+
+// ParseConfig decodes and validates a config document against the wiki's
+// registries. Unknown fields are errors: a typoed key silently doing nothing
+// is how allowlists rot.
+func ParseConfig(b []byte, reg *Registry) (*Config, error) {
 	dec := json.NewDecoder(bytes.NewReader(b))
 	dec.DisallowUnknownFields()
 	var cfg Config
 	if err := dec.Decode(&cfg); err != nil {
 		return nil, fmt.Errorf("itemstubs config: %w", err)
 	}
-	if err := cfg.validate(); err != nil {
+	if err := cfg.Validate(reg); err != nil {
 		return nil, fmt.Errorf("itemstubs config: %w", err)
 	}
 	return &cfg, nil
 }
 
-// LoadConfig reads and parses a config file.
-func LoadConfig(path string) (*Config, error) {
+// LoadConfig reads and parses a config file against the wiki's registries.
+func LoadConfig(path string, reg *Registry) (*Config, error) {
 	b, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-	return ParseConfig(b)
+	return ParseConfig(b, reg)
 }
 
-func (c *Config) validate() error {
+// Validate checks the config for internal consistency and against the wiki's
+// registries: every active type must resolve to a label (explicit or via the
+// registry) and must not carry a label that merely restates the registry's
+// name — that entry is a copy waiting to drift, and should be deleted so it
+// tracks the registry instead.
+func (c *Config) Validate(reg *Registry) error {
 	for name, kind := range c.Kinds {
 		for _, section := range kind.Sections {
 			if _, ok := sectionBody[section]; !ok {
@@ -170,8 +198,14 @@ func (c *Config) validate() error {
 		if _, ok := c.Kinds[rule.Kind]; !ok {
 			return fmt.Errorf("type %q: unknown kind %q", typ, rule.Kind)
 		}
-		if rule.Label == "" {
-			return fmt.Errorf("type %q: label is required", typ)
+		if c.LabelFor(typ, reg) == "" {
+			return fmt.Errorf("type %q: no label (set an explicit label, or add its base type to the types registry)", typ)
+		}
+		if rule.Label != "" {
+			base, _, _ := strings.Cut(typ, ".")
+			if derived := reg.TypeName(base); derived != "" && strings.EqualFold(rule.Label, derived) {
+				return fmt.Errorf("type %q: label %q duplicates the registry's name for %q; remove the label so it tracks the registry", typ, rule.Label, base)
+			}
 		}
 		if rule.LabelLink != "" && rule.NoLabelLink {
 			return fmt.Errorf("type %q: labelLink and noLabelLink are mutually exclusive", typ)
@@ -189,10 +223,17 @@ func (c *Config) validate() error {
 			seen[rule.ID] = true
 		}
 	}
-	// A code referenced by one of these maps' values but absent from Names is
-	// a typo: today it silently falls back to the dump's own manufacturer
-	// name instead of failing, so the map appears to work while doing
-	// nothing.
+	// A code referenced by one of these maps' values, or listed in
+	// omitInLead, but absent from the manufacturer registry (and not
+	// declared synthetic) is a typo: today it silently falls back to the
+	// dump's own manufacturer name instead of failing, so the map appears to
+	// work while doing nothing.
+	known := func(code string) bool {
+		if _, ok := reg.Manufacturers[code]; ok {
+			return true
+		}
+		return slices.Contains(c.Manufacturers.Synthetic, code)
+	}
 	for _, ref := range []struct {
 		field string
 		m     map[string]string
@@ -209,9 +250,14 @@ func (c *Config) validate() error {
 		sort.Strings(keys)
 		for _, k := range keys {
 			code := ref.m[k]
-			if _, ok := c.Manufacturers.Names[code]; !ok {
-				return fmt.Errorf("manufacturers.%s: code %q is not in manufacturers.names", ref.field, code)
+			if !known(code) {
+				return fmt.Errorf("manufacturers.%s: code %q is not in the manufacturers registry or manufacturers.synthetic", ref.field, code)
 			}
+		}
+	}
+	for _, code := range c.Manufacturers.OmitInLead {
+		if !known(code) {
+			return fmt.Errorf("manufacturers.omitInLead: code %q is not in the manufacturers registry or manufacturers.synthetic", code)
 		}
 	}
 	return nil

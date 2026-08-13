@@ -39,7 +39,7 @@ func TestBuildPlan(t *testing.T) {
 		return out, nil
 	}
 
-	plan, err := BuildPlan(context.Background(), items, wiki, cfg, Meta{
+	plan, err := BuildPlan(context.Background(), items, wiki, cfg, testRegistry(), Meta{
 		Build: "4.9.0-LIVE.12232306", Source: "scunpacked-data@abc1234",
 		Generated: time.Date(2026, 8, 13, 12, 0, 0, 0, time.UTC),
 	}, statuses)
@@ -128,7 +128,7 @@ func TestBuildPlanManufacturerMismatch(t *testing.T) {
 		return out, nil
 	}
 
-	plan, err := BuildPlan(context.Background(), items, wiki, cfg, Meta{
+	plan, err := BuildPlan(context.Background(), items, wiki, cfg, testRegistry(), Meta{
 		Build: "4.9.0-LIVE.12232306", Generated: time.Date(2026, 8, 13, 12, 0, 0, 0, time.UTC),
 	}, statuses)
 	if err != nil {
@@ -196,7 +196,7 @@ func TestBuildPlanUnknownTitleStatus(t *testing.T) {
 		return map[string]mediawiki.TitleStatus{}, nil // omits every title queried
 	}
 
-	plan, err := BuildPlan(context.Background(), []Item{mystery}, wiki, cfg, Meta{
+	plan, err := BuildPlan(context.Background(), []Item{mystery}, wiki, cfg, testRegistry(), Meta{
 		Build: "4.9.0-LIVE.12232306", Generated: time.Date(2026, 8, 13, 12, 0, 0, 0, time.UTC),
 	}, statuses)
 	if err != nil {
@@ -233,7 +233,7 @@ func TestBuildPlanDuplicateTitleNormalization(t *testing.T) {
 		return out, nil
 	}
 
-	plan, err := BuildPlan(context.Background(), []Item{cupUpper, cupLower}, wiki, cfg, Meta{
+	plan, err := BuildPlan(context.Background(), []Item{cupUpper, cupLower}, wiki, cfg, testRegistry(), Meta{
 		Build: "4.9.0-LIVE.12232306", Generated: time.Date(2026, 8, 13, 12, 0, 0, 0, time.UTC),
 	}, statuses)
 	if err != nil {

@@ -5,14 +5,25 @@ import (
 	"testing"
 )
 
+// TestConfigCommittedFileIsValid is the drift gate: it loads the real
+// committed config.json together with the real registry files this repo
+// already maintains, and asserts they agree. It fails if either registry
+// changes in a way the config now contradicts (a code the config still
+// treats specially disappearing from the registry, a label the config still
+// spells out becoming redundant with a renamed registry entry, and so on).
 func TestConfigCommittedFileIsValid(t *testing.T) {
+	reg, err := LoadRegistry("../../../pages/module/Manufacturers/data.json", "../../../pages/module/Entity/Item/types.json")
+	if err != nil {
+		t.Fatalf("loading the wiki's registries: %v", err)
+	}
+
 	b, err := os.ReadFile("../../cmd/itemstubs/config.json")
 	if err != nil {
 		t.Fatalf("reading committed config: %v", err)
 	}
-	cfg, err := ParseConfig(b)
+	cfg, err := ParseConfig(b, reg)
 	if err != nil {
-		t.Fatalf("committed config invalid: %v", err)
+		t.Fatalf("committed config invalid against the committed registries: %v", err)
 	}
 	for _, typ := range []string{"WeaponGun.Gun", "Cooler.UNDEFINED"} {
 		rule, ok := cfg.Types[typ]
@@ -26,6 +37,7 @@ func TestConfigCommittedFileIsValid(t *testing.T) {
 }
 
 func TestConfigValidation(t *testing.T) {
+	emptyReg := &Registry{}
 	cases := map[string]string{
 		"unknown kind":       `{"kinds":{},"types":{"A.B":{"kind":"nope","label":"x"}}}`,
 		"missing label":      `{"kinds":{"item":{"sections":["Description"]}},"types":{"A.B":{"kind":"item"}}}`,
@@ -34,33 +46,78 @@ func TestConfigValidation(t *testing.T) {
 		"unknown json field": `{"kinds":{},"types":{},"surprise":1}`,
 		"labelLink and noLabelLink both set": `{"kinds":{"item":{"sections":["Description"]}},
 			"types":{"A.B":{"kind":"item","label":"x","labelLink":"X","noLabelLink":true}}}`,
-		"renames value missing from names": `{"kinds":{},"types":{},
-			"manufacturers":{"renames":{"OLD":"NEW"},"names":{}}}`,
-		"byPrefix value missing from names": `{"kinds":{},"types":{},
-			"manufacturers":{"byPrefix":{"foo_":"FOO"},"names":{}}}`,
-		"byName value missing from names": `{"kinds":{},"types":{},
-			"manufacturers":{"byName":{"Foo Inc":"FOO"},"names":{}}}`,
-		"aliases value missing from names": `{"kinds":{},"types":{},
-			"manufacturers":{"aliases":{"FOO":"BAR"},"names":{}}}`,
+		"renames value not in registry or synthetic": `{"kinds":{},"types":{},
+			"manufacturers":{"renames":{"OLD":"NEW"}}}`,
+		"byPrefix value not in registry or synthetic": `{"kinds":{},"types":{},
+			"manufacturers":{"byPrefix":{"foo_":"FOO"}}}`,
+		"byName value not in registry or synthetic": `{"kinds":{},"types":{},
+			"manufacturers":{"byName":{"Foo Inc":"FOO"}}}`,
+		"aliases value not in registry or synthetic": `{"kinds":{},"types":{},
+			"manufacturers":{"aliases":{"FOO":"BAR"}}}`,
+		"omitInLead code not in registry or synthetic": `{"kinds":{},"types":{},
+			"manufacturers":{"omitInLead":["FOO"]}}`,
 	}
 	for name, raw := range cases {
-		if _, err := ParseConfig([]byte(raw)); err == nil {
+		if _, err := ParseConfig([]byte(raw), emptyReg); err == nil {
 			t.Errorf("%s: want validation error, got nil", name)
 		}
 	}
 }
 
 func TestConfigValidationManufacturerRefsOK(t *testing.T) {
+	reg := &Registry{Manufacturers: map[string]ManufacturerRecord{
+		"NEW": {Name: "New Co."},
+		"FOO": {Name: "Foo Co."},
+	}}
 	raw := `{"kinds":{},"types":{},
 		"manufacturers":{
 			"renames":{"OLD":"NEW"},
 			"byPrefix":{"foo_":"FOO"},
 			"byName":{"Foo Inc":"FOO"},
 			"aliases":{"FOO":"BAR"},
-			"names":{"NEW":"New Co.","FOO":"Foo Co.","BAR":"Bar Co."}
+			"omitInLead":["BAR"],
+			"synthetic":["BAR"]
 		}}`
-	if _, err := ParseConfig([]byte(raw)); err != nil {
-		t.Errorf("want no error when every referenced code is in names, got: %v", err)
+	if _, err := ParseConfig([]byte(raw), reg); err != nil {
+		t.Errorf("want no error when every referenced code is in the registry or synthetic, got: %v", err)
+	}
+}
+
+func TestConfigValidationRedundantLabelRejected(t *testing.T) {
+	reg := &Registry{Types: map[string]TypeRecord{"Cooler": {Name: "Cooler", Category: "Coolers"}}}
+	raw := `{"kinds":{"item":{"sections":["Description"]}},
+		"types":{"Cooler.UNDEFINED":{"kind":"item","label":"Cooler"}}}`
+	_, err := ParseConfig([]byte(raw), reg)
+	if err == nil {
+		t.Fatal("want error: an explicit label that only restates the registry's name must be rejected")
+	}
+}
+
+func TestConfigValidationManufacturerCodeNeitherRegistryNorSynthetic(t *testing.T) {
+	reg := &Registry{}
+	raw := `{"kinds":{},"types":{},"manufacturers":{"omitInLead":["GHOST"]}}`
+	if _, err := ParseConfig([]byte(raw), reg); err == nil {
+		t.Fatal("want error: a code that is neither in the registry nor declared synthetic must be rejected")
+	}
+}
+
+func TestLabelFor(t *testing.T) {
+	cfg := &Config{Types: map[string]TypeRule{
+		"WeaponGun.Gun":    {Label: "vehicle weapon"},
+		"Cooler.UNDEFINED": {},
+		"Bogus.UNDEFINED":  {},
+	}}
+	reg := &Registry{Types: map[string]TypeRecord{
+		"Cooler": {Name: "Cooler", Category: "Coolers"},
+	}}
+	if got := cfg.LabelFor("WeaponGun.Gun", reg); got != "vehicle weapon" {
+		t.Errorf("explicit label should win: got %q", got)
+	}
+	if got := cfg.LabelFor("Cooler.UNDEFINED", reg); got != "cooler" {
+		t.Errorf("derived label should be the lowercased registry name: got %q", got)
+	}
+	if got := cfg.LabelFor("Bogus.UNDEFINED", reg); got != "" {
+		t.Errorf("neither an explicit label nor a registry entry: got %q, want \"\"", got)
 	}
 }
 

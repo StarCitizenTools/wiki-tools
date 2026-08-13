@@ -19,9 +19,30 @@ func testConfig() *Config {
 			Renames:    map[string]string{"BEH": "BEHR"},
 			ByPrefix:   map[string]string{"volt_": "VOLT"},
 			ByName:     map[string]string{"Quirinus Tech": "QRT"},
-			Names:      map[string]string{"BEHR": "Behring", "HRST": "Hurston Dynamics", "GEND": "Consumable", "CDS": "Clark Defense Systems", "AEGS": "Aegis Dynamics", "ANVL": "Anvil Aerospace", "MISC": "Musashi Industrial and Starflight Concern", "MRAI": "Mirai", "KEGR": "Kel-To"},
 			OmitInLead: []string{"GEND", "UNKN"},
 			Aliases:    map[string]string{"MISC": "MRAI"},
+		},
+	}
+}
+
+// testRegistry is the fixture standing in for the wiki's own registries
+// (Module:Manufacturers/data.json, Module:Entity/Item/types.json).
+func testRegistry() *Registry {
+	return &Registry{
+		Manufacturers: map[string]ManufacturerRecord{
+			"BEHR": {Name: "Behring"},
+			"HRST": {Name: "Hurston Dynamics"},
+			"CDS":  {Name: "Clark Defense Systems"},
+			"AEGS": {Name: "Aegis Dynamics"},
+			"ANVL": {Name: "Anvil Aerospace"},
+			"MISC": {Name: "Musashi Industrial and Starflight Concern"},
+			"MRAI": {Name: "Mirai"},
+			"KEGR": {Name: "Kel-To"},
+			"QRT":  {Name: "Quirinus Tech"},
+		},
+		Types: map[string]TypeRecord{
+			"WeaponGun": {Name: "Gun", Category: "Guns"},
+			"Drink":     {Name: "Drink", Category: "Drinks"},
 		},
 	}
 }
@@ -87,29 +108,47 @@ func TestClassManufacturer(t *testing.T) {
 
 func TestResolveManufacturer(t *testing.T) {
 	m := testConfig().Manufacturers
+	reg := testRegistry()
 
-	if code, page, ok := ResolveManufacturer(item("x", "VOLT_Gun_S1", "T.S", "u"), m); !ok || code != "VOLT" {
-		t.Errorf("prefix inference (case-insensitive): got %q %q %v", code, page, ok)
+	// The dump's own code wins over a matching byPrefix rule: it must not be
+	// silently discarded in favour of the class-name inference.
+	it := item("x", "VOLT_Gun_S1", "T.S", "u")
+	it.Manufacturer = Manufacturer{Name: "Hurston Dynamics", Code: "HRST"}
+	if code, page, ok := ResolveManufacturer(it, m, reg); !ok || code != "HRST" || page != "Hurston Dynamics" {
+		t.Errorf("dump code must win over byPrefix: got %q %q %v", code, page, ok)
 	}
-	it := item("x", "BEHR_Class", "T.S", "u")
-	it.Manufacturer = Manufacturer{Name: "Behring", Code: "BEH"}
-	if code, page, ok := ResolveManufacturer(it, m); !ok || code != "BEHR" || page != "Behring" {
+
+	// byPrefix fills in when the dump's own code is blank.
+	it.Manufacturer = Manufacturer{}
+	if code, _, ok := ResolveManufacturer(it, m, reg); !ok || code != "VOLT" {
+		t.Errorf("byPrefix should fill a blank code: got %q %v", code, ok)
+	}
+
+	// byPrefix fills in when the dump's own code is the UNKN sentinel too.
+	it.Manufacturer = Manufacturer{Code: "UNKN", Name: "Unknown manufacturer"}
+	if code, _, ok := ResolveManufacturer(it, m, reg); !ok || code != "VOLT" {
+		t.Errorf("byPrefix should override UNKN: got %q %v", code, ok)
+	}
+
+	it2 := item("x", "BEHR_Class", "T.S", "u")
+	it2.Manufacturer = Manufacturer{Name: "Behring", Code: "BEH"}
+	if code, page, ok := ResolveManufacturer(it2, m, reg); !ok || code != "BEHR" || page != "Behring" {
 		t.Errorf("rename: got %q %q %v", code, page, ok)
 	}
-	it.Manufacturer = Manufacturer{Name: "Quirinus Tech", Code: "QT"}
-	if code, _, ok := ResolveManufacturer(it, m); !ok || code != "QRT" {
+	it2.Manufacturer = Manufacturer{Name: "Quirinus Tech", Code: "QT"}
+	if code, _, ok := ResolveManufacturer(it2, m, reg); !ok || code != "QRT" {
 		t.Errorf("byName override: got %q %v", code, ok)
 	}
-	it.Manufacturer = Manufacturer{Name: "Consumable", Code: "GEND"}
-	if code, page, ok := ResolveManufacturer(it, m); !ok || code != "GEND" || page != "" {
+	it2.Manufacturer = Manufacturer{Name: "Consumable", Code: "GEND"}
+	if code, page, ok := ResolveManufacturer(it2, m, reg); !ok || code != "GEND" || page != "" {
 		t.Errorf("omitInLead must resolve ok with empty page: got %q %q %v", code, page, ok)
 	}
-	it.Manufacturer = Manufacturer{}
-	if _, _, ok := ResolveManufacturer(it, m); ok {
+	it2.Manufacturer = Manufacturer{}
+	if _, _, ok := ResolveManufacturer(it2, m, reg); ok {
 		t.Error("no code, no prefix: must not resolve")
 	}
-	it.Manufacturer = Manufacturer{Code: "ZZZZ", Name: "Zed Industries"}
-	if code, page, ok := ResolveManufacturer(it, m); !ok || code != "ZZZZ" || page != "Zed Industries" {
+	it2.Manufacturer = Manufacturer{Code: "ZZZZ", Name: "Zed Industries"}
+	if code, page, ok := ResolveManufacturer(it2, m, reg); !ok || code != "ZZZZ" || page != "Zed Industries" {
 		t.Errorf("unknown code falls back to dump name: got %q %q %v", code, page, ok)
 	}
 }

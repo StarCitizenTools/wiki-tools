@@ -34,8 +34,13 @@ const (
 	// and is applied from there via the MediaWiki MCP server.
 	defaultOut    = "out/item-stubs.json"
 	defaultConfig = "cmd/itemstubs/config.json"
-	wikiEndpoint  = "https://starcitizen.tools/api.php"
-	userAgent     = "StarCitizenTools-wiki-tools/1.0 (https://github.com/StarCitizenTools/wiki-tools)"
+	// These resolve from scripts/, where mise runs this command (dir =
+	// "scripts" in .mise.toml) — one level up from the module pages this
+	// repo already maintains as the wiki's own reference data.
+	defaultManufacturers = "../pages/module/Manufacturers/data.json"
+	defaultTypes         = "../pages/module/Entity/Item/types.json"
+	wikiEndpoint         = "https://starcitizen.tools/api.php"
+	userAgent            = "StarCitizenTools-wiki-tools/1.0 (https://github.com/StarCitizenTools/wiki-tools)"
 
 	exitDrift       = 1
 	exitRailTripped = 2
@@ -55,6 +60,8 @@ func run() error {
 		ref        = flag.String("ref", "master", "scunpacked-data git ref to fetch")
 		build      = flag.String("build", "", "override the game build id (required with -in)")
 		configPath = flag.String("config", defaultConfig, "path to the editorial config")
+		mfrsPath   = flag.String("manufacturers", defaultManufacturers, "path to the wiki's Module:Manufacturers data")
+		typesPath  = flag.String("types", defaultTypes, "path to the wiki's Module:Entity/Item/types data")
 		doDiff     = flag.Bool("diff", false, "exit 1 if any creates or conflicts are pending")
 		interval   = flag.Duration("interval", 250*time.Millisecond, "minimum spacing between API requests")
 		minItems   = flag.Int("min-items", 15000, "refuse to plan from fewer usable dump items than this")
@@ -72,7 +79,11 @@ func run() error {
 		progress = func(s string) { fmt.Fprintln(os.Stderr, s) }
 	}
 
-	cfg, err := itemstubs.LoadConfig(*configPath)
+	reg, err := itemstubs.LoadRegistry(*mfrsPath, *typesPath)
+	if err != nil {
+		return err
+	}
+	cfg, err := itemstubs.LoadConfig(*configPath, reg)
 	if err != nil {
 		return err
 	}
@@ -179,7 +190,7 @@ func run() error {
 
 	// --- build the plan -----------------------------------------------------
 	meta := itemstubs.Meta{Generated: time.Now(), Build: buildID, Source: source}
-	plan, err := itemstubs.BuildPlan(ctx, items, wiki, cfg, meta, client.TitleStatuses)
+	plan, err := itemstubs.BuildPlan(ctx, items, wiki, cfg, reg, meta, client.TitleStatuses)
 	if err != nil {
 		return err
 	}

@@ -122,7 +122,7 @@ func titleKey(name string) string {
 // BuildPlan classifies every item, renders stubs, checks titles against the
 // live wiki through statuses (injected so tests stay offline), and assembles
 // the plan. Meta's WikiUUIDs/Items are filled here from the inputs.
-func BuildPlan(ctx context.Context, items []Item, wiki map[string]bool, cfg *Config,
+func BuildPlan(ctx context.Context, items []Item, wiki map[string]bool, cfg *Config, reg *Registry,
 	meta Meta, statuses func(context.Context, []string) (map[string]mediawiki.TitleStatus, error)) (*Plan, error) {
 
 	plan := &Plan{
@@ -142,8 +142,8 @@ func BuildPlan(ctx context.Context, items []Item, wiki map[string]bool, cfg *Con
 	}
 	date := meta.Generated.UTC().Format("2006-01-02")
 
-	known := make(map[string]bool, len(cfg.Manufacturers.Names))
-	for code := range cfg.Manufacturers.Names {
+	known := make(map[string]bool, len(reg.Manufacturers))
+	for code := range reg.Manufacturers {
 		known[strings.ToUpper(code)] = true
 	}
 
@@ -184,7 +184,7 @@ func BuildPlan(ctx context.Context, items []Item, wiki map[string]bool, cfg *Con
 				unmappedSample[it.Type] = it.Name
 			}
 		case DispReview, DispCreate:
-			code, page, ok := ResolveManufacturer(it, cfg.Manufacturers)
+			code, page, ok := ResolveManufacturer(it, cfg.Manufacturers, reg)
 			if !ok {
 				plan.Conflicts = append(plan.Conflicts, ConflictEntry{
 					Reason: "no-manufacturer", Title: it.Name, UUID: it.UUID,
@@ -205,7 +205,7 @@ func BuildPlan(ctx context.Context, items []Item, wiki map[string]bool, cfg *Con
 			wikitext := RenderStub(StubData{
 				Name: it.Name, UUID: it.UUID,
 				MfrCode: code, MfrPage: page,
-				Label: f.Rule.Label, LabelLink: f.Rule.LabelLink, NoLabelLink: f.Rule.NoLabelLink, Navplate: f.Rule.Navplate,
+				Label: cfg.LabelFor(it.Type, reg), LabelLink: f.Rule.LabelLink, NoLabelLink: f.Rule.NoLabelLink, Navplate: f.Rule.Navplate,
 				Sections: kind.Sections, LeadSize: kind.LeadSize, Size: it.Size,
 				Version: version, Date: date,
 			})

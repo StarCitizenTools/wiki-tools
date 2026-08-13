@@ -148,6 +148,8 @@ Renderers use `hasApiError` to display an error notice instead of an empty infob
 `Data/testcases.lua` is a ScribuntoUnit suite exercising the module's pure logic through `p._internal`, plus the offline (no-uuid) path of the public `p.get`:
 
 - `detectFacets`: matches a consumable facet when `apiData.food` is present, matches nothing on an empty table, and is nil-safe.
+- `buildResolverConfig`: targets `search/%s` with `responseDataPath = 'data'`, carries the union of every registered kind's includes (asserted against the live registry, so a kind adding one can't leave the resolver behind), and emits no duplicates.
+- `identifyKind`: resolves each of the four kinds from a single payload, is nil-safe, and returns `nil` for records Entity doesn't model (starmap location, blueprint) rather than letting Item claim them.
 - `resolveLeaf`: uses the subtype returned by `resolveSubtype`; falls back to the kind when `resolveSubtype` returns `nil`; uses the kind directly when `resolveSubtype` is absent; returns `Module:Entity/Item` with `hasApiError = true` when no kind matched but a UUID was present (and `false` when none was); and threads `args` through to `resolveSubtype`.
 - `isGenuineRecord`: true only when `apiData.uuid` is present and non-empty.
 - `resolveEditorialKind`: resolves an opted-in kind by name (case-insensitively), and returns `nil` when `args.kind` is absent, unknown, or names a registered-but-not-opted-in kind.

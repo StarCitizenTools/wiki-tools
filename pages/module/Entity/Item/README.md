@@ -10,13 +10,13 @@ Food and Drink are intentionally absent from the subtype mapping. The data-drive
 
 ```
 Module:Entity/Data
-  ↓  kind probe: Item.matches(apiData) — uuid present?
+  ↓  kind probe: Item.matches(apiData) — class_name present, is_vehicle absent?
 Module:Entity/Item               ← kind module
   ↓  Item.resolveSubtype(apiData) — apiData.type → subtype module
 Module:Entity/Item/<Subtype>     ← leaf (replaces Item in the chain)
 ```
 
-Item is probed first among the registered kinds in [Module:Entity/Registry](https://starcitizen.tools/Module:Entity/Registry). `matches()` returns true whenever Apiunto returned a record with a `uuid` field. The items endpoint never follows the `items → vehicles` 302, so a vehicle UUID probed here returns nil data and `matches` returns false cleanly.
+`Module:Entity/Data` resolves a UUID through the API's `search/` endpoint in one request and offers that single payload to every registered kind, so `matches()` cannot rely on being asked first — it identifies items positively instead. Item is still registered first in [Module:Entity/Registry](https://starcitizen.tools/Module:Entity/Registry), but that now only orders the per-endpoint fallback probe, where it saves fetches because items dominate the page mix.
 
 When a subtype resolves, `Module:Entity/Data` uses the subtype module as the chain leaf in place of Item. Hooks on the subtype (`getSections`, `getStructuredData`, `getShortDescription`) are called directly; hooks on Item itself (`getSections`, `getStructuredData`) are called because Item is the subtype's `parent` and the chain walks root-first. This means Item always contributes its General section (Manufacturer / Size / Class / Grade) and its structured-data facets (size, grade, class, item\_type, volume, base\_variant, rarity) regardless of which subtype is active.
 
@@ -30,11 +30,13 @@ Item declares the canonical kind name `p.name = 'Item'` (the `result.kind` value
 --- @param apiData table|nil
 --- @return boolean
 function p.matches(apiData)
-    return apiData ~= nil and apiData.uuid ~= nil
+    return apiData ~= nil and apiData.uuid ~= nil and apiData.class_name ~= nil and apiData.is_vehicle == nil
 end
 ```
 
-Positive identification heuristic: `uuid` present. Relies on Apiunto *not* following the items→vehicles 302 redirect. A vehicle UUID through the items endpoint yields nil data, so vehicles never pass this check accidentally. If Apiunto ever changes to follow the redirect, the test `testMatchesVehicleShapedDataCurrentlyReturnsTrue` documents what to tighten.
+Positive identification, independent of probe order. Items carry no kind flag the way vehicles carry `is_vehicle`, so identity rests on `class_name`: every item record has one, and no commodity, mission, blueprint or starmap-location record does. Vehicles carry `class_name` too, hence the `is_vehicle` exclusion — the one cross-kind fact this test encodes, and the same one the API asserts by redirecting a vehicle UUID off `items/`.
+
+Order-independence is load-bearing: since `Module:Entity/Data` resolves through `search/`, a payload of *any* kind reaches this function. The older "has a `uuid`" heuristic was safe only because non-item endpoints never returned a decodable body, and it would now claim vehicles, commodities, missions and locations alike.
 
 ### `p.getApiConfigs() → EntityApiConfig[]`
 
@@ -189,9 +191,9 @@ One row per unique subtype module; the "API `type` key(s)" column reproduces `it
 
 ## Tests
 
-`testcases.lua` is a ScribuntoUnit suite covering `matches`, `resolveSubtype`, `getStructuredData`, `classContent`, `gradeContent`, `formatGradedShortDescription`, `getItemType`, and `getVolume`. It runs on-wiki via `Module:ScribuntoUnit`; deploy before running. It does not run in local CI.
+`testcases.lua` is a ScribuntoUnit suite covering `matches`, `resolveSubtype`, `getStructuredData`, `classContent`, `gradeContent`, `formatGradedShortDescription`, `getItemType`, and `getVolume`. It is auto-discovered by `mise run test` and is a merge-blocking CI gate; it also runs on-wiki via `Module:ScribuntoUnit` once deployed.
 
-Notable coverage: `testMatchesVehicleShapedDataCurrentlyReturnsTrue` documents the current permissive `matches` heuristic and what to tighten if Apiunto ever follows the items→vehicles redirect.
+Notable coverage: `matches` is asserted against a payload of every kind the resolver can hand it — vehicle, commodity, mission and starmap-location shapes must all return false, and a bare `uuid` no longer suffices.
 
 ## Architecture
 

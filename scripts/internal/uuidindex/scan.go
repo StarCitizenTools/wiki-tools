@@ -20,6 +20,21 @@ type ScanOptions struct {
 	Progress func(string)
 }
 
+// ScanProperties reads every uuid annotation via SMW — the property half of
+// Scan, exported for tools that need the annotated-uuid set without the
+// UUID: namespace listing. Progress may be nil. The int is API requests made.
+func ScanProperties(ctx context.Context, client *mediawiki.Client, progress func(string)) (*PropertyScan, int, error) {
+	s := &scanner{opts: ScanOptions{Client: client, Progress: progress}}
+	props := NewPropertyScan()
+	for _, prop := range Properties {
+		if err := s.askProperty(ctx, prop, props); err != nil {
+			return nil, s.requests, fmt.Errorf("scanning property %s: %w", prop, err)
+		}
+	}
+	s.logf("scanned %d uuids (%d invalid, %d ignored)", len(props.Holders), len(props.Invalid), len(props.Ignored))
+	return props, s.requests, nil
+}
+
 // Scan reads both sides of the reconciliation from the wiki: every uuid
 // annotation via SMW, and every page of the UUID: namespace with its redirect
 // target. Anonymous and read-only throughout.
@@ -41,13 +56,11 @@ func Scan(ctx context.Context, opts ScanOptions) (*ScanResult, error) {
 			"TitleFor no longer holds and the plan would target the wrong titles", Namespace, nsCase)
 	}
 
-	props := NewPropertyScan()
-	for _, prop := range Properties {
-		if err := s.askProperty(ctx, prop, props); err != nil {
-			return nil, fmt.Errorf("scanning property %s: %w", prop, err)
-		}
+	props, propRequests, err := ScanProperties(ctx, opts.Client, opts.Progress)
+	if err != nil {
+		return nil, err
 	}
-	s.logf("scanned %d uuids (%d invalid, %d ignored)", len(props.Holders), len(props.Invalid), len(props.Ignored))
+	s.requests += propRequests
 
 	redirects, err := s.allPages(ctx, "redirects")
 	if err != nil {

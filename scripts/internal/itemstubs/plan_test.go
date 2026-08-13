@@ -293,15 +293,12 @@ func TestBuildPlanTitleExistsEvidence(t *testing.T) {
 		t.Errorf("conflict with no wikiByPage entry = %+v, want none of the three evidence fields set", noPage)
 	}
 
-	// The terminal report surfaces a same-description match inline, so it's
-	// visible without opening the JSON — but only for the entry that actually
-	// has one.
+	// The terminal report counts the same-description matches per reason, so
+	// the noise is visible without opening the JSON. Exactly one of the four
+	// fixtures matches, so the count must say one and not four.
 	report := strings.Join(Report(plan), "\n")
-	if !strings.Contains(report, "title-exists: Same Desc Item (same description as the item already on the page)") {
-		t.Errorf("report should flag the same-description title-exists conflict, got:\n%s", report)
-	}
-	if strings.Contains(report, "Diff Desc Item (same description") {
-		t.Errorf("report must not flag a title-exists conflict whose descriptions differ, got:\n%s", report)
+	if !strings.Contains(report, "title-exists  (1 share the description of the item already on the page)") {
+		t.Errorf("report should count the same-description title-exists conflicts, got:\n%s", report)
 	}
 }
 

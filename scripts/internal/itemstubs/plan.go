@@ -386,14 +386,42 @@ func Report(p *Plan) []string {
 		c := p.Create[i]
 		return fmt.Sprintf("%s (%s, %s)", c.Title, c.Kind, c.Type)
 	})
-	sample(len(p.Conflicts), "conflicts  %d for agent judgment", func(i int) string {
-		c := p.Conflicts[i]
-		line := fmt.Sprintf("%s: %s", c.Reason, c.Title)
-		if c.Reason == "title-exists" && c.SameDescription {
-			line += " (same description as the item already on the page)"
+	// Conflicts are sampled per reason rather than off the top of the sorted
+	// list: they sort by reason, so a flat sample only ever shows whichever
+	// reason happens to sort first and says nothing about the rest.
+	if n := len(p.Conflicts); n > 0 {
+		lines = append(lines, fmt.Sprintf("conflicts  %d for agent judgment", n))
+		byReason := map[string][]ConflictEntry{}
+		var order []string
+		for _, c := range p.Conflicts {
+			if _, seen := byReason[c.Reason]; !seen {
+				order = append(order, c.Reason)
+			}
+			byReason[c.Reason] = append(byReason[c.Reason], c)
 		}
-		return line
-	})
+		sort.Strings(order)
+		for _, reason := range order {
+			group := byReason[reason]
+			noise := 0
+			for _, c := range group {
+				if c.SameDescription {
+					noise++
+				}
+			}
+			head := fmt.Sprintf("  %5d  %s", len(group), reason)
+			if noise > 0 {
+				head += fmt.Sprintf("  (%d share the description of the item already on the page)", noise)
+			}
+			lines = append(lines, head)
+			const per = 3
+			for i := 0; i < len(group) && i < per; i++ {
+				lines = append(lines, "         "+group[i].Title)
+			}
+			if len(group) > per {
+				lines = append(lines, fmt.Sprintf("         … and %d more", len(group)-per))
+			}
+		}
+	}
 	sample(len(p.Unmapped), "unmapped   %d types nobody has decided on", func(i int) string {
 		u := p.Unmapped[i]
 		return fmt.Sprintf("%5d  %s (e.g. %q)", u.Count, u.Type, u.Sample)

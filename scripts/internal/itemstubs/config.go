@@ -202,8 +202,12 @@ func (c *Config) Validate(reg *Registry) error {
 			return fmt.Errorf("type %q: no label (set an explicit label, or add its base type to the types registry)", typ)
 		}
 		if rule.Label != "" {
+			// Case-only differences are allowed: LabelFor lowercases the
+			// registry's name, which is right for "Arm armor" and wrong for a
+			// brand like mobiGlas, whose article is not "Mobiglas". Only an
+			// exact copy is redundant.
 			base, _, _ := strings.Cut(typ, ".")
-			if derived := reg.TypeName(base); derived != "" && strings.EqualFold(rule.Label, derived) {
+			if derived := reg.TypeName(base); derived != "" && rule.Label == strings.ToLower(derived) {
 				return fmt.Errorf("type %q: label %q duplicates the registry's name for %q; remove the label so it tracks the registry", typ, rule.Label, base)
 			}
 		}

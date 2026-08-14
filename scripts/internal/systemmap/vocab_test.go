@@ -244,17 +244,28 @@ func TestBeltCaseKeepsTheSystemNameAndLowersTheRest(t *testing.T) {
 		{"Terra", "Terra Cluster Alpha", "Terra cluster alpha"},
 		{"Terra", "Terra Belt Beta", "Terra belt beta"},
 
-		// System names upstream writes with apostrophes, macrons, full stops and
-		// a parenthetical translation. Every one of these is a real designation.
+		// System names upstream writes with apostrophes, macrons and full stops.
+		// Every one of these is a real designation.
 		{"Ail'ka", "Ail'ka Belt Alpha", "Ail'ka belt alpha"},
-		{"Ē'aluth (Eealus)", "Ē'aluth (Eealus) Belt Alpha", "Ē'aluth (Eealus) belt alpha"},
-		{"Yā'mon (Hadur)", "Yā'mon (Hadur) Belt Alpha", "Yā'mon (Hadur) belt alpha"},
-		{"Kyuk'ya (Indra)", "Kyuk'ya (Indra) Belt Alpha", "Kyuk'ya (Indra) belt alpha"},
-		{"Th.us'ūng (Pallas)", "Th.us'ūng (Pallas) Belt Alpha", "Th.us'ūng (Pallas) belt alpha"},
-		{"La'uo (Virtus)", "La'uo (Virtus) Belt Beta", "La'uo (Virtus) belt beta"},
-		{"K.ap'a'ri (Khabari)", "K.ap'a'ri (Khabari) Belt Alpha", "K.ap'a'ri (Khabari) belt alpha"},
 		{"Croshaw", "Croshaw Cluster Beta", "Croshaw cluster beta"},
 		{"Gliese", "Gliese Cluster Gamma", "Gliese cluster gamma"},
+
+		// The nine systems upstream files under a parenthetical alias reach this
+		// rule already de-aliased — dealiasDesignation runs first, and buildBody
+		// passes the wiki name — so these are the pairs the generator actually
+		// forms. See TestDealiasDesignationDropsTheStarmapAlias for the step
+		// before.
+		{"Ē'aluth", "Ē'aluth Belt Alpha", "Ē'aluth belt alpha"},
+		{"Yā'mon", "Yā'mon Belt Alpha", "Yā'mon belt alpha"},
+		{"Kyuk'ya", "Kyuk'ya Belt Alpha", "Kyuk'ya belt alpha"},
+		{"Th.us'ūng", "Th.us'ūng Belt Alpha", "Th.us'ūng belt alpha"},
+		{"La'uo", "La'uo Belt Beta", "La'uo belt beta"},
+		{"K.ap'a'ri", "K.ap'a'ri Belt Alpha", "K.ap'a'ri belt alpha"},
+
+		// Handed a name that really does carry a parenthetical, the rule still
+		// anchors on the whole of it. beltCase takes no view on what a system is
+		// called; it is the caller that decides which name to pass.
+		{"K.ap'a'ri (Khabari)", "K.ap'a'ri (Khabari) Belt Alpha", "K.ap'a'ri (Khabari) belt alpha"},
 
 		// A Roman numeral is an orbital slot, and the file writes those in
 		// capitals everywhere else ("Stanton I", "Pyro V").
@@ -269,7 +280,7 @@ func TestBeltCaseKeepsTheSystemNameAndLowersTheRest(t *testing.T) {
 		{"Sol", "Jovian Rings", "Jovian Rings"},
 		{"Sol", "Rings of Saturn", "Rings of Saturn"},
 		{"Vega", "Rings of Aremis", "Rings of Aremis"},
-		{"Kyuk'ya (Indra)", "Rings of Kyuk'ya I", "Rings of Kyuk'ya I"},
+		{"Kyuk'ya", "Rings of Kyuk'ya I", "Rings of Kyuk'ya I"},
 
 		// The prefix must end at a word boundary, or a system whose name starts
 		// another word would eat into it.

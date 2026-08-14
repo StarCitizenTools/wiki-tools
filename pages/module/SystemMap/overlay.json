@@ -165,7 +165,228 @@
 				"Oli'xa": { "page": "Oli'Sha" }
 			}
 		},
-		"Trise": {}
+		"Trise": {},
+		"Gliese": {
+			"bodies": {
+				"Gliese Belt Alpha": { "after": "Gliese II" },
+				"Gliese Belt Beta": { "after": "Nogo" },
+				"Gliese Cluster Gamma": { "after": "Gliese V" }
+			}
+		},
+		"Kallis": {
+			"bodies": {
+				"Kallis Belt Alpha": { "after": "Kallis I" },
+				"Kallis Belt Beta": { "after": "Kallis III" },
+				"Kallis V Accretion Disk": { "after": "Kallis V" }
+			}
+		},
+		"Ail'ka": {
+			"bodies": {
+				"Huichuaihyao y.ath'o se Ail'ka": {
+					"page": "Ail'ka Belt Alpha",
+					"label": "Ail'ka belt alpha",
+					"after": "Xyeping"
+				},
+				"Huichuaihyao sy.en'o se Ail'ka": {
+					"page": "Ail'ka Belt Beta",
+					"label": "Ail'ka belt beta",
+					"after": "M.iiy'ong"
+				}
+			}
+		},
+		"Croshaw": {
+			"bodies": {
+				"Icarus Cluster": { "after": "Croshaw IV" },
+				"Daedalus Cluster": { "after": "Croshaw IV" }
+			}
+		},
+		"Horus": {
+			"bodies": {
+				"Horus Belt Alpha": { "after": "Horus II" },
+				"Horus Belt Beta": { "after": "Horus II" }
+			}
+		},
+		"Kins": {
+			"bodies": {
+				"Kins Belt Alpha": { "after": "Kins IV" },
+				"Kins Belt Beta": { "after": "Kins V" }
+			}
+		},
+		"La'uo (Virtus)": {
+			"page": "La'uo system",
+			"star": { "page": "La'uo (star)", "label": "La'uo" },
+			"bodies": {
+				"Huichuaihyao y.ath'o se La'uo": {
+					"page": "La'uo belt alpha",
+					"label": "La'uo belt alpha",
+					"after": "Yengchuai"
+				},
+				"Huichuaihyao sy.en'o se La'uo": {
+					"page": "La'uo belt beta",
+					"label": "La'uo belt beta",
+					"after": "Kyu'ām"
+				}
+			}
+		},
+		"Branaugh": {
+			"bodies": {
+				"Branaugh Belt Alpha": { "after": "Branaugh II" }
+			}
+		},
+		"Caliban": {
+			"bodies": {
+				"Caliban Belt Alpha": { "after": "Caliban III" }
+			}
+		},
+		"Cano": {
+			"bodies": {
+				"Cano Belt Alpha": { "after": "Cano III" }
+			}
+		},
+		"Cathcart": {},
+		"Centauri": {
+			"bodies": {
+				"Centauri Belt Alpha": { "after": "Centauri IV" }
+			}
+		},
+		"Charon": {
+			"bodies": {
+				"Touvoni/Aiya": { "page": "Charon 3a" },
+				"Gedinasho Belt": { "after": "Charon III" }
+			}
+		},
+		"Ē'aluth (Eealus)": {
+			"page": "Ē'aluth system",
+			"star": { "page": "Ē'aluth (star)", "label": "Ē'aluth" },
+			"bodies": {
+				"Tua.lu\"": { "page": "Tua'lu\"", "label": "Tua'lu\"" },
+				"Kyupuāng": { "page": "Kyupuaang", "label": "Kyupuaang" },
+				"Puāngkiil": { "page": "Puaangkiil", "label": "Puaangkiil" },
+				"Ē'aluth (Eealus) Belt Alpha": {
+					"page": "Ē'aluth belt alpha",
+					"label": "Ē'aluth belt alpha",
+					"after": "Ko'li"
+				}
+			}
+		},
+		"Fora": {
+			"bodies": {
+				"Fora Belt Alpha": { "after": "Hyperion" }
+			}
+		},
+		"Genesis": {
+			"bodies": {
+				"Genesis Belt Alpha": { "after": "Genesis II" }
+			}
+		},
+		"Gurzil": {},
+		"Hades": {
+			"bodies": {
+				"Hades IV split": { "after": "Hades IV" }
+			}
+		},
+		"Hadrian": {
+			"bodies": {
+				"Hadrian Belt Alpha": { "after": "Hadrian II" }
+			}
+		},
+		"Yā'mon (Hadur)": {
+			"page": "Yā'mon system",
+			"star": { "page": "Yā'mon (star)", "label": "Yā'mon" },
+			"bodies": {
+				"Yethlūl y.ath'o": { "page": "Yethlūl Y.ath'o", "label": "Yethlūl Y.ath'o" },
+				"Yethlūl s.yen'o": { "page": "Yethlūl S.yen'o", "label": "Yethlūl S.yen'o" },
+				"Huichuaihyao y.ath'o se Yā'mon": {
+					"page": "Yā’mon belt alpha",
+					"label": "Yā'mon belt alpha",
+					"after": "Yethlūl s.yen'o"
+				}
+			}
+		},
+		"Kabal": {
+			"bodies": {
+				"Kabal Cluster Alpha": { "after": "Kabal III" }
+			}
+		},
+		"Kiel": {
+			"bodies": {
+				"Kiel Belt Alpha": { "after": "Severus" }
+			}
+		},
+		"Nexus": {
+			"bodies": {
+				"The Red God": { "page": "Red God", "label": "Red God" },
+				"Elcibre Belt": { "after": "Nexus III" }
+			}
+		},
+		"Oretani": {
+			"bodies": {
+				"Oretani Belt Alpha": { "after": "Oretani III" }
+			}
+		},
+		"Orion": {
+			"bodies": {
+				"Armitage": { "page": "Armitage (planet)" },
+				"Orion Belt Alpha": { "after": "Armitage" }
+			}
+		},
+		"Osiris": {
+			"bodies": {
+				"Osiris Belt Alpha": { "after": "Etos" }
+			}
+		},
+		"Th.us'ūng (Pallas)": {
+			"page": "Th.us'ūng system",
+			"star": { "page": "Th.us'ūng (star)", "label": "Th.us'ūng" },
+			"bodies": {
+				"Th.us'ūng (Pallas) I": { "page": "Th.us'ūng I", "label": "Th.us'ūng I" },
+				"H.ua'u": { "page": "H.au'u", "label": "H.au'u" },
+				"Huichuaihyao y.ath'o se Th.usūng": {
+					"page": "Th.us'ūng belt alpha",
+					"label": "Th.us'ūng belt alpha",
+					"after": "Se'kith"
+				}
+			}
+		},
+		"Tanga": {
+			"bodies": {
+				"Tanga Belt Alpha": { "after": "Tanga I" }
+			}
+		},
+		"Tayac": {
+			"bodies": {
+				"Tayac Belt Alpha": { "after": "Tayac II" }
+			}
+		},
+		"Tiber": {
+			"bodies": {
+				"Tiber II": { "page": "Tomb", "label": "Tomb" },
+				"Tiber Belt Alpha": { "after": "Tiber I" }
+			}
+		},
+		"Tohil": {
+			"bodies": {
+				"Tohil Belt Alpha": { "after": "Tohil III" }
+			}
+		},
+		"Vega": {
+			"bodies": {
+				"Vega 2a": { "page": "Vega 2A" },
+				"Vega 2b": { "page": "Vega 2B" },
+				"Vega Belt Alpha": { "after": "Selene" }
+			}
+		},
+		"Virgil": {
+			"bodies": {
+				"Gideon's Belt": { "after": "Sino" }
+			}
+		},
+		"Yulin": {
+			"bodies": {
+				"Yulin Cluster Alpha": { "after": "Yulin IV" }
+			}
+		},
+		"Vanguard": {}
 	},
 	"exclude": ["Protoplanetary Disk*", "Protoplentary Disk*", "Ellis XI (PLANET)"]
 }

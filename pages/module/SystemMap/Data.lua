@@ -573,6 +573,13 @@ end
 --- thing the picture says — they are the leftmost glyphs on the rail. A system
 --- with no moons (Nyx) drops that clause rather than printing "0 moons".
 ---
+--- The planets clause is dropped on the same rule, and it is not hypothetical:
+--- Cathcart and Gurzil hold a belt and nothing else, and Vanguard holds nothing
+--- at all. Every clause dropping leaves an empty string, which Module:CardLua
+--- treats as no description and omits — the right header for a rail that is one
+--- star, since a line reading "0 planets" would be counting an absence the
+--- picture already shows.
+---
 --- Rings are counted apart from moons even though they share the moons array. A
 --- ring is not a moon, and folding Sol's four into its moon count would overstate
 --- the moons by a fifth while hiding a thing the system is known for.
@@ -603,7 +610,10 @@ function p.summarise(model)
 		end
 	end
 
-	local parts = { pluralise(planets, 'planet') }
+	local parts = {}
+	if planets > 0 then
+		parts[#parts + 1] = pluralise(planets, 'planet')
+	end
 	if moons > 0 then
 		parts[#parts + 1] = pluralise(moons, 'moon')
 	end

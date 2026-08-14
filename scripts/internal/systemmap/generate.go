@@ -811,12 +811,18 @@ func arrange(nodes []*node) ([]*node, error) {
 // ring fall to the end with the other undesignated bodies would put it where
 // Pyro IV goes, which is the outermost position, and claim the opposite.
 func sortMoons(moons []*node, system string) {
+	// The same two steps buildBody applies, so the string sorted on is the string
+	// written out. Sorting one string and storing another is how the two quietly
+	// come apart later.
+	key := func(n *node) (int, string, bool) {
+		return moonIndex(normaliseDesignation(designationOf(n), system))
+	}
 	sort.SliceStable(moons, func(a, b int) bool {
 		if ra, rb := isRing(moons[a].obj), isRing(moons[b].obj); ra != rb {
 			return ra
 		}
-		na, la, oka := moonIndex(normaliseDesignation(designationOf(moons[a]), system))
-		nb, lb, okb := moonIndex(normaliseDesignation(designationOf(moons[b]), system))
+		na, la, oka := key(moons[a])
+		nb, lb, okb := key(moons[b])
 		if oka != okb {
 			return oka
 		}

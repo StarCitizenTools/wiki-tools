@@ -176,6 +176,51 @@
 	background: radial-gradient(circle at 38% 32%, oklch(99% 0.005 250), oklch(91% 0.04 250) 52%, oklch(78% 0.07 258) 100%);
 }
 
+/* The rest of the spectral sequence. F, G and K are above rather than in
+   sequence here because they were styled first and are live on 42 pages; their
+   declarations must not move even by a reformat. The full ladder is O
+   blue-violet, B blue-white, A white, F yellow-white, G yellow, K orange, M red,
+   with the two degenerate remnants after it.
+
+   Blue cannot be both light and saturated in sRGB, so O and B carry their colour
+   in the rim while G and K carry it in the body. That is not a stylistic choice;
+   it is where the gamut is. */
+.t-system-map__item[data-kind='star-o'] .t-system-map__disc {
+	background: radial-gradient(circle at 38% 32%, oklch(96% 0.014 285), oklch(76% 0.12 282) 52%, oklch(60% 0.2 280) 100%);
+}
+
+.t-system-map__item[data-kind='star-b'] .t-system-map__disc {
+	background: radial-gradient(circle at 38% 32%, oklch(98% 0.01 250), oklch(86% 0.07 248) 52%, oklch(70% 0.15 252) 100%);
+}
+
+/* A is white. F above sits in the same hue family, so the separation has to come
+   from chroma: F carries roughly three times as much and reads as blue-white,
+   while A is near-neutral. They are adjacent classes, so a small difference is
+   also the honest one — but it does have to be visible at 22px, and at F's
+   original chroma it was not. */
+.t-system-map__item[data-kind='star-a'] .t-system-map__disc {
+	background: radial-gradient(circle at 38% 32%, oklch(99% 0.004 258), oklch(96% 0.012 258) 52%, oklch(84% 0.028 255) 100%);
+}
+
+.t-system-map__item[data-kind='star-m'] .t-system-map__disc {
+	background: radial-gradient(circle at 38% 32%, oklch(92% 0.037 45), oklch(73% 0.16 32) 52%, oklch(57% 0.19 25) 100%);
+}
+
+/* White dwarf. Also white, but pulled to cyan (hue 220) rather than A's blue
+   (hue 258) so the two do not collide — and it always renders at the star tier's
+   floor, because its diameter genuinely is the smallest in the file. */
+.t-system-map__item[data-kind='star-degenerate'] .t-system-map__disc {
+	background: radial-gradient(circle at 38% 32%, oklch(98% 0.012 220), oklch(90% 0.055 222) 52%, oklch(74% 0.13 228) 100%);
+}
+
+/* The brightest thing on any map: near-white almost to the rim. The violet edge
+   is doing two jobs — holding the disc against a light surface, where a white
+   body on white would otherwise disappear, and keeping it clear of star-a, which
+   is also white but near-neutral. */
+.t-system-map__item[data-kind='star-neutron'] .t-system-map__disc {
+	background: radial-gradient(circle at 38% 32%, oklch(98% 0.008 300), oklch(95% 0.026 296) 52%, oklch(72% 0.155 292) 100%);
+}
+
 .t-system-map__item[data-kind='super-earth'] .t-system-map__disc {
 	background: radial-gradient(circle at 32% 28%, oklch(78% 0.05 120), oklch(63% 0.06 118) 56%, oklch(44% 0.05 118) 100%);
 }
@@ -212,6 +257,38 @@
 
 .t-system-map__item[data-kind='rocky'] .t-system-map__disc {
 	background: radial-gradient(circle at 32% 28%, oklch(80% 0.035 60), oklch(64% 0.04 55) 56%, oklch(45% 0.038 52) 100%);
+}
+
+/* Surfaces distinctive enough to earn a colour of their own. Each is well clear
+   of `rocky` in chroma, which is what keeps the terrestrial family reading as
+   one thing and these as exceptions to it. */
+.t-system-map__item[data-kind='lava'] .t-system-map__disc {
+	background: radial-gradient(circle at 32% 28%, oklch(85% 0.105 65), oklch(64% 0.19 42) 56%, oklch(43% 0.15 30) 100%);
+}
+
+/* Pale cyan and unbanded, against `ice-giant`'s banded hue 225. Same idea, two
+   very different bodies. */
+.t-system-map__item[data-kind='ice'] .t-system-map__disc {
+	background: radial-gradient(circle at 32% 28%, oklch(96% 0.03 200), oklch(87% 0.055 200) 56%, oklch(64% 0.08 205) 100%);
+}
+
+.t-system-map__item[data-kind='ocean'] .t-system-map__disc {
+	background: radial-gradient(circle at 32% 28%, oklch(72% 0.09 240), oklch(54% 0.13 250) 56%, oklch(35% 0.11 255) 100%);
+}
+
+/* The third grey. `moon` and `protoplanet` are both cool near-neutrals separated
+   only by lightness, so a dwarf planet is separated on BOTH axes — darker again,
+   and warm rather than cool. Low albedo is also what these bodies actually are.
+   Chroma stays an order below `rocky`'s so it never reads as tan. */
+.t-system-map__item[data-kind='dwarf'] .t-system-map__disc {
+	background: radial-gradient(circle at 32% 28%, oklch(70% 0.013 90), oklch(54% 0.015 85) 56%, oklch(38% 0.015 80) 100%);
+}
+
+/* Artificial, rogue and evaporating bodies. Violet appears nowhere else at the
+   planet tier, and no natural surface is this colour — which is the point: it
+   reads as "something is off about this one" rather than as a material. */
+.t-system-map__item[data-kind='exotic'] .t-system-map__disc {
+	background: radial-gradient(circle at 32% 28%, oklch(76% 0.14 320), oklch(58% 0.17 315) 56%, oklch(38% 0.14 310) 100%);
 }
 
 .t-system-map__item[data-kind='moon'] .t-system-map__disc {

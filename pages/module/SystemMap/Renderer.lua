@@ -81,7 +81,17 @@ local function bodyNode(body)
 	-- (Pyro I, Nyx III, Delamar), so printing both would repeat the same string
 	-- on 7 of the 35 bodies. The designation line is for the cases where it adds
 	-- something the name does not.
-	if body.designation and body.designation ~= body.label then
+	--
+	-- The comparison is case-INSENSITIVE because an unnamed belt is labelled by
+	-- its own designation while the stored designation has been sentence-cased by
+	-- the generator's house-style rule. An exact compare then sees two different
+	-- strings and stacks "Branaugh belt alpha" under "Branaugh Belt Alpha" — 34
+	-- belts across 27 of the systems still to be rolled out, none of them in the
+	-- five shipped today, which is why it is invisible on the live pages. Fixing
+	-- it here rather than in the generator is deliberate: `page` is derived from
+	-- `label`, and those 34 articles really are titled in Title Case, so lowering
+	-- the label would red-link every one of them.
+	if body.designation and mw.ustring.lower(body.designation) ~= mw.ustring.lower(body.label) then
 		label:tag('span'):addClass('t-system-map__desig'):wikitext(body.designation):done()
 	end
 

@@ -33,21 +33,26 @@ local function eachBody(fn)
 	end
 end
 
-function suite:testThreeSystemsPresent()
+function suite:testEverySystemPresent()
 	self:assertEquals('table', type(DATA.systems.Stanton))
 	self:assertEquals('table', type(DATA.systems.Pyro))
 	self:assertEquals('table', type(DATA.systems.Nyx))
+	self:assertEquals('table', type(DATA.systems.Terra))
+	self:assertEquals('table', type(DATA.systems.Castra))
 end
 
+-- These move whenever a system is added, which is the point: systems.json is
+-- generated now (scripts/cmd/systemmap), and a generator that quietly drops a
+-- body would otherwise show up only as a gap on a rendered page.
 function suite:testBodyCounts()
 	local counts = { star = 0, planet = 0, belt = 0, moon = 0 }
 	eachBody(function(_, tier)
 		counts[tier] = counts[tier] + 1
 	end)
-	self:assertEquals(3, counts.star)
-	self:assertEquals(13, counts.planet)
-	self:assertEquals(19, counts.moon)
-	self:assertEquals(4, counts.belt)
+	self:assertEquals(5, counts.star)
+	self:assertEquals(19, counts.planet)
+	self:assertEquals(23, counts.moon)
+	self:assertEquals(6, counts.belt)
 end
 
 function suite:testEveryBodyHasPageAndLabel()
@@ -85,10 +90,27 @@ function suite:testEveryPlanetHasDesignationAndSubtype()
 	end
 end
 
-function suite:testEverySystemHasAStarWithAClass()
+-- A spectral class is OPTIONAL, and that is the contract rather than an
+-- oversight. Variable, Subgiant and the fifteen stars upstream leaves
+-- unclassified carry none, so the generator writes no `class` key at all and
+-- Data.glyphKind falls back to the generic disc — pinned, in this same file, by
+-- testGlyphKindStarWithoutAClassFallsBack. Requiring a class here asserted the
+-- opposite of that, and would have turned the next rollout batch into a red
+-- merge gate reading like a data fault: Nul is a Variable star with five
+-- planets, all six pages live, and adding it to the overlay is a one-line edit.
+--
+-- What is still required is that a class, when written, is USABLE. An empty
+-- string or a number reaches mw.ustring.lower and yields a kind — 'star-' or
+-- 'star-5' — that no stylesheet rule matches, which is a silent neutral disc
+-- rather than a deliberate one.
+function suite:testEverySystemHasAStarWithAUsableClass()
 	for key, system in pairs(DATA.systems) do
-		self:assertEquals('string', type(system.star.class), key .. ' star class')
 		self:assertEquals('string', type(system.page), key .. ' page')
+		self:assertEquals('table', type(system.star), key .. ' star')
+		if system.star.class ~= nil then
+			self:assertEquals('string', type(system.star.class), key .. ' star class')
+			self:assertTrue(system.star.class ~= '', key .. ' star class is non-empty')
+		end
 	end
 end
 
@@ -178,8 +200,11 @@ function suite:testResolveKeyTrimsWhitespace()
 	self:assertEquals('Stanton', Data.resolveKey('\tStanton system\n'))
 end
 
+-- The unknown-system fixture has to be a name no system will ever have. It was
+-- 'Terra', which stopped being unknown the moment Terra entered the file, and
+-- took four tests down with it.
 function suite:testResolveKeyUnknownReturnsNil()
-	self:assertEquals(nil, Data.resolveKey('Terra'))
+	self:assertEquals(nil, Data.resolveKey('No Such Place'))
 	self:assertEquals(nil, Data.resolveKey(''))
 	self:assertEquals(nil, Data.resolveKey(nil))
 	self:assertEquals(nil, Data.resolveKey('system'))
@@ -189,6 +214,10 @@ end
 -- Data: glyph classification
 -- ---------------------------------------------------------------------------
 
+-- The six kinds that existed before the full-rollout palette. Stanton, Pyro and
+-- Nyx are live on 42 pages, so these six pairings are frozen: widening a bucket
+-- may add subtypes to a kind, but must never move one of these to a different
+-- kind, which would repaint a published page.
 function suite:testGlyphKindPlanetSubtypes()
 	self:assertEquals('super-earth', Data.glyphKind('planet', 'Super-Earth'))
 	self:assertEquals('gas-giant', Data.glyphKind('planet', 'Gas giant'))
@@ -196,6 +225,97 @@ function suite:testGlyphKindPlanetSubtypes()
 	self:assertEquals('smog', Data.glyphKind('planet', 'Smog planet'))
 	self:assertEquals('protoplanet', Data.glyphKind('planet', 'Protoplanet'))
 	self:assertEquals('rocky', Data.glyphKind('planet', 'Terrestrial rocky'))
+end
+
+--- Every planet subtype upstream's starmap declares, in the sentence-case form
+--- systems.json stores it. Upstream writes Title Case ('Gas Giant'); the
+--- generator converts, keeping proper nouns intact ('Super-Earth', 'Super
+--- Jupiter'), so the conversion is a mapping and not a lowercase() call.
+---
+--- This table is the contract between the generator and SUBTYPE_KIND. A
+--- disagreement is silent — the body renders 'unknown' and looks like a
+--- fallback — which is exactly why it is pinned by string here.
+--- @type table<string, string>
+local UPSTREAM_PLANET_SUBTYPES = {
+	['Super-Earth'] = 'super-earth',
+
+	['Gas giant'] = 'gas-giant',
+	['Gas dwarf'] = 'gas-giant',
+	['Super Jupiter'] = 'gas-giant',
+	['Puffy planet'] = 'gas-giant',
+
+	['Ice giant'] = 'ice-giant',
+	['Smog planet'] = 'smog',
+	['Protoplanet'] = 'protoplanet',
+
+	['Terrestrial rocky'] = 'rocky',
+	['Iron planet'] = 'rocky',
+	['Carbon planet'] = 'rocky',
+	['Coreless planet'] = 'rocky',
+	['Desert planet'] = 'rocky',
+	['Chthonian planet'] = 'rocky',
+
+	['Lava planet'] = 'lava',
+	['Ice planet'] = 'ice',
+	['Ocean planet'] = 'ocean',
+
+	['Dwarf planet'] = 'dwarf',
+	['Mesoplanet'] = 'dwarf',
+
+	['Artificial'] = 'exotic',
+	['Rogue planet'] = 'exotic',
+	['Evaporating planet'] = 'exotic',
+}
+
+-- Twenty-two subtypes, eleven kinds, across all 90 systems. The counts are
+-- asserted so that dropping a key fails here rather than surfacing as one body
+-- rendering neutral on a system nobody is looking at.
+function suite:testEveryUpstreamPlanetSubtypeIsMapped()
+	local subtypes, kinds = 0, {}
+	for subtype, kind in pairs(UPSTREAM_PLANET_SUBTYPES) do
+		self:assertEquals(kind, Data.glyphKind('planet', subtype), subtype)
+		subtypes = subtypes + 1
+		kinds[kind] = true
+	end
+	self:assertEquals(22, subtypes, 'the full upstream planet vocabulary')
+
+	local distinct = 0
+	for _ in pairs(kinds) do
+		distinct = distinct + 1
+	end
+	self:assertEquals(11, distinct, 'grouped into eleven glyph kinds')
+end
+
+-- Widening gas-giant and rocky is only safe while no LIVE body carries one of
+-- the added subtypes — widening a bucket a live body already fell into would
+-- repaint it on 42 published pages. Scoped to the three in-game systems by name
+-- on purpose: Castra I is a 'Coreless planet', so a file-wide assertion would
+-- start failing the moment the pilot systems land, for no real reason.
+function suite:testWidenedBucketsRepaintNothingLive()
+	local added = {
+		['Gas dwarf'] = true,
+		['Super Jupiter'] = true,
+		['Puffy planet'] = true,
+		['Iron planet'] = true,
+		['Carbon planet'] = true,
+		['Coreless planet'] = true,
+		['Desert planet'] = true,
+		['Chthonian planet'] = true,
+	}
+	for _, key in ipairs({ 'Stanton', 'Pyro', 'Nyx' }) do
+		for _, body in ipairs(DATA.systems[key].bodies) do
+			self:assertEquals(nil, added[body.subtype], key .. '/' .. body.page .. ' predates the widened bucket')
+			if body.moons then
+				for _, moon in ipairs(body.moons) do
+					self:assertEquals(
+						nil,
+						added[moon.subtype],
+						key .. '/' .. moon.page .. ' predates the widened bucket'
+					)
+				end
+			end
+		end
+	end
 end
 
 function suite:testGlyphKindUnknownSubtypeDegrades()
@@ -210,9 +330,57 @@ function suite:testGlyphKindStars()
 	self:assertEquals('star', Data.glyphKind('star', 'Unclassified', nil))
 end
 
+-- The rest of the sequence, parsed out of upstream's 'Main Sequence-Dwarf-<X>'
+-- by the generator. Giants-Giant-M lands on star-m too: the class letter is the
+-- colour, and luminosity class is not something a 22-30px disc can show.
+function suite:testGlyphKindRemainingSpectralClasses()
+	self:assertEquals('star-o', Data.glyphKind('star', 'O-type main sequence', 'O'))
+	self:assertEquals('star-b', Data.glyphKind('star', 'B-type main sequence', 'B'))
+	self:assertEquals('star-a', Data.glyphKind('star', 'A-type main sequence', 'A'))
+	self:assertEquals('star-m', Data.glyphKind('star', 'M-type main sequence', 'M'))
+	self:assertEquals('star-m', Data.glyphKind('star', 'M-type giant', 'M'))
+end
+
+-- White Dwarf-Degenerate-A and Neutron carry no usable class letter upstream, so
+-- systems.json stores the WORD as the class. 'star-' .. lower(class) then yields
+-- star-degenerate / star-neutron with no branch in Data.lua at all. Pinned
+-- because it is the one place a data convention stands in for code: change the
+-- generator's spelling and the colour silently disappears.
+function suite:testGlyphKindClasslessRemnantsUseAWordAsTheirClass()
+	self:assertEquals('star-degenerate', Data.glyphKind('star', 'White dwarf', 'degenerate'))
+	self:assertEquals('star-neutron', Data.glyphKind('star', 'Neutron star', 'neutron'))
+end
+
+-- Variable, Subgiant and the fifteen stars upstream leaves unclassified get no
+-- class written at all, and fall back to the generic disc rather than each
+-- earning a colour a reader could not predict anyway.
+function suite:testGlyphKindStarWithoutAClassFallsBack()
+	self:assertEquals('star', Data.glyphKind('star', 'Variable', nil))
+	self:assertEquals('star', Data.glyphKind('star', 'Subgiant', nil))
+	self:assertEquals('star', Data.glyphKind('star', nil, nil))
+	self:assertEquals('star', Data.glyphKind('star', nil, ''))
+end
+
 function suite:testGlyphKindMoonsDefaultToMoonButHonourSubtype()
 	self:assertEquals('moon', Data.glyphKind('moon', nil))
 	self:assertEquals('rocky', Data.glyphKind('moon', 'Terrestrial rocky'))
+end
+
+-- Upstream labels all 74 satellites 'Planetary Moon'. It deliberately has NO
+-- SUBTYPE_KIND entry — the moon tier's own fallback is already the right answer,
+-- and a key would only duplicate it. This is why the table holds 22 subtypes and
+-- not 23; it pins that the fallback still fires should the generator start
+-- writing the subtype through.
+function suite:testGlyphKindPlanetaryMoonSubtypeStillUsesTheMoonDisc()
+	self:assertEquals('moon', Data.glyphKind('moon', 'Planetary moon'))
+end
+
+-- A belt short-circuits before the subtype lookup, so upstream's three belt
+-- subtypes never need entries either.
+function suite:testGlyphKindBeltIgnoresItsSubtype()
+	self:assertEquals('belt', Data.glyphKind('belt', 'System belt'))
+	self:assertEquals('belt', Data.glyphKind('belt', 'System cluster'))
+	self:assertEquals('belt', Data.glyphKind('belt', nil))
 end
 
 function suite:testEverySubtypeInTheDataIsRecognised()
@@ -233,7 +401,7 @@ end
 -- ---------------------------------------------------------------------------
 
 function suite:testBuildModelUnknownSystemReturnsNil()
-	self:assertEquals(nil, Data.buildModel('Terra', 'Whatever'))
+	self:assertEquals(nil, Data.buildModel('No Such Place', 'Whatever'))
 	self:assertEquals(nil, Data.buildModel(nil, 'Whatever'))
 end
 
@@ -509,7 +677,7 @@ local SystemMap = require('Module:SystemMap')
 -- The 5th argument is the main-namespace flag: tracking categories exist to
 -- flag ARTICLE problems, so they are suppressed elsewhere.
 function suite:testMainUnknownSystemEmitsTrackingCategoryOnly()
-	local out = SystemMap.render('Terra', 'Whatever', nil, nil, true)
+	local out = SystemMap.render('No Such Place', 'Whatever', nil, nil, true)
 	self:assertEquals('[[Category:System map with unknown system]]', out)
 end
 
@@ -517,7 +685,7 @@ end
 -- documented as "should normally be empty" -- once it permanently holds
 -- non-articles, editors learn to ignore it.
 function suite:testTrackingCategoriesAreSuppressedOutsideMainNamespace()
-	self:assertEquals('', SystemMap.render('Terra', 'Whatever', nil, nil, false))
+	self:assertEquals('', SystemMap.render('No Such Place', 'Whatever', nil, nil, false))
 	local html = SystemMap.render('Stanton', '', function()
 		return false
 	end, nil, false)
@@ -665,7 +833,11 @@ function suite:testRenderOmitsDesignationWhenItRepeatsTheName()
 	-- belts have distinct formal designations and correctly keep theirs.
 	local desigs = select(2, html:gsub('t%-system%-map__desig', ''))
 	self:assertEquals(2, desigs, 'only the two belts carry a designation line')
-	self:assertTrue(html:find('Nyx Belt Alpha') ~= nil, 'Glaciem Ring keeps its designation')
+	-- Lower case after the system name is house style, applied by the generator
+	-- rather than stored as a correction. Asserted in the RENDERED output, which
+	-- is where a reader meets it.
+	self:assertTrue(html:find('Nyx belt alpha') ~= nil, 'Glaciem Ring keeps its designation')
+	self:assertEquals(nil, html:find('Nyx Belt Alpha'), 'and it is not title-cased')
 	self:assertEquals(
 		nil,
 		html:find('Nyx III</a></span><span class="t%-system%-map__desig'),
@@ -677,6 +849,56 @@ function suite:testRenderKeepsDesignationWhenItDiffersFromTheName()
 	local html = tostring(Renderer.renderRail(Data.buildModel('Stanton', '')))
 	self:assertTrue(html:find('t%-system%-map__desig') ~= nil, 'Stanton bodies have distinct designations')
 	self:assertTrue(html:find('Stanton II') ~= nil, 'Crusader keeps its Stanton II designation')
+end
+
+--- Build a one-belt rail without going through systems.json, so a shape the file
+--- does not yet contain can still be rendered.
+--- @param belt table
+--- @return string
+local function renderBeltRail(belt)
+	return tostring(Renderer.renderRail({
+		star = { page = 'X (star)', label = 'X', tier = 'star', kind = 'star-k', disc = 26 },
+		bodies = { belt },
+	}))
+end
+
+-- Upstream names only some belts. An unnamed one is labelled by its own
+-- designation — and the generator then sentence-cases that designation as house
+-- style, so the two strings differ ONLY in case and an exact compare prints
+-- both. Real input: Branaugh's belt is label and page "Branaugh Belt Alpha", the
+-- title its article actually has, with designation "Branaugh belt alpha".
+--
+-- Synthetic rather than driven off systems.json on purpose: every belt in the
+-- five systems shipped so far carries an upstream name (Aaron Halo, Glaciem
+-- Ring, Henge Cluster …), which is exactly why this echo is invisible on the 42
+-- live pages. It is 34 belts across 27 of the systems still to be rolled out.
+function suite:testRenderOmitsDesignationWhenItRepeatsTheNameInAnotherCase()
+	local html = renderBeltRail({
+		page = 'Branaugh Belt Alpha',
+		label = 'Branaugh Belt Alpha',
+		designation = 'Branaugh belt alpha',
+		tier = 'belt',
+		kind = 'belt',
+		disc = 10,
+	})
+	self:assertTrue(html:find('%[%[Branaugh Belt Alpha|Branaugh Belt Alpha%]%]') ~= nil, 'the belt still links')
+	self:assertEquals(nil, html:find('t%-system%-map__desig'), 'and does not echo its own name in lower case')
+end
+
+-- The other half of the same rule: this suppresses a DUPLICATE, not every belt
+-- designation. A belt upstream did name keeps both lines, because the two say
+-- different things.
+function suite:testRenderKeepsABeltDesignationThatIsNotJustTheNameRecased()
+	local html = renderBeltRail({
+		page = 'Aaron Halo',
+		label = 'Aaron Halo',
+		designation = 'Stanton belt alpha',
+		tier = 'belt',
+		kind = 'belt',
+		disc = 10,
+	})
+	self:assertTrue(html:find('t%-system%-map__desig') ~= nil, 'a designation that adds something is printed')
+	self:assertTrue(html:find('Stanton belt alpha') ~= nil, 'and reads as house style intends')
 end
 
 -- ---------------------------------------------------------------------------
@@ -712,9 +934,12 @@ end
 -- ---------------------------------------------------------------------------
 
 function suite:testDiscSizeAnchorsBothEndsOfTheTier()
-	-- Pyro V is the largest planet in the file, Delamar the smallest.
-	self:assertEquals(24, Data.discSize('planet', 78123))
-	self:assertEquals(6, Data.discSize('planet', 165.4))
+	-- The anchors are the RECORDED extents, which span all 90 upstream systems,
+	-- not the largest and smallest body this file happens to hold.
+	self:assertEquals(24, Data.discSize('planet', DATA.extents.planet.max))
+	self:assertEquals(6, Data.discSize('planet', DATA.extents.planet.min))
+	self:assertEquals(30, Data.discSize('star', DATA.extents.star.max))
+	self:assertEquals(14, Data.discSize('moon', DATA.extents.moon.max))
 end
 
 function suite:testDiscSizePreservesOrdering()
@@ -788,16 +1013,185 @@ function suite:testRenderEmitsAnInlineDiscSize()
 	self:assertTrue(html:find('width:%d') ~= nil, 'carries an inline diameter')
 end
 
--- The tier cap belongs to Pyro V, the largest planet in the FILE — extents are
--- global, not per system, so Stanton's own largest (Crusader) sits just below it
--- even though it is the biggest thing on its own map. Asserted on discSize
--- rather than the rendered markup: the thumbnail spec is an integer, and
--- Crusader's 23.86px rounds to the same x24px as Pyro V's 24.0px.
+-- Extents are shared across the file, not recomputed per system, so Stanton's
+-- own largest planet (Crusader) still renders smaller than Pyro's — it is the
+-- biggest thing on its own map and not on the scale. Asserted on discSize rather
+-- than the rendered markup: the thumbnail spec is an integer, and the two round
+-- to the same x22px.
 function suite:testTierCapIsGlobalNotPerSystem()
-	self:assertEquals(24, Data.discSize('planet', 78123), 'Pyro V takes the cap exactly')
 	local crusader = Data.discSize('planet', 74500)
-	self:assertTrue(crusader < 24, 'Crusader is below the cap')
-	self:assertTrue(crusader > 23, 'but only just')
+	local pyroV = Data.discSize('planet', 78123)
+	self:assertTrue(crusader < pyroV, 'Crusader is below Pyro V')
+	self:assertTrue(pyroV - crusader < 0.5, 'but only just')
+end
+
+-- The tier cap belongs to the whole upstream dataset, not to this file. Pyro V
+-- is the largest planet HERE and no longer takes it, because the recorded
+-- planet maximum is Helios III at 137,932 km — a body in a system that has not
+-- been rolled out. That is the entire point: the next batch to land cannot
+-- resize a disc on any of the 42 pages already published.
+function suite:testTierCapComesFromTheWholeDatasetNotThisFile()
+	local recorded = DATA.extents.planet.max
+	local largestHere = 0
+	eachBody(function(body, tier)
+		if tier == 'planet' and type(body.km) == 'number' and body.km > largestHere then
+			largestHere = body.km
+		end
+	end)
+	self:assertTrue(largestHere > 0, 'the file has planets to compare against')
+	self:assertTrue(recorded > largestHere, 'the recorded maximum reaches past the file')
+	self:assertTrue(Data.discSize('planet', largestHere) < 24, 'so nothing in the file takes the cap')
+end
+
+-- ---------------------------------------------------------------------------
+-- Data: the recorded disc scale
+-- ---------------------------------------------------------------------------
+
+-- systems.json records the extents so the sizes stop moving. While they were
+-- measured from the file's own contents, every rollout batch silently rescaled
+-- every page already published: adding Terra and Castra alone moved Nyx's star
+-- from 30.0px to 24.3px, and the full rollout would have moved it again.
+function suite:testFileRecordsExtentsForEveryScaledTier()
+	self:assertEquals('table', type(DATA.extents), 'systems.json records the disc scale')
+	for _, tier in ipairs({ 'star', 'planet', 'moon' }) do
+		local e = DATA.extents[tier]
+		self:assertEquals('table', type(e), tier)
+		self:assertEquals('number', type(e.min), tier .. ' min')
+		self:assertEquals('number', type(e.max), tier .. ' max')
+		-- A non-positive minimum makes math.log infinite and the fraction NaN.
+		self:assertTrue(e.min > 0, tier .. ' min is positive')
+		self:assertTrue(e.max > e.min, tier .. ' spans a range')
+	end
+	self:assertEquals(nil, DATA.extents.belt, 'a belt is a fixed band with nothing to scale')
+end
+
+-- Every body in the file has to sit inside its own tier's recorded range, or its
+-- disc is clamped to the cap and two bodies of different sizes draw identically.
+-- The generator guarantees this by unioning the upstream measurement with what
+-- it actually writes; Pyro IV is why it has to — upstream types it a planet, the
+-- overlay renders it as a moon, and at 3,214 km it is nearly twice the largest
+-- true moon in all 90 systems.
+function suite:testEveryBodyFallsInsideItsRecordedTier()
+	eachBody(function(body, tier, key)
+		if tier == 'belt' or type(body.km) ~= 'number' then
+			return
+		end
+		local e = DATA.extents[tier]
+		self:assertTrue(body.km >= e.min, key .. '/' .. body.page .. ' is above the ' .. tier .. ' minimum')
+		self:assertTrue(body.km <= e.max, key .. '/' .. body.page .. ' is below the ' .. tier .. ' maximum')
+	end)
+end
+
+-- The recorded block wins outright. A file whose contents disagree with it is
+-- the normal case, not an error: the extents describe 90 upstream systems and
+-- the file holds five of them.
+function suite:testResolveExtentsPrefersWhatTheFileRecords()
+	local resolved = Data.resolveExtents({
+		extents = {
+			star = { min = 1, max = 2 },
+			planet = { min = 10, max = 20 },
+			moon = { min = 100, max = 200 },
+		},
+		systems = {
+			Vector = {
+				star = { km = 999999 },
+				bodies = { { km = 888888, moons = { { km = 777777 } } } },
+			},
+		},
+	})
+	self:assertEquals(1, resolved.star.min)
+	self:assertEquals(2, resolved.star.max)
+	self:assertEquals(10, resolved.planet.min)
+	self:assertEquals(20, resolved.planet.max)
+	self:assertEquals(100, resolved.moon.min)
+	self:assertEquals(200, resolved.moon.max)
+end
+
+-- The fallback keeps an older or hand-written file rendering. It is what this
+-- module did unconditionally before the generator existed, so the path is not
+-- hypothetical — it is the behaviour every published page was drawn with.
+function suite:testResolveExtentsFallsBackToTheFileWhenTheKeyIsAbsent()
+	local resolved = Data.resolveExtents({
+		systems = {
+			Vector = {
+				star = { km = 500 },
+				bodies = {
+					{ km = 100, moons = { { km = 10 }, { km = 40 } } },
+					-- A belt must not widen the planet tier even if it is given a
+					-- size: nothing draws a belt as a scaled disc.
+					{ km = 300, tier = 'belt' },
+					{ km = 900, moons = {} },
+				},
+			},
+		},
+	})
+	self:assertEquals(500, resolved.star.min)
+	self:assertEquals(500, resolved.star.max)
+	self:assertEquals(100, resolved.planet.min)
+	self:assertEquals(900, resolved.planet.max)
+	self:assertEquals(10, resolved.moon.min)
+	self:assertEquals(40, resolved.moon.max)
+	self:assertEquals(nil, resolved.belt)
+end
+
+-- Merged per tier rather than all-or-nothing, so a file recording only some
+-- tiers does not leave the rest with no scale at all — which would draw every
+-- planet on the page at the 24px cap.
+function suite:testResolveExtentsMergesAPartialRecordWithTheFileContents()
+	local resolved = Data.resolveExtents({
+		extents = { planet = { min = 1, max = 1000 } },
+		systems = {
+			Vector = {
+				star = { km = 500 },
+				bodies = { { km = 100, moons = { { km = 10 } } } },
+			},
+		},
+	})
+	self:assertEquals(1, resolved.planet.min, 'the recorded tier wins')
+	self:assertEquals(1000, resolved.planet.max)
+	self:assertEquals(500, resolved.star.max, 'the missing tiers are still measured')
+	self:assertEquals(10, resolved.moon.max)
+end
+
+-- A malformed entry is treated as absent rather than trusted, because a string
+-- or a null in there would reach math.log.
+function suite:testResolveExtentsIgnoresAMalformedTier()
+	local resolved = Data.resolveExtents({
+		extents = { star = { min = 'lots', max = 2 }, planet = {}, moon = { min = 1, max = 2 } },
+		systems = {
+			Vector = {
+				star = { km = 500 },
+				bodies = { { km = 100, moons = { { km = 10 } } } },
+			},
+		},
+	})
+	self:assertEquals(500, resolved.star.max, 'the unusable tier is measured instead')
+	self:assertEquals(100, resolved.planet.max)
+	self:assertEquals(2, resolved.moon.max, 'the usable one is still honoured')
+end
+
+-- A body outside the recorded extents is reachable rather than contradictory:
+-- the extents are recorded against an upstream mirror, so a refetch can add a
+-- larger star before this file is regenerated. It must land on its tier's cap.
+function suite:testDiscSizeClampsBodiesOutsideTheRecordedExtents()
+	self:assertEquals(24, Data.discSize('planet', DATA.extents.planet.max * 1000), 'far above the maximum')
+	self:assertEquals(6, Data.discSize('planet', DATA.extents.planet.min / 1000), 'far below the minimum')
+	self:assertEquals(14, Data.discSize('moon', DATA.extents.moon.max * 1000))
+	self:assertEquals(6, Data.discSize('moon', 0.001))
+	self:assertEquals(30, Data.discSize('star', DATA.extents.star.max * 1000))
+	self:assertEquals(22, Data.discSize('star', 1))
+end
+
+-- The clamp has to survive arithmetic that is not merely out of range. An
+-- infinite input produces an infinite fraction, which no `f > 1` test in the
+-- middle of the calculation would have caught on its own.
+function suite:testDiscSizeNeverReturnsSomethingUnrenderable()
+	local caps = { star = 30, planet = 24, moon = 14 }
+	for tier, cap in pairs(caps) do
+		local px = Data.discSize(tier, math.huge)
+		self:assertEquals(px, px, tier .. ' is not NaN')
+		self:assertEquals(cap, px, tier .. ' takes its cap')
+	end
 end
 
 -- ---------------------------------------------------------------------------

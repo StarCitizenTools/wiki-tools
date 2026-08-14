@@ -26,6 +26,13 @@ import (
 // nests where a moon nests — the rail has exactly one level of nesting and a
 // ring wants that one — while carrying its own glyph kind, because a ring is not
 // a body and must not be drawn as one.
+//
+// A third value reaches the top level: `moon`, for the one body upstream parents
+// to the star rather than to a planet, which therefore has no planet to nest
+// under and holds a top-level slot while being a moon. Its constant is tierMoon,
+// declared in extents.go with the tiers that scale, because it is the same tier —
+// the marker exists precisely so that the body is measured, coloured and counted
+// there rather than at the tier its position implies.
 const (
 	tierBelt = "belt"
 	tierRing = "ring"
@@ -81,11 +88,12 @@ const (
 // the 83 single-star systems write `page`, `star`, `bodies` and nothing else,
 // exactly as they did before a second star was representable.
 //
-// Star is a pointer because two upstream systems (Tamsa, Min) have no star at
-// all. They carry planets and moons and are perfectly renderable without a head,
-// so the model must not assume one — a value type here would have made "no star"
+// Star is a pointer because one upstream system, Min, has no star at all. It
+// carries a planet and four moons and is perfectly renderable without a head, so
+// the model must not assume one — a value type here would have made "no star"
 // unrepresentable and pushed the problem into whichever code first dereferenced
-// it.
+// it. (Tamsa files no STAR either, but is not renderable headless and never
+// reaches this type: see typeBlackHole.)
 type System struct {
 	Page string `json:"page"`
 	Star *Body  `json:"star,omitempty"`

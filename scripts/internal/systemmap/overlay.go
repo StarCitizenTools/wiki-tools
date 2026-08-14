@@ -49,8 +49,8 @@ type SystemOverlay struct {
 	// the disc by.
 	Star Correction
 	// HasStar records that the key was written at all, the way HasCompanion does
-	// and for the same reason: two upstream systems (Tamsa, Min) have no star,
-	// so a `star` block can now reach nothing, and an empty Correction is
+	// and for the same reason: an upstream system (Min) has no star at all, so a
+	// `star` block can now reach nothing, and an empty Correction is
 	// indistinguishable from an absent one. Without this the primary would be the
 	// one correction in the file that can be silently dropped.
 	HasStar bool

@@ -130,33 +130,67 @@ drawing the body as an orbit of the pair.
 
 ## A system with no star
 
-Two systems — Tamsa and Min — have no star at all upstream, and both carry
-planets; Min carries four moons as well. Neither is rolled out, but nothing in
-the model assumes a head: `star` is an optional key, the rail simply starts at
-the first planet, and adding either is a data change rather than a code change.
+Two systems have no `STAR` upstream: Min and Tamsa. **Only one of them is
+head-less, and only that one is in the file.**
+
+Min genuinely has no head. Its own article says so — "its main focus is not a
+star but, instead, a rogue gas giant with four orbiting moons" — and the rogue
+planet is what the rail starts at. Nothing in the model assumes a head: `star` is
+an optional key, the rail simply starts at the first planet, and adding Min was a
+data change rather than a code change.
+
+Tamsa is a different case wearing the same shape. Upstream *does* file a head for
+it, `TAMSA.STAR.TAMSA`, with both planets parented to it — but types it
+`BLACKHOLE`, and the rail has no tier and no glyph for one, so it was dropped the
+way a jump point is. That produced a rail with nothing at its centre on a system
+whose article opens "two planets in orbit around a black hole", and whose head
+has a page of its own at [[Tamsa (black hole)]]. Nothing would have reported it
+either: `Category:Pages with a broken system map link` is built by walking the
+bodies in the model, and this body never reached the model.
+
+**So the generator now refuses to build a system containing a black hole**, and
+Tamsa is not listed in the overlay. Rolling it out means giving `BLACKHOLE` a
+kind — `vocab.go`, `SUBTYPE_KIND` in `Data.lua`, and a disc in `styles.css` —
+and it needs a decision the data does not supply: upstream reports no `size` for
+it, so it has no diameter to scale. An overlay `star` block cannot stand in for
+any of that, and says so: see below.
 
 What a head-less system does *not* get is a `star` block. There is no body for it
 to correct, so the generator refuses the build rather than discarding it —
 `overlay corrects the star, but upstream files 0 stars here`. That check is
-separate from the `companion` one because these two systems are the first that
-can reach the correction code with no primary at all; before they built, a `star`
-block could not miss.
+separate from the `companion` one because Min is the first system that can reach
+the correction code with no primary at all; before it built, a `star` block could
+not miss.
 
 ## Tiers, and where a ring goes
 
 Every body carries a `tier`. Five of them describe a body's place on the rail —
 `star`, `planet`, `belt`, `moon`, `ring` — and three of those scale: star, planet
 and moon, the ones with a disc. The other two are drawn at a fixed size, as
-below. Two more, `companion` and `paired`, exist only in the render model: they are
-layout, not classification, and both are measured and coloured at the `star`
-tier. `companion` is the second star of a nested pair. `paired` is worn by
+below. Three more exist only in the render model: they are layout, not
+classification, and each is measured and coloured at the tier of what the body
+actually is. `companion` is the second star of a nested pair. `paired` is worn by
 **both** stars of a co-orbiting pair, since neither is subordinate — that is the
-whole claim the shape makes.
+whole claim the shape makes. Both are measured at the `star` tier. `rail-moon` is
+the mirror case, measured at the `moon` tier: a moon holding a slot on the planet
+rail. `SCALE_TIER` in `Data.lua` is the mapping, and missing an entry there fails
+silently twice — a neutral `unknown` glyph, and the wrong tier's scale.
 
-`bodies` is everything orbiting the star, in orbital order, and one marker
-separates its two kinds: a belt carries `tier: belt`, and anything unmarked there
-is a planet. A planet's `moons` array works the same way one level down: a ring
-carries `tier: ring`, and anything unmarked there is a moon.
+`bodies` is everything orbiting the star, in orbital order, and the markers say
+which of its three kinds each entry is: a belt carries `tier: belt`, a moon
+upstream parents to the star rather than to a planet carries `tier: moon`, and
+anything unmarked is a planet. A planet's `moons` array works the same way one
+level down: a ring carries `tier: ring`, and anything unmarked there is a moon.
+
+**A `tier: moon` at the top level is one body in all 90 systems**: Odin's Gainey,
+which upstream types a `SATELLITE` and parents to the star, leaving it nothing to
+nest under. The marker is what stops its position being read as its nature. Left
+unmarked it was a planet to everything downstream — the card header called Odin a
+four-planet system when it has three planets and two moons, the disc was scaled
+against the planet range, and the glyph fell through to the neutral grey disc,
+because only planets and stars carry the subtype a colour is keyed off. It is
+laid out as a rail column like its neighbours; only what it is comes from the
+moon tier.
 
 Belts carry no `km`, and the tier is what decides that, not the data: a belt is a
 region rather than a body, so the generator drops the size whatever upstream

@@ -48,6 +48,7 @@ a note rather than an error.
 |---|---|
 | Orbital order | the Roman numeral ending the upstream designation |
 | Moon attachment | upstream `parent_id` |
+| Tier | the upstream type: a belt is `tier: belt`, and a `SATELLITE` that reached the planet rail because upstream parents it to the star is `tier: moon` (see below) |
 | The second star, and how it is drawn | upstream `parent_id` between the two stars (see below) |
 | Page title | the body's name, first letter upper-cased; `<System> (star)` for the star of a **single**-star system; `<System> system` for the system |
 | Label | the upstream name, or its designation when upstream gives it no name |
@@ -154,10 +155,17 @@ gates on the live page for that reason; see
 ## A second star, and which of two shapes it takes
 
 Upstream has 93 stars across 90 systems. Five systems have two, none has three,
-83 have one, and two — Tamsa and Min — have none at all. The two starless systems
-still carry planets, so the generator builds them with the `star` key simply
-absent rather than refusing; `resolveStars` returns nothing and the rail draws no
-head.
+83 have one, and two — Min and Tamsa — have none at all.
+
+Min still carries planets and moons, so the generator builds it with the `star`
+key simply absent rather than refusing; `resolveStars` returns nothing and the
+rail draws no head, which is the picture Min's own article describes.
+
+Tamsa is the one that looks the same and is not. Upstream files a head for it and
+types it `BLACKHOLE`, which is not a type the rail can draw, so building it
+produced two planets orbiting nothing while the wiki documents the omitted body
+at `Tamsa (black hole)`. That system is **refused**, not built headless: see
+`typeBlackHole` in `internal/systemmap/vocab.go`.
 
 For the five, which star is the primary and how the pair is drawn are both
 derived from `parent_id`:
@@ -196,6 +204,28 @@ more stars, two stars each parented to the other, and a star parented to
 something that is not the other star. It also refuses a system where any body is
 parented to the companion — no companion carries a body anywhere in the dataset
 today, and one that did would otherwise be drawn as orbiting the pair.
+
+## A moon with no planet to nest under
+
+`moonParent` attaches a `SATELLITE` to the planet upstream gives as its
+`parent_id`. One body in all 90 systems has no such planet: Odin's Gainey, which
+upstream parents to the **star**. It stays on the planet rail rather than being
+dropped or forced under an unrelated planet — but it is still a moon, and the
+file says so with `tier: moon`.
+
+The marker exists because position is otherwise read as nature. The top level of
+`bodies` means "planet" by omission, so without it Gainey was a planet to
+everything downstream: `Data.summarise` called Odin a four-planet system when it
+has three planets and two moons, `discSize` scaled a 1,789 km body against the
+planet range, and `glyphKind` returned the neutral `unknown` disc, because only
+planets and stars carry the subtype a colour is keyed off. `Module:SystemMap`
+lays it out as a rail column and takes everything else about it from the moon
+tier.
+
+This costs nothing on a published page, which is the reason it could be fixed
+rather than deferred: 1,789 km is inside the recorded moon range (44.6-3,214) as
+well as the planet one, so no live disc moves. `extents` has always measured this
+body at the moon tier, by its upstream type — the two passes simply disagreed.
 
 ## A planetary ring nests where a moon nests
 

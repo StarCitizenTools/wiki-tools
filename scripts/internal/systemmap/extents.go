@@ -82,13 +82,20 @@ func anchorExtents(doc *starmap.Document, out *Document) *Extents {
 		}
 		for i := range sys.Bodies {
 			body := &sys.Bodies[i]
-			// A belt is skipped rather than relied on to carry no km: an overlay
-			// `km` on one would otherwise widen the planet tier with a figure
-			// nothing renders.
-			if body.Tier == tierBelt {
+			// The tier decides which range a top-level body widens, because the
+			// rail's top level is not all planets. A belt is skipped rather than
+			// relied on to carry no km — an overlay `km` on one would otherwise
+			// widen the planet tier with a figure nothing renders — and a rail moon
+			// is measured as the moon it is, not as the planet its position would
+			// otherwise imply.
+			switch body.Tier {
+			case tierBelt:
 				continue
+			case tierMoon:
+				b.note(tierMoon, body.KM)
+			default:
+				b.note(tierPlanet, body.KM)
 			}
-			b.note(tierPlanet, body.KM)
 			if body.Moons == nil {
 				continue
 			}

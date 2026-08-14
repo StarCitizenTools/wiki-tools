@@ -1,6 +1,15 @@
 # testdata
 
-`starmap.json` is a cut of a real `cmd/starmap` run, eighteen systems wide:
+`starmap.json` is a cut of a real `cmd/starmap` run, forty-two systems wide. The
+fixture holds every system `overlay.json` lists, because a system in the overlay
+that is missing here fails `TestReproducesTheCommittedFile`, plus two the overlay
+deliberately does not list: Gurzil, whose placeholders the exclusion patterns are
+tested against, and Tamsa, which a test builds to check that it is *refused*.
+
+The table below is not a manifest — it is the reason each system earns its place
+in a fixture meant to stay readable. The rows are the ones that pin a distinct
+behaviour; the thirteen that only pin "the derivation is right for an ordinary
+system" share the last row rather than taking one each.
 
 | System | Why it is here |
 |---|---|
@@ -20,8 +29,20 @@
 | Bacchus | in the file; a **paired** binary, listed B before A upstream, so it pins that file order does not decide which star is written first |
 | Baker | in the file; a paired binary whose **B is the larger star**, so it pins that size does not decide either |
 | Goss | in the file; the third paired binary, and the only one whose middle planet is named (`Cassel`) rather than taking its designation |
-| Min | not in the file; one of the two systems upstream files **no star** for. It carries a planet and four moons, so it is the case that proves a headless rail is still worth drawing |
-| Tamsa | not in the file; the other starless system, and the one whose planets are parented to a star id that is not in the data at all |
+| Odin | in the file; the only body in all 90 systems that upstream types a `SATELLITE` and parents to the **star** — Gainey, which therefore lands on the planet rail rather than nesting, carries no subtype, and is placed with an `after` because `Odin 1a` ends in no Roman numeral. It is the only body marked `tier: moon` at the top level, which is what keeps it measured, coloured and counted as the moon it is rather than as the planet its position would imply |
+| Helios | in the file; the **largest planet in the dataset** (Helios III, 137,932 km) and so the planet tier's recorded cap, plus a moon upstream leaves unnamed whose article is under a name of its own (`Helios 2a` → `Marama`) |
+| Kai'pua (Kayfa) | in the file; the system where **every** title needed correcting — six entries, the whole system, including a star page the wiki titles with U+2019 while the rest of the system uses U+0027 |
+| R.il'a (Rihlah) | in the file; the second Perry Line alias, and the trailing spaces upstream leaves on a star designation and two planet names — the reason `bodyKey` and `upstreamName` trim |
+| T.āl | in the file; the star whose upstream designation (`Tal`) drops the macron the wiki uses, so `label` is corrected while the derived page title is already right |
+| Kellog | in the file; a name upstream mis-cases (`Quarterdeck`), where the wiki's own styling is canonical and both `page` and `label` are corrected — the reverse of microTech |
+| Geddon | in the file; one planet, whose upstream name (`Takto`) has no article under any title, so it is the batch's only red link before correction |
+| Banshee | in the file; the only `Neutron` star, the one subtype whose glyph class is a word rather than a spectral letter |
+| Nul | in the file; a `Variable` star, which carries **no** `class` key at all and falls back to the plain `star` glyph |
+| Chronos | in the file; `Chronos I ` carries a trailing space in its **designation**, which the orbital-numeral rule has to trim before it can read the numeral |
+| Davien | in the file; the smallest system with a moon — one `SATELLITE`, parented to a planet, the ordinary case |
+| Min | in the file; one of the two systems upstream files **no star** for. Its rail is headed by a rogue gas giant carrying four moons, which is what the article describes too, so a headless rail is the correct picture |
+| Tamsa | **not** in the file, and here for that reason: it is the other system upstream files no `STAR` for, but it is not headless. Upstream files a head — `TAMSA.STAR.TAMSA`, id 2521, with both planets parented to it — and types it `BLACKHOLE`, a type the rail has no tier or glyph for. The parent id resolves perfectly well; the object is filtered out by type before the rail is built, which is why the wiki's own [[Tamsa (black hole)]] would be missing from a map of the system it defines. `TestBuildRefusesASystemHeadedByABlackHole` reads this system, so the fixture has to keep it |
+| Bremen, Corel, Elysium, Ferron, Garron, Idris, Leir, Magnus, Nemo, Oso, Oya, Rhetor, Trise | in the file; ordinary systems that needed no correction at all. They are here because the overlay lists them, and they are worth keeping: between them they cover most of the 22 planet subtypes and six of the spectral classes |
 
 Only the fields `internal/systemmap` reads are kept — id, code, name,
 designation, size, type, subtype, star_system_id, parent_id — so the file stays
@@ -30,21 +51,31 @@ are verbatim, not invented: the point of a fixture here is that upstream's
 oddities (null names, trailing spaces in designations, sizes in three different
 units) are present exactly as they arrive.
 
-Min and Tamsa are the two systems that are here without being in `overlay.json`,
-because what they prove is that the model does not assume a star: neither is
-rolled out, and `TestBuildWithoutAStar` builds them through a throwaway overlay
-of its own.
+Gurzil is one of the two systems here that `overlay.json` does not list, and it
+is carried for a reason other than reproduction: its nine `Protoplanetary Disk N`
+placeholders are what the exclusion patterns are tested against, and excluding a
+body has to work whether or not its system renders. Tamsa is the other, for the
+reason its row gives.
+
+`TestBuildWithoutAStar` still builds Min through a throwaway overlay of its own
+rather than reading the committed one, so the starless case stays pinned
+independently of whether the system is rolled out. Its opposite number,
+`TestBuildRefusesASystemHeadedByABlackHole`, does the same with Tamsa: a system
+whose head is a type the rail cannot draw must fail the build rather than render
+a rail with nothing at its centre.
 
 ### It does not set the disc scale
 
 `systems.json` records `extents` — the smallest and largest `km` per tier — and
-those are anchored to **all 90 upstream systems**, not to these eleven. So the
+those are anchored to **all 90 upstream systems**, not to this cut. So the
 `extents` block a test builds from this cut is legitimately narrower than the
-committed one, and neither reproduction test compares it. Two tests check the
-relation that must hold instead: `TestCommittedExtentsContainTheFixture` (the
-eleven are a subset, so their range must sit inside the committed one) and
-`TestCommittedExtentsReachBeyondTheFile` (the committed range must be wider than
-the systems the page renders, or the anchoring has been lost).
+committed one, and neither reproduction test compares it. Three tests check the
+relations that must hold instead: `TestCommittedExtentsContainTheFixture` (the
+cut is a subset, so its range must sit inside the committed one),
+`TestCommittedExtentsContainTheRenderedRange` (every body the page renders falls
+inside the recorded range, so nothing is clamped to a bound), and
+`TestCommittedExtentsAreTheAnchoredValues`, which pins the six figures outright —
+the only one of the three that a finished rollout cannot make vacuous.
 
 ## Refreshing it
 
@@ -55,7 +86,7 @@ commit, or the test will fail on a difference that is real:
 
 ```sh
 mise run starmap                     # refresh scripts/out/starmap.json
-# then cut it down again, keeping the same eleven systems and the same field list
+# then cut it down again, keeping the same systems and the same field list
 mise run systemmap                   # rewrite the page from the new mirror
 ```
 

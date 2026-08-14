@@ -18,7 +18,7 @@ func TestCompareReportsAChangeToEitherOfTwoBodiesSharingALabel(t *testing.T) {
 		doc := &Document{Doc: "doc"}
 		doc.Systems.Set("Ellis", &System{
 			Page: "Ellis system",
-			Star: Body{Page: "Ellis (star)", Label: "Ellis"},
+			Star: &Body{Page: "Ellis (star)", Label: "Ellis"},
 			Bodies: []Body{
 				{Page: firstPage, Label: "Ellis XI", Tier: tierBelt},
 				{Page: "Ellis XI", Label: "Ellis XI", Moons: &[]Body{}},

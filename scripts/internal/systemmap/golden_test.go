@@ -63,7 +63,7 @@ func TestEncodeWritesTabIndentedJSON(t *testing.T) {
 	doc := &Document{Doc: "doc"}
 	doc.Systems.Set("Vector", &System{
 		Page:   "Vector system",
-		Star:   Body{Page: "Vector (star)", Label: "Vector"},
+		Star:   &Body{Page: "Vector (star)", Label: "Vector"},
 		Bodies: []Body{{Page: "Vector I", Label: "Vector I"}},
 	})
 	b, err := Encode(doc)

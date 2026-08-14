@@ -1,5 +1,5 @@
 {
-	"%doc": "Editorial corrections applied on top of the ARK Starmap mirror to produce Module:SystemMap/systems.json. Everything here is a judgement the upstream data cannot supply: which article a body links to, where a belt sits between planets, which planet is really a moon. Run `mise run systemmap` after editing. Keys are the system name, then `star` and/or `bodies`. Under `bodies` the key is the upstream body name (or its designation, when upstream gives it no name, which is what the rail labels it anyway); where two bodies in one system share that key, each is addressed by the type-qualified form instead, such as `Ellis XI (PLANET)`, and the generator's error names both. Supported per-body keys: page, label, icon, iconRatio, after, moonOf, km. `star` takes the same keys except after and moonOf, which the one body nothing orbits has no use for; its km is a radius. `exclude` accepts either key form. A body listed here that no longer exists upstream FAILS the generator rather than being ignored, because a silently-dropped correction is exactly how this work gets lost across a refetch. Listing a system here is what puts it in systems.json, in this order; an empty entry means nothing needed correcting. See docs/superpowers/specs/2026-08-13-system-map-rollout-design.md.",
+	"%doc": "Editorial corrections applied on top of the ARK Starmap mirror to produce Module:SystemMap/systems.json. Everything here is a judgement the upstream data cannot supply: which article a body links to, where a belt sits between planets, which planet is really a moon. Run `mise run systemmap` after editing. Keys are the system name, then `page`, `star`, `companion`, `companionShape` and/or `bodies`. Under `bodies` the key is the upstream body name (or its designation, when upstream gives it no name, which is what the rail labels it anyway); where two bodies in one system share that key, each is addressed by the type-qualified form instead, such as `Ellis XI (PLANET)`, and the generator's error names both. Supported per-body keys: page, label, icon, iconRatio, after, moonOf, km. `star` and `companion` take the same keys except after and moonOf, which a body nothing on the rail orbits has no use for; their km is a radius. `page` corrects the system's own article, which is otherwise \"<upstream name> system\". `companionShape` overrides how a second star is drawn — `nested` where it orbits the primary, `paired` where the two co-orbit — and should be left to the derivation from upstream's parent_id. `exclude` accepts either key form. A body listed here that no longer exists upstream FAILS the generator rather than being ignored, because a silently-dropped correction is exactly how this work gets lost across a refetch; the same is true of a `star` block on a system upstream files no star for, and of a `companion` block on a system with one star. Listing a system here is what puts it in systems.json, in this order; an empty entry means nothing needed correcting. See docs/superpowers/specs/2026-08-13-system-map-rollout-design.md.",
 	"systems": {
 		"Stanton": {
 			"bodies": {
@@ -78,7 +78,33 @@
 				"Taranis Belt Beta": { "after": "Taranis III" }
 			}
 		},
-		"Oberon": {}
+		"Oberon": {},
+		"Tyrol": {
+			"bodies": {
+				"Tyrol Belt Alpha": { "after": "Tyrol III" }
+			}
+		},
+		"Kyuk'ya (Indra)": {
+			"page": "Kyuk'ya system",
+			"star": { "page": "Kyuk'ya A", "label": "Kyuk'ya A" },
+			"companion": { "page": "Kyuk'ya B", "label": "Kyuk'ya B" },
+			"bodies": {
+				"Kyuk'ya (Indra) I": { "page": "Kyuk'ya I", "label": "Kyuk'ya I" },
+				"Kyuk'ya (Indra) II": { "page": "Kyuk'ya II", "label": "Kyuk'ya II" },
+				"Huichuaihyao y.ath'o se Kyuk'ya": {
+					"page": "Kyuk'ya belt alpha",
+					"label": "Kyuk'ya belt alpha",
+					"after": "Kyuk'ya (Indra) II"
+				}
+			}
+		},
+		"Bacchus": {
+			"bodies": {
+				"Bacchus Belt Alpha": { "after": "Bacchus II" }
+			}
+		},
+		"Baker": {},
+		"Goss": {}
 	},
 	"exclude": ["Protoplanetary Disk*", "Protoplentary Disk*", "Ellis XI (PLANET)"]
 }

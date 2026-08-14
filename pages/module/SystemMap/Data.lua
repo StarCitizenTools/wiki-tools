@@ -87,8 +87,32 @@ local RING_BAND = { width = 15, height = 5 }
 --- @type table<string, { width: number, height: number }>
 local BANDS = { belt = BELT_BAND, ring = RING_BAND }
 
+--- Tiers that are drawn at a DIFFERENT tier's scale, and classified as one.
+---
+--- Both are the second star of a binary, and both exist as tiers of their own
+--- only so that styles.css can lay them out differently — `companion` sits in
+--- the column where a moon sits, `paired` shares the head slot with the primary.
+--- Neither changes what the body IS: it is a star, it takes a star's spectral
+--- glyph, and it keeps star-tier sizing even at 22.8px in a row where moons are
+--- 6-14px. A companion drawn at moon scale would read as an absurdly large moon,
+--- which is the opposite of what the data says.
+---
+--- Without this the lookup would miss twice over, and both misses are silent:
+--- glyphKind would fall through to the planet branch and return 'unknown', and
+--- discSize would find no extents for the tier and return the tier maximum —
+--- every companion at 30px, the size reserved for the largest star in the file.
+--- @type table<string, string>
+local SCALE_TIER = { companion = 'star', paired = 'star' }
+
+--- Resolve the tier a body is measured and classified against.
+--- @param tier string
+--- @return string
+local function scaleTier(tier)
+	return SCALE_TIER[tier] or tier
+end
+
 --- @class SystemMapBody
---- @field tier string        'star' | 'planet' | 'belt' | 'moon' | 'ring'
+--- @field tier string        'star' | 'companion' | 'paired' | 'planet' | 'belt' | 'moon' | 'ring'
 --- @field page string        Wiki page title, MediaWiki-normalised
 --- @field label string       Display name (may differ in case from `page`)
 --- @field designation string|nil
@@ -107,12 +131,16 @@ local BANDS = { belt = BELT_BAND, ring = RING_BAND }
 --- @class SystemMapModel
 --- @field key string
 --- @field page string
---- @field star SystemMapBody
+--- @field star SystemMapBody|nil      Absent for the two systems upstream files no star for
+--- @field companion SystemMapBody|nil Second star; absent for the 85 systems with one
+--- @field companionShape string|nil   'nested' | 'paired'; set only alongside `companion`
 --- @field bodies SystemMapBody[] Planets and belts, in orbital order
 
 --- Resolve a user-supplied system name to a key in systems.json.
 --- Accepts 'Stanton', 'stanton', 'STANTON', 'Stanton system', and surrounding
---- whitespace. Returns nil for anything unrecognised.
+--- whitespace. Also accepts the name of the system's article where that differs
+--- from the key, which is how {{System map|Kyuk'ya}} finds "Kyuk'ya (Indra)".
+--- Returns nil for anything unrecognised.
 --- @param input string|nil
 --- @return string|nil
 function p.resolveKey(input)
@@ -138,6 +166,31 @@ function p.resolveKey(input)
 		end
 	end
 
+	-- Failing that, the name of the system's own ARTICLE.
+	--
+	-- The key is upstream's name, which is the identity a correction survives a
+	-- refetch by — but it is not always what the wiki calls the system, and it is
+	-- never what an editor types. Upstream still carries a Perry Line alias and
+	-- names one system "Kyuk'ya (Indra)"; the article is "Kyuk'ya system", every
+	-- other template on it is called {{... |Kyuk'ya}}, and without this
+	-- {{System map|Kyuk'ya}} would land in "System map with unknown system" and
+	-- render nothing at all.
+	--
+	-- Second pass rather than one merged loop, so an exact key match always wins:
+	-- if some system's article name ever collides with another system's key, the
+	-- key is the answer.
+	--
+	-- For the fourteen systems whose page is "<key> system" this is the same
+	-- comparison as above and changes nothing.
+	for key, system in pairs(DATA.systems) do
+		if type(system.page) == 'string' then
+			local article = system.page:gsub('%s+[Ss][Yy][Ss][Tt][Ee][Mm]$', '')
+			if mw.ustring.lower(article) == wanted then
+				return key
+			end
+		end
+	end
+
 	return nil
 end
 
@@ -158,7 +211,10 @@ end
 --- which falls out of the same concatenation as star-degenerate / star-neutron
 --- and needs no branch here. Stars with no class at all (Variable, Subgiant, and
 --- the fifteen upstream leaves unclassified) get the generic disc.
---- @param tier string 'star' | 'planet' | 'moon' | 'belt' | 'ring'
+--- The two companion tiers are stars and are classified as such: a second star
+--- keeps its spectral glyph whether it is nested under the primary or sharing
+--- the head slot with it.
+--- @param tier string 'star' | 'companion' | 'paired' | 'planet' | 'moon' | 'belt' | 'ring'
 --- @param subtype string|nil
 --- @param class string|nil Spectral letter, or 'degenerate'/'neutron'; stars only
 --- @return string
@@ -171,7 +227,7 @@ function p.glyphKind(tier, subtype, class)
 		return RING_KIND
 	end
 
-	if tier == 'star' then
+	if scaleTier(tier) == 'star' then
 		if type(class) == 'string' and class ~= '' then
 			return 'star-' .. mw.ustring.lower(class)
 		end
@@ -240,7 +296,11 @@ function p.computeExtents(data)
 	end
 
 	for _, system in pairs(data.systems or {}) do
+		-- Both stars, and neither assumed present: `star` is absent for a system
+		-- upstream files none for, and `companion` for the 85 with one star. A
+		-- companion is measured at the star tier because that is what it is.
 		note('star', system.star and system.star.km)
+		note('star', system.companion and system.companion.km)
 		for _, body in ipairs(system.bodies or {}) do
 			-- Belts are skipped rather than assumed to carry no km: one given a
 			-- size by hand would otherwise widen the planet tier with a figure
@@ -325,16 +385,28 @@ end
 --- @param km number|nil
 --- @return number px
 function p.discSize(tier, km)
+	-- A companion is measured at the star tier, not at the tier of the row it
+	-- happens to sit in. Tyrol B renders at 22.8px in the moon column because it
+	-- is a star that small, not because the column is.
+	tier = scaleTier(tier)
+
 	local d = DISC[tier] or DISC.planet
+
+	-- No size upstream, so no claim: draw the tier's floor rather than its
+	-- ceiling. The ceiling was actively misleading — Lanisto is the one body in
+	-- the file with no `km`, and at the moon maximum it rendered 14.0px against
+	-- the 13.3px of Tyrol I, the planet it orbits. A moon drawn larger than its
+	-- own planet states something the data never said. The floor cannot exceed a
+	-- sized sibling, so at worst it understates.
 	if type(km) ~= 'number' or km <= 0 then
-		return d.max
+		return d.min
 	end
 
 	local e = tierExtents()[tier]
 	-- A non-positive minimum would make math.log(e.min) infinite and the whole
 	-- fraction NaN, which none of the comparisons below would catch.
 	if not e or type(e.min) ~= 'number' or type(e.max) ~= 'number' or e.min <= 0 or e.max <= e.min then
-		return d.max
+		return d.min
 	end
 
 	local lo, hi = math.log(e.min), math.log(e.max)
@@ -345,7 +417,9 @@ function p.discSize(tier, km)
 	-- arithmetic that got past the guard above — leaves the rail intact. NaN
 	-- fails every comparison, so it is tested by inequality with itself.
 	if px ~= px then
-		return d.max
+		-- Same reasoning as the unsized case above: an uncomputable size falls to
+		-- the floor, never the ceiling.
+		return d.min
 	elseif px < d.min then
 		return d.min
 	elseif px > d.max then
@@ -392,9 +466,49 @@ function p.buildModel(input, currentTitle)
 	local model = {
 		key = key,
 		page = system.page,
-		star = toBody(system.star, 'star', currentTitle),
 		bodies = {},
 	}
+
+	-- The head of the rail is one star, two stars, or none.
+	--
+	-- `star` is absent for the two systems upstream files no star for (Tamsa,
+	-- Min), which still carry planets and, in Min's case, four moons. Nothing
+	-- here may assume it exists — the guard is what lets those systems be rolled
+	-- out as a data change rather than a code change.
+	if system.star then
+		model.star = toBody(system.star, 'star', currentTitle)
+	end
+
+	if system.companion then
+		-- Two shapes, because upstream describes two different objects. A
+		-- companion upstream parents to the primary really does orbit it, and is
+		-- nested where a moon nests; a pair upstream leaves unparented has no
+		-- centre, and both stars share the head slot.
+		--
+		-- `nested` is the default for an unrecognised value: it is the reading
+		-- that claims less. Saying "B orbits A" where the truth is a co-orbit
+		-- misplaces one body; saying "these co-orbit" where B really orbits A
+		-- misdescribes the whole system.
+		local paired = system.companionShape == 'paired'
+		model.companionShape = paired and 'paired' or 'nested'
+		model.companion = toBody(system.companion, paired and 'paired' or 'companion', currentTitle)
+
+		if paired then
+			-- Both stars are drawn as equals inside one rail slot, so the primary
+			-- takes the same tier as the companion. It keeps its own page, label
+			-- and glyph — only the layout is shared.
+			if model.star then
+				model.star.tier = 'paired'
+			end
+		elseif model.star then
+			-- The rail nests exactly one level and this is that level, so the
+			-- companion goes where a moon would go, reusing the moon list, the
+			-- connector line and the row layout wholesale. It is still a star:
+			-- `companion` is its tier, which is what keeps it at star size with a
+			-- star's glyph rather than reading as an impossibly large moon.
+			model.star.moons = { model.companion }
+		end
+	end
 
 	for _, source in ipairs(system.bodies) do
 		local tier = source.tier == 'belt' and 'belt' or 'planet'
@@ -428,9 +542,10 @@ end
 
 --- One-line body count for the card header, e.g. "4 planets, 12 moons".
 ---
---- The star is not counted: the model holds exactly one per system, so saying so
---- adds nothing. A system with no moons (Nyx) drops that clause rather than
---- printing "0 moons".
+--- Stars are not counted, whether there are two, one or none. The header exists
+--- to say what the picture cannot, and how many stars a system has is the first
+--- thing the picture says — they are the leftmost glyphs on the rail. A system
+--- with no moons (Nyx) drops that clause rather than printing "0 moons".
 ---
 --- Rings are counted apart from moons even though they share the moons array. A
 --- ring is not a moon, and folding Sol's four into its moon count would overstate

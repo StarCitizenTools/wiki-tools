@@ -70,7 +70,16 @@ func anchorExtents(doc *starmap.Document, out *Document) *Extents {
 		if !ok {
 			continue
 		}
-		b.note(tierStar, sys.Star.KM)
+		// Both stars, and neither assumed to be there: two systems upstream have
+		// no star, and a companion is a star at the star tier like any other —
+		// pass one already measured it by upstream type, so this only has to
+		// agree rather than to widen anything.
+		if sys.Star != nil {
+			b.note(tierStar, sys.Star.KM)
+		}
+		if sys.Companion != nil {
+			b.note(tierStar, sys.Companion.KM)
+		}
 		for i := range sys.Bodies {
 			body := &sys.Bodies[i]
 			// A belt is skipped rather than relied on to carry no km: an overlay

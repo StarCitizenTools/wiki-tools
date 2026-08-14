@@ -52,7 +52,12 @@ func compareSystem(oldSys, newSys *System) []string {
 	if oldSys.Page != newSys.Page {
 		out = append(out, fmt.Sprintf("page: %s -> %s", oldSys.Page, newSys.Page))
 	}
-	out = append(out, prefix("star", compareBody(oldSys.Star, newSys.Star))...)
+	out = append(out, prefix("star", compareStar(oldSys.Star, newSys.Star))...)
+	out = append(out, prefix("companion", compareStar(oldSys.Companion, newSys.Companion))...)
+	if oldSys.CompanionShape != newSys.CompanionShape {
+		out = append(out, fmt.Sprintf("companion shape: %s -> %s",
+			orNone(oldSys.CompanionShape), orNone(newSys.CompanionShape)))
+	}
 
 	oldBodies, oldOrder := flatten(oldSys.Bodies)
 	newBodies, newOrder := flatten(newSys.Bodies)
@@ -70,6 +75,22 @@ func compareSystem(oldSys, newSys *System) []string {
 		out = append(out, prefix(k, compareBody(oldBodies[k], newBodies[k]))...)
 	}
 	return out
+}
+
+// compareStar reports a change to a star, either of which may be absent — a
+// system upstream files no star for, or one that gains or loses a companion. A
+// star appearing or disappearing is a bigger change than any field of it, so it
+// is reported as itself rather than as every field going to or from "(none)".
+func compareStar(oldStar, newStar *Body) []string {
+	switch {
+	case oldStar == nil && newStar == nil:
+		return nil
+	case oldStar == nil:
+		return []string{"+ " + newStar.Label}
+	case newStar == nil:
+		return []string{"- " + oldStar.Label}
+	}
+	return compareBody(*oldStar, *newStar)
 }
 
 // compareBody reports field-level changes, comparing the encoded form so that

@@ -14,6 +14,15 @@ import (
 const docComment = "Generated file, do not hand-edit: `mise run systemmap` rebuilds it from the ARK Starmap mirror " +
 	"plus the hand-owned corrections in pages/module/SystemMap/overlay.json (wiki-tools repo), and an edit made here " +
 	"is lost on the next regeneration. Make it in the overlay instead. " +
+	"`star` is the system's star and is OPTIONAL: two upstream systems have none, and the key is then absent rather " +
+	"than empty. `companion` is a second star, present for five systems and absent for the other 85, alongside " +
+	"`companionShape`, which says how the two are drawn: `nested` where upstream parents the companion to the primary " +
+	"and it genuinely orbits it (Tyrol, Kyuk'ya), or `paired` where neither is parented and the planets co-orbit both " +
+	"(Bacchus, Baker, Goss). The shape is derived from parent_id, not from the system's upstream `type`, which reports " +
+	"Tyrol as SINGLE_STAR despite its two stars. A nested companion is drawn where a moon is drawn but at star size, " +
+	"and a pair shares one rail slot; either way the you-are-here marker lands on the individual star, because the two " +
+	"are separate articles. No companion carries a body anywhere in the dataset, and the generator refuses to build one " +
+	"that does. " +
 	"`bodies` is everything orbiting the star, IN ORBITAL ORDER, planets and asteroid belts together. There is no sort " +
 	"key: position is the array index. Planet order comes from the Roman numeral in the upstream designation, because " +
 	"upstream has no orbit_period for 195 of its 326 planets; a body with no numeral (every belt, and Delamar) is " +
@@ -91,6 +100,9 @@ type node struct {
 	overlayOrder int
 	correction   Correction
 	moons        []*node
+	// soleStar marks the star of a system that has exactly one, which is the
+	// only case the "<System> (star)" page convention holds for. See buildBody.
+	soleStar bool
 }
 
 // Build renders the systems the overlay lists.
@@ -133,7 +145,19 @@ func Build(opts Options) (*Result, error) {
 		}
 		excluded += dropped
 		res.Document.Systems.Set(name, sys)
-		res.Bodies += 1 + len(sys.Bodies)
+		res.Bodies += len(sys.Bodies)
+		if sys.Star != nil {
+			res.Bodies++
+		}
+		if sys.Companion != nil {
+			res.Bodies++
+			res.Notes = append(res.Notes, fmt.Sprintf("%s has two stars, drawn %s: %s and %s",
+				name, sys.CompanionShape, sys.Star.Label, sys.Companion.Label))
+		}
+		if sys.Star == nil {
+			res.Notes = append(res.Notes, fmt.Sprintf(
+				"%s: upstream files no star, so the rail is drawn without a head", name))
+		}
 		for _, b := range sys.Bodies {
 			if b.Moons != nil {
 				res.Bodies += len(*b.Moons)
@@ -192,7 +216,7 @@ func buildSystem(name string, sys *starmap.System, objects []*starmap.Object, ov
 	}
 
 	var (
-		star    *node
+		stars   []*node
 		nodes   []*node
 		dropped int
 	)
@@ -244,15 +268,7 @@ func buildSystem(name string, sys *starmap.System, objects []*starmap.Object, ov
 
 		n := &node{obj: obj, key: key, overlayKey: key, order: i, overlayOrder: -1}
 		if obj.Type == typeStar {
-			if star != nil {
-				// Upstream has 93 stars across 90 systems. The rail draws one,
-				// so a binary needs a decision about what the second one is
-				// before its system can ship.
-				return nil, 0, fmt.Errorf("has more than one star (%s, %s); the rail renders one",
-					star.key, n.key)
-			}
-			n.correction = corrections.Star
-			star = n
+			stars = append(stars, n)
 			byID[obj.ID] = n
 			continue
 		}
@@ -261,8 +277,52 @@ func buildSystem(name string, sys *starmap.System, objects []*starmap.Object, ov
 		byID[obj.ID] = n
 	}
 
-	if star == nil {
-		return nil, 0, fmt.Errorf("has no star")
+	// --- the head of the rail ------------------------------------------------
+	star, companion, shape, err := resolveStars(stars)
+	if err != nil {
+		return nil, 0, err
+	}
+	if star != nil {
+		star.correction = corrections.Star
+		star.soleStar = companion == nil
+	} else if corrections.HasStar {
+		// The same promise the companion block makes, and it has to be made
+		// separately now that a starless system builds rather than erroring out
+		// before the corrections were ever applied. Tamsa and Min are the two,
+		// and a `star` block written for either would otherwise be discarded in
+		// silence — the exact loss the overlay exists to prevent.
+		return nil, 0, fmt.Errorf("overlay corrects the star, but upstream files %s here",
+			plural(len(stars), "star", "stars"))
+	}
+	if companion != nil {
+		companion.correction = corrections.Companion
+	} else if corrections.HasCompanion {
+		return nil, 0, fmt.Errorf("overlay corrects a companion star, but upstream files %s here",
+			plural(len(stars), "star", "stars"))
+	}
+	if corrections.CompanionShape != "" {
+		if companion == nil {
+			return nil, 0, fmt.Errorf("overlay sets companionShape %q, but upstream files %s here",
+				corrections.CompanionShape, plural(len(stars), "star", "stars"))
+		}
+		shape = corrections.CompanionShape
+	}
+
+	// The rail hangs bodies off the primary and nothing off the companion, which
+	// is true of all 90 systems upstream: no companion carries a planet, a belt
+	// or a moon anywhere in the dataset. It is upstream data rather than a law of
+	// nature, so it is checked rather than assumed — a body parented to the
+	// companion would otherwise be drawn on the rail as if it orbited the pair,
+	// which is a different claim from the one the data makes.
+	if companion != nil {
+		for _, n := range nodes {
+			if n.obj.ParentID != nil && *n.obj.ParentID == companion.obj.ID {
+				return nil, 0, fmt.Errorf("%q orbits the companion star %q, and the rail draws "+
+					"bodies under the primary only; upstream has never done this before, so decide "+
+					"how the map should say it rather than letting it render as an orbit of the pair",
+					n.key, companion.key)
+			}
+		}
 	}
 
 	// --- overlay identity -----------------------------------------------------
@@ -354,9 +414,26 @@ func buildSystem(name string, sys *starmap.System, objects []*starmap.Object, ov
 	// scale the discs. One null there does not break one map; it raises "table
 	// expected, got nil" on every page the component renders.
 	out := &System{Page: name + " system", Bodies: make([]Body, 0, len(ordered))}
-	out.Star, err = buildBody(star, roleStar, name)
-	if err != nil {
-		return nil, 0, err
+	if corrections.Page != "" {
+		out.Page = corrections.Page
+	}
+	// Both stars are optional and independently so: two systems upstream have
+	// none at all, and the key is simply left out rather than written empty, so
+	// a single-star system's bytes are what they always were.
+	if star != nil {
+		body, err := buildBody(star, roleStar, name)
+		if err != nil {
+			return nil, 0, err
+		}
+		out.Star = &body
+	}
+	if companion != nil {
+		body, err := buildBody(companion, roleStar, name)
+		if err != nil {
+			return nil, 0, err
+		}
+		out.Companion = &body
+		out.CompanionShape = shape
 	}
 	for _, n := range ordered {
 		r := rolePlanet
@@ -409,6 +486,81 @@ func buildSystem(name string, sys *starmap.System, objects []*starmap.Object, ov
 	}
 
 	return out, dropped, nil
+}
+
+// resolveStars decides which of a system's stars is the primary, which is the
+// companion, and how the two are drawn. All three results are empty for a system
+// upstream files no star for.
+//
+// The shape is DERIVED, from parent_id, because upstream describes two different
+// objects under one word and the map has to say which it is:
+//
+//   - Where one star is parented to the other — Tyrol B to Tyrol A, Kyuk'ya B to
+//     Kyuk'ya A — it genuinely orbits the primary, and both systems put every
+//     planet under the primary too. That is a hierarchy, and it nests.
+//   - Where neither is parented — Bacchus, Baker, Goss — nothing in the data
+//     makes either the centre, and upstream puts both at the same distance from
+//     the barycentre (Bacchus A and B are both 0.0735). That is a pair, and the
+//     planets orbit both.
+//
+// Drawing the second the way the first is drawn would invent a hierarchy the
+// data denies, so the two shapes are the honest reading rather than a special
+// case for five systems.
+//
+// The system's own upstream `type` is deliberately not consulted. It says
+// "BINARY" for Bacchus, Baker, Goss and Kyuk'ya — and "SINGLE_STAR" for Tyrol,
+// which has two. Counting the stars is the only reliable answer.
+func resolveStars(stars []*node) (primary, companion *node, shape string, err error) {
+	switch len(stars) {
+	case 0:
+		// Tamsa and Min. Both carry planets — Min has four moons as well — so
+		// the rail is still worth drawing; it simply has no head. Refusing to
+		// build would make them unrenderable for a fact about upstream's data
+		// rather than about the map.
+		return nil, nil, "", nil
+	case 1:
+		return stars[0], nil, "", nil
+	case 2:
+	default:
+		keys := make([]string, 0, len(stars))
+		for _, s := range stars {
+			keys = append(keys, s.key)
+		}
+		return nil, nil, "", fmt.Errorf("has %d stars (%s); the rail draws one or two, and no "+
+			"system upstream has ever had a third", len(stars), strings.Join(keys, ", "))
+	}
+
+	a, b := stars[0], stars[1]
+	aOrbitsB := a.obj.ParentID != nil && *a.obj.ParentID == b.obj.ID
+	bOrbitsA := b.obj.ParentID != nil && *b.obj.ParentID == a.obj.ID
+	switch {
+	case aOrbitsB && bOrbitsA:
+		return nil, nil, "", fmt.Errorf("stars %q and %q are each parented to the other, so "+
+			"neither can be the primary", a.key, b.key)
+	case aOrbitsB:
+		return b, a, shapeNested, nil
+	case bOrbitsA:
+		return a, b, shapeNested, nil
+	}
+
+	// Neither orbits the other, so neither dominates — unless one of them is
+	// parented to something else entirely, which would be a third arrangement
+	// nobody has looked at. Upstream leaves both parent_ids null in all three
+	// co-orbiting systems.
+	for _, s := range []*node{a, b} {
+		if s.obj.ParentID != nil {
+			return nil, nil, "", fmt.Errorf("star %q is parented to upstream id %d, which is not "+
+				"the system's other star; the map has no shape for that", s.key, *s.obj.ParentID)
+		}
+	}
+
+	// A pair has no primary, so file order is the designation's: "Bacchus A"
+	// before "Bacchus B". It decides only which of the two is written first and
+	// therefore drawn on the left — the rail treats them as equals either way.
+	if b.key < a.key || (b.key == a.key && b.order < a.order) {
+		a, b = b, a
+	}
+	return a, b, shapePaired, nil
 }
 
 // indexByOverlayKey settles how the overlay addresses each body, and reports the
@@ -658,12 +810,20 @@ func buildBody(n *node, r role, system string) (Body, error) {
 		Icon:      n.correction.Icon,
 		IconRatio: n.correction.IconRatio,
 	}
-	if r == roleStar {
+	if r == roleStar && n.soleStar {
 		// The convention is "<System> (star)", which holds for Stanton, Pyro,
 		// Nyx and Castra. Terra breaks it — its star is Terra Nova — and is an
 		// overlay entry rather than a derivation, because deriving from the
 		// upstream name would disagree with the four systems whose star has no
 		// name at all.
+		//
+		// It holds only where there IS one star. The convention exists to
+		// disambiguate a star whose designation is just the system name, and a
+		// binary's stars are designated apart already: the articles are "Tyrol
+		// A" and "Tyrol B", and "Tyrol (star)" does not exist. So a star sharing
+		// its system with another keeps its own key as its title, the way every
+		// other body does. Checked against the wiki for all ten stars of the
+		// five binaries.
 		body.Page = system + " (star)"
 	}
 	if n.correction.Page != "" {

@@ -1,5 +1,5 @@
 {
-	"%doc": "Generated file, do not hand-edit: `mise run systemmap` rebuilds it from the ARK Starmap mirror plus the hand-owned corrections in pages/module/SystemMap/overlay.json (wiki-tools repo), and an edit made here is lost on the next regeneration. Make it in the overlay instead. `bodies` is everything orbiting the star, IN ORBITAL ORDER, planets and asteroid belts together. There is no sort key: position is the array index. Planet order comes from the Roman numeral in the upstream designation, because upstream has no orbit_period for 195 of its 326 planets; a body with no numeral (every belt, and Delamar) is placed by the overlay's `after`. A belt is marked `tier: belt`; anything unmarked is a planet. A planet's `moons` array also carries its rings, marked `tier: ring` — a ring nests where a moon nests, because that is the one level of nesting the rail has, but it is drawn as a band rather than a disc and is counted separately. A ring orbiting a MOON is dropped instead: it would need a level of its own, and the only one upstream has (Stanton's Ring of Yela) has no article either. Belts and rings carry no `km`, because upstream reports 0/null and neither has a meaningful diameter, so they render at a fixed size rather than as a scaled disc. `km` is a diameter for planets and moons but a RADIUS for stars: upstream states planets in km, moons in thousands of km, and stars either in solar radii (x696340, the Sun's radius) below 1000 or in km above it. Mixing the two quantities is harmless because the disc scale is rank-preserving within a tier and never compares across tiers. The unit rule is applied by each body's UPSTREAM type, which is why Pyro IV keeps planet-scale km while sitting at the moon tier. A belt's designation is lower-cased after the system name (\"Stanton belt alpha\"), which is house style rather than a correction, so it is derived here and not listed in the overlay; a Roman numeral keeps its capitals, because that is an orbital slot. `extents` is the disc scale: the smallest and largest km per tier ACROSS ALL 90 UPSTREAM SYSTEMS, unioned with whatever this file renders, so that adding a system never resizes a disc on a page already published. Module:SystemMap/Data.lua uses it when present and falls back to measuring this file when it is absent, which is the behaviour that made the sizes move. Do not hand-trim it to the systems listed below. See docs/superpowers/specs/2026-08-13-system-map-rollout-design.md.",
+	"%doc": "Generated file, do not hand-edit: `mise run systemmap` rebuilds it from the ARK Starmap mirror plus the hand-owned corrections in pages/module/SystemMap/overlay.json (wiki-tools repo), and an edit made here is lost on the next regeneration. Make it in the overlay instead. `star` is the system's star and is OPTIONAL: two upstream systems have none, and the key is then absent rather than empty. `companion` is a second star, present for five systems and absent for the other 85, alongside `companionShape`, which says how the two are drawn: `nested` where upstream parents the companion to the primary and it genuinely orbits it (Tyrol, Kyuk'ya), or `paired` where neither is parented and the planets co-orbit both (Bacchus, Baker, Goss). The shape is derived from parent_id, not from the system's upstream `type`, which reports Tyrol as SINGLE_STAR despite its two stars. A nested companion is drawn where a moon is drawn but at star size, and a pair shares one rail slot; either way the you-are-here marker lands on the individual star, because the two are separate articles. No companion carries a body anywhere in the dataset, and the generator refuses to build one that does. `bodies` is everything orbiting the star, IN ORBITAL ORDER, planets and asteroid belts together. There is no sort key: position is the array index. Planet order comes from the Roman numeral in the upstream designation, because upstream has no orbit_period for 195 of its 326 planets; a body with no numeral (every belt, and Delamar) is placed by the overlay's `after`. A belt is marked `tier: belt`; anything unmarked is a planet. A planet's `moons` array also carries its rings, marked `tier: ring` — a ring nests where a moon nests, because that is the one level of nesting the rail has, but it is drawn as a band rather than a disc and is counted separately. A ring orbiting a MOON is dropped instead: it would need a level of its own, and the only one upstream has (Stanton's Ring of Yela) has no article either. Belts and rings carry no `km`, because upstream reports 0/null and neither has a meaningful diameter, so they render at a fixed size rather than as a scaled disc. `km` is a diameter for planets and moons but a RADIUS for stars: upstream states planets in km, moons in thousands of km, and stars either in solar radii (x696340, the Sun's radius) below 1000 or in km above it. Mixing the two quantities is harmless because the disc scale is rank-preserving within a tier and never compares across tiers. The unit rule is applied by each body's UPSTREAM type, which is why Pyro IV keeps planet-scale km while sitting at the moon tier. A belt's designation is lower-cased after the system name (\"Stanton belt alpha\"), which is house style rather than a correction, so it is derived here and not listed in the overlay; a Roman numeral keeps its capitals, because that is an orbital slot. `extents` is the disc scale: the smallest and largest km per tier ACROSS ALL 90 UPSTREAM SYSTEMS, unioned with whatever this file renders, so that adding a system never resizes a disc on a page already published. Module:SystemMap/Data.lua uses it when present and falls back to measuring this file when it is absent, which is the behaviour that made the sizes move. Do not hand-trim it to the systems listed below. See docs/superpowers/specs/2026-08-13-system-map-rollout-design.md.",
 	"extents": {
 		"star": {
 			"min": 6260,
@@ -1082,6 +1082,294 @@
 					"subtype": "Gas giant",
 					"moons": [],
 					"km": 52631
+				}
+			]
+		},
+		"Tyrol": {
+			"page": "Tyrol system",
+			"star": {
+				"page": "Tyrol A",
+				"label": "Tyrol A",
+				"subtype": "Subgiant",
+				"km": 3277584
+			},
+			"companion": {
+				"page": "Tyrol B",
+				"label": "Tyrol B",
+				"subtype": "A-type white dwarf",
+				"class": "degenerate",
+				"km": 14834
+			},
+			"companionShape": "nested",
+			"bodies": [
+				{
+					"page": "Tyrol I",
+					"label": "Tyrol I",
+					"designation": "Tyrol I",
+					"subtype": "Terrestrial rocky",
+					"moons": [
+						{
+							"page": "Lanisto",
+							"label": "Lanisto",
+							"designation": "1a"
+						}
+					],
+					"km": 2561
+				},
+				{
+					"page": "Tyrol II",
+					"label": "Tyrol II",
+					"designation": "Tyrol II",
+					"subtype": "Iron planet",
+					"moons": [],
+					"km": 5414
+				},
+				{
+					"page": "Tyrol III",
+					"label": "Tyrol III",
+					"designation": "Tyrol III",
+					"subtype": "Coreless planet",
+					"moons": [],
+					"km": 3434
+				},
+				{
+					"page": "Tyrol belt alpha",
+					"label": "Tyrol belt alpha",
+					"designation": "Tyrol belt alpha",
+					"tier": "belt"
+				},
+				{
+					"page": "Tyrol IV",
+					"label": "Tyrol IV",
+					"designation": "Tyrol IV",
+					"subtype": "Chthonian planet",
+					"moons": [],
+					"km": 11210
+				},
+				{
+					"page": "Tyrol V",
+					"label": "Tyrol V",
+					"designation": "Tyrol V",
+					"subtype": "Chthonian planet",
+					"moons": [],
+					"km": 14620
+				},
+				{
+					"page": "Tyrol VI",
+					"label": "Tyrol VI",
+					"designation": "Tyrol VI",
+					"subtype": "Gas giant",
+					"moons": [],
+					"km": 61793
+				},
+				{
+					"page": "Tyrol VII",
+					"label": "Tyrol VII",
+					"designation": "Tyrol VII",
+					"subtype": "Protoplanet",
+					"moons": [],
+					"km": 1031
+				}
+			]
+		},
+		"Kyuk'ya (Indra)": {
+			"page": "Kyuk'ya system",
+			"star": {
+				"page": "Kyuk'ya A",
+				"label": "Kyuk'ya A",
+				"subtype": "A-type main sequence",
+				"class": "A",
+				"km": 1056238
+			},
+			"companion": {
+				"page": "Kyuk'ya B",
+				"label": "Kyuk'ya B",
+				"subtype": "A-type white dwarf",
+				"class": "degenerate",
+				"km": 8546
+			},
+			"companionShape": "nested",
+			"bodies": [
+				{
+					"page": "Kyuk'ya I",
+					"label": "Kyuk'ya I",
+					"designation": "Kyuk'ya (Indra) I",
+					"subtype": "Gas giant",
+					"moons": [
+						{
+							"page": "Rings of Kyuk'ya I",
+							"label": "Rings of Kyuk'ya I",
+							"designation": "Rings of Kyuk'ya I",
+							"tier": "ring"
+						},
+						{
+							"page": "Pue'nu",
+							"label": "Pue'nu",
+							"designation": "1a",
+							"km": 500
+						}
+					],
+					"km": 71494
+				},
+				{
+					"page": "Kyuk'ya II",
+					"label": "Kyuk'ya II",
+					"designation": "Kyuk'ya (Indra) II",
+					"subtype": "Ice planet",
+					"moons": [],
+					"km": 3323
+				},
+				{
+					"page": "Kyuk'ya belt alpha",
+					"label": "Kyuk'ya belt alpha",
+					"designation": "Kyuk'ya (Indra) belt alpha",
+					"tier": "belt"
+				}
+			]
+		},
+		"Bacchus": {
+			"page": "Bacchus system",
+			"star": {
+				"page": "Bacchus A",
+				"label": "Bacchus A",
+				"subtype": "G-type main sequence",
+				"class": "G",
+				"km": 775655
+			},
+			"companion": {
+				"page": "Bacchus B",
+				"label": "Bacchus B",
+				"subtype": "K-type main sequence",
+				"class": "K",
+				"km": 646365
+			},
+			"companionShape": "paired",
+			"bodies": [
+				{
+					"page": "Bacchus I",
+					"label": "Bacchus I",
+					"designation": "Bacchus I",
+					"subtype": "Smog planet",
+					"moons": [],
+					"km": 11236.64979
+				},
+				{
+					"page": "Bacchus II",
+					"label": "Bacchus II",
+					"designation": "Bacchus II",
+					"subtype": "Ocean planet",
+					"moons": [],
+					"km": 6512.266469
+				},
+				{
+					"page": "Bacchus belt alpha",
+					"label": "Bacchus belt alpha",
+					"designation": "Bacchus belt alpha",
+					"tier": "belt"
+				},
+				{
+					"page": "Bacchus III",
+					"label": "Bacchus III",
+					"designation": "Bacchus III",
+					"subtype": "Gas giant",
+					"moons": [],
+					"km": 67863.1649
+				}
+			]
+		},
+		"Baker": {
+			"page": "Baker system",
+			"star": {
+				"page": "Baker A",
+				"label": "Baker A",
+				"subtype": "K-type main sequence",
+				"class": "K",
+				"km": 571567
+			},
+			"companion": {
+				"page": "Baker B",
+				"label": "Baker B",
+				"subtype": "K-type main sequence",
+				"class": "K",
+				"km": 621354
+			},
+			"companionShape": "paired",
+			"bodies": [
+				{
+					"page": "Baker I",
+					"label": "Baker I",
+					"designation": "Baker I",
+					"subtype": "Iron planet",
+					"moons": [],
+					"km": 3043
+				},
+				{
+					"page": "Baker II",
+					"label": "Baker II",
+					"designation": "Baker II",
+					"subtype": "Smog planet",
+					"moons": [],
+					"km": 6302
+				},
+				{
+					"page": "Baker III",
+					"label": "Baker III",
+					"designation": "Baker III",
+					"subtype": "Ice giant",
+					"moons": [],
+					"km": 24053
+				},
+				{
+					"page": "Baker IV",
+					"label": "Baker IV",
+					"designation": "Baker IV",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 4781
+				}
+			]
+		},
+		"Goss": {
+			"page": "Goss system",
+			"star": {
+				"page": "Goss A",
+				"label": "Goss A",
+				"subtype": "K-type main sequence",
+				"class": "K",
+				"km": 536151
+			},
+			"companion": {
+				"page": "Goss B",
+				"label": "Goss B",
+				"subtype": "K-type main sequence",
+				"class": "K",
+				"km": 494373
+			},
+			"companionShape": "paired",
+			"bodies": [
+				{
+					"page": "Goss I",
+					"label": "Goss I",
+					"designation": "Goss I",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 6313
+				},
+				{
+					"page": "Cassel",
+					"label": "Cassel",
+					"designation": "Goss II",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 5625
+				},
+				{
+					"page": "Goss III",
+					"label": "Goss III",
+					"designation": "Goss III",
+					"subtype": "Super-Earth",
+					"moons": [],
+					"km": 10066
 				}
 			]
 		}

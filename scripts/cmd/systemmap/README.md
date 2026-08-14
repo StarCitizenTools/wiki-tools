@@ -48,15 +48,17 @@ a note rather than an error.
 |---|---|
 | Orbital order | the Roman numeral ending the upstream designation |
 | Moon attachment | upstream `parent_id` |
-| Page title | the body's name, first letter upper-cased; `<System> (star)` for stars; `<System> system` for the system |
+| The second star, and how it is drawn | upstream `parent_id` between the two stars (see below) |
+| Page title | the body's name, first letter upper-cased; `<System> (star)` for the star of a **single**-star system; `<System> system` for the system |
 | Label | the upstream name, or its designation when upstream gives it no name |
 | Size in km | the upstream size, by tier (see below) |
 | Subtype and star class | explicit tables in `vocab.go` |
 | Belt casing | the system name, then lower case — the designation always, and `label`/`page` too when upstream names the belt nothing (see below) |
 | `extents`, the disc scale | every body in the whole mirror, by tier (see below) |
 
-Everything else is an overlay key: `page`, `label`, `icon`, `iconRatio`,
-`after`, `moonOf`, `km`.
+Everything else is an overlay key: per body `page`, `label`, `icon`,
+`iconRatio`, `after`, `moonOf`, `km`; per system `page`, `star`, `companion` and
+`companionShape`.
 
 `orbit_period` is **not** used. Upstream leaves it null for 195 of its 326
 planets, while 320 carry a Roman numeral, and planets are numbered outward from
@@ -149,6 +151,52 @@ Four belt designations were hand-edited on the wiki before this tool existed (re
 gates on the live page for that reason; see
 `internal/systemmap/testdata/README.md`.
 
+## A second star, and which of two shapes it takes
+
+Upstream has 93 stars across 90 systems. Five systems have two, none has three,
+83 have one, and two — Tamsa and Min — have none at all. The two starless systems
+still carry planets, so the generator builds them with the `star` key simply
+absent rather than refusing; `resolveStars` returns nothing and the rail draws no
+head.
+
+For the five, which star is the primary and how the pair is drawn are both
+derived from `parent_id`:
+
+| `parent_id` | Shape | Systems |
+|---|---|---|
+| one star parented to the other | `nested` — the parented one is the companion | Tyrol, Kyuk'ya |
+| neither parented | `paired` — no primary; file order is the designation's | Bacchus, Baker, Goss |
+
+The distinction is real rather than a rendering preference. In both nested
+systems every planet, belt and moon is *also* parented to the primary, so the
+hierarchy is upstream's. In all three paired systems both stars sit at the same
+distance from the barycentre — Bacchus A and B are both `0.0735` — and no body is
+parented to either. Drawing a co-orbiting pair as a hierarchy would invent a
+centre the data denies.
+
+**The system's own `type` field is not consulted.** It says `BINARY` for four of
+the five and `SINGLE_STAR` for Tyrol, which has two stars. Counting the stars is
+the only reliable answer, and a test pins that.
+
+Two derivations change when there are two stars, and neither touches a
+single-star system:
+
+- **The star's page title.** `<System> (star)` exists to disambiguate a star
+  whose designation is just the system name. A binary's stars are already
+  designated apart, and the convention's title does not exist on the wiki for any
+  of the five — `Tyrol (star)` is a red link while `Tyrol A` and `Tyrol B` are
+  articles. So a star sharing its system with another takes its own key as its
+  title, like every other body.
+- **A `companion` block in the overlay** corrects the second star, with the same
+  keys `star` takes. Filing one on a system with a single star fails the build,
+  the way any other correction that reaches nothing does.
+
+`resolveStars` refuses three arrangements outright rather than guessing: three or
+more stars, two stars each parented to the other, and a star parented to
+something that is not the other star. It also refuses a system where any body is
+parented to the companion — no companion carries a body anywhere in the dataset
+today, and one that did would otherwise be drawn as orbiting the pair.
+
 ## A planetary ring nests where a moon nests
 
 Upstream types its eleven rings `ASTEROID_BELT`, the same as the regions on the
@@ -190,9 +238,15 @@ system name, and the planet in that name is a proper noun.
 3. Place the belts with `after`, from the belt articles' own prose. Upstream
    cannot supply this for any of its 80 belts, and it is the main per-system
    cost.
-4. Check the star's page title. `<System> (star)` is the convention, but Terra's
-   star is `Terra Nova`.
-5. Add the system to `internal/systemmap/testdata/starmap.json`, or the
+4. Check the star's page title. `<System> (star)` is the convention for a system
+   with one star, but Terra's star is `Terra Nova`; a binary's stars take their
+   own designations, `Tyrol A` and `Tyrol B`.
+5. Verify every title the run emits against the wiki with `redirects=1`, and
+   **compare the redirect target** rather than only asking whether the page
+   exists. A redirect passes an existence probe while pointing somewhere else:
+   `Charon` resolves to `Charon system`, and `Kyuk'ya Belt Alpha` to
+   `Kyuk'ya belt alpha`.
+6. Add the system to `internal/systemmap/testdata/starmap.json`, or the
    reproduction test will fail. See the README there.
 
 Every subtype and star class upstream ships is already mapped, so a new system

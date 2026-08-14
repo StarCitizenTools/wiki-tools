@@ -59,12 +59,46 @@ type Body struct {
 	IconRatio float64  `json:"iconRatio,omitempty"`
 }
 
-// System is one star system: its own article, its star, and everything orbiting
-// the star in orbital order — planets and belts interleaved.
+// Shapes a system's second star can be drawn in. Both are real arrangements
+// upstream describes, and drawing one as the other would be the inconsistency:
+// see resolveStars for how the shape is derived.
+const (
+	// shapeNested is a companion that orbits the primary — upstream parents it
+	// to the other star (Tyrol B, Kyuk'ya B). It is drawn where a moon is drawn,
+	// nested under the primary, because that is what it does.
+	shapeNested = "nested"
+	// shapePaired is a co-orbiting pair — neither star is parented to the other,
+	// and upstream puts both at the same distance from the barycentre (Bacchus,
+	// Baker, Goss). Both share the head slot and the planets orbit the pair.
+	shapePaired = "paired"
+)
+
+// System is one star system: its own article, its star or stars, and everything
+// orbiting them in orbital order — planets and belts interleaved.
+//
+// Star, Companion and CompanionShape are all optional, and all three are omitted
+// rather than emitted empty, which is what keeps this shape backward compatible:
+// the 83 single-star systems write `page`, `star`, `bodies` and nothing else,
+// exactly as they did before a second star was representable.
+//
+// Star is a pointer because two upstream systems (Tamsa, Min) have no star at
+// all. They carry planets and moons and are perfectly renderable without a head,
+// so the model must not assume one — a value type here would have made "no star"
+// unrepresentable and pushed the problem into whichever code first dereferenced
+// it.
 type System struct {
-	Page   string `json:"page"`
-	Star   Body   `json:"star"`
-	Bodies []Body `json:"bodies"`
+	Page string `json:"page"`
+	Star *Body  `json:"star,omitempty"`
+	// Companion is the system's second star. Five systems have one; none has a
+	// third. It is a sibling key rather than an entry in Bodies because it is
+	// not on the planet rail, and rather than an array of stars because turning
+	// `star` into `stars` would have rewritten all 145 published pages to say
+	// something none of them needed to say.
+	Companion *Body `json:"companion,omitempty"`
+	// CompanionShape is how the two stars relate: shapeNested or shapePaired.
+	// It is meaningless without a companion and is never written without one.
+	CompanionShape string `json:"companionShape,omitempty"`
+	Bodies         []Body `json:"bodies"`
 }
 
 // Extent is one tier's smallest and largest `km`, in the units Body.KM stores.

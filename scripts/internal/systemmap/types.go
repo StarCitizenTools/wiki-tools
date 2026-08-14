@@ -18,17 +18,27 @@ import (
 	"fmt"
 )
 
-// Tier marks a body that is not a planet. Only belts carry one: Module:SystemMap
-// infers "planet" from the absence of the key, and moons from their position in
-// a planet's `moons` array.
-const tierBelt = "belt"
+// Tier marks a body that is not what its position in the file would otherwise
+// say. Module:SystemMap infers "planet" from the absence of the key at the top
+// level, and "moon" from the absence of it inside a planet's `moons` array.
+//
+// `belt` marks a region on the planet rail. `ring` marks a planetary ring, which
+// nests where a moon nests — the rail has exactly one level of nesting and a
+// ring wants that one — while carrying its own glyph kind, because a ring is not
+// a body and must not be drawn as one.
+const (
+	tierBelt = "belt"
+	tierRing = "ring"
+)
 
-// Body is one rendered body: a star, a planet, a belt, or a moon.
+// Body is one rendered body: a star, a planet, a belt, a moon, or a planet's
+// rings.
 //
 // Every optional field is omitted rather than emitted as null, because
 // Module:SystemMap/Data.lua reads them with `type(x) == 'string'`-style guards
 // and mw.loadJsonData freezes what it loads — an explicit null buys nothing and
-// costs bytes on a page that is parsed on every render of 42 pages.
+// costs bytes on a page that is re-parsed on every render of every article that
+// embeds a map.
 type Body struct {
 	Page        string `json:"page"`
 	Label       string `json:"label"`

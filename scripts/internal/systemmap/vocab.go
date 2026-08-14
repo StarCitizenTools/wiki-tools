@@ -5,6 +5,8 @@ import (
 	"math"
 	"strings"
 	"unicode"
+
+	"github.com/StarCitizenTools/wiki-tools/scripts/internal/starmap"
 )
 
 // Upstream object types. Everything else — jump points, landing zones, stations,
@@ -17,6 +19,22 @@ const (
 	typeBelt    = "ASTEROID_BELT"
 	typeCluster = "ASTEROID_FIELD"
 )
+
+// subtypePlanetaryRing is the subtype upstream gives all eleven of its rings.
+// The type is no help: a ring is typed ASTEROID_BELT, the same as the regions on
+// the planet rail, so the subtype is the only thing that separates them.
+const subtypePlanetaryRing = "Planetary Ring"
+
+// isRing reports whether an object is a planetary ring.
+//
+// It tests the subtype alone. The drop rule this replaced also required the ring
+// to be unnamed, which was true of all eleven and was load-bearing there — the
+// justification for dropping them was that an unnamed ring has nothing to link.
+// It is not load-bearing here: a ring upstream names would take that name as its
+// label and page like any other body, and it would still be a ring.
+func isRing(obj *starmap.Object) bool {
+	return subtypeName(obj) == subtypePlanetaryRing
+}
 
 // planetSubtypes maps the upstream Title Case subtype onto the display string
 // systems.json stores.

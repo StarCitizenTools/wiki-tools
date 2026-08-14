@@ -76,6 +76,7 @@ Measured against the hand-written file, not taken from its `%doc`:
 | Star, size < 1000 | solar radii | x696340, rounded to whole km |
 | Star, size >= 1000 | km | x1, rounded to whole km |
 | Belt | 0 or null | omitted; belts render as a fixed band |
+| Ring | 0 or null | omitted, by role rather than by what the field holds |
 
 The star cutoff is not a close call: across all 93 stars the largest solar-radii
 value is 13.91 and the smallest kilometre value is 6,260. Sol sits at exactly
@@ -111,8 +112,9 @@ Belts only. A planet's `Stanton IV` is stored exactly as upstream writes it.
 
 ### It reaches `label` and `page` when upstream names the belt nothing
 
-Upstream names 21 of its 80 belts. Eleven of the rest are unnamed Planetary
-Rings, which are dropped; the other 48, across 30 systems, reach the output with
+Upstream names 21 of its 80 belts. Eleven of the rest are Planetary Rings, which
+are not belts at all here (see below); the other 48, across 30 systems, reach the
+output with
 no name at all. For those the key falls back to the designation, so `label` — and
 `page`, derived from it — *are* that designation. The rule therefore applies to
 all three, and they agree.
@@ -146,6 +148,39 @@ Four belt designations were hand-edited on the wiki before this tool existed (re
 374302, `Fix casing`) and the edit never reached git. The acceptance test now
 gates on the live page for that reason; see
 `internal/systemmap/testdata/README.md`.
+
+## A planetary ring nests where a moon nests
+
+Upstream types its eleven rings `ASTEROID_BELT`, the same as the regions on the
+planet rail, and only the subtype `Planetary Ring` separates them. That type is
+misleading: a ring orbits a planet, not a star, and drawing it out on the rail
+would put it in an orbital slot.
+
+So a ring is written into its planet's `moons` array, marked `tier: ring`. The
+rail nests exactly one level and that is the level, which is the whole reason
+this needs no new structure — but a ring is emphatically **not** a moon, so it
+carries its own glyph kind and `Module:SystemMap/styles.css` draws it as a flat
+speckled band rather than a disc. `Data.lua` counts it separately too: Sol reads
+`9 planets, 19 moons, 4 rings, 2 belts`.
+
+Ten of the eleven orbit a planet and render. The eleventh, Stanton's
+`Ring of Yela`, orbits a **moon** — and a ring of a moon would need a second
+level of nesting, for one body in all 90 systems. It is dropped, which is also
+the honest answer for it: it has no article under any title, so there would be
+nothing to link even with somewhere to put it.
+
+Two rules follow, and both are about the 57 published pages:
+
+- **A ring carries no `km`, decided by its role and not by its size field.**
+  All eleven report 0 or null today, so the data cannot distinguish "a ring has
+  no diameter" from "this field is empty", and a size that slipped through would
+  be measured at the moon tier and resize every moon on every live page.
+- **`extents` ignores rings in both passes.** The upstream pass skips them by
+  subtype rather than relying on their type being one the tier map misses.
+
+The belt casing rule does not reach them: every ring designation is either
+`Rings of <planet>` or Sol's `Jovian Rings`, neither of which starts with the
+system name, and the planet in that name is a proper noun.
 
 ## Adding a system
 

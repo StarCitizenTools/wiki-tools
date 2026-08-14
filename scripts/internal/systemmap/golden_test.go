@@ -27,7 +27,7 @@ var (
 // generated. Tab indentation, key order, the trailing newline, and float
 // formatting (165.4 must not become 165.40000000000001, and 700 must not become
 // 7e+02) all have to survive a decode and re-encode before the generator can be
-// trusted to rewrite a page that 42 articles render.
+// trusted to rewrite a page that every published map article renders.
 //
 // It reads the frozen pre-generator copy on purpose. Pointing it at the live
 // systems.json was the obvious thing to do and was silently useless: that file
@@ -117,13 +117,22 @@ func buildFromCommittedOverlay(t *testing.T) *Document {
 // Revision 374302 ("Fix casing", 2026-08-13) lower-cased four belt designations
 // on the wiki and was never mirrored back to git, so the committed file was
 // stale — and a generator validated against a stale baseline would have quietly
-// reverted a real editorial decision on 42 published pages the next time it ran.
+// reverted a real editorial decision, the next time it ran, on the 42 pages
+// those three systems render. (That count is the three systems' own footprint,
+// not the whole rollout's: do not "update" it to the current page total.)
 // The casing is a derivation rule now (beltCase), which is what makes the live
 // bytes reproducible rather than a correction to be transcribed.
 //
-// Only the three live systems are compared, and only their `systems` entries.
-// Terra and Castra are not on the wiki yet; %doc and extents are this package's
-// own output and are pinned by their own tests.
+// Every system the capture holds is compared, and only its `systems` entry. The
+// capture is whatever the wiki was last given — Stanton, Pyro, Nyx, Terra and
+// Castra as of revision 374889 — so re-capturing after a deployment widens this
+// gate to cover the batch that just shipped, rather than needing to be listed
+// here. The repo copy runs ahead of it: systems the generator builds but the
+// wiki has not received yet are gated by TestReproducesTheCommittedFile.
+//
+// %doc and extents are excluded because they are this package's own output, and
+// the committed extents are anchored across all 90 upstream systems while this
+// test builds from a seven-system fixture; extents_test.go covers them instead.
 func TestReproducesTheLivePage(t *testing.T) {
 	live := decodeFile(t, liveSystems)
 	got := buildFromCommittedOverlay(t)

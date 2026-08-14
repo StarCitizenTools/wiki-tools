@@ -26,7 +26,10 @@ local function eachBody(fn)
 			fn(body, body.tier == 'belt' and 'belt' or 'planet', key)
 			if body.moons then
 				for _, moon in ipairs(body.moons) do
-					fn(moon, 'moon', key)
+					-- A planet's `moons` array also carries its rings, marked
+					-- `tier: ring`. They are reported as their own tier so that a
+					-- caller counting moons does not count a ring as one.
+					fn(moon, moon.tier == 'ring' and 'ring' or 'moon', key)
 				end
 			end
 		end
@@ -34,25 +37,24 @@ local function eachBody(fn)
 end
 
 function suite:testEverySystemPresent()
-	self:assertEquals('table', type(DATA.systems.Stanton))
-	self:assertEquals('table', type(DATA.systems.Pyro))
-	self:assertEquals('table', type(DATA.systems.Nyx))
-	self:assertEquals('table', type(DATA.systems.Terra))
-	self:assertEquals('table', type(DATA.systems.Castra))
+	for _, key in ipairs({ 'Stanton', 'Pyro', 'Nyx', 'Terra', 'Castra', 'Sol', 'Ellis', 'Kilian', 'Taranis', 'Oberon' }) do
+		self:assertEquals('table', type(DATA.systems[key]), key)
+	end
 end
 
 -- These move whenever a system is added, which is the point: systems.json is
 -- generated now (scripts/cmd/systemmap), and a generator that quietly drops a
 -- body would otherwise show up only as a gap on a rendered page.
 function suite:testBodyCounts()
-	local counts = { star = 0, planet = 0, belt = 0, moon = 0 }
+	local counts = { star = 0, planet = 0, belt = 0, moon = 0, ring = 0 }
 	eachBody(function(_, tier)
 		counts[tier] = counts[tier] + 1
 	end)
-	self:assertEquals(5, counts.star)
-	self:assertEquals(19, counts.planet)
-	self:assertEquals(23, counts.moon)
-	self:assertEquals(6, counts.belt)
+	self:assertEquals(10, counts.star)
+	self:assertEquals(65, counts.planet)
+	self:assertEquals(45, counts.moon)
+	self:assertEquals(13, counts.belt)
+	self:assertEquals(5, counts.ring)
 end
 
 function suite:testEveryBodyHasPageAndLabel()
@@ -381,6 +383,17 @@ function suite:testGlyphKindBeltIgnoresItsSubtype()
 	self:assertEquals('belt', Data.glyphKind('belt', 'System belt'))
 	self:assertEquals('belt', Data.glyphKind('belt', 'System cluster'))
 	self:assertEquals('belt', Data.glyphKind('belt', nil))
+end
+
+-- A ring short-circuits for the same reason, and it MUST: it sits at the moon
+-- tier, so anything that fell through would land on the moon disc and draw a
+-- ring as one of the bodies beside it.
+function suite:testGlyphKindRingIgnoresItsSubtypeAndNeverFallsBackToMoon()
+	self:assertEquals('ring', Data.glyphKind('ring', 'Planetary ring'))
+	self:assertEquals('ring', Data.glyphKind('ring', nil))
+	-- Even handed a subtype that IS mapped, which is the fallthrough that would
+	-- have painted it as a body.
+	self:assertEquals('ring', Data.glyphKind('ring', 'Terrestrial rocky'))
 end
 
 function suite:testEverySubtypeInTheDataIsRecognised()
@@ -752,7 +765,22 @@ function suite:testAnnotateExistenceProbesTheSystemArticleOnce()
 	for _, n in pairs(seen) do
 		total = total + n
 	end
-	self:assertEquals(19, total, 'Stanton is the worst case at 19 probes')
+	self:assertEquals(19, total, 'Stanton costs 19 probes')
+end
+
+-- Sol is the worst case in the file, and the reason the budget note is worth
+-- keeping honest: 1 star + 9 planets + 2 belts + 19 moons + 4 rings + the system
+-- article. Rings are probed like anything else — they link to articles, and a
+-- moved one should still trip the tracking category — so they count against the
+-- expensive-parser-function limit too.
+function suite:testAnnotateExistenceCostsMostOnSol()
+	local model = Data.buildModel('Sol', '')
+	local total = 0
+	SystemMap.annotateExistence(model, function()
+		total = total + 1
+		return true
+	end)
+	self:assertEquals(36, total, 'Sol is the worst case at 36 probes, against a measured limit of 100')
 end
 
 function suite:testAnnotateExistenceReturnsEmptyWhenAllPagesExist()
@@ -1091,7 +1119,9 @@ end
 -- true moon in all 90 systems.
 function suite:testEveryBodyFallsInsideItsRecordedTier()
 	eachBody(function(body, tier, key)
-		if tier == 'belt' or type(body.km) ~= 'number' then
+		-- Belts and rings are regions drawn at a fixed size, so neither carries a
+		-- km to be inside anything.
+		if tier == 'belt' or tier == 'ring' or type(body.km) ~= 'number' then
 			return
 		end
 		local e = DATA.extents[tier]
@@ -1210,6 +1240,120 @@ function suite:testDiscSizeNeverReturnsSomethingUnrenderable()
 		self:assertEquals(px, px, tier .. ' is not NaN')
 		self:assertEquals(cap, px, tier .. ' takes its cap')
 	end
+end
+
+-- ---------------------------------------------------------------------------
+-- Planetary rings
+--
+-- A ring nests where a moon nests, because that is the one level of nesting the
+-- rail has. Everything below is about it not being mistaken for one.
+-- ---------------------------------------------------------------------------
+
+--- The moons array of one planet, by page title.
+--- @param systemKey string
+--- @param page string
+--- @return table
+local function moonsOf(systemKey, page)
+	local model = Data.buildModel(systemKey, '')
+	for _, planet in ipairs(model.bodies) do
+		if planet.page == page then
+			return planet.moons
+		end
+	end
+	error('no planet ' .. page .. ' in ' .. systemKey)
+end
+
+function suite:testRingsNestInTheirPlanetsMoonList()
+	local moons = moonsOf('Sol', 'Jupiter')
+	local ring = moons[1]
+	self:assertEquals('Jovian Rings', ring.page)
+	self:assertEquals('Jovian Rings', ring.label)
+	self:assertEquals('ring', ring.tier)
+	self:assertEquals('ring', ring.kind, 'a ring must never carry the moon kind')
+	-- The ring leads, then the four Galilean moons in their lettered order: the
+	-- column reads outward from the planet, and the ring is inside all of them.
+	self:assertEquals('Io', moons[2].label)
+	self:assertEquals('Callisto', moons[5].label)
+	self:assertEquals(5, #moons)
+end
+
+-- A ring is drawn at a fixed size, like a belt band, and lying flat rather than
+-- standing up: it sits in the moon column, where the layout is a row.
+function suite:testRingsCarryABandRatherThanADisc()
+	local moons = moonsOf('Sol', 'Saturn')
+	local ring = moons[1]
+	self:assertEquals('Rings of Saturn', ring.page)
+	self:assertEquals('table', type(ring.band), 'a ring renders as a band')
+	self:assertTrue(ring.band.width > ring.band.height, 'and the band lies flat')
+	-- Its neighbours in the same column are still scaled discs.
+	self:assertEquals(nil, moons[2].band, 'a real moon keeps its disc')
+end
+
+-- The rule that lets rings ship at all: they must not resize the 57 pages that
+-- are already live. A ring carries no km — not "happens to have none upstream",
+-- but never — so it cannot enter the moon tier's extents.
+function suite:testRingsCarryNoSizeAndSoCannotMoveTheMoonScale()
+	local rings = 0
+	eachBody(function(body, tier, key)
+		if tier ~= 'ring' then
+			return
+		end
+		rings = rings + 1
+		self:assertEquals(nil, body.km, key .. '/' .. body.page .. ' must carry no km')
+		self:assertEquals(nil, body.moons, key .. '/' .. body.page .. ' cannot have moons')
+		self:assertEquals('string', type(body.designation), key .. '/' .. body.page .. ' designation')
+	end)
+	self:assertTrue(rings > 0, 'the file has rings to check')
+
+	-- Pinned rather than merely "unchanged": the moon tier still runs from the
+	-- smallest true moon upstream to Pyro IV, the reparented planet, exactly as it
+	-- did before rings existed.
+	self:assertEquals(3214, DATA.extents.moon.max)
+	self:assertEquals(44.6, DATA.extents.moon.min)
+end
+
+-- The fallback path has to agree with the generator, or a hand-written file
+-- would scale its moons against a ring. Belts are skipped at the planet tier for
+-- the same reason, and the same test shape covers both.
+function suite:testComputeExtentsIgnoresARingWithASize()
+	local resolved = Data.computeExtents({
+		systems = {
+			Vector = {
+				star = { km = 500 },
+				bodies = {
+					{ km = 100, moons = { { km = 40 }, { km = 99999, tier = 'ring' } } },
+				},
+			},
+		},
+	})
+	self:assertEquals(40, resolved.moon.max, 'a ring must not stretch the moon tier')
+	self:assertEquals(40, resolved.moon.min)
+end
+
+-- A ring around a MOON is dropped by the generator, because the rail nests one
+-- level and there is nowhere to draw it. Stanton is the only system upstream
+-- with one, and it is live on the wiki, so this is the regression that would be
+-- visible to readers.
+function suite:testAMoonsRingIsNotRendered()
+	local html = tostring(Renderer.renderRail(Data.buildModel('Stanton', '')))
+	self:assertEquals(nil, html:find('data%-kind="ring"'), 'Stanton draws no ring')
+	self:assertEquals(nil, html:find('Ring of Yela'), 'Ring of Yela orbits a moon and is dropped')
+end
+
+function suite:testRenderMarksRingsWithTheirOwnKindAndTier()
+	local html = tostring(Renderer.renderRail(Data.buildModel('Sol', '')))
+	local kinds = select(2, html:gsub('data%-kind="ring"', ''))
+	self:assertEquals(4, kinds, 'Sol draws four rings')
+	self:assertTrue(html:find('t%-system%-map__item%-%-ring') ~= nil, 'and marks the tier for the row layout')
+	self:assertTrue(html:find('%[%[Rings of Uranus|Rings of Uranus%]%]') ~= nil, 'a ring links to its own article')
+	-- The band, not a disc: wider than it is tall, which no moon ever is.
+	self:assertTrue(html:find('width:15%.0px;height:5%.0px') ~= nil, 'the ring band is inline-sized')
+end
+
+-- Counted apart from moons. Folding four rings into Sol's moon count would both
+-- overstate the moons and hide something the system is known for.
+function suite:testSummariseCountsRingsSeparately()
+	self:assertEquals('9 planets, 19 moons, 4 rings, 2 belts', Data.summarise(Data.buildModel('Sol', '')))
 end
 
 -- ---------------------------------------------------------------------------

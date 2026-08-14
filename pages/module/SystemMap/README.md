@@ -34,10 +34,21 @@ exists **fails the build** rather than being ignored, because a silently dropped
 correction is exactly how this work gets lost.
 
 To add a system, list it in `overlay.json` — an empty entry is enough if nothing
-needs correcting — and run `mise run systemmap`. To correct a body, add the one
-key that is wrong: `page`, `label`, `icon`, `iconRatio`, `after` (position a body
-upstream cannot order — every belt, and Delamar), `moonOf` (reparent, as Pyro IV
-under Pyro V), or `km`.
+needs correcting — and run `mise run systemmap`. To correct a body, add it under
+that system's `bodies` with the one key that is wrong: `page`, `label`, `icon`,
+`iconRatio`, `after` (position a body upstream cannot order — every belt, and
+Delamar), `moonOf` (reparent, as Pyro IV under Pyro V), or `km`.
+
+A star goes in a sibling `star` block rather than under `bodies` — Terra's
+`"star": { "page": "Terra Nova" }` is the whole of it. It takes the same keys
+except `after` and `moonOf`, which the one body nothing orbits has no use for,
+and its `km` is a radius rather than a diameter. Filing a star under `bodies`
+fails the build with `overlay corrects …` instead of being ignored, so the
+mistake costs a run rather than producing a wrong map.
+
+A top-level `exclude` list, a sibling of `systems`, drops matching bodies from
+every system; `*` is its only wildcard. It currently carries upstream's
+protoplanetary disks under both spellings, RSI's and its typo.
 
 Everything else is derived, and `scripts/cmd/systemmap/README.md` documents the
 rules. The two worth knowing here:
@@ -47,19 +58,29 @@ rules. The two worth knowing here:
   with no numeral needs an `after`.
 - **A belt's designation is lower-cased after the system name** — upstream's
   `Stanton Belt Alpha` is stored as `Stanton belt alpha`. That is house style
-  rather than a correction, so it is a derivation rule and not four overlay
-  entries. A Roman numeral keeps its capitals, because that is an orbital slot.
-  Upstream names 21 of its 80 belts; for the 48 unnamed ones that reach the
-  file, the rule reaches their `label` and `page` too, since all three derive
-  from that one designation — so they agree instead of storing the same string
-  in two cases. A belt upstream *does* name (`Aaron Halo`, `Keeger Belt`) keeps
-  that name verbatim in `label` and `page`: it is a proper noun, and
-  lower-casing it would red-link the article. The overlay still keys the body by
-  upstream's spelling, not by the house-styled label.
+  rather than a correction, so it is a derivation rule rather than one overlay
+  entry per belt. A Roman numeral keeps its capitals, because that is an orbital
+  slot. Upstream names 21 of its 80 belts, and a belt it *does* name (`Aaron
+  Halo`, `Keeger Belt`) keeps that name verbatim in `label` and `page`: it is a
+  proper noun, and lower-casing it would red-link the article. For an unnamed
+  belt the label *is* the designation, so the rule reaches `label` and `page`
+  too and all three agree, instead of storing the same string in two cases —
+  48 belts across 30 systems once the rollout covers every one. The overlay
+  still keys the body by upstream's spelling, not by the house-styled label.
 
 A belt is marked `tier: belt`; anything unmarked is a planet. Belts carry no
 `km`: upstream reports their size as `0` or `null`, and a belt has no meaningful
 diameter, so they render as a fixed speckled band rather than a scaled disc.
+
+**A planetary ring sits in its planet's `moons` array, marked `tier: ring`.**
+The rail nests exactly one level, and that level is where a ring belongs — but a
+ring is not a moon, so it takes its own glyph kind and is drawn as a flat band
+rather than a disc, and the header counts it apart ("9 planets, 19 moons, 4
+rings, 2 belts" for Sol). Like a belt it carries no `km`, and it is kept out of
+the disc scale entirely: a ring that acquired a size would otherwise resize every
+moon on every published page. A ring around a *moon* is dropped instead of
+nested — that would need a level the rail does not have, and the only one
+upstream has, Stanton's `Ring of Yela`, has no article to link either.
 
 Twenty-two planet subtypes share eleven glyph kinds — `SUBTYPE_KIND` in
 `Data.lua` holds that table, and the generator carries the matching one, so
@@ -84,7 +105,7 @@ and carries no measurement**. Please do not "correct" it.
 
 Within a tier the mapping is logarithmic between that tier's smallest and largest
 body: rank-preserving, not proportional. Pyro V is 6.6x Hurston by diameter and
-renders about 1.4x. A linear map would put the smallest planet at 0.05px.
+renders about 1.3x. A linear map would put the smallest planet at 0.05px.
 
 Gas and ice giants are therefore distinguished by banding rather than by
 diameter, which is also all the upstream data supports: its `size` field is

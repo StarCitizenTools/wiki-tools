@@ -50,6 +50,14 @@ func anchorExtents(doc *starmap.Document, out *Document) *Extents {
 
 	for i := range doc.Objects {
 		obj := &doc.Objects[i]
+		// A ring is never drawn as a scaled body, so it never sets the scale for
+		// the ones that are. Upstream types all eleven ASTEROID_BELT, which the
+		// tier map already skips; this makes the rule about what the object IS
+		// rather than about how upstream happens to type it, which is the same
+		// basis the ring is recognised on everywhere else.
+		if isRing(obj) {
+			continue
+		}
 		tier, ok := upstreamTier[obj.Type]
 		if !ok {
 			continue
@@ -76,7 +84,17 @@ func anchorExtents(doc *starmap.Document, out *Document) *Extents {
 				continue
 			}
 			for j := range *body.Moons {
-				b.note(tierMoon, (*body.Moons)[j].KM)
+				moon := &(*body.Moons)[j]
+				// A ring shares the moons array with real moons and is skipped
+				// for the same reason a belt is skipped above: it renders as a
+				// fixed band, so a km on one — an overlay override, or a figure
+				// upstream invents later — would widen the moon tier with a
+				// number nothing draws, and resize every moon on every published
+				// page.
+				if moon.Tier == tierRing {
+					continue
+				}
+				b.note(tierMoon, moon.KM)
 			}
 		}
 	}
@@ -112,7 +130,7 @@ func (b extentBuilder) note(tier string, km *float64) {
 }
 
 // summarise renders the extents as one line for the build report, so that a
-// change to the disc scale of 42 published pages is visible in the run that
+// change to the disc scale of every published page is visible in the run that
 // caused it rather than only in the committed diff.
 func (e *Extents) summarise() string {
 	if e == nil {

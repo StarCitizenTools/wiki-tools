@@ -1,5 +1,5 @@
 {
-	"%doc": "Generated file, do not hand-edit: `mise run systemmap` rebuilds it from the ARK Starmap mirror plus the hand-owned corrections in pages/module/SystemMap/overlay.json (wiki-tools repo), and an edit made here is lost on the next regeneration. Make it in the overlay instead. `bodies` is everything orbiting the star, IN ORBITAL ORDER, planets and asteroid belts together. There is no sort key: position is the array index. Planet order comes from the Roman numeral in the upstream designation, because upstream has no orbit_period for 195 of its 326 planets; a body with no numeral (every belt, and Delamar) is placed by the overlay's `after`. A belt is marked `tier: belt`; anything unmarked is a planet. Belts carry no `km`, because upstream reports 0/null and a belt has no meaningful diameter, so they render as a fixed band rather than a scaled disc. `km` is a diameter for planets and moons but a RADIUS for stars: upstream states planets in km, moons in thousands of km, and stars either in solar radii (x696340, the Sun's radius) below 1000 or in km above it. Mixing the two quantities is harmless because the disc scale is rank-preserving within a tier and never compares across tiers. The unit rule is applied by each body's UPSTREAM type, which is why Pyro IV keeps planet-scale km while sitting at the moon tier. A belt's designation is lower-cased after the system name (\"Stanton belt alpha\"), which is house style rather than a correction, so it is derived here and not listed in the overlay; a Roman numeral keeps its capitals, because that is an orbital slot. `extents` is the disc scale: the smallest and largest km per tier ACROSS ALL 90 UPSTREAM SYSTEMS, unioned with whatever this file renders, so that adding a system never resizes a disc on a page already published. Module:SystemMap/Data.lua uses it when present and falls back to measuring this file when it is absent, which is the behaviour that made the sizes move. Do not hand-trim it to the systems listed below. See docs/superpowers/specs/2026-08-13-system-map-rollout-design.md.",
+	"%doc": "Generated file, do not hand-edit: `mise run systemmap` rebuilds it from the ARK Starmap mirror plus the hand-owned corrections in pages/module/SystemMap/overlay.json (wiki-tools repo), and an edit made here is lost on the next regeneration. Make it in the overlay instead. `bodies` is everything orbiting the star, IN ORBITAL ORDER, planets and asteroid belts together. There is no sort key: position is the array index. Planet order comes from the Roman numeral in the upstream designation, because upstream has no orbit_period for 195 of its 326 planets; a body with no numeral (every belt, and Delamar) is placed by the overlay's `after`. A belt is marked `tier: belt`; anything unmarked is a planet. A planet's `moons` array also carries its rings, marked `tier: ring` — a ring nests where a moon nests, because that is the one level of nesting the rail has, but it is drawn as a band rather than a disc and is counted separately. A ring orbiting a MOON is dropped instead: it would need a level of its own, and the only one upstream has (Stanton's Ring of Yela) has no article either. Belts and rings carry no `km`, because upstream reports 0/null and neither has a meaningful diameter, so they render at a fixed size rather than as a scaled disc. `km` is a diameter for planets and moons but a RADIUS for stars: upstream states planets in km, moons in thousands of km, and stars either in solar radii (x696340, the Sun's radius) below 1000 or in km above it. Mixing the two quantities is harmless because the disc scale is rank-preserving within a tier and never compares across tiers. The unit rule is applied by each body's UPSTREAM type, which is why Pyro IV keeps planet-scale km while sitting at the moon tier. A belt's designation is lower-cased after the system name (\"Stanton belt alpha\"), which is house style rather than a correction, so it is derived here and not listed in the overlay; a Roman numeral keeps its capitals, because that is an orbital slot. `extents` is the disc scale: the smallest and largest km per tier ACROSS ALL 90 UPSTREAM SYSTEMS, unioned with whatever this file renders, so that adding a system never resizes a disc on a page already published. Module:SystemMap/Data.lua uses it when present and falls back to measuring this file when it is absent, which is the behaviour that made the sizes move. Do not hand-trim it to the systems listed below. See docs/superpowers/specs/2026-08-13-system-map-rollout-design.md.",
 	"extents": {
 		"star": {
 			"min": 6260,
@@ -440,6 +440,648 @@
 					"subtype": "Terrestrial rocky",
 					"moons": [],
 					"km": 6767
+				}
+			]
+		},
+		"Sol": {
+			"page": "Sol system",
+			"star": {
+				"page": "Sol (star)",
+				"label": "Sol",
+				"subtype": "G-type main sequence",
+				"class": "G",
+				"km": 696340
+			},
+			"bodies": [
+				{
+					"page": "Mercury (planet)",
+					"label": "Mercury",
+					"designation": "Sol I",
+					"subtype": "Iron planet",
+					"moons": [],
+					"km": 2439.7
+				},
+				{
+					"page": "Venus",
+					"label": "Venus",
+					"designation": "Sol II",
+					"subtype": "Smog planet",
+					"moons": [],
+					"km": 6051.8
+				},
+				{
+					"page": "Earth",
+					"label": "Earth",
+					"designation": "Sol III",
+					"subtype": "Terrestrial rocky",
+					"moons": [
+						{
+							"page": "Luna",
+							"label": "Luna",
+							"designation": "3a",
+							"km": 1000
+						}
+					],
+					"km": 6371
+				},
+				{
+					"page": "Mars",
+					"label": "Mars",
+					"designation": "Sol IV",
+					"subtype": "Desert planet",
+					"moons": [
+						{
+							"page": "Phobos",
+							"label": "Phobos",
+							"designation": "4a",
+							"km": 110
+						},
+						{
+							"page": "Deimos",
+							"label": "Deimos",
+							"designation": "4b",
+							"km": 62
+						}
+					],
+					"km": 3389.5
+				},
+				{
+					"page": "Herschel Belt",
+					"label": "Herschel Belt",
+					"designation": "Sol belt alpha",
+					"tier": "belt"
+				},
+				{
+					"page": "Jupiter",
+					"label": "Jupiter",
+					"designation": "Sol V",
+					"subtype": "Gas giant",
+					"moons": [
+						{
+							"page": "Jovian Rings",
+							"label": "Jovian Rings",
+							"designation": "Jovian Rings",
+							"tier": "ring"
+						},
+						{
+							"page": "Io",
+							"label": "Io",
+							"designation": "5a",
+							"km": 1000
+						},
+						{
+							"page": "Europa",
+							"label": "Europa",
+							"designation": "5b",
+							"km": 1000
+						},
+						{
+							"page": "Ganymede",
+							"label": "Ganymede",
+							"designation": "5c",
+							"km": 1000
+						},
+						{
+							"page": "Callisto",
+							"label": "Callisto",
+							"designation": "5d",
+							"km": 1000
+						}
+					],
+					"km": 69911
+				},
+				{
+					"page": "Saturn",
+					"label": "Saturn",
+					"designation": "Sol VI",
+					"subtype": "Gas giant",
+					"moons": [
+						{
+							"page": "Rings of Saturn",
+							"label": "Rings of Saturn",
+							"designation": "Rings of Saturn",
+							"tier": "ring"
+						},
+						{
+							"page": "Titan",
+							"label": "Titan",
+							"designation": "6a",
+							"km": 1000
+						},
+						{
+							"page": "Rhea",
+							"label": "Rhea",
+							"designation": "6b",
+							"km": 1000
+						},
+						{
+							"page": "Tethys",
+							"label": "Tethys",
+							"designation": "6c",
+							"km": 1000
+						},
+						{
+							"page": "Dione",
+							"label": "Dione",
+							"designation": "6d",
+							"km": 1000
+						},
+						{
+							"page": "Iapetus",
+							"label": "Iapetus",
+							"designation": "6e",
+							"km": 1000
+						}
+					],
+					"km": 58232
+				},
+				{
+					"page": "Uranus",
+					"label": "Uranus",
+					"designation": "Sol VII",
+					"subtype": "Ice giant",
+					"moons": [
+						{
+							"page": "Rings of Uranus",
+							"label": "Rings of Uranus",
+							"designation": "Rings of Uranus",
+							"tier": "ring"
+						},
+						{
+							"page": "Miranda",
+							"label": "Miranda",
+							"designation": "7a",
+							"km": 300
+						},
+						{
+							"page": "Ariel",
+							"label": "Ariel",
+							"designation": "7b",
+							"km": 600
+						},
+						{
+							"page": "Umbriel",
+							"label": "Umbriel",
+							"designation": "7c",
+							"km": 650
+						},
+						{
+							"page": "Titania",
+							"label": "Titania",
+							"designation": "7d",
+							"km": 800
+						},
+						{
+							"page": "Oberon (moon)",
+							"label": "Oberon",
+							"designation": "7e",
+							"km": 750
+						}
+					],
+					"km": 25362
+				},
+				{
+					"page": "Neptune",
+					"label": "Neptune",
+					"designation": "Sol VIII",
+					"subtype": "Ice giant",
+					"moons": [
+						{
+							"page": "Rings of Neptune",
+							"label": "Rings of Neptune",
+							"designation": "Rings of Neptune",
+							"tier": "ring"
+						},
+						{
+							"page": "Triton",
+							"label": "Triton",
+							"designation": "8a",
+							"km": 135.3
+						}
+					],
+					"km": 24622
+				},
+				{
+					"page": "Kuiper Belt",
+					"label": "Kuiper Belt",
+					"designation": "Sol belt beta",
+					"tier": "belt"
+				},
+				{
+					"page": "Pluto",
+					"label": "Pluto",
+					"designation": "Sol IX",
+					"subtype": "Dwarf planet",
+					"moons": [
+						{
+							"page": "Charon (moon)",
+							"label": "Charon",
+							"designation": "9a",
+							"km": 1604
+						}
+					],
+					"km": 1186
+				}
+			]
+		},
+		"Ellis": {
+			"page": "Ellis system",
+			"star": {
+				"page": "Ellis (star)",
+				"label": "Ellis",
+				"subtype": "F-type main sequence",
+				"class": "F",
+				"km": 956324
+			},
+			"bodies": [
+				{
+					"page": "Ellis I",
+					"label": "Ellis I",
+					"designation": "Ellis I",
+					"subtype": "Protoplanet",
+					"moons": [],
+					"km": 750
+				},
+				{
+					"page": "Ellis II",
+					"label": "Ellis II",
+					"designation": "Ellis II",
+					"subtype": "Smog planet",
+					"moons": [],
+					"km": 6270
+				},
+				{
+					"page": "Green",
+					"label": "Green",
+					"designation": "Ellis III",
+					"subtype": "Ocean planet",
+					"moons": [],
+					"km": 8451
+				},
+				{
+					"page": "Kampos",
+					"label": "Kampos",
+					"designation": "Ellis IV",
+					"subtype": "Super-Earth",
+					"moons": [],
+					"km": 12503
+				},
+				{
+					"page": "Noble",
+					"label": "Noble",
+					"designation": "Ellis V",
+					"subtype": "Terrestrial rocky",
+					"moons": [
+						{
+							"page": "Ellis 5a",
+							"label": "Ellis 5a",
+							"designation": "5a",
+							"km": 351.479
+						},
+						{
+							"page": "Ellis 5b",
+							"label": "Ellis 5b",
+							"designation": "5b",
+							"km": 548.491
+						}
+					],
+					"km": 6475
+				},
+				{
+					"page": "Ellis VI",
+					"label": "Ellis VI",
+					"designation": "Ellis VI",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 7473
+				},
+				{
+					"page": "Ellis VII",
+					"label": "Ellis VII",
+					"designation": "Ellis VII",
+					"subtype": "Smog planet",
+					"moons": [
+						{
+							"page": "Rings of Ellis VII",
+							"label": "Rings of Ellis VII",
+							"designation": "Rings of Ellis VII",
+							"tier": "ring"
+						}
+					],
+					"km": 10007
+				},
+				{
+					"page": "Ellis VIII",
+					"label": "Ellis VIII",
+					"designation": "Ellis VIII",
+					"subtype": "Dwarf planet",
+					"moons": [],
+					"km": 2415
+				},
+				{
+					"page": "Ellis belt alpha",
+					"label": "Ellis belt alpha",
+					"designation": "Ellis belt alpha",
+					"tier": "belt"
+				},
+				{
+					"page": "Walleye",
+					"label": "Walleye",
+					"designation": "Ellis IX",
+					"subtype": "Puffy planet",
+					"moons": [],
+					"km": 76808
+				},
+				{
+					"page": "Bombora",
+					"label": "Bombora",
+					"designation": "Ellis X",
+					"subtype": "Gas giant",
+					"moons": [],
+					"km": 66290
+				},
+				{
+					"page": "Ellis XI",
+					"label": "Ellis XI",
+					"designation": "Ellis XI",
+					"tier": "belt"
+				},
+				{
+					"page": "Judecca",
+					"label": "Judecca",
+					"designation": "Ellis XII",
+					"subtype": "Ice planet",
+					"moons": [],
+					"km": 5276
+				},
+				{
+					"page": "Pinecone",
+					"label": "Pinecone",
+					"designation": "Ellis XIII",
+					"subtype": "Protoplanet",
+					"moons": [],
+					"km": 773
+				}
+			]
+		},
+		"Kilian": {
+			"page": "Kilian system",
+			"star": {
+				"page": "Kilian (star)",
+				"label": "Kilian",
+				"subtype": "G-type main sequence",
+				"class": "G",
+				"km": 696300
+			},
+			"bodies": [
+				{
+					"page": "First Sister",
+					"label": "First Sister",
+					"designation": "Kilian I",
+					"subtype": "Puffy planet",
+					"moons": [],
+					"km": 55105
+				},
+				{
+					"page": "Second Sister",
+					"label": "Second Sister",
+					"designation": "Kilian II",
+					"subtype": "Protoplanet",
+					"moons": [],
+					"km": 4152
+				},
+				{
+					"page": "Third Sister",
+					"label": "Third Sister",
+					"designation": "Kilian III",
+					"subtype": "Protoplanet",
+					"moons": [],
+					"km": 3490
+				},
+				{
+					"page": "Magma",
+					"label": "Magma",
+					"designation": "Kilian IV",
+					"subtype": "Lava planet",
+					"moons": [],
+					"km": 4936
+				},
+				{
+					"page": "MacArthur",
+					"label": "MacArthur",
+					"designation": "Kilian V",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 8519
+				},
+				{
+					"page": "Osha",
+					"label": "Osha",
+					"designation": "Kilian VI",
+					"subtype": "Super-Earth",
+					"moons": [],
+					"km": 9815
+				},
+				{
+					"page": "Keene",
+					"label": "Keene",
+					"designation": "Kilian VII",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 3299
+				},
+				{
+					"page": "Kilian VIII",
+					"label": "Kilian VIII",
+					"designation": "Kilian VIII",
+					"subtype": "Ocean planet",
+					"moons": [],
+					"km": 7551
+				},
+				{
+					"page": "Corin",
+					"label": "Corin",
+					"designation": "Kilian IX",
+					"subtype": "Ice planet",
+					"moons": [],
+					"km": 3102
+				},
+				{
+					"page": "Kilian X",
+					"label": "Kilian X",
+					"designation": "Kilian X",
+					"subtype": "Dwarf planet",
+					"moons": [],
+					"km": 2009
+				},
+				{
+					"page": "Kilian XI",
+					"label": "Kilian XI",
+					"designation": "Kilian XI",
+					"subtype": "Gas giant",
+					"moons": [],
+					"km": 59485
+				},
+				{
+					"page": "Kilian XII",
+					"label": "Kilian XII",
+					"designation": "Kilian XII",
+					"subtype": "Ice planet",
+					"moons": [],
+					"km": 3047
+				},
+				{
+					"page": "Kilian XIII",
+					"label": "Kilian XIII",
+					"designation": "Kilian XIII",
+					"subtype": "Dwarf planet",
+					"moons": [],
+					"km": 2691
+				},
+				{
+					"page": "Kilian XIV",
+					"label": "Kilian XIV",
+					"designation": "Kilian XIV",
+					"subtype": "Dwarf planet",
+					"moons": [],
+					"km": 2367
+				}
+			]
+		},
+		"Taranis": {
+			"page": "Taranis system",
+			"star": {
+				"page": "Taranis (star)",
+				"label": "Taranis",
+				"subtype": "A-type main sequence",
+				"class": "A",
+				"km": 1156789
+			},
+			"bodies": [
+				{
+					"page": "Taranis I",
+					"label": "Taranis I",
+					"designation": "Taranis I",
+					"subtype": "Dwarf planet",
+					"moons": [],
+					"km": 797
+				},
+				{
+					"page": "Taranis II",
+					"label": "Taranis II",
+					"designation": "Taranis II",
+					"subtype": "Terrestrial rocky",
+					"moons": [
+						{
+							"page": "Broken Moon",
+							"label": "Broken Moon",
+							"designation": "2a",
+							"km": 600
+						}
+					],
+					"km": 7841
+				},
+				{
+					"page": "Taranis 2a debris",
+					"label": "Taranis 2a debris",
+					"designation": "2a debris",
+					"tier": "belt"
+				},
+				{
+					"page": "Taranis belt alpha",
+					"label": "Taranis belt alpha",
+					"designation": "Taranis belt alpha",
+					"tier": "belt"
+				},
+				{
+					"page": "Taranis III",
+					"label": "Taranis III",
+					"designation": "Taranis III",
+					"subtype": "Smog planet",
+					"moons": [],
+					"km": 4900
+				},
+				{
+					"page": "Taranis belt beta",
+					"label": "Taranis belt beta",
+					"designation": "Taranis belt beta",
+					"tier": "belt"
+				},
+				{
+					"page": "Taranis IV",
+					"label": "Taranis IV",
+					"designation": "Taranis IV",
+					"subtype": "Gas giant",
+					"moons": [],
+					"km": 80218
+				}
+			]
+		},
+		"Oberon": {
+			"page": "Oberon system",
+			"star": {
+				"page": "Oberon (star)",
+				"label": "Oberon",
+				"subtype": "A-type white dwarf",
+				"class": "degenerate",
+				"km": 8346
+			},
+			"bodies": [
+				{
+					"page": "Gonn",
+					"label": "Gonn",
+					"designation": "Oberon I",
+					"subtype": "Super-Earth",
+					"moons": [],
+					"km": 28484
+				},
+				{
+					"page": "Uriel",
+					"label": "Uriel",
+					"designation": "Oberon II",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 5263
+				},
+				{
+					"page": "Oberon III",
+					"label": "Oberon III",
+					"designation": "Oberon III",
+					"subtype": "Protoplanet",
+					"moons": [],
+					"km": 2391
+				},
+				{
+					"page": "Oberon IV",
+					"label": "Oberon IV",
+					"designation": "Oberon IV",
+					"subtype": "Protoplanet",
+					"moons": [],
+					"km": 1873
+				},
+				{
+					"page": "Oberon V",
+					"label": "Oberon V",
+					"designation": "Oberon V",
+					"subtype": "Mesoplanet",
+					"moons": [],
+					"km": 1029
+				},
+				{
+					"page": "Oberon VI",
+					"label": "Oberon VI",
+					"designation": "Oberon VI",
+					"subtype": "Gas dwarf",
+					"moons": [],
+					"km": 48585
+				},
+				{
+					"page": "Oberon VII",
+					"label": "Oberon VII",
+					"designation": "Oberon VII",
+					"subtype": "Gas giant",
+					"moons": [],
+					"km": 52631
 				}
 			]
 		}

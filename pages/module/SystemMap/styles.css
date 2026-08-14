@@ -149,14 +149,19 @@
 	list-style: none;
 }
 
-/* Moons are a row: disc sitting on the connector, label to its right. */
-.t-system-map__item--moon .t-system-map__node {
+/* Moons are a row: disc sitting on the connector, label to its right. A ring
+   hangs in the same column and takes the same row layout — it is only the glyph
+   that differs, because a ring is not a body. Spelled out rather than matched
+   with :is(), which is not in TemplateStyles' allowlist and fails the save. */
+.t-system-map__item--moon .t-system-map__node,
+.t-system-map__item--ring .t-system-map__node {
 	flex-direction: row;
 	align-items: center;
 	gap: var(--space-xxs);
 }
 
-.t-system-map__item--moon .t-system-map__label {
+.t-system-map__item--moon .t-system-map__label,
+.t-system-map__item--ring .t-system-map__label {
 	flex-direction: row;
 	align-items: baseline;
 	gap: var(--space-xs);
@@ -304,6 +309,26 @@
 	background: transparent;
 	background-image: radial-gradient(circle, var(--color-subtle) 1.1px, transparent 1.4px);
 	background-size: 5px 5px;
+	background-position: center;
+}
+
+/* A planetary ring, hanging in the moon column of the planet it circles. It
+   borrows the belt's speckle — both are debris you look through rather than at —
+   and turns it on its side: wide, shallow, and flat, the way a ring reads seen
+   edge-on. Finer dots on a smaller pitch than the belt band, because the glyph is
+   a third the height and the belt's 5px grid would land only one row of them.
+
+   Keyed on the kind rather than the tier class, like the rest of the palette,
+   because what separates a ring from the moons beside it is entirely what it is —
+   the geometry it shares with them. It carries no diameter for the same reason a
+   belt does not: a ring is a region, and upstream reports 0 or null for all
+   eleven of them. */
+.t-system-map__item[data-kind='ring'] .t-system-map__disc {
+	border-radius: 2px;
+	box-shadow: none;
+	background: transparent;
+	background-image: radial-gradient(circle, var(--color-subtle) 0.8px, transparent 1.1px);
+	background-size: 3px 3px;
 	background-position: center;
 }
 

@@ -185,7 +185,12 @@
 .t-system-map__pair {
 	display: flex;
 	align-items: flex-start;
-	gap: var(--space-sm);
+	/* Tighter than the rail's own gap, and deliberately so. At --space-sm the two
+	   stars sat 12px apart against the rail's 16px, and 4px is not enough
+	   difference to read as one unit — the pair looked like two consecutive rail
+	   slots, which is the one thing this layout must not say, because left-to-right
+	   on the rail means orbital order. Halving it binds the pair visually. */
+	gap: var(--space-xs);
 	margin: 0;
 	padding: 0;
 	list-style: none;
@@ -206,7 +211,7 @@
 	content: '';
 	position: absolute;
 	left: var(--t-system-map-centre);
-	right: calc(0px - var(--space-sm) - var(--t-system-map-centre));
+	right: calc(0px - var(--space-xs) - var(--t-system-map-centre));
 	top: var(--t-system-map-centre);
 	height: 1px;
 	background: var(--border-color-base);

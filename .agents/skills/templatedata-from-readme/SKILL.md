@@ -89,7 +89,7 @@ Column indices below assume the 6-column form. For the 7-column form, shift Type
 | Type | `type` | Lowercase. Validate against vocabulary (see below). Fall back to `unknown` and warn if unrecognized. |
 | Required | `required` | `Yes` / `Y` / `true` → `true`; everything else → `false`. |
 | Default | `default` | Wrapped in parens (e.g. `(falls back to ...)`) → prose, omit from JSON. Wrapped in backticks → strip and use as string. Empty cell → omit. |
-| Description | `description` | Plain string. Strip surrounding whitespace. |
+| Description | `description` | Plain string. Strip surrounding whitespace, and **strip markup the same way the top-level description does** — backticks, and both Markdown and wikitext link syntax. VisualEditor renders this as plain text, so `` `Stanton` `` and `[[Module:SystemMap/systems.json]]` reach the editor verbatim, punctuation and all. |
 | Example | `example` | Strip backticks. Empty cell → omit. |
 | Top-level | `description` | First paragraph after the H1 title. **Strip link syntax to plain text** — both Markdown `[Text](URL)` → `Text` and wikitext `[[Page\|Text]]` → `Text`, `[[Page]]` → `Page`. TemplateData descriptions are rendered as plain text by VisualEditor; link syntax leaks through ugly. |
 | Top-level | `paramOrder` | Order of rows in the table. |

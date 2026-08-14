@@ -44,7 +44,7 @@ A star goes in a sibling `star` block rather than under `bodies` — Terra's
 `"star": { "page": "Terra Nova" }` is the whole of it — and a second star in a
 `companion` block beside it. Both take the same keys except `after` and `moonOf`,
 which a body the planet rail does not hold has no use for, and their `km` is a
-radius rather than a diameter. Filing a star under `bodies` fails the build with
+radius. Filing a star under `bodies` fails the build with
 `overlay corrects …` instead of being ignored, so the mistake costs a run rather
 than producing a wrong map; so does a `companion` block on a system that has one
 star, and a `star` block on one of the two that have none.
@@ -79,7 +79,7 @@ rules. The two worth knowing here:
   `Stanton Belt Alpha` is stored as `Stanton belt alpha`. That is house style
   rather than a correction, so it is a derivation rule rather than one overlay
   entry per belt. A Roman numeral keeps its capitals, because that is an orbital
-  slot. Upstream names 21 of its 80 belts, and a belt it *does* name (`Aaron
+  slot. Upstream names 21 of its 69 belts, and a belt it *does* name (`Aaron
   Halo`, `Keeger Belt`) keeps that name verbatim in `label` and `page`: it is a
   proper noun, and lower-casing it would red-link the article. For an unnamed
   belt the label *is* the designation, so the rule reaches `label` and `page`
@@ -147,9 +147,11 @@ block could not miss.
 Every body carries a `tier`. Five of them describe a body's place on the rail —
 `star`, `planet`, `belt`, `moon`, `ring` — and three of those scale: star, planet
 and moon, the ones with a disc. The other two are drawn at a fixed size, as
-below. Two more, `companion` and `paired`, exist only in the render model and
-only for a second star: they are layout, not classification, and both are
-measured and coloured at the `star` tier.
+below. Two more, `companion` and `paired`, exist only in the render model: they are
+layout, not classification, and both are measured and coloured at the `star`
+tier. `companion` is the second star of a nested pair. `paired` is worn by
+**both** stars of a co-orbiting pair, since neither is subordinate — that is the
+whole claim the shape makes.
 
 `bodies` is everything orbiting the star, in orbital order, and one marker
 separates its two kinds: a belt carries `tier: belt`, and anything unmarked there
@@ -182,9 +184,9 @@ that are already published:
   at the moon tier and resize every moon on every published page.
 
 Which rings render is decided by what they orbit. Ten of the eleven rings
-upstream has orbit a **planet**, and those are the ones the rail can draw; five
-of them do today — Sol's four and Ellis's one — the other five being in systems
-the rollout has not reached yet. The eleventh, Stanton's `Ring of Yela`, orbits a
+upstream has orbit a **planet**, and those are the ones the rail can draw; six
+of them do today — Sol's four, Ellis's one and Kyuk'ya's one — the other four
+being in systems the rollout has not reached yet. The eleventh, Stanton's `Ring of Yela`, orbits a
 **moon**: drawing it would need a second level of nesting, which the rail does
 not have, for one body in all 90 systems — and it has no article under any title
 to link either. It is dropped.

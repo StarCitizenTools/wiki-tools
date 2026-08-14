@@ -24,3 +24,10 @@ indent_size = 2
 [.git/**]
 indent_style = space
 indent_size = 2
+
+# A byte-for-byte capture of what the wiki serves for
+# Module:SystemMap/systems.json, used as the generator's acceptance baseline.
+# MediaWiki stores no trailing newline, and an editor adding one would make the
+# fixture stop being the thing it claims to be.
+[scripts/internal/systemmap/testdata/systems.live.json]
+insert_final_newline = false

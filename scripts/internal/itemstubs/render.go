@@ -16,9 +16,15 @@ var sectionBody = map[string]string{
 	"Used by":     "{{Entity/UsedBy}}",
 }
 
-// StubData is everything the renderer needs for one page. MfrPage empty means
-// the manufacturer clause and navplate are omitted (unknown or generic maker);
-// MfrCode still fills the infobox, where empty is also acceptable.
+// StubData is everything the renderer needs for one page.
+//
+// The two manufacturer fields answer different questions. MfrPage empty means
+// there is no company to name, so the lead's "manufactured by" clause and the
+// manufacturer navplate are dropped — NONE (hand-made, no proper maker) and
+// UNKN (unidentified) are real classifications with no article behind them.
+// MfrCode empty means the code is not a manufacturer at all, only a generic
+// consumable marker, and writing it into the infobox would invent a category
+// (Category:GEND); live food and drink pages leave the field blank.
 type StubData struct {
 	Name, UUID       string
 	MfrCode, MfrPage string
@@ -42,7 +48,11 @@ type StubData struct {
 func RenderStub(d StubData) string {
 	var b strings.Builder
 
-	fmt.Fprintf(&b, "{{Entity\n|uuid = %s\n|name = %s\n|image =\n|manufacturer = %s\n}}\n\n", d.UUID, d.Name, d.MfrCode)
+	manufacturer := "|manufacturer ="
+	if d.MfrCode != "" {
+		manufacturer += " " + d.MfrCode
+	}
+	fmt.Fprintf(&b, "{{Entity\n|uuid = %s\n|name = %s\n|image =\n%s\n}}\n\n", d.UUID, d.Name, manufacturer)
 
 	subject := d.Label
 	if d.LeadSize && d.Size != nil {

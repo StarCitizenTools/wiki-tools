@@ -69,10 +69,18 @@
    Even spacing is also the honest choice: horizontal position here is orbital
    ORDER, not distance. Orbital distance is derivable (Kepler, from the periods
    upstream stores) but ranges 20:1 in Pyro, which would collide its three inner
-   planets — and irregular gaps would imply a precision the layout does not have. */
+   planets — and irregular gaps would imply a precision the layout does not have.
+
+   --rail-moon is a moon holding a rail slot, because upstream parents it to the
+   star and it has no planet to nest under. It is laid out as a column like every
+   other rail child; only its glyph and its size come from the moon tier.
+   Spelled out rather than matched on `.t-system-map__rail > .t-system-map__item`,
+   which would be the same set today: the child combinator is not what the rule
+   means, and a nested list arriving later would silently opt in. */
 .t-system-map__item--star,
 .t-system-map__item--planet,
-.t-system-map__item--belt {
+.t-system-map__item--belt,
+.t-system-map__item--rail-moon {
 	flex: 1 1 0;
 	min-width: 7.5rem;
 }
@@ -465,7 +473,8 @@
 
 	.t-system-map__item--star,
 	.t-system-map__item--planet,
-	.t-system-map__item--belt {
+	.t-system-map__item--belt,
+	.t-system-map__item--rail-moon {
 		min-width: 0;
 	}
 
@@ -478,6 +487,7 @@
 	.t-system-map__item--star > .t-system-map__node,
 	.t-system-map__item--planet > .t-system-map__node,
 	.t-system-map__item--belt > .t-system-map__node,
+	.t-system-map__item--rail-moon > .t-system-map__node,
 	.t-system-map__item--paired > .t-system-map__node {
 		flex-direction: row;
 		align-items: center;
@@ -487,6 +497,7 @@
 	.t-system-map__item--star > .t-system-map__node .t-system-map__label,
 	.t-system-map__item--planet > .t-system-map__node .t-system-map__label,
 	.t-system-map__item--belt > .t-system-map__node .t-system-map__label,
+	.t-system-map__item--rail-moon > .t-system-map__node .t-system-map__label,
 	.t-system-map__item--paired > .t-system-map__node .t-system-map__label {
 		flex-direction: row;
 		flex-wrap: wrap;

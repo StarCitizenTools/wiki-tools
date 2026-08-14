@@ -109,12 +109,16 @@ func TestSingleStarSystemsWriteNoCompanionKeys(t *testing.T) {
 	}
 }
 
-// TestBuildWithoutAStar covers the two systems upstream files no star for. They
-// carry planets — Min carries four moons as well — so refusing to build them
-// would make a real map unrenderable over a gap in upstream's data, and the
-// model must not assume a head that is not there.
+// TestBuildWithoutAStar covers Min, which upstream files no star for. It carries
+// a rogue gas giant and four moons, so refusing to build it would make a real map
+// unrenderable over a gap in upstream's data, and the model must not assume a
+// head that is not there.
+//
+// Tamsa is the other system upstream files no STAR for and is deliberately not
+// here: upstream does file a head for it, typed BLACKHOLE, so its rail would be
+// headless for the opposite reason — see TestBuildRefusesASystemHeadedByABlackHole.
 func TestBuildWithoutAStar(t *testing.T) {
-	for _, name := range []string{"Min", "Tamsa"} {
+	for _, name := range []string{"Min"} {
 		t.Run(name, func(t *testing.T) {
 			res, err := buildOrErr(t, `{"systems": {"`+name+`": {}}}`)
 			if err != nil {
@@ -155,6 +159,32 @@ func TestBuildWithoutAStar(t *testing.T) {
 				t.Errorf("no build note mentions the missing star; notes were %v", res.Notes)
 			}
 		})
+	}
+}
+
+// TestBuildRefusesASystemHeadedByABlackHole is the other half of the starless
+// case, and the opposite verdict.
+//
+// Tamsa has no STAR, but it is not head-less: upstream files TAMSA.STAR.TAMSA as
+// a BLACKHOLE and parents both planets to it. The rail has no tier and no glyph
+// for one, so it was dropped with the jump points, and the system rendered as two
+// planets orbiting nothing — on an article whose first sentence is "two planets
+// in orbit around a black hole", with the omitted body having a page of its own
+// at Tamsa (black hole).
+//
+// Nothing would have reported it. The broken-link category walks the bodies in
+// the model, and this body never reached it. So the build fails instead: adding
+// the system to the overlay is the moment somebody is in a position to fix it,
+// and a failed build is the only thing that reaches them there.
+func TestBuildRefusesASystemHeadedByABlackHole(t *testing.T) {
+	_, err := buildOrErr(t, `{"systems": {"Tamsa": {}}}`)
+	if err == nil {
+		t.Fatal("a system whose head is a type the rail cannot draw must not build a headless rail")
+	}
+	for _, want := range []string{"Tamsa", "BLACKHOLE"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("error is %q, want it to name %s", err, want)
+		}
 	}
 }
 
@@ -402,16 +432,16 @@ func TestBuildAppliesEveryCompanionCorrectionKey(t *testing.T) {
 // wrote it under the wrong system — and ignoring it is how the judgement gets
 // lost across a refetch.
 //
-// The `star` rows matter most, because that is the key the starless systems made
-// droppable: before they built at all, a `star` block could not reach nothing.
+// The `star` rows matter most, because that is the key the starless system made
+// droppable: before Min built at all, a `star` block could not reach nothing.
 // Both directions are covered — a star block on a system upstream files no star
-// for (Tamsa, Min), which is the new hole, and the pre-existing shapes.
+// for, which is the new hole, and the pre-existing shapes.
 func TestCompanionCorrectionsMustBite(t *testing.T) {
 	cases := map[string]string{
 		"companion block on a single-star system": `{"systems": {"Castra": {"companion": {"page": "Castra B"}}}}`,
 		"shape on a single-star system":           `{"systems": {"Castra": {"companionShape": "paired"}}}`,
 		"shape on a starless system":              `{"systems": {"Min": {"companionShape": "nested"}}}`,
-		"star block on a starless system":         `{"systems": {"Tamsa": {"star": {"page": "Tamsa Prime"}}}}`,
+		"star block on a starless system":         `{"systems": {"Min": {"star": {"page": "Min Prime"}}}}`,
 		"empty star block on a starless system":   `{"systems": {"Min": {"star": {}}}}`,
 	}
 	for name, overlay := range cases {

@@ -104,7 +104,68 @@
 			}
 		},
 		"Baker": {},
-		"Goss": {}
+		"Goss": {},
+		"Banshee": {},
+		"Bremen": {},
+		"Chronos": {},
+		"Corel": {},
+		"Davien": {},
+		"Elysium": {},
+		"Ferron": {},
+		"Garron": {},
+		"Geddon": {
+			"bodies": {
+				"Takto": { "page": "Tat'Ko", "label": "Tat'Ko" }
+			}
+		},
+		"Helios": {
+			"bodies": {
+				"Helios 2a": { "page": "Marama", "label": "Marama" }
+			}
+		},
+		"Idris": {},
+		"Kai'pua (Kayfa)": {
+			"page": "Kai'pua system",
+			"star": { "page": "Kai’pua (star)", "label": "Kai'pua" },
+			"bodies": {
+				"Ui'r.a'ang": { "page": "Kai'pua I", "label": "Kai'pua I" },
+				"R.aip'uāng": { "page": "Rai.p'uāng", "label": "Rai.p'uāng" },
+				"Kyu'kyu": { "page": "Kai'pua III", "label": "Kai'pua III" },
+				"K.yuk'o": { "page": "Kai'pua IV", "label": "Kai'pua IV" }
+			}
+		},
+		"Kellog": {
+			"bodies": {
+				"Quarterdeck": { "page": "QuarterDeck", "label": "QuarterDeck" }
+			}
+		},
+		"Leir": {},
+		"Magnus": {},
+		"Min": {},
+		"Nemo": {},
+		"Nul": {},
+		"Odin": {
+			"bodies": {
+				"Gainey": { "after": "The Coil" }
+			}
+		},
+		"Oso": {},
+		"Oya": {},
+		"R.il'a (Rihlah)": {
+			"page": "R.il'a system",
+			"star": { "page": "R.il'a (star)", "label": "R.il'a" },
+			"bodies": {
+				"Xōl'uu": { "page": "Xōl’uu" }
+			}
+		},
+		"Rhetor": {},
+		"T.āl": {
+			"star": { "label": "T.āl" },
+			"bodies": {
+				"Oli'xa": { "page": "Oli'Sha" }
+			}
+		},
+		"Trise": {}
 	},
 	"exclude": ["Protoplanetary Disk*", "Protoplentary Disk*", "Ellis XI (PLANET)"]
 }

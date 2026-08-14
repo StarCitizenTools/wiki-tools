@@ -88,11 +88,25 @@ func TestAnchorExtentsSpansSystemsThatAreNotRendered(t *testing.T) {
 	}
 }
 
-// TestCommittedExtentsReachBeyondTheFile is the same property on the real data:
-// the committed extents are built from all 90 upstream systems, so they must be
-// wider than the five the file renders. If they ever collapse onto the file's
-// own contents, the anchoring has been lost and the discs are free to move again.
-func TestCommittedExtentsReachBeyondTheFile(t *testing.T) {
+// TestCommittedExtentsContainTheRenderedRange is the same property on the real
+// data: every body the committed file renders falls inside the range its tier is
+// scaled against, so no disc is clamped to a bound and drawn the same size as a
+// body of a different size.
+//
+// It asserts containment and nothing more. It used to also require at least one
+// tier to reach strictly PAST the file, on the reasoning that a block collapsed
+// onto the file's own contents is a block that was computed from the file. That
+// inference does not survive the rollout. `extents` is the union of the
+// whole-dataset measurement with what the file renders, so once every system
+// holding an extreme is shipped the two are equal BY CONSTRUCTION — and only two
+// are left, Hadrian (the largest star, 58,489,200 km) and Virgil (the smallest
+// moon, Epheet at 44.6 km). The batch that ships both would have failed this test
+// with "the anchoring has been lost" on a perfectly correct file.
+//
+// The property that clause was standing in for is asserted directly, and without
+// an expiry date, by TestCommittedExtentsAreTheAnchoredValues: the exact figures
+// the whole-dataset pass produces, pinned as literals.
+func TestCommittedExtentsContainTheRenderedRange(t *testing.T) {
 	doc := decodeFile(t, committedSystems)
 	if doc.Extents == nil {
 		t.Fatalf("%s records no extents; re-run `mise run systemmap`", committedSystems)
@@ -109,20 +123,29 @@ func TestCommittedExtentsReachBeyondTheFile(t *testing.T) {
 		}
 		for i := range sys.Bodies {
 			b := &sys.Bodies[i]
-			if b.Tier == tierBelt {
+			// Measured at the tier the body renders at, which the top level does
+			// not decide on its own: a belt has no disc, and a rail moon is a moon.
+			switch b.Tier {
+			case tierBelt:
 				continue
+			case tierMoon:
+				rendered.note(tierMoon, b.KM)
+			default:
+				rendered.note(tierPlanet, b.KM)
 			}
-			rendered.note(tierPlanet, b.KM)
 			if b.Moons == nil {
 				continue
 			}
 			for j := range *b.Moons {
-				rendered.note(tierMoon, (*b.Moons)[j].KM)
+				m := &(*b.Moons)[j]
+				if m.Tier == tierRing {
+					continue
+				}
+				rendered.note(tierMoon, m.KM)
 			}
 		}
 	}
 
-	wider := 0
 	for tier, recorded := range map[string]*Extent{
 		tierStar:   doc.Extents.Star,
 		tierPlanet: doc.Extents.Planet,
@@ -136,13 +159,6 @@ func TestCommittedExtentsReachBeyondTheFile(t *testing.T) {
 		if recorded.Min > have.Min || recorded.Max < have.Max {
 			t.Errorf("%s: recorded %s does not contain the rendered range %s", tier, recorded, have)
 		}
-		if recorded.Min < have.Min || recorded.Max > have.Max {
-			wider++
-		}
-	}
-	if wider == 0 {
-		t.Errorf("every recorded extent matches the file's own contents exactly, which is what "+
-			"computing them from the file would produce: %+v", doc.Extents)
 	}
 }
 
@@ -270,10 +286,17 @@ func TestCommittedExtentsCoverEveryBodyInTheFile(t *testing.T) {
 		}
 		for i := range sys.Bodies {
 			b := &sys.Bodies[i]
-			if b.Tier == tierBelt {
+			// Checked against the range it is actually scaled against. A rail moon
+			// is measured at the moon tier, so checking it against the planet range
+			// would ask the wrong question and pass for the wrong reason.
+			switch b.Tier {
+			case tierBelt:
 				continue
+			case tierMoon:
+				check(tierMoon, name+"/"+b.Label, doc.Extents.Moon, b.KM)
+			default:
+				check(tierPlanet, name+"/"+b.Label, doc.Extents.Planet, b.KM)
 			}
-			check(tierPlanet, name+"/"+b.Label, doc.Extents.Planet, b.KM)
 			if b.Moons == nil {
 				continue
 			}
@@ -375,11 +398,11 @@ func TestGeneratorWritesTheExtentsIntoTheFile(t *testing.T) {
 // pages look like. Every disc on every live page is scaled against them, so
 // moving a bound silently resizes 57 pages that nobody edited.
 //
-// Nothing else here catches that. TestCommittedExtentsCoverEveryBodyInTheFile
-// only asserts bodies fall INSIDE the range, and TestCommittedExtentsReachBeyondTheFile
-// only asserts the range is wider than the file — so WIDENING a bound passes both
-// while shrinking every disc. Verified: setting the star max to 99999999 leaves
-// the whole suite, Lua included, green.
+// Nothing else here catches that. TestCommittedExtentsCoverEveryBodyInTheFile and
+// TestCommittedExtentsContainTheRenderedRange both only assert bodies fall INSIDE
+// the range, so WIDENING a bound passes both while shrinking every disc.
+// Verified: setting the star max to 99999999 leaves the whole suite, Lua
+// included, green.
 //
 // So the values are pinned outright. They are derived across all 90 upstream
 // systems, which is what makes them stable as the rollout adds systems — adding a

@@ -89,20 +89,38 @@ local BANDS = { belt = BELT_BAND, ring = RING_BAND }
 
 --- Tiers that are drawn at a DIFFERENT tier's scale, and classified as one.
 ---
---- Both are the second star of a binary, and both exist as tiers of their own
---- only so that styles.css can lay them out differently — `companion` sits in
---- the column where a moon sits, `paired` shares the head slot with the primary.
---- Neither changes what the body IS: it is a star, it takes a star's spectral
---- glyph, and it keeps star-tier sizing even at 22.8px in a row where moons are
---- 6-14px. A companion drawn at moon scale would read as an absurdly large moon,
---- which is the opposite of what the data says.
+--- Every entry is a body whose PLACE on the rail and NATURE disagree, which is
+--- the one thing a single tier cannot carry. The tier says where it is drawn;
+--- this table says what it is measured and coloured as.
+---
+--- `companion` and `paired` are the second star of a binary, and exist as tiers
+--- of their own only so that styles.css can lay them out differently —
+--- `companion` sits in the column where a moon sits, `paired` shares the head
+--- slot with the primary. Neither changes what the body IS: it is a star, it
+--- takes a star's spectral glyph, and it keeps star-tier sizing even at 22.8px in
+--- a row where moons are 6-14px. A companion drawn at moon scale would read as an
+--- absurdly large moon, which is the opposite of what the data says.
+---
+--- `rail-moon` is the mirror case: a moon that holds a top-level slot on the
+--- planet rail, because upstream parents it to the star and there is no planet
+--- under which to nest it. Odin's Gainey is the only one in all 90 systems. It is
+--- laid out as a rail column like its neighbours and measured, coloured and
+--- counted as the moon it is.
 ---
 --- Without this the lookup would miss twice over, and both misses are silent:
 --- glyphKind would fall through to the planet branch and return 'unknown', and
 --- discSize would find no extents for the tier and return the tier maximum —
 --- every companion at 30px, the size reserved for the largest star in the file.
 --- @type table<string, string>
-local SCALE_TIER = { companion = 'star', paired = 'star' }
+local SCALE_TIER = { companion = 'star', paired = 'star', ['rail-moon'] = 'moon' }
+
+--- The `tier` marker a top-level body carries -> the tier it is RENDERED at.
+--- Anything unmarked is a planet, which is what the absence of the key means.
+--- The two differ only for a rail moon: the file says what the body is, and the
+--- model says where it sits, because the layout of a rail column is nothing like
+--- the layout of a moon in a moon column.
+--- @type table<string, string>
+local RAIL_TIER = { belt = 'belt', moon = 'rail-moon' }
 
 --- Resolve the tier a body is measured and classified against.
 --- @param tier string
@@ -112,7 +130,7 @@ local function scaleTier(tier)
 end
 
 --- @class SystemMapBody
---- @field tier string        'star' | 'companion' | 'paired' | 'planet' | 'belt' | 'moon' | 'ring'
+--- @field tier string        'star' | 'companion' | 'paired' | 'planet' | 'belt' | 'rail-moon' | 'moon' | 'ring'
 --- @field page string        Wiki page title, MediaWiki-normalised
 --- @field label string       Display name (may differ in case from `page`)
 --- @field designation string|nil
@@ -131,10 +149,11 @@ end
 --- @class SystemMapModel
 --- @field key string
 --- @field page string
---- @field star SystemMapBody|nil      Absent for the two systems upstream files no star for
+--- @field star SystemMapBody|nil      Absent for a system upstream files no star for
 --- @field companion SystemMapBody|nil Second star; absent for the 85 systems with one
 --- @field companionShape string|nil   'nested' | 'paired'; set only alongside `companion`
---- @field bodies SystemMapBody[] Planets and belts, in orbital order
+--- @field bodies SystemMapBody[] Planets, belts and the one star-parented moon,
+---                               in orbital order
 
 --- Resolve a user-supplied system name to a key in systems.json.
 --- Accepts 'Stanton', 'stanton', 'STANTON', 'Stanton system', and surrounding
@@ -214,7 +233,7 @@ end
 --- The two companion tiers are stars and are classified as such: a second star
 --- keeps its spectral glyph whether it is nested under the primary or sharing
 --- the head slot with it.
---- @param tier string 'star' | 'companion' | 'paired' | 'planet' | 'moon' | 'belt' | 'ring'
+--- @param tier string 'star' | 'companion' | 'paired' | 'planet' | 'moon' | 'rail-moon' | 'belt' | 'ring'
 --- @param subtype string|nil
 --- @param class string|nil Spectral letter, or 'degenerate'/'neutron'; stars only
 --- @return string
@@ -227,7 +246,14 @@ function p.glyphKind(tier, subtype, class)
 		return RING_KIND
 	end
 
-	if scaleTier(tier) == 'star' then
+	-- Both branches below ask what the body IS, so both ask it of the scale tier
+	-- rather than of the layout one. A moon on the planet rail carries no subtype
+	-- — only planets and stars have one — so a fallback keyed on the literal tier
+	-- would drop it through to the neutral 'unknown' disc, which is precisely the
+	-- claim the marker exists to prevent.
+	local scale = scaleTier(tier)
+
+	if scale == 'star' then
 		if type(class) == 'string' and class ~= '' then
 			return 'star-' .. mw.ustring.lower(class)
 		end
@@ -241,7 +267,7 @@ function p.glyphKind(tier, subtype, class)
 		end
 	end
 
-	if tier == 'moon' then
+	if scale == 'moon' then
 		return MOON_KIND
 	end
 
@@ -471,10 +497,10 @@ function p.buildModel(input, currentTitle)
 
 	-- The head of the rail is one star, two stars, or none.
 	--
-	-- `star` is absent for the two systems upstream files no star for (Tamsa,
-	-- Min), which still carry planets and, in Min's case, four moons. Nothing
-	-- here may assume it exists — the guard is what lets those systems be rolled
-	-- out as a data change rather than a code change.
+	-- `star` is absent for Min, which upstream files no star for and whose rail is
+	-- headed by a rogue gas giant carrying four moons — the picture Min's own
+	-- article describes. Nothing here may assume a head exists: the guard is what
+	-- let that system be rolled out as a data change rather than a code change.
 	if system.star then
 		model.star = toBody(system.star, 'star', currentTitle)
 	end
@@ -511,7 +537,7 @@ function p.buildModel(input, currentTitle)
 	end
 
 	for _, source in ipairs(system.bodies) do
-		local tier = source.tier == 'belt' and 'belt' or 'planet'
+		local tier = RAIL_TIER[source.tier] or 'planet'
 		local body = toBody(source, tier, currentTitle)
 		body.moons = {}
 		if source.moons then
@@ -550,6 +576,11 @@ end
 --- Rings are counted apart from moons even though they share the moons array. A
 --- ring is not a moon, and folding Sol's four into its moon count would overstate
 --- the moons by a fifth while hiding a thing the system is known for.
+---
+--- A rail moon counts as a moon, for the same reason: the header is a sentence
+--- about what the system contains, and Odin holds three planets and two moons
+--- whatever slot the second moon is drawn in. Counted as a planet it made the
+--- header contradict both the article it sits on and Gainey's own.
 --- @param model SystemMapModel
 --- @return string
 function p.summarise(model)
@@ -558,6 +589,8 @@ function p.summarise(model)
 	for _, body in ipairs(model.bodies) do
 		if body.tier == 'belt' then
 			belts = belts + 1
+		elseif body.tier == 'rail-moon' then
+			moons = moons + 1
 		else
 			planets = planets + 1
 		end

@@ -694,6 +694,50 @@ func TestBuildShapesEachTier(t *testing.T) {
 	}
 }
 
+// TestBuildMarksAStarParentedMoonAsAMoon covers the one body in all 90 systems
+// whose place on the rail and nature disagree.
+//
+// Upstream types Odin's Gainey a SATELLITE and parents it to the STAR, so there
+// is no planet under which to nest it and it holds a top-level slot. Everything
+// downstream infers "planet" from that position unless the tier says otherwise,
+// and all three inferences were wrong: the card header called Odin a four-planet
+// system (it has three planets and two moons, and Gainey's own article opens "a
+// former natural satellite"), the 1,789 km disc was scaled against the planet
+// range instead of the moon one, and the glyph fell through to the neutral grey
+// "unknown" disc, because only planets and stars carry the subtype a colour is
+// keyed off.
+//
+// The marker costs nothing on a published page: 1,789 km sits inside the
+// recorded moon range (44.6-3,214) as well as the planet one, so no disc that is
+// already live moves. See extents.go, which has always measured this body at the
+// moon tier by its upstream type — the two passes disagreed until now.
+func TestBuildMarksAStarParentedMoonAsAMoon(t *testing.T) {
+	doc := build(t, `{"systems": {"Odin": {"bodies": {"Gainey": {"after": "The Coil"}}}}}`)
+
+	gainey := find(t, doc, "Odin", "Gainey")
+	if gainey.Tier != tierMoon {
+		t.Errorf("Gainey tier = %q, want %q: a moon on the planet rail is still a moon",
+			gainey.Tier, tierMoon)
+	}
+	if gainey.KM == nil || *gainey.KM != 1789 {
+		t.Errorf("Gainey km = %v, want 1789: the unit conversion follows the upstream type, "+
+			"which the tier does not change", gainey.KM)
+	}
+	if gainey.Subtype != "" {
+		t.Errorf("Gainey subtype = %q; a moon's subtype restates its tier and is dropped", gainey.Subtype)
+	}
+	if gainey.Moons != nil {
+		t.Error("the rail nests one level and a moon is what that level holds, " +
+			"so a rail moon must omit the moons key rather than emit an empty array")
+	}
+
+	// And its neighbours are unaffected: the marker is on the one body, not on
+	// the top level. Odin II is a planet, marked by carrying no tier at all.
+	if odinII := find(t, doc, "Odin", "Odin II"); odinII.Tier != "" {
+		t.Errorf("Odin II tier = %q, want none: a planet is what an unmarked slot means", odinII.Tier)
+	}
+}
+
 // findBelt is find() narrowed to the belt tier.
 //
 // Ellis needs the narrowing: its eleventh planet collided with its moon, and

@@ -1,5 +1,5 @@
 {
-	"%doc": "Generated file, do not hand-edit: `mise run systemmap` rebuilds it from the ARK Starmap mirror plus the hand-owned corrections in pages/module/SystemMap/overlay.json (wiki-tools repo), and an edit made here is lost on the next regeneration. Make it in the overlay instead. `star` is the system's star and is OPTIONAL: two upstream systems have none, and the key is then absent rather than empty. `companion` is a second star, present for five systems and absent for the other 85, alongside `companionShape`, which says how the two are drawn: `nested` where upstream parents the companion to the primary and it genuinely orbits it (Tyrol, Kyuk'ya), or `paired` where neither is parented and the planets co-orbit both (Bacchus, Baker, Goss). The shape is derived from parent_id, not from the system's upstream `type`, which reports Tyrol as SINGLE_STAR despite its two stars. A nested companion is drawn where a moon is drawn but at star size, and a pair shares one rail slot; either way the you-are-here marker lands on the individual star, because the two are separate articles. No companion carries a body anywhere in the dataset, and the generator refuses to build one that does. `bodies` is everything orbiting the star, IN ORBITAL ORDER, planets and asteroid belts together. There is no sort key: position is the array index. Planet order comes from the Roman numeral in the upstream designation, because upstream has no orbit_period for 195 of its 326 planets; a body with no numeral (every belt, and Delamar) is placed by the overlay's `after`. A belt is marked `tier: belt`; anything unmarked is a planet. A planet's `moons` array also carries its rings, marked `tier: ring` — a ring nests where a moon nests, because that is the one level of nesting the rail has, but it is drawn as a band rather than a disc and is counted separately. A ring orbiting a MOON is dropped instead: it would need a level of its own, and the only one upstream has (Stanton's Ring of Yela) has no article either. Belts and rings carry no `km`, because upstream reports 0/null and neither has a meaningful diameter, so they render at a fixed size rather than as a scaled disc. `km` is a diameter for planets and moons but a RADIUS for stars: upstream states planets in km, moons in thousands of km, and stars either in solar radii (x696340, the Sun's radius) below 1000 or in km above it. Mixing the two quantities is harmless because the disc scale is rank-preserving within a tier and never compares across tiers. The unit rule is applied by each body's UPSTREAM type, which is why Pyro IV keeps planet-scale km while sitting at the moon tier. A belt's designation is lower-cased after the system name (\"Stanton belt alpha\"), which is house style rather than a correction, so it is derived here and not listed in the overlay; a Roman numeral keeps its capitals, because that is an orbital slot. `extents` is the disc scale: the smallest and largest km per tier ACROSS ALL 90 UPSTREAM SYSTEMS, unioned with whatever this file renders, so that adding a system never resizes a disc on a page already published. Module:SystemMap/Data.lua uses it when present and falls back to measuring this file when it is absent, which is the behaviour that made the sizes move. Do not hand-trim it to the systems listed below. See docs/superpowers/specs/2026-08-13-system-map-rollout-design.md.",
+	"%doc": "Generated file, do not hand-edit: `mise run systemmap` rebuilds it from the ARK Starmap mirror plus the hand-owned corrections in pages/module/SystemMap/overlay.json (wiki-tools repo), and an edit made here is lost on the next regeneration. Make it in the overlay instead. `star` is the system's star and is OPTIONAL: two upstream systems have none, and the key is then absent rather than empty. `companion` is a second star, present for five systems and absent for the other 85, alongside `companionShape`, which says how the two are drawn: `nested` where upstream parents the companion to the primary and it genuinely orbits it (Tyrol, Kyuk'ya), or `paired` where neither is parented and the planets co-orbit both (Bacchus, Baker, Goss). The shape is derived from parent_id, not from the system's upstream `type`, which reports Tyrol as SINGLE_STAR despite its two stars. A nested companion is drawn where a moon is drawn but at star size, and a pair shares one rail slot; either way the you-are-here marker lands on the individual star, because the two are separate articles. No companion carries a body anywhere in the dataset, and the generator refuses to build one that does. `bodies` is everything orbiting the star, IN ORBITAL ORDER, planets and asteroid belts together. There is no sort key: position is the array index. Planet order comes from the Roman numeral in the upstream designation, because upstream has no orbit_period for 195 of its 326 planets; a body with no numeral (every belt, and Delamar) is placed by the overlay's `after`. A belt is marked `tier: belt`, and the one moon upstream parents to the star instead of to a planet — Odin's Gainey, which therefore has nothing to nest under — is marked `tier: moon` so that it is still drawn, counted and measured as a moon; anything unmarked is a planet. A planet's `moons` array also carries its rings, marked `tier: ring` — a ring nests where a moon nests, because that is the one level of nesting the rail has, but it is drawn as a band rather than a disc and is counted separately. A ring orbiting a MOON is dropped instead: it would need a level of its own, and the only one upstream has (Stanton's Ring of Yela) has no article either. Belts and rings carry no `km`, because upstream reports 0/null and neither has a meaningful diameter, so they render at a fixed size rather than as a scaled disc. `km` is a diameter for planets and moons but a RADIUS for stars: upstream states planets in km, moons in thousands of km, and stars either in solar radii (x696340, the Sun's radius) below 1000 or in km above it. Mixing the two quantities is harmless because the disc scale is rank-preserving within a tier and never compares across tiers. The unit rule is applied by each body's UPSTREAM type, which is why Pyro IV keeps planet-scale km while sitting at the moon tier. A belt's designation is lower-cased after the system name (\"Stanton belt alpha\"), which is house style rather than a correction, so it is derived here and not listed in the overlay; a Roman numeral keeps its capitals, because that is an orbital slot. `extents` is the disc scale: the smallest and largest km per tier ACROSS ALL 90 UPSTREAM SYSTEMS, unioned with whatever this file renders, so that adding a system never resizes a disc on a page already published. Module:SystemMap/Data.lua uses it when present and falls back to measuring this file when it is absent, which is the behaviour that made the sizes move. Do not hand-trim it to the systems listed below. See docs/superpowers/specs/2026-08-13-system-map-rollout-design.md.",
 	"extents": {
 		"star": {
 			"min": 6260,
@@ -1370,6 +1370,1165 @@
 					"subtype": "Super-Earth",
 					"moons": [],
 					"km": 10066
+				}
+			]
+		},
+		"Banshee": {
+			"page": "Banshee system",
+			"star": {
+				"page": "Banshee (star)",
+				"label": "Banshee",
+				"subtype": "Neutron star",
+				"class": "neutron",
+				"km": 9686089
+			},
+			"bodies": [
+				{
+					"page": "Banshee I",
+					"label": "Banshee I",
+					"designation": "Banshee I",
+					"subtype": "Dwarf planet",
+					"moons": [],
+					"km": 1139
+				},
+				{
+					"page": "Banshee II",
+					"label": "Banshee II",
+					"designation": "Banshee II",
+					"subtype": "Iron planet",
+					"moons": [],
+					"km": 5820
+				},
+				{
+					"page": "Lorona",
+					"label": "Lorona",
+					"designation": "Banshee III",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 2512
+				},
+				{
+					"page": "Banshee IV",
+					"label": "Banshee IV",
+					"designation": "Banshee IV",
+					"subtype": "Ice giant",
+					"moons": [],
+					"km": 26732
+				}
+			]
+		},
+		"Bremen": {
+			"page": "Bremen system",
+			"star": {
+				"page": "Bremen (star)",
+				"label": "Bremen",
+				"subtype": "K-type main sequence",
+				"class": "K",
+				"km": 646356
+			},
+			"bodies": [
+				{
+					"page": "Bremen I",
+					"label": "Bremen I",
+					"designation": "Bremen I",
+					"subtype": "Protoplanet",
+					"moons": [],
+					"km": 909
+				},
+				{
+					"page": "Rytif",
+					"label": "Rytif",
+					"designation": "Bremen II",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 8132
+				},
+				{
+					"page": "Bremen III",
+					"label": "Bremen III",
+					"designation": "Bremen III",
+					"subtype": "Coreless planet",
+					"moons": [],
+					"km": 8675
+				},
+				{
+					"page": "Bremen IV",
+					"label": "Bremen IV",
+					"designation": "Bremen IV",
+					"subtype": "Ice giant",
+					"moons": [],
+					"km": 16745
+				}
+			]
+		},
+		"Chronos": {
+			"page": "Chronos system",
+			"star": {
+				"page": "Chronos (star)",
+				"label": "Chronos",
+				"subtype": "G-type main sequence",
+				"class": "G",
+				"km": 782654
+			},
+			"bodies": [
+				{
+					"page": "Bruder",
+					"label": "Bruder",
+					"designation": "Chronos I",
+					"subtype": "Dwarf planet",
+					"moons": [],
+					"km": 2920
+				},
+				{
+					"page": "Schwester",
+					"label": "Schwester",
+					"designation": "Chronos II",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 8036
+				},
+				{
+					"page": "Synthworld",
+					"label": "Synthworld",
+					"designation": "Chronos III",
+					"subtype": "Artificial",
+					"moons": [],
+					"km": 7597
+				}
+			]
+		},
+		"Corel": {
+			"page": "Corel system",
+			"star": {
+				"page": "Corel (star)",
+				"label": "Corel",
+				"subtype": "G-type main sequence",
+				"class": "G",
+				"km": 689246
+			},
+			"bodies": [
+				{
+					"page": "Corel I",
+					"label": "Corel I",
+					"designation": "Corel I",
+					"subtype": "Iron planet",
+					"moons": [],
+					"km": 4032
+				},
+				{
+					"page": "Corel II",
+					"label": "Corel II",
+					"designation": "Corel II",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 4197
+				},
+				{
+					"page": "Lo",
+					"label": "Lo",
+					"designation": "Corel III",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 6243
+				},
+				{
+					"page": "Castor",
+					"label": "Castor",
+					"designation": "Corel IV",
+					"subtype": "Ice planet",
+					"moons": [],
+					"km": 9609
+				},
+				{
+					"page": "Corel V",
+					"label": "Corel V",
+					"designation": "Corel V",
+					"subtype": "Gas giant",
+					"moons": [],
+					"km": 63717
+				},
+				{
+					"page": "Corel VI",
+					"label": "Corel VI",
+					"designation": "Corel VI",
+					"subtype": "Protoplanet",
+					"moons": [],
+					"km": 1121
+				}
+			]
+		},
+		"Davien": {
+			"page": "Davien system",
+			"star": {
+				"page": "Davien (star)",
+				"label": "Davien",
+				"subtype": "K-type main sequence",
+				"class": "K",
+				"km": 665135
+			},
+			"bodies": [
+				{
+					"page": "Davien I",
+					"label": "Davien I",
+					"designation": "Davien I",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 4615
+				},
+				{
+					"page": "Cestulus",
+					"label": "Cestulus",
+					"designation": "Davien II",
+					"subtype": "Terrestrial rocky",
+					"moons": [
+						{
+							"page": "Penselin",
+							"label": "Penselin",
+							"designation": "2a",
+							"km": 1000
+						}
+					],
+					"km": 6096
+				},
+				{
+					"page": "Davien III",
+					"label": "Davien III",
+					"designation": "Davien III",
+					"subtype": "Smog planet",
+					"moons": [],
+					"km": 8997
+				},
+				{
+					"page": "Davien IV",
+					"label": "Davien IV",
+					"designation": "Davien IV",
+					"subtype": "Ice giant",
+					"moons": [],
+					"km": 17870
+				}
+			]
+		},
+		"Elysium": {
+			"page": "Elysium system",
+			"star": {
+				"page": "Elysium (star)",
+				"label": "Elysium",
+				"subtype": "F-type main sequence",
+				"class": "F",
+				"km": 801563
+			},
+			"bodies": [
+				{
+					"page": "Elysium I",
+					"label": "Elysium I",
+					"designation": "Elysium I",
+					"subtype": "Puffy planet",
+					"moons": [],
+					"km": 46181
+				},
+				{
+					"page": "Elysium II",
+					"label": "Elysium II",
+					"designation": "Elysium II",
+					"subtype": "Coreless planet",
+					"moons": [],
+					"km": 7320
+				},
+				{
+					"page": "Vosca",
+					"label": "Vosca",
+					"designation": "Elysium III",
+					"subtype": "Desert planet",
+					"moons": [],
+					"km": 3786
+				},
+				{
+					"page": "Jalan",
+					"label": "Jalan",
+					"designation": "Elysium IV",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 3348
+				},
+				{
+					"page": "Elysium V",
+					"label": "Elysium V",
+					"designation": "Elysium V",
+					"subtype": "Ice giant",
+					"moons": [],
+					"km": 924
+				}
+			]
+		},
+		"Ferron": {
+			"page": "Ferron system",
+			"star": {
+				"page": "Ferron (star)",
+				"label": "Ferron",
+				"subtype": "F-type main sequence",
+				"class": "F",
+				"km": 456298
+			},
+			"bodies": [
+				{
+					"page": "Ferron I",
+					"label": "Ferron I",
+					"designation": "Ferron I",
+					"subtype": "Mesoplanet",
+					"moons": [],
+					"km": 1949
+				},
+				{
+					"page": "Ferron II",
+					"label": "Ferron II",
+					"designation": "Ferron II",
+					"subtype": "Coreless planet",
+					"moons": [],
+					"km": 6340
+				},
+				{
+					"page": "Asura",
+					"label": "Asura",
+					"designation": "Ferron III",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 6884
+				},
+				{
+					"page": "Ferron IV",
+					"label": "Ferron IV",
+					"designation": "Ferron IV",
+					"subtype": "Gas giant",
+					"moons": [],
+					"km": 86505
+				}
+			]
+		},
+		"Garron": {
+			"page": "Garron system",
+			"star": {
+				"page": "Garron (star)",
+				"label": "Garron",
+				"subtype": "G-type main sequence",
+				"class": "G",
+				"km": 699789
+			},
+			"bodies": [
+				{
+					"page": "Garron I",
+					"label": "Garron I",
+					"designation": "Garron I",
+					"subtype": "Lava planet",
+					"moons": [],
+					"km": 5527
+				},
+				{
+					"page": "Garron II",
+					"label": "Garron II",
+					"designation": "Garron II",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 8325
+				},
+				{
+					"page": "Garron III",
+					"label": "Garron III",
+					"designation": "Garron III",
+					"subtype": "Ice planet",
+					"moons": [],
+					"km": 11943
+				},
+				{
+					"page": "Garron IV",
+					"label": "Garron IV",
+					"designation": "Garron IV",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 7170
+				}
+			]
+		},
+		"Geddon": {
+			"page": "Geddon system",
+			"star": {
+				"page": "Geddon (star)",
+				"label": "Geddon",
+				"subtype": "O-type main sequence",
+				"class": "O",
+				"km": 3132000
+			},
+			"bodies": [
+				{
+					"page": "Tat'Ko",
+					"label": "Tat'Ko",
+					"designation": "Geddon I",
+					"subtype": "Lava planet",
+					"moons": [],
+					"km": 4477
+				}
+			]
+		},
+		"Helios": {
+			"page": "Helios system",
+			"star": {
+				"page": "Helios (star)",
+				"label": "Helios",
+				"subtype": "B-type main sequence",
+				"class": "B",
+				"km": 4567894
+			},
+			"bodies": [
+				{
+					"page": "Helios I",
+					"label": "Helios I",
+					"designation": "Helios I",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 1646
+				},
+				{
+					"page": "Tangaroa",
+					"label": "Tangaroa",
+					"designation": "Helios II",
+					"subtype": "Ocean planet",
+					"moons": [
+						{
+							"page": "Marama",
+							"label": "Marama",
+							"designation": "2a",
+							"km": 1372.66
+						}
+					],
+					"km": 8152
+				},
+				{
+					"page": "Helios III",
+					"label": "Helios III",
+					"designation": "Helios III",
+					"subtype": "Gas giant",
+					"moons": [],
+					"km": 137932
+				},
+				{
+					"page": "Helios IV",
+					"label": "Helios IV",
+					"designation": "Helios IV",
+					"subtype": "Ice planet",
+					"moons": [],
+					"km": 1917
+				}
+			]
+		},
+		"Idris": {
+			"page": "Idris system",
+			"star": {
+				"page": "Idris (star)",
+				"label": "Idris",
+				"subtype": "F-type main sequence",
+				"class": "F",
+				"km": 915236
+			},
+			"bodies": [
+				{
+					"page": "Idris I",
+					"label": "Idris I",
+					"designation": "Idris I",
+					"subtype": "Iron planet",
+					"moons": [],
+					"km": 1210
+				},
+				{
+					"page": "Idris II",
+					"label": "Idris II",
+					"designation": "Idris II",
+					"subtype": "Smog planet",
+					"moons": [],
+					"km": 4680
+				},
+				{
+					"page": "Idris III",
+					"label": "Idris III",
+					"designation": "Idris III",
+					"subtype": "Ocean planet",
+					"moons": [],
+					"km": 6084
+				},
+				{
+					"page": "Locke",
+					"label": "Locke",
+					"designation": "Idris IV",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 7605
+				},
+				{
+					"page": "Idris V",
+					"label": "Idris V",
+					"designation": "Idris V",
+					"subtype": "Protoplanet",
+					"moons": [],
+					"km": 3942
+				}
+			]
+		},
+		"Kai'pua (Kayfa)": {
+			"page": "Kai'pua system",
+			"star": {
+				"page": "Kai’pua (star)",
+				"label": "Kai'pua",
+				"subtype": "K-type main sequence",
+				"class": "K",
+				"km": 632156
+			},
+			"bodies": [
+				{
+					"page": "Kai'pua I",
+					"label": "Kai'pua I",
+					"designation": "Kai'pua (Kayfa) I",
+					"subtype": "Carbon planet",
+					"moons": [],
+					"km": 2915
+				},
+				{
+					"page": "Rai.p'uāng",
+					"label": "Rai.p'uāng",
+					"designation": "Kai'pua (Kayfa) II",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 9040
+				},
+				{
+					"page": "Kai'pua III",
+					"label": "Kai'pua III",
+					"designation": "Kai'pua (Kayfa) III",
+					"subtype": "Gas dwarf",
+					"moons": [],
+					"km": 20882
+				},
+				{
+					"page": "Kai'pua IV",
+					"label": "Kai'pua IV",
+					"designation": "Kai'pua (Kayfa) IV",
+					"subtype": "Gas dwarf",
+					"moons": [],
+					"km": 22161
+				}
+			]
+		},
+		"Kellog": {
+			"page": "Kellog system",
+			"star": {
+				"page": "Kellog (star)",
+				"label": "Kellog",
+				"subtype": "G-type main sequence",
+				"class": "G",
+				"km": 699279
+			},
+			"bodies": [
+				{
+					"page": "Kellog I",
+					"label": "Kellog I",
+					"designation": "Kellog I",
+					"subtype": "Lava planet",
+					"moons": [],
+					"km": 3687
+				},
+				{
+					"page": "Xis",
+					"label": "Xis",
+					"designation": "Kellog II",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 6121
+				},
+				{
+					"page": "Kellog III",
+					"label": "Kellog III",
+					"designation": "Kellog III",
+					"subtype": "Smog planet",
+					"moons": [],
+					"km": 6940
+				},
+				{
+					"page": "Kellog IV",
+					"label": "Kellog IV",
+					"designation": "Kellog IV",
+					"subtype": "Super-Earth",
+					"moons": [],
+					"km": 9269
+				},
+				{
+					"page": "Kellog V",
+					"label": "Kellog V",
+					"designation": "Kellog V",
+					"subtype": "Gas dwarf",
+					"moons": [],
+					"km": 16409
+				},
+				{
+					"page": "QuarterDeck",
+					"label": "QuarterDeck",
+					"designation": "Kellog VI",
+					"subtype": "Ice planet",
+					"moons": [],
+					"km": 4550
+				}
+			]
+		},
+		"Leir": {
+			"page": "Leir system",
+			"star": {
+				"page": "Leir (star)",
+				"label": "Leir",
+				"subtype": "A-type main sequence",
+				"class": "A",
+				"km": 998126
+			},
+			"bodies": [
+				{
+					"page": "Leir I",
+					"label": "Leir I",
+					"designation": "Leir I",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 4869
+				},
+				{
+					"page": "Mya",
+					"label": "Mya",
+					"designation": "Leir II",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 6474
+				},
+				{
+					"page": "Leir III",
+					"label": "Leir III",
+					"designation": "Leir III",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 6620
+				}
+			]
+		},
+		"Magnus": {
+			"page": "Magnus system",
+			"star": {
+				"page": "Magnus (star)",
+				"label": "Magnus",
+				"subtype": "K-type main sequence",
+				"class": "K",
+				"km": 665248
+			},
+			"bodies": [
+				{
+					"page": "Magnus I",
+					"label": "Magnus I",
+					"designation": "Magnus I",
+					"subtype": "Chthonian planet",
+					"moons": [],
+					"km": 5718
+				},
+				{
+					"page": "Borea",
+					"label": "Borea",
+					"designation": "Magnus II",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 6477
+				},
+				{
+					"page": "Magnus III",
+					"label": "Magnus III",
+					"designation": "Magnus III",
+					"subtype": "Super Jupiter",
+					"moons": [],
+					"km": 75720
+				}
+			]
+		},
+		"Min": {
+			"page": "Min system",
+			"bodies": [
+				{
+					"page": "Min I",
+					"label": "Min I",
+					"designation": "Min",
+					"subtype": "Rogue planet",
+					"moons": [
+						{
+							"page": "Min 1a",
+							"label": "Min 1a",
+							"designation": "1a",
+							"km": 150
+						},
+						{
+							"page": "Min 1b",
+							"label": "Min 1b",
+							"designation": "1b",
+							"km": 250
+						},
+						{
+							"page": "Min 1c",
+							"label": "Min 1c",
+							"designation": "1c",
+							"km": 80
+						},
+						{
+							"page": "Min 1d",
+							"label": "Min 1d",
+							"designation": "1d",
+							"km": 300
+						}
+					],
+					"km": 66004
+				}
+			]
+		},
+		"Nemo": {
+			"page": "Nemo system",
+			"star": {
+				"page": "Nemo (star)",
+				"label": "Nemo",
+				"subtype": "F-type main sequence",
+				"class": "F",
+				"km": 645265
+			},
+			"bodies": [
+				{
+					"page": "Nemo I",
+					"label": "Nemo I",
+					"designation": "Nemo I",
+					"subtype": "Protoplanet",
+					"moons": [],
+					"km": 1295
+				},
+				{
+					"page": "Nemo II",
+					"label": "Nemo II",
+					"designation": "Nemo II",
+					"subtype": "Mesoplanet",
+					"moons": [],
+					"km": 2303
+				},
+				{
+					"page": "Ergo",
+					"label": "Ergo",
+					"designation": "Nemo III",
+					"subtype": "Ocean planet",
+					"moons": [],
+					"km": 7248
+				}
+			]
+		},
+		"Nul": {
+			"page": "Nul system",
+			"star": {
+				"page": "Nul (star)",
+				"label": "Nul",
+				"subtype": "Variable star",
+				"km": 756258
+			},
+			"bodies": [
+				{
+					"page": "Nul I",
+					"label": "Nul I",
+					"designation": "Nul I",
+					"subtype": "Dwarf planet",
+					"moons": [],
+					"km": 1020
+				},
+				{
+					"page": "Nul II",
+					"label": "Nul II",
+					"designation": "Nul II",
+					"subtype": "Iron planet",
+					"moons": [],
+					"km": 6159
+				},
+				{
+					"page": "Cole",
+					"label": "Cole",
+					"designation": "Nul III",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 6641
+				},
+				{
+					"page": "Nul IV",
+					"label": "Nul IV",
+					"designation": "Nul IV",
+					"subtype": "Gas giant",
+					"moons": [],
+					"km": 57696
+				},
+				{
+					"page": "Ashana",
+					"label": "Ashana",
+					"designation": "Nul V",
+					"subtype": "Desert planet",
+					"moons": [],
+					"km": 8700
+				}
+			]
+		},
+		"Odin": {
+			"page": "Odin system",
+			"star": {
+				"page": "Odin (star)",
+				"label": "Odin",
+				"subtype": "A-type white dwarf",
+				"class": "degenerate",
+				"km": 6260
+			},
+			"bodies": [
+				{
+					"page": "The Coil",
+					"label": "The Coil",
+					"designation": "Odin I",
+					"tier": "belt"
+				},
+				{
+					"page": "Gainey",
+					"label": "Gainey",
+					"designation": "1a",
+					"tier": "moon",
+					"km": 1789
+				},
+				{
+					"page": "Odin II",
+					"label": "Odin II",
+					"designation": "Odin II",
+					"subtype": "Chthonian planet",
+					"moons": [
+						{
+							"page": "Vili",
+							"label": "Vili",
+							"designation": "2a",
+							"km": 600
+						}
+					],
+					"km": 3475
+				},
+				{
+					"page": "Odin III",
+					"label": "Odin III",
+					"designation": "Odin III",
+					"subtype": "Chthonian planet",
+					"moons": [],
+					"km": 3793
+				},
+				{
+					"page": "Odin IV",
+					"label": "Odin IV",
+					"designation": "Odin IV",
+					"subtype": "Gas giant",
+					"moons": [],
+					"km": 69075
+				}
+			]
+		},
+		"Oso": {
+			"page": "Oso system",
+			"star": {
+				"page": "Oso (star)",
+				"label": "Oso",
+				"subtype": "F-type main sequence",
+				"class": "F",
+				"km": 839456
+			},
+			"bodies": [
+				{
+					"page": "Oso I",
+					"label": "Oso I",
+					"designation": "Oso I",
+					"subtype": "Lava planet",
+					"moons": [],
+					"km": 6049
+				},
+				{
+					"page": "Oso II",
+					"label": "Oso II",
+					"designation": "Oso II",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 4313
+				},
+				{
+					"page": "Oso III",
+					"label": "Oso III",
+					"designation": "Oso III",
+					"subtype": "Gas giant",
+					"moons": [],
+					"km": 48344
+				},
+				{
+					"page": "Oso IV",
+					"label": "Oso IV",
+					"designation": "Oso IV",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 6906
+				},
+				{
+					"page": "Oso V",
+					"label": "Oso V",
+					"designation": "Oso V",
+					"subtype": "Ice giant",
+					"moons": [],
+					"km": 27693
+				},
+				{
+					"page": "Oso VI",
+					"label": "Oso VI",
+					"designation": "Oso VI",
+					"subtype": "Dwarf planet",
+					"moons": [],
+					"km": 3205
+				}
+			]
+		},
+		"Oya": {
+			"page": "Oya system",
+			"star": {
+				"page": "Oya (star)",
+				"label": "Oya",
+				"subtype": "G-type main sequence",
+				"class": "G",
+				"km": 756289
+			},
+			"bodies": [
+				{
+					"page": "Oya I",
+					"label": "Oya I",
+					"designation": "Oya I",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 6340
+				},
+				{
+					"page": "Oya II",
+					"label": "Oya II",
+					"designation": "Oya II",
+					"subtype": "Coreless planet",
+					"moons": [],
+					"km": 9286
+				},
+				{
+					"page": "Oya III",
+					"label": "Oya III",
+					"designation": "Oya III",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 5510
+				},
+				{
+					"page": "Oya IV",
+					"label": "Oya IV",
+					"designation": "Oya IV",
+					"subtype": "Dwarf planet",
+					"moons": [],
+					"km": 2759
+				}
+			]
+		},
+		"R.il'a (Rihlah)": {
+			"page": "R.il'a system",
+			"star": {
+				"page": "R.il'a (star)",
+				"label": "R.il'a",
+				"subtype": "A-type main sequence",
+				"class": "A",
+				"km": 975325
+			},
+			"bodies": [
+				{
+					"page": "Chuai'chuai",
+					"label": "Chuai'chuai",
+					"designation": "R.il'a (Rihlah) I",
+					"subtype": "Protoplanet",
+					"moons": [],
+					"km": 1118
+				},
+				{
+					"page": "P.uay'aha",
+					"label": "P.uay'aha",
+					"designation": "R.il'a (Rihlah) II",
+					"subtype": "Puffy planet",
+					"moons": [],
+					"km": 49179
+				},
+				{
+					"page": "Ping'leth",
+					"label": "Ping'leth",
+					"designation": "R.il'a (Rihlah) III",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 6285
+				},
+				{
+					"page": "Xōl’uu",
+					"label": "Xōl'uu",
+					"designation": "R.il'a (Rihlah) IV",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 6601
+				},
+				{
+					"page": "Xi",
+					"label": "Xi",
+					"designation": "R.il'a (Rihlah) V",
+					"subtype": "Super-Earth",
+					"moons": [],
+					"km": 9663
+				},
+				{
+					"page": "Pi'pa",
+					"label": "Pi'pa",
+					"designation": "R.il'a (Rihlah) VI",
+					"subtype": "Dwarf planet",
+					"moons": [],
+					"km": 1241
+				}
+			]
+		},
+		"Rhetor": {
+			"page": "Rhetor system",
+			"star": {
+				"page": "Rhetor (star)",
+				"label": "Rhetor",
+				"subtype": "G-type main sequence",
+				"class": "G",
+				"km": 756326
+			},
+			"bodies": [
+				{
+					"page": "Rhetor I",
+					"label": "Rhetor I",
+					"designation": "Rhetor I",
+					"subtype": "Mesoplanet",
+					"moons": [],
+					"km": 1148
+				},
+				{
+					"page": "Persei",
+					"label": "Persei",
+					"designation": "Rhetor II",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 5265
+				},
+				{
+					"page": "Reisse",
+					"label": "Reisse",
+					"designation": "Rhetor III",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 6227
+				},
+				{
+					"page": "Mentor",
+					"label": "Mentor",
+					"designation": "Rhetor IV",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 6678
+				},
+				{
+					"page": "Rhetor V",
+					"label": "Rhetor V",
+					"designation": "Rhetor V",
+					"subtype": "Gas giant",
+					"moons": [],
+					"km": 64104
+				}
+			]
+		},
+		"T.āl": {
+			"page": "T.āl system",
+			"star": {
+				"page": "T.āl (star)",
+				"label": "T.āl",
+				"subtype": "A-type main sequence",
+				"class": "A",
+				"km": 1056325
+			},
+			"bodies": [
+				{
+					"page": "Y.ōm'e",
+					"label": "Y.ōm'e",
+					"designation": "T.āl I",
+					"subtype": "Mesoplanet",
+					"moons": [],
+					"km": 1135.3489
+				},
+				{
+					"page": "Oli'Sha",
+					"label": "Oli'xa",
+					"designation": "T.āl II",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 6051
+				},
+				{
+					"page": "Lūng'xyi",
+					"label": "Lūng'xyi",
+					"designation": "T.āl III",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 7044
+				},
+				{
+					"page": "Lixāuu",
+					"label": "Lixāuu",
+					"designation": "T.āl IV",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 5884
+				},
+				{
+					"page": "Ryōl",
+					"label": "Ryōl",
+					"designation": "T.āl V",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 7920
+				},
+				{
+					"page": "Chuaiton",
+					"label": "Chuaiton",
+					"designation": "T.āl VI",
+					"subtype": "Super-Earth",
+					"moons": [],
+					"km": 11048
+				},
+				{
+					"page": "Kyu'nao",
+					"label": "Kyu'nao",
+					"designation": "T.āl VII",
+					"subtype": "Gas giant",
+					"moons": [],
+					"km": 59887
+				}
+			]
+		},
+		"Trise": {
+			"page": "Trise system",
+			"star": {
+				"page": "Trise (star)",
+				"label": "Trise",
+				"subtype": "G-type main sequence",
+				"class": "G",
+				"km": 692356
+			},
+			"bodies": [
+				{
+					"page": "Trise I",
+					"label": "Trise I",
+					"designation": "Trise I",
+					"subtype": "Super-Earth",
+					"moons": [],
+					"km": 8866
 				}
 			]
 		}

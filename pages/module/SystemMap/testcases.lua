@@ -32,7 +32,11 @@ local function eachBody(fn)
 			fn(system.companion, 'companion', key)
 		end
 		for _, body in ipairs(system.bodies) do
-			fn(body, body.tier == 'belt' and 'belt' or 'planet', key)
+			-- The top level is not all planets: `tier: belt` marks a region, and
+			-- `tier: moon` the one moon upstream parents to the star, which has no
+			-- planet to nest under and holds a rail slot instead. Anything unmarked
+			-- is a planet, which is what the absent key means.
+			fn(body, body.tier or 'planet', key)
 			if body.moons then
 				for _, moon in ipairs(body.moons) do
 					-- A planet's `moons` array also carries its rings, marked
@@ -44,6 +48,37 @@ local function eachBody(fn)
 		end
 	end
 end
+
+--- Rail bodies marked `tier: moon`, keyed '<system>/<page>'.
+---
+--- A body on the planet rail is normally a planet, and the generator writes a
+--- subtype for every one of those. Odin's Gainey is the exception in all 90
+--- systems: upstream types it a SATELLITE but parents it to the STAR rather than
+--- to a planet, so it has nothing to nest under and the rail carries it as a
+--- top-level body — with no subtype, because only planets and stars have one.
+---
+--- The marker is what stops the omission being read as "planet": without it the
+--- card header counted Odin's three planets as four, the disc was scaled against
+--- the planet range, and glyphKind('planet', nil) returned 'unknown', painting a
+--- 1,789 km moon as a neutral grey disc. This list pins the one body that has it,
+--- so a SECOND such body arrives as a failing test rather than as a quiet change
+--- of tier on a live page.
+--- @type table<string, boolean>
+local RAIL_MOONS = { ['Odin/Gainey'] = true }
+
+--- The systems upstream files no star for, so `star` is absent rather than wrong.
+--- Min is the only one in the file, and its own article agrees: its rail is
+--- headed by a rogue gas giant with four moons.
+---
+--- Tamsa is the other starless system upstream and is deliberately NOT rolled
+--- out. Upstream does file a head for it, `TAMSA.STAR.TAMSA`, but types it
+--- BLACKHOLE — a type with no tier and no glyph here — so its rail would draw
+--- with no head at all on a system whose article opens "two planets in orbit
+--- around a black hole", and whose head has an article of its own at
+--- [[Tamsa (black hole)]]. The generator now refuses to build a system containing
+--- one, so this is a hole in the vocabulary rather than a list to be extended.
+--- @type table<string, boolean>
+local SYSTEMS_WITH_NO_STAR = { Min = true }
 
 function suite:testEverySystemPresent()
 	local keys = {
@@ -62,6 +97,31 @@ function suite:testEverySystemPresent()
 		'Bacchus',
 		'Baker',
 		'Goss',
+		'Banshee',
+		'Bremen',
+		'Chronos',
+		'Corel',
+		'Davien',
+		'Elysium',
+		'Ferron',
+		'Garron',
+		'Geddon',
+		'Helios',
+		'Idris',
+		"Kai'pua (Kayfa)",
+		'Kellog',
+		'Leir',
+		'Magnus',
+		'Min',
+		'Nemo',
+		'Nul',
+		'Odin',
+		'Oso',
+		'Oya',
+		"R.il'a (Rihlah)",
+		'Rhetor',
+		'T.āl',
+		'Trise',
 	}
 	for _, key in ipairs(keys) do
 		self:assertEquals('table', type(DATA.systems[key]), key)
@@ -76,11 +136,16 @@ function suite:testBodyCounts()
 	eachBody(function(_, tier)
 		counts[tier] = counts[tier] + 1
 	end)
-	self:assertEquals(15, counts.star)
+	-- 39 stars across 40 systems: Min has none upstream, and the five binaries put
+	-- their second in `companion` rather than here.
+	self:assertEquals(39, counts.star)
 	self:assertEquals(5, counts.companion)
-	self:assertEquals(84, counts.planet)
-	self:assertEquals(47, counts.moon)
-	self:assertEquals(16, counts.belt)
+	self:assertEquals(185, counts.planet)
+	-- 55 moons, one of which (Gainey) sits on the planet rail rather than in a
+	-- moons array, because upstream parents it to the star. It counts here as the
+	-- moon it is: that is the whole point of the `tier: moon` marker.
+	self:assertEquals(55, counts.moon)
+	self:assertEquals(17, counts.belt)
 	self:assertEquals(6, counts.ring)
 end
 
@@ -110,12 +175,41 @@ function suite:testEveryPlanetHasDesignationAndSubtype()
 				-- A belt deliberately carries no subtype, km or moons.
 				self:assertEquals(nil, body.km, body.page .. ' should have no km')
 				self:assertEquals(nil, body.moons, body.page .. ' should have no moons')
+			elseif body.tier == 'moon' then
+				-- A moon upstream parents to the star: a rail body in every other
+				-- respect, and the one kind that has no subtype to write. It carries
+				-- no `moons` key either — the rail nests one level, and this body is
+				-- already what that level holds.
+				self:assertTrue(
+					RAIL_MOONS[key .. '/' .. body.page],
+					key .. '/' .. body.page .. ' is a rail moon; add it to RAIL_MOONS if that is intended'
+				)
+				self:assertEquals(nil, body.subtype, key .. '/' .. body.page .. ' subtype')
+				self:assertEquals(nil, body.moons, key .. '/' .. body.page .. ' moons')
+				self:assertEquals('number', type(body.km), key .. '/' .. body.page .. ' km')
 			else
 				self:assertEquals('string', type(body.subtype), key .. '/' .. body.page .. ' subtype')
 				self:assertEquals('table', type(body.moons), key .. '/' .. body.page .. ' moons')
 				self:assertEquals('number', type(body.km), key .. '/' .. body.page .. ' km')
 			end
 		end
+	end
+end
+
+-- The other direction of the same list: every rail moon named is still one, so
+-- the entry cannot outlive the body it describes and go on excusing a subtype
+-- that ought to be there.
+function suite:testEveryRailMoonNamedIsStillARailMoon()
+	local found = {}
+	for key, system in pairs(DATA.systems) do
+		for _, body in ipairs(system.bodies) do
+			if body.tier == 'moon' then
+				found[key .. '/' .. body.page] = true
+			end
+		end
+	end
+	for name in pairs(RAIL_MOONS) do
+		self:assertTrue(found[name], name .. ' is listed as a rail moon but is not one in the file')
 	end
 end
 
@@ -138,7 +232,14 @@ end
 function suite:testEverySystemHasAStarWithAUsableClass()
 	for key, system in pairs(DATA.systems) do
 		self:assertEquals('string', type(system.page), key .. ' page')
-		self:assertEquals('table', type(system.star), key .. ' star')
+		if SYSTEMS_WITH_NO_STAR[key] then
+			-- `star` is an OPTIONAL key, and these two are why. Asserting its
+			-- absence rather than skipping keeps the list honest: a star arriving
+			-- for either one is as much a change worth seeing as one going away.
+			self:assertEquals(nil, system.star, key .. ' is starless upstream')
+		else
+			self:assertEquals('table', type(system.star), key .. ' star')
+		end
 		for _, which in ipairs({ 'star', 'companion' }) do
 			local star = system[which]
 			if star and star.class ~= nil then
@@ -519,7 +620,9 @@ end
 function suite:testEverySubtypeInTheDataIsRecognised()
 	for _, system in pairs(DATA.systems) do
 		for _, body in ipairs(system.bodies) do
-			if body.tier ~= 'belt' then
+			-- Planets only: they are the unmarked bodies, and the only ones the
+			-- generator writes a subtype for.
+			if body.tier == nil then
 				self:assertTrue(
 					Data.glyphKind('planet', body.subtype) ~= 'unknown',
 					'unmapped planet subtype: ' .. tostring(body.subtype)
@@ -594,6 +697,46 @@ function suite:testBuildModelPyroIVKeepsRockyKindAtMoonTier()
 	self:assertEquals('Pyro IV', pyroIV.label)
 	self:assertEquals('rocky', pyroIV.kind)
 	self:assertEquals('moon', pyroIV.tier)
+end
+
+--- Find a top-level rail body by page.
+--- @param model table
+--- @param page string
+--- @return table|nil
+local function railBody(model, page)
+	for _, body in ipairs(model.bodies) do
+		if body.page == page then
+			return body
+		end
+	end
+	return nil
+end
+
+-- Odin's Gainey is the mirror of Pyro IV above: Pyro IV is a planet drawn at the
+-- moon tier, Gainey a moon holding a slot on the planet rail. Upstream parents it
+-- to the STAR, so there is no planet to nest it under.
+--
+-- The layout tier is its own ('rail-moon') because the rail column and the moon
+-- column are laid out differently — a moon's label sits beside its disc, a rail
+-- body's sits under it, and styles.css keys both off the tier. Everything that
+-- asks what the body IS goes through SCALE_TIER to the moon tier instead: the
+-- glyph, the disc size, and the count in the card header.
+function suite:testBuildModelKeepsAStarParentedMoonAtTheMoonTier()
+	local gainey = railBody(Data.buildModel('Odin', ''), 'Gainey')
+	self:assertEquals('table', type(gainey), 'Gainey is on the rail')
+	self:assertEquals('rail-moon', gainey.tier, 'laid out as a rail column')
+	self:assertEquals('moon', gainey.kind, 'and drawn as the moon it is, not the grey unknown disc')
+	self:assertEquals(Data.discSize('moon', 1789), gainey.disc, 'measured against the moon range')
+	-- Which is emphatically not the planet range: same body, two different sizes.
+	self:assertTrue(gainey.disc ~= Data.discSize('planet', 1789), 'not the planet range')
+end
+
+-- The header is a sentence about what the system contains, and Odin contains
+-- three planets and two moons — Gainey and Vili. Counted by rail position it read
+-- "4 planets, 1 moon", contradicting both the system article and Gainey's own,
+-- which opens "a former natural satellite of the destroyed Odin I".
+function suite:testSummariseCountsAStarParentedMoonAsAMoon()
+	self:assertEquals('3 planets, 2 moons, 1 belt', Data.summarise(Data.buildModel('Odin', '')))
 end
 
 --- Count bodies flagged current, and return the count plus the last one seen.
@@ -722,6 +865,41 @@ function suite:testRenderEmitsDataKind()
 	self:assertTrue(html:find('data%-kind="star%-g"') ~= nil)
 	self:assertTrue(html:find('data%-kind="gas%-giant"') ~= nil)
 	self:assertTrue(html:find('data%-kind="moon"') ~= nil)
+end
+
+-- The layout tier must not reach the moon column's row styling, which is keyed on
+-- `--moon` and would put a rail moon's label beside its disc while every sibling
+-- on the rail stacks its own underneath. The class is the whole contract with
+-- styles.css, and the two modifiers are what keep the layout and the glyph
+-- independent: `--rail-moon` lays it out as a column, `data-kind` paints it as a
+-- moon.
+--
+-- Rendered from a model built here rather than from Odin, so that the absence of
+-- the moon-column modifier means something: Odin's rail also carries Vili, a real
+-- moon in a real moons array, which legitimately has it.
+function suite:testRenderGivesARailMoonTheRailColumnModifier()
+	local html = tostring(Renderer.renderRail({
+		key = 'Vector',
+		page = 'Vector system',
+		bodies = {
+			{
+				tier = 'rail-moon',
+				page = 'Vector 1a',
+				label = 'Vector 1a',
+				kind = 'moon',
+				disc = 12,
+				current = false,
+				missing = false,
+				moons = {},
+			},
+		},
+	}))
+	self:assertTrue(
+		html:find('t%-system%-map__item%-%-rail%-moon') ~= nil,
+		'the rail moon carries its own layout modifier'
+	)
+	self:assertEquals(nil, html:find('t%-system%-map__item%-%-moon"'), 'and not the moon column one')
+	self:assertTrue(html:find('data%-kind="moon"') ~= nil, 'while still taking the moon glyph')
 end
 
 function suite:testRenderOmitsMoonListWhenPlanetHasNoMoons()
@@ -1203,22 +1381,47 @@ function suite:testTierCapIsGlobalNotPerSystem()
 	self:assertTrue(pyroV - crusader < 0.5, 'but only just')
 end
 
--- The tier cap belongs to the whole upstream dataset, not to this file. Pyro V
--- is the largest planet HERE and no longer takes it, because the recorded
--- planet maximum is Helios III at 137,932 km — a body in a system that has not
--- been rolled out. That is the entire point: the next batch to land cannot
--- resize a disc on any of the 42 pages already published.
-function suite:testTierCapComesFromTheWholeDatasetNotThisFile()
-	local recorded = DATA.extents.planet.max
-	local largestHere = 0
+-- The tier cap belongs to the whole upstream dataset, not to this file, so no
+-- rollout batch can resize a disc on a page already published.
+--
+-- The check is CONTAINMENT, and only containment. It is what protects a
+-- published page: every body the file renders has to fall inside the recorded
+-- range, or it is clamped to a bound and two different sizes draw identically.
+--
+-- It deliberately does NOT also require some tier to reach strictly past the
+-- file. That clause has now expired twice. It began as "the planet maximum
+-- reaches past the file", true while Helios III sat in an unshipped system;
+-- Helios shipped and the planet tier saturated. It was widened to "at least one
+-- tier reaches past", which is true only while some system carrying an extreme
+-- is still unshipped — and there are exactly two left, Hadrian (the largest
+-- star) and Virgil (the smallest moon, Epheet at 44.6 km). The batch that ships
+-- both makes the recorded block equal the file's own range, because `extents` is
+-- the union of the dataset measurement with what the file renders. The clause
+-- would then fail on a correct file, reporting "the anchoring has been lost"
+-- when nothing had been lost at all.
+--
+-- What that clause was reaching for is pinned properly on the generator side by
+-- TestCommittedExtentsAreTheAnchoredValues, which asserts the exact figures the
+-- whole-dataset pass produces. That check does not expire: it compares the file
+-- against the dataset rather than against itself.
+function suite:testTierCapContainsEveryBodyInTheFile()
+	local here = {}
 	eachBody(function(body, tier)
-		if tier == 'planet' and type(body.km) == 'number' and body.km > largestHere then
-			largestHere = body.km
+		local t = tier == 'companion' and 'star' or tier
+		if (t == 'star' or t == 'planet' or t == 'moon') and type(body.km) == 'number' then
+			local seen = here[t] or { min = body.km, max = body.km }
+			seen.min = math.min(seen.min, body.km)
+			seen.max = math.max(seen.max, body.km)
+			here[t] = seen
 		end
 	end)
-	self:assertTrue(largestHere > 0, 'the file has planets to compare against')
-	self:assertTrue(recorded > largestHere, 'the recorded maximum reaches past the file')
-	self:assertTrue(Data.discSize('planet', largestHere) < 24, 'so nothing in the file takes the cap')
+
+	for _, tier in ipairs({ 'star', 'planet', 'moon' }) do
+		local recorded, seen = DATA.extents[tier], here[tier]
+		self:assertEquals('table', type(seen), tier .. ' has bodies in the file to compare against')
+		self:assertTrue(recorded.min <= seen.min, tier .. ' recorded minimum contains the file')
+		self:assertTrue(recorded.max >= seen.max, tier .. ' recorded maximum contains the file')
+	end
 end
 
 -- ---------------------------------------------------------------------------
@@ -1595,7 +1798,7 @@ function suite:testComputeExtentsMeasuresACompanionAtTheStarTier()
 				bodies = { { km = 100, moons = {} } },
 			},
 			-- A system with no star at all must not stop the walk, which is the
-			-- shape Tamsa and Min take.
+			-- shape Min takes.
 			Headless = { bodies = { { km = 300, moons = {} } } },
 		},
 	})
@@ -1763,11 +1966,12 @@ function suite:testAnnotateExistenceProbesBothStars()
 	end
 end
 
--- Two upstream systems (Tamsa, Min) have no star and still carry planets — Min
--- carries four moons as well — so nothing downstream of the data may assume a
--- head. Neither is rolled out, so the model is built by hand here: this is the
--- render and walk half of the guarantee, and the file-shape half is the Go
--- suite's TestBuildWithoutAStar.
+-- Min has no star upstream and still carries a planet and four moons, so nothing
+-- downstream of the data may assume a head. The model is built by hand here
+-- rather than from Min, so that the guarantee holds for any headless model and
+-- not only for the shape today's data happens to take: this is the render and
+-- walk half of it, and the file-shape half is the Go suite's
+-- TestBuildWithoutAStar.
 function suite:testAHeadlessSystemStillRendersItsPlanets()
 	local model = {
 		key = 'Vector',

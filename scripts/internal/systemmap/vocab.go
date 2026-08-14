@@ -20,6 +20,25 @@ const (
 	typeCluster = "ASTEROID_FIELD"
 )
 
+// typeBlackHole is the one unrendered type that is not merely absent from the
+// rail but WRONG to leave out, so it is named here rather than falling into the
+// default drop with the jump points.
+//
+// Upstream files exactly one, at the head of Tamsa: `TAMSA.STAR.TAMSA`, typed
+// BLACKHOLE rather than STAR, with both of the system's planets parented to it.
+// Dropping it silently produced a rail with no head at all on a system whose own
+// article opens "two planets in orbit around a black hole" — a picture that
+// contradicts the page it sits on, with nothing to flag it: the broken-link
+// category only walks bodies that reached the model, so a body that was never
+// emitted cannot appear in it.
+//
+// Rendering it needs a tier and a glyph kind that do not exist yet (its `size`
+// is null upstream, so it would also have no diameter to scale), and that is a
+// vocabulary change here plus a palette change in Module:SystemMap/Data.lua and
+// styles.css. Until then buildSystem refuses any system containing one, so the
+// headless rail cannot be reached by listing the system in the overlay.
+const typeBlackHole = "BLACKHOLE"
+
 // subtypePlanetaryRing is the subtype upstream gives all eleven of its rings.
 // The type is no help: a ring is typed ASTEROID_BELT, the same as the regions on
 // the planet rail, so the subtype is the only thing that separates them.

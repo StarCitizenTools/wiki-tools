@@ -26,7 +26,9 @@ const docComment = "Generated file, do not hand-edit: `mise run systemmap` rebui
 	"`bodies` is everything orbiting the star, IN ORBITAL ORDER, planets and asteroid belts together. There is no sort " +
 	"key: position is the array index. Planet order comes from the Roman numeral in the upstream designation, because " +
 	"upstream has no orbit_period for 195 of its 326 planets; a body with no numeral (every belt, and Delamar) is " +
-	"placed by the overlay's `after`. A belt is marked `tier: belt`; anything unmarked is a planet. A planet's `moons` " +
+	"placed by the overlay's `after`. A belt is marked `tier: belt`, and the one moon upstream parents to the star " +
+	"instead of to a planet — Odin's Gainey, which therefore has nothing to nest under — is marked `tier: moon` so " +
+	"that it is still drawn, counted and measured as a moon; anything unmarked is a planet. A planet's `moons` " +
 	"array also carries its rings, marked `tier: ring` — a ring nests where a moon nests, because that is the one " +
 	"level of nesting the rail has, but it is drawn as a band rather than a disc and is counted separately. A ring " +
 	"orbiting a MOON is dropped instead: it would need a level of its own, and the only one upstream has (Stanton's " +
@@ -78,7 +80,37 @@ const (
 	// moon's slot on the rail and none of a moon's other properties. It carries
 	// no size (see buildBody) and it is drawn as a band, not a disc.
 	roleRing
+	// roleRailMoon is a moon that sits on the PLANET rail, because upstream
+	// parents it to the star and there is no planet under which to nest it. Odin's
+	// Gainey is the only one in all 90 systems.
+	//
+	// It is a role of its own because the two questions the rail asks about a body
+	// disagree here for the only time: where it sits (a top-level slot, like a
+	// planet) and what it is (a moon). Left as rolePlanet the file said "planet"
+	// by omission, and everything downstream believed it — the card header counted
+	// four planets in a three-planet system, the disc was measured against the
+	// planet range, and the glyph fell through to the neutral grey "unknown" disc
+	// because only planets and stars carry a subtype to key a colour off.
+	roleRailMoon
 )
+
+// describeRole names a role for an error message, as a noun phrase a sentence
+// can end on.
+func describeRole(r role) string {
+	switch r {
+	case roleBelt:
+		return "a belt"
+	case roleRailMoon:
+		return "itself a moon"
+	case roleRing:
+		return "a ring"
+	case roleStar:
+		return "a star"
+	case roleMoon:
+		return "a moon"
+	}
+	return "a planet"
+}
 
 // node is one upstream body while it is being placed.
 type node struct {
@@ -234,6 +266,18 @@ func buildSystem(name string, sys *starmap.System, objects []*starmap.Object, ov
 	for i, obj := range objects {
 		switch obj.Type {
 		case typeStar, typePlanet, typeMoon, typeBelt, typeCluster:
+		case typeBlackHole:
+			// Refused rather than dropped. Everything else the default arm
+			// discards is a thing the rail is not FOR — a jump point, a station, a
+			// landing zone — and leaving it out is the whole point of the filter.
+			// A black hole is a body the rail is for and cannot yet draw, and it
+			// is the head of its system: dropping it renders every planet in
+			// orbit around nothing. Failing here costs a build; the alternative
+			// costs a wrong picture on a live article that nothing would report.
+			return nil, 0, fmt.Errorf("upstream files a %s here (%q), and the rail has no tier or "+
+				"glyph for one, so the map would omit the object the system orbits. Give it a kind "+
+				"in vocab.go and in Module:SystemMap/Data.lua before listing this system",
+				obj.Type, bodyKey(obj))
 		default:
 			continue // jump points, landing zones, stations: not on the rail
 		}
@@ -288,9 +332,9 @@ func buildSystem(name string, sys *starmap.System, objects []*starmap.Object, ov
 	} else if corrections.HasStar {
 		// The same promise the companion block makes, and it has to be made
 		// separately now that a starless system builds rather than erroring out
-		// before the corrections were ever applied. Tamsa and Min are the two,
-		// and a `star` block written for either would otherwise be discarded in
-		// silence — the exact loss the overlay exists to prevent.
+		// before the corrections were ever applied. Min is the one, and a `star`
+		// block written for it would otherwise be discarded in silence — the exact
+		// loss the overlay exists to prevent.
 		return nil, 0, fmt.Errorf("overlay corrects the star, but upstream files %s here",
 			plural(len(stars), "star", "stars"))
 	}
@@ -436,9 +480,16 @@ func buildSystem(name string, sys *starmap.System, objects []*starmap.Object, ov
 		out.CompanionShape = shape
 	}
 	for _, n := range ordered {
+		// What a top-level slot holds is decided by the upstream type, not by the
+		// slot: a belt is a region, and a SATELLITE that reached the rail is a moon
+		// upstream parents to the star (see moonParent). Only the third case is a
+		// planet, and it is the one the file marks with no tier at all.
 		r := rolePlanet
-		if n.obj.Type == typeBelt || n.obj.Type == typeCluster {
+		switch n.obj.Type {
+		case typeBelt, typeCluster:
 			r = roleBelt
+		case typeMoon:
+			r = roleRailMoon
 		}
 		body, err := buildBody(n, r, name)
 		if err != nil {
@@ -464,8 +515,11 @@ func buildSystem(name string, sys *starmap.System, objects []*starmap.Object, ov
 			}
 			body.Moons = &moons
 		} else if len(n.moons) > 0 {
-			return nil, 0, fmt.Errorf("overlay makes %q a moon of %q, which is a belt",
-				n.moons[0].overlayKey, n.overlayKey)
+			// Named rather than assumed to be a belt: a rail moon cannot hold one
+			// either, and the rail nests exactly one level, so "a moon of a moon"
+			// is as unrenderable as "a moon of a belt" and wants saying as itself.
+			return nil, 0, fmt.Errorf("overlay makes %q a moon of %q, which is %s",
+				n.moons[0].overlayKey, n.overlayKey, describeRole(r))
 		}
 		out.Bodies = append(out.Bodies, body)
 	}
@@ -513,10 +567,15 @@ func buildSystem(name string, sys *starmap.System, objects []*starmap.Object, ov
 func resolveStars(stars []*node) (primary, companion *node, shape string, err error) {
 	switch len(stars) {
 	case 0:
-		// Tamsa and Min. Both carry planets — Min has four moons as well — so
-		// the rail is still worth drawing; it simply has no head. Refusing to
-		// build would make them unrenderable for a fact about upstream's data
-		// rather than about the map.
+		// Min. It carries a rogue gas giant and four moons, so the rail is still
+		// worth drawing; it simply has no head. Refusing to build would make it
+		// unrenderable for a fact about upstream's data rather than about the map.
+		//
+		// Tamsa files no STAR either and does not reach here: buildSystem refuses
+		// it, because upstream files a head for it typed BLACKHOLE and a rail with
+		// that dropped is head-less by omission rather than by nature. This branch
+		// is for a system that genuinely has no head, not for one whose head the
+		// vocabulary cannot name.
 		return nil, nil, "", nil
 	case 1:
 		return stars[0], nil, "", nil
@@ -854,6 +913,11 @@ func buildBody(n *node, r role, system string) (Body, error) {
 		body.Tier = tierBelt
 	case roleRing:
 		body.Tier = tierRing
+	case roleRailMoon:
+		// The one top-level body that is not a planet by omission. Without the
+		// marker Data.lua infers "planet" from the position, and measures, colours
+		// and counts it as one.
+		body.Tier = tierMoon
 	}
 
 	switch n.obj.Type {

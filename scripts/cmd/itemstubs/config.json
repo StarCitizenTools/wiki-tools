@@ -606,6 +606,9 @@
         "_Fake",
         "_fake",
         "_test_"
+      ],
+      "nameExact": [
+        "Mining Modules"
       ]
     },
     {

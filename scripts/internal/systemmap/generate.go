@@ -562,9 +562,32 @@ func sortMoons(moons []*node, system string) {
 
 // buildBody renders one node.
 func buildBody(n *node, r role, system string) (Body, error) {
+	// Whether upstream names a body at all is what separates a label that is a
+	// proper noun from one that merely restates the designation, and those two
+	// want opposite treatment from the house-style rule below.
+	_, named := upstreamName(n.obj)
+
 	label := n.key
-	if n.correction.Label != "" {
+	switch {
+	case n.correction.Label != "":
+		// An overlay label is judgement, and is stored exactly as written.
 		label = n.correction.Label
+	case r == roleBelt && !named:
+		// House style reaches the label and, through it, the page — but only for
+		// a belt upstream leaves unnamed, because for those the label IS the
+		// designation. Leaving it in upstream's case would store the same string
+		// twice in two different cases, so the rail would stack "Bacchus belt
+		// alpha" under "Bacchus Belt Alpha", and would point `page` at a title
+		// the wiki is turning into a redirect as those articles move to sentence
+		// case.
+		//
+		// A belt upstream DID name — Aaron Halo, Keeger Belt, Glaciem Ring,
+		// Marisol Belt, Henge Cluster, Akiro Cluster — keeps that name verbatim.
+		// It is a proper noun, not a description: lower-casing it would look
+		// wrong and would red-link the article. Every belt in the five systems
+		// shipped so far is one of those, which is why this rule changes nothing
+		// already published.
+		label = beltCase(label, system)
 	}
 
 	body := Body{
@@ -628,15 +651,32 @@ func buildBody(n *node, r role, system string) (Body, error) {
 // bodyKey is a body's identity to the overlay and its default label: the
 // upstream name, or the designation when there is no name.
 func bodyKey(obj *starmap.Object) string {
-	if obj.Name != nil {
-		if name := strings.TrimSpace(*obj.Name); name != "" {
-			return name
-		}
+	if name, ok := upstreamName(obj); ok {
+		return name
 	}
 	if obj.Designation != nil {
 		return strings.TrimSpace(*obj.Designation)
 	}
 	return ""
+}
+
+// upstreamName is the name upstream gives a body, trimmed, and whether it gives
+// one at all. Plenty of bodies have none: 59 of its 80 belts, plus Pyro I,
+// Delamar, and all 93 stars but Terra Nova. Of those 59 belts, 48 across 30
+// systems reach the output; the other 11 are unnamed planetary rings, dropped
+// before this is consulted.
+//
+// It is one function rather than two identical tests on purpose. bodyKey falls
+// back to the designation exactly when this reports false, and buildBody is
+// entitled to sentence-case a belt's label exactly when that fallback happened —
+// so if the two ever disagreed about what "unnamed" means, the generator would
+// either recase a proper noun or leave a designation in upstream's case.
+func upstreamName(obj *starmap.Object) (string, bool) {
+	if obj.Name == nil {
+		return "", false
+	}
+	name := strings.TrimSpace(*obj.Name)
+	return name, name != ""
 }
 
 func plural(n int, one, many string) string {

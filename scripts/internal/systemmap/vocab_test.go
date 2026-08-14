@@ -222,7 +222,7 @@ func TestSubtypeTablesCoverUpstream(t *testing.T) {
 		t.Errorf("planetSubtypes has %d entries; upstream ships 22 planet subtypes", len(planetSubtypes))
 	}
 	if len(starSubtypes) != 12 {
-		t.Errorf("starSubtypes has %d entries; upstream ships 12, plus 15 stars with none at all", len(starSubtypes))
+		t.Errorf("starSubtypes has %d entries; upstream ships 12, plus 15 stars with no subtype at all", len(starSubtypes))
 	}
 }
 

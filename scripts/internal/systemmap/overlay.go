@@ -41,8 +41,15 @@ type SystemOverlay struct {
 	// the quantity Data.lua scales the disc by.
 	Star Correction
 	// Bodies is keyed by upstream body name, falling back to the upstream
-	// designation when the name is null — the same identity the generator uses
-	// for a body's label, so what an editor sees on the rail is what they key.
+	// designation when the name is null.
+	//
+	// Always upstream's spelling, which for an unnamed belt is not what the rail
+	// shows: the house-style rule sentence-cases that belt's label, so it reads
+	// "Gurzil belt alpha" while the key stays "Gurzil Belt Alpha". The key is the
+	// body's identity across a refetch rather than a display string, and deriving
+	// it from the label would make every correction depend on a derivation rule
+	// that is allowed to change. Keying the displayed form fails the build, which
+	// is the fail-loud path, not a silent no-op.
 	Bodies map[string]Correction
 	// BodyOrder is the order the keys were written in, which decides the
 	// relative position of two bodies inserted after the same anchor.

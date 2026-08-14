@@ -52,7 +52,7 @@ a note rather than an error.
 | Label | the upstream name, or its designation when upstream gives it no name |
 | Size in km | the upstream size, by tier (see below) |
 | Subtype and star class | explicit tables in `vocab.go` |
-| Belt designation casing | the system name, then lower case (see below) |
+| Belt casing | the system name, then lower case — the designation always, and `label`/`page` too when upstream names the belt nothing (see below) |
 | `extents`, the disc scale | every body in the whole mirror, by tier (see below) |
 
 Everything else is an overlay key: `page`, `label`, `icon`, `iconRatio`,
@@ -109,9 +109,43 @@ both real designations. Two things are left alone:
 
 Belts only. A planet's `Stanton IV` is stored exactly as upstream writes it.
 
-Four of these were hand-edited on the wiki before this tool existed (rev 374302,
-`Fix casing`) and the edit never reached git. The acceptance test now gates on
-the live page for that reason; see `internal/systemmap/testdata/README.md`.
+### It reaches `label` and `page` when upstream names the belt nothing
+
+Upstream names 21 of its 80 belts. Eleven of the rest are unnamed Planetary
+Rings, which are dropped; the other 48, across 30 systems, reach the output with
+no name at all. For those the key falls back to the designation, so `label` — and
+`page`, derived from it — *are* that designation. The rule therefore applies to
+all three, and they agree.
+
+Recasing only the designation would store one string in two cases: the rail would
+print `Bacchus belt alpha` as a second line under `Bacchus Belt Alpha`, and `page`
+would point at a title the wiki is turning into a redirect as those articles move
+to sentence case.
+
+A belt upstream **does** name keeps that name verbatim in `label` and `page` —
+`Aaron Halo`, `Keeger Belt`, `Marisol Belt`, `Henge Cluster`, `Akiro Cluster`,
+`Glaciem Ring`. It is a proper noun, not a description; lower-casing it would look
+wrong and would red-link the article. Only its designation is house style, and the
+two lines then say different things, which is what the rail prints both for.
+
+Those six are every belt in the five systems live on the wiki, which is why
+widening the rule to `label` and `page` changed nothing already published.
+
+An overlay `label` is judgement and is stored exactly as written, capitals
+included. It is the escape hatch for a belt whose article really is titled in
+Title Case.
+
+**The overlay key stays upstream's spelling.** An unnamed belt is keyed
+`Gurzil Belt Alpha` even though the rail reads `Gurzil belt alpha`: the key is the
+body's identity across a refetch, not a display string, and deriving it from the
+house-styled label would make every correction depend on a rule that is allowed
+to change. Keying the label you see fails the build rather than silently doing
+nothing.
+
+Four belt designations were hand-edited on the wiki before this tool existed (rev
+374302, `Fix casing`) and the edit never reached git. The acceptance test now
+gates on the live page for that reason; see
+`internal/systemmap/testdata/README.md`.
 
 ## Adding a system
 

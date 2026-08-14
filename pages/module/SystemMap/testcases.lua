@@ -862,16 +862,19 @@ local function renderBeltRail(belt)
 	}))
 end
 
--- Upstream names only some belts. An unnamed one is labelled by its own
--- designation — and the generator then sentence-cases that designation as house
--- style, so the two strings differ ONLY in case and an exact compare prints
--- both. Real input: Branaugh's belt is label and page "Branaugh Belt Alpha", the
--- title its article actually has, with designation "Branaugh belt alpha".
+-- Upstream names only some belts, and the generator sentence-cases an unnamed
+-- one's label and page along with its designation, so generated input usually
+-- has all three agreeing exactly. (Not always: a designation whose remainder
+-- starts with a digit loses its system prefix, so "Taranis 2a Debris" is
+-- labelled "Taranis 2a debris" against designation "2a debris".) This covers
+-- the other input that survives that: a
+-- HAND-AUTHORED overlay `label`, which is judgement and is stored verbatim — the
+-- escape hatch for a belt whose article really is titled in Title Case. An exact
+-- compare would then stack "Branaugh belt alpha" under "Branaugh Belt Alpha".
 --
--- Synthetic rather than driven off systems.json on purpose: every belt in the
--- five systems shipped so far carries an upstream name (Aaron Halo, Glaciem
--- Ring, Henge Cluster …), which is exactly why this echo is invisible on the 42
--- live pages. It is 34 belts across 27 of the systems still to be rolled out.
+-- Synthetic, and it has to be: the generator cannot produce this pairing any
+-- more, which is the point. The renderer takes no data dependency and must be
+-- right for any model handed to it, not only for what today's generator emits.
 function suite:testRenderOmitsDesignationWhenItRepeatsTheNameInAnotherCase()
 	local html = renderBeltRail({
 		page = 'Branaugh Belt Alpha',
@@ -883,6 +886,21 @@ function suite:testRenderOmitsDesignationWhenItRepeatsTheNameInAnotherCase()
 	})
 	self:assertTrue(html:find('%[%[Branaugh Belt Alpha|Branaugh Belt Alpha%]%]') ~= nil, 'the belt still links')
 	self:assertEquals(nil, html:find('t%-system%-map__desig'), 'and does not echo its own name in lower case')
+end
+
+-- The generated shape, now that label, page and designation agree exactly for an
+-- unnamed belt: the same suppression, reached by the exact-compare path.
+function suite:testRenderOmitsDesignationWhenItIsTheLabel()
+	local html = renderBeltRail({
+		page = 'Branaugh belt alpha',
+		label = 'Branaugh belt alpha',
+		designation = 'Branaugh belt alpha',
+		tier = 'belt',
+		kind = 'belt',
+		disc = 10,
+	})
+	self:assertTrue(html:find('%[%[Branaugh belt alpha|Branaugh belt alpha%]%]') ~= nil, 'the belt still links')
+	self:assertEquals(nil, html:find('t%-system%-map__desig'), 'and does not print its own name twice')
 end
 
 -- The other half of the same rule: this suppresses a DUPLICATE, not every belt

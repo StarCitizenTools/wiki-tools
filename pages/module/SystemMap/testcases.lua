@@ -122,6 +122,41 @@ function suite:testEverySystemPresent()
 		'Rhetor',
 		'T.āl',
 		'Trise',
+		'Gliese',
+		'Kallis',
+		"Ail'ka",
+		'Croshaw',
+		'Horus',
+		'Kins',
+		"La'uo (Virtus)",
+		'Branaugh',
+		'Caliban',
+		'Cano',
+		'Cathcart',
+		'Centauri',
+		'Charon',
+		"Ē'aluth (Eealus)",
+		'Fora',
+		'Genesis',
+		'Gurzil',
+		'Hades',
+		'Hadrian',
+		"Yā'mon (Hadur)",
+		'Kabal',
+		'Kiel',
+		'Nexus',
+		'Oretani',
+		'Orion',
+		'Osiris',
+		"Th.us'ūng (Pallas)",
+		'Tanga',
+		'Tayac',
+		'Tiber',
+		'Tohil',
+		'Vega',
+		'Virgil',
+		'Yulin',
+		'Vanguard',
 	}
 	for _, key in ipairs(keys) do
 		self:assertEquals('table', type(DATA.systems[key]), key)
@@ -136,17 +171,17 @@ function suite:testBodyCounts()
 	eachBody(function(_, tier)
 		counts[tier] = counts[tier] + 1
 	end)
-	-- 39 stars across 40 systems: Min has none upstream, and the five binaries put
+	-- 74 stars across 75 systems: Min has none upstream, and the five binaries put
 	-- their second in `companion` rather than here.
-	self:assertEquals(39, counts.star)
+	self:assertEquals(74, counts.star)
 	self:assertEquals(5, counts.companion)
-	self:assertEquals(185, counts.planet)
-	-- 55 moons, one of which (Gainey) sits on the planet rail rather than in a
+	self:assertEquals(322, counts.planet)
+	-- 75 moons, one of which (Gainey) sits on the planet rail rather than in a
 	-- moons array, because upstream parents it to the star. It counts here as the
 	-- moon it is: that is the whole point of the `tier: moon` marker.
-	self:assertEquals(55, counts.moon)
-	self:assertEquals(17, counts.belt)
-	self:assertEquals(6, counts.ring)
+	self:assertEquals(75, counts.moon)
+	self:assertEquals(60, counts.belt)
+	self:assertEquals(10, counts.ring)
 end
 
 function suite:testEveryBodyHasPageAndLabel()
@@ -1257,6 +1292,21 @@ end
 -- Nyx has no moons at all; the clause is dropped rather than reading "0 moons".
 function suite:testSummariseOmitsMoonsWhenThereAreNone()
 	self:assertEquals('4 planets, 2 belts', Data.summarise(Data.buildModel('Nyx', '')))
+end
+
+-- The same rule on the leading clause. Cathcart and Gurzil are a star and one
+-- belt, so the header names the belt and says nothing about planets.
+function suite:testSummariseOmitsPlanetsWhenThereAreNone()
+	self:assertEquals('1 belt', Data.summarise(Data.buildModel('Cathcart', '')))
+	self:assertEquals('1 belt', Data.summarise(Data.buildModel('Gurzil', '')))
+end
+
+-- Vanguard is a star and nothing else, so every clause drops. The empty string
+-- is what Module:CardLua reads as "no description", leaving the header as the
+-- system link alone.
+function suite:testSummariseIsEmptyWhenTheRailIsAStarAlone()
+	self:assertEquals('', Data.summarise(Data.buildModel('Vanguard', '')))
+	self:assertEquals(nil, SystemMap.render('Vanguard', '', nil, false, false):find('t-card__description', 1, true))
 end
 
 function suite:testSummarisePluralisesSingletons()

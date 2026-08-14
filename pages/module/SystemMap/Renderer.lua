@@ -68,10 +68,11 @@ local function bodyNode(body)
 	local name = label:tag('span'):addClass('t-system-map__name')
 	name:wikitext(linkFor(body))
 
-	-- The sighted cue is a ring plus a trailing dot, both drawn in CSS and so
-	-- invisible to assistive technology. With aria-current stripped by the
-	-- sanitizer, a visually-hidden phrase is what actually carries "you are here"
-	-- to a screen reader. Mirrors Module:Boolean's __sr pattern.
+	-- The sighted cue is a bolder, brighter name plus a trailing dot, both drawn
+	-- in CSS and so invisible to assistive technology. (No ring: styles.css says
+	-- why.) With aria-current stripped by the sanitizer, a visually-hidden phrase
+	-- is what actually carries "you are here" to a screen reader. Mirrors
+	-- Module:Boolean's __sr pattern.
 	if body.current then
 		name:tag('span'):addClass('t-system-map__sr'):wikitext(' (current page)'):done()
 	end

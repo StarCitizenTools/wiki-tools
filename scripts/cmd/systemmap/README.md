@@ -1,9 +1,14 @@
 # systemmap
 
-Rebuilds `Module:SystemMap/systems.json` — the orbit-rail data behind
-`{{System map}}` — from the ARK Starmap plus `pages/module/SystemMap/overlay.json`.
-See [`../../README.md`](../../README.md) for how to run it; this file covers what
-is specific to this data.
+Rebuilds `Module:SystemMap/systems.json`, the orbit-rail data behind
+`{{System map}}`, from the ARK Starmap plus `pages/module/SystemMap/overlay.json`.
+See [`../../README.md`](../../README.md) for how to run it. This file covers what
+is specific to this data, and what the Lua side does with it.
+
+The wiki-facing documentation is deliberately thin: `pages/module/SystemMap/README.md`
+and `pages/template/System map/README.md` are deployed as `/doc` pages and only
+tell an editor that the file is generated, where to go instead, and how to read
+the rail. Everything else about this pipeline lives here.
 
 ## Two inputs, because they fail differently
 
@@ -15,13 +20,27 @@ pages/module/SystemMap/overlay.json   editorial corrections, committed, hand-own
 pages/module/SystemMap/systems.json   committed, deployed via MCP
 ```
 
-Upstream data goes stale and gets refetched. Editorial judgement — which article
-a body links to, where a belt sits between planets, which planet is really a moon
-— has to survive that refetch. Before this tool both lived in the same
+Upstream data goes stale and gets refetched. Editorial judgement has to survive
+that refetch: which article a body links to, where a belt sits between planets,
+which planet is really a moon. Before this tool both lived in the same
 hand-edited file, so the refetch would have overwritten the judgement.
 
 **The output is committed source, not a `scripts/out/` artifact.** It is 10 KB,
 it is reviewed as a diff, and the overlay only means anything next to it.
+
+## What reads the output
+
+| Page | Responsibility |
+| --- | --- |
+| `Module:SystemMap` | Entry point. Argument parsing, page-existence annotation, tracking categories. Hands the rail to `Module:CollapsibleCard` for the card shell and collapse. |
+| `Module:SystemMap/Data` | System-name resolution, glyph classification, model building, body-count summary. Pure. |
+| `Module:SystemMap/Renderer` | Model to HTML, the rail only; the card supplies the header. Pure. |
+| `Module:SystemMap/systems.json` | This tool's output: the bodies of every rolled-out system, in orbital order. |
+| `Module:SystemMap/styles.css` | TemplateStyles. |
+
+Two tables span the boundary and have to be changed on both sides at once:
+`SUBTYPE_KIND` in `Data.lua` against `vocab.go`, and `SCALE_TIER` in `Data.lua`
+against the tiers this tool writes.
 
 ## The overlay fails loudly
 
@@ -38,7 +57,7 @@ and the map ships with a missing icon or a body in the wrong orbit. The same
 applies to `after` and `moonOf` targets, to systems, and to unknown keys in the
 overlay itself.
 
-Exclusion patterns are the one exception — they are global while the output is
+Exclusion patterns are the one exception. They are global while the output is
 only the systems the overlay lists, so a pattern matching nothing is reported as
 a note rather than an error.
 
@@ -54,19 +73,64 @@ a note rather than an error.
 | Label | the upstream name, or its designation when upstream gives it no name |
 | Size in km | the upstream size, by tier (see below) |
 | Subtype and star class | explicit tables in `vocab.go` |
-| Belt casing | the system name, then lower case — the designation always, and `label`/`page` too when upstream names the belt nothing (see below) |
+| Belt casing | the system name, then lower case: the designation always, and `label`/`page` too when upstream names the belt nothing (see below) |
 | `extents`, the disc scale | every body in the whole mirror, by tier (see below) |
 
-Everything else is an overlay key: per body `page`, `label`, `icon`,
-`iconRatio`, `after`, `moonOf`, `km`; per system `page`, `star`, `companion` and
-`companionShape`.
+`code` is never read at all: a body's identity is its upstream name, and its page
+title is derived from that. That is what keeps RSI's typos (`PRYO.MOONS.VUUR`,
+`PYRO.MOON.FAIRO`) out of the file, and what makes `NYX.ASTEROID.DELAMAR`
+harmless: Delamar is upstream's own `PLANET` of subtype `Protoplanet`, which the
+overlay places between Nyx II and Nyx III. That one asserts the wrong *type*
+rather than merely misspelling a name.
+
+### The overlay's keys
+
+Everything the table does not derive is an overlay key.
+
+Per body, under a system's `bodies`: `page`, `label`, `icon`, `iconRatio`,
+`after` (position a body the numeral rule cannot order, such as Delamar and most
+belts), `moonOf` (reparent, as Pyro IV under Pyro V), and `km`.
+
+A star is corrected in a sibling `star` block rather than under `bodies`.
+Terra's `"star": { "page": "Terra Nova" }` is the whole of it, and a second star
+goes in a `companion` block beside it. Both take the same keys except `after`
+and `moonOf`, which a body that holds no slot on the planet rail has no use for,
+and their `km` is a radius. Filing a star under `bodies` fails the build with
+`overlay corrects …` instead of being ignored, so the mistake costs a run rather
+than producing a wrong map. So does a `companion` block on a system with one
+star, and a `star` block on one of the two systems that have none.
+
+Per system: `page` corrects the system's own article title, which is otherwise
+`<upstream name> system`. Kyuk'ya needs it, because upstream still carries the
+Perry Line name and calls the system `Kyuk'ya (Indra)`. `companionShape`
+overrides how two stars are drawn and should be left alone, since it is derived
+(see below).
+
+A top-level `exclude` list, a sibling of `systems`, drops matching bodies from
+every system; `*` is its only wildcard. A pattern names a body the way the
+overlay does: plainly, or in the type-qualified form two bodies sharing a name
+need, as `Ellis XI (PLANET)`. The plain form drops both, the qualified form
+drops one. It currently carries upstream's protoplanetary disk placeholders
+under both spellings, RSI's and its typo, and the skeletal protoplanet upstream
+files under the same designation as Ellis XI's cluster, which is the body that
+actually has an article.
+
+### Orbital order comes from the numeral, not from `orbit_period`
 
 `orbit_period` is **not** used. Upstream leaves it null for 195 of its 326
-planets, while 320 carry a Roman numeral, and planets are numbered outward from
-the star by convention. Sorting Stanton by numeral reproduces
-Hurston → Crusader → ArcCorp → microTech exactly. A body with no numeral (every
-belt, and Delamar) has no derivable position and takes one from `after`; without
-it, it lands at the end of the rail, where it is visible rather than wrong.
+planets, while 324 carry a Roman numeral (the two that do not are Delamar and
+Min's rogue planet), and planets are numbered outward from the star by
+convention. Sorting Stanton by numeral reproduces Hurston → Crusader → ArcCorp
+→ microTech exactly.
+
+**The rule reads the numeral that ends the designation, not the body type**, so
+a belt upstream designates after a planet is ordered like one: `Ellis XI` lands
+between Bombora and Judecca with no overlay entry at all, and `Odin I` behaves
+the same. Everything else takes its position from `after`: Delamar, and 67 of
+the 69 belts, `Hades IV split` and `Kallis V Accretion Disk` among them, because
+a numeral that is not the last word is not read. A body with no derivable
+position and no `after` lands at the end of the rail, where it is visible rather
+than wrong.
 
 ## Sizes are three different units
 
@@ -89,10 +153,73 @@ value is 13.91 and the smallest kilometre value is 6,260. Sol sits at exactly
 planet the overlay reparents as a moon of Pyro V; converting it by its rendered
 tier would multiply a 3,214 km planet by a thousand.
 
+A belt carries no `km` because of what a belt is, not because the field is
+empty. Most belts do report `0` or `null`, but four do not, and two of those are
+live: Sol's Kuiper Belt reports `99999999.99999999` and Taranis 2a debris `0.15`.
+Both draw the same fixed band as every other belt.
+
 Note that `km` is a diameter for planets and moons but a *radius* for stars,
-since 696340 is the Sun's radius. That is harmless — the disc scale is
-rank-preserving within a tier and never compares across tiers — but it is why
-the `%doc` does not call the column a diameter.
+since 696340 is the Sun's radius. That is harmless, because the disc scale is
+rank-preserving within a tier and never compares across tiers, but it is why the
+`%doc` does not call the column a diameter.
+
+## Tiers, and what the file marks
+
+Every body carries a `tier`. Five of them describe a body's place on the rail:
+`star`, `planet`, `belt`, `moon` and `ring`. Three of those scale, the ones with
+a disc; the other two are drawn at a fixed size.
+
+Three more tiers exist only in the render model. They are layout rather than
+classification, and each is measured and coloured at the tier of what the body
+actually is:
+
+| Render tier | Is | Measured at |
+|---|---|---|
+| `companion` | the second star of a nested pair | `star` |
+| `paired` | **both** stars of a co-orbiting pair, since neither is subordinate | `star` |
+| `rail-moon` | a moon holding a slot on the planet rail | `moon` |
+
+`SCALE_TIER` in `Data.lua` is that mapping, and a missing entry fails silently
+twice: a neutral `unknown` glyph, and the wrong tier's scale.
+
+The file marks tiers by exception. `bodies` is everything orbiting the star, in
+orbital order, and anything unmarked there is a planet; a belt carries
+`tier: belt`, and a moon upstream parents to the star rather than to a planet
+carries `tier: moon`. A planet's `moons` array works the same way one level
+down: a ring carries `tier: ring`, and anything unmarked is a moon.
+
+## Glyphs
+
+Twenty-two planet subtypes share eleven glyph kinds. `SUBTYPE_KIND` in
+`Data.lua` holds that table and `vocab.go` carries the matching one, so change
+them together. The grouping is deliberate: a 6-24px disc cannot carry
+twenty-two distinguishable colours.
+
+Stars need no table. Their kind falls out of `'star-' .. lower(class)`, where
+`class` is the spectral letter, or the word `degenerate` or `neutron` for the
+two remnants. Only `Neutron` genuinely has no letter: upstream's white dwarf
+subtype ends in one, `White Dwarf-Degenerate-A`, and it is filed as `degenerate`
+anyway, because a main-sequence A colour would be the wrong claim about a
+remnant. That is an editorial call, and the one Oberon's star renders under.
+`class` is **optional**: Variable, Subgiant and the fifteen stars upstream
+leaves unclassified carry none, the key is simply absent, and the kind falls
+back to a plain `star`.
+
+Belts and rings short-circuit ahead of all of it and take their own kinds, so a
+ring can never fall through to the moon disc and draw itself as the thing it
+orbits alongside.
+
+An unrecognised subtype renders a neutral grey disc rather than erroring, so an
+upstream addition cannot break a published rail. It does block the build,
+though: the generator refuses an unknown planet or star subtype outright
+(`unknown planet subtype …`), so a system containing one cannot be regenerated
+until the Go table has it too. Adding a subtype is a two-file job, not a styling
+touch-up.
+
+Subtype is never printed as text. It exists purely to pick the glyph, so a gas
+giant reads as a banded amber disc and an ice giant as a banded cyan one, while
+the card header describes the system by its contents instead, which a reader
+cannot get from the picture at a glance.
 
 ## A belt's designation is lower-cased after the system name
 
@@ -101,40 +228,40 @@ house style for common nouns, not a judgement about any particular belt, so it i
 derived here rather than written into the overlay 69 more times.
 
 The rule anchors on the system name instead of a word count, because the name is
-not always one word — `Ē'aluth (Eealus) Belt Alpha` and `Ail'ka Belt Alpha` are
+not always one word: `Ē'aluth (Eealus) Belt Alpha` and `Ail'ka Belt Alpha` are
 both real designations. Two things are left alone:
 
 - **Roman numerals.** `Ellis XI`, `Odin I`, `Hades IV split` and `Kallis V
   Accretion Disk` are designated after a planet, and that numeral is an orbital
-  slot — capitals everywhere else in the file (`Stanton I`, `Pyro V`).
-- **Designations with no system prefix.** The sixteen `Rings of <planet>` belts
-  and Sol's `Jovian Rings`. There is nothing to anchor to, and guessing which
-  word is a proper noun would be worse than doing nothing.
+  slot, capitalised everywhere else in the file (`Stanton I`, `Pyro V`).
+- **Designations with no system prefix.** The nine `Rings of <planet>`
+  designations, Stanton's `Ring of Yela` and Sol's `Jovian Rings`. There is
+  nothing to anchor to, and guessing which word is a proper noun would be worse
+  than doing nothing.
 
 Belts only. A planet's `Stanton IV` is stored exactly as upstream writes it.
 
 ### It reaches `label` and `page` when upstream names the belt nothing
 
-Upstream names 21 of its 80 belts. Eleven of the rest are Planetary Rings, which
-are not belts at all here (see below); the other 48, across 30 systems, reach the
-output with
-no name at all. For those the key falls back to the designation, so `label` — and
-`page`, derived from it — *are* that designation. The rule therefore applies to
-all three, and they agree.
+Upstream files 80 belt-shaped bodies, eleven of which are Planetary Rings and not
+belts at all here (see below). Of the 69 that remain it names 21; the other 48,
+across 30 systems, reach the output with no name at all. For those the key falls
+back to the designation, so `label`, and `page` derived from it, *are* that
+designation. The rule therefore applies to all three, and they agree.
 
 Recasing only the designation would store one string in two cases: the rail would
 print `Bacchus belt alpha` as a second line under `Bacchus Belt Alpha`, and `page`
 would point at a title the wiki is turning into a redirect as those articles move
 to sentence case.
 
-A belt upstream **does** name keeps that name verbatim in `label` and `page` —
+A belt upstream **does** name keeps that name verbatim in `label` and `page`:
 `Aaron Halo`, `Keeger Belt`, `Marisol Belt`, `Henge Cluster`, `Akiro Cluster`,
 `Glaciem Ring`. It is a proper noun, not a description; lower-casing it would look
 wrong and would red-link the article. Only its designation is house style, and the
 two lines then say different things, which is what the rail prints both for.
 
-Those six are every belt in the five systems live on the wiki, which is why
-widening the rule to `label` and `page` changed nothing already published.
+Those six were every belt in the five systems live when the rule widened, which
+is why reaching `label` and `page` changed nothing already published.
 
 An overlay `label` is judgement and is stored exactly as written, capitals
 included. It is the escape hatch for a belt whose article really is titled in
@@ -155,30 +282,20 @@ gates on the live page for that reason; see
 ## A second star, and which of two shapes it takes
 
 Upstream has 93 stars across 90 systems. Five systems have two, none has three,
-83 have one, and two — Min and Tamsa — have none at all.
+83 have one, and two, Min and Tamsa, have none at all.
 
-Min still carries planets and moons, so the generator builds it with the `star`
-key simply absent rather than refusing; `resolveStars` returns nothing and the
-rail draws no head, which is the picture Min's own article describes.
-
-Tamsa is the one that looks the same and is not. Upstream files a head for it and
-types it `BLACKHOLE`, which is not a type the rail can draw, so building it
-produced two planets orbiting nothing while the wiki documents the omitted body
-at `Tamsa (black hole)`. That system is **refused**, not built headless: see
-`typeBlackHole` in `internal/systemmap/vocab.go`.
-
-For the five, which star is the primary and how the pair is drawn are both
-derived from `parent_id`:
+Which star is the primary and how the pair is drawn are both derived from
+`parent_id`:
 
 | `parent_id` | Shape | Systems |
 |---|---|---|
-| one star parented to the other | `nested` — the parented one is the companion | Tyrol, Kyuk'ya |
-| neither parented | `paired` — no primary; file order is the designation's | Bacchus, Baker, Goss |
+| one star parented to the other | `nested`, and the parented one is the companion | Tyrol, Kyuk'ya |
+| neither parented | `paired`, no primary; file order is the designation's | Bacchus, Baker, Goss |
 
 The distinction is real rather than a rendering preference. In both nested
 systems every planet, belt and moon is *also* parented to the primary, so the
 hierarchy is upstream's. In all three paired systems both stars sit at the same
-distance from the barycentre — Bacchus A and B are both `0.0735` — and no body is
+distance from the barycentre (Bacchus A and B are both `0.0735`), and no body is
 parented to either. Drawing a co-orbiting pair as a hierarchy would invent a
 centre the data denies.
 
@@ -192,7 +309,7 @@ single-star system:
 - **The star's page title.** `<System> (star)` exists to disambiguate a star
   whose designation is just the system name. A binary's stars are already
   designated apart, and the convention's title does not exist on the wiki for any
-  of the five — `Tyrol (star)` is a red link while `Tyrol A` and `Tyrol B` are
+  of the five: `Tyrol (star)` is a red link while `Tyrol A` and `Tyrol B` are
   articles. So a star sharing its system with another takes its own key as its
   title, like every other body.
 - **A `companion` block in the overlay** corrects the second star, with the same
@@ -202,16 +319,71 @@ single-star system:
 `resolveStars` refuses three arrangements outright rather than guessing: three or
 more stars, two stars each parented to the other, and a star parented to
 something that is not the other star. It also refuses a system where any body is
-parented to the companion — no companion carries a body anywhere in the dataset
+parented to the companion. No companion carries a body anywhere in the dataset
 today, and one that did would otherwise be drawn as orbiting the pair.
+
+### What the rail does with the two shapes
+
+The shapes are drawn differently, which is the point of deriving them. A
+`nested` companion is placed under the primary, in the slot a moon takes:
+`Data.lua` puts it in the star's `moons` list, so it comes out of the same
+machinery every moon does. A `paired` pair shares one rail slot at the head, so
+the orbit line, drawn on the rail's direct children, begins at the pair rather
+than at either star.
+
+- **A nested companion keeps star-tier sizing.** Tyrol B renders at 22.8px in the
+  row where moons are 6-14px, with a star's spectral glyph. It is a star; drawn
+  on the moon scale it would read as an absurd moon. This is what the `companion`
+  entry in `SCALE_TIER` is for, and missing it fails silently twice, with an
+  `unknown` glyph and the 30px star cap.
+- **The you-are-here marker lands on the individual star, never on the pair.**
+  Bacchus A and Bacchus B are separate articles, and a reader on either has to be
+  able to find themselves, so a paired slot holds two independently markable
+  `<li>` elements rather than one merged `A · B` label. It is also what lets each
+  keep its own `data-kind`: Bacchus A is a G-type and B a K-type.
+
+## A system with no star
+
+Only one of the two starless systems is genuinely head-less, and only that one is
+in the file.
+
+Min still carries planets and moons, so the generator builds it with the `star`
+key simply absent rather than refusing. `resolveStars` returns nothing and the
+rail draws no head, which is the picture Min's own article describes: "its main
+focus is not a star but, instead, a rogue gas giant with four orbiting moons".
+Nothing in the model assumes a head, so adding Min was a data change rather than
+a code change.
+
+A head-less system takes no `star` block in the overlay. There is no body for it
+to correct, so the generator refuses the build rather than discarding the entry:
+`overlay corrects the star, but upstream files 0 stars here`. That check is
+separate from the `companion` one because Min is the first system that can reach
+the correction code with no primary at all; before it built, a `star` block could
+not miss.
+
+Tamsa is the one that looks the same and is not. Upstream files a head for it,
+`TAMSA.STAR.TAMSA`, with both planets parented to it, but types it `BLACKHOLE`,
+which is not a type the rail can draw, so it was dropped the way a jump point is.
+That produced two planets orbiting nothing, on a system whose article opens "two
+planets in orbit around a black hole" and whose head has an article of its own at
+`Tamsa (black hole)`. Nothing would have reported it either:
+`Category:Pages with a broken system map link` is built by walking the bodies in
+the model, and this body never reached the model.
+
+So that system is **refused**, not built headless: see `typeBlackHole` in
+`internal/systemmap/vocab.go`, and Tamsa is not listed in the overlay. Rolling it
+out means giving `BLACKHOLE` a kind in `vocab.go`, `SUBTYPE_KIND` in `Data.lua`
+and a disc in `styles.css`, and it needs a decision the data does not supply:
+upstream reports no `size` for it, so it has no diameter to scale. An overlay
+`star` block cannot stand in for any of that.
 
 ## A moon with no planet to nest under
 
 `moonParent` attaches a `SATELLITE` to the planet upstream gives as its
 `parent_id`. One body in all 90 systems has no such planet: Odin's Gainey, which
 upstream parents to the **star**. It stays on the planet rail rather than being
-dropped or forced under an unrelated planet — but it is still a moon, and the
-file says so with `tier: moon`.
+dropped or forced under an unrelated planet, but it is still a moon, and the file
+says so with `tier: moon`.
 
 The marker exists because position is otherwise read as nature. The top level of
 `bodies` means "planet" by omission, so without it Gainey was a planet to
@@ -225,7 +397,7 @@ tier.
 This costs nothing on a published page, which is the reason it could be fixed
 rather than deferred: 1,789 km is inside the recorded moon range (44.6-3,214) as
 well as the planet one, so no live disc moves. `extents` has always measured this
-body at the moon tier, by its upstream type — the two passes simply disagreed.
+body at the moon tier, by its upstream type; the two passes simply disagreed.
 
 ## A planetary ring nests where a moon nests
 
@@ -236,18 +408,20 @@ would put it in an orbital slot.
 
 So a ring is written into its planet's `moons` array, marked `tier: ring`. The
 rail nests exactly one level and that is the level, which is the whole reason
-this needs no new structure — but a ring is emphatically **not** a moon, so it
+this needs no new structure. A ring is emphatically **not** a moon, though, so it
 carries its own glyph kind and `Module:SystemMap/styles.css` draws it as a flat
-speckled band rather than a disc. `Data.lua` counts it separately too: Sol reads
-`9 planets, 19 moons, 4 rings, 2 belts`.
+speckled band rather than a disc. It sorts ahead of its planet's moons, because
+the moon column reads outward from the planet and a ring is inside them, and
+`Data.lua` counts it separately: Sol reads `9 planets, 19 moons, 4 rings,
+2 belts`.
 
-Ten of the eleven orbit a planet and render. The eleventh, Stanton's
-`Ring of Yela`, orbits a **moon** — and a ring of a moon would need a second
-level of nesting, for one body in all 90 systems. It is dropped, which is also
-the honest answer for it: it has no article under any title, so there would be
-nothing to link even with somewhere to put it.
+Ten of the eleven orbit a planet and render, once their system is rolled out. The
+eleventh, Stanton's `Ring of Yela`, orbits a **moon**, and a ring of a moon would
+need a second level of nesting for one body in all 90 systems. It is dropped,
+which is also the honest answer for it: it has no article under any title, so
+there would be nothing to link even with somewhere to put it.
 
-Two rules follow, and both are about the 57 published pages:
+Two rules follow, and both are about pages that are already published:
 
 - **A ring carries no `km`, decided by its role and not by its size field.**
   All eleven report 0 or null today, so the data cannot distinguish "a ring has
@@ -265,9 +439,9 @@ system name, and the planet in that name is a proper noun.
 1. Add its name to `systems` in the overlay, in the position it should appear.
    An empty entry is valid and means nothing needed correcting.
 2. Run `mise run systemmap` and read the diff.
-3. Place the belts with `after`, from the belt articles' own prose. Upstream
-   cannot supply this for any of its 80 belts, and it is the main per-system
-   cost.
+3. Place the belts with `after`, from the belt articles' own prose. Only two of
+   the 69 belts get a position from upstream, the two the numeral rule orders,
+   so this is the main per-system cost.
 4. Check the star's page title. `<System> (star)` is the convention for a system
    with one star, but Terra's star is `Terra Nova`; a binary's stars take their
    own designations, `Tyrol A` and `Tyrol B`.
@@ -282,7 +456,22 @@ system name, and the planet in that name is a proper noun.
 Every subtype and star class upstream ships is already mapped, so a new system
 needs no code change unless CIG adds a vocabulary term.
 
-## Disc sizes are anchored to the whole dataset
+Titles are stored rather than looked up, so this does not self-heal: a moved
+article has to be corrected in the overlay and regenerated.
+`Category:Pages with a broken system map link` is where that surfaces on the
+wiki, alongside the bodies nobody has written up yet, so the category is mostly a
+content backlog rather than a fault report.
+
+## Disc sizes are schematic, and anchored
+
+**Disc size carries no measurement.** Within a tier the mapping is logarithmic
+between that tier's smallest and largest body: rank-preserving, not proportional.
+Pyro V is 6.6x Hurston by diameter and renders about 1.3x. A linear map would put
+the smallest planet at well under a tenth of a pixel. Gas and ice giants are
+therefore distinguished by banding rather than by diameter, which is also all the
+upstream data supports: `size` is incoherent across tiers (the Stanton star is
+`1.2` while Pyro's is `571000.44`), and `orbit_period` is null for every Stanton
+moon. Belts and rings sit outside this entirely, at a fixed size.
 
 `Module:SystemMap/Data.lua` scales each disc against the largest and smallest
 body of its tier, so a body is the same size whichever map it appears on. Those
@@ -297,7 +486,7 @@ rollout would have moved it again to 26.4px. Nothing errored and no test failed.
 
 The block is the **union** of two measurements, and both are needed:
 
-- every upstream body, by its upstream type — the stable half;
+- every upstream body, by its upstream type, which is the stable half;
 - every body this file writes, by the tier it renders at.
 
 The second is not tidiness. The moon maximum across all 90 systems is 1,789 km
@@ -312,7 +501,24 @@ Consequences for a rollout:
 
 - **Adding a system no longer rescales the live pages.** That was the point.
 - **Do not hand-trim `extents` to the systems in the file.** It is meant to
-  reach past them.
+  reach past them. A body outside its tier's range is clamped to whichever end it
+  fell past, the tier floor below or the tier cap above, which draws two
+  different sizes identically.
 - A refetch that finds a new upstream extreme *does* move the scale, once,
   everywhere. That is a real visual change and worth a look in a browser;
   `mise run systemmap:diff` reports it as its own line.
+
+## Tests
+
+`cd scripts && go test ./...` runs this package's suite in
+`internal/systemmap`, including the acceptance gate: regenerating must reproduce
+every system captured in `internal/systemmap/testdata/systems.live.json` exactly
+as the wiki serves it. The capture is widened rather than reset, so the gate only
+ever grows, but it therefore lags the rollout: anything shipped since the last
+capture is checked only against the committed `systems.json`, which cannot see a
+hand edit made on the wiki. Re-capture after deploying.
+`internal/systemmap/testdata/README.md` covers the fixtures and how to refresh
+them.
+
+The Lua side has its own suite at `Module:SystemMap/testcases`, run locally with
+`mise run test:lua:unit SystemMap`.

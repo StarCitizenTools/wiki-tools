@@ -2531,6 +2531,1933 @@
 					"km": 8866
 				}
 			]
+		},
+		"Gliese": {
+			"page": "Gliese system",
+			"star": {
+				"page": "Gliese (star)",
+				"label": "Gliese",
+				"subtype": "A-type main sequence",
+				"class": "A",
+				"km": 995165
+			},
+			"bodies": [
+				{
+					"page": "Gliese I",
+					"label": "Gliese I",
+					"designation": "Gliese I",
+					"subtype": "Iron planet",
+					"moons": [],
+					"km": 5854
+				},
+				{
+					"page": "Gliese II",
+					"label": "Gliese II",
+					"designation": "Gliese II",
+					"subtype": "Smog planet",
+					"moons": [],
+					"km": 5680
+				},
+				{
+					"page": "Gliese belt alpha",
+					"label": "Gliese belt alpha",
+					"designation": "Gliese belt alpha",
+					"tier": "belt"
+				},
+				{
+					"page": "Gliese III",
+					"label": "Gliese III",
+					"designation": "Gliese III",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 7488
+				},
+				{
+					"page": "Nogo",
+					"label": "Nogo",
+					"designation": "Gliese IV",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 7392
+				},
+				{
+					"page": "Gliese belt beta",
+					"label": "Gliese belt beta",
+					"designation": "Gliese belt beta",
+					"tier": "belt"
+				},
+				{
+					"page": "Gliese V",
+					"label": "Gliese V",
+					"designation": "Gliese V",
+					"subtype": "Gas giant",
+					"moons": [],
+					"km": 66806
+				},
+				{
+					"page": "Gliese cluster gamma",
+					"label": "Gliese cluster gamma",
+					"designation": "Gliese cluster gamma",
+					"tier": "belt"
+				},
+				{
+					"page": "Gliese VI",
+					"label": "Gliese VI",
+					"designation": "Gliese VI",
+					"subtype": "Protoplanet",
+					"moons": [],
+					"km": 3831
+				}
+			]
+		},
+		"Kallis": {
+			"page": "Kallis system",
+			"star": {
+				"page": "Kallis (star)",
+				"label": "Kallis",
+				"subtype": "G-type main sequence",
+				"class": "G",
+				"km": 675356
+			},
+			"bodies": [
+				{
+					"page": "Kallis I",
+					"label": "Kallis I",
+					"designation": "Kallis I",
+					"subtype": "Protoplanet",
+					"moons": [],
+					"km": 4268
+				},
+				{
+					"page": "Kallis belt alpha",
+					"label": "Kallis belt alpha",
+					"designation": "Kallis belt alpha",
+					"tier": "belt"
+				},
+				{
+					"page": "Kallis II",
+					"label": "Kallis II",
+					"designation": "Kallis II",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 6573
+				},
+				{
+					"page": "Kallis III",
+					"label": "Kallis III",
+					"designation": "Kallis III",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 3593
+				},
+				{
+					"page": "Kallis belt beta",
+					"label": "Kallis belt beta",
+					"designation": "Kallis belt beta",
+					"tier": "belt"
+				},
+				{
+					"page": "Kallis IV",
+					"label": "Kallis IV",
+					"designation": "Kallis IV",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 6873
+				},
+				{
+					"page": "Kallis V",
+					"label": "Kallis V",
+					"designation": "Kallis V",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 7645
+				},
+				{
+					"page": "Kallis V accretion disk",
+					"label": "Kallis V accretion disk",
+					"designation": "Kallis V accretion disk",
+					"tier": "belt"
+				},
+				{
+					"page": "Kallis VI",
+					"label": "Kallis VI",
+					"designation": "Kallis VI",
+					"subtype": "Carbon planet",
+					"moons": [],
+					"km": 6692
+				},
+				{
+					"page": "Kallis VII",
+					"label": "Kallis VII",
+					"designation": "Kallis VII",
+					"subtype": "Gas giant",
+					"moons": [],
+					"km": 56837
+				},
+				{
+					"page": "Kallis VIII",
+					"label": "Kallis VIII",
+					"designation": "Kallis VIII",
+					"subtype": "Ice giant",
+					"moons": [],
+					"km": 32342
+				},
+				{
+					"page": "Kallis IX",
+					"label": "Kallis IX",
+					"designation": "Kallis IX",
+					"subtype": "Dwarf planet",
+					"moons": [],
+					"km": 2698
+				}
+			]
+		},
+		"Ail'ka": {
+			"page": "Ail'ka system",
+			"star": {
+				"page": "Ail'ka (star)",
+				"label": "Ail'ka",
+				"subtype": "B-type main sequence",
+				"class": "B",
+				"km": 696340
+			},
+			"bodies": [
+				{
+					"page": "Xyeping",
+					"label": "Xyeping",
+					"designation": "Ail'ka I",
+					"subtype": "Protoplanet",
+					"moons": [],
+					"km": 546.264
+				},
+				{
+					"page": "Ail'ka Belt Alpha",
+					"label": "Ail'ka belt alpha",
+					"designation": "Ail'ka belt alpha",
+					"tier": "belt"
+				},
+				{
+					"page": "K'ya.k'uing",
+					"label": "K'ya.k'uing",
+					"designation": "Ail'ka II",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 6987.156489
+				},
+				{
+					"page": "Ye'ten",
+					"label": "Ye'ten",
+					"designation": "Ail'ka III",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 4893.161489
+				},
+				{
+					"page": "M.iiy'ong",
+					"label": "M.iiy'ong",
+					"designation": "Ail'ka IV",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 4365.264496
+				},
+				{
+					"page": "Ail'ka Belt Beta",
+					"label": "Ail'ka belt beta",
+					"designation": "Ail'ka belt beta",
+					"tier": "belt"
+				},
+				{
+					"page": "Ye'ton",
+					"label": "Ye'ton",
+					"designation": "Ail'ka V",
+					"subtype": "Gas dwarf",
+					"moons": [],
+					"km": 22163.264964
+				}
+			]
+		},
+		"Croshaw": {
+			"page": "Croshaw system",
+			"star": {
+				"page": "Croshaw (star)",
+				"label": "Croshaw",
+				"subtype": "G-type main sequence",
+				"class": "G",
+				"km": 715326
+			},
+			"bodies": [
+				{
+					"page": "Croshaw I",
+					"label": "Croshaw I",
+					"designation": "Croshaw I",
+					"subtype": "Smog planet",
+					"moons": [],
+					"km": 5809
+				},
+				{
+					"page": "Angeli",
+					"label": "Angeli",
+					"designation": "Croshaw II",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 6526
+				},
+				{
+					"page": "Vann",
+					"label": "Vann",
+					"designation": "Croshaw III",
+					"subtype": "Ice planet",
+					"moons": [],
+					"km": 7486
+				},
+				{
+					"page": "Croshaw IV",
+					"label": "Croshaw IV",
+					"designation": "Croshaw IV",
+					"subtype": "Super-Earth",
+					"moons": [],
+					"km": 10513
+				},
+				{
+					"page": "Icarus Cluster",
+					"label": "Icarus Cluster",
+					"designation": "Croshaw cluster alpha",
+					"tier": "belt"
+				},
+				{
+					"page": "Daedalus Cluster",
+					"label": "Daedalus Cluster",
+					"designation": "Croshaw cluster beta",
+					"tier": "belt"
+				}
+			]
+		},
+		"Horus": {
+			"page": "Horus system",
+			"star": {
+				"page": "Horus (star)",
+				"label": "Horus",
+				"subtype": "M-type main sequence",
+				"class": "M",
+				"km": 389786
+			},
+			"bodies": [
+				{
+					"page": "Serling",
+					"label": "Serling",
+					"designation": "Horus I",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 5187
+				},
+				{
+					"page": "Horus II",
+					"label": "Horus II",
+					"designation": "Horus II",
+					"subtype": "Desert planet",
+					"moons": [],
+					"km": 7554
+				},
+				{
+					"page": "Horus belt alpha",
+					"label": "Horus belt alpha",
+					"designation": "Horus belt alpha",
+					"tier": "belt"
+				},
+				{
+					"page": "Horus belt beta",
+					"label": "Horus belt beta",
+					"designation": "Horus belt beta",
+					"tier": "belt"
+				},
+				{
+					"page": "Horus III",
+					"label": "Horus III",
+					"designation": "Horus III",
+					"subtype": "Super Jupiter",
+					"moons": [],
+					"km": 122643
+				}
+			]
+		},
+		"Kins": {
+			"page": "Kins system",
+			"star": {
+				"page": "Kins (star)",
+				"label": "Kins",
+				"subtype": "K-type main sequence",
+				"class": "K",
+				"km": 605356
+			},
+			"bodies": [
+				{
+					"page": "Kins I",
+					"label": "Kins I",
+					"designation": "Kins I",
+					"subtype": "Mesoplanet",
+					"moons": [],
+					"km": 708
+				},
+				{
+					"page": "Kins II",
+					"label": "Kins II",
+					"designation": "Kins II",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 7082.1
+				},
+				{
+					"page": "Kins III",
+					"label": "Kins III",
+					"designation": "Kins III",
+					"subtype": "Super-Earth",
+					"moons": [],
+					"km": 8481
+				},
+				{
+					"page": "Kins IV",
+					"label": "Kins IV",
+					"designation": "Kins IV",
+					"subtype": "Ice planet",
+					"moons": [],
+					"km": 9043.1
+				},
+				{
+					"page": "Kins belt alpha",
+					"label": "Kins belt alpha",
+					"designation": "Kins belt alpha",
+					"tier": "belt"
+				},
+				{
+					"page": "Kins V",
+					"label": "Kins V",
+					"designation": "Kins V",
+					"subtype": "Gas giant",
+					"moons": [],
+					"km": 81153
+				},
+				{
+					"page": "Kins belt beta",
+					"label": "Kins belt beta",
+					"designation": "Kins belt beta",
+					"tier": "belt"
+				}
+			]
+		},
+		"La'uo (Virtus)": {
+			"page": "La'uo system",
+			"star": {
+				"page": "La'uo (star)",
+				"label": "La'uo",
+				"subtype": "M-type giant",
+				"class": "M",
+				"km": 58460000
+			},
+			"bodies": [
+				{
+					"page": "Pi'tua",
+					"label": "Pi'tua",
+					"designation": "La'uo (Virtus) I",
+					"subtype": "Evaporating planet",
+					"moons": [],
+					"km": 4356
+				},
+				{
+					"page": "Yengchuai",
+					"label": "Yengchuai",
+					"designation": "La'uo (Virtus) II",
+					"subtype": "Lava planet",
+					"moons": [],
+					"km": 3696
+				},
+				{
+					"page": "La'uo belt alpha",
+					"label": "La'uo belt alpha",
+					"designation": "La'uo (Virtus) belt alpha",
+					"tier": "belt"
+				},
+				{
+					"page": "Kyu'ām",
+					"label": "Kyu'ām",
+					"designation": "La'uo (Virtus) III",
+					"subtype": "Smog planet",
+					"moons": [],
+					"km": 7828
+				},
+				{
+					"page": "La'uo belt beta",
+					"label": "La'uo belt beta",
+					"designation": "La'uo (Virtus) belt beta",
+					"tier": "belt"
+				},
+				{
+					"page": "S.ap'uāng",
+					"label": "S.ap'uāng",
+					"designation": "La'uo (Virtus) IV",
+					"subtype": "Gas giant",
+					"moons": [],
+					"km": 34009
+				}
+			]
+		},
+		"Branaugh": {
+			"page": "Branaugh system",
+			"star": {
+				"page": "Branaugh (star)",
+				"label": "Branaugh",
+				"subtype": "K-type main sequence",
+				"class": "K",
+				"km": 656496
+			},
+			"bodies": [
+				{
+					"page": "Branaugh I",
+					"label": "Branaugh I",
+					"designation": "Branaugh I",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 7651
+				},
+				{
+					"page": "Branaugh II",
+					"label": "Branaugh II",
+					"designation": "Branaugh II",
+					"subtype": "Terrestrial rocky",
+					"moons": [
+						{
+							"page": "Rings of Branaugh II",
+							"label": "Rings of Branaugh II",
+							"designation": "Rings of Branaugh II",
+							"tier": "ring"
+						}
+					],
+					"km": 7896
+				},
+				{
+					"page": "Branaugh belt alpha",
+					"label": "Branaugh belt alpha",
+					"designation": "Branaugh belt alpha",
+					"tier": "belt"
+				},
+				{
+					"page": "Branaugh III",
+					"label": "Branaugh III",
+					"designation": "Branaugh III",
+					"subtype": "Gas giant",
+					"moons": [],
+					"km": 36087
+				}
+			]
+		},
+		"Caliban": {
+			"page": "Caliban system",
+			"star": {
+				"page": "Caliban (star)",
+				"label": "Caliban",
+				"subtype": "G-type main sequence",
+				"class": "G",
+				"km": 756324
+			},
+			"bodies": [
+				{
+					"page": "Caliban I",
+					"label": "Caliban I",
+					"designation": "Caliban I",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 2581
+				},
+				{
+					"page": "Crion",
+					"label": "Crion",
+					"designation": "Caliban II",
+					"subtype": "Terrestrial rocky",
+					"moons": [
+						{
+							"page": "Caliban 2a",
+							"label": "Caliban 2a",
+							"designation": "2a",
+							"km": 515.94
+						}
+					],
+					"km": 3694
+				},
+				{
+					"page": "Caliban III",
+					"label": "Caliban III",
+					"designation": "Caliban III",
+					"subtype": "Desert planet",
+					"moons": [
+						{
+							"page": "Caliban 3a",
+							"label": "Caliban 3a",
+							"designation": "3a",
+							"km": 691
+						},
+						{
+							"page": "Caliban 3b",
+							"label": "Caliban 3b",
+							"designation": "3b",
+							"km": 193
+						}
+					],
+					"km": 4580
+				},
+				{
+					"page": "Caliban belt alpha",
+					"label": "Caliban belt alpha",
+					"designation": "Caliban belt alpha",
+					"tier": "belt"
+				},
+				{
+					"page": "Caliban IV",
+					"label": "Caliban IV",
+					"designation": "Caliban IV",
+					"subtype": "Gas giant",
+					"moons": [
+						{
+							"page": "Caliban 4a",
+							"label": "Caliban 4a",
+							"designation": "4a",
+							"km": 513.9
+						},
+						{
+							"page": "Caliban 4b",
+							"label": "Caliban 4b",
+							"designation": "4b",
+							"km": 515.62
+						},
+						{
+							"page": "Caliban 4c",
+							"label": "Caliban 4c",
+							"designation": "4c",
+							"km": 520.18
+						},
+						{
+							"page": "Caliban 4d",
+							"label": "Caliban 4d",
+							"designation": "4d",
+							"km": 516.55
+						},
+						{
+							"page": "Caliban 4e",
+							"label": "Caliban 4e",
+							"designation": "4e",
+							"km": 185.8
+						},
+						{
+							"page": "Caliban 4f",
+							"label": "Caliban 4f",
+							"designation": "4f",
+							"km": 191.9
+						}
+					],
+					"km": 61045
+				},
+				{
+					"page": "Caliban V",
+					"label": "Caliban V",
+					"designation": "Caliban V",
+					"subtype": "Protoplanet",
+					"moons": [],
+					"km": 3012
+				}
+			]
+		},
+		"Cano": {
+			"page": "Cano system",
+			"star": {
+				"page": "Cano (star)",
+				"label": "Cano",
+				"subtype": "G-type main sequence",
+				"class": "G",
+				"km": 735265
+			},
+			"bodies": [
+				{
+					"page": "Cano I",
+					"label": "Cano I",
+					"designation": "Cano I",
+					"subtype": "Mesoplanet",
+					"moons": [],
+					"km": 1595
+				},
+				{
+					"page": "Carteyna",
+					"label": "Carteyna",
+					"designation": "Cano II",
+					"subtype": "Ocean planet",
+					"moons": [],
+					"km": 3606
+				},
+				{
+					"page": "Cano III",
+					"label": "Cano III",
+					"designation": "Cano III",
+					"subtype": "Smog planet",
+					"moons": [],
+					"km": 8641
+				},
+				{
+					"page": "Cano belt alpha",
+					"label": "Cano belt alpha",
+					"designation": "Cano belt alpha",
+					"tier": "belt"
+				},
+				{
+					"page": "Pox",
+					"label": "Pox",
+					"designation": "Cano IV",
+					"subtype": "Gas giant",
+					"moons": [],
+					"km": 64311
+				}
+			]
+		},
+		"Cathcart": {
+			"page": "Cathcart system",
+			"star": {
+				"page": "Cathcart (star)",
+				"label": "Cathcart",
+				"subtype": "A-type main sequence",
+				"class": "A",
+				"km": 1235564
+			},
+			"bodies": [
+				{
+					"page": "Cathcart belt alpha",
+					"label": "Cathcart belt alpha",
+					"designation": "Cathcart belt alpha",
+					"tier": "belt"
+				}
+			]
+		},
+		"Centauri": {
+			"page": "Centauri system",
+			"star": {
+				"page": "Centauri (star)",
+				"label": "Centauri",
+				"subtype": "A-type main sequence",
+				"class": "A",
+				"km": 1056324
+			},
+			"bodies": [
+				{
+					"page": "Centauri I",
+					"label": "Centauri I",
+					"designation": "Centauri I",
+					"subtype": "Protoplanet",
+					"moons": [],
+					"km": 815
+				},
+				{
+					"page": "Yar",
+					"label": "Yar",
+					"designation": "Centauri II",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 5411
+				},
+				{
+					"page": "Saisei",
+					"label": "Saisei",
+					"designation": "Centauri III",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 6237
+				},
+				{
+					"page": "Centauri IV",
+					"label": "Centauri IV",
+					"designation": "Centauri IV",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 7025
+				},
+				{
+					"page": "Centauri belt alpha",
+					"label": "Centauri belt alpha",
+					"designation": "Centauri belt alpha",
+					"tier": "belt"
+				},
+				{
+					"page": "Centauri V",
+					"label": "Centauri V",
+					"designation": "Centauri V",
+					"subtype": "Super Jupiter",
+					"moons": [],
+					"km": 99185
+				}
+			]
+		},
+		"Charon": {
+			"page": "Charon system",
+			"star": {
+				"page": "Charon (star)",
+				"label": "Charon",
+				"subtype": "K-type main sequence",
+				"class": "K",
+				"km": 615326
+			},
+			"bodies": [
+				{
+					"page": "Charon I",
+					"label": "Charon I",
+					"designation": "Charon I",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 2470
+				},
+				{
+					"page": "Charon II",
+					"label": "Charon II",
+					"designation": "Charon II",
+					"subtype": "Smog planet",
+					"moons": [
+						{
+							"page": "Charon 2a",
+							"label": "Charon 2a",
+							"designation": "2a",
+							"km": 500
+						},
+						{
+							"page": "Charon 2b",
+							"label": "Charon 2b",
+							"designation": "2b",
+							"km": 520
+						}
+					],
+					"km": 8171
+				},
+				{
+					"page": "Charon III",
+					"label": "Charon III",
+					"designation": "Charon III",
+					"subtype": "Terrestrial rocky",
+					"moons": [
+						{
+							"page": "Charon 3a",
+							"label": "Touvoni/Aiya",
+							"designation": "3a",
+							"km": 520
+						}
+					],
+					"km": 7805
+				},
+				{
+					"page": "Gedinasho Belt",
+					"label": "Gedinasho Belt",
+					"designation": "Charon belt alpha",
+					"tier": "belt"
+				},
+				{
+					"page": "Charon IV",
+					"label": "Charon IV",
+					"designation": "Charon IV",
+					"subtype": "Ice giant",
+					"moons": [],
+					"km": 22159
+				},
+				{
+					"page": "Charon V",
+					"label": "Charon V",
+					"designation": "Charon V",
+					"subtype": "Dwarf planet",
+					"moons": [],
+					"km": 2278
+				}
+			]
+		},
+		"Ē'aluth (Eealus)": {
+			"page": "Ē'aluth system",
+			"star": {
+				"page": "Ē'aluth (star)",
+				"label": "Ē'aluth",
+				"subtype": "K-type main sequence",
+				"class": "K",
+				"km": 696340
+			},
+			"bodies": [
+				{
+					"page": "Tua'lu\"",
+					"label": "Tua'lu\"",
+					"designation": "Ē'aluth (Eealus) I",
+					"subtype": "Puffy planet",
+					"moons": [],
+					"km": 28493
+				},
+				{
+					"page": "Kyupuaang",
+					"label": "Kyupuaang",
+					"designation": "Ē'aluth (Eealus) II",
+					"subtype": "Smog planet",
+					"moons": [],
+					"km": 6083
+				},
+				{
+					"page": "Ko'li",
+					"label": "Ko'li",
+					"designation": "Ē'aluth (Eealus) III",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 7958
+				},
+				{
+					"page": "Ē'aluth belt alpha",
+					"label": "Ē'aluth belt alpha",
+					"designation": "Ē'aluth (Eealus) belt alpha",
+					"tier": "belt"
+				},
+				{
+					"page": "Xyekyu",
+					"label": "Xyekyu",
+					"designation": "Ē'aluth (Eealus) IV",
+					"subtype": "Gas dwarf",
+					"moons": [],
+					"km": 24219
+				},
+				{
+					"page": "Puaangkiil",
+					"label": "Puaangkiil",
+					"designation": "Ē'aluth (Eealus) V",
+					"subtype": "Gas giant",
+					"moons": [],
+					"km": 56012
+				}
+			]
+		},
+		"Fora": {
+			"page": "Fora system",
+			"star": {
+				"page": "Fora (star)",
+				"label": "Fora",
+				"subtype": "K-type main sequence",
+				"class": "K",
+				"km": 618578
+			},
+			"bodies": [
+				{
+					"page": "Fora I",
+					"label": "Fora I",
+					"designation": "Fora I",
+					"subtype": "Dwarf planet",
+					"moons": [],
+					"km": 2464
+				},
+				{
+					"page": "Fora II",
+					"label": "Fora II",
+					"designation": "Fora II",
+					"subtype": "Coreless planet",
+					"moons": [],
+					"km": 6093
+				},
+				{
+					"page": "Hyperion",
+					"label": "Hyperion",
+					"designation": "Fora III",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 8560
+				},
+				{
+					"page": "Fora belt alpha",
+					"label": "Fora belt alpha",
+					"designation": "Fora belt alpha",
+					"tier": "belt"
+				},
+				{
+					"page": "Fora IV",
+					"label": "Fora IV",
+					"designation": "Fora IV",
+					"subtype": "Gas giant",
+					"moons": [],
+					"km": 42304
+				},
+				{
+					"page": "Fora V",
+					"label": "Fora V",
+					"designation": "Fora V",
+					"subtype": "Ice giant",
+					"moons": [],
+					"km": 26179
+				}
+			]
+		},
+		"Genesis": {
+			"page": "Genesis system",
+			"star": {
+				"page": "Genesis (star)",
+				"label": "Genesis",
+				"subtype": "G-type main sequence",
+				"class": "G",
+				"km": 715326
+			},
+			"bodies": [
+				{
+					"page": "Genesis I",
+					"label": "Genesis I",
+					"designation": "Genesis I",
+					"subtype": "Mesoplanet",
+					"moons": [],
+					"km": 2559
+				},
+				{
+					"page": "Genesis II",
+					"label": "Genesis II",
+					"designation": "Genesis II",
+					"subtype": "Ocean planet",
+					"moons": [],
+					"km": 7173
+				},
+				{
+					"page": "Genesis belt alpha",
+					"label": "Genesis belt alpha",
+					"designation": "Genesis belt alpha",
+					"tier": "belt"
+				},
+				{
+					"page": "Genesis III",
+					"label": "Genesis III",
+					"designation": "Genesis III",
+					"subtype": "Ice giant",
+					"moons": [],
+					"km": 26469
+				}
+			]
+		},
+		"Gurzil": {
+			"page": "Gurzil system",
+			"star": {
+				"page": "Gurzil (star)",
+				"label": "Gurzil",
+				"subtype": "K-type main sequence",
+				"class": "K",
+				"km": 635123
+			},
+			"bodies": [
+				{
+					"page": "Gurzil belt alpha",
+					"label": "Gurzil belt alpha",
+					"designation": "Gurzil belt alpha",
+					"tier": "belt"
+				}
+			]
+		},
+		"Hades": {
+			"page": "Hades system",
+			"star": {
+				"page": "Hades (star)",
+				"label": "Hades",
+				"subtype": "F-type main sequence",
+				"class": "F",
+				"km": 895356
+			},
+			"bodies": [
+				{
+					"page": "Hades I",
+					"label": "Hades I",
+					"designation": "Hades I",
+					"subtype": "Mesoplanet",
+					"moons": [],
+					"km": 1508
+				},
+				{
+					"page": "Hades II",
+					"label": "Hades II",
+					"designation": "Hades II",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 6575
+				},
+				{
+					"page": "Hades III",
+					"label": "Hades III",
+					"designation": "Hades III",
+					"subtype": "Smog planet",
+					"moons": [],
+					"km": 6535
+				},
+				{
+					"page": "Hades IV",
+					"label": "Hades IV",
+					"designation": "Hades IV",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 6145
+				},
+				{
+					"page": "Hades IV split",
+					"label": "Hades IV split",
+					"designation": "Hades IV split",
+					"tier": "belt"
+				}
+			]
+		},
+		"Hadrian": {
+			"page": "Hadrian system",
+			"star": {
+				"page": "Hadrian (star)",
+				"label": "Hadrian",
+				"subtype": "M-type giant",
+				"class": "M",
+				"km": 58489200
+			},
+			"bodies": [
+				{
+					"page": "Hadrian I",
+					"label": "Hadrian I",
+					"designation": "Hadrian I",
+					"subtype": "Gas dwarf",
+					"moons": [],
+					"km": 28473
+				},
+				{
+					"page": "Hadrian II",
+					"label": "Hadrian II",
+					"designation": "Hadrian II",
+					"subtype": "Gas giant",
+					"moons": [],
+					"km": 45828
+				},
+				{
+					"page": "Hadrian belt alpha",
+					"label": "Hadrian belt alpha",
+					"designation": "Hadrian belt alpha",
+					"tier": "belt"
+				},
+				{
+					"page": "Hadrian III",
+					"label": "Hadrian III",
+					"designation": "Hadrian III",
+					"subtype": "Ice giant",
+					"moons": [],
+					"km": 21129
+				}
+			]
+		},
+		"Yā'mon (Hadur)": {
+			"page": "Yā'mon system",
+			"star": {
+				"page": "Yā'mon (star)",
+				"label": "Yā'mon",
+				"subtype": "F-type main sequence",
+				"class": "F",
+				"km": 884563
+			},
+			"bodies": [
+				{
+					"page": "Kuā'li",
+					"label": "Kuā'li",
+					"designation": "Yā'mon (Hadur) I",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 3991
+				},
+				{
+					"page": "Yethlūl Y.ath'o",
+					"label": "Yethlūl Y.ath'o",
+					"designation": "Yā'mon (Hadur) II",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 5950.9
+				},
+				{
+					"page": "Yethlūl S.yen'o",
+					"label": "Yethlūl S.yen'o",
+					"designation": "Yā'mon (Hadur) III",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 5406
+				},
+				{
+					"page": "Yā’mon belt alpha",
+					"label": "Yā'mon belt alpha",
+					"designation": "Yā'mon (Hadur) belt alpha",
+					"tier": "belt"
+				},
+				{
+					"page": "Yām'ping",
+					"label": "Yām'ping",
+					"designation": "Yā'mon (Hadur) IV",
+					"subtype": "Dwarf planet",
+					"moons": [],
+					"km": 2614
+				}
+			]
+		},
+		"Kabal": {
+			"page": "Kabal system",
+			"star": {
+				"page": "Kabal (star)",
+				"label": "Kabal",
+				"subtype": "F-type main sequence",
+				"class": "F",
+				"km": 845326
+			},
+			"bodies": [
+				{
+					"page": "Kabal I",
+					"label": "Kabal I",
+					"designation": "Kabal I",
+					"subtype": "Protoplanet",
+					"moons": [],
+					"km": 4027
+				},
+				{
+					"page": "Kabal II",
+					"label": "Kabal II",
+					"designation": "Kabal II",
+					"subtype": "Desert planet",
+					"moons": [],
+					"km": 4565.264664
+				},
+				{
+					"page": "Kabal III",
+					"label": "Kabal III",
+					"designation": "Kabal III",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 7344
+				},
+				{
+					"page": "Kabal cluster alpha",
+					"label": "Kabal cluster alpha",
+					"designation": "Kabal cluster alpha",
+					"tier": "belt"
+				}
+			]
+		},
+		"Kiel": {
+			"page": "Kiel system",
+			"star": {
+				"page": "Kiel (star)",
+				"label": "Kiel",
+				"subtype": "F-type main sequence",
+				"class": "F",
+				"km": 819564
+			},
+			"bodies": [
+				{
+					"page": "Kiel I",
+					"label": "Kiel I",
+					"designation": "Kiel I",
+					"subtype": "Mesoplanet",
+					"moons": [],
+					"km": 1809
+				},
+				{
+					"page": "Kiel II",
+					"label": "Kiel II",
+					"designation": "Kiel II",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 3377
+				},
+				{
+					"page": "Severus",
+					"label": "Severus",
+					"designation": "Kiel III",
+					"subtype": "Terrestrial rocky",
+					"moons": [
+						{
+							"page": "Aemilia",
+							"label": "Aemilia",
+							"designation": "3a",
+							"km": 1000
+						}
+					],
+					"km": 8345.38
+				},
+				{
+					"page": "Kiel belt alpha",
+					"label": "Kiel belt alpha",
+					"designation": "Kiel belt alpha",
+					"tier": "belt"
+				},
+				{
+					"page": "Kiel IV",
+					"label": "Kiel IV",
+					"designation": "Kiel IV",
+					"subtype": "Gas dwarf",
+					"moons": [],
+					"km": 25222.6
+				},
+				{
+					"page": "Kiel V",
+					"label": "Kiel V",
+					"designation": "Kiel V",
+					"subtype": "Gas giant",
+					"moons": [
+						{
+							"page": "Rings of Kiel V",
+							"label": "Rings of Kiel V",
+							"designation": "Rings of Kiel V",
+							"tier": "ring"
+						}
+					],
+					"km": 57851
+				},
+				{
+					"page": "Kiel VI",
+					"label": "Kiel VI",
+					"designation": "Kiel VI",
+					"subtype": "Protoplanet",
+					"moons": [],
+					"km": 5662
+				}
+			]
+		},
+		"Nexus": {
+			"page": "Nexus system",
+			"star": {
+				"page": "Nexus (star)",
+				"label": "Nexus",
+				"subtype": "A-type main sequence",
+				"class": "A",
+				"km": 989657
+			},
+			"bodies": [
+				{
+					"page": "Nexus I",
+					"label": "Nexus I",
+					"designation": "Nexus I",
+					"subtype": "Protoplanet",
+					"moons": [],
+					"km": 1215
+				},
+				{
+					"page": "Nexus II",
+					"label": "Nexus II",
+					"designation": "Nexus II",
+					"subtype": "Smog planet",
+					"moons": [],
+					"km": 7427
+				},
+				{
+					"page": "Nexus III",
+					"label": "Nexus III",
+					"designation": "Nexus III",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 7191
+				},
+				{
+					"page": "Elcibre Belt",
+					"label": "Elcibre Belt",
+					"designation": "Nexus belt alpha",
+					"tier": "belt"
+				},
+				{
+					"page": "Lago",
+					"label": "Lago",
+					"designation": "Nexus IV",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 7260
+				},
+				{
+					"page": "Red God",
+					"label": "Red God",
+					"designation": "Nexus V",
+					"subtype": "Gas giant",
+					"moons": [],
+					"km": 66969
+				}
+			]
+		},
+		"Oretani": {
+			"page": "Oretani system",
+			"star": {
+				"page": "Oretani (star)",
+				"label": "Oretani",
+				"subtype": "K-type main sequence",
+				"class": "K",
+				"km": 645238
+			},
+			"bodies": [
+				{
+					"page": "Oretani I",
+					"label": "Oretani I",
+					"designation": "Oretani I",
+					"subtype": "Mesoplanet",
+					"moons": [],
+					"km": 2956
+				},
+				{
+					"page": "Oretani II",
+					"label": "Oretani II",
+					"designation": "Oretani II",
+					"subtype": "Ocean planet",
+					"moons": [],
+					"km": 8203
+				},
+				{
+					"page": "Oretani III",
+					"label": "Oretani III",
+					"designation": "Oretani III",
+					"subtype": "Ice planet",
+					"moons": [],
+					"km": 4181
+				},
+				{
+					"page": "Oretani belt alpha",
+					"label": "Oretani belt alpha",
+					"designation": "Oretani belt alpha",
+					"tier": "belt"
+				},
+				{
+					"page": "Oretani IV",
+					"label": "Oretani IV",
+					"designation": "Oretani IV",
+					"subtype": "Gas dwarf",
+					"moons": [],
+					"km": 12849
+				},
+				{
+					"page": "Oretani V",
+					"label": "Oretani V",
+					"designation": "Oretani V",
+					"subtype": "Gas giant",
+					"moons": [],
+					"km": 45364
+				},
+				{
+					"page": "Oretani VI",
+					"label": "Oretani VI",
+					"designation": "Oretani VI",
+					"subtype": "Dwarf planet",
+					"moons": [],
+					"km": 1889
+				}
+			]
+		},
+		"Orion": {
+			"page": "Orion system",
+			"star": {
+				"page": "Orion (star)",
+				"label": "Orion",
+				"subtype": "M-type main sequence",
+				"class": "M",
+				"km": 475263
+			},
+			"bodies": [
+				{
+					"page": "Orion I",
+					"label": "Orion I",
+					"designation": "Orion I",
+					"subtype": "Protoplanet",
+					"moons": [],
+					"km": 2690
+				},
+				{
+					"page": "Orion II",
+					"label": "Orion II",
+					"designation": "Orion II",
+					"subtype": "Smog planet",
+					"moons": [],
+					"km": 8082
+				},
+				{
+					"page": "Armitage (planet)",
+					"label": "Armitage",
+					"designation": "Orion III",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 7438
+				},
+				{
+					"page": "Orion belt alpha",
+					"label": "Orion belt alpha",
+					"designation": "Orion belt alpha",
+					"tier": "belt"
+				},
+				{
+					"page": "Abyss",
+					"label": "Abyss",
+					"designation": "Orion IV",
+					"subtype": "Gas giant",
+					"moons": [],
+					"km": 64080
+				}
+			]
+		},
+		"Osiris": {
+			"page": "Osiris system",
+			"star": {
+				"page": "Osiris (star)",
+				"label": "Osiris",
+				"subtype": "K-type main sequence",
+				"class": "K",
+				"km": 589326
+			},
+			"bodies": [
+				{
+					"page": "Etos",
+					"label": "Etos",
+					"designation": "Osiris I",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 5075
+				},
+				{
+					"page": "Osiris belt alpha",
+					"label": "Osiris belt alpha",
+					"designation": "Osiris belt alpha",
+					"tier": "belt"
+				},
+				{
+					"page": "Osiris II",
+					"label": "Osiris II",
+					"designation": "Osiris II",
+					"subtype": "Gas giant",
+					"moons": [],
+					"km": 39472
+				}
+			]
+		},
+		"Th.us'ūng (Pallas)": {
+			"page": "Th.us'ūng system",
+			"star": {
+				"page": "Th.us'ūng (star)",
+				"label": "Th.us'ūng",
+				"subtype": "G-type main sequence",
+				"class": "G",
+				"km": 745316
+			},
+			"bodies": [
+				{
+					"page": "Th.us'ūng I",
+					"label": "Th.us'ūng I",
+					"designation": "Th.us'ūng (Pallas) I",
+					"subtype": "Iron planet",
+					"moons": [],
+					"km": 4180
+				},
+				{
+					"page": "K.yuy'a'than",
+					"label": "K.yuy'a'than",
+					"designation": "Th.us'ūng (Pallas) II",
+					"subtype": "Smog planet",
+					"moons": [],
+					"km": 6751
+				},
+				{
+					"page": "Se'kith",
+					"label": "Se'kith",
+					"designation": "Th.us'ūng (Pallas) III",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 4337
+				},
+				{
+					"page": "Th.us'ūng belt alpha",
+					"label": "Th.us'ūng belt alpha",
+					"designation": "Th.us'ūng (Pallas) belt alpha",
+					"tier": "belt"
+				},
+				{
+					"page": "Hua'nam",
+					"label": "Hua'nam",
+					"designation": "Th.us'ūng (Pallas) IV",
+					"subtype": "Gas giant",
+					"moons": [],
+					"km": 72457
+				},
+				{
+					"page": "H.au'u",
+					"label": "H.au'u",
+					"designation": "Th.us'ūng (Pallas) V",
+					"subtype": "Dwarf planet",
+					"moons": [],
+					"km": 1455
+				}
+			]
+		},
+		"Tanga": {
+			"page": "Tanga system",
+			"star": {
+				"page": "Tanga (star)",
+				"label": "Tanga",
+				"subtype": "A-type white dwarf",
+				"class": "degenerate",
+				"km": 58460000
+			},
+			"bodies": [
+				{
+					"page": "Tanga I",
+					"label": "Tanga I",
+					"designation": "Tanga I",
+					"subtype": "Chthonian planet",
+					"moons": [],
+					"km": 7729
+				},
+				{
+					"page": "Tanga belt alpha",
+					"label": "Tanga belt alpha",
+					"designation": "Tanga belt alpha",
+					"tier": "belt"
+				},
+				{
+					"page": "Tanga II",
+					"label": "Tanga II",
+					"designation": "Tanga II",
+					"subtype": "Ice giant",
+					"moons": [],
+					"km": 31690
+				}
+			]
+		},
+		"Tayac": {
+			"page": "Tayac system",
+			"star": {
+				"page": "Tayac (star)",
+				"label": "Tayac",
+				"subtype": "G-type main sequence",
+				"class": "G",
+				"km": 715263
+			},
+			"bodies": [
+				{
+					"page": "Tayac I",
+					"label": "Tayac I",
+					"designation": "Tayac I",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 7528
+				},
+				{
+					"page": "Tayac II",
+					"label": "Tayac II",
+					"designation": "Tayac II",
+					"subtype": "Gas giant",
+					"moons": [
+						{
+							"page": "Rings of Tayac II",
+							"label": "Rings of Tayac II",
+							"designation": "Rings of Tayac II",
+							"tier": "ring"
+						}
+					],
+					"km": 69513
+				},
+				{
+					"page": "Tayac belt alpha",
+					"label": "Tayac belt alpha",
+					"designation": "Tayac belt alpha",
+					"tier": "belt"
+				},
+				{
+					"page": "Shepherd",
+					"label": "Shepherd",
+					"designation": "Tayac III",
+					"subtype": "Dwarf planet",
+					"moons": [],
+					"km": 2611
+				}
+			]
+		},
+		"Tiber": {
+			"page": "Tiber system",
+			"star": {
+				"page": "Tiber (star)",
+				"label": "Tiber",
+				"subtype": "K-type main sequence",
+				"class": "K",
+				"km": 638596
+			},
+			"bodies": [
+				{
+					"page": "Tiber I",
+					"label": "Tiber I",
+					"designation": "Tiber I",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 4414
+				},
+				{
+					"page": "Tiber belt alpha",
+					"label": "Tiber belt alpha",
+					"designation": "Tiber belt alpha",
+					"tier": "belt"
+				},
+				{
+					"page": "Tomb",
+					"label": "Tomb",
+					"designation": "Tiber II",
+					"subtype": "Desert planet",
+					"moons": [],
+					"km": 6771
+				}
+			]
+		},
+		"Tohil": {
+			"page": "Tohil system",
+			"star": {
+				"page": "Tohil (star)",
+				"label": "Tohil",
+				"subtype": "K-type main sequence",
+				"class": "K",
+				"km": 589452
+			},
+			"bodies": [
+				{
+					"page": "Tohil I",
+					"label": "Tohil I",
+					"designation": "Tohil I",
+					"subtype": "Lava planet",
+					"moons": [],
+					"km": 3039
+				},
+				{
+					"page": "Tohil II",
+					"label": "Tohil II",
+					"designation": "Tohil II",
+					"subtype": "Mesoplanet",
+					"moons": [],
+					"km": 2385
+				},
+				{
+					"page": "Tohil III",
+					"label": "Tohil III",
+					"designation": "Tohil III",
+					"subtype": "Ocean planet",
+					"moons": [],
+					"km": 8723
+				},
+				{
+					"page": "Tohil belt alpha",
+					"label": "Tohil belt alpha",
+					"designation": "Tohil belt alpha",
+					"tier": "belt"
+				},
+				{
+					"page": "Tohil IV",
+					"label": "Tohil IV",
+					"designation": "Tohil IV",
+					"subtype": "Super-Earth",
+					"moons": [],
+					"km": 11725
+				}
+			]
+		},
+		"Vega": {
+			"page": "Vega system",
+			"star": {
+				"page": "Vega (star)",
+				"label": "Vega",
+				"subtype": "G-type main sequence",
+				"class": "G",
+				"km": 675126
+			},
+			"bodies": [
+				{
+					"page": "Vega I",
+					"label": "Vega I",
+					"designation": "Vega I",
+					"subtype": "Mesoplanet",
+					"moons": [],
+					"km": 1350
+				},
+				{
+					"page": "Aremis",
+					"label": "Aremis",
+					"designation": "Vega II",
+					"subtype": "Terrestrial rocky",
+					"moons": [
+						{
+							"page": "Rings of Aremis",
+							"label": "Rings of Aremis",
+							"designation": "Rings of Aremis",
+							"tier": "ring"
+						},
+						{
+							"page": "Vega 2A",
+							"label": "Vega 2a",
+							"designation": "2a",
+							"km": 147.8473
+						},
+						{
+							"page": "Vega 2B",
+							"label": "Vega 2b",
+							"designation": "2b",
+							"km": 130.8
+						}
+					],
+					"km": 6134
+				},
+				{
+					"page": "Selene",
+					"label": "Selene",
+					"designation": "Vega III",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 6970
+				},
+				{
+					"page": "Vega belt alpha",
+					"label": "Vega belt alpha",
+					"designation": "Vega belt alpha",
+					"tier": "belt"
+				},
+				{
+					"page": "Vega IV",
+					"label": "Vega IV",
+					"designation": "Vega IV",
+					"subtype": "Gas giant",
+					"moons": [],
+					"km": 69526
+				}
+			]
+		},
+		"Virgil": {
+			"page": "Virgil system",
+			"star": {
+				"page": "Virgil (star)",
+				"label": "Virgil",
+				"subtype": "K-type main sequence",
+				"class": "K",
+				"km": 665236
+			},
+			"bodies": [
+				{
+					"page": "Cyrene",
+					"label": "Cyrene",
+					"designation": "Virgil I",
+					"subtype": "Terrestrial rocky",
+					"moons": [
+						{
+							"page": "Jai",
+							"label": "Jai",
+							"designation": "1a",
+							"km": 58.7
+						},
+						{
+							"page": "Corsito",
+							"label": "Corsito",
+							"designation": "1b",
+							"km": 64.5
+						},
+						{
+							"page": "Epheet",
+							"label": "Epheet",
+							"designation": "1c",
+							"km": 44.6
+						}
+					],
+					"km": 6038
+				},
+				{
+					"page": "Sino",
+					"label": "Sino",
+					"designation": "Virgil II",
+					"subtype": "Smog planet",
+					"moons": [],
+					"km": 6577
+				},
+				{
+					"page": "Gideon's Belt",
+					"label": "Gideon's Belt",
+					"designation": "Virgil belt alpha",
+					"tier": "belt"
+				},
+				{
+					"page": "Virgil III",
+					"label": "Virgil III",
+					"designation": "Virgil III",
+					"subtype": "Ice giant",
+					"moons": [
+						{
+							"page": "Erna",
+							"label": "Erna",
+							"designation": "3a",
+							"km": 131.4
+						},
+						{
+							"page": "Jarl",
+							"label": "Jarl",
+							"designation": "3b",
+							"km": 66
+						}
+					],
+					"km": 33424
+				}
+			]
+		},
+		"Yulin": {
+			"page": "Yulin system",
+			"star": {
+				"page": "Yulin (star)",
+				"label": "Yulin",
+				"subtype": "G-type main sequence",
+				"class": "G",
+				"km": 745327
+			},
+			"bodies": [
+				{
+					"page": "Yulin I",
+					"label": "Yulin I",
+					"designation": "Yulin I",
+					"subtype": "Iron planet",
+					"moons": [],
+					"km": 7983
+				},
+				{
+					"page": "Yulin II",
+					"label": "Yulin II",
+					"designation": "Yulin II",
+					"subtype": "Smog planet",
+					"moons": [],
+					"km": 5274
+				},
+				{
+					"page": "Yulin III",
+					"label": "Yulin III",
+					"designation": "Yulin III",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 6873
+				},
+				{
+					"page": "Yulin IV",
+					"label": "Yulin IV",
+					"designation": "Yulin IV",
+					"subtype": "Desert planet",
+					"moons": [],
+					"km": 7822
+				},
+				{
+					"page": "Yulin cluster alpha",
+					"label": "Yulin cluster alpha",
+					"designation": "Yulin cluster alpha",
+					"tier": "belt"
+				},
+				{
+					"page": "Yulin V",
+					"label": "Yulin V",
+					"designation": "Yulin V",
+					"subtype": "Ice giant",
+					"moons": [],
+					"km": 34358
+				},
+				{
+					"page": "Yulin VI",
+					"label": "Yulin VI",
+					"designation": "Yulin VI",
+					"subtype": "Gas giant",
+					"moons": [],
+					"km": 75785
+				}
+			]
+		},
+		"Vanguard": {
+			"page": "Vanguard system",
+			"star": {
+				"page": "Vanguard (star)",
+				"label": "Vanguard",
+				"km": 696340
+			},
+			"bodies": []
 		}
 	}
 }

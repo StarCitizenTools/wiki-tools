@@ -25,6 +25,7 @@ Determine the namespace from the path (`pages/module/...` → `Module:`, `pages/
 - `*.json` (except `module.json`) → `Module:<Name>/<relative path with extension>` — content model: `json`
 - `README.md` → `Module:<Name>/doc` — content model: `wikitext` (requires conversion, see step 5)
 - `module.json` → **skip** — module metadata, not deployed (see step 5 for how it's used)
+- `overlay.json` → **skip** — hand-owned input to a generator under `scripts/`, not a page the wiki reads. Pushing one would create a wiki page nothing loads, which an editor could then change with no effect — and a silent divergence between wiki and repo is exactly the failure this file exists to prevent.
 
 **Template namespace (`pages/template/<Name>/`):**
 

@@ -53,9 +53,9 @@ as where an asteroid belt sits relative to the planets. Both live in the
 ## Tracking categories
 
 Both categories apply in the article namespace only, so sandboxes and module
-subpages cannot fill a category that is meant to stay empty.
+subpages cannot fill them.
 
 - `Category:System map with unknown system` — the first parameter did not match
   a supported system.
-- `Category:Pages with a broken system map link` — a body in the map points at a
-  page that no longer exists, usually after a page move.
+- `Category:Pages with a broken system map link` — tracks missing links in the
+  map.

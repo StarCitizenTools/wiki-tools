@@ -49,11 +49,13 @@ rules. The two worth knowing here:
   `Stanton Belt Alpha` is stored as `Stanton belt alpha`. That is house style
   rather than a correction, so it is a derivation rule and not four overlay
   entries. A Roman numeral keeps its capitals, because that is an orbital slot.
-  Upstream names only some belts, so an unnamed one is labelled by its own
-  designation and the two then differ only in case; the renderer compares them
-  case-insensitively so the rail does not stack `Branaugh belt alpha` under
-  `Branaugh Belt Alpha`. The label keeps its capitals because `page` derives from
-  it, and those articles really are titled in Title Case.
+  Upstream names 21 of its 80 belts; for the 48 unnamed ones that reach the
+  file, the rule reaches their `label` and `page` too, since all three derive
+  from that one designation — so they agree instead of storing the same string
+  in two cases. A belt upstream *does* name (`Aaron Halo`, `Keeger Belt`) keeps
+  that name verbatim in `label` and `page`: it is a proper noun, and
+  lower-casing it would red-link the article. The overlay still keys the body by
+  upstream's spelling, not by the house-styled label.
 
 A belt is marked `tier: belt`; anything unmarked is a planet. Belts carry no
 `km`: upstream reports their size as `0` or `null`, and a belt has no meaningful

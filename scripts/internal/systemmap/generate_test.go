@@ -409,8 +409,11 @@ func TestBuildExcludesByPattern(t *testing.T) {
 
 	doc = build(t, `{"systems": {"Gurzil": {}}, "exclude": ["Protoplanetary Disk*", "Protoplentary Disk*"]}`)
 	sys, _ := doc.Systems.Get("Gurzil")
-	if len(sys.Bodies) != 1 || sys.Bodies[0].Label != "Gurzil Belt Alpha" {
-		t.Fatalf("with exclusions Gurzil has %v, want just Gurzil Belt Alpha", rail(t, doc, "Gurzil"))
+	// The label is house-styled — upstream designates it "Gurzil Belt Alpha" and
+	// names it nothing — while the exclusion patterns above still match on the
+	// upstream key. See TestBuildKeysTheOverlayByUpstreamCaseNotTheHouseStyledLabel.
+	if len(sys.Bodies) != 1 || sys.Bodies[0].Label != "Gurzil belt alpha" {
+		t.Fatalf("with exclusions Gurzil has %v, want just Gurzil belt alpha", rail(t, doc, "Gurzil"))
 	}
 }
 
@@ -496,5 +499,237 @@ func TestBuildShapesEachTier(t *testing.T) {
 	// dropped — unlike Pyro IV's, which is a planet's.
 	if eda := find(t, doc, "Terra", "Eda"); eda.Subtype != "" {
 		t.Errorf("Eda subtype = %q, want none", eda.Subtype)
+	}
+}
+
+// findBelt is find() narrowed to the belt tier.
+//
+// Ellis needs the narrowing: its eleventh planet collided with its moon, and
+// upstream records both halves unnamed and designated "Ellis XI", so a label
+// alone does not name one body there.
+func findBelt(t *testing.T, doc *Document, system, label string) Body {
+	t.Helper()
+	sys, ok := doc.Systems.Get(system)
+	if !ok {
+		t.Fatalf("no system %q in the output", system)
+	}
+	for _, b := range sys.Bodies {
+		if b.Label == label && b.Tier == tierBelt {
+			return b
+		}
+	}
+	t.Fatalf("no belt %q in %s; the rail is %v", label, system, rail(t, doc, system))
+	return Body{}
+}
+
+// TestBuildSentenceCasesAnUnnamedBeltThroughout is the house-style rule reaching
+// the label and the page, not just the designation.
+//
+// Upstream names only some belts. For the ~48 it does not, the key falls back to
+// the designation, so label and page are that designation — and recasing only
+// the designation would leave the same string stored in two cases: the rail
+// would print "Gurzil belt alpha" as a second line under "Gurzil Belt Alpha",
+// and `page` would point at a title the wiki is turning into a redirect as those
+// articles move to sentence case.
+func TestBuildSentenceCasesAnUnnamedBeltThroughout(t *testing.T) {
+	doc := build(t, `{"systems": {"Gurzil": {}, "Ellis": {}}}`)
+
+	cases := []struct{ system, label string }{
+		// The plain case: upstream writes "Gurzil Belt Alpha", "Ellis Belt Alpha".
+		{"Gurzil", "Gurzil belt alpha"},
+		{"Ellis", "Ellis belt alpha"},
+		// A Roman numeral is an orbital slot and keeps its capitals, so this one
+		// agrees by not moving at all. It is also the belt half of the pair that
+		// shares a key with Ellis' protoplanet.
+		{"Ellis", "Ellis XI"},
+		// No system prefix to anchor to, so it is left exactly as upstream wrote
+		// it — and label, page and designation still agree, because all three
+		// come from the same untouched string. This is the only shape of that
+		// case the output can hold: the eleven "Rings of <planet>" belts are
+		// subtype "Planetary Ring" and unnamed, so they never reach it at all.
+		{"Gurzil", "Protoplanetary Disk"},
+	}
+	for _, c := range cases {
+		belt := findBelt(t, doc, c.system, c.label)
+		// The point of the change: all three agree, so nothing is stored twice in
+		// two cases and `page` is the title the article now has.
+		if belt.Page != c.label {
+			t.Errorf("%s: page = %q, want %q", c.label, belt.Page, c.label)
+		}
+		if belt.Designation != c.label {
+			t.Errorf("%s: designation = %q, want it to agree with the label", c.label, belt.Designation)
+		}
+	}
+}
+
+// TestBuildKeepsANamedBeltsNameVerbatim is the exclusion the rule turns on, and
+// the reason this change moves nothing already published.
+//
+// A belt upstream names carries a proper noun, not a description: lower-casing
+// "Aaron Halo" would look wrong and would red-link the article. Only its
+// designation is house style, and the two lines then say different things, which
+// is what the rail prints both for.
+//
+// Every belt in the five systems live on the wiki is one of these six, which is
+// why widening the rule to label and page is a no-op on the deployed file.
+func TestBuildKeepsANamedBeltsNameVerbatim(t *testing.T) {
+	doc := build(t, `{"systems": {"Stanton": {}, "Pyro": {}, "Nyx": {}, "Terra": {}}}`)
+
+	cases := []struct{ system, name, designation string }{
+		{"Stanton", "Aaron Halo", "Stanton belt alpha"},
+		{"Pyro", "Akiro Cluster", "Pyro cluster alpha"},
+		{"Nyx", "Glaciem Ring", "Nyx belt alpha"},
+		{"Nyx", "Keeger Belt", "Nyx belt beta"},
+		{"Terra", "Henge Cluster", "Terra cluster alpha"},
+		{"Terra", "Marisol Belt", "Terra belt beta"},
+	}
+	for _, c := range cases {
+		belt := findBelt(t, doc, c.system, c.name)
+		if belt.Page != c.name {
+			t.Errorf("%s: page = %q, want the upstream name verbatim", c.name, belt.Page)
+		}
+		if belt.Designation != c.designation {
+			t.Errorf("%s: designation = %q, want %q", c.name, belt.Designation, c.designation)
+		}
+	}
+}
+
+// TestBuildSentenceCasesBeltsOnly keeps the rule off the other three tiers.
+//
+// The star is the case with teeth. Upstream names exactly one star in the whole
+// dataset — Terra Nova — so the other 92 fall back to a designation for their
+// label is a designation too — and a binary's components are designated
+// "Bacchus A" and "Bacchus B", where the letter is not in the Roman-numeral
+// alphabet. A rule that reached the star tier would store "Bacchus a".
+//
+// Synthetic, because the fixture cannot show it: every unnamed planet and moon
+// upstream is designated "<System> <numeral>", which the numeral exception
+// already leaves alone, so only the star tier has a visible instance — and the
+// generator refuses a system with two stars, which is what Bacchus is.
+func TestBuildSentenceCasesBeltsOnly(t *testing.T) {
+	str := func(s string) *string { return &s }
+	num := func(v int) *int { return &v }
+	size := func(v float64) *starmap.Number {
+		n := starmap.Number(v)
+		return &n
+	}
+	// Every body unnamed, which is what puts its designation in its label.
+	upstream := &starmap.Document{
+		Systems: []starmap.System{{ID: 1, Name: "Bacchus"}},
+		Objects: []starmap.Object{
+			{ID: 1, StarSystemID: 1, Type: typeStar, Designation: str("Bacchus A"), Size: size(1.2),
+				Subtype: &starmap.Subtype{Name: "Main Sequence-Dwarf-G"}},
+			{ID: 2, StarSystemID: 1, Type: typePlanet, Designation: str("Bacchus I"), Size: size(11853),
+				Subtype: &starmap.Subtype{Name: "Terrestrial Rocky"}},
+			{ID: 3, StarSystemID: 1, Type: typeMoon, Designation: str("Bacchus 1a"), Size: size(0.7),
+				Subtype: &starmap.Subtype{Name: "Planetary Moon"}, ParentID: num(2)},
+			{ID: 4, StarSystemID: 1, Type: typeBelt, Designation: str("Bacchus Belt Alpha")},
+		},
+	}
+	overlay, err := LoadOverlay([]byte(`{"systems": {"Bacchus": {}}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := Build(Options{Starmap: upstream, Overlay: overlay})
+	if err != nil {
+		t.Fatal(err)
+	}
+	sys, _ := res.Document.Systems.Get("Bacchus")
+
+	if sys.Star.Label != "Bacchus A" {
+		t.Errorf("star label = %q, want Bacchus A: the component letter is not a common noun", sys.Star.Label)
+	}
+	if got := find(t, res.Document, "Bacchus", "Bacchus I"); got.Page != "Bacchus I" {
+		t.Errorf("planet page = %q, want Bacchus I", got.Page)
+	}
+	if got := find(t, res.Document, "Bacchus", "Bacchus 1a"); got.Page != "Bacchus 1a" {
+		t.Errorf("moon page = %q, want Bacchus 1a", got.Page)
+	}
+	// The belt in the same system, to show the rule is on and it is the tier
+	// that decides — not something about this fixture.
+	if got := findBelt(t, res.Document, "Bacchus", "Bacchus belt alpha"); got.Page != "Bacchus belt alpha" {
+		t.Errorf("belt page = %q, want Bacchus belt alpha", got.Page)
+	}
+}
+
+// TestBuildKeysTheOverlayByUpstreamCaseNotTheHouseStyledLabel pins the seam the
+// widened rule opens: for an unnamed belt the rail now reads "Gurzil belt alpha"
+// while the overlay key is still upstream's "Gurzil Belt Alpha".
+//
+// The key has to stay upstream's, because it is the body's identity across a
+// refetch, not a display string — deriving it from the house-styled label would
+// make every correction depend on a rule that is allowed to change. An editor
+// keying the label they see gets the fail-loud error, not a silent no-op.
+func TestBuildKeysTheOverlayByUpstreamCaseNotTheHouseStyledLabel(t *testing.T) {
+	if _, err := buildOrErr(t, `{"systems": {"Gurzil": {"bodies": {"Gurzil belt alpha": {"after": "Gurzil I"}}}}}`); err == nil {
+		t.Error("the house-styled label must not resolve as an overlay key; it would drift with the rule")
+	}
+
+	// The upstream form resolves, and a label written there is judgement: it is
+	// stored exactly as an editor wrote it, capitals included. That is the escape
+	// hatch for a belt whose article really is titled in Title Case.
+	doc := build(t, `{"systems": {"Gurzil": {"bodies": {"Gurzil Belt Alpha": {"label": "Gurzil Belt Alpha"}}}}}`)
+	belt := findBelt(t, doc, "Gurzil", "Gurzil Belt Alpha")
+	if belt.Page != "Gurzil Belt Alpha" {
+		t.Errorf("page = %q, want the overlay label verbatim", belt.Page)
+	}
+	if belt.Designation != "Gurzil belt alpha" {
+		t.Errorf("designation = %q, want the house-styled form: the overlay overrode the label, "+
+			"not the derivation rule", belt.Designation)
+	}
+}
+
+// The named-belt guard cannot be exercised by the real fixture: no named belt in
+// the whole dataset has a name beginning with its system name, so beltCase is a
+// no-op for every one of them and the rule's guard never changes an outcome.
+// TestBuildKeepsANamedBeltsNameVerbatim therefore passes with or without it.
+//
+// That makes the guard untested rather than unnecessary. Upstream names belts
+// freely, and the day it ships "Vega Belt Prime" as a NAME, lower-casing it would
+// both read wrong and red-link a real article. This builds the case upstream has
+// not yet produced, so the guard is pinned by behaviour rather than by hope.
+func TestBuildKeepsANamedBeltVerbatimWhenItsNameStartsWithTheSystemName(t *testing.T) {
+	const synthetic = `{
+	  "systems": [{"id": 900, "code": "VEGA", "name": "Vega"}],
+	  "objects": [
+	    {"id": 9001, "code": "VEGA.STARS.VEGA", "designation": "Vega", "size": 1200000,
+	     "type": "STAR", "subtype": {"name": "Main Sequence-Dwarf-A", "type": "STAR"},
+	     "star_system_id": 900},
+	    {"id": 9002, "code": "VEGA.PLANETS.VEGAI", "designation": "Vega I", "size": 5000,
+	     "type": "PLANET", "subtype": {"name": "Terrestrial Rocky", "type": "PLANET"},
+	     "star_system_id": 900, "parent_id": 9001},
+	    {"id": 9003, "code": "VEGA.BELTS.PRIME", "name": "Vega Belt Prime",
+	     "designation": "Vega Belt Alpha", "size": 0, "type": "ASTEROID_BELT",
+	     "subtype": {"name": "System Belt", "type": "ASTEROID_BELT"},
+	     "star_system_id": 900, "parent_id": 9001}
+	  ]
+	}`
+
+	doc, err := starmap.Decode([]byte(synthetic))
+	if err != nil {
+		t.Fatal(err)
+	}
+	overlay, err := LoadOverlay([]byte(`{"systems": {"Vega": {}}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := Build(Options{Starmap: doc, Overlay: overlay})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	belt := findBelt(t, res.Document, "Vega", "Vega Belt Prime")
+
+	// The name is a proper noun and survives untouched, even though it begins
+	// with the system name and would otherwise match the house-style rule.
+	if belt.Label != "Vega Belt Prime" {
+		t.Errorf("label = %q, want the upstream name verbatim: it is a proper noun", belt.Label)
+	}
+	if belt.Page != "Vega Belt Prime" {
+		t.Errorf("page = %q, want the upstream name verbatim: lower-casing red-links the article", belt.Page)
+	}
+	// The designation is not a name, so house style still applies to it.
+	if belt.Designation != "Vega belt alpha" {
+		t.Errorf("designation = %q, want %q", belt.Designation, "Vega belt alpha")
 	}
 }

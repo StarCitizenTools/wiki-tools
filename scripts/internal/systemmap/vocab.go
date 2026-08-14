@@ -272,6 +272,12 @@ func normaliseDesignation(designation, system string) string {
 // keeps its capitals, everything after it drops to lower case. Upstream writes
 // "Stanton Belt Alpha"; the page says "Stanton belt alpha".
 //
+// It applies to a belt's label and page as well as its designation, but only
+// where upstream gives the belt no name and all three are therefore derived from
+// the one designation — see buildBody, which owns that condition. A belt upstream
+// names keeps that name verbatim in label and page; only its designation is
+// recased here.
+//
 // This is a derivation rule rather than four overlay entries because it is not a
 // judgement — it is the same sentence-case convention the rest of the wiki uses
 // for common nouns, and it has to hold for the 69 belts still to be rolled out.
@@ -293,7 +299,7 @@ func normaliseDesignation(designation, system string) string {
 // "Pyro V"). Lower-casing it would be a different claim, not a casing change.
 //
 // A designation that does not start with its system name is returned unchanged.
-// That is the sixteen "Rings of <planet>" belts and Sol's "Jovian Rings": there
+// That is the eleven "Rings of <planet>" belts and Sol's "Jovian Rings": there
 // is no prefix to anchor to, and guessing which word is the proper noun would be
 // worse than doing nothing.
 func beltCase(designation, system string) string {

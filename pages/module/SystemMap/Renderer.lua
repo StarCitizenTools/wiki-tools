@@ -82,15 +82,26 @@ local function bodyNode(body)
 	-- on 7 of the 35 bodies. The designation line is for the cases where it adds
 	-- something the name does not.
 	--
-	-- The comparison is case-INSENSITIVE because an unnamed belt is labelled by
-	-- its own designation while the stored designation has been sentence-cased by
-	-- the generator's house-style rule. An exact compare then sees two different
-	-- strings and stacks "Branaugh belt alpha" under "Branaugh Belt Alpha" — 34
-	-- belts across 27 of the systems still to be rolled out, none of them in the
-	-- five shipped today, which is why it is invisible on the live pages. Fixing
-	-- it here rather than in the generator is deliberate: `page` is derived from
-	-- `label`, and those 34 articles really are titled in Title Case, so lowering
-	-- the label would red-link every one of them.
+	-- The comparison is case-INSENSITIVE, and it is defensive depth rather than
+	-- the load-bearing fix it started as. The generator now sentence-cases an
+	-- unnamed belt's label and page as well as its designation, so for most
+	-- generated data all three agree exactly.
+	--
+	-- Not all of it, though: a designation whose remainder starts with a digit is
+	-- stripped of its system prefix, the rule that turns "Stanton 1a" into "1a"
+	-- for a moon. So "Taranis 2a Debris" ends up labelled "Taranis 2a debris"
+	-- against designation "2a debris" — different strings, and the designation
+	-- line correctly prints.
+	--
+	-- It is kept because this module takes no data dependency and has to be right
+	-- for any model handed to it, not only for what today's generator emits. The
+	-- overlay's `label` key is judgement and is stored verbatim — it is the
+	-- documented escape hatch for a belt whose article really is titled in Title
+	-- Case — so a hand-authored label differing from the sentence-cased
+	-- designation only in case is reachable, and an exact compare would stack
+	-- "Bacchus belt alpha" under "Bacchus Belt Alpha" on a live page. A case-only
+	-- difference is never something a reader needs on a second line: both lines
+	-- are the same words. So this can only hide noise, never a fact.
 	if body.designation and mw.ustring.lower(body.designation) ~= mw.ustring.lower(body.label) then
 		label:tag('span'):addClass('t-system-map__desig'):wikitext(body.designation):done()
 	end

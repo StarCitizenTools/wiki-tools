@@ -20,6 +20,7 @@ Go 1.23+, provided by `mise install`. There are no other dependencies.
 | Tool | Generates | Source |
 |---|---|---|
 | `starmap` | `Module:Starmap/starmap.json` | [ARK Starmap API](https://robertsspaceindustries.com/starmap) |
+| `systemmap` | `Module:SystemMap/systems.json` | the starmap mirror + `pages/module/SystemMap/overlay.json` |
 | `uuidindex` | reconciliation plan for the `UUID:` redirect namespace | the wiki itself (SMW `Uuid` annotations vs `UUID:` pages) |
 | `itemstubs` | stub-page creation plan for datamined items missing from the wiki | [scunpacked-data](https://github.com/StarCitizenWiki/scunpacked-data) `items.json` vs SMW `Uuid` annotations |
 
@@ -58,6 +59,11 @@ Generated files land in `scripts/out/`, which is gitignored. They are megabytes
 of data mirrored from upstream APIs: committing them would add churn on every
 regeneration without adding anything reviewable, and the wiki page is their real
 home.
+
+`systemmap` is the exception, and for the same reason: its output is 10 KB, the
+diff *is* the review, and it is generated from a committed overlay of editorial
+corrections that only means anything alongside it. It writes straight to
+`pages/module/SystemMap/systems.json`.
 
 ## Warnings you should not ignore
 

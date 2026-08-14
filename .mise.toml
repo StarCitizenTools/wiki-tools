@@ -34,6 +34,16 @@ dir = "scripts"
 run = "go run ./cmd/starmap -diff"
 description = "Regenerate and report drift against the live wiki page (exit 1 if they differ). Read-only; deployment goes through the MediaWiki MCP server."
 
+[tasks.systemmap]
+dir = "scripts"
+run = "go run ./cmd/systemmap -from out/starmap.json"
+description = "Rebuild pages/module/SystemMap/systems.json from scripts/out/starmap.json plus the overlay; publish it via the MediaWiki MCP server. Drop -from to refetch the starmap first."
+
+[tasks."systemmap:diff"]
+dir = "scripts"
+run = "go run ./cmd/systemmap -from out/starmap.json -diff"
+description = "Rebuild and report drift against the live wiki page (exit 1 if they differ). Read-only; deployment goes through the MediaWiki MCP server."
+
 [tasks.uuidindex]
 dir = "scripts"
 run = "go run ./cmd/uuidindex"

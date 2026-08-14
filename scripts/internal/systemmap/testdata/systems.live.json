@@ -1,0 +1,322 @@
+{
+	"%doc": "Source of truth for {{System map}}. `bodies` is everything orbiting the star, IN ORBITAL ORDER — planets and asteroid belts together. There is no sort key: position is the array index, because starmap.json has no orbit_period for Aaron Halo or the Akiro Cluster (their placement comes from the wiki's own prose) and none at all for any Stanton moon. A belt is marked `tier: belt`; anything unmarked is a planet. Belts carry no `km` — upstream reports 0/null and a belt has no meaningful diameter — so they render as a fixed band rather than a scaled disc. `km` is diameter in kilometres, normalised to that one unit at seed time: upstream stores planets in km, moons in thousands of km, and stars inconsistently (Stanton in solar radii, Pyro and Nyx in km). Pyro IV keeps its km directly because upstream still types it a planet. Seeded from Module:Starmap/starmap.json on 2026-07-30 and hand-owned since; see docs/superpowers/specs/2026-07-30-system-map-navplate-design.md.",
+	"systems": {
+		"Stanton": {
+			"page": "Stanton system",
+			"star": {
+				"page": "Stanton (star)",
+				"label": "Stanton",
+				"subtype": "G-type main sequence",
+				"class": "G",
+				"km": 835608
+			},
+			"bodies": [
+				{
+					"page": "Hurston",
+					"label": "Hurston",
+					"designation": "Stanton I",
+					"subtype": "Super-Earth",
+					"moons": [
+						{
+							"page": "Arial",
+							"label": "Arial",
+							"designation": "1a",
+							"km": 700,
+							"icon": "Arial-Icon.png"
+						},
+						{
+							"page": "Aberdeen",
+							"label": "Aberdeen",
+							"designation": "1b",
+							"km": 400,
+							"icon": "Aberdeen-Icon.png"
+						},
+						{
+							"page": "Magda",
+							"label": "Magda",
+							"designation": "1c",
+							"km": 200,
+							"icon": "Magda-Icon.png"
+						},
+						{
+							"page": "Ita",
+							"label": "Ita",
+							"designation": "1d",
+							"km": 300,
+							"icon": "Ita-Icon.png"
+						}
+					],
+					"km": 11853,
+					"icon": "Hurston-Icon.png"
+				},
+				{
+					"page": "Crusader",
+					"label": "Crusader",
+					"designation": "Stanton II",
+					"subtype": "Gas giant",
+					"moons": [
+						{
+							"page": "Cellin",
+							"label": "Cellin",
+							"designation": "2a",
+							"km": 670,
+							"icon": "Cellin-Icon.png"
+						},
+						{
+							"page": "Daymar",
+							"label": "Daymar",
+							"designation": "2b",
+							"km": 400,
+							"icon": "Daymar-Icon.png"
+						},
+						{
+							"page": "Yela",
+							"label": "Yela",
+							"designation": "2c",
+							"km": 700,
+							"icon": "Yela-Icon.png"
+						}
+					],
+					"km": 74500,
+					"icon": "Crusader-Icon.png"
+				},
+				{
+					"page": "Aaron Halo",
+					"label": "Aaron Halo",
+					"designation": "Stanton belt alpha",
+					"tier": "belt"
+				},
+				{
+					"page": "ArcCorp (planet)",
+					"label": "ArcCorp",
+					"designation": "Stanton III",
+					"subtype": "Super-Earth",
+					"moons": [
+						{
+							"page": "Lyria",
+							"label": "Lyria",
+							"designation": "3a",
+							"km": 500,
+							"icon": "Lyria-Icon.png"
+						},
+						{
+							"page": "Wala",
+							"label": "Wala",
+							"designation": "3b",
+							"km": 300,
+							"icon": "Wala-Icon.png"
+						}
+					],
+					"km": 8363,
+					"icon": "ArcCorp Icon.png"
+				},
+				{
+					"page": "MicroTech (planet)",
+					"label": "microTech",
+					"designation": "Stanton IV",
+					"subtype": "Super-Earth",
+					"moons": [
+						{
+							"page": "Calliope",
+							"label": "Calliope",
+							"designation": "4a",
+							"km": 600,
+							"icon": "Calliope-Icon.png"
+						},
+						{
+							"page": "Clio",
+							"label": "Clio",
+							"designation": "4b",
+							"km": 300,
+							"icon": "Clio-Icon.png"
+						},
+						{
+							"page": "Euterpe",
+							"label": "Euterpe",
+							"designation": "4c",
+							"km": 500,
+							"icon": "Euterpe-Icon.png"
+						}
+					],
+					"km": 10328,
+					"icon": "MicroTech Icon.png"
+				}
+			]
+		},
+		"Pyro": {
+			"page": "Pyro system",
+			"star": {
+				"page": "Pyro (star)",
+				"label": "Pyro",
+				"subtype": "K-type main sequence",
+				"class": "K",
+				"km": 571000
+			},
+			"bodies": [
+				{
+					"page": "Pyro I",
+					"label": "Pyro I",
+					"designation": "Pyro I",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 4117,
+					"icon": "PyroIIcon.png"
+				},
+				{
+					"page": "Akiro Cluster",
+					"label": "Akiro Cluster",
+					"designation": "Pyro cluster alpha",
+					"tier": "belt"
+				},
+				{
+					"page": "Monox",
+					"label": "Monox",
+					"designation": "Pyro II",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 5295,
+					"icon": "MonoxIcon2024.png"
+				},
+				{
+					"page": "Bloom",
+					"label": "Bloom",
+					"designation": "Pyro III",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 4139,
+					"icon": "BloomIcon.png"
+				},
+				{
+					"page": "Pyro V",
+					"label": "Pyro V",
+					"designation": "Pyro V",
+					"subtype": "Gas giant",
+					"moons": [
+						{
+							"page": "Ignis",
+							"label": "Ignis",
+							"designation": "5a",
+							"km": 500,
+							"icon": "IgnisIcon.png"
+						},
+						{
+							"page": "Vatra",
+							"label": "Vatra",
+							"designation": "5b",
+							"km": 600,
+							"icon": "VatraIcon.png"
+						},
+						{
+							"page": "Adir",
+							"label": "Adir",
+							"designation": "5c",
+							"km": 420,
+							"icon": "AdirIcon.png"
+						},
+						{
+							"page": "Fairo",
+							"label": "Fairo",
+							"designation": "5d",
+							"km": 380,
+							"icon": "FairoIcon.png"
+						},
+						{
+							"page": "Fuego",
+							"label": "Fuego",
+							"designation": "5e",
+							"km": 810,
+							"icon": "FuegoIcon.png"
+						},
+						{
+							"page": "Vuur",
+							"label": "Vuur",
+							"designation": "5f",
+							"km": 930,
+							"icon": "VuurIcon.png"
+						},
+						{
+							"page": "Pyro IV",
+							"label": "Pyro IV",
+							"designation": "Pyro IV",
+							"subtype": "Terrestrial rocky",
+							"km": 3214,
+							"icon": "PyroIVIcon.png",
+							"iconRatio": 2.1
+						}
+					],
+					"km": 78123,
+					"icon": "PyroVIcon.png"
+				},
+				{
+					"page": "Terminus",
+					"label": "Terminus",
+					"designation": "Pyro VI",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 2850,
+					"icon": "TerminusIcon.png",
+					"iconRatio": 2.83
+				}
+			]
+		},
+		"Nyx": {
+			"page": "Nyx system",
+			"star": {
+				"page": "Nyx (star)",
+				"label": "Nyx",
+				"subtype": "F-type main sequence",
+				"class": "F",
+				"km": 965325
+			},
+			"bodies": [
+				{
+					"page": "Nyx I",
+					"label": "Nyx I",
+					"designation": "Nyx I",
+					"subtype": "Terrestrial rocky",
+					"moons": [],
+					"km": 5786
+				},
+				{
+					"page": "Nyx II",
+					"label": "Nyx II",
+					"designation": "Nyx II",
+					"subtype": "Smog planet",
+					"moons": [],
+					"km": 5955,
+					"icon": "NyxII.png"
+				},
+				{
+					"page": "Glaciem Ring",
+					"label": "Glaciem Ring",
+					"designation": "Nyx belt alpha",
+					"tier": "belt"
+				},
+				{
+					"page": "Delamar",
+					"label": "Delamar",
+					"designation": "Delamar",
+					"subtype": "Protoplanet",
+					"moons": [],
+					"km": 165.4,
+					"icon": "Delamar-Icon.png"
+				},
+				{
+					"page": "Nyx III",
+					"label": "Nyx III",
+					"designation": "Nyx III",
+					"subtype": "Ice giant",
+					"moons": [],
+					"km": 30028,
+					"icon": "NyxIII.png"
+				},
+				{
+					"page": "Keeger Belt",
+					"label": "Keeger Belt",
+					"designation": "Nyx belt beta",
+					"tier": "belt"
+				}
+			]
+		}
+	}
+}

@@ -1,0 +1,1976 @@
+{
+	"systems": [
+		{
+			"id": 337,
+			"code": "CASTRA",
+			"name": "Castra"
+		},
+		{
+			"id": 323,
+			"code": "ELLIS",
+			"name": "Ellis"
+		},
+		{
+			"id": 408,
+			"code": "GURZIL",
+			"name": "Gurzil"
+		},
+		{
+			"id": 315,
+			"code": "NYX",
+			"name": "Nyx"
+		},
+		{
+			"id": 318,
+			"code": "PYRO",
+			"name": "Pyro"
+		},
+		{
+			"id": 314,
+			"code": "STANTON",
+			"name": "Stanton"
+		},
+		{
+			"id": 316,
+			"code": "TERRA",
+			"name": "Terra"
+		}
+	],
+	"objects": [
+		{
+			"id": 1906,
+			"code": "CASTRA.JUMPPOINTS.PYRO",
+			"name": null,
+			"designation": "Castra - Pyro",
+			"size": 0,
+			"type": "JUMPPOINT",
+			"subtype": null,
+			"star_system_id": 337,
+			"parent_id": null
+		},
+		{
+			"id": 1907,
+			"code": "CASTRA.JUMPPOINTS.OYA",
+			"name": null,
+			"designation": "Castra - Oya",
+			"size": 0,
+			"type": "JUMPPOINT",
+			"subtype": null,
+			"star_system_id": 337,
+			"parent_id": null
+		},
+		{
+			"id": 1908,
+			"code": "CASTRA.JUMPPOINTS.HADRIAN",
+			"name": null,
+			"designation": "Castra - Hadrian",
+			"size": 0,
+			"type": "JUMPPOINT",
+			"subtype": null,
+			"star_system_id": 337,
+			"parent_id": null
+		},
+		{
+			"id": 1909,
+			"code": "CASTRA.JUMPPOINTS.NYX",
+			"name": null,
+			"designation": "Castra - Nyx",
+			"size": 0,
+			"type": "JUMPPOINT",
+			"subtype": null,
+			"star_system_id": 337,
+			"parent_id": null
+		},
+		{
+			"id": 1910,
+			"code": "CASTRA.JUMPPOINTS.OSO",
+			"name": null,
+			"designation": "Castra - Oso",
+			"size": 0,
+			"type": "JUMPPOINT",
+			"subtype": null,
+			"star_system_id": 337,
+			"parent_id": null
+		},
+		{
+			"id": 1911,
+			"code": "CASTRA.STARS.CASTRA",
+			"name": null,
+			"designation": "Castra",
+			"size": 3458865.2579,
+			"type": "STAR",
+			"subtype": {
+				"id": 69,
+				"name": "Main Sequence-Dwarf-B",
+				"type": "STAR"
+			},
+			"star_system_id": 337,
+			"parent_id": null
+		},
+		{
+			"id": 1912,
+			"code": "CASTRA.PLANETS.CASTRAI",
+			"name": null,
+			"designation": "Castra I",
+			"size": 4497,
+			"type": "PLANET",
+			"subtype": {
+				"id": 19,
+				"name": "Coreless Planet",
+				"type": "PLANET"
+			},
+			"star_system_id": 337,
+			"parent_id": 1911
+		},
+		{
+			"id": 1913,
+			"code": "CASTRA.PLANETS.CASTRAII",
+			"name": "Cascom",
+			"designation": "Castra II",
+			"size": 6767,
+			"type": "PLANET",
+			"subtype": {
+				"id": 55,
+				"name": "Terrestrial Rocky",
+				"type": "PLANET"
+			},
+			"star_system_id": 337,
+			"parent_id": 1911
+		},
+		{
+			"id": 1804,
+			"code": "ELLIS.JUMPPOINTS.KILIAN",
+			"name": null,
+			"designation": "Ellis - Kilian",
+			"size": 0,
+			"type": "JUMPPOINT",
+			"subtype": null,
+			"star_system_id": 323,
+			"parent_id": null
+		},
+		{
+			"id": 1805,
+			"code": "ELLIS.JUMPPOINTS.NEXUS",
+			"name": null,
+			"designation": "Ellis - Nexus",
+			"size": 0,
+			"type": "JUMPPOINT",
+			"subtype": null,
+			"star_system_id": 323,
+			"parent_id": null
+		},
+		{
+			"id": 1806,
+			"code": "ELLIS.STARS.ELLIS",
+			"name": null,
+			"designation": "Ellis",
+			"size": 956324.2157,
+			"type": "STAR",
+			"subtype": {
+				"id": 61,
+				"name": "Main Sequence-Dwarf-F",
+				"type": "STAR"
+			},
+			"star_system_id": 323,
+			"parent_id": null
+		},
+		{
+			"id": 1807,
+			"code": "ELLIS.PLANETS.ELLISI",
+			"name": null,
+			"designation": "Ellis I",
+			"size": 750,
+			"type": "PLANET",
+			"subtype": {
+				"id": 35,
+				"name": "Protoplanet",
+				"type": "PLANET"
+			},
+			"star_system_id": 323,
+			"parent_id": 1806
+		},
+		{
+			"id": 1808,
+			"code": "ELLIS.PLANETS.ELLISII",
+			"name": null,
+			"designation": "Ellis II",
+			"size": 6270,
+			"type": "PLANET",
+			"subtype": {
+				"id": 20,
+				"name": "Smog Planet",
+				"type": "PLANET"
+			},
+			"star_system_id": 323,
+			"parent_id": 1806
+		},
+		{
+			"id": 1809,
+			"code": "ELLIS.PLANETS.ELLISIIIGREEN",
+			"name": "Green",
+			"designation": "Ellis III",
+			"size": 8451,
+			"type": "PLANET",
+			"subtype": {
+				"id": 40,
+				"name": "Ocean Planet",
+				"type": "PLANET"
+			},
+			"star_system_id": 323,
+			"parent_id": 1806
+		},
+		{
+			"id": 1810,
+			"code": "ELLIS.PLANETS.ELLISIVKAMPOS",
+			"name": "Kampos",
+			"designation": "Ellis IV",
+			"size": 12503,
+			"type": "PLANET",
+			"subtype": {
+				"id": 38,
+				"name": "Super-Earth",
+				"type": "PLANET"
+			},
+			"star_system_id": 323,
+			"parent_id": 1806
+		},
+		{
+			"id": 1811,
+			"code": "ELLIS.PLANETS.ELLISVNOBLE",
+			"name": "Noble",
+			"designation": "Ellis V",
+			"size": 6475,
+			"type": "PLANET",
+			"subtype": {
+				"id": 55,
+				"name": "Terrestrial Rocky",
+				"type": "PLANET"
+			},
+			"star_system_id": 323,
+			"parent_id": 1806
+		},
+		{
+			"id": 1812,
+			"code": "ELLIS.PLANETS.ELLISVI",
+			"name": null,
+			"designation": "Ellis VI",
+			"size": 7473,
+			"type": "PLANET",
+			"subtype": {
+				"id": 55,
+				"name": "Terrestrial Rocky",
+				"type": "PLANET"
+			},
+			"star_system_id": 323,
+			"parent_id": 1806
+		},
+		{
+			"id": 1813,
+			"code": "ELLIS.PLANETS.ELLISVII",
+			"name": null,
+			"designation": "Ellis VII",
+			"size": 10007,
+			"type": "PLANET",
+			"subtype": {
+				"id": 20,
+				"name": "Smog Planet",
+				"type": "PLANET"
+			},
+			"star_system_id": 323,
+			"parent_id": 1806
+		},
+		{
+			"id": 1814,
+			"code": "ELLIS.PLANETS.ELLISVIII",
+			"name": null,
+			"designation": "Ellis VIII",
+			"size": 2415,
+			"type": "PLANET",
+			"subtype": {
+				"id": 21,
+				"name": "Dwarf Planet",
+				"type": "PLANET"
+			},
+			"star_system_id": 323,
+			"parent_id": 1806
+		},
+		{
+			"id": 1815,
+			"code": "ELLIS.PLANETS.ELLISIXWALLEYE",
+			"name": "Walleye",
+			"designation": "Ellis IX",
+			"size": 76808,
+			"type": "PLANET",
+			"subtype": {
+				"id": 53,
+				"name": "Puffy Planet",
+				"type": "PLANET"
+			},
+			"star_system_id": 323,
+			"parent_id": 1806
+		},
+		{
+			"id": 1816,
+			"code": "ELLIS.PLANETS.ELLISXBOMBORA",
+			"name": "Bombora",
+			"designation": "Ellis X",
+			"size": 66290,
+			"type": "PLANET",
+			"subtype": {
+				"id": 23,
+				"name": "Gas Giant",
+				"type": "PLANET"
+			},
+			"star_system_id": 323,
+			"parent_id": 1806
+		},
+		{
+			"id": 1817,
+			"code": "ELLIS.BELTS.ELLISXIBELT",
+			"name": null,
+			"designation": "Ellis XI",
+			"size": 0,
+			"type": "ASTEROID_FIELD",
+			"subtype": {
+				"id": 74,
+				"name": "System Cluster",
+				"type": "ASTEROID_FIELD"
+			},
+			"star_system_id": 323,
+			"parent_id": 1806
+		},
+		{
+			"id": 1818,
+			"code": "ELLIS.PLANETS.ELLISXIIJUDECCA",
+			"name": "Judecca",
+			"designation": "Ellis XII",
+			"size": 5276,
+			"type": "PLANET",
+			"subtype": {
+				"id": 26,
+				"name": "Ice Planet",
+				"type": "PLANET"
+			},
+			"star_system_id": 323,
+			"parent_id": 1806
+		},
+		{
+			"id": 1819,
+			"code": "ELLIS.PLANETS.ELLISXIIIPINECONE",
+			"name": "Pinecone",
+			"designation": "Ellis XIII",
+			"size": 773,
+			"type": "PLANET",
+			"subtype": {
+				"id": 35,
+				"name": "Protoplanet",
+				"type": "PLANET"
+			},
+			"star_system_id": 323,
+			"parent_id": 1806
+		},
+		{
+			"id": 1821,
+			"code": "ELLIS.BELTS.ALPHABELT",
+			"name": null,
+			"designation": "Ellis Belt Alpha",
+			"size": 0,
+			"type": "ASTEROID_BELT",
+			"subtype": {
+				"id": 50,
+				"name": "System Belt",
+				"type": "ASTEROID_BELT"
+			},
+			"star_system_id": 323,
+			"parent_id": 1806
+		},
+		{
+			"id": 1822,
+			"code": "ELLIS.JUMPPOINTS.MAGNUS",
+			"name": null,
+			"designation": "Ellis - Magnus",
+			"size": 0,
+			"type": "JUMPPOINT",
+			"subtype": null,
+			"star_system_id": 323,
+			"parent_id": null
+		},
+		{
+			"id": 1823,
+			"code": "ELLIS.JUMPPOINTS.MIN",
+			"name": null,
+			"designation": "Ellis - Min",
+			"size": 0,
+			"type": "JUMPPOINT",
+			"subtype": null,
+			"star_system_id": 323,
+			"parent_id": null
+		},
+		{
+			"id": 1824,
+			"code": "ELLIS.JUMPPOINTS.TARANIS",
+			"name": null,
+			"designation": "Ellis - Taranis",
+			"size": 0,
+			"type": "JUMPPOINT",
+			"subtype": null,
+			"star_system_id": 323,
+			"parent_id": null
+		},
+		{
+			"id": 2603,
+			"code": "ELLIS.STATION.SCIENCESTATION",
+			"name": null,
+			"designation": "Encole Station",
+			"size": null,
+			"type": "MANMADE",
+			"subtype": {
+				"id": 44,
+				"name": "Space Station",
+				"type": "MANMADE"
+			},
+			"star_system_id": 323,
+			"parent_id": 1812
+		},
+		{
+			"id": 2780,
+			"code": "ELLIS.RINGS.RINGSOFELLISVII",
+			"name": null,
+			"designation": "Rings of Ellis VII",
+			"size": null,
+			"type": "ASTEROID_BELT",
+			"subtype": {
+				"id": 51,
+				"name": "Planetary Ring",
+				"type": "ASTEROID_BELT"
+			},
+			"star_system_id": 323,
+			"parent_id": 1813
+		},
+		{
+			"id": 2789,
+			"code": "MOONS.ELLIS.ELLIS5A",
+			"name": null,
+			"designation": "Ellis 5a",
+			"size": 0.351479,
+			"type": "SATELLITE",
+			"subtype": {
+				"id": null,
+				"name": "Planetary Moon",
+				"type": "MOON"
+			},
+			"star_system_id": 323,
+			"parent_id": 1811
+		},
+		{
+			"id": 2790,
+			"code": "ELLIS.MOONS.ELLIS5B",
+			"name": null,
+			"designation": "Ellis 5b",
+			"size": 0.548491,
+			"type": "SATELLITE",
+			"subtype": {
+				"id": null,
+				"name": "Planetary Moon",
+				"type": "MOON"
+			},
+			"star_system_id": 323,
+			"parent_id": 1811
+		},
+		{
+			"id": 2813,
+			"code": "ELLIS.PLANETS.ELLISXI",
+			"name": null,
+			"designation": "Ellis XI",
+			"size": 500,
+			"type": "PLANET",
+			"subtype": {
+				"id": 35,
+				"name": "Protoplanet",
+				"type": "PLANET"
+			},
+			"star_system_id": 323,
+			"parent_id": 1806
+		},
+		{
+			"id": 2321,
+			"code": "GURZIL.JUMPPOINTS.OYA",
+			"name": null,
+			"designation": "Gurzil - Oya",
+			"size": 0,
+			"type": "JUMPPOINT",
+			"subtype": null,
+			"star_system_id": 408,
+			"parent_id": null
+		},
+		{
+			"id": 2322,
+			"code": "GURZIL.JUMPPOINTS.RIHLAH",
+			"name": null,
+			"designation": "Gurzil - R.il'a (Rihlah)",
+			"size": 0,
+			"type": "JUMPPOINT",
+			"subtype": null,
+			"star_system_id": 408,
+			"parent_id": null
+		},
+		{
+			"id": 2323,
+			"code": "GURZIL.JUMPPOINTS.HADRIAN",
+			"name": null,
+			"designation": "Gurzil - Hadrian",
+			"size": 0,
+			"type": "JUMPPOINT",
+			"subtype": null,
+			"star_system_id": 408,
+			"parent_id": null
+		},
+		{
+			"id": 2324,
+			"code": "GURZIL.JUMPPOINTS.HORUS",
+			"name": null,
+			"designation": "Gurzil - Horus",
+			"size": 0,
+			"type": "JUMPPOINT",
+			"subtype": null,
+			"star_system_id": 408,
+			"parent_id": null
+		},
+		{
+			"id": 2325,
+			"code": "GURZIL.STARS.GURZIL",
+			"name": null,
+			"designation": "Gurzil",
+			"size": 635123.21678,
+			"type": "STAR",
+			"subtype": {
+				"id": 60,
+				"name": "Main Sequence-Dwarf-K",
+				"type": "STAR"
+			},
+			"star_system_id": 408,
+			"parent_id": null
+		},
+		{
+			"id": 2536,
+			"code": "GURZIL.BELTS.GURZILBELTALPHA",
+			"name": null,
+			"designation": "Gurzil Belt Alpha",
+			"size": null,
+			"type": "ASTEROID_BELT",
+			"subtype": {
+				"id": 50,
+				"name": "System Belt",
+				"type": "ASTEROID_BELT"
+			},
+			"star_system_id": 408,
+			"parent_id": 2325
+		},
+		{
+			"id": 2759,
+			"code": "GURZIL.BELTS.GURZILBELTALPHA1",
+			"name": null,
+			"designation": "Protoplanetary Disk",
+			"size": null,
+			"type": "ASTEROID_BELT",
+			"subtype": {
+				"id": 50,
+				"name": "System Belt",
+				"type": "ASTEROID_BELT"
+			},
+			"star_system_id": 408,
+			"parent_id": null
+		},
+		{
+			"id": 2760,
+			"code": "GURZIL.BELTS.GURZILBELTALPHA2",
+			"name": null,
+			"designation": "Protoplanetary Disk 2",
+			"size": null,
+			"type": "ASTEROID_BELT",
+			"subtype": {
+				"id": 50,
+				"name": "System Belt",
+				"type": "ASTEROID_BELT"
+			},
+			"star_system_id": 408,
+			"parent_id": null
+		},
+		{
+			"id": 2761,
+			"code": "GURZIL.BELTS.GURZILBELTALPHA3",
+			"name": null,
+			"designation": "Protoplanetary Disk 3",
+			"size": null,
+			"type": "ASTEROID_BELT",
+			"subtype": {
+				"id": 50,
+				"name": "System Belt",
+				"type": "ASTEROID_BELT"
+			},
+			"star_system_id": 408,
+			"parent_id": null
+		},
+		{
+			"id": 2762,
+			"code": "GURZIL.BELTS.GURZILBELTALPHA4",
+			"name": null,
+			"designation": "Protoplentary Disk 4",
+			"size": null,
+			"type": "ASTEROID_BELT",
+			"subtype": {
+				"id": 50,
+				"name": "System Belt",
+				"type": "ASTEROID_BELT"
+			},
+			"star_system_id": 408,
+			"parent_id": null
+		},
+		{
+			"id": 2763,
+			"code": "GURZIL.BELTS.GURZILBELTALPHA5",
+			"name": null,
+			"designation": "Protoplentary Disk 5",
+			"size": null,
+			"type": "ASTEROID_BELT",
+			"subtype": {
+				"id": 50,
+				"name": "System Belt",
+				"type": "ASTEROID_BELT"
+			},
+			"star_system_id": 408,
+			"parent_id": null
+		},
+		{
+			"id": 2764,
+			"code": "GURZIL.BELTS.GURZILBELTALPHA6",
+			"name": null,
+			"designation": "Protoplanetary Disk 6",
+			"size": null,
+			"type": "ASTEROID_BELT",
+			"subtype": {
+				"id": 50,
+				"name": "System Belt",
+				"type": "ASTEROID_BELT"
+			},
+			"star_system_id": 408,
+			"parent_id": null
+		},
+		{
+			"id": 2765,
+			"code": "GURZIL.BELTS.GURZILBELTALPHA7",
+			"name": null,
+			"designation": "Protoplanetary Disk 7",
+			"size": null,
+			"type": "ASTEROID_BELT",
+			"subtype": {
+				"id": 50,
+				"name": "System Belt",
+				"type": "ASTEROID_BELT"
+			},
+			"star_system_id": 408,
+			"parent_id": null
+		},
+		{
+			"id": 2766,
+			"code": "GURZIL.BELTS.GURZILBELTALPHA8",
+			"name": null,
+			"designation": "Protoplanetary Disk 8",
+			"size": null,
+			"type": "ASTEROID_BELT",
+			"subtype": {
+				"id": 50,
+				"name": "System Belt",
+				"type": "ASTEROID_BELT"
+			},
+			"star_system_id": 408,
+			"parent_id": null
+		},
+		{
+			"id": 2767,
+			"code": "GURZIL.BELTS.GURZILBELTALPHA9",
+			"name": null,
+			"designation": "Protoplanetary Disk 9",
+			"size": null,
+			"type": "ASTEROID_BELT",
+			"subtype": {
+				"id": 50,
+				"name": "System Belt",
+				"type": "ASTEROID_BELT"
+			},
+			"star_system_id": 408,
+			"parent_id": null
+		},
+		{
+			"id": 1701,
+			"code": "NYX.JUMPPOINTS.CASTRA",
+			"name": null,
+			"designation": "Nyx - Castra",
+			"size": 0,
+			"type": "JUMPPOINT",
+			"subtype": null,
+			"star_system_id": 315,
+			"parent_id": null
+		},
+		{
+			"id": 1702,
+			"code": "NYX.JUMPPOINTS.BREMEN",
+			"name": null,
+			"designation": "Nyx - Bremen",
+			"size": 0,
+			"type": "JUMPPOINT",
+			"subtype": null,
+			"star_system_id": 315,
+			"parent_id": null
+		},
+		{
+			"id": 1703,
+			"code": "NYX.STARS.NYX",
+			"name": null,
+			"designation": "Nyx",
+			"size": 965325.11564,
+			"type": "STAR",
+			"subtype": {
+				"id": 61,
+				"name": "Main Sequence-Dwarf-F",
+				"type": "STAR"
+			},
+			"star_system_id": 315,
+			"parent_id": null
+		},
+		{
+			"id": 1704,
+			"code": "NYX.PLANETS.NYXI",
+			"name": null,
+			"designation": "Nyx I",
+			"size": 5786,
+			"type": "PLANET",
+			"subtype": {
+				"id": 55,
+				"name": "Terrestrial Rocky",
+				"type": "PLANET"
+			},
+			"star_system_id": 315,
+			"parent_id": 1703
+		},
+		{
+			"id": 1705,
+			"code": "NYX.PLANETS.NYXII",
+			"name": null,
+			"designation": "Nyx II",
+			"size": 5955,
+			"type": "PLANET",
+			"subtype": {
+				"id": 20,
+				"name": "Smog Planet",
+				"type": "PLANET"
+			},
+			"star_system_id": 315,
+			"parent_id": 1703
+		},
+		{
+			"id": 1706,
+			"code": "NYX.PLANETS.NYXIII",
+			"name": null,
+			"designation": "Nyx III",
+			"size": 30028,
+			"type": "PLANET",
+			"subtype": {
+				"id": 25,
+				"name": "Ice Giant",
+				"type": "PLANET"
+			},
+			"star_system_id": 315,
+			"parent_id": 1703
+		},
+		{
+			"id": 1707,
+			"code": "NYX.BELTS.GLACIEMRING",
+			"name": "Glaciem Ring",
+			"designation": "Nyx Belt Alpha",
+			"size": 0,
+			"type": "ASTEROID_BELT",
+			"subtype": {
+				"id": 50,
+				"name": "System Belt",
+				"type": "ASTEROID_BELT"
+			},
+			"star_system_id": 315,
+			"parent_id": 1703
+		},
+		{
+			"id": 1710,
+			"code": "NYX.JUMPPOINTS.PYRO",
+			"name": null,
+			"designation": "Nyx - Pyro",
+			"size": 0,
+			"type": "JUMPPOINT",
+			"subtype": null,
+			"star_system_id": 315,
+			"parent_id": null
+		},
+		{
+			"id": 1711,
+			"code": "NYX.JUMPPOINTS.VIRGIL",
+			"name": null,
+			"designation": "Nyx - Virgil",
+			"size": 0,
+			"type": "JUMPPOINT",
+			"subtype": null,
+			"star_system_id": 315,
+			"parent_id": null
+		},
+		{
+			"id": 1712,
+			"code": "NYX.JUMPPOINTS.TOHIL",
+			"name": null,
+			"designation": "Nyx - Tohil",
+			"size": 0,
+			"type": "JUMPPOINT",
+			"subtype": null,
+			"star_system_id": 315,
+			"parent_id": null
+		},
+		{
+			"id": 1713,
+			"code": "NYX.JUMPPOINTS.ODIN",
+			"name": null,
+			"designation": "Nyx - Odin",
+			"size": 0,
+			"type": "JUMPPOINT",
+			"subtype": null,
+			"star_system_id": 315,
+			"parent_id": null
+		},
+		{
+			"id": 2626,
+			"code": "NYX.ASTEROID.DELAMAR",
+			"name": null,
+			"designation": "Delamar",
+			"size": 165.4,
+			"type": "PLANET",
+			"subtype": {
+				"id": 35,
+				"name": "Protoplanet",
+				"type": "PLANET"
+			},
+			"star_system_id": 315,
+			"parent_id": 1703
+		},
+		{
+			"id": 2627,
+			"code": "NYX.BELTS.KEEGERBELT",
+			"name": "Keeger Belt",
+			"designation": "Nyx Belt Beta",
+			"size": null,
+			"type": "ASTEROID_BELT",
+			"subtype": {
+				"id": 50,
+				"name": "System Belt",
+				"type": "ASTEROID_BELT"
+			},
+			"star_system_id": 315,
+			"parent_id": 1703
+		},
+		{
+			"id": 2730,
+			"code": "NYX.LZS.LEVSKI",
+			"name": null,
+			"designation": "Levski",
+			"size": null,
+			"type": "LZ",
+			"subtype": null,
+			"star_system_id": 315,
+			"parent_id": 2626
+		},
+		{
+			"id": 2842,
+			"code": "NYX.JUMPPOINTS.STANTON",
+			"name": null,
+			"designation": "Nyx - Stanton",
+			"size": null,
+			"type": "JUMPPOINT",
+			"subtype": null,
+			"star_system_id": 315,
+			"parent_id": null
+		},
+		{
+			"id": 1739,
+			"code": "PYRO.JUMPPOINTS.NYX",
+			"name": null,
+			"designation": "Pyro - Nyx",
+			"size": 0,
+			"type": "JUMPPOINT",
+			"subtype": null,
+			"star_system_id": 318,
+			"parent_id": null
+		},
+		{
+			"id": 1740,
+			"code": "PYRO.JUMPPOINTS.STANTON",
+			"name": null,
+			"designation": "Pyro - Stanton",
+			"size": 0,
+			"type": "JUMPPOINT",
+			"subtype": null,
+			"star_system_id": 318,
+			"parent_id": null
+		},
+		{
+			"id": 1741,
+			"code": "PYRO.JUMPPOINTS.HADRIAN",
+			"name": null,
+			"designation": "Pyro - Hadrian",
+			"size": 0,
+			"type": "JUMPPOINT",
+			"subtype": null,
+			"star_system_id": 318,
+			"parent_id": null
+		},
+		{
+			"id": 1742,
+			"code": "PYRO.JUMPPOINTS.OSO",
+			"name": null,
+			"designation": "Pyro - Oso",
+			"size": 0,
+			"type": "JUMPPOINT",
+			"subtype": null,
+			"star_system_id": 318,
+			"parent_id": null
+		},
+		{
+			"id": 1743,
+			"code": "PYRO.JUMPPOINTS.CASTRA",
+			"name": null,
+			"designation": "Pyro - Castra",
+			"size": 0,
+			"type": "JUMPPOINT",
+			"subtype": null,
+			"star_system_id": 318,
+			"parent_id": null
+		},
+		{
+			"id": 1744,
+			"code": "PYRO.STARS.PYRO",
+			"name": null,
+			"designation": "Pyro",
+			"size": 571000.44,
+			"type": "STAR",
+			"subtype": {
+				"id": 60,
+				"name": "Main Sequence-Dwarf-K",
+				"type": "STAR"
+			},
+			"star_system_id": 318,
+			"parent_id": null
+		},
+		{
+			"id": 1745,
+			"code": "PYRO.PLANETS.PYROI",
+			"name": null,
+			"designation": "Pyro I",
+			"size": 4117,
+			"type": "PLANET",
+			"subtype": {
+				"id": 55,
+				"name": "Terrestrial Rocky",
+				"type": "PLANET"
+			},
+			"star_system_id": 318,
+			"parent_id": 1744
+		},
+		{
+			"id": 1746,
+			"code": "PYRO.PLANETS.PYROII",
+			"name": "Monox",
+			"designation": "Pyro II",
+			"size": 5295,
+			"type": "PLANET",
+			"subtype": {
+				"id": 55,
+				"name": "Terrestrial Rocky",
+				"type": "PLANET"
+			},
+			"star_system_id": 318,
+			"parent_id": 1744
+		},
+		{
+			"id": 1747,
+			"code": "PYRO.PLANETS.PYROIII",
+			"name": "Bloom",
+			"designation": "Pyro III",
+			"size": 4139,
+			"type": "PLANET",
+			"subtype": {
+				"id": 55,
+				"name": "Terrestrial Rocky",
+				"type": "PLANET"
+			},
+			"star_system_id": 318,
+			"parent_id": 1744
+		},
+		{
+			"id": 1748,
+			"code": "PYRO.PLANETS.PYROV",
+			"name": null,
+			"designation": "Pyro V",
+			"size": 78123,
+			"type": "PLANET",
+			"subtype": {
+				"id": 23,
+				"name": "Gas Giant",
+				"type": "PLANET"
+			},
+			"star_system_id": 318,
+			"parent_id": 1744
+		},
+		{
+			"id": 1749,
+			"code": "PYRO.PLANETS.PYROIV",
+			"name": null,
+			"designation": "Pyro IV",
+			"size": 3214,
+			"type": "PLANET",
+			"subtype": {
+				"id": 55,
+				"name": "Terrestrial Rocky",
+				"type": "PLANET"
+			},
+			"star_system_id": 318,
+			"parent_id": 1748
+		},
+		{
+			"id": 1750,
+			"code": "PYRO.PLANETS.PYROVI",
+			"name": "Terminus",
+			"designation": "Pyro VI",
+			"size": 2850,
+			"type": "PLANET",
+			"subtype": {
+				"id": 55,
+				"name": "Terrestrial Rocky",
+				"type": "PLANET"
+			},
+			"star_system_id": 318,
+			"parent_id": 1744
+		},
+		{
+			"id": 1753,
+			"code": "PYRO.CLUSTERS.ALPHACLUSTER",
+			"name": "Akiro Cluster",
+			"designation": "Pyro Cluster Alpha",
+			"size": 0,
+			"type": "ASTEROID_FIELD",
+			"subtype": {
+				"id": 74,
+				"name": "System Cluster",
+				"type": "ASTEROID_FIELD"
+			},
+			"star_system_id": 318,
+			"parent_id": 1744
+		},
+		{
+			"id": 1754,
+			"code": "PYRO.JUMPPOINTS.TERRA",
+			"name": null,
+			"designation": "Pyro - Terra",
+			"size": 0,
+			"type": "JUMPPOINT",
+			"subtype": null,
+			"star_system_id": 318,
+			"parent_id": null
+		},
+		{
+			"id": 2609,
+			"code": "PYRO.STATION.RUINSTATION",
+			"name": null,
+			"designation": "Ruin Station",
+			"size": null,
+			"type": "MANMADE",
+			"subtype": {
+				"id": 44,
+				"name": "Space Station",
+				"type": "MANMADE"
+			},
+			"star_system_id": 318,
+			"parent_id": 1750
+		},
+		{
+			"id": 2704,
+			"code": "PYRO.JUMPPOINTS.CANO",
+			"name": null,
+			"designation": "Pyro - Cano",
+			"size": null,
+			"type": "JUMPPOINT",
+			"subtype": null,
+			"star_system_id": 318,
+			"parent_id": null
+		},
+		{
+			"id": 2783,
+			"code": "PYRO.MOONS.IGNIS",
+			"name": "Ignis",
+			"designation": "Pyro 5a",
+			"size": 0.5,
+			"type": "SATELLITE",
+			"subtype": {
+				"id": null,
+				"name": "Planetary Moon",
+				"type": "MOON"
+			},
+			"star_system_id": 318,
+			"parent_id": 1748
+		},
+		{
+			"id": 2784,
+			"code": "PYRO.MOONS.VATRA",
+			"name": "Vatra",
+			"designation": "Pyro 5b",
+			"size": 0.6,
+			"type": "SATELLITE",
+			"subtype": {
+				"id": null,
+				"name": "Planetary Moon",
+				"type": "MOON"
+			},
+			"star_system_id": 318,
+			"parent_id": 1748
+		},
+		{
+			"id": 2785,
+			"code": "PYRO.MOONS.ADIR",
+			"name": "Adir",
+			"designation": "Pyro 5c",
+			"size": 0.42,
+			"type": "SATELLITE",
+			"subtype": {
+				"id": null,
+				"name": "Planetary Moon",
+				"type": "MOON"
+			},
+			"star_system_id": 318,
+			"parent_id": 1748
+		},
+		{
+			"id": 2786,
+			"code": "PYRO.MOON.FAIRO",
+			"name": "Fairo",
+			"designation": "Pyro 5d",
+			"size": 0.38,
+			"type": "SATELLITE",
+			"subtype": {
+				"id": null,
+				"name": "Planetary Moon",
+				"type": "MOON"
+			},
+			"star_system_id": 318,
+			"parent_id": 1748
+		},
+		{
+			"id": 2787,
+			"code": "PYRO.MOONS.FUEGO",
+			"name": "Fuego",
+			"designation": "Pyro 5e",
+			"size": 0.81,
+			"type": "SATELLITE",
+			"subtype": {
+				"id": null,
+				"name": "Planetary Moon",
+				"type": "MOON"
+			},
+			"star_system_id": 318,
+			"parent_id": 1748
+		},
+		{
+			"id": 2788,
+			"code": "PRYO.MOONS.VUUR",
+			"name": "Vuur",
+			"designation": "Pyro 5f",
+			"size": 0.93,
+			"type": "SATELLITE",
+			"subtype": {
+				"id": null,
+				"name": "Planetary Moon",
+				"type": "MOON"
+			},
+			"star_system_id": 318,
+			"parent_id": 1748
+		},
+		{
+			"id": 2838,
+			"code": "PYRO.STATION.CHECKMATESTATION",
+			"name": "Checkmate Station",
+			"designation": "PYAM-FARSTAT-2-4",
+			"size": null,
+			"type": "MANMADE",
+			"subtype": {
+				"id": 44,
+				"name": "Space Station",
+				"type": "MANMADE"
+			},
+			"star_system_id": 318,
+			"parent_id": null
+		},
+		{
+			"id": 1689,
+			"code": "STANTON.JUMPPOINTS.PYRO",
+			"name": null,
+			"designation": "Stanton - Pyro",
+			"size": 0,
+			"type": "JUMPPOINT",
+			"subtype": null,
+			"star_system_id": 314,
+			"parent_id": null
+		},
+		{
+			"id": 1690,
+			"code": "STANTON.JUMPPOINTS.MAGNUS",
+			"name": null,
+			"designation": "Stanton - Magnus",
+			"size": 0,
+			"type": "JUMPPOINT",
+			"subtype": null,
+			"star_system_id": 314,
+			"parent_id": null
+		},
+		{
+			"id": 1691,
+			"code": "STANTON.STARS.STANTON",
+			"name": null,
+			"designation": "Stanton",
+			"size": 1.2,
+			"type": "STAR",
+			"subtype": {
+				"id": 59,
+				"name": "Main Sequence-Dwarf-G",
+				"type": "STAR"
+			},
+			"star_system_id": 314,
+			"parent_id": null
+		},
+		{
+			"id": 1692,
+			"code": "STANTON.PLANETS.STANTONIVMICROTECH",
+			"name": "microTech",
+			"designation": "Stanton IV",
+			"size": 10328,
+			"type": "PLANET",
+			"subtype": {
+				"id": 38,
+				"name": "Super-Earth",
+				"type": "PLANET"
+			},
+			"star_system_id": 314,
+			"parent_id": 1691
+		},
+		{
+			"id": 1693,
+			"code": "STANTON.PLANETS.STANTONIHURSTONDYNAMICS",
+			"name": "Hurston",
+			"designation": "Stanton I",
+			"size": 11853,
+			"type": "PLANET",
+			"subtype": {
+				"id": 38,
+				"name": "Super-Earth",
+				"type": "PLANET"
+			},
+			"star_system_id": 314,
+			"parent_id": 1691
+		},
+		{
+			"id": 1694,
+			"code": "STANTON.PLANETS.STANTONIIIARCCORP",
+			"name": "ArcCorp",
+			"designation": "Stanton III",
+			"size": 8363,
+			"type": "PLANET",
+			"subtype": {
+				"id": 38,
+				"name": "Super-Earth",
+				"type": "PLANET"
+			},
+			"star_system_id": 314,
+			"parent_id": 1691
+		},
+		{
+			"id": 1695,
+			"code": "STANTON.PLANETS.STANTONIICRUSADER",
+			"name": "Crusader",
+			"designation": "Stanton II",
+			"size": 74500,
+			"type": "PLANET",
+			"subtype": {
+				"id": 23,
+				"name": "Gas Giant",
+				"type": "PLANET"
+			},
+			"star_system_id": 314,
+			"parent_id": 1691
+		},
+		{
+			"id": 1698,
+			"code": "STANTON.BELTS.ALPHABELT",
+			"name": "Aaron Halo",
+			"designation": "Stanton Belt Alpha",
+			"size": 0,
+			"type": "ASTEROID_BELT",
+			"subtype": {
+				"id": 50,
+				"name": "System Belt",
+				"type": "ASTEROID_BELT"
+			},
+			"star_system_id": 314,
+			"parent_id": 1691
+		},
+		{
+			"id": 1699,
+			"code": "STANTON.JUMPPOINTS.TERRA",
+			"name": null,
+			"designation": "Stanton - Terra",
+			"size": 0,
+			"type": "JUMPPOINT",
+			"subtype": null,
+			"star_system_id": 314,
+			"parent_id": null
+		},
+		{
+			"id": 2552,
+			"code": "STANTON.LZS.NEWBABBAGE",
+			"name": null,
+			"designation": "NewBabbage",
+			"size": 0,
+			"type": "LZ",
+			"subtype": null,
+			"star_system_id": 314,
+			"parent_id": 1692
+		},
+		{
+			"id": 2553,
+			"code": "STANTON.LZS.LORVILLE",
+			"name": null,
+			"designation": "Lorville",
+			"size": 0,
+			"type": "LZ",
+			"subtype": null,
+			"star_system_id": 314,
+			"parent_id": 1693
+		},
+		{
+			"id": 2554,
+			"code": "STANTON.LZS.ORISON",
+			"name": null,
+			"designation": "Orison",
+			"size": 0,
+			"type": "LZ",
+			"subtype": null,
+			"star_system_id": 314,
+			"parent_id": 1695
+		},
+		{
+			"id": 2716,
+			"code": "STANTON.LZS.AREA18",
+			"name": null,
+			"designation": "Area18",
+			"size": null,
+			"type": "LZ",
+			"subtype": null,
+			"star_system_id": 314,
+			"parent_id": 1694
+		},
+		{
+			"id": 2737,
+			"code": "STANTON.MOONS.CELLIN",
+			"name": "Cellin",
+			"designation": "Stanton 2a",
+			"size": 0.67,
+			"type": "SATELLITE",
+			"subtype": {
+				"id": null,
+				"name": "Planetary Moon",
+				"type": "MOON"
+			},
+			"star_system_id": 314,
+			"parent_id": 1695
+		},
+		{
+			"id": 2738,
+			"code": "STANTON.MOONS.DAYMAR",
+			"name": "Daymar",
+			"designation": "Stanton 2b",
+			"size": 0.4,
+			"type": "SATELLITE",
+			"subtype": {
+				"id": null,
+				"name": "Planetary Moon",
+				"type": "MOON"
+			},
+			"star_system_id": 314,
+			"parent_id": 1695
+		},
+		{
+			"id": 2739,
+			"code": "STANTON.MOONS.YELA",
+			"name": "Yela",
+			"designation": "Stanton 2c",
+			"size": 0.7,
+			"type": "SATELLITE",
+			"subtype": {
+				"id": null,
+				"name": "Planetary Moon",
+				"type": "MOON"
+			},
+			"star_system_id": 314,
+			"parent_id": 1695
+		},
+		{
+			"id": 2740,
+			"code": "STANTON.STATION.PORTOLISAR",
+			"name": null,
+			"designation": "Port Olisar",
+			"size": 0.35,
+			"type": "MANMADE",
+			"subtype": {
+				"id": 48,
+				"name": "Starbase",
+				"type": "MANMADE"
+			},
+			"star_system_id": 314,
+			"parent_id": 1695
+		},
+		{
+			"id": 2741,
+			"code": "STANTON.STATION.KAREAH",
+			"name": null,
+			"designation": "Security Post Kareah",
+			"size": 0.4,
+			"type": "MANMADE",
+			"subtype": {
+				"id": 47,
+				"name": "Orbital Defense",
+				"type": "MANMADE"
+			},
+			"star_system_id": 314,
+			"parent_id": 1695
+		},
+		{
+			"id": 2742,
+			"code": "STANTON.STATION.GUNDO",
+			"name": null,
+			"designation": "Covalex Hub Gundo",
+			"size": 0.25,
+			"type": "MANMADE",
+			"subtype": {
+				"id": 44,
+				"name": "Space Station",
+				"type": "MANMADE"
+			},
+			"star_system_id": 314,
+			"parent_id": 1695
+		},
+		{
+			"id": 2743,
+			"code": "STANTON.STATION.CRYASTRO",
+			"name": null,
+			"designation": "Cry-Astro Service",
+			"size": 0.2,
+			"type": "MANMADE",
+			"subtype": {
+				"id": 44,
+				"name": "Space Station",
+				"type": "MANMADE"
+			},
+			"star_system_id": 314,
+			"parent_id": 1695
+		},
+		{
+			"id": 2744,
+			"code": "STANTON.STATION.SCANHUB",
+			"name": null,
+			"designation": "ICC ScanHub Stanton",
+			"size": null,
+			"type": "MANMADE",
+			"subtype": {
+				"id": 49,
+				"name": "Probe",
+				"type": "MANMADE"
+			},
+			"star_system_id": 314,
+			"parent_id": 1695
+		},
+		{
+			"id": 2745,
+			"code": "STANTON.STATION.COMMARRAYSCC",
+			"name": null,
+			"designation": "CommArray SCC",
+			"size": 0.005,
+			"type": "MANMADE",
+			"subtype": {
+				"id": 44,
+				"name": "Space Station",
+				"type": "MANMADE"
+			},
+			"star_system_id": 314,
+			"parent_id": 1695
+		},
+		{
+			"id": 2746,
+			"code": "STANTON.MOONS.ARIAL",
+			"name": "Arial",
+			"designation": "Stanton 1a",
+			"size": 0.7,
+			"type": "SATELLITE",
+			"subtype": {
+				"id": null,
+				"name": "Planetary Moon",
+				"type": "MOON"
+			},
+			"star_system_id": 314,
+			"parent_id": 1693
+		},
+		{
+			"id": 2747,
+			"code": "STANTON.MOONS.ABERDEEN",
+			"name": "Aberdeen",
+			"designation": "Stanton 1b",
+			"size": 0.4,
+			"type": "SATELLITE",
+			"subtype": {
+				"id": null,
+				"name": "Planetary Moon",
+				"type": "MOON"
+			},
+			"star_system_id": 314,
+			"parent_id": 1693
+		},
+		{
+			"id": 2748,
+			"code": "STANTON.MOONS.MAGDA",
+			"name": "Magda",
+			"designation": "Stanton 1c",
+			"size": 0.2,
+			"type": "SATELLITE",
+			"subtype": {
+				"id": null,
+				"name": "Planetary Moon",
+				"type": "MOON"
+			},
+			"star_system_id": 314,
+			"parent_id": 1693
+		},
+		{
+			"id": 2749,
+			"code": "STANTON.MOONS.ITA",
+			"name": "Ita",
+			"designation": "Stanton 1d",
+			"size": 0.3,
+			"type": "SATELLITE",
+			"subtype": {
+				"id": null,
+				"name": "Planetary Moon",
+				"type": "MOON"
+			},
+			"star_system_id": 314,
+			"parent_id": 1693
+		},
+		{
+			"id": 2750,
+			"code": "STANTON.MOONS.LYRIA",
+			"name": "Lyria",
+			"designation": "Stanton 3a",
+			"size": 0.5,
+			"type": "SATELLITE",
+			"subtype": {
+				"id": null,
+				"name": "Planetary Moon",
+				"type": "MOON"
+			},
+			"star_system_id": 314,
+			"parent_id": 1694
+		},
+		{
+			"id": 2751,
+			"code": "STANTON.MOONS.WALA",
+			"name": "Wala",
+			"designation": "Stanton 3b",
+			"size": 0.3,
+			"type": "SATELLITE",
+			"subtype": {
+				"id": null,
+				"name": "Planetary Moon",
+				"type": "MOON"
+			},
+			"star_system_id": 314,
+			"parent_id": 1694
+		},
+		{
+			"id": 2752,
+			"code": "STANTON.MOONS.CALLIOPE",
+			"name": "Calliope",
+			"designation": "Stanton 4a",
+			"size": 0.6,
+			"type": "SATELLITE",
+			"subtype": {
+				"id": null,
+				"name": "Planetary Moon",
+				"type": "MOON"
+			},
+			"star_system_id": 314,
+			"parent_id": 1692
+		},
+		{
+			"id": 2753,
+			"code": "STANTON.MOONS.CLIO",
+			"name": "Clio",
+			"designation": "Stanton 4b",
+			"size": 0.3,
+			"type": "SATELLITE",
+			"subtype": {
+				"id": null,
+				"name": "Planetary Moon",
+				"type": "MOON"
+			},
+			"star_system_id": 314,
+			"parent_id": 1692
+		},
+		{
+			"id": 2754,
+			"code": "STANTON.MOONS.EUTERPE",
+			"name": "Euterpe",
+			"designation": "Stanton 4c",
+			"size": 0.5,
+			"type": "SATELLITE",
+			"subtype": {
+				"id": null,
+				"name": "Planetary Moon",
+				"type": "MOON"
+			},
+			"star_system_id": 314,
+			"parent_id": 1692
+		},
+		{
+			"id": 2829,
+			"code": "STANTON.RINGS.RINGSOFYELA",
+			"name": null,
+			"designation": "Ring of Yela",
+			"size": null,
+			"type": "ASTEROID_BELT",
+			"subtype": {
+				"id": 51,
+				"name": "Planetary Ring",
+				"type": "ASTEROID_BELT"
+			},
+			"star_system_id": 314,
+			"parent_id": 2739
+		},
+		{
+			"id": 2843,
+			"code": "STANTON.JUMPPOINTS.NYX",
+			"name": null,
+			"designation": "Stanton - Nyx",
+			"size": null,
+			"type": "JUMPPOINT",
+			"subtype": null,
+			"star_system_id": 314,
+			"parent_id": null
+		},
+		{
+			"id": 1714,
+			"code": "TERRA.JUMPPOINTS.HADRIAN",
+			"name": null,
+			"designation": "Terra - Hadrian",
+			"size": 0,
+			"type": "JUMPPOINT",
+			"subtype": null,
+			"star_system_id": 316,
+			"parent_id": null
+		},
+		{
+			"id": 1715,
+			"code": "TERRA.JUMPPOINTS.TAYAC",
+			"name": null,
+			"designation": "Terra - Tayac",
+			"size": 0,
+			"type": "JUMPPOINT",
+			"subtype": null,
+			"star_system_id": 316,
+			"parent_id": null
+		},
+		{
+			"id": 1716,
+			"code": "TERRA.JUMPPOINTS.GOSS",
+			"name": null,
+			"designation": "Terra - Goss",
+			"size": 0,
+			"type": "JUMPPOINT",
+			"subtype": null,
+			"star_system_id": 316,
+			"parent_id": null
+		},
+		{
+			"id": 1718,
+			"code": "TERRA.JUMPPOINTS.MAGNUS",
+			"name": null,
+			"designation": "Terra - Magnus",
+			"size": 0,
+			"type": "JUMPPOINT",
+			"subtype": null,
+			"star_system_id": 316,
+			"parent_id": null
+		},
+		{
+			"id": 1719,
+			"code": "TERRA.JUMPPOINTS.PYRO",
+			"name": null,
+			"designation": "Terra - Pyro",
+			"size": 0,
+			"type": "JUMPPOINT",
+			"subtype": null,
+			"star_system_id": 316,
+			"parent_id": null
+		},
+		{
+			"id": 1720,
+			"code": "TERRA.STARS.TERRANOVA",
+			"name": "Terra Nova",
+			"designation": "Terra",
+			"size": 715236.2364,
+			"type": "STAR",
+			"subtype": {
+				"id": 59,
+				"name": "Main Sequence-Dwarf-G",
+				"type": "STAR"
+			},
+			"star_system_id": 316,
+			"parent_id": null
+		},
+		{
+			"id": 1721,
+			"code": "TERRA.PLANETS.TERRAIAERO",
+			"name": "Aero",
+			"designation": "Terra I",
+			"size": 1961,
+			"type": "PLANET",
+			"subtype": {
+				"id": 43,
+				"name": "Mesoplanet",
+				"type": "PLANET"
+			},
+			"star_system_id": 316,
+			"parent_id": 1720
+		},
+		{
+			"id": 1722,
+			"code": "TERRA.PLANETS.TERRAIIPIKE",
+			"name": "Pike",
+			"designation": "Terra II",
+			"size": 2953,
+			"type": "PLANET",
+			"subtype": {
+				"id": 55,
+				"name": "Terrestrial Rocky",
+				"type": "PLANET"
+			},
+			"star_system_id": 316,
+			"parent_id": 1720
+		},
+		{
+			"id": 1723,
+			"code": "TERRA.PLANETS.TERRAIIITERRA",
+			"name": "Terra",
+			"designation": "Terra III",
+			"size": 10576,
+			"type": "PLANET",
+			"subtype": {
+				"id": 38,
+				"name": "Super-Earth",
+				"type": "PLANET"
+			},
+			"star_system_id": 316,
+			"parent_id": 1720
+		},
+		{
+			"id": 1724,
+			"code": "TERRA.PLANETS.TERRAIVGEN",
+			"name": "Gen",
+			"designation": "Terra IV",
+			"size": 8619,
+			"type": "PLANET",
+			"subtype": {
+				"id": 38,
+				"name": "Super-Earth",
+				"type": "PLANET"
+			},
+			"star_system_id": 316,
+			"parent_id": 1720
+		},
+		{
+			"id": 1726,
+			"code": "TERRA.BELTS.MARISOLBELT",
+			"name": "Marisol Belt",
+			"designation": "Terra Belt Beta",
+			"size": 0,
+			"type": "ASTEROID_BELT",
+			"subtype": {
+				"id": 50,
+				"name": "System Belt",
+				"type": "ASTEROID_BELT"
+			},
+			"star_system_id": 316,
+			"parent_id": 1720
+		},
+		{
+			"id": 1727,
+			"code": "TERRA.BELTS.HENGECLUSTER",
+			"name": "Henge Cluster",
+			"designation": "Terra Cluster Alpha",
+			"size": 0,
+			"type": "ASTEROID_FIELD",
+			"subtype": {
+				"id": 74,
+				"name": "System Cluster",
+				"type": "ASTEROID_FIELD"
+			},
+			"star_system_id": 316,
+			"parent_id": 1720
+		},
+		{
+			"id": 1728,
+			"code": "TERRA.JUMPPOINTS.STANTON",
+			"name": null,
+			"designation": "Terra - Stanton",
+			"size": 0,
+			"type": "JUMPPOINT",
+			"subtype": null,
+			"star_system_id": 316,
+			"parent_id": null
+		},
+		{
+			"id": 1729,
+			"code": "TERRA.JUMPPOINTS.TARANIS",
+			"name": null,
+			"designation": "Terra - Taranis",
+			"size": 0,
+			"type": "JUMPPOINT",
+			"subtype": null,
+			"star_system_id": 316,
+			"parent_id": null
+		},
+		{
+			"id": 2614,
+			"code": "TERRA.STATION.INSREILLY",
+			"name": null,
+			"designation": "INS Reilly",
+			"size": 1.1,
+			"type": "MANMADE",
+			"subtype": {
+				"id": 44,
+				"name": "Space Station",
+				"type": "MANMADE"
+			},
+			"star_system_id": 316,
+			"parent_id": 1724
+		},
+		{
+			"id": 2615,
+			"code": "TERRA.STATION.IASHAMMETT",
+			"name": null,
+			"designation": "IAS Hammett",
+			"size": null,
+			"type": "MANMADE",
+			"subtype": {
+				"id": 44,
+				"name": "Space Station",
+				"type": "MANMADE"
+			},
+			"star_system_id": 316,
+			"parent_id": 1723
+		},
+		{
+			"id": 2616,
+			"code": "TERRA.STATION.ICSEVOLEN",
+			"name": null,
+			"designation": "ICS Evolen",
+			"size": null,
+			"type": "MANMADE",
+			"subtype": {
+				"id": 44,
+				"name": "Space Station",
+				"type": "MANMADE"
+			},
+			"star_system_id": 316,
+			"parent_id": 1723
+		},
+		{
+			"id": 2719,
+			"code": "TERRA.LZS.PRIME",
+			"name": null,
+			"designation": "Prime",
+			"size": null,
+			"type": "LZ",
+			"subtype": null,
+			"star_system_id": 316,
+			"parent_id": 1723
+		},
+		{
+			"id": 2799,
+			"code": "TERRA.MOONS.PETRAM",
+			"name": "Petram",
+			"designation": "Terra 1a",
+			"size": 0.115,
+			"type": "SATELLITE",
+			"subtype": {
+				"id": null,
+				"name": "Planetary Moon",
+				"type": "MOON"
+			},
+			"star_system_id": 316,
+			"parent_id": 1721
+		},
+		{
+			"id": 2800,
+			"code": "TERRA.MOONS.PETRUS",
+			"name": "Petrus",
+			"designation": "Terra 1b",
+			"size": 0.237,
+			"type": "SATELLITE",
+			"subtype": {
+				"id": null,
+				"name": "Planetary Moon",
+				"type": "MOON"
+			},
+			"star_system_id": 316,
+			"parent_id": 1721
+		},
+		{
+			"id": 2801,
+			"code": "TERRA.MOONS.TOJA",
+			"name": "Toja",
+			"designation": "Terra 2a",
+			"size": 0.5243,
+			"type": "SATELLITE",
+			"subtype": {
+				"id": null,
+				"name": "Planetary Moon",
+				"type": "MOON"
+			},
+			"star_system_id": 316,
+			"parent_id": 1722
+		},
+		{
+			"id": 2802,
+			"code": "TERRA.MOONS.EDA",
+			"name": "Eda",
+			"designation": "Terra 3a",
+			"size": 0.51787,
+			"type": "SATELLITE",
+			"subtype": {
+				"id": null,
+				"name": "Planetary Moon",
+				"type": "MOON"
+			},
+			"star_system_id": 316,
+			"parent_id": 1723
+		}
+	]
+}

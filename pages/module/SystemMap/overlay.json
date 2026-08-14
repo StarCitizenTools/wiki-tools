@@ -1,0 +1,61 @@
+{
+	"%doc": "Editorial corrections applied on top of the ARK Starmap mirror to produce Module:SystemMap/systems.json. Everything here is a judgement the upstream data cannot supply: which article a body links to, where a belt sits between planets, which planet is really a moon. Run `mise run systemmap` after editing. Keys are the system name, then `star` and/or `bodies`. Under `bodies` the key is the upstream body name (or its designation, when upstream gives it no name, which is what the rail labels it anyway); where two bodies in one system share that key, each is addressed by the type-qualified form instead, such as `Ellis XI (PLANET)`, and the generator's error names both. Supported per-body keys: page, label, icon, iconRatio, after, moonOf, km. `star` takes the same keys except after and moonOf, which the one body nothing orbits has no use for; its km is a radius. `exclude` accepts either key form. A body listed here that no longer exists upstream FAILS the generator rather than being ignored, because a silently-dropped correction is exactly how this work gets lost across a refetch. Listing a system here is what puts it in systems.json, in this order; an empty entry means nothing needed correcting. See docs/superpowers/specs/2026-08-13-system-map-rollout-design.md.",
+	"systems": {
+		"Stanton": {
+			"bodies": {
+				"Hurston": { "icon": "Hurston-Icon.png" },
+				"Arial": { "icon": "Arial-Icon.png" },
+				"Aberdeen": { "icon": "Aberdeen-Icon.png" },
+				"Magda": { "icon": "Magda-Icon.png" },
+				"Ita": { "icon": "Ita-Icon.png" },
+				"Crusader": { "icon": "Crusader-Icon.png" },
+				"Cellin": { "icon": "Cellin-Icon.png" },
+				"Daymar": { "icon": "Daymar-Icon.png" },
+				"Yela": { "icon": "Yela-Icon.png" },
+				"Aaron Halo": { "after": "Crusader" },
+				"ArcCorp": { "page": "ArcCorp (planet)", "icon": "ArcCorp Icon.png" },
+				"Lyria": { "icon": "Lyria-Icon.png" },
+				"Wala": { "icon": "Wala-Icon.png" },
+				"microTech": { "page": "MicroTech (planet)", "icon": "MicroTech Icon.png" },
+				"Calliope": { "icon": "Calliope-Icon.png" },
+				"Clio": { "icon": "Clio-Icon.png" },
+				"Euterpe": { "icon": "Euterpe-Icon.png" }
+			}
+		},
+		"Pyro": {
+			"bodies": {
+				"Pyro I": { "icon": "PyroIIcon.png" },
+				"Akiro Cluster": { "after": "Pyro I" },
+				"Monox": { "icon": "MonoxIcon2024.png" },
+				"Bloom": { "icon": "BloomIcon.png" },
+				"Pyro V": { "icon": "PyroVIcon.png" },
+				"Ignis": { "icon": "IgnisIcon.png" },
+				"Vatra": { "icon": "VatraIcon.png" },
+				"Adir": { "icon": "AdirIcon.png" },
+				"Fairo": { "icon": "FairoIcon.png" },
+				"Fuego": { "icon": "FuegoIcon.png" },
+				"Vuur": { "icon": "VuurIcon.png" },
+				"Pyro IV": { "moonOf": "Pyro V", "icon": "PyroIVIcon.png", "iconRatio": 2.1 },
+				"Terminus": { "icon": "TerminusIcon.png", "iconRatio": 2.83 }
+			}
+		},
+		"Nyx": {
+			"bodies": {
+				"Nyx II": { "icon": "NyxII.png" },
+				"Glaciem Ring": { "after": "Nyx II" },
+				"Delamar": { "after": "Glaciem Ring", "icon": "Delamar-Icon.png" },
+				"Nyx III": { "icon": "NyxIII.png" },
+				"Keeger Belt": { "after": "Nyx III" }
+			}
+		},
+		"Terra": {
+			"star": { "page": "Terra Nova" },
+			"bodies": {
+				"Henge Cluster": { "after": "Terra" },
+				"Marisol Belt": { "after": "Gen" }
+			}
+		},
+		"Castra": {}
+	},
+	"exclude": ["Protoplanetary Disk*", "Protoplentary Disk*"]
+}

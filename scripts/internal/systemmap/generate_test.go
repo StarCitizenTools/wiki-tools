@@ -399,6 +399,198 @@ func TestBuildDisambiguatesTwoBodiesSharingAKey(t *testing.T) {
 	})
 }
 
+// TestBuildNestsAPlanetsRingsWhereItsMoonsGo is the ring rule.
+//
+// A ring orbits a planet, so it belongs under that planet — and the rail nests
+// exactly one level, which is the level the moons occupy. It shares the array
+// and nothing else: `tier: ring` is what stops Data.lua drawing it as one of the
+// bodies beside it.
+func TestBuildNestsAPlanetsRingsWhereItsMoonsGo(t *testing.T) {
+	doc := build(t, `{"systems": {"Sol": {}, "Ellis": {}}, "exclude": ["Ellis XI (PLANET)"]}`)
+
+	jupiter := find(t, doc, "Sol", "Jupiter")
+	if jupiter.Moons == nil {
+		t.Fatal("Jupiter has no moons array at all")
+	}
+	var labels []string
+	for _, m := range *jupiter.Moons {
+		labels = append(labels, m.Label)
+	}
+	// The ring comes first and the Galilean moons keep their lettered order
+	// behind it: the column is distance from the planet, and the ring is inside
+	// all four of them.
+	if got := strings.Join(labels, ", "); got != "Jovian Rings, Io, Europa, Ganymede, Callisto" {
+		t.Errorf("Jupiter's moons = %s", got)
+	}
+
+	ring := (*jupiter.Moons)[0]
+	if ring.Tier != tierRing {
+		t.Errorf("ring tier = %q, want %q: without it the rail draws a moon", ring.Tier, tierRing)
+	}
+	if ring.KM != nil {
+		t.Errorf("a ring is a region and carries no km, got %v", *ring.KM)
+	}
+	if ring.Subtype != "" {
+		t.Errorf(`a ring's subtype ("Planetary Ring") only restates its tier, got %q`, ring.Subtype)
+	}
+	if ring.Moons != nil {
+		t.Error("a ring cannot have moons and must omit the key")
+	}
+	// Unnamed upstream, so label and page are the designation — and the belt
+	// house-style rule does not touch it: "Jovian Rings" does not start with the
+	// system name, and "Rings of Ellis VII" names the planet it circles.
+	if ring.Page != "Jovian Rings" || ring.Designation != "Jovian Rings" {
+		t.Errorf("ring page/designation = %q / %q, want Jovian Rings", ring.Page, ring.Designation)
+	}
+
+	// The same holds in a system where the ring is the planet's only child, which
+	// is the shape that has no moon to hide behind.
+	ellisVII := find(t, doc, "Ellis", "Ellis VII")
+	if ellisVII.Moons == nil || len(*ellisVII.Moons) != 1 {
+		t.Fatalf("Ellis VII moons = %v, want just its ring", ellisVII.Moons)
+	}
+	if got := (*ellisVII.Moons)[0]; got.Page != "Rings of Ellis VII" || got.Tier != tierRing {
+		t.Errorf("Ellis VII's ring = %+v", got)
+	}
+}
+
+// TestBuildDropsARingThatOrbitsAMoon is the half that stays dropped, and it is
+// the one live on the wiki: Stanton is on 57 pages, and Yela's ring appearing
+// there would be a regression a reader sees.
+//
+// The rail nests one level. A ring of a moon needs a second, for one body in all
+// 90 systems — and that body has no article under any title, so there would be
+// nothing to link even with somewhere to put it.
+func TestBuildDropsARingThatOrbitsAMoon(t *testing.T) {
+	res, err := buildOrErr(t, `{"systems": {"Stanton": {}}}`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sys, _ := res.Document.Systems.Get("Stanton")
+	for _, b := range sys.Bodies {
+		if strings.Contains(b.Label, "Ring") {
+			t.Errorf("%q reached the planet rail", b.Label)
+		}
+		if b.Moons == nil {
+			continue
+		}
+		for _, m := range *b.Moons {
+			if m.Tier == tierRing || strings.Contains(m.Label, "Ring") {
+				t.Errorf("%q reached %q's moons; Yela is a moon, so its ring has nowhere to nest",
+					m.Label, b.Label)
+			}
+		}
+	}
+	// And it is reported rather than vanishing quietly.
+	var noted bool
+	for _, note := range res.Notes {
+		if strings.Contains(note, "rings that orbit a moon") {
+			noted = true
+		}
+	}
+	if !noted {
+		t.Errorf("dropping a body should be reported, got %v", res.Notes)
+	}
+}
+
+// TestBuildFailsWhenARingsPlanetIsExcluded covers the one way a kept ring can
+// end up parentless. Rendering it loose on the planet rail would put a ring in
+// an orbital slot where a world belongs, and dropping it silently is the failure
+// this whole design exists to prevent.
+func TestBuildFailsWhenARingsPlanetIsExcluded(t *testing.T) {
+	_, err := buildOrErr(t, `{"systems": {"Sol": {}}, "exclude": ["Jupiter"]}`)
+	if err == nil {
+		t.Fatal("a ring whose planet is gone must not be placed by guesswork")
+	}
+	if !strings.Contains(err.Error(), "ring of a body that is not in the output") {
+		t.Errorf("error should say why: %v", err)
+	}
+	t.Log(err)
+
+	// Excluding both is the fix the error asks for, and it builds.
+	doc := build(t, `{"systems": {"Sol": {}}, "exclude": ["Jupiter", "Jovian Rings"]}`)
+	for _, label := range rail(t, doc, "Sol") {
+		if strings.HasPrefix(label, "Jupiter") || strings.Contains(label, "Jovian") {
+			t.Errorf("%q should have been excluded", label)
+		}
+	}
+}
+
+// TestBuildKeepsARingsSizeOutOfTheFileEvenWhenUpstreamReportsOne is why the km
+// test is on the ROLE rather than on what sizeKM happens to return.
+//
+// All eleven rings upstream report 0 or null today, so nothing in the real data
+// distinguishes "a ring has no diameter" from "this field is empty". A ring with
+// a size would otherwise be written at the moon tier and drag the moon extents
+// with it, resizing every moon on every published page.
+//
+// The synthetic ring below is typed SATELLITE, which no real one is. That is
+// deliberate: upstream types all eleven ASTEROID_BELT, and sizeKM returns nil for
+// that type whatever the size says — so a belt-typed ring cannot show whether the
+// size was dropped because it is a ring or merely because of its type. What makes
+// a body a ring here is its SUBTYPE, so the size rule has to hang off the role
+// that subtype produces, and this is the fixture that proves it does.
+func TestBuildKeepsARingsSizeOutOfTheFileEvenWhenUpstreamReportsOne(t *testing.T) {
+	str := func(s string) *string { return &s }
+	num := func(v int) *int { return &v }
+	size := func(v float64) *starmap.Number {
+		n := starmap.Number(v)
+		return &n
+	}
+	upstream := &starmap.Document{
+		Systems: []starmap.System{{ID: 1, Name: "Vector"}},
+		Objects: []starmap.Object{
+			{ID: 1, StarSystemID: 1, Type: typeStar, Designation: str("Vector"), Size: size(1.2),
+				Subtype: &starmap.Subtype{Name: "Main Sequence-Dwarf-G"}},
+			{ID: 2, StarSystemID: 1, Type: typePlanet, Designation: str("Vector I"), Size: size(11853),
+				Subtype: &starmap.Subtype{Name: "Terrestrial Rocky"}},
+			{ID: 3, StarSystemID: 1, Type: typeMoon, Designation: str("Vector 1a"), Size: size(0.7),
+				Subtype: &starmap.Subtype{Name: "Planetary Moon"}, ParentID: num(2)},
+			// Upstream names this one, and gives it a size in the units its type
+			// would imply. Both are ignored where they should be: the name is a
+			// proper noun and is kept, the size is not a diameter and is dropped.
+			{ID: 4, StarSystemID: 1, Type: typeMoon, Name: str("Halo of Vector"),
+				Designation: str("Rings of Vector I"), Size: size(99999),
+				Subtype: &starmap.Subtype{Name: subtypePlanetaryRing}, ParentID: num(2)},
+		},
+	}
+	overlay, err := LoadOverlay([]byte(`{"systems": {"Vector": {}}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := Build(Options{Starmap: upstream, Overlay: overlay})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	planet := find(t, res.Document, "Vector", "Vector I")
+	if planet.Moons == nil || len(*planet.Moons) != 2 {
+		t.Fatalf("Vector I moons = %v, want its moon and its ring", planet.Moons)
+	}
+	ring := (*planet.Moons)[0]
+	if ring.Tier != tierRing {
+		t.Fatalf("expected the ring first, got %+v", ring)
+	}
+	if ring.KM != nil {
+		t.Errorf("ring km = %v, want none: a ring has no diameter whatever upstream reports", *ring.KM)
+	}
+	if ring.Label != "Halo of Vector" || ring.Page != "Halo of Vector" {
+		t.Errorf("ring label/page = %q / %q, want the upstream name verbatim", ring.Label, ring.Page)
+	}
+	if ring.Designation != "Rings of Vector I" {
+		t.Errorf("ring designation = %q", ring.Designation)
+	}
+
+	// The extents are the point: the moon tier still stops at the real moon.
+	ext := res.Document.Extents
+	if ext == nil || ext.Moon == nil {
+		t.Fatalf("no moon extent recorded: %+v", ext)
+	}
+	if ext.Moon.Max != 700 {
+		t.Errorf("moon maximum is %g, want 700: the ring's 99999 must not reach the scale", ext.Moon.Max)
+	}
+}
+
 func TestBuildExcludesByPattern(t *testing.T) {
 	// Gurzil is nine placeholder "Protoplanetary Disk N" belts (two of them
 	// misspelled upstream) alongside one real belt.

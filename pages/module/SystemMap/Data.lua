@@ -71,13 +71,24 @@ local SUBTYPE_KIND = {
 local UNKNOWN_KIND = 'unknown'
 local MOON_KIND = 'moon'
 local BELT_KIND = 'belt'
+local RING_KIND = 'ring'
 
 --- A belt renders as a fixed band, not a scaled disc: upstream reports its size
 --- as 0/null, and a belt has no meaningful diameter to scale anyway.
 local BELT_BAND = { width = 11, height = 26 }
 
+--- A planetary ring gets the same treatment for the same reason, turned on its
+--- side: it sits in the moon column, where the layout is a row, so the band lies
+--- flat the way a ring reads edge-on. It is deliberately NOT a disc — a ring is
+--- not a body, and drawing it as one would say it is a moon.
+local RING_BAND = { width = 15, height = 5 }
+
+--- The tiers whose glyph is a fixed band rather than a scaled disc.
+--- @type table<string, { width: number, height: number }>
+local BANDS = { belt = BELT_BAND, ring = RING_BAND }
+
 --- @class SystemMapBody
---- @field tier string        'star' | 'planet' | 'belt' | 'moon'
+--- @field tier string        'star' | 'planet' | 'belt' | 'moon' | 'ring'
 --- @field page string        Wiki page title, MediaWiki-normalised
 --- @field label string       Display name (may differ in case from `page`)
 --- @field designation string|nil
@@ -89,7 +100,9 @@ local BELT_BAND = { width = 11, height = 26 }
 ---                            tall because the body has rings (Terminus, Pyro IV)
 --- @field current boolean    True when this body is the page being rendered
 --- @field missing boolean    Set later by Module:SystemMap; always false here
---- @field moons SystemMapBody[]|nil Planets only
+--- @field band { width: number, height: number }|nil Set for the tiers drawn as a
+---                            fixed band (belt, ring) instead of a scaled disc
+--- @field moons SystemMapBody[]|nil Planets only; holds the planet's rings too
 
 --- @class SystemMapModel
 --- @field key string
@@ -133,19 +146,29 @@ end
 --- they declare one (Pyro IV is a rocky planet sitting at the moon tier) and
 --- fall back to the neutral moon disc otherwise.
 ---
+--- Belts and rings short-circuit before any of that. Neither is a body: upstream
+--- gives both a subtype that only restates the tier ('System Belt', 'Planetary
+--- Ring'), and both are drawn as bands. A ring sits at the moon tier and must
+--- never fall through to the moon disc, which would draw it as the thing it
+--- orbits alongside.
+---
 --- `class` is normally a single spectral letter, giving star-o … star-m. The two
 --- remnants upstream describes without one — White Dwarf-Degenerate-A and
 --- Neutron — are stored with the WORD as their class ('degenerate', 'neutron'),
 --- which falls out of the same concatenation as star-degenerate / star-neutron
 --- and needs no branch here. Stars with no class at all (Variable, Subgiant, and
 --- the fifteen upstream leaves unclassified) get the generic disc.
---- @param tier string 'star' | 'planet' | 'moon'
+--- @param tier string 'star' | 'planet' | 'moon' | 'belt' | 'ring'
 --- @param subtype string|nil
 --- @param class string|nil Spectral letter, or 'degenerate'/'neutron'; stars only
 --- @return string
 function p.glyphKind(tier, subtype, class)
 	if tier == 'belt' then
 		return BELT_KIND
+	end
+
+	if tier == 'ring' then
+		return RING_KIND
 	end
 
 	if tier == 'star' then
@@ -226,7 +249,13 @@ function p.computeExtents(data)
 				note('planet', body.km)
 				if body.moons then
 					for _, moon in ipairs(body.moons) do
-						note('moon', moon.km)
+						-- Rings are skipped for the same reason belts are: they
+						-- share the moons array but render as a fixed band, so a
+						-- km on one would stretch the moon scale by a figure
+						-- nothing draws.
+						if moon.tier ~= 'ring' then
+							note('moon', moon.km)
+						end
 					end
 				end
 			end
@@ -285,7 +314,7 @@ end
 --- keeping the ordering exact.
 ---
 --- This is NOT proportional and must not be described as such: Pyro V is 6.6x
---- Hurston by diameter but renders about 1.4x. It is rank-preserving only.
+--- Hurston by diameter but renders about 1.3x. It is rank-preserving only.
 ---
 --- The extents are now recorded in systems.json against all 90 upstream systems,
 --- so a body outside them is a real possibility rather than a contradiction: an
@@ -341,7 +370,7 @@ local function toBody(source, tier, currentTitle)
 		disc = p.discSize(tier, source.km),
 		icon = source.icon,
 		iconRatio = source.iconRatio,
-		band = tier == 'belt' and BELT_BAND or nil,
+		band = BANDS[tier],
 		current = source.page == currentTitle,
 		missing = false,
 	}
@@ -373,7 +402,12 @@ function p.buildModel(input, currentTitle)
 		body.moons = {}
 		if source.moons then
 			for _, sourceMoon in ipairs(source.moons) do
-				body.moons[#body.moons + 1] = toBody(sourceMoon, 'moon', currentTitle)
+				-- A planet's rings share this array with its moons, because the
+				-- rail nests exactly one level and a ring wants that level. The
+				-- `tier: ring` marker is what keeps them apart from there on: it
+				-- picks the ring glyph, the band, and the ring row in the summary.
+				local moonTier = sourceMoon.tier == 'ring' and 'ring' or 'moon'
+				body.moons[#body.moons + 1] = toBody(sourceMoon, moonTier, currentTitle)
 			end
 		end
 		model.bodies[#model.bodies + 1] = body
@@ -397,10 +431,14 @@ end
 --- The star is not counted: the model holds exactly one per system, so saying so
 --- adds nothing. A system with no moons (Nyx) drops that clause rather than
 --- printing "0 moons".
+---
+--- Rings are counted apart from moons even though they share the moons array. A
+--- ring is not a moon, and folding Sol's four into its moon count would overstate
+--- the moons by a fifth while hiding a thing the system is known for.
 --- @param model SystemMapModel
 --- @return string
 function p.summarise(model)
-	local planets, moons, belts = 0, 0, 0
+	local planets, moons, rings, belts = 0, 0, 0, 0
 
 	for _, body in ipairs(model.bodies) do
 		if body.tier == 'belt' then
@@ -408,14 +446,21 @@ function p.summarise(model)
 		else
 			planets = planets + 1
 		end
-		for _ in ipairs(body.moons) do
-			moons = moons + 1
+		for _, moon in ipairs(body.moons) do
+			if moon.tier == 'ring' then
+				rings = rings + 1
+			else
+				moons = moons + 1
+			end
 		end
 	end
 
 	local parts = { pluralise(planets, 'planet') }
 	if moons > 0 then
 		parts[#parts + 1] = pluralise(moons, 'moon')
+	end
+	if rings > 0 then
+		parts[#parts + 1] = pluralise(rings, 'ring')
 	end
 	if belts > 0 then
 		parts[#parts + 1] = pluralise(belts, 'belt')

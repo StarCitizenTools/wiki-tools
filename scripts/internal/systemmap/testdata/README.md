@@ -1,16 +1,20 @@
 # testdata
 
-`starmap.json` is a cut of a real `cmd/starmap` run, seven systems wide:
+`starmap.json` is a cut of a real `cmd/starmap` run, eleven systems wide:
 
 | System | Why it is here |
 |---|---|
-| Stanton | live on the wiki; the reproduction gate. Also the only system with an unnamed Planetary Ring (`Ring of Yela`), plus jump points, landing zones and stations that must not reach the rail |
+| Stanton | live on the wiki; the reproduction gate. Also the only system whose Planetary Ring orbits a moon (`Ring of Yela`) and so must **not** render, plus jump points, landing zones and stations that must not reach the rail |
 | Pyro | live; the `moonOf` reparenting (Pyro IV under Pyro V) and two `iconRatio` corrections |
 | Nyx | live; `after` chained onto another `after` (Delamar behind Glaciem Ring), and the only planet with no Roman numeral |
-| Terra | pilot; four planets, four moons, two belts, and the star whose page title breaks the convention |
-| Castra | pilot; the smallest system that renders |
+| Terra | live; four planets, four moons, two belts, and the star whose page title breaks the convention |
+| Castra | live; the smallest system that renders |
 | Gurzil | the nine `Protoplanetary Disk N` placeholders, two of them misspelled upstream, alongside one real belt |
-| Ellis | not rolled out; the only system in all 90 where two bodies share a key. Its eleventh planet collided with its moon, and upstream records both halves unnamed and designated `Ellis XI`, which is what the type-qualified overlay key exists for |
+| Sol | in the file; four planetary rings, the tier-within-a-tier the moons array carries, and three `page` corrections (`Mercury (planet)`, `Charon (moon)`, `Oberon (moon)`) |
+| Ellis | in the file; the only system in all 90 where two bodies share a key. Its eleventh planet collided with its moon, and upstream records both halves unnamed and designated `Ellis XI` — which is what the type-qualified overlay key exists for, and what `exclude` uses to drop the skeletal duplicate. Also a ring that is its planet's only child |
+| Kilian | in the file; fourteen planets, no moons, no belts, and nothing to correct — the shape a system takes when the derivation is right |
+| Taranis | in the file; three bodies anchored with `after`, two of them onto the same planet, so the overlay's key order decides which comes first |
+| Oberon | in the file; the only degenerate star in the file (`star-degenerate`) |
 
 Only the fields `internal/systemmap` reads are kept — id, code, name,
 designation, size, type, subtype, star_system_id, parent_id — so the file stays
@@ -22,13 +26,13 @@ units) are present exactly as they arrive.
 ### It does not set the disc scale
 
 `systems.json` records `extents` — the smallest and largest `km` per tier — and
-those are anchored to **all 90 upstream systems**, not to these seven. So the
+those are anchored to **all 90 upstream systems**, not to these eleven. So the
 `extents` block a test builds from this cut is legitimately narrower than the
 committed one, and neither reproduction test compares it. Two tests check the
 relation that must hold instead: `TestCommittedExtentsContainTheFixture` (the
-seven are a subset, so their range must sit inside the committed one) and
+eleven are a subset, so their range must sit inside the committed one) and
 `TestCommittedExtentsReachBeyondTheFile` (the committed range must be wider than
-the five systems the page renders, or the anchoring has been lost).
+the systems the page renders, or the anchoring has been lost).
 
 ## Refreshing it
 
@@ -39,7 +43,7 @@ commit, or the test will fail on a difference that is real:
 
 ```sh
 mise run starmap                     # refresh scripts/out/starmap.json
-# then cut it down again, keeping the same seven systems and the same field list
+# then cut it down again, keeping the same eleven systems and the same field list
 mise run systemmap                   # rewrite the page from the new mirror
 ```
 
@@ -49,22 +53,28 @@ the same reason — add it here too.
 ## `systems.live.json`
 
 **The acceptance gate's baseline.** `TestReproducesTheLivePage` checks that
-regenerating reproduces Stanton, Pyro and Nyx exactly as
-`Module:SystemMap/systems.json` currently serves them.
+regenerating reproduces every system in this capture — Stanton, Pyro, Nyx, Terra
+and Castra — exactly as `Module:SystemMap/systems.json` serves them. Whatever it
+holds is what is gated, so re-capturing after a deployment widens the gate rather
+than resetting it: it went from three systems to five when Terra and Castra
+shipped.
 
 It is the live page rather than the repo copy because the two had drifted.
 Revision 374302 (2026-08-13, `Fix casing`) lower-cased four belt designations on
 the wiki — `Stanton Belt Alpha` → `Stanton belt alpha`, and the same for Pyro's
 cluster and Nyx's two belts — and that edit was never mirrored back to git.
 Validating the generator against the committed file would therefore have
-certified a build that quietly reverted a real editorial decision on 42
-published pages. The casing is a derivation rule now (`beltCase`), which is what
-makes those bytes reproducible instead of transcribed.
+certified a build that quietly reverted a real editorial decision on the 42
+pages those three systems render — their own footprint, not the whole rollout's,
+so do not "update" that count to the current page total. The casing is a
+derivation rule now (`beltCase`), which is what makes those bytes reproducible
+instead of transcribed.
 
 Captured verbatim, so it has **no trailing newline** — MediaWiki does not store
 one, and `.editorconfig` exempts this path so an editor cannot silently add it.
 Only the `systems` object is compared: `%doc` and `extents` are this package's
-own output, and the file predates both.
+own output, and comparing them would gate on whichever build happened to be
+deployed rather than on the editorial content.
 
 Re-capture it after deploying, or after somebody edits the page by hand:
 

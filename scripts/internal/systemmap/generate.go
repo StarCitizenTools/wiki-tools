@@ -17,9 +17,13 @@ const docComment = "Generated file, do not hand-edit: `mise run systemmap` rebui
 	"`bodies` is everything orbiting the star, IN ORBITAL ORDER, planets and asteroid belts together. There is no sort " +
 	"key: position is the array index. Planet order comes from the Roman numeral in the upstream designation, because " +
 	"upstream has no orbit_period for 195 of its 326 planets; a body with no numeral (every belt, and Delamar) is " +
-	"placed by the overlay's `after`. A belt is marked `tier: belt`; anything unmarked is a planet. Belts carry no " +
-	"`km`, because upstream reports 0/null and a belt has no meaningful diameter, so they render as a fixed band " +
-	"rather than a scaled disc. `km` is a diameter for planets and moons but a RADIUS for stars: upstream states " +
+	"placed by the overlay's `after`. A belt is marked `tier: belt`; anything unmarked is a planet. A planet's `moons` " +
+	"array also carries its rings, marked `tier: ring` — a ring nests where a moon nests, because that is the one " +
+	"level of nesting the rail has, but it is drawn as a band rather than a disc and is counted separately. A ring " +
+	"orbiting a MOON is dropped instead: it would need a level of its own, and the only one upstream has (Stanton's " +
+	"Ring of Yela) has no article either. Belts and rings carry no " +
+	"`km`, because upstream reports 0/null and neither has a meaningful diameter, so they render at a fixed size " +
+	"rather than as a scaled disc. `km` is a diameter for planets and moons but a RADIUS for stars: upstream states " +
 	"planets in km, moons in thousands of km, and stars either in solar radii (x696340, the Sun's radius) below 1000 " +
 	"or in km above it. Mixing the two quantities is harmless because the disc scale is rank-preserving within a tier " +
 	"and never compares across tiers. The unit rule is applied by each body's UPSTREAM type, which is why Pyro IV " +
@@ -47,7 +51,7 @@ type Result struct {
 	// Notes are human-readable lines about what was dropped and why: excluded
 	// bodies, and exclusion patterns that matched nothing.
 	Notes []string
-	// Bodies counts everything written, stars and moons included.
+	// Bodies counts everything written: stars, moons and rings included.
 	Bodies int
 }
 
@@ -61,6 +65,10 @@ const (
 	rolePlanet
 	roleBelt
 	roleMoon
+	// roleRing sits alongside roleMoon rather than under it: a ring occupies a
+	// moon's slot on the rail and none of a moon's other properties. It carries
+	// no size (see buildBody) and it is drawn as a band, not a disc.
+	roleRing
 )
 
 // node is one upstream body while it is being placed.
@@ -140,7 +148,7 @@ func Build(opts Options) (*Result, error) {
 
 	if excluded > 0 {
 		res.Notes = append(res.Notes, fmt.Sprintf(
-			"dropped %s: unnamed planetary rings, and anything matching an exclusion pattern",
+			"dropped %s: rings that orbit a moon, and anything matching an exclusion pattern",
 			plural(excluded, "body", "bodies")))
 	}
 	res.Notes = append(res.Notes, unmatchedExclusions(opts.Starmap, opts.Overlay)...)
@@ -190,6 +198,15 @@ func buildSystem(name string, sys *starmap.System, objects []*starmap.Object, ov
 	)
 	byID := map[int]*node{}
 
+	// Every object in the system by upstream id, including the ones that never
+	// reach the rail. A ring's parent has to be resolved before the node graph
+	// exists, because whether the ring is rendered at all depends on what that
+	// parent is.
+	objectsByID := make(map[int]*starmap.Object, len(objects))
+	for _, obj := range objects {
+		objectsByID[obj.ID] = obj
+	}
+
 	for i, obj := range objects {
 		switch obj.Type {
 		case typeStar, typePlanet, typeMoon, typeBelt, typeCluster:
@@ -197,12 +214,23 @@ func buildSystem(name string, sys *starmap.System, objects []*starmap.Object, ov
 			continue // jump points, landing zones, stations: not on the rail
 		}
 
-		// Unnamed planetary rings. All eleven upstream are unnamed, including
-		// the one a reader might look for (Ring of Yela), and none has an
-		// article: there is nothing to link, so there is nothing to render.
-		if subtypeName(obj) == "Planetary Ring" && (obj.Name == nil || strings.TrimSpace(*obj.Name) == "") {
-			dropped++
-			continue
+		// A ring around a MOON is dropped, and only that. The rail nests exactly
+		// one level, so a ring hung off a moon has nowhere to be drawn — it would
+		// need a fourth level of its own, for one body.
+		//
+		// That body is Stanton's Ring of Yela, the sole instance upstream, and it
+		// has no article under any title either, so there is also nothing to
+		// link. A ring around a PLANET has both a place to go and, in every case
+		// upstream has, an article: it renders in the planet's moons list.
+		if isRing(obj) {
+			var parent *starmap.Object
+			if obj.ParentID != nil {
+				parent = objectsByID[*obj.ParentID]
+			}
+			if parent == nil || parent.Type != typePlanet {
+				dropped++
+				continue
+			}
 		}
 
 		// Both forms are offered to `exclude` so that one of two bodies sharing
@@ -343,7 +371,15 @@ func buildSystem(name string, sys *starmap.System, objects []*starmap.Object, ov
 			sortMoons(n.moons, name)
 			moons := make([]Body, 0, len(n.moons))
 			for _, m := range n.moons {
-				moon, err := buildBody(m, roleMoon, name)
+				// A ring shares the moons array and nothing else about a moon.
+				// The role is what keeps the two apart from here on: it decides
+				// the tier written into the file, and it is why a ring carries no
+				// km even when upstream reports one.
+				r := roleMoon
+				if isRing(m.obj) {
+					r = roleRing
+				}
+				moon, err := buildBody(m, r, name)
 				if err != nil {
 					return nil, 0, err
 				}
@@ -454,6 +490,23 @@ func moonParent(n *node, byKey map[string]*node, shared map[string][]string, byI
 		}
 		return parent, nil
 	}
+	if isRing(n.obj) {
+		// A ring is only kept when buildSystem has already established that its
+		// upstream parent is a planet in this system, so the only way to reach
+		// this and find nothing is that the overlay excluded that planet — which
+		// leaves the ring orbiting a body the map does not draw. Saying so is the
+		// point: silently rendering it loose on the planet rail would put a ring
+		// where a world belongs.
+		var parent *node
+		if n.obj.ParentID != nil {
+			parent = byID[*n.obj.ParentID]
+		}
+		if parent == nil {
+			return nil, fmt.Errorf("%q is a ring of a body that is not in the output; "+
+				"exclude the ring too, or keep its planet", n.overlayKey)
+		}
+		return parent, nil
+	}
 	if n.obj.Type != typeMoon || n.obj.ParentID == nil {
 		return nil, nil
 	}
@@ -540,8 +593,17 @@ func arrange(nodes []*node) ([]*node, error) {
 //
 // The designation is normalised first: upstream writes "Pyro 5a", and it is the
 // part after the system name that carries the ordering.
+//
+// Rings sort ahead of every moon. The column means distance from the planet —
+// that is what the letters encode — and a ring is inside its planet's moons in
+// all five cases here and in every ring system anybody has looked at. Letting a
+// ring fall to the end with the other undesignated bodies would put it where
+// Pyro IV goes, which is the outermost position, and claim the opposite.
 func sortMoons(moons []*node, system string) {
 	sort.SliceStable(moons, func(a, b int) bool {
+		if ra, rb := isRing(moons[a].obj), isRing(moons[b].obj); ra != rb {
+			return ra
+		}
 		na, la, oka := moonIndex(normaliseDesignation(designationOf(moons[a]), system))
 		nb, lb, okb := moonIndex(normaliseDesignation(designationOf(moons[b]), system))
 		if oka != okb {
@@ -609,14 +671,29 @@ func buildBody(n *node, r role, system string) (Body, error) {
 	}
 
 	if r != roleStar {
-		body.Designation = normaliseDesignation(designationOf(n), system)
+		designation := designationOf(n)
+		if r == roleBelt {
+			// House style: the system name keeps its capitals, the rest of the
+			// designation does not. Belts only — a planet's "Stanton IV" is a
+			// numbered orbital slot, not a description, and a ring's designation
+			// names the planet it circles.
+			//
+			// Applied BEFORE the prefix is stripped, because the rule is defined
+			// against the designation as upstream writes it, prefix included. It
+			// makes no difference to any belt designated "<System> Belt Alpha" —
+			// stripping only fires when a digit follows the system name — and it
+			// is what keeps Taranis' "Taranis 2a Debris" reading as "2a debris"
+			// rather than stacking a capitalised "2a Debris" under the label
+			// "Taranis 2a debris" the same rule already produced.
+			designation = beltCase(designation, system)
+		}
+		body.Designation = normaliseDesignation(designation, system)
 	}
-	if r == roleBelt {
+	switch r {
+	case roleBelt:
 		body.Tier = tierBelt
-		// House style: the system name keeps its capitals, the rest of the
-		// designation does not. Belts only — a planet's "Stanton IV" is a
-		// numbered orbital slot, not a description.
-		body.Designation = beltCase(body.Designation, system)
+	case roleRing:
+		body.Tier = tierRing
 	}
 
 	switch n.obj.Type {
@@ -637,7 +714,13 @@ func buildBody(n *node, r role, system string) (Body, error) {
 		body.Subtype = subtype
 	}
 
-	if r != roleBelt {
+	// A belt and a ring are both regions rather than bodies: neither has a
+	// diameter to scale, and both render at a fixed size. The test is on the ROLE
+	// and not on what sizeKM would return, so that a ring can never widen the moon
+	// tier's extents and resize the moons on a published page — upstream reports
+	// 0 or null for all eleven today, but "the field happens to be empty" is not
+	// the reason a ring has no size.
+	if r != roleBelt && r != roleRing {
 		body.KM = sizeKM(n.obj.Type, sizeOf(n.obj))
 	}
 	if n.correction.KM != nil {

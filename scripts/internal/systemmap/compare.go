@@ -16,7 +16,7 @@ func Compare(oldDoc, newDoc *Document) []string {
 	if oldDoc.Doc != newDoc.Doc {
 		out = append(out, "%doc: changed")
 	}
-	// A moved extent resizes every disc on all 42 pages while changing no body,
+	// A moved extent resizes every disc on every published page while changing no body,
 	// so it would otherwise be the one difference this report does not mention.
 	if before, after := oldDoc.Extents.summarise(), newDoc.Extents.summarise(); before != after {
 		out = append(out, fmt.Sprintf("%s -> %s", before, after))

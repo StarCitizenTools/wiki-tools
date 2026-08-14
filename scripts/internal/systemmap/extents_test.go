@@ -141,6 +141,66 @@ func TestCommittedExtentsReachBeyondTheFile(t *testing.T) {
 	}
 }
 
+// TestRingsDoNotEnterTheMoonExtents is the invariant that let rings ship onto 57
+// live pages: adding them must not move a single disc.
+//
+// A ring sits in the moons array, so the second pass of the union walks straight
+// past it — and if it were measured there, the moon scale would become a function
+// of whatever upstream happens to report for a body nothing draws. The overlay's
+// `km` reaches a ring like any other body, so "the field is empty upstream" is
+// not enough on its own.
+func TestRingsDoNotEnterTheMoonExtents(t *testing.T) {
+	overlay, err := LoadOverlay([]byte(`{"systems": {"Sol": {}},
+		"exclude": ["Protoplanetary Disk*", "Protoplentary Disk*"]}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	fixture := loadFixture(t)
+	res, err := Build(Options{Starmap: fixture, Overlay: overlay})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Sol is the system with rings: four of them, one per giant.
+	rings := 0
+	for _, name := range res.Document.Systems.Keys() {
+		sys, _ := res.Document.Systems.Get(name)
+		for i := range sys.Bodies {
+			if sys.Bodies[i].Moons == nil {
+				continue
+			}
+			for _, m := range *sys.Bodies[i].Moons {
+				if m.Tier == tierRing {
+					rings++
+				}
+			}
+		}
+	}
+	if rings != 4 {
+		t.Fatalf("Sol built with %d rings, want 4; this test is no longer about anything", rings)
+	}
+
+	// Force one to carry a size, the way an overlay `km` or an upstream change
+	// would, and the extents must not notice.
+	sys, _ := res.Document.Systems.Get("Sol")
+	before := anchorExtents(fixture, res.Document)
+	for i := range sys.Bodies {
+		if sys.Bodies[i].Moons == nil {
+			continue
+		}
+		for j := range *sys.Bodies[i].Moons {
+			if m := &(*sys.Bodies[i].Moons)[j]; m.Tier == tierRing {
+				km := 999999.0
+				m.KM = &km
+			}
+		}
+	}
+	after := anchorExtents(fixture, res.Document)
+	if *before.Moon != *after.Moon {
+		t.Errorf("a ring changed the moon extent from %s to %s", before.Moon, after.Moon)
+	}
+}
+
 // TestAnchorExtentsIgnoresBeltsAndUnsizedBodies keeps a zero out of the minimum.
 // Upstream reports 0 or null for every belt and for bodies it has no figure for,
 // and a zero minimum makes the tier's logarithmic scale infinite — every disc on
@@ -298,5 +358,53 @@ func TestGeneratorWritesTheExtentsIntoTheFile(t *testing.T) {
 	doc := decodeFile(t, committedSystems)
 	if doc.Extents == nil || doc.Extents.Star == nil || doc.Extents.Planet == nil || doc.Extents.Moon == nil {
 		t.Fatalf("%s must record all three scaling tiers; got %+v", committedSystems, doc.Extents)
+	}
+}
+
+// The extents are the one number in the file that changes what ALREADY-PUBLISHED
+// pages look like. Every disc on every live page is scaled against them, so
+// moving a bound silently resizes 57 pages that nobody edited.
+//
+// Nothing else here catches that. TestCommittedExtentsCoverEveryBodyInTheFile
+// only asserts bodies fall INSIDE the range, and TestCommittedExtentsReachBeyondTheFile
+// only asserts the range is wider than the file — so WIDENING a bound passes both
+// while shrinking every disc. Verified: setting the star max to 99999999 leaves
+// the whole suite, Lua included, green.
+//
+// So the values are pinned outright. They are derived across all 90 upstream
+// systems, which is what makes them stable as the rollout adds systems — adding a
+// system already inside the range must NOT move them. If this test fails, either
+// upstream gained a genuinely new extreme body, or something regressed. Deciding
+// which is the point: updating these numbers is a deliberate act that repaints
+// every live page, never a reflex to make CI pass.
+func TestCommittedExtentsAreTheAnchoredValues(t *testing.T) {
+	doc := decodeFile(t, committedSystems)
+	if doc.Extents == nil {
+		t.Fatalf("%s records no extents; re-run `mise run systemmap`", committedSystems)
+	}
+
+	for _, c := range []struct {
+		tier     string
+		got      *Extent
+		min, max float64
+		why      string
+	}{
+		{tierStar, doc.Extents.Star, 6260, 58489200,
+			"Odin (smallest star) to Hadrian (largest)"},
+		{tierPlanet, doc.Extents.Planet, 165.4, 137932,
+			"Delamar to Helios III, a system not yet rolled out"},
+		{tierMoon, doc.Extents.Moon, 44.6, 3214,
+			"Epheet to Pyro IV — Pyro IV is upstream-typed a PLANET but renders as a moon, so it enters via the union"},
+	} {
+		if c.got == nil {
+			t.Errorf("%s extent is absent, want %g-%g (%s)", c.tier, c.min, c.max, c.why)
+			continue
+		}
+		if c.got.Min != c.min || c.got.Max != c.max {
+			t.Errorf("%s extent is %g-%g, want %g-%g (%s).\n"+
+				"Changing this resizes every %s disc on every published page. "+
+				"Only update it if upstream really gained a new extreme.",
+				c.tier, c.got.Min, c.got.Max, c.min, c.max, c.why, c.tier)
+		}
 	}
 }

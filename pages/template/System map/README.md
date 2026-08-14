@@ -15,10 +15,10 @@ Backed by [[Module:SystemMap]].
 
 ## Parameters
 
-| Parameter | Required | Default | Description |
-| --- | --- | --- | --- |
-| `1` | yes | — | System name. Accepts `Stanton`, `stanton` or `Stanton system`. Any system listed in [[Module:SystemMap/systems.json]] works; an unrecognised name renders nothing and files the page in a tracking category. |
-| `collapsed` | no | `no` | Render the box closed. The map is short, so it opens by default. |
+| Name | Label | Type | Required | Default | Description | Example |
+|------|-------|------|----------|---------|-------------|---------|
+| `1` | System | string | Yes |  | System name. Accepts `Stanton`, `stanton` or `Stanton system`. Any system listed in [[Module:SystemMap/systems.json]] works; an unrecognised name renders nothing and files the page in a tracking category. | `Stanton` |
+| `collapsed` | Collapsed | boolean | No | `no` | Render the box closed. The map is short, so it opens by default. | `yes` |
 
 ## Behaviour
 
@@ -28,6 +28,11 @@ The card header carries the system name and a count of what is in it, such as
 Asteroid belts appear in the rail at their orbital position, drawn as a speckled
 band rather than a disc — they are regions rather than bodies, and have no
 meaningful diameter to draw.
+
+A planet's rings hang under it alongside its moons, drawn as a flat speckled band
+for the same reason. They are counted apart from the moons, so Sol reads
+"9 planets, 19 moons, 4 rings, 2 belts". A ring that orbits a moon rather than a
+planet is not drawn at all: the rail nests one level.
 
 The body matching the current page is marked with a bolder, brighter name and
 a trailing dot, plus a visually hidden "(current page)" for screen readers.

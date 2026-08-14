@@ -55,7 +55,30 @@
 				"Marisol Belt": { "after": "Gen" }
 			}
 		},
-		"Castra": {}
+		"Castra": {},
+		"Sol": {
+			"bodies": {
+				"Mercury": { "page": "Mercury (planet)" },
+				"Herschel Belt": { "after": "Mars" },
+				"Oberon": { "page": "Oberon (moon)" },
+				"Kuiper Belt": { "after": "Neptune" },
+				"Charon": { "page": "Charon (moon)" }
+			}
+		},
+		"Ellis": {
+			"bodies": {
+				"Ellis Belt Alpha": { "after": "Ellis VIII" }
+			}
+		},
+		"Kilian": {},
+		"Taranis": {
+			"bodies": {
+				"Taranis 2a Debris": { "after": "Taranis II" },
+				"Taranis Belt Alpha": { "after": "Taranis II" },
+				"Taranis Belt Beta": { "after": "Taranis III" }
+			}
+		},
+		"Oberon": {}
 	},
-	"exclude": ["Protoplanetary Disk*", "Protoplentary Disk*"]
+	"exclude": ["Protoplanetary Disk*", "Protoplentary Disk*", "Ellis XI (PLANET)"]
 }

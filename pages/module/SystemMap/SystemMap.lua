@@ -43,9 +43,12 @@ end
 --- Cost note: the production probe is an expensive parser function, one call
 --- per body plus one for the system article. The limit on this wiki is 100
 --- (measured, not the 500 quoted for a stock MediaWiki), and existing usage on
---- the target pages runs 5-14 calls, so the worst case here — Stanton, 18
---- bodies + 1 = 19 — lands around a quarter of the budget. Pyro is 15 and Nyx
---- 7. That is fine for the ~20 system articles this ships on; the deferred
+--- the target pages runs 5-14 calls, so the worst case — Sol, 35 bodies + 1 =
+--- 36, counting the four rings that share the moons array — lands around a
+--- third of the budget with room for the page's own usage on top. Stanton is
+--- 19, Pyro 15, Nyx 8. Worth watching as the rollout continues: the ceiling is
+--- a body count, and Sol is the largest system upstream has.
+--- That is fine for the ~90 system articles this ships on; the deferred
 --- rollout to ~1,400 location pages is NOT covered by this arithmetic and needs
 --- a different approach (a precomputed existence set, or dropping the probe).
 --- Overflow is not graceful — the title library raises a LuaError rather than

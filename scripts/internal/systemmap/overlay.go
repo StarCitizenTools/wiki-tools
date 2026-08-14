@@ -34,12 +34,41 @@ type Correction struct {
 
 // SystemOverlay holds the corrections for one system.
 type SystemOverlay struct {
-	// Star corrects the system's star. `after` and `moonOf` are meaningless on
-	// the one body nothing orbits, and supplying either is an error rather than
-	// a no-op. Every other key applies: `page` (Terra's star is Terra Nova),
-	// `label`, `icon`, `iconRatio`, and `km` — which for a star is its radius,
-	// the quantity Data.lua scales the disc by.
+	// Page corrects the system's own article title, which is otherwise
+	// "<upstream name> system". Upstream calls one system "Kyuk'ya (Indra)",
+	// carrying the Perry Line name it went by during the Xi'an Cold War; the
+	// wiki files it under "Kyuk'ya system" and redirects "Indra system" to it.
+	// Deriving a title with a parenthetical alias in it would red-link the
+	// header of every map in that system.
+	Page string
+	// Star corrects the system's star — the primary, where there are two.
+	// `after` and `moonOf` are meaningless on a body nothing on the rail orbits,
+	// and supplying either is an error rather than a no-op. Every other key
+	// applies: `page` (Terra's star is Terra Nova), `label`, `icon`, `iconRatio`,
+	// and `km` — which for a star is its radius, the quantity Data.lua scales
+	// the disc by.
 	Star Correction
+	// HasStar records that the key was written at all, the way HasCompanion does
+	// and for the same reason: two upstream systems (Tamsa, Min) have no star,
+	// so a `star` block can now reach nothing, and an empty Correction is
+	// indistinguishable from an absent one. Without this the primary would be the
+	// one correction in the file that can be silently dropped.
+	HasStar bool
+	// Companion corrects the system's second star, and takes exactly the keys
+	// Star does. It is addressed here rather than under `bodies` because a
+	// companion is not on the planet rail: `bodies` is keyed by upstream body
+	// name and a star listed there fails the build, which is the loud path.
+	Companion Correction
+	// HasCompanion records that the key was written at all, so that a companion
+	// correction on a system with one star fails instead of being ignored. An
+	// empty Correction is indistinguishable from an absent one otherwise, and a
+	// silently-dropped correction is what this whole file exists to prevent.
+	HasCompanion bool
+	// CompanionShape overrides the derived arrangement of the two stars. The
+	// default comes from upstream's parent_id (see resolveStars) and should be
+	// left alone; this exists because the derivation reads one field, and one
+	// field is a thin basis for a claim about what orbits what.
+	CompanionShape string
 	// Bodies is keyed by upstream body name, falling back to the upstream
 	// designation when the name is null.
 	//
@@ -129,15 +158,31 @@ func loadSystemOverlay(raw json.RawMessage) (*SystemOverlay, error) {
 	sys := &SystemOverlay{Bodies: map[string]Correction{}}
 	for _, k := range keys {
 		switch k {
-		case "star":
+		case "page":
+			if err := json.Unmarshal(parts[k], &sys.Page); err != nil {
+				return nil, fmt.Errorf("page: %w", err)
+			}
+		case "star", "companion":
 			c, err := decodeCorrection(parts[k])
 			if err != nil {
-				return nil, fmt.Errorf("star: %w", err)
+				return nil, fmt.Errorf("%s: %w", k, err)
 			}
 			if c.After != "" || c.MoonOf != "" {
-				return nil, fmt.Errorf("star: `after` and `moonOf` do not apply to a star")
+				return nil, fmt.Errorf("%s: `after` and `moonOf` do not apply to a star", k)
 			}
-			sys.Star = c
+			if k == "star" {
+				sys.Star, sys.HasStar = c, true
+			} else {
+				sys.Companion, sys.HasCompanion = c, true
+			}
+		case "companionShape":
+			if err := json.Unmarshal(parts[k], &sys.CompanionShape); err != nil {
+				return nil, fmt.Errorf("companionShape: %w", err)
+			}
+			if sys.CompanionShape != shapeNested && sys.CompanionShape != shapePaired {
+				return nil, fmt.Errorf("companionShape: %q is not a shape (expected %q or %q)",
+					sys.CompanionShape, shapeNested, shapePaired)
+			}
 		case "bodies":
 			names, byName, err := decodeOrderedObject(parts[k])
 			if err != nil {
@@ -156,7 +201,8 @@ func loadSystemOverlay(raw json.RawMessage) (*SystemOverlay, error) {
 				sys.BodyOrder = append(sys.BodyOrder, name)
 			}
 		default:
-			return nil, fmt.Errorf("unknown key %q (expected star or bodies)", k)
+			return nil, fmt.Errorf("unknown key %q "+
+				"(expected page, star, companion, companionShape or bodies)", k)
 		}
 	}
 	return sys, nil

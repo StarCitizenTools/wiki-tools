@@ -18,10 +18,19 @@ local DATA = mw.loadJsonData('Module:SystemMap/systems.json')
 --- patch `next`. The only safe emptiness test on frozen data is `t[1] ~= nil`.
 --- The off-wiki runner cannot reproduce this (its freeze() leaves the real
 --- table populated), so a `next()`-based assertion here is a false pass.
+--- Both stars are optional keys and are guarded rather than indexed blindly:
+--- `companion` is absent for every single-star system, and `star` is absent for
+--- the systems upstream files none for. Passing a nil body into `fn` would fail
+--- every shape assertion below with a nil-index error rather than a verdict.
 --- @param fn fun(body: table, tier: string, systemKey: string)
 local function eachBody(fn)
 	for key, system in pairs(DATA.systems) do
-		fn(system.star, 'star', key)
+		if system.star then
+			fn(system.star, 'star', key)
+		end
+		if system.companion then
+			fn(system.companion, 'companion', key)
+		end
 		for _, body in ipairs(system.bodies) do
 			fn(body, body.tier == 'belt' and 'belt' or 'planet', key)
 			if body.moons then
@@ -37,7 +46,24 @@ local function eachBody(fn)
 end
 
 function suite:testEverySystemPresent()
-	for _, key in ipairs({ 'Stanton', 'Pyro', 'Nyx', 'Terra', 'Castra', 'Sol', 'Ellis', 'Kilian', 'Taranis', 'Oberon' }) do
+	local keys = {
+		'Stanton',
+		'Pyro',
+		'Nyx',
+		'Terra',
+		'Castra',
+		'Sol',
+		'Ellis',
+		'Kilian',
+		'Taranis',
+		'Oberon',
+		'Tyrol',
+		"Kyuk'ya (Indra)",
+		'Bacchus',
+		'Baker',
+		'Goss',
+	}
+	for _, key in ipairs(keys) do
 		self:assertEquals('table', type(DATA.systems[key]), key)
 	end
 end
@@ -46,15 +72,16 @@ end
 -- generated now (scripts/cmd/systemmap), and a generator that quietly drops a
 -- body would otherwise show up only as a gap on a rendered page.
 function suite:testBodyCounts()
-	local counts = { star = 0, planet = 0, belt = 0, moon = 0, ring = 0 }
+	local counts = { star = 0, companion = 0, planet = 0, belt = 0, moon = 0, ring = 0 }
 	eachBody(function(_, tier)
 		counts[tier] = counts[tier] + 1
 	end)
-	self:assertEquals(10, counts.star)
-	self:assertEquals(65, counts.planet)
-	self:assertEquals(45, counts.moon)
-	self:assertEquals(13, counts.belt)
-	self:assertEquals(5, counts.ring)
+	self:assertEquals(15, counts.star)
+	self:assertEquals(5, counts.companion)
+	self:assertEquals(84, counts.planet)
+	self:assertEquals(47, counts.moon)
+	self:assertEquals(16, counts.belt)
+	self:assertEquals(6, counts.ring)
 end
 
 function suite:testEveryBodyHasPageAndLabel()
@@ -105,13 +132,79 @@ end
 -- string or a number reaches mw.ustring.lower and yields a kind — 'star-' or
 -- 'star-5' — that no stylesheet rule matches, which is a silent neutral disc
 -- rather than a deliberate one.
+--
+-- A companion is held to exactly the same contract, because it is the same kind
+-- of thing: Data.glyphKind builds 'star-' .. lower(class) for both.
 function suite:testEverySystemHasAStarWithAUsableClass()
 	for key, system in pairs(DATA.systems) do
 		self:assertEquals('string', type(system.page), key .. ' page')
 		self:assertEquals('table', type(system.star), key .. ' star')
-		if system.star.class ~= nil then
-			self:assertEquals('string', type(system.star.class), key .. ' star class')
-			self:assertTrue(system.star.class ~= '', key .. ' star class is non-empty')
+		for _, which in ipairs({ 'star', 'companion' }) do
+			local star = system[which]
+			if star and star.class ~= nil then
+				self:assertEquals('string', type(star.class), key .. ' ' .. which .. ' class')
+				self:assertTrue(star.class ~= '', key .. ' ' .. which .. ' class is non-empty')
+			end
+		end
+	end
+end
+
+-- ---------------------------------------------------------------------------
+-- systems.json: the second star
+--
+-- Five systems have two. The file says which arrangement each is in, because
+-- upstream describes two different objects and the rail draws them differently:
+-- a companion parented to the primary orbits it, and one that is not co-orbits
+-- with it.
+-- ---------------------------------------------------------------------------
+
+--- The shape each binary in the file is expected to carry, and the primary that
+--- goes with it. Derived from upstream's parent_id by the generator; pinned here
+--- so a refetch that rearranges a system fails a test rather than a live page.
+local BINARIES = {
+	Tyrol = { star = 'Tyrol A', companion = 'Tyrol B', shape = 'nested' },
+	["Kyuk'ya (Indra)"] = { star = "Kyuk'ya A", companion = "Kyuk'ya B", shape = 'nested' },
+	Bacchus = { star = 'Bacchus A', companion = 'Bacchus B', shape = 'paired' },
+	Baker = { star = 'Baker A', companion = 'Baker B', shape = 'paired' },
+	Goss = { star = 'Goss A', companion = 'Goss B', shape = 'paired' },
+}
+
+function suite:testBinariesCarryTheirCompanionAndItsShape()
+	local found = 0
+	for key, system in pairs(DATA.systems) do
+		local want = BINARIES[key]
+		if want then
+			found = found + 1
+			self:assertEquals('table', type(system.companion), key .. ' companion')
+			self:assertEquals(want.star, system.star.label, key .. ' primary')
+			self:assertEquals(want.companion, system.companion.label, key .. ' companion label')
+			self:assertEquals(want.shape, system.companionShape, key .. ' shape')
+		else
+			-- Absent, not empty. Every single-star system in the file has to be
+			-- unchanged by the model gaining a second star, and this is the shape
+			-- half of that promise; the byte-level half is the Go acceptance gate.
+			self:assertEquals(nil, system.companion, key .. ' must carry no companion')
+			self:assertEquals(nil, system.companionShape, key .. ' must carry no companion shape')
+		end
+	end
+	self:assertEquals(5, found, 'the file holds the five binaries upstream has')
+end
+
+-- A companion is a star, and carries a star's keys and no others. In particular
+-- no `tier` — the key it is filed under is what says what it is, exactly as
+-- `star` does — and no `moons`, because nothing orbits a companion anywhere in
+-- the dataset and the rail nests one level.
+function suite:testACompanionIsShapedLikeAStar()
+	for key, system in pairs(DATA.systems) do
+		local companion = system.companion
+		if companion then
+			self:assertEquals('string', type(companion.page), key .. ' companion page')
+			self:assertEquals('string', type(companion.label), key .. ' companion label')
+			self:assertEquals('string', type(companion.subtype), key .. ' companion subtype')
+			self:assertEquals('number', type(companion.km), key .. ' companion km')
+			self:assertEquals(nil, companion.tier, key .. ' companion tier')
+			self:assertEquals(nil, companion.moons, key .. ' companion moons')
+			self:assertEquals(nil, companion.designation, key .. ' companion designation')
 		end
 	end
 end
@@ -210,6 +303,33 @@ function suite:testResolveKeyUnknownReturnsNil()
 	self:assertEquals(nil, Data.resolveKey(''))
 	self:assertEquals(nil, Data.resolveKey(nil))
 	self:assertEquals(nil, Data.resolveKey('system'))
+end
+
+-- The key is upstream's name for the system, which is not always what the wiki
+-- calls it and is never what an editor types. Upstream still carries a Perry Line
+-- alias and names one system "Kyuk'ya (Indra)"; the article is "Kyuk'ya system"
+-- and every other template on it is called {{... |Kyuk'ya}}. Without the article
+-- name resolving, {{System map|Kyuk'ya}} lands in the unknown-system category and
+-- renders nothing — a whole page's map missing, with only a tracking category to
+-- say so.
+function suite:testResolveKeyAcceptsTheArticleNameToo()
+	self:assertEquals("Kyuk'ya (Indra)", Data.resolveKey("Kyuk'ya"))
+	self:assertEquals("Kyuk'ya (Indra)", Data.resolveKey("Kyuk'ya system"))
+	self:assertEquals("Kyuk'ya (Indra)", Data.resolveKey("kyuk'ya SYSTEM"))
+	-- And the upstream key itself still works, so a call written before the
+	-- article was checked keeps rendering.
+	self:assertEquals("Kyuk'ya (Indra)", Data.resolveKey("Kyuk'ya (Indra)"))
+	self:assertEquals("Kyuk'ya (Indra)", Data.resolveKey("Kyuk'ya (Indra) system"))
+end
+
+-- Every system in the file has to be reachable by the name of its own article,
+-- because that is the name the template call on that article will use.
+function suite:testEverySystemResolvesFromItsArticleName()
+	for key, system in pairs(DATA.systems) do
+		local article = system.page:gsub('%s+system$', '')
+		self:assertEquals(key, Data.resolveKey(article), key .. ' from ' .. system.page)
+		self:assertEquals(key, Data.resolveKey(system.page), key .. ' from its full page title')
+	end
 end
 
 -- ---------------------------------------------------------------------------
@@ -1015,10 +1135,22 @@ function suite:testDiscSizeScalesEachTierIndependently()
 	self:assertEquals(14, asMoon, 'tops out the moon tier')
 end
 
-function suite:testDiscSizeFallsBackWhenSizeIsMissing()
-	self:assertEquals(24, Data.discSize('planet', nil))
-	self:assertEquals(24, Data.discSize('planet', 0))
-	self:assertEquals(24, Data.discSize('planet', -5))
+-- An unsized body falls to its tier's FLOOR, not its ceiling.
+--
+-- It used to return the ceiling, and that was actively misleading: Lanisto is
+-- the only body in the file upstream gives no size for, and at the moon maximum
+-- it drew 14.0px against the 13.3px of Tyrol I, the planet it orbits. A moon
+-- rendered larger than its own planet asserts something the data never said.
+-- The floor cannot exceed a sized sibling, so the worst it can do is understate.
+function suite:testDiscSizeFallsBackToTheFloorWhenSizeIsMissing()
+	self:assertEquals(6, Data.discSize('planet', nil))
+	self:assertEquals(6, Data.discSize('planet', 0))
+	self:assertEquals(6, Data.discSize('planet', -5))
+	-- Each tier has its own floor, and an unsized body takes the one for the
+	-- tier it is measured against — a companion star is measured as a star.
+	self:assertEquals(6, Data.discSize('moon', nil), 'moon floor')
+	self:assertEquals(22, Data.discSize('star', nil), 'star floor')
+	self:assertEquals(22, Data.discSize('companion', nil), 'companion measures as a star')
 end
 
 function suite:testEveryBodyInTheModelCarriesADiscSize()
@@ -1124,9 +1256,15 @@ function suite:testEveryBodyFallsInsideItsRecordedTier()
 		if tier == 'belt' or tier == 'ring' or type(body.km) ~= 'number' then
 			return
 		end
-		local e = DATA.extents[tier]
-		self:assertTrue(body.km >= e.min, key .. '/' .. body.page .. ' is above the ' .. tier .. ' minimum')
-		self:assertTrue(body.km <= e.max, key .. '/' .. body.page .. ' is below the ' .. tier .. ' maximum')
+		-- A companion is a star and is scaled as one: `extents` has three tiers,
+		-- and a second star belongs to the same one its primary does. Looking it
+		-- up under its own name would find nothing, which is precisely the miss
+		-- Data.lua's SCALE_TIER exists to prevent — there it would silently draw
+		-- every companion at the 30px cap.
+		local scaled = tier == 'companion' and 'star' or tier
+		local e = DATA.extents[scaled]
+		self:assertTrue(body.km >= e.min, key .. '/' .. body.page .. ' is above the ' .. scaled .. ' minimum')
+		self:assertTrue(body.km <= e.max, key .. '/' .. body.page .. ' is below the ' .. scaled .. ' maximum')
 	end)
 end
 
@@ -1405,6 +1543,260 @@ function suite:testCurrentBodyCarriesAScreenReaderMarker()
 	self:assertTrue(html:find('%(current page%)') ~= nil, 'and says so in words')
 	local count = select(2, html:gsub('t%-system%-map__sr', ''))
 	self:assertEquals(1, count, 'exactly one body is marked')
+end
+
+-- ---------------------------------------------------------------------------
+-- Binary stars
+--
+-- Two arrangements, drawn differently on purpose. Where upstream parents the
+-- companion to the primary it genuinely orbits it, and it nests where a moon
+-- nests. Where neither is parented the two co-orbit, and they share the head
+-- slot so the orbit line begins at the pair rather than at either star.
+-- ---------------------------------------------------------------------------
+
+-- A companion is a STAR, whichever tier it is laid out at. Missing this is
+-- silent twice over: glyphKind would fall through to the planet branch and give
+-- it the neutral 'unknown' disc, and discSize would find no extents for the tier
+-- and return the tier maximum.
+function suite:testGlyphKindTreatsBothCompanionTiersAsStars()
+	self:assertEquals('star-degenerate', Data.glyphKind('companion', nil, 'degenerate'))
+	self:assertEquals('star-k', Data.glyphKind('paired', nil, 'K'))
+	self:assertEquals('star-g', Data.glyphKind('paired', 'G-type main sequence', 'G'))
+	-- And the same classless fallback a star gets, not 'unknown'.
+	self:assertEquals('star', Data.glyphKind('companion', nil, nil))
+	self:assertEquals('star', Data.glyphKind('paired', 'Subgiant', nil))
+end
+
+-- Tyrol B is 14,834 km and renders at 22.8px — the star tier's floor plus a
+-- little — while sitting in the row where moons are 6-14px. It is a star and has
+-- to read as one; drawn on the moon scale it would be an absurd moon, and drawn
+-- with no scale at all it would take the 30px cap reserved for the largest star
+-- in the file.
+function suite:testDiscSizeMeasuresACompanionAtTheStarTier()
+	local km = 14834
+	self:assertEquals(Data.discSize('star', km), Data.discSize('companion', km))
+	self:assertEquals(Data.discSize('star', km), Data.discSize('paired', km))
+	self:assertTrue(
+		Data.discSize('companion', km) > Data.discSize('moon', DATA.extents.moon.max),
+		'bigger than any moon'
+	)
+	self:assertTrue(Data.discSize('companion', km) < 30, 'and not silently pinned to the star cap')
+end
+
+-- The fallback path has to agree with the generator here too: a file with no
+-- recorded extents still has to measure a companion at the star tier, or the
+-- primary and the companion would be scaled against different ranges.
+function suite:testComputeExtentsMeasuresACompanionAtTheStarTier()
+	local resolved = Data.computeExtents({
+		systems = {
+			Vector = {
+				star = { km = 500 },
+				companion = { km = 20 },
+				bodies = { { km = 100, moons = {} } },
+			},
+			-- A system with no star at all must not stop the walk, which is the
+			-- shape Tamsa and Min take.
+			Headless = { bodies = { { km = 300, moons = {} } } },
+		},
+	})
+	self:assertEquals(20, resolved.star.min, 'the companion widens the star tier')
+	self:assertEquals(500, resolved.star.max)
+	self:assertEquals(100, resolved.planet.min, 'and the headless system is still measured')
+	self:assertEquals(300, resolved.planet.max)
+end
+
+function suite:testBuildModelNestsACompanionWhereAMoonGoes()
+	local model = Data.buildModel('Tyrol', '')
+	self:assertEquals('nested', model.companionShape)
+	self:assertEquals('Tyrol A', model.star.label)
+	self:assertEquals('Tyrol B', model.companion.label)
+	self:assertEquals('companion', model.companion.tier)
+	self:assertEquals('star-degenerate', model.companion.kind)
+
+	-- It is put in the primary's moon list, which is the one level of nesting
+	-- the rail has, and it is the SAME table — so a flag set on model.companion
+	-- (missing, current) reaches the node that is actually drawn.
+	self:assertEquals('table', type(model.star.moons), 'the primary carries a nested list')
+	self:assertEquals(model.companion, model.star.moons[1], 'and it holds the companion itself')
+	self:assertEquals(nil, model.star.moons[2], 'and nothing else')
+end
+
+function suite:testBuildModelPairsCoOrbitingStars()
+	local model = Data.buildModel('Bacchus', '')
+	self:assertEquals('paired', model.companionShape)
+	self:assertEquals('Bacchus A', model.star.label)
+	self:assertEquals('Bacchus B', model.companion.label)
+	-- Both take the pair tier: they are drawn as equals, so the primary is laid
+	-- out the same way the companion is.
+	self:assertEquals('paired', model.star.tier)
+	self:assertEquals('paired', model.companion.tier)
+	-- Each keeps its own glyph. Bacchus A is a G-type and B a K-type, which is
+	-- why the pair cannot be one merged node.
+	self:assertEquals('star-g', model.star.kind)
+	self:assertEquals('star-k', model.companion.kind)
+	-- And nothing is nested: a pair has no hierarchy to express.
+	self:assertEquals(nil, model.star.moons, 'a paired primary carries no nested list')
+end
+
+function suite:testBuildModelSingleStarSystemsGainNothing()
+	local model = Data.buildModel('Stanton', '')
+	self:assertEquals(nil, model.companion)
+	self:assertEquals(nil, model.companionShape)
+	self:assertEquals('star', model.star.tier)
+	self:assertEquals(nil, model.star.moons, 'the star of a single-star system nests nothing')
+end
+
+function suite:testRenderNestsACompanionInsideTheStarsColumn()
+	local html = tostring(Renderer.renderRail(Data.buildModel('Tyrol', '')))
+
+	local starAt = html:find('%[%[Tyrol A|Tyrol A%]%]')
+	local companionAt = html:find('%[%[Tyrol B|Tyrol B%]%]')
+	local firstPlanetAt = html:find('%[%[Tyrol I|Tyrol I%]%]')
+	self:assertTrue(starAt ~= nil and companionAt ~= nil and firstPlanetAt ~= nil)
+	self:assertTrue(companionAt > starAt, 'the companion renders after its primary')
+	self:assertTrue(companionAt < firstPlanetAt, 'and before the first planet, inside the star column')
+
+	local nestedAt = html:find('<ul class="t%-system%-map__moons"', starAt)
+	self:assertTrue(nestedAt ~= nil and nestedAt < companionAt, 'it sits in the nested list, not loose on the rail')
+
+	-- The connector line down that column is drawn from the modifier class,
+	-- because :has() is not in TemplateStyles' allowlist.
+	self:assertTrue(
+		html:find('t%-system%-map__item t%-system%-map__item%-%-star t%-system%-map__item%-%-has%-moons') ~= nil,
+		'the primary carries the has-moons modifier so the connector is drawn'
+	)
+	-- Its own tier class, so styles.css can give it the moon row layout while it
+	-- keeps a star's glyph and a star's size.
+	self:assertTrue(html:find('t%-system%-map__item%-%-companion') ~= nil, 'the companion has its own tier class')
+	self:assertTrue(html:find('data%-kind="star%-degenerate"') ~= nil, 'and a star glyph, not a moon disc')
+	self:assertTrue(html:find('width:22%.8px;height:22%.8px') ~= nil, 'sized at the star tier, not the moon tier')
+end
+
+function suite:testRenderGivesAPairOneRailSlot()
+	local html = tostring(Renderer.renderRail(Data.buildModel('Bacchus', '')))
+
+	self:assertEquals(1, select(2, html:gsub('t%-system%-map__item%-%-pair"', '')), 'exactly one pair slot')
+	self:assertEquals(2, select(2, html:gsub('t%-system%-map__item%-%-paired', '')), 'holding two stars')
+
+	local pairAt = html:find('<ul class="t%-system%-map__pair"')
+	local aAt = html:find('%[%[Bacchus A|Bacchus A%]%]')
+	local bAt = html:find('%[%[Bacchus B|Bacchus B%]%]')
+	local firstPlanetAt = html:find('%[%[Bacchus I|Bacchus I%]%]')
+	self:assertTrue(pairAt ~= nil and aAt ~= nil and bAt ~= nil and firstPlanetAt ~= nil)
+	self:assertTrue(
+		pairAt < aAt and aAt < bAt and bAt < firstPlanetAt,
+		'both stars sit in the slot, before the planets'
+	)
+
+	-- Neither is nested under the other: a co-orbiting pair has no hierarchy,
+	-- and the moon list is what would claim one.
+	self:assertEquals(nil, html:find('<ul class="t%-system%-map__moons"', pairAt))
+
+	-- Each keeps its own kind, which is why they cannot share a node.
+	self:assertTrue(html:find('data%-kind="star%-g"') ~= nil, 'Bacchus A is a G-type')
+	self:assertTrue(html:find('data%-kind="star%-k"') ~= nil, 'Bacchus B is a K-type')
+end
+
+-- The you-are-here marker lands on the INDIVIDUAL star, never on the pair.
+-- Bacchus A and Bacchus B are separate articles, and a reader on either has to
+-- be able to find themselves; a merged "A · B" label could not do it, which is
+-- why the pair is two markable nodes rather than one.
+function suite:testRenderMarksTheIndividualStarOfAPair()
+	for _, star in ipairs({ 'A', 'B' }) do
+		local title = 'Bacchus ' .. star
+		local html = tostring(Renderer.renderRail(Data.buildModel('Bacchus', title)))
+
+		self:assertEquals(1, select(2, html:gsub('data%-current="page"', '')), title .. ': exactly one node marked')
+
+		-- data-current sits on the node, which opens just before that star's
+		-- link, so the marker's position is what identifies which star it is on.
+		local markerAt = html:find('data%-current="page"')
+		local aAt = html:find('%[%[Bacchus A|Bacchus A%]%]')
+		local bAt = html:find('%[%[Bacchus B|Bacchus B%]%]')
+		if star == 'A' then
+			self:assertTrue(markerAt < aAt, 'the marker is on Bacchus A')
+		else
+			self:assertTrue(markerAt > aAt and markerAt < bAt, 'the marker is on Bacchus B, not on the pair')
+		end
+		self:assertTrue(html:find('%(current page%)') ~= nil, title .. ': and says so to a screen reader')
+	end
+end
+
+-- The same, for a nested companion: Tyrol B is its own article too.
+function suite:testRenderMarksANestedCompanion()
+	local html = tostring(Renderer.renderRail(Data.buildModel('Tyrol', 'Tyrol B')))
+	self:assertEquals(1, select(2, html:gsub('data%-current="page"', '')))
+	local markerAt = html:find('data%-current="page"')
+	local starAt = html:find('%[%[Tyrol A|Tyrol A%]%]')
+	local companionAt = html:find('%[%[Tyrol B|Tyrol B%]%]')
+	self:assertTrue(markerAt > starAt and markerAt < companionAt, 'marked on the companion, not on the primary')
+end
+
+-- Stars are not counted in the header, whether there are two or one: how many a
+-- system has is the first thing the picture says.
+function suite:testSummariseCountsNeitherStar()
+	self:assertEquals('7 planets, 1 moon, 1 belt', Data.summarise(Data.buildModel('Tyrol', '')))
+	self:assertEquals('3 planets, 1 belt', Data.summarise(Data.buildModel('Bacchus', '')))
+	self:assertEquals(nil, Data.summarise(Data.buildModel('Goss', '')):find('star'))
+end
+
+-- Both stars are probed for existence, so a moved or deleted star article trips
+-- the tracking category. A nested companion is reachable through the primary's
+-- moon list and a paired one is not reachable from `bodies` at all, so the walk
+-- visits them directly rather than relying on the rail.
+function suite:testAnnotateExistenceProbesBothStars()
+	for _, case in ipairs({
+		{ system = 'Tyrol', star = 'Tyrol A', companion = 'Tyrol B' },
+		{ system = 'Bacchus', star = 'Bacchus A', companion = 'Bacchus B' },
+	}) do
+		local model = Data.buildModel(case.system, '')
+		local probed = {}
+		local category = SystemMap.annotateExistence(model, function(page)
+			probed[page] = (probed[page] or 0) + 1
+			return page ~= case.companion
+		end)
+		self:assertEquals(1, probed[case.star], case.star .. ' is probed once')
+		self:assertEquals(1, probed[case.companion], case.companion .. ' is probed once')
+		self:assertEquals('[[Category:Pages with a broken system map link]]', category, case.system)
+		self:assertTrue(model.companion.missing, case.companion .. ' is flagged missing')
+		self:assertEquals(false, model.star.missing, case.star .. ' is not')
+	end
+end
+
+-- Two upstream systems (Tamsa, Min) have no star and still carry planets — Min
+-- carries four moons as well — so nothing downstream of the data may assume a
+-- head. Neither is rolled out, so the model is built by hand here: this is the
+-- render and walk half of the guarantee, and the file-shape half is the Go
+-- suite's TestBuildWithoutAStar.
+function suite:testAHeadlessSystemStillRendersItsPlanets()
+	local model = {
+		key = 'Vector',
+		page = 'Vector system',
+		bodies = {
+			{
+				tier = 'planet',
+				page = 'Vector I',
+				label = 'Vector I',
+				kind = 'rocky',
+				disc = 12,
+				current = false,
+				missing = false,
+				moons = {},
+			},
+		},
+	}
+
+	local html = tostring(Renderer.renderRail(model))
+	self:assertTrue(html:find('t%-system%-map__rail') ~= nil, 'the rail is still drawn')
+	self:assertTrue(html:find('%[%[Vector I|Vector I%]%]') ~= nil, 'and so is the planet')
+	self:assertEquals(nil, html:find('t%-system%-map__item%-%-star'), 'with no star slot at all')
+
+	-- And the existence walk does not trip over the absent star either.
+	local category = SystemMap.annotateExistence(model, function()
+		return true
+	end)
+	self:assertEquals('', category)
+	self:assertEquals('1 planet', Data.summarise(model))
 end
 
 return suite

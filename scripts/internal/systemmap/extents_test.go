@@ -72,7 +72,7 @@ func TestAnchorExtentsSpansSystemsThatAreNotRendered(t *testing.T) {
 
 	rendered := &Document{}
 	star := 1.2 * solarRadiusKM
-	rendered.Systems.Set("Rendered", &System{Star: Body{KM: &star}})
+	rendered.Systems.Set("Rendered", &System{Star: &Body{KM: &star}})
 
 	got := anchorExtents(upstream, rendered)
 	if got.Star.Min != 6260 || got.Star.Max != 5848920 {
@@ -101,7 +101,12 @@ func TestCommittedExtentsReachBeyondTheFile(t *testing.T) {
 	rendered := extentBuilder{}
 	for _, name := range doc.Systems.Keys() {
 		sys, _ := doc.Systems.Get(name)
-		rendered.note(tierStar, sys.Star.KM)
+		if sys.Star != nil {
+			rendered.note(tierStar, sys.Star.KM)
+		}
+		if sys.Companion != nil {
+			rendered.note(tierStar, sys.Companion.KM)
+		}
 		for i := range sys.Bodies {
 			b := &sys.Bodies[i]
 			if b.Tier == tierBelt {
@@ -257,7 +262,12 @@ func TestCommittedExtentsCoverEveryBodyInTheFile(t *testing.T) {
 	}
 	for _, name := range doc.Systems.Keys() {
 		sys, _ := doc.Systems.Get(name)
-		check(tierStar, name+" star", doc.Extents.Star, sys.Star.KM)
+		if sys.Star != nil {
+			check(tierStar, name+" star", doc.Extents.Star, sys.Star.KM)
+		}
+		if sys.Companion != nil {
+			check(tierStar, name+" companion", doc.Extents.Star, sys.Companion.KM)
+		}
 		for i := range sys.Bodies {
 			b := &sys.Bodies[i]
 			if b.Tier == tierBelt {

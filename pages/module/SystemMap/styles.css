@@ -151,20 +151,65 @@
 
 /* Moons are a row: disc sitting on the connector, label to its right. A ring
    hangs in the same column and takes the same row layout — it is only the glyph
-   that differs, because a ring is not a body. Spelled out rather than matched
-   with :is(), which is not in TemplateStyles' allowlist and fails the save. */
+   that differs, because a ring is not a body. A nested companion star hangs
+   there too: it orbits the primary the way a moon orbits a planet, so it is
+   drawn where one is. Spelled out rather than matched with :is(), which is not
+   in TemplateStyles' allowlist and fails the save. */
 .t-system-map__item--moon .t-system-map__node,
-.t-system-map__item--ring .t-system-map__node {
+.t-system-map__item--ring .t-system-map__node,
+.t-system-map__item--companion .t-system-map__node {
 	flex-direction: row;
 	align-items: center;
 	gap: var(--space-xxs);
 }
 
 .t-system-map__item--moon .t-system-map__label,
-.t-system-map__item--ring .t-system-map__label {
+.t-system-map__item--ring .t-system-map__label,
+.t-system-map__item--companion .t-system-map__label {
 	flex-direction: row;
 	align-items: baseline;
 	gap: var(--space-xs);
+}
+
+/* Two stars sharing one head slot, for the three systems where neither is
+   parented to the other and the planets co-orbit both. They sit side by side and
+   BOTH on the orbit line, which is what says neither dominates — stacking them
+   would draw the same picture as a nested companion and make the opposite
+   claim.
+
+   The slot is a single rail child, so the orbit line drawn by the rail begins at
+   the pair rather than at either star, and runs on behind both. Each star keeps
+   its own <li> inside, which is what carries its own data-kind (Bacchus A is a
+   G-type and B a K-type) and its own you-are-here marker: they are separate
+   articles, and a reader on either has to be able to find themselves. */
+.t-system-map__pair {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--space-sm);
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+/* A floor for two star columns rather than one. It must come after the
+   --star/--planet/--belt rule above, which it widens. */
+.t-system-map__item--pair {
+	min-width: 10.5rem;
+}
+
+/* The bond between the two: from the first star's centre to the second's.
+   The rail already draws a line through both on a wide viewport, so this is
+   invisible there — but under 720px the rail line turns vertical and would leave
+   the second star floating unattached, which is exactly the "these two are one
+   head" claim the pair exists to make. */
+.t-system-map__pair > .t-system-map__item:first-child::after {
+	content: '';
+	position: absolute;
+	left: var(--t-system-map-centre);
+	right: calc(0px - var(--space-sm) - var(--t-system-map-centre));
+	top: var(--t-system-map-centre);
+	height: 1px;
+	background: var(--border-color-base);
 }
 
 /* Body palette. Semantic, and deliberately separate from the Citizen link
@@ -419,9 +464,16 @@
 		min-width: 0;
 	}
 
+	/* --paired is listed because the pair's own <li> holds no node — its only
+	   child is the __pair list — so the --star selector above reaches nothing and
+	   the two stars inside would keep the column layout while every row beneath
+	   them turned into a row, leaving a head block about twice the height of a
+	   planet. Spelled out rather than matched with :is(), which is not in
+	   TemplateStyles' allowlist and fails the save. */
 	.t-system-map__item--star > .t-system-map__node,
 	.t-system-map__item--planet > .t-system-map__node,
-	.t-system-map__item--belt > .t-system-map__node {
+	.t-system-map__item--belt > .t-system-map__node,
+	.t-system-map__item--paired > .t-system-map__node {
 		flex-direction: row;
 		align-items: center;
 		gap: var(--space-xxs);
@@ -429,7 +481,8 @@
 
 	.t-system-map__item--star > .t-system-map__node .t-system-map__label,
 	.t-system-map__item--planet > .t-system-map__node .t-system-map__label,
-	.t-system-map__item--belt > .t-system-map__node .t-system-map__label {
+	.t-system-map__item--belt > .t-system-map__node .t-system-map__label,
+	.t-system-map__item--paired > .t-system-map__node .t-system-map__label {
 		flex-direction: row;
 		flex-wrap: wrap;
 		align-items: baseline;

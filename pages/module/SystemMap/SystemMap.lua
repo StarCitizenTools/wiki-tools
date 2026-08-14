@@ -21,11 +21,24 @@ local STYLES = 'Module:SystemMap/styles.css'
 local CATEGORY_UNKNOWN_SYSTEM = '[[Category:System map with unknown system]]'
 local CATEGORY_BROKEN_LINK = '[[Category:Pages with a broken system map link]]'
 
---- Walk every body in a model, star first, then planets with their moons.
+--- Walk every body in a model: the star or stars first, then planets with their
+--- moons.
+---
+--- Both stars are optional and are visited on their own rather than through the
+--- rail, because neither is reliably reachable from `bodies`: a system upstream
+--- files no star for has none, and a nested companion sits in the primary's
+--- `moons` list while a paired one sits nowhere but here. Missing either would
+--- leave a red-linked star unflagged by the tracking category, which is the one
+--- job this walk has.
 --- @param model SystemMapModel
 --- @param fn fun(body: SystemMapBody)
 local function eachBody(model, fn)
-	fn(model.star)
+	if model.star then
+		fn(model.star)
+	end
+	if model.companion then
+		fn(model.companion)
+	end
 	for _, body in ipairs(model.bodies) do
 		fn(body)
 		for _, moon in ipairs(body.moons) do
@@ -46,8 +59,9 @@ end
 --- the target pages runs 5-14 calls, so the worst case — Sol, 35 bodies + 1 =
 --- 36, counting the four rings that share the moons array — lands around a
 --- third of the budget with room for the page's own usage on top. Stanton is
---- 19, Pyro 15, Nyx 8. Worth watching as the rollout continues: the ceiling is
---- a body count, and Sol is the largest system upstream has.
+--- 19, Pyro 15, Nyx 8, and a binary costs one probe more than its bodies for its
+--- second star (Tyrol is 12). Worth watching as the rollout continues: the
+--- ceiling is a body count, and Sol is the largest system upstream has.
 --- That is fine for the ~90 system articles this ships on; the deferred
 --- rollout to ~1,400 location pages is NOT covered by this arithmetic and needs
 --- a different approach (a precomputed existence set, or dropping the probe).

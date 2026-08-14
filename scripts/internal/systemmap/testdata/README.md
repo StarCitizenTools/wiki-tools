@@ -1,6 +1,6 @@
 # testdata
 
-`starmap.json` is a cut of a real `cmd/starmap` run, eleven systems wide:
+`starmap.json` is a cut of a real `cmd/starmap` run, eighteen systems wide:
 
 | System | Why it is here |
 |---|---|
@@ -15,6 +15,13 @@
 | Kilian | in the file; fourteen planets, no moons, no belts, and nothing to correct — the shape a system takes when the derivation is right |
 | Taranis | in the file; three bodies anchored with `after`, two of them onto the same planet, so the overlay's key order decides which comes first |
 | Oberon | in the file; the only degenerate star in the file (`star-degenerate`) |
+| Tyrol | in the file; a **nested** binary — the companion is parented to the primary, which carries all nine bodies. Also the system upstream types `SINGLE_STAR` while filing two stars for it, which is why the shape is derived from `parent_id` and not from that field |
+| Kyuk'ya (Indra) | in the file; the other nested binary, and the only system needing a `page` correction — upstream carries the Perry Line name, the wiki files it under `Kyuk'ya system`. Also a named belt whose article is under a different title entirely |
+| Bacchus | in the file; a **paired** binary, listed B before A upstream, so it pins that file order does not decide which star is written first |
+| Baker | in the file; a paired binary whose **B is the larger star**, so it pins that size does not decide either |
+| Goss | in the file; the third paired binary, and the only one whose middle planet is named (`Cassel`) rather than taking its designation |
+| Min | not in the file; one of the two systems upstream files **no star** for. It carries a planet and four moons, so it is the case that proves a headless rail is still worth drawing |
+| Tamsa | not in the file; the other starless system, and the one whose planets are parented to a star id that is not in the data at all |
 
 Only the fields `internal/systemmap` reads are kept — id, code, name,
 designation, size, type, subtype, star_system_id, parent_id — so the file stays
@@ -22,6 +29,11 @@ short enough to read against the output it is expected to produce. The values
 are verbatim, not invented: the point of a fixture here is that upstream's
 oddities (null names, trailing spaces in designations, sizes in three different
 units) are present exactly as they arrive.
+
+Min and Tamsa are the two systems that are here without being in `overlay.json`,
+because what they prove is that the model does not assume a star: neither is
+rolled out, and `TestBuildWithoutAStar` builds them through a throwaway overlay
+of its own.
 
 ### It does not set the disc scale
 

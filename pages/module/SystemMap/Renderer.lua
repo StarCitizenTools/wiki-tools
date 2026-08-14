@@ -153,6 +153,56 @@ local function bodyItem(body)
 	return item
 end
 
+--- Render the head of the rail: the system's star, or its two stars.
+---
+--- Three shapes, and the third is the reason this is a function rather than one
+--- line in renderRail:
+---
+--- - One star, or a nested binary. The plain body item — a nested companion is
+---   already sitting in the star's `moons` list, put there by
+---   Module:SystemMap/Data, so it comes out of the same machinery every moon
+---   does.
+--- - A co-orbiting pair. Both stars share ONE rail slot, so the orbit line
+---   (drawn on the rail's direct children) begins at the pair rather than at
+---   either star. They are wrapped in an inner list so that each keeps its own
+---   <li> and therefore its own `data-kind` — the palette is keyed on the item,
+---   and Bacchus A is a G-type while Bacchus B is a K-type. That inner <li> is
+---   also what carries `data-current`: Bacchus A and Bacchus B are separate
+---   articles, and a reader on either must see themselves marked, which one
+---   merged "A · B" label could not do.
+--- - No star at all. Two upstream systems have none and still carry planets, so
+---   the rail simply starts at the first planet.
+--- @param model SystemMapModel
+--- @return mw.html|nil
+local function headItem(model)
+	if model.companion and model.companionShape == 'paired' and model.star then
+		local item = mw.html
+			.create('li')
+			:addClass('t-system-map__item')
+			:addClass('t-system-map__item--star')
+			:addClass('t-system-map__item--pair')
+
+		local pair = item:tag('ul'):addClass('t-system-map__pair')
+		pair:node(bodyItem(model.star))
+		pair:node(bodyItem(model.companion))
+
+		return item
+	end
+
+	if model.star then
+		return bodyItem(model.star)
+	end
+
+	-- A companion with no primary is not a shape the generator can produce, but
+	-- this module takes no data dependency and has to be right for any model
+	-- handed to it. Drawing the star that is there beats drawing nothing.
+	if model.companion then
+		return bodyItem(model.companion)
+	end
+
+	return nil
+end
+
 --- Render the scroll container and rail: the star followed by every planet
 --- (with its moons nested inside). Module:SystemMap hands this to
 --- Module:CollapsibleCard as the card's body.
@@ -170,7 +220,10 @@ function p.renderRail(model)
 	local scroll = mw.html.create('div'):addClass('t-system-map__scroll')
 	local rail = scroll:tag('ul'):addClass('t-system-map__rail')
 
-	rail:node(bodyItem(model.star))
+	local head = headItem(model)
+	if head then
+		rail:node(head)
+	end
 	for _, body in ipairs(model.bodies) do
 		rail:node(bodyItem(body))
 	end

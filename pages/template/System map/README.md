@@ -17,7 +17,7 @@ Backed by [[Module:SystemMap]].
 
 | Parameter | Required | Default | Description |
 | --- | --- | --- | --- |
-| `1` | yes | — | System name. Accepts `Stanton`, `stanton` or `Stanton system`. Supported systems: Stanton, Pyro, Nyx. |
+| `1` | yes | — | System name. Accepts `Stanton`, `stanton` or `Stanton system`. Any system listed in [[Module:SystemMap/systems.json]] works; an unrecognised name renders nothing and files the page in a tracking category. |
 | `collapsed` | no | `no` | Render the box closed. The map is short, so it opens by default. |
 
 ## Behaviour
@@ -36,6 +36,14 @@ page rather than a location within it.
 
 Left to right is orbital order. Disc size is a three-tier convention (star,
 planet, moon) and is not a measurement; see [[Module:SystemMap]] for why.
+
+## Adding a system
+
+[[Module:SystemMap/systems.json]] is **generated** and should not be edited on the
+wiki: the next regeneration overwrites it. It is built from the ARK Starmap mirror
+plus a hand-owned overlay carrying the corrections the starmap cannot supply, such
+as where an asteroid belt sits relative to the planets. Both live in the
+[wiki-tools repository](https://github.com/StarCitizenTools/wiki-tools).
 
 ## Tracking categories
 

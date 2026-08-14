@@ -288,6 +288,63 @@ func moonIndex(designation string) (int, string, bool) {
 	return n, letters, true
 }
 
+// wikiName is a system's name as the wiki writes it: upstream's name with the
+// parenthetical alias dropped.
+//
+// Upstream files nine systems as "<Xi'an name> (<human name>)" — Ē'aluth
+// (Eealus), Yā'mon (Hadur), Kyuk'ya (Indra), Kai'pua (Kayfa), K.ap'a'ri
+// (Khabari), Malkail (Markahil), Th.us'ūng (Pallas), R.il'a (Rihlah), La'uo
+// (Virtus) — carrying the name each went by during the Xi'an Cold War. The wiki
+// files them under the Xi'an name alone and redirects the human one there, so
+// the alias belongs to the starmap and not to anything a reader is shown.
+//
+// This is deliberately narrow. It renames only the DESIGNATION, which is the one
+// string the overlay cannot reach: `page` and `label` are already the documented
+// escape hatches for a title and a name, and the seven rolled-out systems use
+// them. A designation has no such key and never gets one — it is upstream's
+// formal orbital slot, and hand-writing 36 of them would be transcription rather
+// than derivation, which is the thing this generator exists to avoid.
+//
+// The rule is the alias's own shape rather than a list of the nine, so a tenth
+// needs no entry here. It cuts at the LAST " (" so that a name carrying an
+// internal parenthetical would keep it, and it declines to cut when that would
+// leave nothing — a system genuinely called "(something)" keeps its name.
+func wikiName(system string) string {
+	if !strings.HasSuffix(system, ")") {
+		return system
+	}
+	i := strings.LastIndex(system, " (")
+	if i <= 0 {
+		return system
+	}
+	return system[:i]
+}
+
+// dealiasDesignation rewrites the system prefix of one designation from the name
+// upstream uses to the name the wiki uses.
+//
+// It runs BEFORE beltCase and normaliseDesignation, and both of those are then
+// given the wiki name, because each anchors on the system prefix: handing
+// beltCase "Ē'aluth (Eealus)" after the alias had gone would find no prefix to
+// cut and leave "Ē'aluth Belt Alpha" in upstream's Title Case, and handing
+// normaliseDesignation the aliased name would fail to strip "La'uo " from a
+// moon's "La'uo 1a" and leave it holding a prefix every other system drops.
+//
+// A designation that does not start with the system name is returned untouched.
+// That is the "Rings of <planet>" belts, which name a planet rather than the
+// system and have no alias in them to remove.
+func dealiasDesignation(designation, system string) string {
+	wiki := wikiName(system)
+	if wiki == system {
+		return designation
+	}
+	rest, ok := strings.CutPrefix(designation, system)
+	if !ok {
+		return designation
+	}
+	return wiki + rest
+}
+
 // normaliseDesignation trims upstream's stray trailing spaces ("Ail'ka III ")
 // and drops the system prefix from moon designations, so "Stanton 1a" is stored
 // as "1a".

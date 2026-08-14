@@ -295,6 +295,91 @@ func TestBeltCaseKeepsTheSystemNameAndLowersTheRest(t *testing.T) {
 	}
 }
 
+// TestWikiNameDropsTheStarmapAlias pins the shape of the rule rather than a list
+// of the nine systems it fires on, since a tenth wants no code change.
+func TestWikiNameDropsTheStarmapAlias(t *testing.T) {
+	cases := map[string]string{
+		// The nine upstream files under a Cold War alias.
+		"Ē'aluth (Eealus)":    "Ē'aluth",
+		"Yā'mon (Hadur)":      "Yā'mon",
+		"Kyuk'ya (Indra)":     "Kyuk'ya",
+		"Kai'pua (Kayfa)":     "Kai'pua",
+		"K.ap'a'ri (Khabari)": "K.ap'a'ri",
+		"Malkail (Markahil)":  "Malkail",
+		"Th.us'ūng (Pallas)":  "Th.us'ūng",
+		"R.il'a (Rihlah)":     "R.il'a",
+		"La'uo (Virtus)":      "La'uo",
+
+		// Everything else is returned untouched, alias or not.
+		"Stanton": "Stanton", "Pyro": "Pyro", "T.āl": "T.āl", "Ail'ka": "Ail'ka",
+
+		// A parenthetical that is not a trailing alias is not one: no closing
+		// bracket at the end, nothing to the left of the bracket, or no bracket
+		// at all. None of these is in the data; they are the shapes the cut must
+		// decline rather than guess at.
+		"Vector (star) II": "Vector (star) II",
+		"(Khabari)":        "(Khabari)",
+		" (Khabari)":       " (Khabari)",
+		"Vector(Khabari)":  "Vector(Khabari)",
+		"":                 "",
+	}
+	for in, want := range cases {
+		if got := wikiName(in); got != want {
+			t.Errorf("wikiName(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
+// TestDealiasDesignationDropsTheStarmapAlias covers the step that turns
+// upstream's designation into the one the map prints.
+//
+// The alias appears nowhere on the wiki as part of a body's designation: the
+// article for Pi'tua files it as "La'uo I", not "La'uo (Virtus) I". Printing
+// upstream's form put a string on 36 body cards across seven systems that no
+// article, category or search on the wiki agrees with.
+func TestDealiasDesignationDropsTheStarmapAlias(t *testing.T) {
+	cases := []struct{ system, in, want string }{
+		// Planets, in their own orbital slot.
+		{"La'uo (Virtus)", "La'uo (Virtus) I", "La'uo I"},
+		{"Th.us'ūng (Pallas)", "Th.us'ūng (Pallas) V", "Th.us'ūng V"},
+		{"R.il'a (Rihlah)", "R.il'a (Rihlah) VI", "R.il'a VI"},
+		// A moon, whose prefix normaliseDesignation strips afterwards.
+		{"Kyuk'ya (Indra)", "Kyuk'ya (Indra) 1a", "Kyuk'ya 1a"},
+		// A belt, which beltCase then sentence-cases.
+		{"Ē'aluth (Eealus)", "Ē'aluth (Eealus) Belt Alpha", "Ē'aluth Belt Alpha"},
+
+		// No alias to drop: the 81 systems upstream names plainly.
+		{"Stanton", "Stanton IV", "Stanton IV"},
+		{"Ail'ka", "Ail'ka Belt Alpha", "Ail'ka Belt Alpha"},
+
+		// A designation that names a planet rather than the system has no prefix
+		// to rewrite, and keeps upstream's string whole.
+		{"Kyuk'ya (Indra)", "Rings of Kyuk'ya I", "Rings of Kyuk'ya I"},
+		{"La'uo (Virtus)", "", ""},
+	}
+	for _, c := range cases {
+		if got := dealiasDesignation(c.in, c.system); got != c.want {
+			t.Errorf("dealiasDesignation(%q, %q) = %q, want %q", c.in, c.system, got, c.want)
+		}
+	}
+}
+
+// TestDealiasDesignationIsIdempotent guards the same drift beltCase is guarded
+// against: the generator conceptually runs on its own output, and a rule that
+// cut a little more each pass would rewrite the page with no input change.
+func TestDealiasDesignationIsIdempotent(t *testing.T) {
+	for _, c := range []struct{ system, in string }{
+		{"La'uo (Virtus)", "La'uo (Virtus) I"},
+		{"Kyuk'ya (Indra)", "Rings of Kyuk'ya I"},
+		{"Stanton", "Stanton IV"},
+	} {
+		once := dealiasDesignation(c.in, c.system)
+		if twice := dealiasDesignation(once, c.system); twice != once {
+			t.Errorf("dealiasDesignation is not idempotent for %q: %q then %q", c.in, once, twice)
+		}
+	}
+}
+
 // TestBeltCaseIsIdempotent matters because the generator runs on its own output
 // conceptually every time: a rule that lower-cased a little more on each pass
 // would drift the page without any input changing.

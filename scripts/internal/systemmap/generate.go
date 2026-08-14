@@ -812,10 +812,12 @@ func arrange(nodes []*node) ([]*node, error) {
 // Pyro IV goes, which is the outermost position, and claim the opposite.
 func sortMoons(moons []*node, system string) {
 	// The same two steps buildBody applies, so the string sorted on is the string
-	// written out. Sorting one string and storing another is how the two quietly
-	// come apart later.
+	// written out. Both land on "1a" for an aliased system either way — the prefix
+	// is cut whichever name anchors it — but sorting one string and storing
+	// another is how the two quietly come apart later.
+	wiki := wikiName(system)
 	key := func(n *node) (int, string, bool) {
-		return moonIndex(normaliseDesignation(designationOf(n), system))
+		return moonIndex(normaliseDesignation(dealiasDesignation(designationOf(n), system), wiki))
 	}
 	sort.SliceStable(moons, func(a, b int) bool {
 		if ra, rb := isRing(moons[a].obj), isRing(moons[b].obj); ra != rb {
@@ -896,7 +898,11 @@ func buildBody(n *node, r role, system string) (Body, error) {
 	}
 
 	if r != roleStar {
-		designation := designationOf(n)
+		// The alias goes first, so everything below anchors on the name the wiki
+		// uses: "La'uo (Virtus) I" is printed under Pi'tua as "La'uo I", and
+		// "Ē'aluth (Eealus) Belt Alpha" reaches beltCase with a prefix it can cut.
+		wiki := wikiName(system)
+		designation := dealiasDesignation(designationOf(n), system)
 		if r == roleBelt {
 			// House style: the system name keeps its capitals, the rest of the
 			// designation does not. Belts only — a planet's "Stanton IV" is a
@@ -910,9 +916,9 @@ func buildBody(n *node, r role, system string) (Body, error) {
 			// is what keeps Taranis' "Taranis 2a Debris" reading as "2a debris"
 			// rather than stacking a capitalised "2a Debris" under the label
 			// "Taranis 2a debris" the same rule already produced.
-			designation = beltCase(designation, system)
+			designation = beltCase(designation, wiki)
 		}
-		body.Designation = normaliseDesignation(designation, system)
+		body.Designation = normaliseDesignation(designation, wiki)
 	}
 	switch r {
 	case roleBelt:

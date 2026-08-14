@@ -1193,7 +1193,7 @@
 				{
 					"page": "Kyuk'ya I",
 					"label": "Kyuk'ya I",
-					"designation": "Kyuk'ya (Indra) I",
+					"designation": "Kyuk'ya I",
 					"subtype": "Gas giant",
 					"moons": [
 						{
@@ -1214,7 +1214,7 @@
 				{
 					"page": "Kyuk'ya II",
 					"label": "Kyuk'ya II",
-					"designation": "Kyuk'ya (Indra) II",
+					"designation": "Kyuk'ya II",
 					"subtype": "Ice planet",
 					"moons": [],
 					"km": 3323
@@ -1222,7 +1222,7 @@
 				{
 					"page": "Kyuk'ya belt alpha",
 					"label": "Kyuk'ya belt alpha",
-					"designation": "Kyuk'ya (Indra) belt alpha",
+					"designation": "Kyuk'ya belt alpha",
 					"tier": "belt"
 				}
 			]
@@ -1884,7 +1884,7 @@
 				{
 					"page": "Kai'pua I",
 					"label": "Kai'pua I",
-					"designation": "Kai'pua (Kayfa) I",
+					"designation": "Kai'pua I",
 					"subtype": "Carbon planet",
 					"moons": [],
 					"km": 2915
@@ -1892,7 +1892,7 @@
 				{
 					"page": "Rai.p'uāng",
 					"label": "Rai.p'uāng",
-					"designation": "Kai'pua (Kayfa) II",
+					"designation": "Kai'pua II",
 					"subtype": "Terrestrial rocky",
 					"moons": [],
 					"km": 9040
@@ -1900,7 +1900,7 @@
 				{
 					"page": "Kai'pua III",
 					"label": "Kai'pua III",
-					"designation": "Kai'pua (Kayfa) III",
+					"designation": "Kai'pua III",
 					"subtype": "Gas dwarf",
 					"moons": [],
 					"km": 20882
@@ -1908,7 +1908,7 @@
 				{
 					"page": "Kai'pua IV",
 					"label": "Kai'pua IV",
-					"designation": "Kai'pua (Kayfa) IV",
+					"designation": "Kai'pua IV",
 					"subtype": "Gas dwarf",
 					"moons": [],
 					"km": 22161
@@ -2345,7 +2345,7 @@
 				{
 					"page": "Chuai'chuai",
 					"label": "Chuai'chuai",
-					"designation": "R.il'a (Rihlah) I",
+					"designation": "R.il'a I",
 					"subtype": "Protoplanet",
 					"moons": [],
 					"km": 1118
@@ -2353,7 +2353,7 @@
 				{
 					"page": "P.uay'aha",
 					"label": "P.uay'aha",
-					"designation": "R.il'a (Rihlah) II",
+					"designation": "R.il'a II",
 					"subtype": "Puffy planet",
 					"moons": [],
 					"km": 49179
@@ -2361,7 +2361,7 @@
 				{
 					"page": "Ping'leth",
 					"label": "Ping'leth",
-					"designation": "R.il'a (Rihlah) III",
+					"designation": "R.il'a III",
 					"subtype": "Terrestrial rocky",
 					"moons": [],
 					"km": 6285
@@ -2369,7 +2369,7 @@
 				{
 					"page": "Xōl’uu",
 					"label": "Xōl'uu",
-					"designation": "R.il'a (Rihlah) IV",
+					"designation": "R.il'a IV",
 					"subtype": "Terrestrial rocky",
 					"moons": [],
 					"km": 6601
@@ -2377,7 +2377,7 @@
 				{
 					"page": "Xi",
 					"label": "Xi",
-					"designation": "R.il'a (Rihlah) V",
+					"designation": "R.il'a V",
 					"subtype": "Super-Earth",
 					"moons": [],
 					"km": 9663
@@ -2385,7 +2385,7 @@
 				{
 					"page": "Pi'pa",
 					"label": "Pi'pa",
-					"designation": "R.il'a (Rihlah) VI",
+					"designation": "R.il'a VI",
 					"subtype": "Dwarf planet",
 					"moons": [],
 					"km": 1241
@@ -2957,7 +2957,7 @@
 				{
 					"page": "Pi'tua",
 					"label": "Pi'tua",
-					"designation": "La'uo (Virtus) I",
+					"designation": "La'uo I",
 					"subtype": "Evaporating planet",
 					"moons": [],
 					"km": 4356
@@ -2965,7 +2965,7 @@
 				{
 					"page": "Yengchuai",
 					"label": "Yengchuai",
-					"designation": "La'uo (Virtus) II",
+					"designation": "La'uo II",
 					"subtype": "Lava planet",
 					"moons": [],
 					"km": 3696
@@ -2973,13 +2973,13 @@
 				{
 					"page": "La'uo belt alpha",
 					"label": "La'uo belt alpha",
-					"designation": "La'uo (Virtus) belt alpha",
+					"designation": "La'uo belt alpha",
 					"tier": "belt"
 				},
 				{
 					"page": "Kyu'ām",
 					"label": "Kyu'ām",
-					"designation": "La'uo (Virtus) III",
+					"designation": "La'uo III",
 					"subtype": "Smog planet",
 					"moons": [],
 					"km": 7828
@@ -2987,13 +2987,13 @@
 				{
 					"page": "La'uo belt beta",
 					"label": "La'uo belt beta",
-					"designation": "La'uo (Virtus) belt beta",
+					"designation": "La'uo belt beta",
 					"tier": "belt"
 				},
 				{
 					"page": "S.ap'uāng",
 					"label": "S.ap'uāng",
-					"designation": "La'uo (Virtus) IV",
+					"designation": "La'uo IV",
 					"subtype": "Gas giant",
 					"moons": [],
 					"km": 34009
@@ -3381,7 +3381,7 @@
 				{
 					"page": "Tua'lu\"",
 					"label": "Tua'lu\"",
-					"designation": "Ē'aluth (Eealus) I",
+					"designation": "Ē'aluth I",
 					"subtype": "Puffy planet",
 					"moons": [],
 					"km": 28493
@@ -3389,7 +3389,7 @@
 				{
 					"page": "Kyupuaang",
 					"label": "Kyupuaang",
-					"designation": "Ē'aluth (Eealus) II",
+					"designation": "Ē'aluth II",
 					"subtype": "Smog planet",
 					"moons": [],
 					"km": 6083
@@ -3397,7 +3397,7 @@
 				{
 					"page": "Ko'li",
 					"label": "Ko'li",
-					"designation": "Ē'aluth (Eealus) III",
+					"designation": "Ē'aluth III",
 					"subtype": "Terrestrial rocky",
 					"moons": [],
 					"km": 7958
@@ -3405,13 +3405,13 @@
 				{
 					"page": "Ē'aluth belt alpha",
 					"label": "Ē'aluth belt alpha",
-					"designation": "Ē'aluth (Eealus) belt alpha",
+					"designation": "Ē'aluth belt alpha",
 					"tier": "belt"
 				},
 				{
 					"page": "Xyekyu",
 					"label": "Xyekyu",
-					"designation": "Ē'aluth (Eealus) IV",
+					"designation": "Ē'aluth IV",
 					"subtype": "Gas dwarf",
 					"moons": [],
 					"km": 24219
@@ -3419,7 +3419,7 @@
 				{
 					"page": "Puaangkiil",
 					"label": "Puaangkiil",
-					"designation": "Ē'aluth (Eealus) V",
+					"designation": "Ē'aluth V",
 					"subtype": "Gas giant",
 					"moons": [],
 					"km": 56012
@@ -3649,7 +3649,7 @@
 				{
 					"page": "Kuā'li",
 					"label": "Kuā'li",
-					"designation": "Yā'mon (Hadur) I",
+					"designation": "Yā'mon I",
 					"subtype": "Terrestrial rocky",
 					"moons": [],
 					"km": 3991
@@ -3657,7 +3657,7 @@
 				{
 					"page": "Yethlūl Y.ath'o",
 					"label": "Yethlūl Y.ath'o",
-					"designation": "Yā'mon (Hadur) II",
+					"designation": "Yā'mon II",
 					"subtype": "Terrestrial rocky",
 					"moons": [],
 					"km": 5950.9
@@ -3665,7 +3665,7 @@
 				{
 					"page": "Yethlūl S.yen'o",
 					"label": "Yethlūl S.yen'o",
-					"designation": "Yā'mon (Hadur) III",
+					"designation": "Yā'mon III",
 					"subtype": "Terrestrial rocky",
 					"moons": [],
 					"km": 5406
@@ -3673,13 +3673,13 @@
 				{
 					"page": "Yā’mon belt alpha",
 					"label": "Yā'mon belt alpha",
-					"designation": "Yā'mon (Hadur) belt alpha",
+					"designation": "Yā'mon belt alpha",
 					"tier": "belt"
 				},
 				{
 					"page": "Yām'ping",
 					"label": "Yām'ping",
-					"designation": "Yā'mon (Hadur) IV",
+					"designation": "Yā'mon IV",
 					"subtype": "Dwarf planet",
 					"moons": [],
 					"km": 2614
@@ -4029,7 +4029,7 @@
 				{
 					"page": "Th.us'ūng I",
 					"label": "Th.us'ūng I",
-					"designation": "Th.us'ūng (Pallas) I",
+					"designation": "Th.us'ūng I",
 					"subtype": "Iron planet",
 					"moons": [],
 					"km": 4180
@@ -4037,7 +4037,7 @@
 				{
 					"page": "K.yuy'a'than",
 					"label": "K.yuy'a'than",
-					"designation": "Th.us'ūng (Pallas) II",
+					"designation": "Th.us'ūng II",
 					"subtype": "Smog planet",
 					"moons": [],
 					"km": 6751
@@ -4045,7 +4045,7 @@
 				{
 					"page": "Se'kith",
 					"label": "Se'kith",
-					"designation": "Th.us'ūng (Pallas) III",
+					"designation": "Th.us'ūng III",
 					"subtype": "Terrestrial rocky",
 					"moons": [],
 					"km": 4337
@@ -4053,13 +4053,13 @@
 				{
 					"page": "Th.us'ūng belt alpha",
 					"label": "Th.us'ūng belt alpha",
-					"designation": "Th.us'ūng (Pallas) belt alpha",
+					"designation": "Th.us'ūng belt alpha",
 					"tier": "belt"
 				},
 				{
 					"page": "Hua'nam",
 					"label": "Hua'nam",
-					"designation": "Th.us'ūng (Pallas) IV",
+					"designation": "Th.us'ūng IV",
 					"subtype": "Gas giant",
 					"moons": [],
 					"km": 72457
@@ -4067,7 +4067,7 @@
 				{
 					"page": "H.au'u",
 					"label": "H.au'u",
-					"designation": "Th.us'ūng (Pallas) V",
+					"designation": "Th.us'ūng V",
 					"subtype": "Dwarf planet",
 					"moons": [],
 					"km": 1455

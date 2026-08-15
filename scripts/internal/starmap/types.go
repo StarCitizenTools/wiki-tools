@@ -147,13 +147,24 @@ type System struct {
 
 // Object is a celestial object as written to the wiki.
 type Object struct {
-	ID               int           `json:"id"`
-	Age              *Number       `json:"age"`
-	AxialTilt        *Number       `json:"axial_tilt"`
-	FairChanceAct    *bool         `json:"fairchanceact"`
-	Code             string        `json:"code"`
-	Description      *string       `json:"description"`
-	Designation      *string       `json:"designation"`
+	ID            int     `json:"id"`
+	Age           *Number `json:"age"`
+	AxialTilt     *Number `json:"axial_tilt"`
+	FairChanceAct *bool   `json:"fairchanceact"`
+	Code          string  `json:"code"`
+	Description   *string `json:"description"`
+	Designation   *string `json:"designation"`
+	// Distance is how far the object sits from its PARENT, not from the star.
+	// Upstream's own rings prove it: Rings of Uranus is 0.000234 and Jovian Rings
+	// 0.000819, which are distances from Uranus and Jupiter — while Sol's planets
+	// (Mercury 0.4667, Earth 1.0, Neptune 30.44) really are AU from the star,
+	// because the star is what they are parented to. So it orders siblings and
+	// nothing else; comparing two values across different parents is meaningless.
+	//
+	// Optional, like every other numeric here that upstream sometimes omits: a
+	// pointer keeps "upstream gives no distance" (8 systems have such a body)
+	// distinct from a genuine zero.
+	Distance         *Number       `json:"distance"`
 	Habitable        *bool         `json:"habitable"`
 	InfoURL          *string       `json:"info_url"`
 	Name             *string       `json:"name"`
@@ -210,6 +221,7 @@ type apiObject struct {
 	Code             string        `json:"code"`
 	Description      *string       `json:"description"`
 	Designation      *string       `json:"designation"`
+	Distance         *Number       `json:"distance"`
 	Habitable        *bool         `json:"habitable"`
 	InfoURL          *string       `json:"info_url"`
 	Name             *string       `json:"name"`

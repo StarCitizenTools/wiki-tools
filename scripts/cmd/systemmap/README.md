@@ -21,9 +21,17 @@ pages/module/SystemMap/systems.json   committed, deployed via MCP
 ```
 
 Upstream data goes stale and gets refetched. Editorial judgement has to survive
-that refetch: which article a body links to, where a belt sits between planets,
-which planet is really a moon. Before this tool both lived in the same
-hand-edited file, so the refetch would have overwritten the judgement.
+that refetch: which article a body links to, which planet is really a moon, and
+the handful of belt placements where the wiki's own articles disagree with
+upstream. Before this tool both lived in the same hand-edited file, so the
+refetch would have overwritten the judgement.
+
+The line between the two moves as the derivation gets better, and it moves one
+way. Where a belt sits used to be judgement, written out 58 times; carrying
+upstream's `distance` through the mirror derived 50 of those, leaving the eight
+the data cannot settle. Deriving something the overlay was carrying is a
+strictly better outcome than transcribing it again, because a derivation holds
+for the systems nobody has looked at yet.
 
 **The output is committed source, not a `scripts/out/` artifact.** It is 10 KB,
 it is reviewed as a diff, and the overlay only means anything next to it.
@@ -65,7 +73,7 @@ a note rather than an error.
 
 | Derived | From |
 |---|---|
-| Orbital order | the Roman numeral ending the upstream designation |
+| Orbital order | upstream `distance`, which orders **siblings** (see below); the Roman numeral ending the designation where it cannot |
 | Moon attachment | upstream `parent_id` |
 | Tier | the upstream type: a belt is `tier: belt`, and a `SATELLITE` that reached the planet rail because upstream parents it to the star is `tier: moon` (see below) |
 | The second star, and how it is drawn | upstream `parent_id` between the two stars (see below) |
@@ -88,8 +96,8 @@ rather than merely misspelling a name.
 Everything the table does not derive is an overlay key.
 
 Per body, under a system's `bodies`: `page`, `label`, `icon`, `iconRatio`,
-`after` (position a body the numeral rule cannot order, such as Delamar and most
-belts), `moonOf` (reparent, as Pyro IV under Pyro V), and `km`.
+`after` (position a body upstream's own `distance` cannot order — eight of them,
+listed below), `moonOf` (reparent, as Pyro IV under Pyro V), and `km`.
 
 A star is corrected in a sibling `star` block rather than under `bodies`.
 Terra's `"star": { "page": "Terra Nova" }` is the whole of it, and a second star
@@ -115,22 +123,113 @@ under both spellings, RSI's and its typo, and the skeletal protoplanet upstream
 files under the same designation as Ellis XI's cluster, which is the body that
 actually has an article.
 
-### Orbital order comes from the numeral, not from `orbit_period`
+### Orbital order comes from `distance`, and `distance` is parent-relative
 
-`orbit_period` is **not** used. Upstream leaves it null for 195 of its 326
-planets, while 324 carry a Roman numeral (the two that do not are Delamar and
-Min's rogue planet), and planets are numbered outward from the star by
-convention. Sorting Stanton by numeral reproduces Hurston → Crusader → ArcCorp
-→ microTech exactly.
+**This is the one thing to get right here.** Upstream measures a body's
+`distance` from its **parent**, not from the star, so it orders **siblings** and
+nothing else. Every figure is a real number in the same unit, so a rail sorted
+across parents renders without complaint and is simply wrong — which is the
+failure mode that looks most like success.
 
-**The rule reads the numeral that ends the designation, not the body type**, so
-a belt upstream designates after a planet is ordered like one: `Ellis XI` lands
-between Bombora and Judecca with no overlay entry at all, and `Odin I` behaves
-the same. Everything else takes its position from `after`: Delamar, and 67 of
-the 69 belts, `Hades IV split` and `Kallis V Accretion Disk` among them, because
-a numeral that is not the last word is not read. A body with no derivable
-position and no `after` lands at the end of the rail, where it is visible rather
-than wrong.
+Upstream's own data proves the rule twice over:
+
+- Sol's planets are AU from the Sun — Mercury 0.4667, Earth 1.0, Neptune 30.44 —
+  because the Sun is what upstream parents them to.
+- Sol's rings are *thousandths* of an AU by exactly the same rule: Rings of
+  Uranus 0.000234, Jovian Rings 0.000819. Those are distances from Uranus and
+  from Jupiter.
+- Taranis' debris field is `0.3`, measured from **Taranis II**, which upstream
+  parents it to. Sorted against Taranis I's 0.94 it would take the innermost slot
+  on a rail whose planet sits 4.62 AU out.
+
+So the generator compares two distances only where both bodies share a parent:
+the star's own children on the rail, and one planet's moons inside its column.
+
+`orbit_period` is still **not** used — upstream leaves it null for 195 of its 326
+planets.
+
+**Two groups, two decisions, each taken once.** The choice of key is made for the
+whole rail, and again for each planet's column, rather than per body. "Closer to
+the star" and "numbered earlier" are different questions, and a comparison
+answering one for some pairs and the other for the rest is not a total order: the
+result would depend on which pairs `sort` happened to compare. So a rail falls
+back to the numeral in full if *any* body it has to order lacks a distance or is
+measured from somewhere else. Bodies the overlay has anchored with `after` are
+not consulted — their position comes from the anchor — which is what lets Taranis
+and Kallis keep distance ordering on the rest of their rails.
+
+**The Roman numeral is the fallback, and the tiebreak.** It still reads the
+numeral that ends the designation, not the body type, so a belt upstream
+designates after a planet is ordered like one. It fires in two places now:
+
+- where a distance is missing. Upstream leaves 13 objects without one: five
+  stars, six planetary rings, Tamsa's black hole, and Kallis' accretion disk.
+- where two distances are equal. Upstream files real ties — Kilian's three
+  Sisters all sit at 0.1, Croshaw IV shares 2.76 with both of its clusters, and
+  Nyx's Delamar ties Glaciem Ring at 2.1. A body with a numeral sorts ahead of
+  one without, which is what keeps Croshaw IV in front of its clusters.
+
+A body with no derivable position and no `after` lands at the end of the rail,
+where it is visible rather than wrong.
+
+### The eight `after` entries left
+
+Carrying `distance` through the mirror retired **50 of the overlay's 58** `after`
+entries: they were transcribing a position upstream had all along. Stanton's
+`Aaron Halo` needed one because the belt has no numeral; upstream has had it at
+1.563, between Crusader's 1.28 and ArcCorp's 1.933, the whole time.
+
+The eight that remain are the ones upstream's numbers cannot retire, and they
+divide into three kinds. **An `after` that agrees with `distance` is redundant;
+one that disagrees is a signal**, so the disagreements are recorded rather than
+deleted.
+
+| Entry | Why it stays |
+|---|---|
+| Taranis / `Taranis 2a Debris` → Taranis II | measured from Taranis II, and no numeral either, so nothing else can place it |
+| Kallis / `Kallis V Accretion Disk` → Kallis V | upstream gives it no distance at all |
+| Nyx / `Delamar` → Glaciem Ring | ties the belt at 2.1; upstream cannot separate them |
+| Croshaw / `Icarus Cluster` → Croshaw IV | ties Daedalus Cluster at 2.76; upstream cannot separate them |
+| **Sol / `Kuiper Belt` → Neptune** | **disagrees**: 45 puts the belt beyond Pluto's 39.5; the article puts it before |
+| **Taranis / `Taranis Belt Alpha` → Taranis II** | **disagrees**: 2.15 puts it inside Taranis II's 4.62 |
+| **Taranis / `Taranis Belt Beta` → Taranis III** | **disagrees**: 3.39 puts it inside Taranis II's 4.62 |
+| **Kallis / `Kallis Belt Beta` → Kallis III** | **disagrees**: 1.27 puts it outside Kallis IV's 1.09 |
+
+The four disagreements are all belt placements taken from the belt articles' own
+prose, and all four are live questions rather than settled ones. Sol's is the
+sharpest: both figures are real AU, the article's "beyond Neptune… contains
+objects such as Pluto" is a real claim, and deleting that one overlay line is the
+whole change if an editor decides upstream is right.
+
+Tanga was the fifth, and is the one that was **taken**. Its belt sits at 3.31
+against Tanga I's 7.632, making it the innermost body — which is what
+[[Tanga belt alpha]] itself describes, as the remnants of the system's former
+inner planets from before the star expanded. The `after: Tanga I` it used to
+carry came from one sentence that contradicted the rest of its own article.
+
+`TestOnlyEightAfterEntriesSurvive` pins that table. A ninth appearing after a
+refetch is upstream having moved something, and wants reading rather than
+deleting.
+
+### A moon column reads outward too
+
+The same rule runs one level down, on the moons of one planet, with the lettered
+designation (`5a`, `5b`, `5c`) as the fallback. Rings still sort ahead of every
+moon, decided by role rather than by distance — six of the eleven carry no
+distance at all, and one falling to the end of a column would claim the opposite
+of what a ring is.
+
+The two keys disagree in exactly one column in the file, and upstream's numbers
+are right. **Saturn's** letters run Titan, Rhea, Tethys, Dione, Iapetus, which is
+fame order; its distances run Tethys, Dione, Rhea, Titan, Iapetus, which is the
+real Saturnian system. The letters are outward for every system CIG invented and
+only for those, which is why the fallback is a fallback.
+
+An overlay `moonOf` is what makes the parent test necessary here: a body moved
+under a planet it is not upstream-parented to brings a distance measured from
+somewhere else, and the column falls back to the letters rather than guessing.
+The one live reparenting agrees with upstream — Pyro IV is upstream-parented to
+Pyro V, which is exactly why `moonOf` is right about it.
 
 ## Sizes are three different units
 
@@ -439,9 +538,10 @@ system name, and the planet in that name is a proper noun.
 1. Add its name to `systems` in the overlay, in the position it should appear.
    An empty entry is valid and means nothing needed correcting.
 2. Run `mise run systemmap` and read the diff.
-3. Place the belts with `after`, from the belt articles' own prose. Only two of
-   the 69 belts get a position from upstream, the two the numeral rule orders,
-   so this is the main per-system cost.
+3. Read where the belts landed. Upstream's `distance` places 62 of the 69, so
+   this is no longer the per-system cost it was — but check each against the
+   belt article's own prose, and write an `after` only where the two genuinely
+   disagree. Four such disagreements exist today and all four are recorded above.
 4. Check the star's page title. `<System> (star)` is the convention for a system
    with one star, but Terra's star is `Terra Nova`; a binary's stars take their
    own designations, `Tyrol A` and `Tyrol B`.

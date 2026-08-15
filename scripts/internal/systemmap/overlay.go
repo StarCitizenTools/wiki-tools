@@ -16,7 +16,7 @@ import (
 //	label      the display name differs from the upstream name
 //	icon       a wiki file exists for the body's render (in-game systems only)
 //	iconRatio  that file is wider than tall, because the body has rings
-//	after      position a body upstream cannot order: belts, and Delamar
+//	after      position a body upstream's own distance cannot order
 //	moonOf     reparent a body as a moon of another (Pyro IV under Pyro V)
 //	km         the derived size is wrong
 //

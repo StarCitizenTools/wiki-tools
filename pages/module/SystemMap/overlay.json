@@ -1,5 +1,5 @@
 {
-	"%doc": "Editorial corrections applied on top of the ARK Starmap mirror to produce Module:SystemMap/systems.json. Everything here is a judgement the upstream data cannot supply: which article a body links to, where a belt sits between planets, which planet is really a moon. Run `mise run systemmap` after editing. Keys are the system name, then `page`, `star`, `companion`, `companionShape` and/or `bodies`. Under `bodies` the key is the upstream body name (or its designation, when upstream gives it no name, which is what the rail labels it anyway); where two bodies in one system share that key, each is addressed by the type-qualified form instead, such as `Ellis XI (PLANET)`, and the generator's error names both. Supported per-body keys: page, label, icon, iconRatio, after, moonOf, km. `star` and `companion` take the same keys except after and moonOf, which a body nothing on the rail orbits has no use for; their km is a radius. `page` corrects the system's own article, which is otherwise \"<upstream name> system\". `companionShape` overrides how a second star is drawn — `nested` where it orbits the primary, `paired` where the two co-orbit — and should be left to the derivation from upstream's parent_id. `exclude` accepts either key form. A body listed here that no longer exists upstream FAILS the generator rather than being ignored, because a silently-dropped correction is exactly how this work gets lost across a refetch; the same is true of a `star` block on a system upstream files no star for, and of a `companion` block on a system with one star. Listing a system here is what puts it in systems.json, in this order; an empty entry means nothing needed correcting. See docs/superpowers/specs/2026-08-13-system-map-rollout-design.md.",
+	"%doc": "Editorial corrections applied on top of the ARK Starmap mirror to produce Module:SystemMap/systems.json. Everything here is a judgement the upstream data cannot supply: which article a body links to, which planet is really a moon, and the handful of belt placements the wiki's own articles disagree with upstream about. Orbital position itself is DERIVED, from upstream's `distance`, which is measured from a body's PARENT and so orders siblings only: `after` is now for the eight bodies upstream cannot place, not for every belt. Retiring an `after` that merely agrees with upstream is the right move; one that disagrees is a signal and stays. Run `mise run systemmap` after editing. Keys are the system name, then `page`, `star`, `companion`, `companionShape` and/or `bodies`. Under `bodies` the key is the upstream body name (or its designation, when upstream gives it no name, which is what the rail labels it anyway); where two bodies in one system share that key, each is addressed by the type-qualified form instead, such as `Ellis XI (PLANET)`, and the generator's error names both. Supported per-body keys: page, label, icon, iconRatio, after, moonOf, km. `star` and `companion` take the same keys except after and moonOf, which a body nothing on the rail orbits has no use for; their km is a radius. `page` corrects the system's own article, which is otherwise \"<upstream name> system\". `companionShape` overrides how a second star is drawn — `nested` where it orbits the primary, `paired` where the two co-orbit — and should be left to the derivation from upstream's parent_id. `exclude` accepts either key form. A body listed here that no longer exists upstream FAILS the generator rather than being ignored, because a silently-dropped correction is exactly how this work gets lost across a refetch; the same is true of a `star` block on a system upstream files no star for, and of a `companion` block on a system with one star. Listing a system here is what puts it in systems.json, in this order; an empty entry means nothing needed correcting. See docs/superpowers/specs/2026-08-13-system-map-rollout-design.md.",
 	"systems": {
 		"Stanton": {
 			"bodies": {
@@ -12,7 +12,6 @@
 				"Cellin": { "icon": "Cellin-Icon.png" },
 				"Daymar": { "icon": "Daymar-Icon.png" },
 				"Yela": { "icon": "Yela-Icon.png" },
-				"Aaron Halo": { "after": "Crusader" },
 				"ArcCorp": { "page": "ArcCorp (planet)", "icon": "ArcCorp Icon.png" },
 				"Lyria": { "icon": "Lyria-Icon.png" },
 				"Wala": { "icon": "Wala-Icon.png" },
@@ -25,7 +24,6 @@
 		"Pyro": {
 			"bodies": {
 				"Pyro I": { "icon": "PyroIIcon.png" },
-				"Akiro Cluster": { "after": "Pyro I" },
 				"Monox": { "icon": "MonoxIcon2024.png" },
 				"Bloom": { "icon": "BloomIcon.png" },
 				"Pyro V": { "icon": "PyroVIcon.png" },
@@ -42,34 +40,23 @@
 		"Nyx": {
 			"bodies": {
 				"Nyx II": { "icon": "NyxII.png" },
-				"Glaciem Ring": { "after": "Nyx II" },
 				"Delamar": { "after": "Glaciem Ring", "icon": "Delamar-Icon.png" },
-				"Nyx III": { "icon": "NyxIII.png" },
-				"Keeger Belt": { "after": "Nyx III" }
+				"Nyx III": { "icon": "NyxIII.png" }
 			}
 		},
 		"Terra": {
-			"star": { "page": "Terra Nova" },
-			"bodies": {
-				"Henge Cluster": { "after": "Terra" },
-				"Marisol Belt": { "after": "Gen" }
-			}
+			"star": { "page": "Terra Nova" }
 		},
 		"Castra": {},
 		"Sol": {
 			"bodies": {
 				"Mercury": { "page": "Mercury (planet)" },
-				"Herschel Belt": { "after": "Mars" },
 				"Oberon": { "page": "Oberon (moon)" },
 				"Kuiper Belt": { "after": "Neptune" },
 				"Charon": { "page": "Charon (moon)" }
 			}
 		},
-		"Ellis": {
-			"bodies": {
-				"Ellis Belt Alpha": { "after": "Ellis VIII" }
-			}
-		},
+		"Ellis": {},
 		"Kilian": {},
 		"Taranis": {
 			"bodies": {
@@ -79,11 +66,7 @@
 			}
 		},
 		"Oberon": {},
-		"Tyrol": {
-			"bodies": {
-				"Tyrol Belt Alpha": { "after": "Tyrol III" }
-			}
-		},
+		"Tyrol": {},
 		"Kyuk'ya (Indra)": {
 			"page": "Kyuk'ya system",
 			"star": { "page": "Kyuk'ya A", "label": "Kyuk'ya A" },
@@ -93,16 +76,11 @@
 				"Kyuk'ya (Indra) II": { "page": "Kyuk'ya II", "label": "Kyuk'ya II" },
 				"Huichuaihyao y.ath'o se Kyuk'ya": {
 					"page": "Kyuk'ya belt alpha",
-					"label": "Kyuk'ya belt alpha",
-					"after": "Kyuk'ya (Indra) II"
+					"label": "Kyuk'ya belt alpha"
 				}
 			}
 		},
-		"Bacchus": {
-			"bodies": {
-				"Bacchus Belt Alpha": { "after": "Bacchus II" }
-			}
-		},
+		"Bacchus": {},
 		"Baker": {},
 		"Goss": {},
 		"Banshee": {},
@@ -144,11 +122,7 @@
 		"Min": {},
 		"Nemo": {},
 		"Nul": {},
-		"Odin": {
-			"bodies": {
-				"Gainey": { "after": "The Coil" }
-			}
-		},
+		"Odin": {},
 		"Oso": {},
 		"Oya": {},
 		"R.il'a (Rihlah)": {
@@ -166,16 +140,9 @@
 			}
 		},
 		"Trise": {},
-		"Gliese": {
-			"bodies": {
-				"Gliese Belt Alpha": { "after": "Gliese II" },
-				"Gliese Belt Beta": { "after": "Nogo" },
-				"Gliese Cluster Gamma": { "after": "Gliese V" }
-			}
-		},
+		"Gliese": {},
 		"Kallis": {
 			"bodies": {
-				"Kallis Belt Alpha": { "after": "Kallis I" },
 				"Kallis Belt Beta": { "after": "Kallis III" },
 				"Kallis V Accretion Disk": { "after": "Kallis V" }
 			}
@@ -184,75 +151,43 @@
 			"bodies": {
 				"Huichuaihyao y.ath'o se Ail'ka": {
 					"page": "Ail'ka Belt Alpha",
-					"label": "Ail'ka belt alpha",
-					"after": "Xyeping"
+					"label": "Ail'ka belt alpha"
 				},
 				"Huichuaihyao sy.en'o se Ail'ka": {
 					"page": "Ail'ka Belt Beta",
-					"label": "Ail'ka belt beta",
-					"after": "M.iiy'ong"
+					"label": "Ail'ka belt beta"
 				}
 			}
 		},
 		"Croshaw": {
 			"bodies": {
-				"Icarus Cluster": { "after": "Croshaw IV" },
-				"Daedalus Cluster": { "after": "Croshaw IV" }
+				"Icarus Cluster": { "after": "Croshaw IV" }
 			}
 		},
-		"Horus": {
-			"bodies": {
-				"Horus Belt Alpha": { "after": "Horus II" },
-				"Horus Belt Beta": { "after": "Horus II" }
-			}
-		},
-		"Kins": {
-			"bodies": {
-				"Kins Belt Alpha": { "after": "Kins IV" },
-				"Kins Belt Beta": { "after": "Kins V" }
-			}
-		},
+		"Horus": {},
+		"Kins": {},
 		"La'uo (Virtus)": {
 			"page": "La'uo system",
 			"star": { "page": "La'uo (star)", "label": "La'uo" },
 			"bodies": {
 				"Huichuaihyao y.ath'o se La'uo": {
 					"page": "La'uo belt alpha",
-					"label": "La'uo belt alpha",
-					"after": "Yengchuai"
+					"label": "La'uo belt alpha"
 				},
 				"Huichuaihyao sy.en'o se La'uo": {
 					"page": "La'uo belt beta",
-					"label": "La'uo belt beta",
-					"after": "Kyu'ām"
+					"label": "La'uo belt beta"
 				}
 			}
 		},
-		"Branaugh": {
-			"bodies": {
-				"Branaugh Belt Alpha": { "after": "Branaugh II" }
-			}
-		},
-		"Caliban": {
-			"bodies": {
-				"Caliban Belt Alpha": { "after": "Caliban III" }
-			}
-		},
-		"Cano": {
-			"bodies": {
-				"Cano Belt Alpha": { "after": "Cano III" }
-			}
-		},
+		"Branaugh": {},
+		"Caliban": {},
+		"Cano": {},
 		"Cathcart": {},
-		"Centauri": {
-			"bodies": {
-				"Centauri Belt Alpha": { "after": "Centauri IV" }
-			}
-		},
+		"Centauri": {},
 		"Charon": {
 			"bodies": {
-				"Touvoni/Aiya": { "page": "Charon 3a" },
-				"Gedinasho Belt": { "after": "Charon III" }
+				"Touvoni/Aiya": { "page": "Charon 3a" }
 			}
 		},
 		"Ē'aluth (Eealus)": {
@@ -264,32 +199,15 @@
 				"Puāngkiil": { "page": "Puaangkiil", "label": "Puaangkiil" },
 				"Ē'aluth (Eealus) Belt Alpha": {
 					"page": "Ē'aluth belt alpha",
-					"label": "Ē'aluth belt alpha",
-					"after": "Ko'li"
+					"label": "Ē'aluth belt alpha"
 				}
 			}
 		},
-		"Fora": {
-			"bodies": {
-				"Fora Belt Alpha": { "after": "Hyperion" }
-			}
-		},
-		"Genesis": {
-			"bodies": {
-				"Genesis Belt Alpha": { "after": "Genesis II" }
-			}
-		},
+		"Fora": {},
+		"Genesis": {},
 		"Gurzil": {},
-		"Hades": {
-			"bodies": {
-				"Hades IV split": { "after": "Hades IV" }
-			}
-		},
-		"Hadrian": {
-			"bodies": {
-				"Hadrian Belt Alpha": { "after": "Hadrian II" }
-			}
-		},
+		"Hades": {},
+		"Hadrian": {},
 		"Yā'mon (Hadur)": {
 			"page": "Yā'mon system",
 			"star": { "page": "Yā'mon (star)", "label": "Yā'mon" },
@@ -298,43 +216,24 @@
 				"Yethlūl s.yen'o": { "page": "Yethlūl S.yen'o", "label": "Yethlūl S.yen'o" },
 				"Huichuaihyao y.ath'o se Yā'mon": {
 					"page": "Yā’mon belt alpha",
-					"label": "Yā'mon belt alpha",
-					"after": "Yethlūl s.yen'o"
+					"label": "Yā'mon belt alpha"
 				}
 			}
 		},
-		"Kabal": {
-			"bodies": {
-				"Kabal Cluster Alpha": { "after": "Kabal III" }
-			}
-		},
-		"Kiel": {
-			"bodies": {
-				"Kiel Belt Alpha": { "after": "Severus" }
-			}
-		},
+		"Kabal": {},
+		"Kiel": {},
 		"Nexus": {
 			"bodies": {
-				"The Red God": { "page": "Red God", "label": "Red God" },
-				"Elcibre Belt": { "after": "Nexus III" }
+				"The Red God": { "page": "Red God", "label": "Red God" }
 			}
 		},
-		"Oretani": {
-			"bodies": {
-				"Oretani Belt Alpha": { "after": "Oretani III" }
-			}
-		},
+		"Oretani": {},
 		"Orion": {
 			"bodies": {
-				"Armitage": { "page": "Armitage (planet)" },
-				"Orion Belt Alpha": { "after": "Armitage" }
+				"Armitage": { "page": "Armitage (planet)" }
 			}
 		},
-		"Osiris": {
-			"bodies": {
-				"Osiris Belt Alpha": { "after": "Etos" }
-			}
-		},
+		"Osiris": {},
 		"Th.us'ūng (Pallas)": {
 			"page": "Th.us'ūng system",
 			"star": { "page": "Th.us'ūng (star)", "label": "Th.us'ūng" },
@@ -343,49 +242,26 @@
 				"H.ua'u": { "page": "H.au'u", "label": "H.au'u" },
 				"Huichuaihyao y.ath'o se Th.usūng": {
 					"page": "Th.us'ūng belt alpha",
-					"label": "Th.us'ūng belt alpha",
-					"after": "Se'kith"
+					"label": "Th.us'ūng belt alpha"
 				}
 			}
 		},
-		"Tanga": {
-			"bodies": {
-				"Tanga Belt Alpha": { "after": "Tanga I" }
-			}
-		},
-		"Tayac": {
-			"bodies": {
-				"Tayac Belt Alpha": { "after": "Tayac II" }
-			}
-		},
+		"Tanga": {},
+		"Tayac": {},
 		"Tiber": {
 			"bodies": {
-				"Tiber II": { "page": "Tomb", "label": "Tomb" },
-				"Tiber Belt Alpha": { "after": "Tiber I" }
+				"Tiber II": { "page": "Tomb", "label": "Tomb" }
 			}
 		},
-		"Tohil": {
-			"bodies": {
-				"Tohil Belt Alpha": { "after": "Tohil III" }
-			}
-		},
+		"Tohil": {},
 		"Vega": {
 			"bodies": {
 				"Vega 2a": { "page": "Vega 2A" },
-				"Vega 2b": { "page": "Vega 2B" },
-				"Vega Belt Alpha": { "after": "Selene" }
+				"Vega 2b": { "page": "Vega 2B" }
 			}
 		},
-		"Virgil": {
-			"bodies": {
-				"Gideon's Belt": { "after": "Sino" }
-			}
-		},
-		"Yulin": {
-			"bodies": {
-				"Yulin Cluster Alpha": { "after": "Yulin IV" }
-			}
-		},
+		"Virgil": {},
+		"Yulin": {},
 		"Vanguard": {}
 	},
 	"exclude": ["Protoplanetary Disk*", "Protoplentary Disk*", "Ellis XI (PLANET)"]

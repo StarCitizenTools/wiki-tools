@@ -118,6 +118,86 @@ func TestEmptyAffiliationSerialisesAsArray(t *testing.T) {
 	}
 }
 
+// TestObjectCarriesDistance pins the field the mirror used to drop, which was
+// being decoded into nothing.
+//
+// It is the ordering signal upstream ships for a belt, which is otherwise the one
+// body with no orbital slot to fall back on: 68 of the 69 carry a distance — only
+// Kallis V Accretion Disk does not — while just two, `Ellis XI` and `Odin I`, end
+// in a Roman numeral the rail can read. Odin's rail turns on that second one:
+// `Odin I` is The Coil, which ties Gainey at 1.1 and takes the earlier slot
+// because it has a numeral and Gainey has none.
+//
+// The 62 in cmd/systemmap/README.md counts something else and is right there:
+// how many belts `distance` PLACES, which is the 69 less the seven the overlay's
+// surviving `after` entries position instead.
+//
+// It is a POINTER because absence is meaningful and distinct from zero: thirteen
+// objects genuinely have none, while every star sits at a real 0 from itself. A
+// bare Number would decode both to 0 and make "upstream has no figure" and
+// "upstream says it is at the centre" the same claim.
+func TestObjectCarriesDistance(t *testing.T) {
+	cases := []struct {
+		in   string
+		want *Number
+	}{
+		{`{"distance": 30.4413}`, ptr(Number(30.4413))},   // Neptune, AU from the Sun
+		{`{"distance": 0.000234}`, ptr(Number(0.000234))}, // Rings of Uranus, AU from Uranus
+		{`{"distance": "2.15"}`, ptr(Number(2.15))},       // the API quotes some numbers
+		{`{"distance": 0}`, ptr(Number(0))},               // a star, or Min's rogue planet
+		{`{"distance": null}`, nil},                       // Kallis' accretion disk
+		{`{}`, nil},
+	}
+	for _, c := range cases {
+		var obj Object
+		if err := json.Unmarshal([]byte(c.in), &obj); err != nil {
+			t.Fatalf("Unmarshal(%s): %v", c.in, err)
+		}
+		switch {
+		case c.want == nil && obj.Distance != nil:
+			t.Errorf("Unmarshal(%s).Distance = %v, want nil", c.in, *obj.Distance)
+		case c.want != nil && obj.Distance == nil:
+			t.Errorf("Unmarshal(%s).Distance = nil, want %v", c.in, *c.want)
+		case c.want != nil && *obj.Distance != *c.want:
+			t.Errorf("Unmarshal(%s).Distance = %v, want %v", c.in, *obj.Distance, *c.want)
+		}
+	}
+}
+
+// TestDistanceSurvivesARoundTrip checks the wire format, since these bytes are
+// compared against the wiki page directly: an absent distance must write as null
+// like every other optional number here, and a present one must keep decimal
+// notation rather than slipping into exponent form.
+func TestDistanceSurvivesARoundTrip(t *testing.T) {
+	doc := &Document{Objects: []Object{
+		{ID: 1, Code: "A", Distance: ptr(Number(0.000234)), Affiliation: []Affiliation{}},
+		{ID: 2, Code: "B", Affiliation: []Affiliation{}},
+	}}
+	out, err := Encode(doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(out), `"distance": 0.000234`) {
+		t.Errorf("expected decimal notation for a small distance, got:\n%s", out)
+	}
+	if !strings.Contains(string(out), `"distance": null`) {
+		t.Errorf("expected an absent distance to write as null, got:\n%s", out)
+	}
+
+	back, err := Decode(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if back.Objects[0].Distance == nil || *back.Objects[0].Distance != 0.000234 {
+		t.Errorf("distance did not survive the round trip: %v", back.Objects[0].Distance)
+	}
+	if back.Objects[1].Distance != nil {
+		t.Errorf("null decoded as %v, want nil", *back.Objects[1].Distance)
+	}
+}
+
+func ptr[T any](v T) *T { return &v }
+
 func TestCompareDetectsFieldChange(t *testing.T) {
 	mk := func(danger Number) *Document {
 		return &Document{Systems: []System{{ID: 1, Code: "A", Name: "A", AggregatedDanger: danger}}}

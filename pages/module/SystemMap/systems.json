@@ -1,5 +1,5 @@
 {
-	"%doc": "Generated file, do not hand-edit: `mise run systemmap` rebuilds it from the ARK Starmap mirror plus the hand-owned corrections in pages/module/SystemMap/overlay.json (wiki-tools repo), and an edit made here is lost on the next regeneration. Make it in the overlay instead. `star` is the system's star and is OPTIONAL: two upstream systems have none, and the key is then absent rather than empty. `companion` is a second star, present for five systems and absent for the other 85, alongside `companionShape`, which says how the two are drawn: `nested` where upstream parents the companion to the primary and it genuinely orbits it (Tyrol, Kyuk'ya), or `paired` where neither is parented and the planets co-orbit both (Bacchus, Baker, Goss). The shape is derived from parent_id, not from the system's upstream `type`, which reports Tyrol as SINGLE_STAR despite its two stars. A nested companion is drawn where a moon is drawn but at star size, and a pair shares one rail slot; either way the you-are-here marker lands on the individual star, because the two are separate articles. No companion carries a body anywhere in the dataset, and the generator refuses to build one that does. `bodies` is everything orbiting the star, IN ORBITAL ORDER, planets and asteroid belts together. There is no sort key: position is the array index. Planet order comes from the Roman numeral in the upstream designation, because upstream has no orbit_period for 195 of its 326 planets; a body with no numeral (every belt, and Delamar) is placed by the overlay's `after`. A belt is marked `tier: belt`, and the one moon upstream parents to the star instead of to a planet — Odin's Gainey, which therefore has nothing to nest under — is marked `tier: moon` so that it is still drawn, counted and measured as a moon; anything unmarked is a planet. A planet's `moons` array also carries its rings, marked `tier: ring` — a ring nests where a moon nests, because that is the one level of nesting the rail has, but it is drawn as a band rather than a disc and is counted separately. A ring orbiting a MOON is dropped instead: it would need a level of its own, and the only one upstream has (Stanton's Ring of Yela) has no article either. Belts and rings carry no `km`, because upstream reports 0/null and neither has a meaningful diameter, so they render at a fixed size rather than as a scaled disc. `km` is a diameter for planets and moons but a RADIUS for stars: upstream states planets in km, moons in thousands of km, and stars either in solar radii (x696340, the Sun's radius) below 1000 or in km above it. Mixing the two quantities is harmless because the disc scale is rank-preserving within a tier and never compares across tiers. The unit rule is applied by each body's UPSTREAM type, which is why Pyro IV keeps planet-scale km while sitting at the moon tier. A belt's designation is lower-cased after the system name (\"Stanton belt alpha\"), which is house style rather than a correction, so it is derived here and not listed in the overlay; a Roman numeral keeps its capitals, because that is an orbital slot. `extents` is the disc scale: the smallest and largest km per tier ACROSS ALL 90 UPSTREAM SYSTEMS, unioned with whatever this file renders, so that adding a system never resizes a disc on a page already published. Module:SystemMap/Data.lua uses it when present and falls back to measuring this file when it is absent, which is the behaviour that made the sizes move. Do not hand-trim it to the systems listed below. See docs/superpowers/specs/2026-08-13-system-map-rollout-design.md.",
+	"%doc": "Generated file, do not hand-edit: `mise run systemmap` rebuilds it from the ARK Starmap mirror plus the hand-owned corrections in pages/module/SystemMap/overlay.json (wiki-tools repo), and an edit made here is lost on the next regeneration. Make it in the overlay instead. `star` is the system's star and is OPTIONAL: two upstream systems have none, and the key is then absent rather than empty. `companion` is a second star, present for five systems and absent for the other 85, alongside `companionShape`, which says how the two are drawn: `nested` where upstream parents the companion to the primary and it genuinely orbits it (Tyrol, Kyuk'ya), or `paired` where neither is parented and the planets co-orbit both (Bacchus, Baker, Goss). The shape is derived from parent_id, not from the system's upstream `type`, which reports Tyrol as SINGLE_STAR despite its two stars. A nested companion is drawn where a moon is drawn but at star size, and a pair shares one rail slot; either way the you-are-here marker lands on the individual star, because the two are separate articles. No companion carries a body anywhere in the dataset, and the generator refuses to build one that does. `bodies` is everything orbiting the star, IN ORBITAL ORDER, planets and asteroid belts together. There is no sort key: position is the array index. Order comes from upstream's `distance`, which is measured from a body's PARENT and therefore orders SIBLINGS ONLY — the star's own children here, and a planet's moons inside its `moons` array. Comparing it across parents is meaningless: Sol's planets are AU from the Sun (Neptune 30.44) while its rings are thousandths of an AU from their planet (Rings of Uranus 0.000234), and Taranis' debris field is 0.3 from Taranis II rather than from the star. So a rail falls back to the Roman numeral in the designation whenever any body it has to order lacks a distance or is measured from somewhere else, and a tie is broken by the numeral too (Kilian's three Sisters all sit at 0.1). orbit_period is still not used: upstream leaves it null for 195 of its 326 planets. A body upstream cannot place — Taranis' debris field, Kallis' accretion disk, and the six cases where two bodies share a distance or the belt articles disagree with upstream — is placed by the overlay's `after`. A belt is marked `tier: belt`, and the one moon upstream parents to the star instead of to a planet — Odin's Gainey, which therefore has nothing to nest under — is marked `tier: moon` so that it is still drawn, counted and measured as a moon; anything unmarked is a planet. A planet's `moons` array also carries its rings, marked `tier: ring` — a ring nests where a moon nests, because that is the one level of nesting the rail has, but it is drawn as a band rather than a disc and is counted separately. A ring orbiting a MOON is dropped instead: it would need a level of its own, and the only one upstream has (Stanton's Ring of Yela) has no article either. Belts and rings carry no `km`, because upstream reports 0/null and neither has a meaningful diameter, so they render at a fixed size rather than as a scaled disc. `km` is a diameter for planets and moons but a RADIUS for stars: upstream states planets in km, moons in thousands of km, and stars either in solar radii (x696340, the Sun's radius) below 1000 or in km above it. Mixing the two quantities is harmless because the disc scale is rank-preserving within a tier and never compares across tiers. The unit rule is applied by each body's UPSTREAM type, which is why Pyro IV keeps planet-scale km while sitting at the moon tier. A belt's designation is lower-cased after the system name (\"Stanton belt alpha\"), which is house style rather than a correction, so it is derived here and not listed in the overlay; a Roman numeral keeps its capitals, because that is an orbital slot. `extents` is the disc scale: the smallest and largest km per tier ACROSS ALL 90 UPSTREAM SYSTEMS, unioned with whatever this file renders, so that adding a system never resizes a disc on a page already published. Module:SystemMap/Data.lua uses it when present and falls back to measuring this file when it is absent, which is the behaviour that made the sizes move. Do not hand-trim it to the systems listed below. See docs/superpowers/specs/2026-08-13-system-map-rollout-design.md.",
 	"extents": {
 		"star": {
 			"min": 6260,
@@ -563,18 +563,6 @@
 							"tier": "ring"
 						},
 						{
-							"page": "Titan",
-							"label": "Titan",
-							"designation": "6a",
-							"km": 1000
-						},
-						{
-							"page": "Rhea",
-							"label": "Rhea",
-							"designation": "6b",
-							"km": 1000
-						},
-						{
 							"page": "Tethys",
 							"label": "Tethys",
 							"designation": "6c",
@@ -584,6 +572,18 @@
 							"page": "Dione",
 							"label": "Dione",
 							"designation": "6d",
+							"km": 1000
+						},
+						{
+							"page": "Rhea",
+							"label": "Rhea",
+							"designation": "6b",
+							"km": 1000
+						},
+						{
+							"page": "Titan",
+							"label": "Titan",
+							"designation": "6a",
 							"km": 1000
 						},
 						{
@@ -4085,18 +4085,18 @@
 			},
 			"bodies": [
 				{
+					"page": "Tanga belt alpha",
+					"label": "Tanga belt alpha",
+					"designation": "Tanga belt alpha",
+					"tier": "belt"
+				},
+				{
 					"page": "Tanga I",
 					"label": "Tanga I",
 					"designation": "Tanga I",
 					"subtype": "Chthonian planet",
 					"moons": [],
 					"km": 7729
-				},
-				{
-					"page": "Tanga belt alpha",
-					"label": "Tanga belt alpha",
-					"designation": "Tanga belt alpha",
-					"tier": "belt"
 				},
 				{
 					"page": "Tanga II",

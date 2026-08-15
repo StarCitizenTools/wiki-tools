@@ -24,9 +24,16 @@ const docComment = "Generated file, do not hand-edit: `mise run systemmap` rebui
 	"are separate articles. No companion carries a body anywhere in the dataset, and the generator refuses to build one " +
 	"that does. " +
 	"`bodies` is everything orbiting the star, IN ORBITAL ORDER, planets and asteroid belts together. There is no sort " +
-	"key: position is the array index. Planet order comes from the Roman numeral in the upstream designation, because " +
-	"upstream has no orbit_period for 195 of its 326 planets; a body with no numeral (every belt, and Delamar) is " +
-	"placed by the overlay's `after`. A belt is marked `tier: belt`, and the one moon upstream parents to the star " +
+	"key: position is the array index. Order comes from upstream's `distance`, which is measured from a body's PARENT " +
+	"and therefore orders SIBLINGS ONLY — the star's own children here, and a planet's moons inside its `moons` array. " +
+	"Comparing it across parents is meaningless: Sol's planets are AU from the Sun (Neptune 30.44) while its rings are " +
+	"thousandths of an AU from their planet (Rings of Uranus 0.000234), and Taranis' debris field is 0.3 from Taranis " +
+	"II rather than from the star. So a rail falls back to the Roman numeral in the designation whenever any body it " +
+	"has to order lacks a distance or is measured from somewhere else, and a tie is broken by the numeral too " +
+	"(Kilian's three Sisters all sit at 0.1). orbit_period is still not used: upstream leaves it null for 195 of its " +
+	"326 planets. A body upstream cannot place — Taranis' debris field, Kallis' accretion disk, and the six cases " +
+	"where two bodies share a distance or the belt articles disagree with upstream — is placed by the overlay's " +
+	"`after`. A belt is marked `tier: belt`, and the one moon upstream parents to the star " +
 	"instead of to a planet — Odin's Gainey, which therefore has nothing to nest under — is marked `tier: moon` so " +
 	"that it is still drawn, counted and measured as a moon; anything unmarked is a planet. A planet's `moons` " +
 	"array also carries its rings, marked `tier: ring` — a ring nests where a moon nests, because that is the one " +
@@ -447,7 +454,7 @@ func buildSystem(name string, sys *starmap.System, objects []*starmap.Object, ov
 	}
 
 	// --- order ---------------------------------------------------------------
-	ordered, err := arrange(rail)
+	ordered, err := arrange(rail, star)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -496,7 +503,7 @@ func buildSystem(name string, sys *starmap.System, objects []*starmap.Object, ov
 			return nil, 0, err
 		}
 		if r == rolePlanet {
-			sortMoons(n.moons, name)
+			sortMoons(n.moons, n, name)
 			moons := make([]Body, 0, len(n.moons))
 			for _, m := range n.moons {
 				// A ring shares the moons array and nothing else about a moon.
@@ -730,12 +737,20 @@ func moonParent(n *node, byKey map[string]*node, shared map[string][]string, byI
 
 // arrange puts the planet rail in orbital order.
 //
-// Numbered bodies sort by their Roman numeral. Everything else is placed
+// Bodies sort by upstream's `distance` where that is a comparable quantity, and
+// by their Roman numeral where it is not — see distanceOrdersTheRail for which,
+// and why the choice is made once for the whole rail. Everything else is placed
 // relative to a body that is already there, via the overlay's `after`; a body
-// with neither a numeral nor an `after` lands at the end, in upstream order,
-// which is visible in the output and easy to correct.
-func arrange(nodes []*node) ([]*node, error) {
-	var numbered, floating []*node
+// with none of the three lands at the end, in upstream order, which is visible
+// in the output and easy to correct.
+//
+// `after` still wins outright. It is editorial judgement, and the eight that
+// survive are the cases where upstream's own numbers cannot settle the question:
+// two bodies at the same distance, a body measured from a planet rather than
+// from the star, and the four placements the belt articles' prose disagrees with
+// upstream about.
+func arrange(nodes []*node, star *node) ([]*node, error) {
+	var positioned, floating, unanchored []*node
 	anchored := map[string][]*node{}
 
 	for _, n := range nodes {
@@ -743,20 +758,42 @@ func arrange(nodes []*node) ([]*node, error) {
 			anchored[after] = append(anchored[after], n)
 			continue
 		}
+		unanchored = append(unanchored, n)
+	}
+
+	byDistance := distanceOrdersTheRail(unanchored, star)
+	for _, n := range unanchored {
+		// A distance positions a body upstream gives no numeral, which is what
+		// retires 50 of the overlay's 58 `after` entries: a belt is designated
+		// "Stanton Belt Alpha" and carries no orbital slot, but upstream has
+		// always known how far out it sits.
+		if byDistance {
+			positioned = append(positioned, n)
+			continue
+		}
 		if _, ok := orbitalIndex(designationOf(n)); ok {
-			numbered = append(numbered, n)
+			positioned = append(positioned, n)
 			continue
 		}
 		floating = append(floating, n)
 	}
 
-	sort.SliceStable(numbered, func(a, b int) bool {
-		ia, _ := orbitalIndex(designationOf(numbered[a]))
-		ib, _ := orbitalIndex(designationOf(numbered[b]))
-		if ia != ib {
-			return ia < ib
+	sort.SliceStable(positioned, func(a, b int) bool {
+		x, y := positioned[a], positioned[b]
+		if byDistance {
+			dx, _ := upstreamDistance(x.obj)
+			dy, _ := upstreamDistance(y.obj)
+			if dx != dy {
+				return dx < dy
+			}
+			// Upstream files ties, and they are real rather than sloppy: Kilian's
+			// three Sisters all sit at 0.1, and Croshaw IV shares 2.76 with both
+			// of its clusters. A tie is upstream saying it cannot separate two
+			// bodies, so the numeral answers instead — which is what keeps Second
+			// Sister ahead of Third Sister, and Croshaw IV ahead of the two
+			// clusters that have no numeral at all.
 		}
-		return numbered[a].order < numbered[b].order
+		return beforeByNumeral(x, y)
 	})
 	for anchor := range anchored {
 		group := anchored[anchor]
@@ -776,7 +813,7 @@ func arrange(nodes []*node) ([]*node, error) {
 			place(dependent)
 		}
 	}
-	for _, n := range numbered {
+	for _, n := range positioned {
 		place(n)
 	}
 	for _, n := range floating {
@@ -798,19 +835,186 @@ func arrange(nodes []*node) ([]*node, error) {
 	return out, nil
 }
 
-// sortMoons orders moons by their lettered designation: 5a, 5b, 5c. A moon
-// without one is a reparented planet (Pyro IV), which keeps a planet's
-// designation and so goes last.
+// beforeByNumeral is the Roman-numeral comparison: the fallback wherever
+// upstream's distance cannot be used, and the tiebreak wherever two distances
+// are equal.
 //
-// The designation is normalised first: upstream writes "Pyro 5a", and it is the
-// part after the system name that carries the ordering.
+// A body with no numeral sorts after one that has it. In numeral mode that
+// branch is unreachable — a body with no numeral and no `after` floats to the
+// end instead of being sorted — but it is reached on a distance tie, where it is
+// what keeps Croshaw IV ahead of the two clusters that share its 2.76 and carry
+// no orbital slot of their own.
+func beforeByNumeral(a, b *node) bool {
+	ia, oka := orbitalIndex(designationOf(a))
+	ib, okb := orbitalIndex(designationOf(b))
+	if oka != okb {
+		return oka
+	}
+	if oka && ia != ib {
+		return ia < ib
+	}
+	return a.order < b.order
+}
+
+// noParent is the parentKey of a body upstream parents to nothing. Upstream ids
+// are positive, so zero cannot collide with one.
+const noParent = 0
+
+// parentKey is which body upstream parents a node to, for the sole purpose of
+// deciding whether two nodes are siblings.
+func parentKey(n *node) int {
+	if n.obj.ParentID == nil {
+		return noParent
+	}
+	return *n.obj.ParentID
+}
+
+// upstreamDistance is how far upstream puts a body from its PARENT, and whether
+// upstream gives a figure at all.
 //
-// Rings sort ahead of every moon. The column means distance from the planet —
-// that is what the letters encode — and a ring is inside its planet's moons in
-// all five cases here and in every ring system anybody has looked at. Letting a
-// ring fall to the end with the other undesignated bodies would put it where
-// Pyro IV goes, which is the outermost position, and claim the opposite.
-func sortMoons(moons []*node, system string) {
+// Zero is a reading, not an absence: every star sits at 0 from itself, and so
+// does Min's rogue planet, which upstream parents to nothing. Thirteen objects
+// across the whole dataset genuinely have none — five stars, six planetary
+// rings, Tamsa's black hole and Kallis' accretion disk — and only those report
+// false here.
+func upstreamDistance(obj *starmap.Object) (float64, bool) {
+	if obj.Distance == nil {
+		return 0, false
+	}
+	return float64(*obj.Distance), true
+}
+
+// railParent is the body every ordinary rail body is measured from: the primary
+// star where upstream parents them to it, and nothing at all where upstream
+// parents nothing.
+//
+// Both arrangements make the same claim — that the body orbits the head of the
+// rail — and upstream is consistent within a system either way, which is what
+// makes the distances comparable. The 83 single-star systems and the two nested
+// binaries parent every body to the primary. The three co-orbiting binaries and
+// starless Min parent nothing: there is no single body at the centre to point
+// at, so the barycentre goes unnamed and every parent_id is null.
+//
+// The star is preferred over nothing where both appear, because a body upstream
+// leaves unparented in a system that does parent the rest is the one whose
+// distance nobody can vouch for.
+func railParent(rail []*node, star *node) (int, bool) {
+	if star != nil {
+		for _, n := range rail {
+			if parentKey(n) == star.obj.ID {
+				return star.obj.ID, true
+			}
+		}
+	}
+	for _, n := range rail {
+		if parentKey(n) == noParent {
+			return noParent, true
+		}
+	}
+	return 0, false
+}
+
+// distanceOrdersTheRail reports whether upstream's `distance` can order these
+// bodies, which it can only when every one of them is measured from the SAME
+// point.
+//
+// `distance` is PARENT-relative, and reading it as star-relative produces
+// confident nonsense. Sol's planets really are AU from the Sun — Mercury 0.4667,
+// Earth 1.0, Neptune 30.44 — because the Sun is what upstream parents them to.
+// Sol's rings are thousandths of an AU by exactly the same rule: Rings of Uranus
+// is 0.000234 from Uranus, not from the star. Taranis' debris field is 0.3 from
+// Taranis II, which upstream parents it to, and comparing that 0.3 with Taranis
+// I's 0.94 would place a body 4.6 AU out in the innermost slot on the rail.
+//
+// The decision is taken once for the whole rail rather than per body, because
+// "closer to the star" and "numbered earlier" are different questions: a
+// comparison answering one for some pairs and the other for the rest is not a
+// total order, and the result would depend on which pairs sort happened to
+// compare. So one missing distance, or one body upstream measures from somewhere
+// else, sends the whole rail back to the numeral — which is the rule that was
+// there before and still orders 324 of upstream's 326 planets correctly.
+//
+// Bodies the overlay has placed with `after` are not passed in: their position
+// comes from the anchor rather than from either key, so they neither need a
+// comparable distance nor disqualify the bodies that have one. That is what lets
+// Taranis and Kallis keep distance ordering on the rest of their rails while the
+// debris field and the accretion disk stay where the overlay puts them.
+func distanceOrdersTheRail(unanchored []*node, star *node) bool {
+	if len(unanchored) == 0 {
+		return false
+	}
+	parent, ok := railParent(unanchored, star)
+	if !ok {
+		return false
+	}
+	for _, n := range unanchored {
+		if parentKey(n) != parent {
+			return false
+		}
+		if _, ok := upstreamDistance(n.obj); !ok {
+			return false
+		}
+	}
+	return true
+}
+
+// distanceOrdersTheColumn is the same question one level down, for the moons of
+// one planet: upstream's distances order them only if every one is measured from
+// that planet.
+//
+// Rings are excluded from the test, not because they are exempt from it but
+// because they never reach the comparison: sortMoons puts every ring ahead of
+// every moon before either key is consulted. Six of the eleven carry no distance
+// at all, and letting those six drag a planet's real moons back to the lettered
+// fallback would be an accident of what upstream fills in for a body that is
+// drawn as a fixed band anyway.
+//
+// The parent test is what an overlay `moonOf` makes necessary. It reparents a
+// body the map knows better than upstream does, and a body moved under a planet
+// it is not upstream-parented to would bring a distance measured from somewhere
+// else entirely. The one live reparenting agrees with upstream — Pyro IV is
+// upstream-parented to Pyro V, which is exactly why `moonOf` is right about it —
+// so the guard costs nothing today and refuses to guess the day it does not.
+func distanceOrdersTheColumn(moons []*node, planet *node) bool {
+	found := false
+	for _, m := range moons {
+		if isRing(m.obj) {
+			continue
+		}
+		if parentKey(m) != planet.obj.ID {
+			return false
+		}
+		if _, ok := upstreamDistance(m.obj); !ok {
+			return false
+		}
+		found = true
+	}
+	return found
+}
+
+// sortMoons orders a planet's moons outward.
+//
+// Upstream's distance is the key where it can be used, and the lettered
+// designation — 5a, 5b, 5c — where it cannot. The two disagree in one column in
+// the whole file, and upstream's numbers are right there: Saturn's letters run
+// Titan, Rhea, Tethys, Dione, Iapetus, which is fame order, while its distances
+// run Tethys, Dione, Rhea, Titan, Iapetus, which is the real satellite system.
+// The letters are outward for every system CIG invented and only for those.
+//
+// A moon with no letter is a reparented planet (Pyro IV), which keeps a planet's
+// designation and so goes last under the fallback. The designation is normalised
+// first: upstream writes "Pyro 5a", and it is the part after the system name
+// that carries the ordering.
+//
+// Rings sort ahead of every moon, ahead of both keys. The column means distance
+// from the planet, and a ring is inside its planet's moons in all five cases
+// here and in every ring system anybody has looked at — upstream's own figures
+// agree, putting Jupiter's rings at 0.000819 against Io's 0.00282. Deriving it
+// from the distance anyway would lose the six rings upstream gives no distance,
+// and letting one of those fall to the end with the other undesignated bodies
+// would put it where Pyro IV goes, which is the outermost position, and claim
+// the opposite.
+func sortMoons(moons []*node, planet *node, system string) {
 	// The same two steps buildBody applies, so the string sorted on is the string
 	// written out. Both land on "1a" for an aliased system either way — the prefix
 	// is cut whichever name anchors it — but sorting one string and storing
@@ -819,9 +1023,20 @@ func sortMoons(moons []*node, system string) {
 	key := func(n *node) (int, string, bool) {
 		return moonIndex(normaliseDesignation(dealiasDesignation(designationOf(n), system), wiki))
 	}
+	byDistance := distanceOrdersTheColumn(moons, planet)
 	sort.SliceStable(moons, func(a, b int) bool {
-		if ra, rb := isRing(moons[a].obj), isRing(moons[b].obj); ra != rb {
+		ra, rb := isRing(moons[a].obj), isRing(moons[b].obj)
+		if ra != rb {
 			return ra
+		}
+		if byDistance && !ra {
+			// Both are moons here, and both are upstream-parented to this planet,
+			// so the two figures answer the same question.
+			da, _ := upstreamDistance(moons[a].obj)
+			db, _ := upstreamDistance(moons[b].obj)
+			if da != db {
+				return da < db
+			}
 		}
 		na, la, oka := key(moons[a])
 		nb, lb, okb := key(moons[b])

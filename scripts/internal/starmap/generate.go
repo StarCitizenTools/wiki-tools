@@ -346,6 +346,7 @@ func buildObject(src *apiObject, system SystemRef, parent *apiObject, tunnel *Tu
 		Code:             src.Code,
 		Description:      src.Description,
 		Designation:      src.Designation,
+		Distance:         src.Distance,
 		Habitable:        src.Habitable,
 		InfoURL:          src.InfoURL,
 		Name:             src.Name,

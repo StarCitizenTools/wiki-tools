@@ -89,32 +89,30 @@ func find(t *testing.T, doc *Document, system, label string) Body {
 	return Body{}
 }
 
-func TestBuildOrdersPlanetsByRomanNumeral(t *testing.T) {
-	// With no overlay at all, the numeral alone has to reproduce the order the
-	// live page shows. orbit_period is null for every Stanton moon and for 195
-	// of upstream's 326 planets, so it is not a fallback.
+func TestBuildOrdersTheRailWithNoOverlayAtAll(t *testing.T) {
+	// With no overlay at all, upstream's own numbers have to reproduce the order
+	// the live page shows — the belt included. Aaron Halo carries no Roman
+	// numeral, so before `distance` was carried through the mirror it fell to the
+	// end of the rail and needed an `after` to sit where it belongs; upstream has
+	// had it at 1.563, between Crusader's 1.28 and ArcCorp's 1.933, all along.
+	// orbit_period is still not a fallback: it is null for every Stanton moon and
+	// for 195 of upstream's 326 planets.
 	doc := build(t, `{"systems": {"Stanton": {}}}`)
-	// Aaron Halo has no numeral and no `after` here, so it falls to the end.
-	want := "Hurston (Arial, Aberdeen, Magda, Ita), Crusader (Cellin, Daymar, Yela), " +
-		"ArcCorp (Lyria, Wala), microTech (Calliope, Clio, Euterpe), Aaron Halo"
+	want := "Hurston (Arial, Aberdeen, Magda, Ita), Crusader (Cellin, Daymar, Yela), Aaron Halo, " +
+		"ArcCorp (Lyria, Wala), microTech (Calliope, Clio, Euterpe)"
 	if got := strings.Join(rail(t, doc, "Stanton"), ", "); got != want {
 		t.Errorf("rail:\n got %s\nwant %s", got, want)
 	}
 }
 
-func TestBuildPlacesUnnumberedBodiesWithAfter(t *testing.T) {
-	// A belt has no numeral, so upstream cannot say where it sits. Without
-	// `after` it lands at the end; with it, between the planets the wiki's own
-	// prose puts it between.
-	doc := build(t, `{"systems": {"Stanton": {}}}`)
-	if got := rail(t, doc, "Stanton"); got[len(got)-1] != "Aaron Halo" {
-		t.Errorf("an unplaceable body should fall to the end, got %v", got)
-	}
-
-	doc = build(t, `{"systems": {"Stanton": {"bodies": {"Aaron Halo": {"after": "Crusader"}}}}}`)
+func TestBuildLetsAfterOverrideTheDerivedPosition(t *testing.T) {
+	// `after` is judgement and still wins outright, which is what the eight
+	// entries left in the overlay depend on: where upstream's distance and the
+	// belt articles' prose disagree, the prose is the one an editor wrote down.
+	doc := build(t, `{"systems": {"Stanton": {"bodies": {"Aaron Halo": {"after": "microTech"}}}}}`)
 	got := rail(t, doc, "Stanton")
-	if got[2] != "Aaron Halo" {
-		t.Errorf("Aaron Halo should follow Crusader, got %v", got)
+	if got[len(got)-1] != "Aaron Halo" {
+		t.Errorf("`after` should override the distance-derived position, got %v", got)
 	}
 }
 
@@ -147,7 +145,9 @@ func TestBuildOrdersTwoBodiesAnchoredToTheSameBodyByOverlayOrder(t *testing.T) {
 func TestBuildReparentsWithMoonOf(t *testing.T) {
 	doc := build(t, `{"systems": {"Pyro": {"bodies": {"Pyro IV": {"moonOf": "Pyro V"}}}}}`)
 	got := strings.Join(rail(t, doc, "Pyro"), ", ")
-	want := "Pyro I, Monox, Bloom, Pyro V (Ignis, Vatra, Adir, Fairo, Fuego, Vuur, Pyro IV), Terminus, Akiro Cluster"
+	// Akiro Cluster ties Pyro I at 0.553, and the numeral breaks the tie in the
+	// planet's favour — the same slot the retired `after: Pyro I` gave it.
+	want := "Pyro I, Akiro Cluster, Monox, Bloom, Pyro V (Ignis, Vatra, Adir, Fairo, Fuego, Vuur, Pyro IV), Terminus"
 	if got != want {
 		t.Errorf("rail:\n got %s\nwant %s", got, want)
 	}

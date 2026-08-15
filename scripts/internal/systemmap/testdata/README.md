@@ -1,20 +1,21 @@
 # testdata
 
-`starmap.json` is a cut of a real `cmd/starmap` run, forty-two systems wide. The
-fixture holds every system `overlay.json` lists, because a system in the overlay
-that is missing here fails `TestReproducesTheCommittedFile`, plus two the overlay
-deliberately does not list: Gurzil, whose placeholders the exclusion patterns are
-tested against, and Tamsa, which a test builds to check that it is *refused*.
+`starmap.json` is a cut of a real `cmd/starmap` run, seventy-six systems wide.
+The fixture holds every system `overlay.json` lists, because a system in the
+overlay that is missing here fails `TestReproducesTheCommittedFile`, plus two the
+overlay deliberately does not list: Gurzil, whose placeholders the exclusion
+patterns are tested against, and Tamsa, which a test builds to check that it is
+*refused*.
 
 The table below is not a manifest — it is the reason each system earns its place
 in a fixture meant to stay readable. The rows are the ones that pin a distinct
-behaviour; the thirteen that only pin "the derivation is right for an ordinary
-system" share the last row rather than taking one each.
+behaviour; the forty-two that only pin "the derivation is right for an ordinary
+system" share the last two rows rather than taking one each.
 
 | System | Why it is here |
 |---|---|
 | Stanton | live on the wiki; the reproduction gate. Also the only system whose Planetary Ring orbits a moon (`Ring of Yela`) and so must **not** render, plus jump points, landing zones and stations that must not reach the rail |
-| Pyro | live; the `moonOf` reparenting (Pyro IV under Pyro V) and two `iconRatio` corrections |
+| Pyro | live; the `moonOf` reparenting (Pyro IV under Pyro V) and two `iconRatio` corrections. Also the first of the four distance ties: Pyro I and Akiro Cluster both sit at 0.553, and the mirror files the cluster first |
 | Nyx | live; `after` chained onto another `after` (Delamar behind Glaciem Ring), and the only planet with no Roman numeral |
 | Terra | live; four planets, four moons, two belts, and the star whose page title breaks the convention |
 | Castra | live; the smallest system that renders |
@@ -42,14 +43,40 @@ system" share the last row rather than taking one each.
 | Davien | in the file; the smallest system with a moon — one `SATELLITE`, parented to a planet, the ordinary case |
 | Min | in the file; one of the two systems upstream files **no star** for. Its rail is headed by a rogue gas giant carrying four moons, which is what the article describes too, so a headless rail is the correct picture |
 | Tamsa | **not** in the file, and here for that reason: it is the other system upstream files no `STAR` for, but it is not headless. Upstream files a head — `TAMSA.STAR.TAMSA`, id 2521, with both planets parented to it — and types it `BLACKHOLE`, a type the rail has no tier or glyph for. The parent id resolves perfectly well; the object is filtered out by type before the rail is built, which is why the wiki's own [[Tamsa (black hole)]] would be missing from a map of the system it defines. `TestBuildRefusesASystemHeadedByABlackHole` reads this system, so the fixture has to keep it |
-| Bremen, Corel, Elysium, Ferron, Garron, Idris, Leir, Magnus, Nemo, Oso, Oya, Rhetor, Trise | in the file; ordinary systems that needed no correction at all. They are here because the overlay lists them, and they are worth keeping: between them they cover most of the 22 planet subtypes and six of the spectral classes |
+| Kilian, Croshaw, Kabal | in the file; the three systems where upstream ties two bodies at the same distance and the Roman numeral has to break it — Kilian's three Sisters at 0.1 apiece, Croshaw IV against both of its clusters at 2.76, Kabal III against its cluster at 1.84. Pyro is the fourth, and has its own row above. In every one of the four the mirror files the loser FIRST, which is what makes them a real test of the tiebreak rather than of upstream's file order |
+| Kallis | in the file; the only body in all 90 systems upstream gives **no** distance at all (`Kallis V Accretion Disk`), so its `after` is the one that cannot be retired, plus a second belt whose article disagrees with upstream about where it sits |
+| Tanga | in the file; one of the three systems this change reorders. Its belt sits at 3.31 against Tanga I's 7.632, so upstream puts it inside the first planet, and the retired `after: Tanga I` had it the other way round |
+| Gliese | in the file; three unnumbered regions interleaved with six planets, all placed by `distance` alone — the densest case of the rule that retired 50 `after` entries |
+| Bremen, Branaugh, Caliban, Cano, Cathcart, Centauri, Corel, Elysium, Ferron, Fora, Garron, Genesis, Hades, Hadrian, Horus, Idris, Kiel, Kins, Leir, Magnus, Nemo, Oretani, Oso, Osiris, Oya, Rhetor, Tayac, Tohil, Trise, Vanguard, Virgil, Yulin | in the file; ordinary systems that needed no correction at all. They are here because the overlay lists them, and they are worth keeping: between them they cover most of the 22 planet subtypes and six of the spectral classes |
+| Ail'ka, Charon, La'uo (Virtus), Nexus, Orion, Th.us'ūng (Pallas), Tiber, Vega, Yā'mon (Hadur), Ē'aluth (Eealus) | in the file; systems whose only corrections are titles and labels — a page the wiki files elsewhere, a name upstream spells differently. They pin nothing about the derivation that the rows above do not, and they are here because the overlay lists them |
 
 Only the fields `internal/systemmap` reads are kept — id, code, name,
-designation, size, type, subtype, star_system_id, parent_id — so the file stays
-short enough to read against the output it is expected to produce. The values
-are verbatim, not invented: the point of a fixture here is that upstream's
+designation, distance, size, type, subtype, star_system_id, parent_id — so the
+file stays short enough to read against the output it is expected to produce. The
+values are verbatim, not invented: the point of a fixture here is that upstream's
 oddities (null names, trailing spaces in designations, sizes in three different
 units) are present exactly as they arrive.
+
+### `objects` is in the mirror's order, and that is load-bearing
+
+The generator reads file order as a last-resort tiebreak — `node.order`, which
+decides a distance tie with no numeral to settle it, a moon-letter tie, and which
+star of an unparented pair is written first. A fixture in an order of its own
+therefore hands those rules the answer, and the tests that name them pass with
+the rule deleted.
+
+This file was id-sorted until 2026-08-14, and `cmd/starmap` sorts by
+`strings.ToUpper(code)`, so the two disagreed wherever it mattered: Kilian
+arrived `I, II, III` here and `I, III, II` in production, and Bacchus arrived
+`A, B` here and `B, A` in production. Both the numeral tiebreak and the pair
+ordering were unpinned as a result — removing either left the whole suite green
+while reordering four live rails and two binaries. It is now cut in the mirror's
+order, which is what production reads.
+
+So: **preserve `scripts/out/starmap.json`'s object order when you re-cut**. Do
+not sort by id, and do not sort by anything else for readability. `systems` is
+sorted by name and may stay that way — `Build` looks systems up by name from the
+overlay's roster, so nothing reads their file order.
 
 Gurzil is one of the two systems here that `overlay.json` does not list, and it
 is carried for a reason other than reproduction: its nine `Protoplanetary Disk N`
@@ -86,7 +113,8 @@ commit, or the test will fail on a difference that is real:
 
 ```sh
 mise run starmap                     # refresh scripts/out/starmap.json
-# then cut it down again, keeping the same systems and the same field list
+# then cut it down again, keeping the same systems, the same field list,
+# and the mirror's object ORDER (see above — sorting it re-blinds two rules)
 mise run systemmap                   # rewrite the page from the new mirror
 ```
 

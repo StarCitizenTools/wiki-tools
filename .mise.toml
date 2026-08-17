@@ -74,8 +74,12 @@ run = "go test ./..."
 description = "Run the Go unit tests for scripts/ (no network access required)"
 
 [tasks."test:lua"]
-depends = ["test:lua:manifest", "test:lua:unit"]
-description = "Run all Lua tests (manifest conformance + off-wiki ScribuntoUnit suites)"
+depends = ["test:lua:manifest", "test:lua:unit", "test:lua:globals"]
+description = "Run all Lua tests (manifest conformance + off-wiki ScribuntoUnit suites + undeclared-global scan)"
+
+[tasks."test:lua:globals"]
+run = "tests/lint-globals.sh"
+description = "Compile-time undeclared-global scan (luac5.1 GETGLOBAL): live Scribunto strict raises these at module load, but the off-wiki runner's strict shim is a no-op, so the unit suites cannot catch them"
 
 [tasks."test:lua:manifest"]
 run = "lua5.1 tests/manifest.lua"

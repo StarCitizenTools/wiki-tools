@@ -33,6 +33,7 @@ local p = {}
 --- @field getStructuredData nil|fun(apiData: table, args: table, resolved: table|nil): table<string, any> Flat key-value data
 --- @field getShortDescription nil|fun(apiData: table, args: table, typeInfo: table, prefix: string|nil, resolved: table|nil): string Page short description
 --- @field getExternalSiteItems nil|fun(apiData: table, args: table): EntityItemData[] External-site links
+--- @field getFooterButtons nil|fun(apiData: table, args: table): table[] Footer action-button defs ({ label, url, icon, class }), rendered between the Galactapedia and Wiki API buttons
 --- @field getTypeInfo nil|fun(apiData: table, args: table): table|nil Display metadata { name, category }
 --- @field getSubtitle nil|fun(apiData: table, args: table): string|nil Header subtitle override (else the display type)
 --- @field getHeaderBadge nil|fun(apiData: table, args: table, resolved: table|nil): string|nil Header badge HTML composed into the image overlay

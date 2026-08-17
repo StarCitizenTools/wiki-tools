@@ -78,6 +78,25 @@ function suite:testUnparseableNumberWithoutApiPathDoesNotResolve()
 	end
 end
 
+-- The sharp edge of the rule, pinned because it is NOT Location-only. Vehicle's
+-- editorial.json declares `transform` on 17 fields across 292 live pages, six of
+-- them pure-editorial with no apiPath (warbondcost, originalpledgecost,
+-- originalwarbondcost, retracted{length,width,height}). For those there is no API
+-- value to defer to, so an unparseable entry does not fall back to anything — the
+-- row simply disappears. That is the intended trade (a wrong number is worse than
+-- a missing one), but it is the behaviour to check first when an editor reports a
+-- row that "vanished". No live page currently supplies such a value: all 1068
+-- transform-field values across the 292 pages parse.
+function suite:testUnparseableNumberWithNoApiValueLeavesNothingToShow()
+	local manifest = { warbond_price = { arg = 'warbondcost', smw = 'Warbond pledge price', transform = 'number' } }
+	local resolved = Editorial.resolve({}, { warbondcost = 'TBA' }, manifest)
+	self:assertEquals(nil, resolved.warbond_price)
+	-- No entry and no caller fallback: the display value is nil, so the row is dropped.
+	self:assertEquals(nil, Editorial.view(resolved):value('warbond_price'))
+	-- A real figure on the same field still resolves, commas and all.
+	self:assertEquals(275, Editorial.resolve({}, { warbondcost = '275' }, manifest).warbond_price.value)
+end
+
 -- Real editor input still parses through the same path: parseNumber handles
 -- thousands separators and magnitude suffixes, so the guard costs nothing.
 function suite:testParseableNumberWithoutApiPathStillResolves()

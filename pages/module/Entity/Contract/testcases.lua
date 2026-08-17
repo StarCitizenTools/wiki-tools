@@ -97,6 +97,17 @@ function suite:testKindTypeChecksChainContributorHooks()
 	end
 end
 
+-- The invariant behind the test above, asserted as a property rather than a
+-- hard-coded pair. KIND's docstring promises it is a superset of CHAIN_LINK, and
+-- the pair test only pins the two hooks that were missing once. Adding a hook to
+-- CHAIN_LINK and forgetting KIND would otherwise reintroduce exactly that drift
+-- with a green suite: a kind implementing it as chain root would go unchecked.
+function suite:testKindIsSupersetOfChainLink()
+	for hook in pairs(Contract.CHAIN_LINK) do
+		self:assertTrue(Contract.KIND[hook] ~= nil, 'CHAIN_LINK hook missing from KIND: ' .. hook)
+	end
+end
+
 function suite:testValidateStrictFlagsTypoHook()
 	local ok, errors = Contract.validate(
 		{ matches = function() end, getApiConfigs = function() end, getSectionsn = function() end },

@@ -26,6 +26,14 @@
 		],
 		"desc": "Game update in which an entity first became available in-game (the canonical Update: patch page). For vehicles this is the flight-ready patch, rendered as the Development \"Flight ready in\" row."
 	},
+	"Affiliation": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Location/StarSystem"
+		],
+		"desc": "Controlling empire / affiliation of a star system, in the compact vocabulary the pre-Entity pages already store ('UEE', 'Unclaimed', ...) so queries keep one value bucket."
+	},
 	"Alpha damage": {
 		"smw": "Number",
 		"bucket": "DOUBLE",
@@ -333,6 +341,22 @@
 			"Commodity"
 		],
 		"desc": "Density of a commodity, in g/cm³."
+	},
+	"Discovered by": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Location"
+		],
+		"desc": "Discoverer of a star system (editorial; the APIs do not model discovery)."
+	},
+	"Discovered in": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Location"
+		],
+		"desc": "Lore year a star system was discovered (editorial; the APIs do not model discovery)."
 	},
 	"Distortion": {
 		"smw": "Number",
@@ -697,6 +721,14 @@
 		],
 		"desc": "Quantum fuel-usage multiplier of a jump module."
 	},
+	"Jump point count": {
+		"smw": "Number",
+		"bucket": "INTEGER",
+		"modules": [
+			"Location/StarSystem"
+		],
+		"desc": "Number of jump points in a star system (typed celestialObjects count from the starmap record)."
+	},
 	"Jump tuning rate": {
 		"smw": "Number",
 		"bucket": "DOUBLE",
@@ -939,6 +971,14 @@
 			"WeaponMining"
 		],
 		"desc": "Number of mining-module slots on a mining laser head."
+	},
+	"Moon count": {
+		"smw": "Number",
+		"bucket": "INTEGER",
+		"modules": [
+			"Location/StarSystem"
+		],
+		"desc": "Number of moons (SATELLITE objects) in a star system."
 	},
 	"Muzzle velocity": {
 		"smw": "Number",
@@ -1190,6 +1230,14 @@
 			"Turret"
 		],
 		"desc": "Pitch rotation speed of a turret, in °/s."
+	},
+	"Planet count": {
+		"smw": "Number",
+		"bucket": "INTEGER",
+		"modules": [
+			"Location/StarSystem"
+		],
+		"desc": "Number of planets in a star system."
 	},
 	"Pledge availability": {
 		"smw": "Text",
@@ -1620,6 +1668,22 @@
 		],
 		"desc": "Blade-stab damage of a melee weapon."
 	},
+	"Star count": {
+		"smw": "Number",
+		"bucket": "INTEGER",
+		"modules": [
+			"Location/StarSystem"
+		],
+		"desc": "Number of stars in a star system."
+	},
+	"Station count": {
+		"smw": "Number",
+		"bucket": "INTEGER",
+		"modules": [
+			"Location/StarSystem"
+		],
+		"desc": "Number of stations (MANMADE objects) in a star system."
+	},
 	"Storage capacity": {
 		"smw": "Number",
 		"bucket": "INTEGER",
@@ -1652,6 +1716,22 @@
 			"Entity"
 		],
 		"desc": "Most-specific structural type of the page subject (e.g. Gun, Cooler, Company). Injected centrally by Module:Entity from the resolved typeInfo."
+	},
+	"System size": {
+		"smw": "Number",
+		"bucket": "DOUBLE",
+		"modules": [
+			"Location"
+		],
+		"desc": "Aggregated size of a star system in AU (stored unitless; editorial-overridable via |size=). CONFLICT: the live Property:System size page predates this manifest and is typed Quantity with 'Corresponds to 1 AU' — do NOT regenerate that Property page from this entry without deciding the retype (~90 pages store values)."
+	},
+	"System type": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Location/StarSystem"
+		],
+		"desc": "Star-topology type of a system as the RAW starmap code ('SINGLE_STAR', 'BINARY'), matching the vocabulary ~90 pre-Entity pages already store."
 	},
 	"Systems": {
 		"smw": "Text",

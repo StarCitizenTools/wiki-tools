@@ -44,18 +44,20 @@ local STAR_SUBTYPES = {
 }
 
 --- Tile catalog: celestial_objects type → labels, in display order. `one` is
---- the count-1 label; `title` carries the unabbreviated name as a tooltip.
+--- the count-1 label; `title` carries the unabbreviated name as a tooltip;
+--- `field` names the editorial count-override field (legacy {{System}} arg),
+--- resolved through the editorial view so hand counts beat the starmap tally.
 local OBJECT_TILES = {
 	{ type = 'STAR', one = 'Star', many = 'Stars' },
-	{ type = 'PLANET', one = 'Planet', many = 'Planets' },
-	{ type = 'SATELLITE', one = 'Moon', many = 'Moons' },
-	{ type = 'ASTEROID_BELT', one = 'Belt', many = 'Belts', title = 'Asteroid belts' },
-	{ type = 'ASTEROID_FIELD', one = 'Field', many = 'Fields', title = 'Asteroid fields' },
-	{ type = 'MANMADE', one = 'Station', many = 'Stations' },
-	{ type = 'JUMPPOINT', one = 'Jump point', many = 'Jump points' },
-	{ type = 'ANOMALY', one = 'Anomaly', many = 'Anomalies' },
-	{ type = 'BLACKHOLE', one = 'Black hole', many = 'Black holes' },
-	{ type = 'POI', one = 'POI', many = 'POIs' },
+	{ type = 'PLANET', one = 'Planet', many = 'Planets', field = 'planets' },
+	{ type = 'SATELLITE', one = 'Moon', many = 'Moons', field = 'satellites' },
+	{ type = 'ASTEROID_BELT', one = 'Belt', many = 'Belts', title = 'Asteroid belts', field = 'asteroidbelts' },
+	{ type = 'ASTEROID_FIELD', one = 'Field', many = 'Fields', title = 'Asteroid fields', field = 'asteroidfields' },
+	{ type = 'MANMADE', one = 'Station', many = 'Stations', field = 'stations' },
+	{ type = 'JUMPPOINT', one = 'Jump point', many = 'Jump points', field = 'jumppoints' },
+	{ type = 'ANOMALY', one = 'Anomaly', many = 'Anomalies', field = 'anomalies' },
+	{ type = 'BLACKHOLE', one = 'Black hole', many = 'Black holes', field = 'blackholes' },
+	{ type = 'POI', one = 'POI', many = 'POIs', field = 'pois' },
 }
 
 --- @param apiData table
@@ -103,13 +105,19 @@ local function countObjects(starsystem)
 end
 
 --- StatTiles items for the object counts, catalog order, zeros omitted.
+--- Editorial overrides (`ed`, optional) beat the starmap tallies per tile.
 --- @param starsystem table|nil
+--- @param ed table|nil Editorial view
 --- @return StatTilesItem[]
-local function buildObjectTiles(starsystem)
+local function buildObjectTiles(starsystem, ed)
 	local counts = countObjects(starsystem)
 	local tiles = {}
 	for _, def in ipairs(OBJECT_TILES) do
 		local count = counts[def.type]
+		if def.field and ed then
+			count = ed:value(def.field, count)
+		end
+		count = tonumber(count)
 		if count and count > 0 then
 			tiles[#tiles + 1] = {
 				value = count,
@@ -207,7 +215,7 @@ function p.getSections(apiData, args, resolved)
 	appendMeter(sensor, 'Population', aggregated.population)
 
 	local objects = {}
-	local tiles = buildObjectTiles(starsystem)
+	local tiles = buildObjectTiles(starsystem, ed)
 	if #tiles > 0 then
 		objects[#objects + 1] = {
 			content = statTiles.render({ items = tiles }),
@@ -239,19 +247,22 @@ function p.getStructuredData(apiData, args, resolved)
 	if not starsystem then
 		return {}
 	end
+	local ed = Editorial.view(resolved)
 	local counts = countObjects(starsystem)
 	local affiliation = location.affiliationEntry(starsystem)
 	-- System type stores the RAW starmap code (SINGLE_STAR) and Affiliation the
 	-- compact form (UEE / Unclaimed): both match the vocabulary the pre-Entity
 	-- pages already store, so existing queries keep a single value bucket.
+	-- Counts go through the editorial view so the stored numbers always equal
+	-- the displayed tiles (hand counts beat the starmap tallies).
 	return {
 		system_type = starsystem.type,
 		affiliation = affiliation and (affiliation.short or affiliation.label) or nil,
 		star_count = counts.STAR,
-		planet_count = counts.PLANET,
-		moon_count = counts.SATELLITE,
-		station_count = counts.MANMADE,
-		jump_point_count = counts.JUMPPOINT,
+		planet_count = tonumber(ed:value('planets', counts.PLANET)),
+		moon_count = tonumber(ed:value('satellites', counts.SATELLITE)),
+		station_count = tonumber(ed:value('stations', counts.MANMADE)),
+		jump_point_count = tonumber(ed:value('jumppoints', counts.JUMPPOINT)),
 	}
 end
 
@@ -264,11 +275,13 @@ end
 --- @param apiData table
 --- @param args table
 --- @param typeInfo table
+--- @param prefix string|nil
+--- @param resolved table|nil
 --- @return string
-function p.getShortDescription(apiData, args, typeInfo)
+function p.getShortDescription(apiData, args, typeInfo, prefix, resolved)
 	local starsystem = getStarsystem(apiData)
 	local hasType = starsystem ~= nil and location.SYSTEM_TYPES[starsystem.type] ~= nil
-	local planets = countObjects(starsystem).PLANET or 0
+	local planets = tonumber(Editorial.view(resolved):value('planets', countObjects(starsystem).PLANET)) or 0
 	local countClause = planets == 1 and ' with 1 planet' or (' with ' .. planets .. ' planets')
 
 	if hasType then

@@ -2,10 +2,13 @@ require('strict')
 
 --- @module Entity/Location
 --- Location kind: entities backed by the game-data /api/locations endpoint
---- (star systems, planets, moons, stations, …). Slice 1 models only the
---- SolarSystem classification: matches() is deliberately narrow so every other
---- location keeps today's unmatched behavior until its leaf exists. Widening
---- matches() is the per-slice switch.
+--- (star systems, planets, moons, stations, …). Only the SolarSystem
+--- classification is modelled: matches() is deliberately narrow so every other
+--- location keeps today's unmatched behavior until its leaf exists. Adding a
+--- classification means widening matches() AND giving it a leaf in
+--- LOCATION_SUBTYPE_MAP. The starmap attachment is gated separately, by
+--- shouldFetchStarsystem — deliberately NOT coupled to matches(), so a planet
+--- payload cannot trigger a star-system fetch once matches() widens.
 ---
 --- For star systems the location record is thin; the substantive data lives in
 --- the starmap-derived /api/starsystems endpoint. The two records share no
@@ -86,7 +89,7 @@ function p.getApiConfigs()
 	}
 end
 
---- Positive identification, deliberately narrow for slice 1: a location
+--- Positive identification, deliberately narrow: a location
 --- signature (`respawn_location_type`, a field no item, vehicle, commodity,
 --- mission, or blueprint record carries, plus the classification table)
 --- restricted to SolarSystem. Nil-safe, strict boolean, order-independent —

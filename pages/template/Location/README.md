@@ -1,8 +1,23 @@
 # Template:Location
 
-Renders a location's infobox through Module:Entity, the same engine that powers Template:Entity. Currently covers in-game star systems: supply the location UUID and the infobox fills itself from the live game data and the RSI starmap, including affiliation, jurisdiction, star types, sensor readings, and astronomical object counts. The editorial parameters below override a wrong or missing API value with a hand-curated one.
+Renders a location's infobox through `Module:Entity`, the same engine that powers `{{Entity}}`. Currently covers star systems: supply the location UUID and the infobox fills itself from the live game data and the RSI starmap, including affiliation, jurisdiction, star types, sensor readings, and astronomical object counts. Lore systems that exist only in the starmap have no UUID and need no parameters at all — the template looks the starmap record up by the page title. The editorial parameters below override a wrong or missing API value with a hand-curated one.
 
 ## Usage
+
+Lore star system, no UUID: the starmap record is found by the page title.
+
+```wikitext
+{{Location}}
+```
+
+Same, on a page whose title does not match the starmap name (`starmapname` overrides the lookup; `name` only sets the infobox title):
+
+```wikitext
+{{Location
+| name        = Rihlah system
+| starmapname = Rihlah
+}}
+```
 
 In-game star system, everything from the API:
 
@@ -28,8 +43,8 @@ Star system with curated overrides and lore fields (the discovery citation belon
 
 | Name | Label | Type | Required | Default | Description | Example |
 |------|-------|------|----------|---------|-------------|---------|
-| `uuid` | UUID | string | No | (falls back to the UUID stored on the page) | Location UUID from the game data API. Only in-game systems have one; lore systems omit it. | `c9c137cf-c520-47ee-9e6d-5d653dfbe201` |
-| `starmapname` | Starmap name | string | No | (page title) | Starmap lookup name override — only when the page name does not resolve the starmap record. | `Rihlah` |
+| `uuid` | UUID | string | No | (none) | Location UUID from the game data API. Only in-game systems have one; lore systems omit it and the infobox renders from the starmap record plus the parameters below. There is no fallback to a UUID stored on the page: this template declares its kind, which deliberately suppresses that lookup so a stale or placeholder stored UUID cannot resurrect itself. | `c9c137cf-c520-47ee-9e6d-5d653dfbe201` |
+| `starmapname` | Starmap name | string | No | (the API record's name, else `name`, else the page title) | Starmap lookup name override — only when neither the page title nor `name` resolves the starmap record. | `Rihlah` |
 | `name` | Name | string | No | (page title) | Infobox display title. | `Stanton system` |
 | `image` | Image | wiki-file-name | No |  | Infobox image. | `Stanton 2D.png` |
 | `size` | Size | number | No | (starmap aggregated size) | System size in AU, overriding the starmap value. | `9.83` |
@@ -51,7 +66,10 @@ Star system with curated overrides and lore fields (the discovery citation belon
 
 ## Behavior
 
-- The infobox, page categories, short description, and SMW properties are all owned by the single invocation, exactly like Template:Entity.
+- The infobox, page categories, short description, and SMW properties are all owned by the single invocation, exactly like `{{Entity}}`.
+- No parameter is required. With no `uuid`, the page identifies itself by its own title: that is the infobox heading and the starmap lookup key alike.
 - The starmap record is fetched by system name; affiliation, jurisdiction, size, star types, sensor readings (economy and population), and object-count tiles come from it. Hand counts beat starmap tallies wherever both exist, in the display and in the stored properties alike.
+- A count or size parameter that is not a number ("?", "TBD", "Unknown") is ignored rather than displayed, so a placeholder cannot blank a real starmap value. Leave the parameter out instead; the starmap figure is used.
+- The starmap does not publish a survey for every system (the Vanduul systems and those with incomplete probe data). Where it withholds one, the size and the economy/population readings are omitted rather than shown as the placeholder figures the starmap returns.
 - The RSI Starmap footer button is generated from the starmap system code; the Galactapedia button appears when `galactapediaurl` is supplied.
 - Stored property values are sanitized: wiki links are reduced to their display text and reference tags are stripped, so query results stay clean.

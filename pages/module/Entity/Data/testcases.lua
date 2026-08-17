@@ -278,7 +278,7 @@ function suite:testGetExposesFamilyAndMatchedKind()
 	self:assertEquals(nil, r.matchedKind)
 end
 
--- runEditorialFork (slice 2: the fork runs the declared kind's enrich)
+-- runEditorialFork (the fork runs the declared kind's enrich)
 
 function suite:testRunEditorialForkCallsEnrichWithArgs()
 	local seenArgs

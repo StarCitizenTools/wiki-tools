@@ -66,6 +66,7 @@ p.CHAIN_LINK = {
 	getStructuredData = false,
 	getShortDescription = false,
 	getExternalSiteItems = false,
+	getFooterButtons = false,
 	getTypeInfo = false,
 	getApiConfigs = false,
 	getSubtitle = false,

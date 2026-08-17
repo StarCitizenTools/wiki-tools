@@ -63,14 +63,18 @@
     background-color: oklch(17.86% 0.034 265.754);
 }
 
-/* Galactapedia footer button: themed with the Galactapedia brand colors.
-   Same compound-selector / mask-icon-follows-color treatment as the API button. */
-.t-button--galactapedia.cdx-button {
+/* Galactapedia + Starmap footer buttons: themed with the Galactapedia brand
+   colors (the mark is the Starmap's logo, so both RSI map properties share
+   it). Same compound-selector / mask-icon-follows-color treatment as the API
+   button. */
+.t-button--galactapedia.cdx-button,
+.t-button--starmap.cdx-button {
     background-color: #162535;
     color: #bae4f2;
 }
 
-.t-button--galactapedia.cdx-button:hover {
+.t-button--galactapedia.cdx-button:hover,
+.t-button--starmap.cdx-button:hover {
     background-color: #111d29;
 }
 

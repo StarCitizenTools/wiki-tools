@@ -102,18 +102,20 @@ local function buildExternalSitesSection(chain, apiData, args)
 end
 
 --- Builds the footer section: a flex row of action buttons. The Galactapedia
---- button (when the page supplies a galactapediaurl) comes first; the Wiki API
---- button links to the entity on the Star Citizen Wiki API
---- (api.star-citizen.wiki) — its /search/<uuid> path resolves any entity by
---- UUID regardless of type. They sit side by side and wrap to stacked rows on
---- narrow infoboxes (see Module:Entity/styles.css). Each button is independent:
---- a page with only one of (galactapediaurl, uuid) shows just that button, and
---- the whole section collapses out when neither is present.
+--- button (when the page supplies a galactapediaurl) comes first, then any
+--- chain-contributed buttons (the getFooterButtons hook, e.g. the star-system
+--- Starmap button), then the Wiki API button, which links to the entity on the
+--- Star Citizen Wiki API (api.star-citizen.wiki) — its /search/<uuid> path
+--- resolves any entity by UUID regardless of type. They sit side by side and
+--- wrap to stacked rows on narrow infoboxes (see Module:Entity/styles.css).
+--- Each button is independent, and the whole section collapses out when none
+--- is present.
 ---
+--- @param chain table[]
 --- @param apiData table
 --- @param args table
 --- @return table|nil section
-local function buildFooterSection(apiData, args)
+local function buildFooterSection(chain, apiData, args)
 	local buttons = {}
 
 	-- Canonical arg is `galactapediaurl` (the consistent <name>url form, also used by
@@ -130,6 +132,18 @@ local function buildFooterSection(apiData, args)
 				class = 't-button--galactapedia',
 			})
 		)
+	end
+
+	-- Chain-contributed buttons, root-to-leaf: each link may return a list of
+	-- ButtonLua-shaped defs ({ label, url, icon, class }); weight defaults to
+	-- the footer's normal.
+	for _, mod in ipairs(chain) do
+		if mod.getFooterButtons then
+			for _, def in ipairs(mod.getFooterButtons(apiData, args) or {}) do
+				def.weight = def.weight or 'normal'
+				table.insert(buttons, button.render(def))
+			end
+		end
 	end
 
 	local uuid = args.uuid or apiData.uuid
@@ -211,7 +225,7 @@ local function buildSections(chain, facets, apiData, args, resolved)
 		table.insert(sections, externalSites)
 	end
 
-	local footer = buildFooterSection(apiData, args)
+	local footer = buildFooterSection(chain, apiData, args)
 	if footer then
 		table.insert(sections, footer)
 	end

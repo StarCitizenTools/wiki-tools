@@ -79,7 +79,7 @@ Primary entry point for sibling renderers. Takes the `args` table returned by `p
 
 4. **`fetchChainExtras`** iterates every module in the chain and collects `getApiConfigs()` endpoints that were *not* already fetched during probing. Calls `api.fetchAllApis` for those configs and merges the results into `apiData`.
 
-5. **`enrich`**: if the matched kind exposes an `enrich(apiData)` hook, calls it and replaces `apiData` with its return value. This is the kind's opportunity to post-process or normalise merged data before renderers see it.
+5. **`enrich`**: if the matched kind exposes an `enrich(apiData, args)` hook, calls it and replaces `apiData` with its return value. This is the kind's opportunity to post-process or normalise merged data before renderers see it, or to attach a secondary record the primary endpoint does not carry. `args` is passed so a kind can derive that lookup from the page itself rather than from the record — Location fetches the starmap star-system record by `|starmapname=`, the location record's name, `|name=`, or the page title, in that order. The same hook runs on the editorial fork (see below), where `apiData` is empty and `args` is the only input.
 
 6. **`typeInfo` / `displayType` resolution** tries `leaf.getTypeInfo(apiData, args)` first. If that returns a result, `displayType` is set to `typeInfo.name`. If `getTypeInfo` is absent or returns `nil`, falls back to [Module:Entity/TypeResolver](https://starcitizen.tools/Module:Entity/TypeResolver)`.resolve(args.type or apiData.type, apiData.classification)`.
 
@@ -97,11 +97,14 @@ When there is **no** genuine record **and** `args.kind` names a registered kind 
 
 - the opted-in kind becomes `matchedKind`;
 - `apiData` is reset to `{}` so the render is driven entirely by the editorial `resolved` layer;
-- the chain is rebuilt from `kind.resolveSubtype(apiData, args)` (the kind resolves its sub-identity from args, such as Vehicle's `|family=`);
+- the chain is rebuilt from `kind.resolveSubtype(apiData, args)` (the kind resolves its sub-identity from args, such as Vehicle's `|family=`, or Location defaulting to its StarSystem leaf);
+- the kind's `enrich(apiData, args)` hook then runs on that empty `apiData` (`runEditorialFork`), so a kind-declared page can still attach a secondary record keyed off the page rather than off a uuid. This is the entry path for the ~84 lore star systems that exist only in the RSI starmap: no location record, no uuid, yet the infobox fills from `apiData.starsystem`. A kind with no `enrich` is unaffected — `apiData` stays `{}`;
 - `hasApiError` is forced `false` (a missing record is expected here, not an error);
 - `unresolvedReference` is set `true` **iff** a `|uuid=` was provided: a planned page declares no uuid, so a present-but-unresolved uuid is a typo or not-yet-in-API reference worth flagging (`[[Category:Pages with an unresolved entity reference]]`, emitted by `Module:Entity/Categories`).
 
-`args.kind` is consulted **only** when there is no genuine record, so an in-game page's API-matched kind always wins and `|kind=`/`|family=` are harmless no-ops once a uuid resolves. See [Module:Entity/Vehicle](https://starcitizen.tools/Module:Entity/Vehicle) for the consumer side.
+`args.kind` is consulted **only** when there is no genuine record, so an in-game page's API-matched kind always wins and `|kind=`/`|family=` are harmless no-ops once a uuid resolves. See [Module:Entity/Vehicle](https://starcitizen.tools/Module:Entity/Vehicle) and [Module:Entity/Location](https://starcitizen.tools/Module:Entity/Location) for the consumer side.
+
+A kind-declared page also satisfies `Module:Entity`'s identity guard on its own: an entity is identifiable by a `uuid`, by a name (curated or from the record), **or** by a kind that claimed the page, which derives its identity from the page title. The guard tests `result.matchedKind`, not raw `args.kind`, so a misspelled kind still errors rather than rendering a title-only shell.
 
 ## Data
 
@@ -133,7 +136,7 @@ Renderers use `hasApiError` to display an error notice instead of an empty infob
 
 ## Gotchas
 
-**`p._internal` exports `detectFacets`, `resolveLeaf`, `isGenuineRecord`, `resolveEditorialKind`, `buildResolverConfig`, and `identifyKind`.** `probeKind`, `probeKindByEndpoint`, `fetchChainExtras`, and `fetchApiData` are local functions with no test export; they are covered only indirectly, through the suite's `p.get({})` calls (which take the no-uuid path and never fetch). The editorial-mode dispatch glue inside `p.get` (the genuine-record branch on a real API miss) is browser-verified, not unit-tested (the runner has no live API), but its constituent predicates (`isGenuineRecord`, `resolveEditorialKind`, `resolveLeaf` arg-threading) are unit-tested in isolation.
+**`p._internal` exports `detectFacets`, `resolveLeaf`, `isGenuineRecord`, `resolveEditorialKind`, `buildResolverConfig`, `identifyKind`, and `runEditorialFork`.** `probeKind`, `probeKindByEndpoint`, `fetchChainExtras`, and `fetchApiData` are local functions with no test export; they are covered only indirectly, through the suite's `p.get({})` calls (which take the no-uuid path and never fetch). The editorial-mode dispatch glue inside `p.get` (the genuine-record branch on a real API miss) is browser-verified, not unit-tested (the runner has no live API), but its constituent parts — `isGenuineRecord`, `resolveEditorialKind`, `resolveLeaf` arg-threading, and `runEditorialFork`'s enrich call — are unit-tested in isolation.
 
 **The resolver depends on Apiunto following redirects.** `search/<uuid>` answers with a `302` to the typed record, so the `StarCitizenWikiAPI` source must set `followRedirects => true` in `$wgApiuntoSources` (Apiunto ≥ 3.1; MediaWiki's HTTP client does not follow redirects by default). Without it every resolver fetch returns the upstream's redirect *body*, `matches()` sees nothing, and every page silently falls back to `probeKindByEndpoint` — correct output at the old cost, which is why the regression is easy to miss. The unit suite cannot catch it: the test runner has no live API.
 
@@ -151,6 +154,7 @@ Renderers use `hasApiError` to display an error notice instead of an empty infob
 - `resolveLeaf`: uses the subtype returned by `resolveSubtype`; falls back to the kind when `resolveSubtype` returns `nil`; uses the kind directly when `resolveSubtype` is absent; returns `Module:Entity/Item` with `hasApiError = true` when no kind matched but a UUID was present (and `false` when none was); and threads `args` through to `resolveSubtype`.
 - `isGenuineRecord`: true only when `apiData.uuid` is present and non-empty.
 - `resolveEditorialKind`: resolves an opted-in kind by name (case-insensitively), and returns `nil` when `args.kind` is absent, unknown, or names a registered-but-not-opted-in kind.
+- `runEditorialFork`: calls the declared kind's `enrich` with the parsed args and returns the enriched `apiData` plus the rebuilt chain; a kind with no `enrich` yields an empty `apiData`.
 - `parseArgs`: strips empty strings, lets a direct frame arg win over a parent-frame arg, reads the SMW uuid when no `kind` is present, and *skips* the SMW uuid when `|kind=` is supplied (the editorial-mode guard).
 - `p.get({})`: the no-uuid call returns the documented table shape, defaults `kind` to `'Item'`, leaves `apiData` empty with `hasApiError = false`, and exposes `family`/`matchedKind` as `nil`.
 
@@ -161,9 +165,10 @@ The suite is auto-discovered and run headless by the off-wiki runner (`mise run 
 ```
 Entity/
 ├── Data.lua          # parseArgs + p.get public API; buildResolverConfig/identifyKind/probeKind/
-│                     #   probeKindByEndpoint/resolveLeaf/fetchChainExtras/fetchApiData local
+│                     #   probeKindByEndpoint/resolveLeaf/fetchChainExtras/fetchApiData/
+│                     #   resolveEditorialKind/runEditorialFork local
 └── Data/
-    └── testcases.lua # ScribuntoUnit suite (detectFacets, resolveLeaf, isGenuineRecord, resolveEditorialKind, parseArgs, p.get)
+    └── testcases.lua # ScribuntoUnit suite (detectFacets, resolveLeaf, isGenuineRecord, resolveEditorialKind, runEditorialFork, parseArgs, p.get)
 ```
 
 Unlike its sibling components (`Entity/Registry/Registry.lua`, `Entity/Api/Api.lua`, …), the module file lives at `Entity/Data.lua` rather than inside the `Entity/Data/` directory: that directory holds only the testcases subpage and this README.

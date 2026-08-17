@@ -322,9 +322,9 @@ local function resolveEditorialKind(args)
 end
 
 --- The editorial fork's data path: empty apiData, leaf re-resolved from args,
---- chain rebuilt, and — new in slice 2 — the declared kind's enrich hook run
---- with args, so a kind can attach secondary API data (Location fetches the
---- starmap record by name) even though no identity record exists.
+--- chain rebuilt, and the declared kind's enrich hook run with args — so a kind
+--- can attach secondary API data (Location fetches the starmap record by name)
+--- even though no identity record exists.
 --- @param editorialKind table
 --- @param args table
 --- @return table apiData

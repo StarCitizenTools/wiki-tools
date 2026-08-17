@@ -47,9 +47,12 @@ feeds the next:
    [Module:Entity/Api](https://starcitizen.tools/Module:Entity/Api).fetchAllApis;
    results are merged into `apiData`.
 
-6. **Enrich**: if the matched kind exposes an `enrich(apiData)` hook, it runs now
-   to post-process or normalise the merged data (e.g. Commodity attaches raw/refined
-   records).
+6. **Enrich**: if the matched kind exposes an `enrich(apiData, args)` hook, it runs
+   now to post-process or normalise the merged data, or to attach a secondary record
+   the primary endpoint does not carry (Commodity attaches raw/refined records;
+   Location attaches the RSI starmap star-system record, looked up by name). It also
+   runs on the editorial fork, where `apiData` is empty and `args` is the only input
+   — that is how a kind-declared lore page with no uuid still fills its infobox.
 
 7. **Resolve typeInfo / displayType**: the leaf's `getTypeInfo(apiData, args)` is
    tried first. On nil, [Module:Entity/TypeResolver](https://starcitizen.tools/Module:Entity/TypeResolver).resolve
@@ -94,16 +97,29 @@ the full Flow section with edge-case semantics.
 
 A page with **no genuine in-game record** (no `apiData.uuid`: either nothing came
 back, or the API returned a stub the matched kind accepted) but a `|kind=` that names
-a kind which opted into editorial mode (`p.editorialMode == true`) renders from
-**editorial args alone**. After step 6, `Data.get` resets `apiData = {}`, re-resolves
-the leaf from the curated `|family=`, and rebuilds the chain; the rest of the pipeline
-runs unchanged, so a planned page is a clean data-gated subset driven entirely by the
-`resolved` editorial layer. This is how concept / not-yet-in-game vehicles render
-before they exist in the API. The opt-in is harmless on a page that later gets a uuid:
-the genuine record takes over. Two tracking categories surface the state:
-`Entities with manual API data` (when `hasManualApiData`) and
-`Pages with an unresolved entity reference` (when a uuid was supplied but resolved to
-no genuine record, `unresolvedReference`). Vehicle is the only kind that opts in today.
+a kind which opted into editorial mode (`p.editorialMode == true`) renders **without
+an identity record**. After step 6, `Data.get` resets `apiData = {}`, re-resolves the
+leaf from args (Vehicle reads the curated `|family=`; Location defaults to its
+StarSystem leaf), rebuilds the chain, and then runs the kind's `enrich(apiData, args)`
+on that empty payload. The rest of the pipeline runs unchanged, so such a page is a
+clean data-gated subset.
+
+What fills it depends on the kind. Vehicle has no `enrich`, so a concept ship renders
+purely from the `resolved` editorial layer — this is how not-yet-in-game vehicles
+render before they exist in the API. Location does have one, so a lore star system
+with no uuid still fetches its RSI starmap record by page title and renders real
+affiliation, size, sensor and object-count data alongside the editorial fields.
+
+A kind-declared page is also identifiable on that basis alone: `Module:Entity`'s
+identity guard accepts a `uuid`, a name, **or** a kind that claimed the page (whose
+identity is its title), so a bare `{{Location}}` is a valid invocation. The guard
+tests the resolved `matchedKind`, so a misspelled `|kind=` still errors.
+
+The opt-in is harmless on a page that later gets a uuid: the genuine record takes
+over. Two tracking categories surface the state: `Entities with manual API data`
+(when `hasManualApiData`) and `Pages with an unresolved entity reference` (when a uuid
+was supplied but resolved to no genuine record, `unresolvedReference`). Vehicle and
+Location are the kinds that opt in today.
 
 ## Composition model
 
@@ -148,7 +164,7 @@ kind **fields** `name` / `editorialMode` (validated by `Contract.validateFields`
 | `matches` | `(apiData) → boolean` | kind, facet | yes | Kind identity probe / facet detection. Must be nil-safe, strict boolean. |
 | `getApiConfigs` | `() → EntityApiConfig[]` | kind (also any link) | yes (kind) | `[1]` is the kind's identity endpoint; extra configs fetched for the chain. |
 | `resolveSubtype` | `(apiData, args) → module\|nil` | kind | no | Refine to a subtype leaf module (Item → Turret; Vehicle → Ship). `args` carries the curated `|family=` for editorial mode. |
-| `enrich` | `(apiData, args) → apiData` | kind | no | Post-fetch mutation (e.g. Commodity attaches raw/refined + harvestable food); `args` added in slice 2 for kind-declared pages. |
+| `enrich` | `(apiData, args) → apiData` | kind | no | Post-fetch mutation (e.g. Commodity attaches raw/refined + harvestable food). `args` is what lets a kind-declared page enrich with no identity record: Location looks the starmap record up by `\|starmapname=` / `\|name=` / the page title. |
 | `getEditorialManifest` | `() → table` | kind | no | Per-kind editorial-field manifest; its presence opts the kind into the editorial layer. |
 | `editorialMode` | `boolean\|nil` | kind | no | Opt-in: when true the kind renders from editorial args alone (`apiData = {}`) for planned / not-yet-in-game pages. |
 | `getAcquisition` | `(apiData, args) → { summary, cards }\|nil` | kind | no | Acquisition payload for `{{Entity/Availability}}`: Buy/Rent/Loot/Craft/Pledge summary flags + terminal cards. Absent → no acquisition block. |
@@ -245,6 +261,7 @@ A quick map to every piece of the system.
 | [Module:Entity/Item](https://starcitizen.tools/Module:Entity/Item) | Item kind + subtype dispatch (`itemSubtypeMapping`); shared item helpers |
 | [Module:Entity/Vehicle](https://starcitizen.tools/Module:Entity/Vehicle) | Vehicle kind orchestrator; family dispatch + the Vehicle/ section sub-builders (Overview, Capacity, Cost, Stats, Dimensions, Lore, Development) |
 | [Module:Entity/Commodity](https://starcitizen.tools/Module:Entity/Commodity) | Commodity kind (raw/refined records via `enrich`) |
+| [Module:Entity/Location](https://starcitizen.tools/Module:Entity/Location) | Location kind (SolarSystem only); attaches the RSI starmap record via `enrich` and dispatches to the StarSystem leaf. Opts into editorial mode for the lore systems that have no game record |
 | [Module:Entity/Mission](https://starcitizen.tools/Module:Entity/Mission) | Mission kind (WIP) |
 
 ### Pipeline core modules

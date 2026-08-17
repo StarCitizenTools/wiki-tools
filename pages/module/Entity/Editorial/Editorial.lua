@@ -217,10 +217,13 @@ end
 --- original value — only the stored projection is sanitized. The marker
 --- pattern is Parser::MARKER_PREFIX/SUFFIX inlined rather than
 --- mw.text.killMarkers, which delegates to a PHP callback the offline test
---- runner cannot provide.
+--- runner cannot provide. Public because leaves that store a field themselves
+--- (no `smw` manifest key, so display and storage cannot disagree) need the
+--- same projection for the stored copy — StarSystem's affiliation is the
+--- first: the editor may write `[[Kr'Thak]]`, the store keeps `Kr'Thak`.
 --- @param value any
 --- @return any
-local function toSmwValue(value)
+function p.toSmwValue(value)
 	if type(value) ~= 'string' then
 		return value
 	end
@@ -240,7 +243,7 @@ function p.toStructuredData(resolved, manifest)
 	for field, entry in pairs(resolved) do
 		local def = manifest[field]
 		if def and def.smw then
-			data[def.smw] = toSmwValue(entry.value)
+			data[def.smw] = p.toSmwValue(entry.value)
 		end
 		if entry.source == 'fill' or entry.source == 'override' then
 			manual[#manual + 1] = field

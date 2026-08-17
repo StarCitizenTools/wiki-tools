@@ -17,6 +17,7 @@ require('strict')
 --- colliding name/type/description/affiliation keys.
 
 local api = require('Module:Entity/Api')
+local editorial = require('Module:Entity/Editorial')
 local subtypeResolver = require('Module:Entity/SubtypeResolver')
 
 local p = {}
@@ -68,14 +69,66 @@ function p.affiliationEntry(starsystem)
 	return code and p.AFFILIATIONS[code] or nil
 end
 
+--- Editorial affiliation text → an AFFILIATIONS-shaped entry. Canonical names
+--- resolve to their table entry, matched on code, label or short after
+--- normalizing case and punctuation, so the legacy arg spellings land in one
+--- bucket ('Xi'An' → the xian entry, 'UEE' → uee). Anything else passes
+--- through as free text: the starmap vocabulary has no code for the
+--- affiliations only lore knows (Kr'Thak, Unknown), and the legacy template
+--- accepted them, so the kind must too. A free-text entry keeps the editor's
+--- markup for display (they choose whether [[Kr'Thak]] links; auto-linking
+--- would paint 'Unknown' red) while `label` carries the delinked text for the
+--- category and the stored value.
+--- @param text any
+--- @return { label: string, short: string|nil, display: string|nil }|nil
+function p.affiliationFromText(text)
+	if type(text) ~= 'string' or mw.text.trim(text) == '' then
+		return nil
+	end
+	text = mw.text.trim(text)
+	local plain = editorial.toSmwValue(text)
+	local key = plain:lower():gsub('[^%w]', '')
+	for code, entry in pairs(p.AFFILIATIONS) do
+		local label = entry.label:lower():gsub('[^%w]', '')
+		local short = entry.short and entry.short:lower():gsub('[^%w]', '') or nil
+		if key == code or key == label or key == short then
+			return entry
+		end
+	end
+	return { label = plain, display = text }
+end
+
 --- RSI starmap system type → infobox display label + browse category. The
 --- category names match the live category tree, which kept the legacy
 --- "Single Star" casing.
 p.SYSTEM_TYPES = {
 	SINGLE_STAR = { label = 'Single star system', category = 'Single Star systems' },
 	BINARY = { label = 'Binary star system', category = 'Binary systems' },
-	TRINARY = { label = 'Trinary star system', category = 'Trinary systems' },
+	-- The live tree kept the legacy "Trinary Star" casing (Category:Trinary
+	-- systems does not exist). Latent until the no-record trinary pages
+	-- (GJ 667, UDS-2943-01-22) migrated: no starmap-backed system is trinary.
+	TRINARY = { label = 'Trinary star system', category = 'Trinary Star systems' },
 }
+
+--- Editorial system-type text → normalized starmap code + SYSTEM_TYPES entry.
+--- The legacy {{System}} pages hand-set the raw codes with case drift
+--- ('SINGLE_STAR', 'TRINARY', 'Trinary'), so normalize case and separators
+--- before the lookup. Unrecognized text resolves to nothing: a typo'd code
+--- must not invent a type row, a category, or an SMW value.
+--- @param text any
+--- @return string|nil code normalized starmap code ('TRINARY')
+--- @return { label: string, category: string }|nil entry
+function p.systemTypeEntry(text)
+	if type(text) ~= 'string' or text == '' then
+		return nil, nil
+	end
+	local code = mw.text.trim(text):upper():gsub('[%s%-]+', '_')
+	local entry = p.SYSTEM_TYPES[code]
+	if not entry then
+		return nil, nil
+	end
+	return code, entry
+end
 
 --- @return EntityApiConfig[]
 function p.getApiConfigs()
@@ -281,6 +334,16 @@ function p.getEditorialManifest()
 		population = { arg = 'population' },
 		size = { arg = 'size', smw = 'System size', apiPath = 'starsystem.aggregated.size', transform = 'number' },
 		startypes = { arg = 'startypes' },
+		-- Pure-editorial identity fields for the systems the starmap does not
+		-- list (Hyoton, Krell, Ophos, …): the record supplies affiliation and
+		-- type for everything else, so these only ever fill that gap — or, per
+		-- the house rule, override a record the editor knows to be wrong. No
+		-- smw key: the leaf stores both itself, through the same resolvers the
+		-- display uses (affiliationFromText / systemTypeEntry), so a free-text
+		-- affiliation and its stored value cannot disagree. `type` is the
+		-- legacy {{System}} arg name.
+		affiliation = { arg = 'affiliation' },
+		systemtype = { arg = { 'systemtype', 'type' } },
 		-- Object-count overrides (the legacy {{System}} arg names): hand counts
 		-- beat the starmap-derived celestial_objects tallies (e.g. Stanton lists
 		-- 24 stations counting rest stops; the starmap MANMADE tally is 6). No
@@ -298,22 +361,52 @@ function p.getEditorialManifest()
 	}
 end
 
+--- The system-type entry for a page: the editorial value when one resolved
+--- (hand value beats starmap, the house rule), else the starmap record's.
+--- Single accessor so the type row, categories, SMW and short description
+--- cannot disagree.
+--- @param starsystem table|nil
+--- @param resolved table|nil
+--- @return string|nil code
+--- @return { label: string, category: string }|nil entry
+function p.resolveSystemType(starsystem, resolved)
+	local code, entry = p.systemTypeEntry(editorial.view(resolved):value('systemtype'))
+	if entry then
+		return code, entry
+	end
+	-- The record's raw code is returned even when SYSTEM_TYPES has no entry
+	-- for it: an unmapped code still stores faithfully (a future ARK type
+	-- should degrade to no label/category, not vanish from SMW).
+	local recordType = type(starsystem) == 'table' and starsystem.type or nil
+	return recordType, recordType and p.SYSTEM_TYPES[recordType] or nil
+end
+
+--- The affiliation entry for a page: editorial first (same precedence as
+--- resolveSystemType), else the starmap record's.
+--- @param starsystem table|nil
+--- @param resolved table|nil
+--- @return { label: string, short: string|nil, display: string|nil }|nil
+function p.resolveAffiliation(starsystem, resolved)
+	return p.affiliationFromText(editorial.view(resolved):value('affiliation')) or p.affiliationEntry(starsystem)
+end
+
 --- Category parity with the legacy Module:System beyond the `Systems` bucket
 --- (the leaf's typeInfo.category supplies that one): the system-type and
---- affiliation trees.
+--- affiliation trees. A free-text affiliation categorizes as
+--- `<text> systems` exactly as the legacy template did (Kr'Thak systems,
+--- Unknown systems — both live categories).
 --- @param apiData table
+--- @param args table|nil
+--- @param resolved table|nil
 --- @return string[]
-function p.getCategories(apiData)
+function p.getCategories(apiData, args, resolved)
 	local categories = {}
 	local starsystem = type(apiData.starsystem) == 'table' and apiData.starsystem or nil
-	if not starsystem then
-		return categories
+	local _, typeEntry = p.resolveSystemType(starsystem, resolved)
+	if typeEntry then
+		categories[#categories + 1] = typeEntry.category
 	end
-	local typeInfo = p.SYSTEM_TYPES[starsystem.type]
-	if typeInfo then
-		categories[#categories + 1] = typeInfo.category
-	end
-	local affiliation = p.affiliationEntry(starsystem)
+	local affiliation = p.resolveAffiliation(starsystem, resolved)
 	if affiliation then
 		categories[#categories + 1] = affiliation.label .. ' systems'
 	end

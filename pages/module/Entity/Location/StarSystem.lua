@@ -171,12 +171,19 @@ local function starTypeList(starsystem)
 	return table.concat(names, ', ')
 end
 
---- First affiliation as a wiki link ("[[United Empire of Earth]]").
+--- Affiliation display text: canonical entries link their label
+--- ("[[United Empire of Earth]]"), a free-text entry renders exactly what the
+--- editor wrote (`display`) — they decide whether [[Kr'Thak]] links, so
+--- 'Unknown' is never painted red by an auto-link.
 --- @param starsystem table|nil
+--- @param resolved table|nil
 --- @return string|nil
-local function affiliationLink(starsystem)
-	local affiliation = location.affiliationEntry(starsystem)
-	return affiliation and ('[[' .. affiliation.label .. ']]') or nil
+local function affiliationDisplay(starsystem, resolved)
+	local affiliation = location.resolveAffiliation(starsystem, resolved)
+	if not affiliation then
+		return nil
+	end
+	return affiliation.display or ('[[' .. affiliation.label .. ']]')
 end
 
 --- Append a MeterBar sensor row as a full-width block item.
@@ -194,11 +201,17 @@ local function appendMeter(items, label, value)
 	}
 end
 
+--- Type info runs before editorial resolution in Data.get, so the editorial
+--- system type is read from the raw args here (same alias order as the
+--- manifest: systemtype, then the legacy `type`); everything downstream of
+--- resolution goes through location.resolveSystemType instead.
 --- @param apiData table
+--- @param args table|nil
 --- @return { name: string, category: string }
-function p.getTypeInfo(apiData)
+function p.getTypeInfo(apiData, args)
+	local _, editorialEntry = location.systemTypeEntry(args and (args.systemtype or args.type) or nil)
 	local starsystem = getStarsystem(apiData)
-	local typeInfo = starsystem and location.SYSTEM_TYPES[starsystem.type] or nil
+	local typeInfo = editorialEntry or (starsystem and location.SYSTEM_TYPES[starsystem.type] or nil)
 	return {
 		name = typeInfo and typeInfo.label or 'Star system',
 		category = 'Systems',
@@ -215,7 +228,7 @@ function p.getSections(apiData, args, resolved)
 	local aggregated = getAggregated(starsystem)
 
 	local general = {}
-	sectionBuilder.push(general, 'Affiliation', affiliationLink(starsystem))
+	sectionBuilder.push(general, 'Affiliation', affiliationDisplay(starsystem, resolved))
 	local jurisdiction = type(apiData.jurisdiction) == 'table' and apiData.jurisdiction.name or nil
 	sectionBuilder.push(general, 'Jurisdiction', jurisdiction and ('[[' .. jurisdiction .. ']]'))
 	local size = ed:value('size', aggregated.size)
@@ -260,19 +273,22 @@ end
 --- @return table<string, any>
 function p.getStructuredData(apiData, args, resolved)
 	local starsystem = getStarsystem(apiData)
-	if not starsystem then
-		return {}
-	end
 	local ed = Editorial.view(resolved)
 	local counts = countObjects(starsystem)
-	local affiliation = location.affiliationEntry(starsystem)
-	-- System type stores the RAW starmap code (SINGLE_STAR) and Affiliation the
-	-- compact form (UEE / Unclaimed): both match the vocabulary the pre-Entity
+	-- No early return without a starmap record: the no-record lore systems
+	-- (Hyoton, Krell, …) carry their identity and counts editorially, and
+	-- those must store exactly like everyone else's.
+	-- System type stores the normalized starmap code (SINGLE_STAR, TRINARY —
+	-- editorial 'Trinary' normalizes into the same bucket) and Affiliation the
+	-- compact form (UEE / Unclaimed), or the delinked free text for
+	-- affiliations only lore knows (Kr'Thak): the vocabulary the pre-Entity
 	-- pages already store, so existing queries keep a single value bucket.
 	-- Counts go through the editorial view so the stored numbers always equal
 	-- the displayed tiles (hand counts beat the starmap tallies).
+	local typeCode = location.resolveSystemType(starsystem, resolved)
+	local affiliation = location.resolveAffiliation(starsystem, resolved)
 	return {
-		system_type = starsystem.type,
+		system_type = typeCode,
 		affiliation = affiliation and (affiliation.short or affiliation.label) or nil,
 		star_count = counts.STAR,
 		planet_count = tonumber(ed:value('planets', counts.PLANET)),
@@ -296,14 +312,19 @@ end
 --- @return string
 function p.getShortDescription(apiData, args, typeInfo, prefix, resolved)
 	local starsystem = getStarsystem(apiData)
-	local hasType = starsystem ~= nil and location.SYSTEM_TYPES[starsystem.type] ~= nil
+	local _, typeEntry = location.resolveSystemType(starsystem, resolved)
 	local planets = tonumber(Editorial.view(resolved):value('planets', countObjects(starsystem).PLANET)) or 0
 	local countClause = planets == 1 and ' with 1 planet' or (' with ' .. planets .. ' planets')
 
-	if hasType then
+	if typeEntry then
 		local label = typeInfo and typeInfo.name or 'Star system'
-		local affiliation = location.affiliationEntry(starsystem)
+		local affiliation = location.resolveAffiliation(starsystem, resolved)
+		-- Only canonical affiliations join the prefix: a free-text one reads
+		-- wrong there ("Unknown trinary star system" says the wrong thing
+		-- entirely), and free text is unbounded — the row and category carry
+		-- it; the short description stays predictable.
 		local desc = affiliation
+				and not affiliation.display
 				and ((affiliation.short or affiliation.label) .. ' ' .. label:gsub('^%u', string.lower))
 			or label
 		if planets > 0 then

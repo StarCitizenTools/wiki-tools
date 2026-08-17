@@ -71,6 +71,17 @@ function suite:testToStructuredDataProjectsAndFlagsManual()
 	self:assertEquals('scm_speed', data['Manual API field'][1])
 end
 
+-- SMW values are queried, not rendered: the projection delinks wiki markup and
+-- strips parser strip-markers (a ref in an editor arg is a UNIQ…QINU token by
+-- the time Lua sees it), while the display path keeps the original value.
+function suite:testToStructuredDataSanitizesStrings()
+	local marker = '\127\'"`UNIQ--ref-0000001D-QINU`"\'\127'
+	local r = Editorial.resolve({}, { pledgeavailability = '[[Time-limited|Limited]] sale' .. marker }, MANIFEST)
+	self:assertEquals('[[Time-limited|Limited]] sale' .. marker, r.availability.value)
+	local data = Editorial.toStructuredData(r, MANIFEST)
+	self:assertEquals('Limited sale', data['Pledge Availability'])
+end
+
 function suite:testPageTransform()
 	local r = Editorial.resolve({}, { series = '[[Aurora]]' }, MANIFEST)
 	self:assertEquals('Aurora', r.series.value)

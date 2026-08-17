@@ -6,6 +6,14 @@
 	 *
 	 * HACK: stash the image-set in a custom property and consume it bare — the
 	 * sanitizer rejects url(var()) inline but allows image-set() and bare var().
+	 *
+	 * COUPLING: image-set(var()) requires TemplateStylesExtender at a revision
+	 * BEFORE a9043c4 (custom-property external-resource ban). The wiki must
+	 * carry that pin in sct-docker-images (composer 'dev-master' with no sha
+	 * WILL pull the ban back on the next image rebuild and blank every mask
+	 * icon). Safe with the pin because the wiki's enforced CSP default-src
+	 * restricts image fetches. Upstream opt-in proposal:
+	 * https://github.com/octfx/mediawiki-extensions-TemplateStylesExtender/issues/45
 	 */
 	--t-button-icon-mask: image-set(var(--t-button-icon-url) 1x);
 	mask-image: var(--t-button-icon-mask);

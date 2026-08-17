@@ -84,6 +84,19 @@ function suite:testValidateFieldsNonTableFails()
 	self:assertEquals(1, #errors)
 end
 
+-- KIND must type-check every contributor hook a kind can implement as the chain
+-- root, not just the identity ones: Location's StarSystem leaf contributes
+-- getFooterButtons / getMetadataItems, and a kind may do the same directly.
+-- A non-function there is a wiring bug the conformance gate has to catch.
+function suite:testKindTypeChecksChainContributorHooks()
+	for _, hook in ipairs({ 'getFooterButtons', 'getMetadataItems' }) do
+		local kind = { matches = function() end, getApiConfigs = function() end, [hook] = 'nope' }
+		local ok, errors = Contract.validate(kind, Contract.KIND)
+		self:assertFalse(ok, hook .. ' is not type-checked by KIND')
+		self:assertTrue(hasError(errors, hook))
+	end
+end
+
 function suite:testValidateStrictFlagsTypoHook()
 	local ok, errors = Contract.validate(
 		{ matches = function() end, getApiConfigs = function() end, getSectionsn = function() end },

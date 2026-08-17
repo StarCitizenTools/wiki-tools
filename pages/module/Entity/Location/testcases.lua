@@ -301,6 +301,31 @@ function suite:testGetMetadataItemsWithoutRecord()
 	self:assertEquals(0, #StarSystem.getMetadataItems(solarSystemFixture(), {}))
 end
 
+-- Both consumers read the code through one accessor, so they cannot disagree
+-- about what counts as one. An empty string does not: it would emit a bare
+-- "?location=" Starmap button and a blank "Starmap code" metadata row.
+function suite:testStarmapCode()
+	local f = StarSystem._internal.starmapCode
+	local apiData = solarSystemFixture()
+	apiData.starsystem = starsystemFixture()
+	self:assertEquals('STANTON', f(apiData))
+	for _, bad in ipairs({ '', 0, {} }) do
+		apiData.starsystem.code = bad
+		self:assertEquals(nil, f(apiData))
+	end
+	apiData.starsystem.code = nil
+	self:assertEquals(nil, f(apiData))
+	self:assertEquals(nil, f(solarSystemFixture()))
+end
+
+function suite:testEmptyStarmapCodeYieldsNeitherButtonNorRow()
+	local apiData = solarSystemFixture()
+	apiData.starsystem = starsystemFixture()
+	apiData.starsystem.code = ''
+	self:assertEquals(0, #StarSystem.getFooterButtons(apiData, {}))
+	self:assertEquals(0, #StarSystem.getMetadataItems(apiData, {}))
+end
+
 -- Legacy planet-count formula + affiliation prefix, no trailing period.
 function suite:testShortDescriptionUee()
 	local apiData = solarSystemFixture()

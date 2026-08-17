@@ -13,7 +13,9 @@ local p = {}
 
 --- Kind: a top-level entity with its own API endpoint, probed by matches().
 --- `matches` + `getApiConfigs` identify it; the rest are optional chain-link
---- contributions a kind may also make as a chain root.
+--- contributions a kind may also make as a chain root — so every CHAIN_LINK
+--- contributor hook is listed here too, or the conformance gate would not
+--- type-check it on a kind that implements it as the chain root.
 ---
 --- A kind's canonical scalar fields — `name` (exposed as Data.get().result.kind)
 --- and the `editorialMode` opt-in — are absent from the spec below because
@@ -32,6 +34,8 @@ p.KIND = {
 	getStructuredData = false,
 	getShortDescription = false,
 	getExternalSiteItems = false,
+	getFooterButtons = false,
+	getMetadataItems = false,
 	getEditorialManifest = false,
 	getSubtitle = false,
 	getHeaderBadge = false,

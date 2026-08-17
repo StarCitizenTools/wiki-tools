@@ -89,6 +89,26 @@ local function setShortDescription(frame, typeInfo, chain, facets, apiData, args
 	frame:callParserFunction('SHORTDESC', desc)
 end
 
+--- Can this invocation identify the entity it is describing? Three ways: a
+--- `uuid`, a name (curated or from the API record), or a **kind that claimed the
+--- page**. The last is the kind-declared case: the `{{Location}}` facade injects
+--- `|kind=Location` and a lore system deliberately carries no uuid and often no
+--- `|name=`, deriving its identity from the page title — `Infobox.render` titles
+--- from `mw.title.getCurrentTitle().text` and `Location.resolveLookupName` looks
+--- the starmap record up by the same title, so such a page renders correctly.
+---
+--- The test is `result.matchedKind` (set by Data's editorial fork when `|kind=`
+--- names an opted-in kind), not the raw `args.kind`: a misspelled kind resolves
+--- to nothing and must still hit the error rather than silently render a
+--- title-only shell.
+---
+--- @param args table Parsed wikitext args
+--- @param result table The Module:Entity/Data.get result
+--- @return boolean
+local function isIdentifiable(args, result)
+	return args.uuid ~= nil or args.name ~= nil or result.apiData.name ~= nil or result.matchedKind ~= nil
+end
+
 --- Main entry point for the Entity module. Renders the infobox and owns
 --- page-metadata responsibilities (SMW storage, SHORTDESC, tracking
 --- categories). Sibling renderers on the same page should consume
@@ -100,8 +120,9 @@ function p.main(frame)
 	local args = data.parseArgs(frame)
 	local result = data.get(args)
 
-	if not args.uuid and not (args.name or result.apiData.name) then
-		return '<span class="error">Entity module error: no uuid or name provided</span>' .. CATEGORY_ENTITY_ERROR
+	if not isIdentifiable(args, result) then
+		return '<span class="error">Entity module error: no uuid, name, or kind provided</span>'
+			.. CATEGORY_ENTITY_ERROR
 	end
 
 	local html = entityInfobox.render(result, args)
@@ -129,5 +150,10 @@ function p.main(frame)
 			unregistered and #unregistered > 0 or false
 		)
 end
+
+-- Test-only exports. Not part of the public API.
+p._internal = {
+	isIdentifiable = isIdentifiable,
+}
 
 return p

@@ -59,19 +59,48 @@ function suite:testMatchesRejectsNonLocationPayloads()
 	self:assertFalse(Location.matches({ mission_type = 'Delivery' }))
 end
 
-function suite:testDeriveFilterKey()
-	local derive = Location._internal.deriveFilterKey
-	self:assertEquals('stanton', derive('Stanton System'))
-	self:assertEquals('pyro', derive('Pyro System'))
-	self:assertEquals('nyx', derive('Nyx System'))
-	-- Encoding details (apostrophe → %27 or as-is) vary by shim; the invariants
-	-- are lowercase and no raw spaces.
-	local ailka = derive("Ail'ka System")
-	self:assertEquals(ailka, ailka:lower())
-	self:assertEquals(nil, ailka:match('%s'))
-	self:assertEquals(nil, derive(nil))
-	self:assertEquals(nil, derive(''))
-	self:assertEquals(nil, derive(' System'))
+function suite:testEditorialModeOptIn()
+	self:assertEquals(true, Location.editorialMode)
+end
+
+function suite:testShouldFetchStarsystem()
+	local f = Location._internal.shouldFetchStarsystem
+	self:assertTrue(f(solarSystemFixture(), nil)) -- uuid path, SolarSystem record
+	self:assertTrue(f({}, { kind = 'Location' })) -- editorial fork, kind-declared
+	self:assertFalse(f({ type = { name = 'Planet' } }, nil)) -- other location, undeclared
+	self:assertFalse(f({}, {})) -- nothing at all
+end
+
+function suite:testResolveLookupNamePrecedence()
+	local f = Location._internal.resolveLookupName
+	self:assertEquals('Rihlah', f({ name = 'Ignored System' }, { starmapname = 'Rihlah', name = 'Also ignored' }))
+	self:assertEquals('Stanton System', f({ name = 'Stanton System' }, { name = 'Ignored' }))
+	self:assertEquals('Terra system', f({}, { name = 'Terra system' }))
+end
+
+function suite:testPlainKey()
+	local f = Location._internal.plainKey
+	self:assertEquals('stanton', f('Stanton System'))
+	self:assertEquals('terra', f('Terra system'))
+	self:assertEquals("kyuk'ya", f("Kyuk'ya"))
+	self:assertEquals(nil, f(nil))
+	self:assertEquals(nil, f(''))
+	self:assertEquals(nil, f(' System'))
+end
+
+function suite:testPickStarsystemExactBeatsAliasBeatsFirst()
+	local f = Location._internal.pickStarsystem
+	local rows = {
+		{ name = 'Vega Prime' },
+		{ name = 'Vega' },
+	}
+	self:assertEquals('Vega', f(rows, 'vega').name)
+	local aliasRows = {
+		{ name = 'Something Else' },
+		{ name = "K.ap'a'ri (Khabari)" },
+	}
+	self:assertEquals("K.ap'a'ri (Khabari)", f(aliasRows, 'khabari').name)
+	self:assertEquals('Something Else', f(aliasRows, 'nomatch').name)
 end
 
 function suite:testSubtypeMapTargetsStarSystem()
@@ -132,6 +161,15 @@ function suite:testResolveSubtypeUnknownClassification()
 	local planet = solarSystemFixture()
 	planet.type = { name = 'Planet' }
 	self:assertEquals(nil, Location.resolveSubtype(planet, {}))
+end
+
+function suite:testResolveSubtypeKindDeclaredDefaultsToStarSystem()
+	local leaf = Location.resolveSubtype({}, { kind = 'Location' })
+	self:assertEquals('Entity/Location', leaf.parent)
+end
+
+function suite:testResolveSubtypeUndeclaredWithoutRecordIsNil()
+	self:assertEquals(nil, Location.resolveSubtype({}, {}))
 end
 
 --- The search resolver offers one payload to every kind: only Location may

@@ -22,6 +22,11 @@ local p = {}
 --- branch on (enforced by the Registry conformance test).
 p.name = 'Location'
 
+--- Kind-declared pages (Template:Location injects |kind=Location) render
+--- through the editorial fork when no location record resolves — the entry
+--- path for the ~84 lore systems that exist only in the starmap.
+p.editorialMode = true
+
 --- @type string
 p.parent = 'Entity/Base'
 
@@ -96,21 +101,45 @@ function p.matches(apiData)
 		and apiData.type.name == 'SolarSystem'
 end
 
---- Refine to the classification leaf (Item-style token dispatch).
+--- Should this payload get the starmap starsystem attachment? True for a
+--- SolarSystem location record (uuid path) and for a kind-declared page (the
+--- editorial fork, where apiData is empty). Deliberately NOT coupled to
+--- matches(): when matches() widens to planets, planet payloads must not
+--- trigger starsystem fetches.
 --- @param apiData table
---- @param args table
---- @return table|nil leaf module
-function p.resolveSubtype(apiData, args)
-	local token = type(apiData.type) == 'table' and apiData.type.name or nil
-	return subtypeResolver.resolve(token, LOCATION_SUBTYPE_MAP)
+--- @param args table|nil
+--- @return boolean
+local function shouldFetchStarsystem(apiData, args)
+	if type(apiData.type) == 'table' and apiData.type.name == 'SolarSystem' then
+		return true
+	end
+	return args ~= nil and args.kind ~= nil
 end
 
---- Starsystems filter key for a location name: strip a trailing " System",
---- lowercase, URL-encode. "Stanton System" → "stanton". nil for a non-string
---- or empty name.
+--- The starmap lookup name: explicit override, then the location record's
+--- name, then the editor's display name, then the page title.
+--- @param apiData table
+--- @param args table|nil
+--- @return string|nil
+local function resolveLookupName(apiData, args)
+	if args and type(args.starmapname) == 'string' and args.starmapname ~= '' then
+		return args.starmapname
+	end
+	if type(apiData.name) == 'string' and apiData.name ~= '' then
+		return apiData.name
+	end
+	if args and type(args.name) == 'string' and args.name ~= '' then
+		return args.name
+	end
+	return mw.title.getCurrentTitle().text
+end
+
+--- Plain lowercase key for a system name: trailing " System" stripped. This
+--- key drives BOTH the filter query and result selection; it is URL-encoded
+--- only where it enters the endpoint.
 --- @param name string|nil
 --- @return string|nil
-local function deriveFilterKey(name)
+local function plainKey(name)
 	if type(name) ~= 'string' or name == '' then
 		return nil
 	end
@@ -118,20 +147,43 @@ local function deriveFilterKey(name)
 	if key == '' then
 		return nil
 	end
-	return mw.uri.encode(key, 'QUERY')
+	return key
 end
 
---- Attach the starmap starsystem record for SolarSystem locations as
---- apiData.starsystem. Runs after the chain is built (Data.get step 6) and
---- before editorial resolution, so the manifest's apiPath fields can point
---- into it. Soft-fails: on a fetch error or an empty result the record stays
---- absent and the infobox renders location-only rows.
+--- The row for a plain key from a filter[name] result list. filter[name] is a
+--- substring match, so short names can return several rows: prefer the exact
+--- name, then the Xi'an "<name> (<alias>)" form, then the first row.
+--- @param results table
+--- @param key string
+--- @return table|nil
+local function pickStarsystem(results, key)
+	for _, row in ipairs(results) do
+		if type(row.name) == 'string' and row.name:lower() == key then
+			return row
+		end
+	end
+	for _, row in ipairs(results) do
+		if type(row.name) == 'string' and row.name:lower():sub(-(#key + 2)) == '(' .. key .. ')' then
+			return row
+		end
+	end
+	return results[1]
+end
+
+--- Attach the starmap starsystem record as apiData.starsystem: for SolarSystem
+--- location records (uuid path) and for kind-declared lore pages (the
+--- editorial fork). Soft-fails: on a fetch error or an empty result the record
+--- stays absent and the infobox renders what it has.
 ---
 --- @param apiData table
+--- @param args table|nil
 --- @return table apiData
-function p.enrich(apiData)
-	local key = deriveFilterKey(apiData.name)
-	if not key or not p.matches(apiData) then
+function p.enrich(apiData, args)
+	if not shouldFetchStarsystem(apiData, args) then
+		return apiData
+	end
+	local key = plainKey(resolveLookupName(apiData, args))
+	if not key then
 		return apiData
 	end
 	-- locale rides the endpoint, NOT `params`: Apiunto appends params as
@@ -141,13 +193,26 @@ function p.enrich(apiData)
 		name = 'StarCitizenWikiAPI',
 		endpoint = 'starsystems?filter[name]=%s&include=celestialObjects&locale=en_EN',
 		responseDataPath = 'data',
-	}, key)
-	-- The list endpoint wraps results in a `data` ARRAY; [1] is the match and
-	-- an empty array is a miss.
+	}, mw.uri.encode(key, 'QUERY'))
 	if type(data) == 'table' and data[1] ~= nil then
-		apiData.starsystem = data[1]
+		apiData.starsystem = pickStarsystem(data, key)
 	end
 	return apiData
+end
+
+--- Refine to the classification leaf (Item-style token dispatch). A
+--- kind-declared page without a location record defaults to the StarSystem
+--- leaf — the only subtype until the planets slice adds a |family=-style
+--- dispatch arg.
+--- @param apiData table
+--- @param args table
+--- @return table|nil leaf module
+function p.resolveSubtype(apiData, args)
+	local token = type(apiData.type) == 'table' and apiData.type.name or nil
+	if token == nil and args and args.kind then
+		token = 'SolarSystem'
+	end
+	return subtypeResolver.resolve(token, LOCATION_SUBTYPE_MAP)
 end
 
 --- Location editorial manifest: field → { arg, smw?, apiPath?, transform? }.
@@ -206,7 +271,10 @@ end
 
 -- Test-only exports. Not part of the public API.
 p._internal = {
-	deriveFilterKey = deriveFilterKey,
+	shouldFetchStarsystem = shouldFetchStarsystem,
+	resolveLookupName = resolveLookupName,
+	plainKey = plainKey,
+	pickStarsystem = pickStarsystem,
 	LOCATION_SUBTYPE_MAP = LOCATION_SUBTYPE_MAP,
 }
 

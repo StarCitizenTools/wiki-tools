@@ -18,28 +18,32 @@
     text-align: start;
 }
 
-/* Footer section: a label-less infobox section holding a flex row of action
-   buttons (Galactapedia / Wiki API). The footer uses InfoboxLua's generic
-   section-variant hook (a passed-through `class`), but the styling is
-   entity-specific, so it lives here rather than in InfoboxLua. */
+/* Footer section: a label-less infobox section holding the action-button grid
+   (Galactapedia / Starmap / VerseGuide / Wiki API). The footer uses
+   InfoboxLua's generic section-variant hook (a passed-through `class`), but
+   the styling is entity-specific, so it lives here rather than in InfoboxLua. */
 .t-infobox-section--footer {
     padding-top: var(--space-md);
 }
 
-/* Action buttons share a wrapping flex row: side by side when they fit, each
-   growing to fill its share, wrapping to stacked rows on narrow infoboxes.
-   No flex-direction — the default row is what we want. */
+/* Action buttons on a two-column grid. Grid, not wrapping flex: flex sizes
+   each wrapped row independently, so four buttons in a 2x2 got a different
+   cell width per row and the columns sheared. Fixed tracks keep every cell
+   aligned at any count. An odd count would leave the last cell half-empty,
+   so the odd last button spans both tracks: one button reads as a full-width
+   action, three as a pair plus a full-width one — the shapes the old flex
+   produced, minus the shear. */
 .t-infobox-footer-actions {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
     gap: var(--space-xs);
 }
 
-.t-infobox-footer-actions > .t-button {
-    flex-grow: 1;
+.t-infobox-footer-actions > .t-button:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
 }
 
-/* Let each ButtonLua wrapper's anchor fill its flex cell so the inner Codex
+/* Let each ButtonLua wrapper's anchor fill its grid cell so the inner Codex
    button can stretch to full width and center its content. */
 .t-infobox-footer-actions > .t-button > a {
     display: block;

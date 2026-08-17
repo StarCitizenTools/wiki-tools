@@ -318,11 +318,26 @@ function p.getFooterButtons(apiData, args)
 	return {
 		{
 			label = 'Starmap',
-			url = 'https://robertsspaceindustries.com/starmap?system=' .. code,
+			url = 'https://robertsspaceindustries.com/starmap?location=' .. code,
 			icon = 'Sc-icon-galactapedia.svg',
 			class = 't-button--starmap',
 		},
 	}
+end
+
+--- Chain-contributed Metadata rows: the ARK starmap code — the `?location=`
+--- key on the RSI starmap, the same vocabulary the legacy System and
+--- Astronomical object templates expose.
+--- @param apiData table
+--- @param args table
+--- @return EntityItemData[]
+function p.getMetadataItems(apiData, args)
+	local starsystem = getStarsystem(apiData)
+	local code = starsystem and type(starsystem.code) == 'string' and starsystem.code or nil
+	if not code then
+		return {}
+	end
+	return { { label = 'Starmap code', content = code } }
 end
 
 -- Test-only exports. Not part of the public API.

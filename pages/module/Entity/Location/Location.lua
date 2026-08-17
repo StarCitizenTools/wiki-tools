@@ -165,6 +165,20 @@ function p.getEditorialManifest()
 		population = { arg = 'population' },
 		size = { arg = 'size', smw = 'System size', apiPath = 'starsystem.aggregated.size', transform = 'number' },
 		startypes = { arg = 'startypes' },
+		-- Object-count overrides (the legacy {{System}} arg names): hand counts
+		-- beat the starmap-derived celestial_objects tallies (e.g. Stanton lists
+		-- 24 stations counting rest stops; the starmap MANMADE tally is 6). No
+		-- smw key: the leaf's getStructuredData stores the resolved counts
+		-- itself, so display and storage cannot disagree.
+		planets = { arg = 'planets', transform = 'number' },
+		satellites = { arg = 'satellites', transform = 'number' },
+		asteroidbelts = { arg = 'asteroidbelts', transform = 'number' },
+		asteroidfields = { arg = 'asteroidfields', transform = 'number' },
+		anomalies = { arg = 'anomalies', transform = 'number' },
+		stations = { arg = 'stations', transform = 'number' },
+		jumppoints = { arg = 'jumppoints', transform = 'number' },
+		blackholes = { arg = 'blackholes', transform = 'number' },
+		pois = { arg = 'pois', transform = 'number' },
 	}
 end
 

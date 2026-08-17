@@ -186,6 +186,41 @@ function suite:testBuildObjectTilesEmpty()
 	self:assertEquals(0, #StarSystem._internal.buildObjectTiles({ celestial_objects = {} }))
 end
 
+-- Editorial hand counts beat the starmap tallies (Stanton: 24 stations
+-- counting rest stops vs the starmap's 6 MANMADE objects).
+function suite:testBuildObjectTilesEditorialOverride()
+	local Editorial = require('Module:Entity/Editorial')
+	local ed = Editorial.view({ stations = { value = 24, source = 'editorial' } })
+	local tiles = StarSystem._internal.buildObjectTiles(starsystemFixture(), ed)
+	local station
+	for _, tile in ipairs(tiles) do
+		if tile.label == 'Stations' then
+			station = tile
+		end
+	end
+	self:assertEquals(24, station.value)
+end
+
+function suite:testStructuredDataCountOverride()
+	local apiData = solarSystemFixture()
+	apiData.starsystem = starsystemFixture()
+	local resolved = { stations = { value = 24, source = 'editorial' } }
+	local data = StarSystem.getStructuredData(apiData, {}, resolved)
+	self:assertEquals(24, data.station_count)
+	self:assertEquals(2, data.planet_count) -- un-overridden counts keep the API tally
+end
+
+function suite:testShortDescriptionPlanetOverride()
+	local apiData = solarSystemFixture()
+	apiData.starsystem = starsystemFixture()
+	local resolved = { planets = { value = 4, source = 'editorial' } }
+	local typeInfo = StarSystem.getTypeInfo(apiData)
+	self:assertEquals(
+		'UEE single star system with 4 planets',
+		StarSystem.getShortDescription(apiData, {}, typeInfo, nil, resolved)
+	)
+end
+
 function suite:testStarTypeList()
 	self:assertEquals('G-type main sequence', StarSystem._internal.starTypeList(starsystemFixture()))
 	self:assertEquals(nil, StarSystem._internal.starTypeList(nil))

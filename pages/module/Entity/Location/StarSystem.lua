@@ -278,17 +278,21 @@ function p.getStructuredData(apiData, args, resolved)
 	-- No early return without a starmap record: the no-record lore systems
 	-- (Hyoton, Krell, …) carry their identity and counts editorially, and
 	-- those must store exactly like everyone else's.
-	-- System type stores the normalized starmap code (SINGLE_STAR, TRINARY —
-	-- editorial 'Trinary' normalizes into the same bucket) and Affiliation the
-	-- compact form (UEE / Unclaimed), or the delinked free text for
-	-- affiliations only lore knows (Kr'Thak): the vocabulary the pre-Entity
-	-- pages already store, so existing queries keep a single value bucket.
-	-- Counts go through the editorial view so the stored numbers always equal
-	-- the displayed tiles (hand counts beat the starmap tallies).
-	local typeCode = location.resolveSystemType(starsystem, resolved)
+	-- System type stores the SYSTEM_TYPES display label ('Single star
+	-- system'), the same string the infobox subtitle shows, so store and
+	-- display cannot disagree — the raw-code vocabulary existed to share one
+	-- query bucket with the legacy Module:System pages, and that constraint
+	-- retired with the module (this leaf is now the property's only writer).
+	-- An unmapped code stores raw as the fallback: a future ARK type degrades
+	-- to a visible code instead of vanishing, and self-heals once mapped.
+	-- Affiliation stores the compact form (UEE / Unclaimed), or the delinked
+	-- free text for affiliations only lore knows (Kr'Thak). Counts go through
+	-- the editorial view so the stored numbers always equal the displayed
+	-- tiles (hand counts beat the starmap tallies).
+	local typeCode, typeEntry = location.resolveSystemType(starsystem, resolved)
 	local affiliation = location.resolveAffiliation(starsystem, resolved)
 	return {
-		system_type = typeCode,
+		system_type = typeEntry and typeEntry.label or typeCode,
 		affiliation = affiliation and (affiliation.short or affiliation.label) or nil,
 		star_count = counts.STAR,
 		planet_count = tonumber(ed:value('planets', counts.PLANET)),

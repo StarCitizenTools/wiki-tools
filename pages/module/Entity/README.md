@@ -174,7 +174,7 @@ kind **fields** `name` / `editorialMode` (validated by `Contract.validateFields`
 | `getShortDescription` | `(apiData, args, typeInfo, prefix, resolved) → string` | chain link | no | Page short description (leaf-first wins). |
 | `getShortDescriptionPrefix` | `(apiData, args) → string\|nil` | facet | no | Adjective composed into the kind's short description. |
 | `getExternalSiteItems` | `(apiData, args) → EntityItemData[]` | chain link | no | External-site links in the infobox. |
-| `getFooterButtons` | `(apiData, args) → table[]` | chain link | no | Footer action-button defs (`{ label, url, icon, class }`), rendered between the Galactapedia and Wiki API buttons (StarSystem: the RSI Starmap button). |
+| `getFooterButtons` | `(apiData, args) → table[]` | chain link | no | Footer action-button defs (`{ label, url, icon, class }`), rendered between the Galactapedia button and the page-supplied VerseGuide / Wiki API buttons (StarSystem: the RSI Starmap button). |
 | `getMetadataItems` | `(apiData, args) → EntityItemData[]` | chain link | no | Extra rows appended to the Metadata section (StarSystem: the ARK starmap code). |
 | `getSubtitle` | `(apiData, args) → string\|nil` | chain link | no | Header subtitle override (else the display type). |
 | `getHeaderBadge` | `(apiData, args, resolved) → string\|nil` | chain link | no | Badge HTML composed into the image overlay (Vehicle: production-state badge). |

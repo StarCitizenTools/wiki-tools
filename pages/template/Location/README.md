@@ -67,6 +67,7 @@ Star system with curated overrides and lore fields (the discovery citation belon
 | `discoveredby` | Discovered by | content | No |  | Discoverer of the system. Keep citations in the article body. | `[[Toshi Aaron]]` |
 | `historicalnames` | Historical names | string | No |  | Former names of the system, comma-separated. | `Cathcart` |
 | `galactapediaurl` | Galactapedia URL | url | No |  | Galactapedia article URL, rendered as a footer button. | `https://robertsspaceindustries.com/galactapedia/article/RX3lKBA3dq-stanton-system` |
+| `verseguideurl` | VerseGuide URL | url | No |  | VerseGuide location URL, rendered as a footer button after the Starmap one. | `https://verseguide.com/location/STANTON` |
 | `planets` | Planets | number | No | (starmap tally) | Hand count of planets, overriding the starmap tally. | `4` |
 | `satellites` | Moons | number | No | (starmap tally) | Hand count of moons, overriding the starmap tally. | `12` |
 | `asteroidbelts` | Asteroid belts | number | No | (starmap tally) | Hand count of asteroid belts, overriding the starmap tally. | `2` |
@@ -84,5 +85,5 @@ Star system with curated overrides and lore fields (the discovery citation belon
 - The starmap record is fetched by system name; affiliation, jurisdiction, size, star types, sensor readings (economy and population), and object-count tiles come from it. Hand counts beat starmap tallies wherever both exist, in the display and in the stored properties alike.
 - A count or size parameter that is not a number ("?", "TBD", "Unknown") is ignored rather than displayed, so a placeholder cannot blank a real starmap value. Leave the parameter out instead; the starmap figure is used.
 - The starmap does not publish a survey for every system (the Vanduul systems and those with incomplete probe data). Where it withholds one, the size and the economy/population readings are omitted rather than shown as the placeholder figures the starmap returns.
-- The RSI Starmap footer button is generated from the starmap system code; the Galactapedia button appears when `galactapediaurl` is supplied.
+- The RSI Starmap footer button is generated from the starmap system code; the Galactapedia and VerseGuide buttons appear when `galactapediaurl` / `verseguideurl` are supplied.
 - Stored property values are sanitized: wiki links are reduced to their display text and reference tags are stripped, so query results stay clean.

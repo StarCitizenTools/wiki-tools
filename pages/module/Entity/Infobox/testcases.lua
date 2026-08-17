@@ -86,4 +86,44 @@ function suite:testEntityTagsRowCarriesTheUuidAsAValueAttribute()
 	self:assertEquals('<data value="u1">Ballistic</data>', content)
 end
 
+-- ── Footer buttons ─────────────────────────────────────────────────────────
+
+local buildFooterSection = Infobox._internal.buildFooterSection
+
+function suite:testFooterVerseGuideButton()
+	local section = buildFooterSection({}, {}, { verseguideurl = 'https://verseguide.com/location/STANTON' })
+	self:assertStringContains('VerseGuide', section.content)
+	self:assertStringContains('https://verseguide.com/location/STANTON', section.content)
+	self:assertStringContains('t%-button%-%-verseguide', section.content)
+end
+
+function suite:testFooterVerseGuideOrderAfterChainBeforeWikiApi()
+	-- Official RSI properties (Galactapedia, the chain's Starmap) sit adjacent;
+	-- the community site follows them; Wiki API closes the row.
+	local chain = {
+		{
+			getFooterButtons = function()
+				return { { label = 'Starmap', url = 'https://example.com/s', icon = 'Sc-icon-galactapedia.svg' } }
+			end,
+		},
+	}
+	local args = {
+		galactapediaurl = 'https://example.com/g',
+		verseguideurl = 'https://example.com/v',
+		uuid = 'u-1',
+	}
+	local content = buildFooterSection(chain, {}, args).content
+	local galactapedia = content:find('Galactapedia', 1, true)
+	local starmap = content:find('Starmap', 1, true)
+	local verseguide = content:find('VerseGuide', 1, true)
+	local wikiApi = content:find('Wiki API', 1, true)
+	self:assertTrue(galactapedia < starmap and starmap < verseguide and verseguide < wikiApi)
+end
+
+function suite:testFooterNilWithNoButtons()
+	self:assertEquals(nil, buildFooterSection({}, {}, {}))
+	-- An empty-string arg is absent, not a blank button.
+	self:assertEquals(nil, buildFooterSection({}, {}, { verseguideurl = '' }))
+end
+
 return suite

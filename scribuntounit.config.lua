@@ -24,7 +24,6 @@ return {
 		'Rarity',
 		'CardLua',
 		'TableLua',
-		'ButtonLua',
 		'InfoboxLua',
 	},
 
@@ -104,6 +103,24 @@ return {
 		api.stub('BadgeLua', {
 			render = function(opts)
 				return tostring((type(opts) == 'table' and opts.text) or '')
+			end,
+		})
+
+		-- Module:ButtonLua — serializes the def (label, url, class) so the Entity
+		-- footer suite can assert which buttons render and in what order;
+		-- ButtonLua's own HTML is out of scope. Overrides the inert entry in
+		-- `stubs`: an all-'' render makes every footer assertion vacuous.
+		api.stub('ButtonLua', {
+			render = function(opts)
+				if type(opts) ~= 'table' then
+					return ''
+				end
+				return string.format(
+					'[button %s -> %s (%s)]',
+					tostring(opts.label or ''),
+					tostring(opts.url or ''),
+					tostring(opts.class or '')
+				)
 			end,
 		})
 

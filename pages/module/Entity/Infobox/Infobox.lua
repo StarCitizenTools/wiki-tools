@@ -116,12 +116,14 @@ end
 --- Builds the footer section: a flex row of action buttons. The Galactapedia
 --- button (when the page supplies a galactapediaurl) comes first, then any
 --- chain-contributed buttons (the getFooterButtons hook, e.g. the star-system
---- Starmap button), then the Wiki API button, which links to the entity on the
---- Star Citizen Wiki API (api.star-citizen.wiki) — its /search/<uuid> path
---- resolves any entity by UUID regardless of type. They sit side by side and
---- wrap to stacked rows on narrow infoboxes (see Module:Entity/styles.css).
---- Each button is independent, and the whole section collapses out when none
---- is present.
+--- Starmap button), then the VerseGuide button (when the page supplies a
+--- verseguideurl — after the chain so the official RSI properties sit
+--- adjacent and the community site follows them), then the Wiki API button,
+--- which links to the entity on the Star Citizen Wiki API
+--- (api.star-citizen.wiki) — its /search/<uuid> path resolves any entity by
+--- UUID regardless of type. They sit side by side and wrap to stacked rows on
+--- narrow infoboxes (see Module:Entity/styles.css). Each button is
+--- independent, and the whole section collapses out when none is present.
 ---
 --- @param chain table[]
 --- @param apiData table
@@ -156,6 +158,22 @@ local function buildFooterSection(chain, apiData, args)
 				table.insert(buttons, button.render(def))
 			end
 		end
+	end
+
+	-- Community-site button: page-supplied like Galactapedia (the consistent
+	-- <name>url form; the legacy {{System}} `verseguide` arg retired with it).
+	local verseguideUrl = args.verseguideurl
+	if verseguideUrl and verseguideUrl ~= '' then
+		table.insert(
+			buttons,
+			button.render({
+				label = 'VerseGuide',
+				url = verseguideUrl,
+				icon = 'VerseGuide logo.svg',
+				weight = 'normal',
+				class = 't-button--verseguide',
+			})
+		)
 	end
 
 	local uuid = args.uuid or apiData.uuid
@@ -319,6 +337,7 @@ end
 
 -- Test-only exports. Not part of the public API.
 p._internal = {
+	buildFooterSection = buildFooterSection,
 	buildMetadataSection = buildMetadataSection,
 	formatEntityTags = formatEntityTags,
 }

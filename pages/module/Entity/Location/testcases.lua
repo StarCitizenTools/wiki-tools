@@ -679,4 +679,168 @@ function suite:testEnrichSoftFailsOnEmptyResult()
 	end)
 end
 
+-- ── Editorial identity (the no-record lore systems) ────────────────────────
+-- Seven systems exist only in lore: the starmap has no record, so affiliation
+-- and system type arrive as editor args, exactly as the legacy {{System}}
+-- template took them.
+
+function suite:testSystemTypeEntryNormalizesLegacyCaseDrift()
+	local f = Location.systemTypeEntry
+	-- The live pages hand-set 'SINGLE_STAR', 'TRINARY' and 'Trinary'.
+	for _, text in ipairs({ 'TRINARY', 'Trinary', 'trinary', ' Trinary ' }) do
+		local code, entry = f(text)
+		self:assertEquals('TRINARY', code)
+		self:assertEquals('Trinary star system', entry.label)
+	end
+	self:assertEquals('SINGLE_STAR', (f('Single star')))
+	self:assertEquals('SINGLE_STAR', (f('SINGLE_STAR')))
+end
+
+function suite:testSystemTypeEntryRejectsUnknownText()
+	for _, text in ipairs({ 'Quaternary', '', nil, 42 }) do
+		local code, entry = Location.systemTypeEntry(text)
+		self:assertEquals(nil, code)
+		self:assertEquals(nil, entry)
+	end
+end
+
+-- The live tree's category is 'Trinary Star systems'; 'Trinary systems' does
+-- not exist. Latent until GJ 667 / UDS-2943-01-22 migrated — no starmap-backed
+-- system is trinary.
+function suite:testTrinaryCategoryMatchesLiveTree()
+	self:assertEquals('Trinary Star systems', Location.SYSTEM_TYPES.TRINARY.category)
+end
+
+function suite:testAffiliationFromTextMatchesCanonicalSpellings()
+	-- Legacy arg spellings collapse into the canonical entries: matched on
+	-- code, label or short after stripping case and punctuation.
+	self:assertEquals("Xi'an Empire", Location.affiliationFromText("Xi'An").label)
+	self:assertEquals('United Empire of Earth', Location.affiliationFromText('UEE').label)
+	self:assertEquals('Banu Protectorate', Location.affiliationFromText('Banu Protectorate').label)
+	self:assertEquals('Unclaimed', Location.affiliationFromText('Unclaimed').label)
+	-- Canonical entries carry no display override: callers link the label.
+	self:assertEquals(nil, Location.affiliationFromText('UEE').display)
+end
+
+function suite:testAffiliationFromTextFreeTextPassesThrough()
+	-- The editor controls linking; label carries the delinked text for the
+	-- category and the stored value.
+	local krthak = Location.affiliationFromText("[[Kr'Thak]]")
+	self:assertEquals("Kr'Thak", krthak.label)
+	self:assertEquals("[[Kr'Thak]]", krthak.display)
+	local unknown = Location.affiliationFromText('Unknown')
+	self:assertEquals('Unknown', unknown.label)
+	self:assertEquals('Unknown', unknown.display)
+	self:assertEquals(nil, Location.affiliationFromText(''))
+	self:assertEquals(nil, Location.affiliationFromText(nil))
+end
+
+function suite:testResolveSystemTypeEditorialBeatsRecord()
+	local resolved = { systemtype = { value = 'Trinary', source = 'editorial' } }
+	local code, entry = Location.resolveSystemType(starsystemFixture(), resolved)
+	self:assertEquals('TRINARY', code)
+	self:assertEquals('Trinary Star systems', entry.category)
+end
+
+function suite:testResolveSystemTypeKeepsUnmappedRecordCode()
+	-- A future ARK code must still store faithfully: raw code, no entry.
+	local record = starsystemFixture()
+	record.type = 'BLACK_HOLE'
+	local code, entry = Location.resolveSystemType(record, nil)
+	self:assertEquals('BLACK_HOLE', code)
+	self:assertEquals(nil, entry)
+end
+
+function suite:testResolveAffiliationEditorialBeatsRecord()
+	local resolved = { affiliation = { value = 'Vanduul', source = 'editorial' } }
+	self:assertEquals('Vanduul', Location.resolveAffiliation(starsystemFixture(), resolved).label)
+	self:assertEquals('UEE', Location.resolveAffiliation(starsystemFixture(), nil).short)
+end
+
+function suite:testGetTypeInfoFromEditorialArgs()
+	-- Type info runs before editorial resolution, so it reads the raw args;
+	-- the legacy `type` arg name works as the alias.
+	self:assertEquals('Trinary star system', StarSystem.getTypeInfo({}, { type = 'Trinary' }).name)
+	self:assertEquals('Single star system', StarSystem.getTypeInfo({}, { systemtype = 'SINGLE_STAR' }).name)
+	self:assertEquals('Star system', StarSystem.getTypeInfo({}, {}).name)
+	self:assertEquals('Star system', StarSystem.getTypeInfo({}).name)
+end
+
+--- Drive the REAL manifest through Editorial.resolve: the integration seam a
+--- hand-built `resolved` table would bypass (arg aliasing included).
+--- @param args table
+--- @return table resolved
+local function resolveEditorially(args)
+	return Editorial.resolve({}, args, Location.getEditorialManifest())
+end
+
+function suite:testNoRecordPageResolvesIdentityThroughManifest()
+	local resolved = resolveEditorially({ type = 'TRINARY', affiliation = 'Unknown' })
+	self:assertEquals('TRINARY', (Location.resolveSystemType(nil, resolved)))
+	self:assertEquals('Unknown', Location.resolveAffiliation(nil, resolved).label)
+end
+
+function suite:testGetCategoriesFromEditorialIdentity()
+	local resolved = resolveEditorially({ type = 'Trinary', affiliation = "[[Kr'Thak]]" })
+	local categories = Location.getCategories({}, {}, resolved)
+	self:assertEquals('Trinary Star systems', categories[1])
+	self:assertEquals("Kr'Thak systems", categories[2])
+end
+
+function suite:testSectionsAffiliationRowFromEditorial()
+	-- Free text renders exactly as written; canonical text renders linked.
+	local general =
+		findSection(StarSystem.getSections({}, {}, resolveEditorially({ affiliation = "[[Kr'Thak]]" })), 'general')
+	self:assertEquals("[[Kr'Thak]]", findItem(general, 'Affiliation'))
+	general = findSection(StarSystem.getSections({}, {}, resolveEditorially({ affiliation = "Xi'An" })), 'general')
+	self:assertEquals("[[Xi'an Empire]]", findItem(general, 'Affiliation'))
+end
+
+function suite:testStructuredDataFromEditorialIdentityWithoutRecord()
+	-- The early return without a record is gone: identity and counts store
+	-- exactly like a record-backed page, with the free-text affiliation
+	-- delinked for the store.
+	local resolved = resolveEditorially({ type = 'Trinary', affiliation = "[[Kr'Thak]]", planets = '9' })
+	local data = StarSystem.getStructuredData({}, {}, resolved)
+	self:assertEquals('TRINARY', data.system_type)
+	self:assertEquals("Kr'Thak", data.affiliation)
+	self:assertEquals(9, data.planet_count)
+	self:assertEquals(nil, data.star_count)
+end
+
+function suite:testStructuredDataStillEmptyWithNothingAtAll()
+	self:assertEquals(nil, next(StarSystem.getStructuredData({}, {}, resolveEditorially({}))))
+end
+
+function suite:testShortDescriptionFromEditorialIdentity()
+	-- Ophos shape: canonical affiliation + editorial type + 1 planet.
+	local args = { type = 'SINGLE_STAR', affiliation = 'Banu Protectorate', planets = '1' }
+	local resolved = resolveEditorially(args)
+	local typeInfo = StarSystem.getTypeInfo({}, args)
+	self:assertEquals(
+		'Banu Protectorate single star system with 1 planet',
+		StarSystem.getShortDescription({}, args, typeInfo, nil, resolved)
+	)
+end
+
+function suite:testShortDescriptionSkipsFreeTextAffiliationPrefix()
+	-- UDS shape: 'Unknown trinary star system' would say the wrong thing, so
+	-- a free-text affiliation stays out of the prefix.
+	local args = { type = 'Trinary', affiliation = 'Unknown' }
+	self:assertEquals(
+		'Trinary star system',
+		StarSystem.getShortDescription({}, args, StarSystem.getTypeInfo({}, args), nil, resolveEditorially(args))
+	)
+end
+
+function suite:testShortDescriptionNoTypeKeepsLegacyShape()
+	-- Krell shape: affiliation but no type — the legacy "System with N
+	-- planets" branch, unprefixed.
+	local args = { affiliation = "[[Kr'Thak]]", planets = '9' }
+	self:assertEquals(
+		'System with 9 planets',
+		StarSystem.getShortDescription({}, args, StarSystem.getTypeInfo({}, args), nil, resolveEditorially(args))
+	)
+end
+
 return suite

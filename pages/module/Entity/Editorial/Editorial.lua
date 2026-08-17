@@ -197,6 +197,24 @@ function p.resolve(apiData, args, manifest)
 	return resolved
 end
 
+--- SMW values are queried, not rendered: strip parser strip-markers (a ref
+--- inside an editor arg has become a UNIQ…QINU token by the time Lua sees it)
+--- and wiki-link markup, keeping display text. Non-strings (numbers from
+--- `transform = 'number'`) pass through untouched. Display paths keep the
+--- original value — only the stored projection is sanitized. The marker
+--- pattern is Parser::MARKER_PREFIX/SUFFIX inlined rather than
+--- mw.text.killMarkers, which delegates to a PHP callback the offline test
+--- runner cannot provide.
+--- @param value any
+--- @return any
+local function toSmwValue(value)
+	if type(value) ~= 'string' then
+		return value
+	end
+	value = value:gsub('\127\'"`UNIQ%-%-%a+%-%x+%-QINU`"\'\127', '')
+	return mw.text.trim(delink(value))
+end
+
 --- Project resolved fields onto their SMW property names, and append the
 --- `Manual API field` provenance list (fields the API should own but a human
 --- supplied). Pure; the caller merges this into the structured-data write.
@@ -209,7 +227,7 @@ function p.toStructuredData(resolved, manifest)
 	for field, entry in pairs(resolved) do
 		local def = manifest[field]
 		if def and def.smw then
-			data[def.smw] = entry.value
+			data[def.smw] = toSmwValue(entry.value)
 		end
 		if entry.source == 'fill' or entry.source == 'override' then
 			manual[#manual + 1] = field

@@ -170,6 +170,54 @@ local function pickStarsystem(results, key)
 	return results[1]
 end
 
+--- Statuses where the ARK has not published a survey: M (UEE Military
+--- Classified, the Vanduul-held systems) and N (probe data incomplete).
+--- @type table<string, boolean>
+local UNPUBLISHED_SURVEY = { M = true, N = true }
+
+--- Drop the ARK's withheld-survey aggregate, which is a stub rather than a set
+--- of measurements. Every unpublished system with no catalogued bodies carries
+--- the *same* block — the twelve Vanduul systems all report population 1.08 and
+--- economy 0.12 with a size of 0, 1 or 7, and the three incomplete-probe systems
+--- report straight zeros. One value repeated across twelve systems is a template
+--- default, not twelve measurements, so none of it may reach the infobox or SMW:
+--- left alone these pages claim a 7 AU extent and a 0.1/10 economy for space
+--- nobody has surveyed, and store a `System size` that satisfies a "smaller than
+--- N AU" query.
+---
+--- The test is "no catalogued bodies AND the survey is unpublished" rather than
+--- the tempting shorter ones, both of which are wrong on live data:
+---   * `size <= 0` misses the four stubs that report 1 or 7 AU.
+---   * "no bodies" alone would strip Gurzil, which is published with no bodies
+---     and a real 4.2 AU extent.
+---   * status alone would strip Caliban (5.89), Orion (5), Virgil (16) and
+---     Oretani (36.91), which are unpublished but properly catalogued.
+--- Stars are deliberately excluded from the body count: the stub block claims one
+--- star, so counting it would disable the rule entirely. A zero size is dropped
+--- unconditionally as well — it is never a measurement, whatever the status. An
+--- editorial `|size=` override still wins wherever an editor knows better.
+---
+--- @param record table|nil starmap record; mutated in place
+--- @return table|nil record the same record, for call chaining
+local function normalizeAggregates(record)
+	local aggregated = type(record) == 'table' and record.aggregated or nil
+	if type(aggregated) ~= 'table' then
+		return record
+	end
+	if (tonumber(aggregated.size) or 0) <= 0 then
+		aggregated.size = nil
+	end
+	local bodies = (tonumber(aggregated.planets) or 0)
+		+ (tonumber(aggregated.moons) or 0)
+		+ (tonumber(aggregated.stations) or 0)
+	if bodies == 0 and UNPUBLISHED_SURVEY[record.status] then
+		aggregated.size = nil
+		aggregated.population = nil
+		aggregated.economy = nil
+	end
+	return record
+end
+
 --- Attach the starmap starsystem record as apiData.starsystem: for SolarSystem
 --- location records (uuid path) and for kind-declared lore pages (the
 --- editorial fork). Soft-fails: on a fetch error or an empty result the record
@@ -195,7 +243,7 @@ function p.enrich(apiData, args)
 		responseDataPath = 'data',
 	}, mw.uri.encode(key, 'QUERY'))
 	if type(data) == 'table' and data[1] ~= nil then
-		apiData.starsystem = pickStarsystem(data, key)
+		apiData.starsystem = normalizeAggregates(pickStarsystem(data, key))
 	end
 	return apiData
 end
@@ -275,6 +323,7 @@ p._internal = {
 	resolveLookupName = resolveLookupName,
 	plainKey = plainKey,
 	pickStarsystem = pickStarsystem,
+	normalizeAggregates = normalizeAggregates,
 	LOCATION_SUBTYPE_MAP = LOCATION_SUBTYPE_MAP,
 }
 

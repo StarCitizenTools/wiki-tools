@@ -405,4 +405,128 @@ function suite:testStructuredDataWithoutStarsystem()
 	self:assertEquals(nil, next(data))
 end
 
+--- An unpublished system with no catalogued bodies: the ARK's stub block, which
+--- the twelve Vanduul systems share byte-for-byte. `size` varies (0, 1, 7)
+--- across them and is noise in every case.
+--- @param status string
+--- @param size number
+local function withheldStubFixture(status, size)
+	local record = starsystemFixture()
+	record.status = status
+	record.aggregated = { size = size, population = 1.08, economy = 0.12 }
+	record.celestial_objects = { { type = 'STAR', sub_type = { name = 'Main Sequence-Dwarf-G' } } }
+	return record
+end
+
+-- A zero size is never a measurement, whatever the status.
+function suite:testNormalizeAggregatesDropsZeroSize()
+	local f = Location._internal.normalizeAggregates
+	local record = starsystemFixture()
+	record.aggregated.size = 0
+	self:assertEquals(nil, f(record).aggregated.size)
+end
+
+function suite:testNormalizeAggregatesDropsNonPositiveOrUnparsableSize()
+	local f = Location._internal.normalizeAggregates
+	for _, bad in ipairs({ -1, '0', 'Unknown' }) do
+		local record = starsystemFixture()
+		record.aggregated.size = bad
+		self:assertEquals(nil, f(record).aggregated.size)
+	end
+end
+
+function suite:testNormalizeAggregatesKeepsRealSize()
+	local f = Location._internal.normalizeAggregates
+	self:assertEquals(4.85, f(starsystemFixture()).aggregated.size)
+	-- Numeric strings are a legitimate measurement and survive untouched.
+	local stringy = starsystemFixture()
+	stringy.aggregated.size = '9.83'
+	self:assertEquals('9.83', f(stringy).aggregated.size)
+end
+
+function suite:testNormalizeAggregatesToleratesMissingShapes()
+	local f = Location._internal.normalizeAggregates
+	self:assertEquals(nil, f(nil))
+	self:assertEquals(nil, next(f({})))
+	local noAggregate = { code = 'STANTON' }
+	self:assertEquals('STANTON', f(noAggregate).code)
+end
+
+-- A zero-size record must leave the Size row out entirely rather than assert
+-- "0 AU"; the other rows keep rendering.
+function suite:testSectionsOmitSizeRowForZeroSizeSystem()
+	local record = starsystemFixture()
+	record.aggregated.size = 0
+	local apiData = solarSystemFixture()
+	apiData.starsystem = Location._internal.normalizeAggregates(record)
+	local general = findSection(StarSystem.getSections(apiData, {}, nil), 'general')
+	self:assertEquals(nil, findItem(general, 'Size'))
+	self:assertEquals('Published', findItem(general, 'Starmap status'))
+end
+
+-- The stub block is dropped whole — a nonzero size in it is still noise, and the
+-- population/economy sensors are the same template default.
+function suite:testNormalizeAggregatesDropsWholeWithheldStub()
+	local f = Location._internal.normalizeAggregates
+	-- 0/1/7 AU are the three sizes the twelve Vanduul stubs actually report.
+	for _, size in ipairs({ 0, 1, 7 }) do
+		local aggregated = f(withheldStubFixture('M', size)).aggregated
+		self:assertEquals(nil, aggregated.size)
+		self:assertEquals(nil, aggregated.population)
+		self:assertEquals(nil, aggregated.economy)
+	end
+	-- Status N (probe data incomplete) reports the same stub as straight zeros.
+	self:assertEquals(nil, f(withheldStubFixture('N', 0)).aggregated.size)
+end
+
+-- Published beats every other signal: Gurzil has no catalogued bodies and a real
+-- 4.2 AU extent, so a bodies-only rule would wrongly strip it.
+function suite:testNormalizeAggregatesKeepsPublishedSystemWithNoBodies()
+	local record = withheldStubFixture('P', 4.2)
+	record.aggregated.economy = 0.93
+	record.aggregated.population = 0
+	local aggregated = Location._internal.normalizeAggregates(record).aggregated
+	self:assertEquals(4.2, aggregated.size)
+	self:assertEquals(0.93, aggregated.economy)
+end
+
+-- Unpublished but properly catalogued systems keep their real aggregates, so a
+-- status-only rule would wrongly strip them (Caliban / Orion / Virgil / Oretani).
+function suite:testNormalizeAggregatesKeepsCataloguedUnpublishedSystem()
+	local record = withheldStubFixture('M', 5.89)
+	record.aggregated.planets = 5
+	record.aggregated.moons = 9
+	record.aggregated.population = 7.21
+	local aggregated = Location._internal.normalizeAggregates(record).aggregated
+	self:assertEquals(5.89, aggregated.size)
+	self:assertEquals(7.21, aggregated.population)
+end
+
+-- Stars must not count as bodies: the stub claims one, so counting it would
+-- disable the rule on every page it exists for.
+function suite:testNormalizeAggregatesIgnoresStarsInBodyCount()
+	local record = withheldStubFixture('M', 7)
+	record.aggregated.stars = 1
+	self:assertEquals(nil, Location._internal.normalizeAggregates(record).aggregated.size)
+end
+
+-- End to end: a withheld stub renders neither a Size row nor a sensor section.
+function suite:testSectionsDropSizeAndSensorsForWithheldStub()
+	local apiData = solarSystemFixture()
+	apiData.starsystem = Location._internal.normalizeAggregates(withheldStubFixture('M', 7))
+	local sections = StarSystem.getSections(apiData, {}, nil)
+	self:assertEquals(nil, findItem(findSection(sections, 'general'), 'Size'))
+	self:assertEquals(nil, findSection(sections, 'sensor'))
+end
+
+-- An editorial |size= override still wins over an absent starmap size.
+function suite:testSizeOverrideSurvivesDroppedStarmapSize()
+	local apiData = solarSystemFixture()
+	apiData.starsystem = starsystemFixture()
+	apiData.starsystem.aggregated.size = nil
+	local resolved = { size = { value = 12, source = 'override' } }
+	local general = findSection(StarSystem.getSections(apiData, {}, resolved), 'general')
+	self:assertEquals('12 AU', findItem(general, 'Size'))
+end
+
 return suite

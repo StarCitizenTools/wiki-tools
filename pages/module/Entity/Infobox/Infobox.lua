@@ -317,4 +317,10 @@ function p.render(result, args)
 	return styles .. html
 end
 
+-- Test-only exports. Not part of the public API.
+p._internal = {
+	buildMetadataSection = buildMetadataSection,
+	formatEntityTags = formatEntityTags,
+}
+
 return p

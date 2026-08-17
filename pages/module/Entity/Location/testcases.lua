@@ -77,6 +77,11 @@ function suite:testResolveLookupNamePrecedence()
 	self:assertEquals('Rihlah', f({ name = 'Ignored System' }, { starmapname = 'Rihlah', name = 'Also ignored' }))
 	self:assertEquals('Stanton System', f({ name = 'Stanton System' }, { name = 'Ignored' }))
 	self:assertEquals('Terra system', f({}, { name = 'Terra system' }))
+	-- Last resort: a bare {{Location}} on a lore system supplies no starmapname,
+	-- no location record and no |name=, so the page title IS the lookup key.
+	-- (The runner's current title is 'Test'.)
+	self:assertEquals(mw.title.getCurrentTitle().text, f({}, {}))
+	self:assertEquals(mw.title.getCurrentTitle().text, f({}, nil))
 end
 
 function suite:testPlainKey()
@@ -566,6 +571,87 @@ function suite:testSizeOverrideSurvivesDroppedStarmapSize()
 	local resolved = { size = { value = 12, source = 'override' } }
 	local general = findSection(StarSystem.getSections(apiData, {}, resolved), 'general')
 	self:assertEquals('12 AU', findItem(general, 'Size'))
+end
+
+-- ── enrich (the starmap fetch seam) ────────────────────────────────────────
+--
+-- enrich() takes no injection point, but Location holds the Module:Entity/Api
+-- module TABLE from the require cache and calls `api.fetchApi` through it, so
+-- swapping that field is the seam. Without this, everything between
+-- shouldFetchStarsystem and the attachment — the URL encoding of the lookup key
+-- and the normalizeAggregates call — could be deleted with the suite still green.
+
+--- Run `fn(captured)` with Module:Entity/Api.fetchApi replaced by a stub that
+--- records its arguments and answers with `rows`. Always restores the real
+--- function, so one failing test cannot poison the rest of the suite.
+--- @param rows table[]|nil the `data` list the stubbed fetch returns
+--- @param fn fun(captured: { config: table|nil, key: string|nil })
+local function withStubbedFetch(rows, fn)
+	local api = require('Module:Entity/Api')
+	local realFetch = api.fetchApi
+	local captured = {}
+	api.fetchApi = function(config, key)
+		captured.config, captured.key = config, key
+		return rows
+	end
+	local ok, err = pcall(fn, captured)
+	api.fetchApi = realFetch
+	if not ok then
+		error(err, 0)
+	end
+end
+
+-- The plain key is URL-encoded where it enters the endpoint, not before: names
+-- with an apostrophe (the Xi'an systems) would otherwise emit a raw `'` into the
+-- filter[name] query value.
+function suite:testEnrichUrlEncodesTheLookupKey()
+	withStubbedFetch({ starsystemFixture() }, function(captured)
+		Location.enrich({}, { kind = 'Location', starmapname = "Kyuk'ya" })
+		self:assertEquals('kyuk%27ya', captured.key)
+		self:assertEquals(
+			'starsystems?filter[name]=kyuk%27ya&include=celestialObjects&locale=en_EN',
+			string.format(captured.config.endpoint, captured.key)
+		)
+	end)
+end
+
+-- enrich must normalize the record it attaches, not just attach it: a withheld
+-- survey stub reaching apiData.starsystem raw would put a fabricated 7 AU extent
+-- and a 0.1/10 economy on twelve Vanduul pages.
+function suite:testEnrichNormalizesTheAttachedRecord()
+	withStubbedFetch({ withheldStubFixture('M', 7) }, function()
+		local apiData = Location.enrich(solarSystemFixture(), nil)
+		self:assertEquals(nil, apiData.starsystem.aggregated.size)
+		self:assertEquals(nil, apiData.starsystem.aggregated.population)
+		self:assertEquals(nil, apiData.starsystem.aggregated.economy)
+	end)
+end
+
+-- enrich picks the same row pickStarsystem would: the exact name beats a longer
+-- substring match returned by the filter[name] query.
+function suite:testEnrichAttachesThePickedRow()
+	withStubbedFetch({ { name = 'Vega Prime' }, { name = 'Vega', code = 'VEGA' } }, function()
+		local apiData = Location.enrich({ name = 'Vega System', type = { name = 'SolarSystem' } }, nil)
+		self:assertEquals('VEGA', apiData.starsystem.code)
+	end)
+end
+
+-- No fetch at all for a payload the kind does not claim (a planet record on an
+-- undeclared page), and nothing attached.
+function suite:testEnrichSkipsUnclaimedPayloads()
+	withStubbedFetch({ starsystemFixture() }, function(captured)
+		local apiData = Location.enrich({ type = { name = 'Planet' } }, nil)
+		self:assertEquals(nil, apiData.starsystem)
+		self:assertEquals(nil, captured.key)
+	end)
+end
+
+-- Soft-fail: an empty result list leaves the record absent rather than
+-- attaching an empty table the section builders would have to nil-guard.
+function suite:testEnrichSoftFailsOnEmptyResult()
+	withStubbedFetch({}, function()
+		self:assertEquals(nil, Location.enrich(solarSystemFixture(), nil).starsystem)
+	end)
 end
 
 return suite

@@ -1,6 +1,6 @@
 # Template:Location
 
-Renders a location's infobox through `Module:Entity`, the same engine that powers `{{Entity}}`. Currently covers star systems: supply the location UUID and the infobox fills itself from the live game data and the RSI starmap, including affiliation, jurisdiction, star types, sensor readings, and astronomical object counts. Lore systems that exist only in the starmap have no UUID and need no parameters at all — the template looks the starmap record up by the page title. The editorial parameters below override a wrong or missing API value with a hand-curated one.
+Renders a location's infobox through `Module:Entity`, the same engine that powers `{{Entity}}`. Currently covers star systems: supply the location UUID and the infobox fills itself from the live game data and the RSI starmap, including affiliation, jurisdiction, star types, sensor readings, and astronomical object counts. Lore systems that exist only in the starmap have no UUID and need no parameters at all — the template looks the starmap record up by the page title. Systems the starmap does not list at all (Hyoton, Krell, …) supply their identity through `affiliation` and `systemtype` instead. The editorial parameters below override a wrong or missing API value with a hand-curated one.
 
 ## Usage
 
@@ -23,6 +23,17 @@ In-game star system, everything from the API:
 
 ```wikitext
 {{Location|uuid=17092f34-d9c8-4d50-89f6-a92940b9cd52}}
+```
+
+System the starmap does not list: identity comes from the editorial parameters.
+
+```wikitext
+{{Location
+| name        = Krell system
+| affiliation = [[Kr'Thak]]
+| planets     = 9
+| discoveredin = 2530 (after, known)
+}}
 ```
 
 Star system with curated overrides and lore fields (the discovery citation belongs in the article body, not the parameter):
@@ -49,6 +60,8 @@ Star system with curated overrides and lore fields (the discovery citation belon
 | `image` | Image | wiki-file-name | No |  | Infobox image. | `Stanton 2D.png` |
 | `size` | Size | number | No | (starmap aggregated size) | System size in AU, overriding the starmap value. | `9.83` |
 | `startypes` | Star types | string | No | (derived from the starmap star list) | Star type display text, overriding the starmap-derived list. | `Flare star` |
+| `affiliation` | Affiliation | content | No | (from the starmap record) | Controlling polity, for systems the starmap does not list or gets wrong. Canonical names (`UEE`, `Xi'an Empire`, `Banu Protectorate`, `Unclaimed`, `Vanduul`, `Developing`) render as their standard link; anything else renders exactly as written — link it yourself if a page exists — and feeds the `<affiliation> systems` category and the stored `Affiliation` value as plain text. | `[[Kr'Thak]]` |
+| `systemtype` | System type | string | No | (from the starmap record) | Starmap system-type code (`SINGLE_STAR`, `BINARY`, `TRINARY`; case-insensitive), for systems the starmap does not list. Drives the type label, category, and stored `System type`. `type` works as a legacy alias. | `TRINARY` |
 | `population` | Population | string | No |  | Population figure or description. | `10 billion` |
 | `discoveredin` | Discovered in | content | No |  | Lore year of discovery. Keep citations in the article body. | `[[2851]]` |
 | `discoveredby` | Discovered by | content | No |  | Discoverer of the system. Keep citations in the article body. | `[[Toshi Aaron]]` |

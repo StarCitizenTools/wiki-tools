@@ -284,7 +284,7 @@ local function fetchApiData(args)
 	end
 
 	if matchedKind and matchedKind.enrich then
-		apiData = matchedKind.enrich(apiData)
+		apiData = matchedKind.enrich(apiData, args)
 	end
 
 	return apiData, chain, hasApiError, matchedKind
@@ -321,6 +321,24 @@ local function resolveEditorialKind(args)
 	return nil
 end
 
+--- The editorial fork's data path: empty apiData, leaf re-resolved from args,
+--- chain rebuilt, and — new in slice 2 — the declared kind's enrich hook run
+--- with args, so a kind can attach secondary API data (Location fetches the
+--- starmap record by name) even though no identity record exists.
+--- @param editorialKind table
+--- @param args table
+--- @return table apiData
+--- @return table[] chain
+local function runEditorialFork(editorialKind, args)
+	local apiData = {}
+	local leafMod = resolveLeaf(editorialKind, apiData, false, args)
+	local chain = assembly.buildChain(leafMod)
+	if editorialKind.enrich then
+		apiData = editorialKind.enrich(apiData, args)
+	end
+	return apiData, chain
+end
+
 --- Primary entry point for sibling renderers. Fetches API data, resolves the
 --- type chain, and packages everything a renderer needs into a single table.
 ---
@@ -342,9 +360,7 @@ function p.get(args)
 		local editorialKind = resolveEditorialKind(args)
 		if editorialKind then
 			matchedKind = editorialKind
-			apiData = {}
-			local leafMod = resolveLeaf(editorialKind, apiData, false, args)
-			chain = assembly.buildChain(leafMod)
+			apiData, chain = runEditorialFork(editorialKind, args)
 			hasApiError = false
 			if args.uuid ~= nil and args.uuid ~= '' then
 				unresolvedReference = true
@@ -424,6 +440,7 @@ p._internal = {
 	resolveEditorialKind = resolveEditorialKind,
 	buildResolverConfig = buildResolverConfig,
 	identifyKind = identifyKind,
+	runEditorialFork = runEditorialFork,
 }
 
 return p

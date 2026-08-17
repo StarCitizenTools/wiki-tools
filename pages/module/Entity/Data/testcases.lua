@@ -278,4 +278,30 @@ function suite:testGetExposesFamilyAndMatchedKind()
 	self:assertEquals(nil, r.matchedKind)
 end
 
+-- runEditorialFork (slice 2: the fork runs the declared kind's enrich)
+
+function suite:testRunEditorialForkCallsEnrichWithArgs()
+	local seenArgs
+	local stubKind = {
+		name = 'Stub',
+		enrich = function(apiData, args)
+			seenArgs = args
+			apiData.marked = true
+			return apiData
+		end,
+	}
+	local args = { kind = 'Stub', name = 'Terra system' }
+	local apiData, chain = helpers.runEditorialFork(stubKind, args)
+	self:assertEquals(true, apiData.marked)
+	self:assertEquals('Terra system', seenArgs.name)
+	self:assertEquals(stubKind, chain[#chain])
+end
+
+function suite:testRunEditorialForkWithoutEnrich()
+	local stubKind = { name = 'Stub' }
+	local apiData, chain = helpers.runEditorialFork(stubKind, { kind = 'Stub' })
+	self:assertEquals(nil, next(apiData))
+	self:assertEquals(stubKind, chain[#chain])
+end
+
 return suite

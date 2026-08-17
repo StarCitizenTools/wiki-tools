@@ -46,7 +46,7 @@ local p = {}
 --- @field matches fun(apiData: table|nil): boolean REQUIRED. Strict, nil-safe identity predicate
 --- @field getApiConfigs fun(): EntityApiConfig[] REQUIRED. [1] is the identity probe endpoint
 --- @field resolveSubtype nil|fun(apiData: table|nil, args: table|nil): table|nil Refine to a subtype leaf module, or nil. args carries the curated |family= for editorial mode.
---- @field enrich nil|fun(apiData: table): table Post-fetch mutation hook (returns apiData)
+--- @field enrich nil|fun(apiData: table, args: table|nil): table Post-fetch mutation (e.g. Commodity attaches raw/refined records; Location attaches the starmap record — args carries the wikitext args so kind-declared pages without a record can resolve by name)
 --- @field getEditorialManifest nil|fun(): table A per-kind editorial-field manifest (field -> { arg, smw, apiPath?, transform?, default? }); presence opts the kind into the editorial layer
 --- @field editorialMode boolean|nil Opt-in: when true the kind renders from editorial args alone (apiData = {}) for planned / not-yet-in-game pages with no genuine API record. See Module:Entity/Data.
 --- @field getAcquisition nil|fun(apiData: table, args: table): { summary: table[], cards: table[] }|nil Per-kind acquisition data for {{Entity/Availability}}: summary flag rows + render-ready cards. Absent → no acquisition block.

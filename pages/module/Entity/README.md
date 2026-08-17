@@ -148,7 +148,7 @@ kind **fields** `name` / `editorialMode` (validated by `Contract.validateFields`
 | `matches` | `(apiData) → boolean` | kind, facet | yes | Kind identity probe / facet detection. Must be nil-safe, strict boolean. |
 | `getApiConfigs` | `() → EntityApiConfig[]` | kind (also any link) | yes (kind) | `[1]` is the kind's identity endpoint; extra configs fetched for the chain. |
 | `resolveSubtype` | `(apiData, args) → module\|nil` | kind | no | Refine to a subtype leaf module (Item → Turret; Vehicle → Ship). `args` carries the curated `|family=` for editorial mode. |
-| `enrich` | `(apiData) → apiData` | kind | no | Post-fetch mutation (e.g. Commodity attaches raw/refined + harvestable food). |
+| `enrich` | `(apiData, args) → apiData` | kind | no | Post-fetch mutation (e.g. Commodity attaches raw/refined + harvestable food); `args` added in slice 2 for kind-declared pages. |
 | `getEditorialManifest` | `() → table` | kind | no | Per-kind editorial-field manifest; its presence opts the kind into the editorial layer. |
 | `editorialMode` | `boolean\|nil` | kind | no | Opt-in: when true the kind renders from editorial args alone (`apiData = {}`) for planned / not-yet-in-game pages. |
 | `getAcquisition` | `(apiData, args) → { summary, cards }\|nil` | kind | no | Acquisition payload for `{{Entity/Availability}}`: Buy/Rent/Loot/Craft/Pledge summary flags + terminal cards. Absent → no acquisition block. |

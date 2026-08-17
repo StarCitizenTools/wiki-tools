@@ -66,6 +66,22 @@ local function getStarsystem(apiData)
 	return type(apiData.starsystem) == 'table' and apiData.starsystem or nil
 end
 
+--- The ARK starmap code (the `?location=` key), or nil. Two consumers read it —
+--- the Starmap footer button and the Metadata row — and they open-coded the same
+--- guard, which let an empty-string code through both: a `?location=` button
+--- pointing at the starmap index, and a blank "Starmap code" row. One accessor,
+--- so they cannot drift and the empty case is rejected once.
+--- @param apiData table
+--- @return string|nil
+local function starmapCode(apiData)
+	local starsystem = getStarsystem(apiData)
+	local code = starsystem and starsystem.code or nil
+	if type(code) ~= 'string' or code == '' then
+		return nil
+	end
+	return code
+end
+
 --- @param starsystem table|nil
 --- @return table aggregated ({} when absent)
 local function getAggregated(starsystem)
@@ -310,8 +326,7 @@ end
 --- @param args table
 --- @return table[]
 function p.getFooterButtons(apiData, args)
-	local starsystem = getStarsystem(apiData)
-	local code = starsystem and type(starsystem.code) == 'string' and starsystem.code or nil
+	local code = starmapCode(apiData)
 	if not code then
 		return {}
 	end
@@ -332,8 +347,7 @@ end
 --- @param args table
 --- @return EntityItemData[]
 function p.getMetadataItems(apiData, args)
-	local starsystem = getStarsystem(apiData)
-	local code = starsystem and type(starsystem.code) == 'string' and starsystem.code or nil
+	local code = starmapCode(apiData)
 	if not code then
 		return {}
 	end
@@ -347,6 +361,7 @@ p._internal = {
 	buildObjectTiles = buildObjectTiles,
 	starTypeList = starTypeList,
 	affiliationLink = affiliationLink,
+	starmapCode = starmapCode,
 	STATUS_LABELS = STATUS_LABELS,
 }
 

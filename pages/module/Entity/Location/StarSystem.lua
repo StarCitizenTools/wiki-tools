@@ -381,7 +381,7 @@ p._internal = {
 	countObjects = countObjects,
 	buildObjectTiles = buildObjectTiles,
 	starTypeList = starTypeList,
-	affiliationLink = affiliationLink,
+	affiliationDisplay = affiliationDisplay,
 	starmapCode = starmapCode,
 	STATUS_LABELS = STATUS_LABELS,
 }

@@ -53,6 +53,45 @@ function suite:testNumberTransformStripsUnitsAndSuffix()
 	self:assertEquals(900000, r.scm_speed.value)
 end
 
+-- A declared transform is the field's parser: input it cannot parse means the
+-- editor value is ABSENT, not that the raw string stands in. parseNumber returns
+-- nil for the placeholders editors actually type, so the API value must win and
+-- keep its `api` provenance rather than being "overridden" by junk.
+function suite:testUnparseableNumberLetsTheApiValueWin()
+	local r = Editorial.resolve({ speed = { scm = 220 } }, { scmspeed = 'Unknown' }, MANIFEST)
+	self:assertEquals('api', r.scm_speed.source)
+	self:assertEquals(220, r.scm_speed.value)
+end
+
+--- Manifest shape of the Location count overrides: a transform and NO apiPath.
+local COUNT_MANIFEST = { planets = { arg = 'planets', transform = 'number' } }
+
+-- With no apiPath the entry is created unconditionally (source 'editorial'), so
+-- an unparseable value there does not merely mislabel provenance — it displaces
+-- the caller's own value. The field must not resolve at all, so View:value hands
+-- back the fallback the caller passes (for Location, the starmap tally).
+function suite:testUnparseableNumberWithoutApiPathDoesNotResolve()
+	for _, junk in ipairs({ '?', 'TBD', 'Unknown', 'N/A', 'several' }) do
+		local r = Editorial.resolve({}, { planets = junk }, COUNT_MANIFEST)
+		self:assertEquals(nil, r.planets, 'junk value "' .. junk .. '" resolved to an entry')
+		self:assertEquals(4, Editorial.view(r):value('planets', 4))
+	end
+end
+
+-- Real editor input still parses through the same path: parseNumber handles
+-- thousands separators and magnitude suffixes, so the guard costs nothing.
+function suite:testParseableNumberWithoutApiPathStillResolves()
+	self:assertEquals(24, Editorial.resolve({}, { planets = '24' }, COUNT_MANIFEST).planets.value)
+	self:assertEquals(26245, Editorial.resolve({}, { planets = '26,245' }, COUNT_MANIFEST).planets.value)
+end
+
+-- The `page` transform never returns nil for non-empty input, so the guard does
+-- not change it: a bare title and a piped link both still resolve.
+function suite:testPageTransformUnaffectedByTheTransformGuard()
+	self:assertEquals('Aurora', Editorial.resolve({}, { series = 'Aurora' }, MANIFEST).series.value)
+	self:assertEquals('Aurora', Editorial.resolve({}, { series = '[[Aurora|Aurora MR]]' }, MANIFEST).series.value)
+end
+
 function suite:testHasManualApiData()
 	local r = Editorial.resolve({ speed = { scm = 220 } }, { scmspeed = '210' }, MANIFEST)
 	self:assertEquals(true, Editorial.hasManualApiData(r))

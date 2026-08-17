@@ -164,9 +164,22 @@ function p.resolve(apiData, args, manifest)
 				raw = def.default
 			end
 
+			-- A declared transform is the field's parser, so a nil return means "this
+			-- input is not a value of that type" — NOT "keep the raw string". The old
+			-- `transform(raw) or raw` idiom fell through, so `| planets = Unknown`
+			-- became the STRING "Unknown" in the entry. For an apiPath-less field the
+			-- entry is created unconditionally as `editorial`, so that string displaced
+			-- the API value and every consumer's bare tonumber() then yielded nil: the
+			-- infobox tile, the SMW property and the short-description clause all
+			-- vanished at once, with no error and no tracking category. Treating an
+			-- unparseable editor value as ABSENT keeps the API value in play.
 			local editorVal = nil
 			if raw ~= nil and raw ~= '' then
-				editorVal = def.transform and TRANSFORMS[def.transform](raw) or raw
+				if def.transform then
+					editorVal = TRANSFORMS[def.transform](raw)
+				else
+					editorVal = raw
+				end
 			end
 			local apiVal = def.apiPath and dig(apiData, def.apiPath) or nil
 

@@ -1,6 +1,7 @@
 require('strict')
 
 local ScribuntoUnit = require('Module:ScribuntoUnit')
+local Editorial = require('Module:Entity/Editorial')
 local Location = require('Module:Entity/Location')
 
 local suite = ScribuntoUnit:new()
@@ -227,7 +228,6 @@ end
 -- Editorial hand counts beat the starmap tallies (Stanton: 24 stations
 -- counting rest stops vs the starmap's 6 MANMADE objects).
 function suite:testBuildObjectTilesEditorialOverride()
-	local Editorial = require('Module:Entity/Editorial')
 	local ed = Editorial.view({ stations = { value = 24, source = 'editorial' } })
 	local tiles = StarSystem._internal.buildObjectTiles(starsystemFixture(), ed)
 	local station
@@ -355,6 +355,45 @@ local function findItem(section, label)
 			return item.content
 		end
 	end
+end
+
+-- End to end through the real Editorial.resolve: an unparseable count override
+-- must not DELETE the starmap tally. The count fields carry no apiPath, so a
+-- resolved entry is unconditionally authoritative; a junk `| planets = Unknown`
+-- that survived the transform would blank the tile, the stored planet_count and
+-- the short-description clause in one go (this is why El'sin shipped "Size: ?").
+function suite:testUnparseableCountOverrideKeepsTheStarmapTally()
+	local apiData = solarSystemFixture()
+	apiData.starsystem = starsystemFixture() -- 2 PLANET objects
+	local resolved = Editorial.resolve(apiData, { planets = 'Unknown' }, Location.getEditorialManifest())
+	self:assertEquals(nil, resolved.planets)
+
+	local planetTile
+	for _, tile in ipairs(StarSystem._internal.buildObjectTiles(apiData.starsystem, Editorial.view(resolved))) do
+		if tile.label == 'Planets' then
+			planetTile = tile
+		end
+	end
+	self:assertEquals(2, planetTile and planetTile.value)
+	self:assertEquals(2, StarSystem.getStructuredData(apiData, {}, resolved).planet_count)
+	self:assertEquals(
+		'UEE single star system with 2 planets',
+		StarSystem.getShortDescription(apiData, {}, StarSystem.getTypeInfo(apiData), nil, resolved)
+	)
+end
+
+-- The same guard on the one overlap field: a junk `| size =` must not displace
+-- the starmap's aggregated size (the live "Size: ? AU" regression).
+function suite:testUnparseableSizeOverrideKeepsTheStarmapSize()
+	local apiData = solarSystemFixture()
+	apiData.starsystem = starsystemFixture()
+	local resolved = Editorial.resolve(apiData, { size = '?' }, Location.getEditorialManifest())
+	self:assertEquals(4.85, resolved.size.value)
+	self:assertEquals('api', resolved.size.source)
+	self:assertEquals(
+		'4.85 AU',
+		findItem(findSection(StarSystem.getSections(apiData, {}, resolved), 'general'), 'Size')
+	)
 end
 
 function suite:testGetSectionsGeneralRows()

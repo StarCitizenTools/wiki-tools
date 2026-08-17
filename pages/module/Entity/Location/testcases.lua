@@ -275,12 +275,25 @@ function suite:testGetFooterButtons()
 	local buttons = StarSystem.getFooterButtons(apiData, {})
 	self:assertEquals(1, #buttons)
 	self:assertEquals('Starmap', buttons[1].label)
-	self:assertEquals('https://robertsspaceindustries.com/starmap?system=STANTON', buttons[1].url)
+	self:assertEquals('https://robertsspaceindustries.com/starmap?location=STANTON', buttons[1].url)
 	self:assertEquals('Sc-icon-galactapedia.svg', buttons[1].icon)
 end
 
 function suite:testGetFooterButtonsWithoutRecord()
 	self:assertEquals(0, #StarSystem.getFooterButtons(solarSystemFixture(), {}))
+end
+
+function suite:testGetMetadataItems()
+	local apiData = solarSystemFixture()
+	apiData.starsystem = starsystemFixture()
+	local items = StarSystem.getMetadataItems(apiData, {})
+	self:assertEquals(1, #items)
+	self:assertEquals('Starmap code', items[1].label)
+	self:assertEquals('STANTON', items[1].content)
+end
+
+function suite:testGetMetadataItemsWithoutRecord()
+	self:assertEquals(0, #StarSystem.getMetadataItems(solarSystemFixture(), {}))
 end
 
 -- Legacy planet-count formula + affiliation prefix, no trailing period.

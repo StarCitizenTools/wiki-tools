@@ -35,14 +35,15 @@ local function formatEntityTags(apiData)
 	return table.concat(parts, ', ')
 end
 
---- Builds the Metadata section. Returns nil when every row is empty (e.g. a
---- planned/editorial-mode page with no uuid and no API record) so the infobox
---- doesn't render an empty collapsible shell.
+--- Builds the Metadata section, including chain-contributed rows. Returns nil
+--- when every row is empty (e.g. a planned/editorial-mode page with no uuid
+--- and no API record) so the infobox doesn't render an empty collapsible shell.
 ---
+--- @param chain table[]
 --- @param apiData table
 --- @param args table
 --- @return table|nil section
-local function buildMetadataSection(apiData, args)
+local function buildMetadataSection(chain, apiData, args)
 	local items = {
 		{ label = 'UUID', content = args.uuid },
 		{ label = 'Class name', content = apiData.class_name },
@@ -54,6 +55,17 @@ local function buildMetadataSection(apiData, args)
 		{ label = 'Entity tags', content = formatEntityTags(apiData) },
 		{ label = 'Version', content = apiData.version },
 	}
+
+	-- Chain-contributed metadata rows (the getMetadataItems hook), root-to-leaf,
+	-- appended after the generic rows (StarSystem: the ARK starmap code).
+	for _, mod in ipairs(chain) do
+		if mod.getMetadataItems then
+			for _, item in ipairs(mod.getMetadataItems(apiData, args) or {}) do
+				table.insert(items, item)
+			end
+		end
+	end
+
 	for _, item in ipairs(items) do
 		if item.content ~= nil and item.content ~= '' then
 			return {
@@ -215,7 +227,7 @@ local function buildSections(chain, facets, apiData, args, resolved)
 		end
 	end
 
-	local metadata = buildMetadataSection(apiData, args)
+	local metadata = buildMetadataSection(chain, apiData, args)
 	if metadata then
 		table.insert(sections, metadata)
 	end

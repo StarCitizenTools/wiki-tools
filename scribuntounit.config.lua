@@ -20,6 +20,7 @@ return {
 		'MeterBar',
 		'FalloffChart',
 		'Tiles',
+		'StatTiles',
 		'Rarity',
 		'CardLua',
 		'TableLua',

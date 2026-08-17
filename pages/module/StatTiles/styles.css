@@ -1,0 +1,38 @@
+.t-stat-tiles {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-xxs);
+}
+
+.t-stat-tiles__cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    border: var(--border-subtle);
+    border-radius: var(--border-radius-base);
+    padding: var(--space-xs) var(--space-xxs);
+    background: var(--color-surface-0);
+    text-align: center;
+}
+
+/* Value and label are single-line by design (labels come from a fixed
+   catalog and never wrap), so both deliberately break the pair-the-tokens
+   convention: the token line-heights are sized for running text and leave
+   the tile visibly slack. 1.25 keeps the number/label pair snug. */
+.t-stat-tiles__value {
+    font-size: var(--font-size-medium);
+    line-height: 1.25;
+    font-weight: var(--font-weight-semi-bold);
+    color: var(--color-emphasized);
+    font-variant-numeric: tabular-nums;
+}
+
+.t-stat-tiles__label {
+    font-size: var(--font-size-x-small);
+    line-height: 1.25;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--color-subtle);
+    overflow-wrap: anywhere;
+}

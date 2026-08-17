@@ -78,6 +78,18 @@
     background-color: #111d29;
 }
 
+/* VerseGuide footer button: themed from the site's accent (#339fd1) — dark
+   ground in the same hue, light content the mask icon follows. Same
+   compound-selector treatment as the buttons above. */
+.t-button--verseguide.cdx-button {
+    background-color: #142731;
+    color: #a8d8ef;
+}
+
+.t-button--verseguide.cdx-button:hover {
+    background-color: #101f28;
+}
+
 /* Vehicle Overview ring-gauge profile: fit 5 word-labelled tiles at infobox width. */
 .t-stats-overview-profile .t-progress-tiles {
     justify-content: space-between;

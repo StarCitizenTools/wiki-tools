@@ -23,6 +23,7 @@ p.kinds = {
 	require('Module:Entity/Vehicle'),
 	require('Module:Entity/Commodity'),
 	require('Module:Entity/Mission'),
+	require('Module:Entity/Location'),
 }
 
 --- Every facet whose matches() is true contributes additively, regardless of

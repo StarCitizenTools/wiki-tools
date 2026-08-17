@@ -1,0 +1,5 @@
+<includeonly><!--
+-->{{#invoke:Entity|main|kind=Location}}<!--
+--></includeonly><noinclude>
+{{/doc}}
+</noinclude>

@@ -459,8 +459,10 @@ function suite:testStructuredData()
 	local apiData = solarSystemFixture()
 	apiData.starsystem = starsystemFixture()
 	local data = StarSystem.getStructuredData(apiData, {}, nil)
-	-- Raw code + compact affiliation: the vocabulary pre-Entity pages store.
-	self:assertEquals('SINGLE_STAR', data.system_type)
+	-- Display label + compact affiliation: store equals display. (The raw-code
+	-- vocabulary retired with legacy Module:System — this leaf is the only
+	-- writer now.)
+	self:assertEquals('Single star system', data.system_type)
 	self:assertEquals('UEE', data.affiliation)
 	self:assertEquals(1, data.star_count)
 	self:assertEquals(2, data.planet_count)
@@ -802,10 +804,20 @@ function suite:testStructuredDataFromEditorialIdentityWithoutRecord()
 	-- delinked for the store.
 	local resolved = resolveEditorially({ type = 'Trinary', affiliation = "[[Kr'Thak]]", planets = '9' })
 	local data = StarSystem.getStructuredData({}, {}, resolved)
-	self:assertEquals('TRINARY', data.system_type)
+	self:assertEquals('Trinary star system', data.system_type)
 	self:assertEquals("Kr'Thak", data.affiliation)
 	self:assertEquals(9, data.planet_count)
 	self:assertEquals(nil, data.star_count)
+end
+
+-- The unmapped-code fallback at the storage level: a future ARK type stores
+-- its raw code (visible, queryable) rather than vanishing, and self-heals
+-- into the label once SYSTEM_TYPES learns it.
+function suite:testStructuredDataStoresRawCodeForUnmappedType()
+	local apiData = solarSystemFixture()
+	apiData.starsystem = starsystemFixture()
+	apiData.starsystem.type = 'BLACK_HOLE'
+	self:assertEquals('BLACK_HOLE', StarSystem.getStructuredData(apiData, {}, nil).system_type)
 end
 
 function suite:testStructuredDataStillEmptyWithNothingAtAll()

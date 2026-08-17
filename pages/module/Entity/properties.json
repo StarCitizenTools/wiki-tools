@@ -1723,7 +1723,7 @@
 		"modules": [
 			"Location"
 		],
-		"desc": "Aggregated size of a star system in AU (stored unitless; editorial-overridable via |size=). CONFLICT: the live Property:System size page predates this manifest and is typed Quantity with 'Corresponds to 1 AU' — do NOT regenerate that Property page from this entry without deciding the retype (~90 pages store values)."
+		"desc": "Aggregated size of a star system in AU (stored unitless; editorial-overridable via |size=). Retyped Number on-wiki 2026-08-17 (was a pre-manifest Quantity page with 'Corresponds to 1 AU'); consumers append the AU unit at display time."
 	},
 	"System type": {
 		"smw": "Text",
@@ -1731,7 +1731,7 @@
 		"modules": [
 			"Location/StarSystem"
 		],
-		"desc": "Star-topology type of a system as the RAW starmap code ('SINGLE_STAR', 'BINARY'), matching the vocabulary ~90 pre-Entity pages already store."
+		"desc": "Star-topology type of a system as the SYSTEM_TYPES display label ('Single star system', 'Binary star system'), the same string the infobox subtitle shows. Retyped from raw starmap codes 2026-08-17 when legacy Module:System retired and this became the only writer; an unmapped ARK code still stores raw as the fallback."
 	},
 	"Systems": {
 		"smw": "Text",

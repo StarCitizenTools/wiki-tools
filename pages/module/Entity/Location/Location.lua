@@ -530,7 +530,10 @@ function p.getCategories(apiData, args, resolved)
 	return categories
 end
 
--- Test-only exports. Not part of the public API.
+-- Test-only exports — with one exception: starmapCodeArg is also consumed by
+-- the JumpPoint leaf (its shared starmap-code accessor falls back to the raw
+-- arg), so the leaf, enrich and the editorial manifest all share the ONE
+-- alias-order implementation.
 p._internal = {
 	isJumpPointRecord = isJumpPointRecord,
 	starmapCodeArg = starmapCodeArg,

@@ -27,17 +27,25 @@ local function jumpPointFixture()
 		name = 'Pyro - Nyx Jump Point',
 		respawn_location_type = 'Other',
 		type = { name = 'Anomaly', classification = 'Anomaly' },
-		system = { name = 'Pyro System' },
+		jurisdiction = { name = 'UEE' },
+		system = 'Pyro System', -- plain string: the live field shape (not an embedded record)
+		quantum_travel = {
+			arrival_radius_formatted = '18 km',
+			adoption_radius_formatted = '500 km',
+			obstruction_radius_formatted = '11 km',
+		},
 	}
 end
 
 --- Starmap celestial-object record as enrichCelestialObject() attaches it
---- (trimmed; the full shape is the JumpPoint leaf's concern).
+--- (trimmed from the live API response).
 local function celestialObjectFixture()
 	return {
 		code = 'PYRO.JUMPPOINTS.NYX',
 		designation = 'Pyro - Nyx',
 		type = 'JUMPPOINT',
+		distance = 13,
+		jumppoints = { size = 'M', direction = 'B' },
 	}
 end
 
@@ -1038,6 +1046,220 @@ function suite:testShortDescriptionSkipsFreeTextAffiliationPrefix()
 		'Trinary star system',
 		StarSystem.getShortDescription({}, args, StarSystem.getTypeInfo({}, args), nil, resolveEditorially(args))
 	)
+end
+
+-- ── JumpPoint leaf ─────────────────────────────────────────────────────────
+
+local JumpPoint = require('Module:Entity/Location/JumpPoint')
+
+--- The merged payload the leaf renders on the happy path: the location record
+--- plus the celestial object Location.enrich attaches.
+local function jumpPointApiData()
+	local apiData = jumpPointFixture()
+	apiData.celestialobject = celestialObjectFixture()
+	return apiData
+end
+
+function suite:testJumpPointTypeInfo()
+	local info = JumpPoint.getTypeInfo(jumpPointApiData(), {})
+	self:assertEquals('Jump point', info.name)
+	self:assertEquals('Jump points', info.category)
+end
+
+function suite:testJumpPointSystemShortName()
+	local f = JumpPoint._internal.systemShortName
+	self:assertEquals('Pyro', f('Pyro System'))
+	self:assertEquals('Terra', f('Terra system'))
+	self:assertEquals('Nyx', f('Nyx'))
+	self:assertEquals(nil, f(''))
+	self:assertEquals(nil, f(' System'))
+	self:assertEquals(nil, f(nil))
+end
+
+function suite:testJumpPointGeneralRows()
+	local general = findSection(JumpPoint.getSections(jumpPointApiData(), {}, nil), 'general')
+	self:assertEquals('[[Pyro system]]', findItem(general, 'System'))
+	self:assertEquals('[[Nyx system]]', findItem(general, 'Destination'))
+	self:assertEquals('Medium', findItem(general, 'Size'))
+	self:assertEquals('[[UEE]]', findItem(general, 'Jurisdiction'))
+	self:assertEquals('13 AU', findItem(general, 'Distance from star'))
+end
+
+-- The destination is whichever designation side is NOT the entry system —
+-- never a fixed side. Both directions pinned: entry-as-side-A catches an
+-- always-take-side-A parse, entry-as-side-B an always-take-side-B one.
+-- The table-with-name entry shape is the defensive branch (the live field is
+-- a plain string), covered here so both shapes resolve.
+function suite:testJumpPointDestinationOrderIndependence()
+	local f = JumpPoint._internal.destinationSystem
+	local nyxGate = jumpPointApiData()
+	nyxGate.system = { name = 'Nyx System' }
+	nyxGate.celestialobject.designation = 'Nyx - Pyro'
+	self:assertEquals('Pyro', f(nyxGate))
+	local reversed = jumpPointApiData() -- entry stays Pyro System
+	reversed.celestialobject.designation = 'Nyx - Pyro'
+	self:assertEquals('Nyx', f(reversed))
+end
+
+-- No guessing: an absent celestial record, an unparsable designation, a
+-- missing entry system, or a designation naming neither side of the entry all
+-- yield no destination (a guessed side could name the gate's own system).
+function suite:testJumpPointDestinationUnresolvable()
+	local f = JumpPoint._internal.destinationSystem
+	self:assertEquals(nil, f(jumpPointFixture())) -- no celestial record
+	local strangers = jumpPointApiData()
+	strangers.celestialobject.designation = 'Stanton - Terra'
+	self:assertEquals(nil, f(strangers))
+	local noEntry = jumpPointApiData()
+	noEntry.system = nil
+	self:assertEquals(nil, f(noEntry))
+	local noDesignation = jumpPointApiData()
+	noDesignation.celestialobject.designation = nil
+	self:assertEquals(nil, f(noDesignation))
+	local unparsable = jumpPointApiData()
+	unparsable.celestialobject.designation = 'PyroNyx'
+	self:assertEquals(nil, f(unparsable))
+end
+
+function suite:testJumpPointSizeMap()
+	local f = JumpPoint._internal.sizeLabel
+	self:assertEquals('Small', f({ jumppoints = { size = 'S' } }))
+	self:assertEquals('Medium', f({ jumppoints = { size = 'M' } }))
+	self:assertEquals('Large', f({ jumppoints = { size = 'L' } }))
+	self:assertEquals(nil, f({ jumppoints = { size = 'X' } })) -- unknown letter
+	self:assertEquals(nil, f({ jumppoints = {} }))
+	self:assertEquals(nil, f({}))
+	self:assertEquals(nil, f(nil))
+end
+
+-- An unknown size letter drops the Size row rather than leaking a raw code.
+function suite:testJumpPointUnknownSizeOmitsRow()
+	local apiData = jumpPointApiData()
+	apiData.celestialobject.jumppoints.size = 'X'
+	local general = findSection(JumpPoint.getSections(apiData, {}, nil), 'general')
+	self:assertEquals(nil, findItem(general, 'Size'))
+end
+
+-- The starmap reports distance 0 where it has no measurement (the
+-- withheld-survey rule): no row rather than a fabricated "0 AU".
+function suite:testJumpPointZeroDistanceSuppressed()
+	local apiData = jumpPointApiData()
+	apiData.celestialobject.distance = 0
+	local general = findSection(JumpPoint.getSections(apiData, {}, nil), 'general')
+	self:assertEquals(nil, findItem(general, 'Distance from star'))
+	local f = JumpPoint._internal.distanceDisplay
+	self:assertEquals('13 AU', f(celestialObjectFixture()))
+	self:assertEquals(nil, f({ distance = 0 }))
+	self:assertEquals(nil, f({ distance = -1 }))
+	self:assertEquals(nil, f({ distance = 'Unknown' }))
+	self:assertEquals(nil, f({}))
+	self:assertEquals(nil, f(nil))
+end
+
+function suite:testJumpPointQuantumTravelRows()
+	local quantum = findSection(JumpPoint.getSections(jumpPointApiData(), {}, nil), 'quantumtravel')
+	self:assertEquals('Quantum travel', quantum.label)
+	self:assertEquals(true, quantum.collapsible)
+	self:assertEquals(nil, quantum.collapsed) -- open by default, like StarSystem's Lore
+	self:assertEquals('18 km', findItem(quantum, 'Arrival radius'))
+	self:assertEquals('500 km', findItem(quantum, 'Adoption radius'))
+	self:assertEquals('11 km', findItem(quantum, 'Obstruction radius'))
+end
+
+function suite:testJumpPointQuantumSectionDropsWithoutData()
+	local apiData = jumpPointApiData()
+	apiData.quantum_travel = nil
+	self:assertEquals(nil, findSection(JumpPoint.getSections(apiData, {}, nil), 'quantumtravel'))
+end
+
+-- One accessor feeds the Starmap button and the Metadata row: the fetched
+-- record's code wins, the raw |starmapcode=/|code= arg (the kind's shared
+-- starmapCodeArg, same alias order enrich fetches with) covers a soft-failed
+-- fetch, and an empty record code falls through rather than blanking both.
+function suite:testJumpPointStarmapCodeAccessor()
+	local f = JumpPoint._internal.starmapCode
+	self:assertEquals('PYRO.JUMPPOINTS.NYX', f(jumpPointApiData(), { starmapcode = 'OTHER.CODE' }))
+	self:assertEquals('PYRO.JUMPPOINTS.NYX', f(jumpPointFixture(), { starmapcode = 'PYRO.JUMPPOINTS.NYX' }))
+	self:assertEquals('NYX.JUMPPOINTS.PYRO', f(jumpPointFixture(), { code = 'NYX.JUMPPOINTS.PYRO' }))
+	local blankCode = jumpPointApiData()
+	blankCode.celestialobject.code = ''
+	self:assertEquals('FALLBACK.CODE', f(blankCode, { starmapcode = 'FALLBACK.CODE' }))
+	self:assertEquals(nil, f(jumpPointFixture(), {}))
+	self:assertEquals(nil, f(jumpPointFixture(), nil))
+end
+
+function suite:testJumpPointFooterButton()
+	local buttons = JumpPoint.getFooterButtons(jumpPointApiData(), {})
+	self:assertEquals(1, #buttons)
+	self:assertEquals('Starmap', buttons[1].label)
+	self:assertEquals('https://robertsspaceindustries.com/starmap?location=PYRO.JUMPPOINTS.NYX', buttons[1].url)
+	self:assertEquals('Sc-icon-galactapedia.svg', buttons[1].icon)
+	self:assertEquals('t-button--branded t-button--starmap', buttons[1].class)
+end
+
+function suite:testJumpPointMetadataItems()
+	local items = JumpPoint.getMetadataItems(jumpPointApiData(), {})
+	self:assertEquals(1, #items)
+	self:assertEquals('Starmap code', items[1].label)
+	self:assertEquals('PYRO.JUMPPOINTS.NYX', items[1].content)
+	-- The arg fallback feeds the row too (soft-failed fetch).
+	local fromArg = JumpPoint.getMetadataItems(jumpPointFixture(), { code = 'NYX.JUMPPOINTS.PYRO' })
+	self:assertEquals('NYX.JUMPPOINTS.PYRO', fromArg[1].content)
+end
+
+-- No usable code from record or args → neither button nor metadata row.
+function suite:testJumpPointAbsentCodeYieldsNeitherButtonNorRow()
+	self:assertEquals(0, #JumpPoint.getFooterButtons(jumpPointFixture(), {}))
+	self:assertEquals(0, #JumpPoint.getMetadataItems(jumpPointFixture(), {}))
+	local blankCode = jumpPointApiData()
+	blankCode.celestialobject.code = ''
+	self:assertEquals(0, #JumpPoint.getFooterButtons(blankCode, {}))
+	self:assertEquals(0, #JumpPoint.getMetadataItems(blankCode, {}))
+end
+
+function suite:testJumpPointStructuredData()
+	local data = JumpPoint.getStructuredData(jumpPointApiData(), {}, nil)
+	self:assertEquals('Medium', data.jump_point_size)
+	-- Page-name forms ('Pyro system'), so [[System::…]] resolves wiki pages.
+	self:assertEquals('Pyro system', data.system)
+	self:assertEquals('Nyx system', data.destination_system)
+end
+
+function suite:testJumpPointStructuredDataDegradesWithoutCelestialRecord()
+	local data = JumpPoint.getStructuredData(jumpPointFixture(), {}, nil)
+	self:assertEquals(nil, data.jump_point_size)
+	-- The location record alone still carries the entry system.
+	self:assertEquals('Pyro system', data.system)
+	self:assertEquals(nil, data.destination_system)
+end
+
+function suite:testJumpPointLoreRowsThroughManifest()
+	local resolved = resolveEditorially({ discoveredin = '[[2469]]', discoveredby = '[[Nick Croshaw]]' })
+	local lore = findSection(JumpPoint.getSections(jumpPointApiData(), {}, resolved), 'lore')
+	self:assertEquals('[[2469]]', findItem(lore, 'Discovered in'))
+	self:assertEquals('[[Nick Croshaw]]', findItem(lore, 'Discovered by'))
+end
+
+-- Gate-directional, no trailing period; no size → unsized head; no resolvable
+-- route → the catch-all (size or not: "Medium jump point" alone names no
+-- route).
+function suite:testJumpPointShortDescription()
+	local typeInfo = JumpPoint.getTypeInfo()
+	self:assertEquals(
+		'Medium jump point from Pyro to Nyx',
+		JumpPoint.getShortDescription(jumpPointApiData(), {}, typeInfo)
+	)
+	local unsized = jumpPointApiData()
+	unsized.celestialobject.jumppoints = nil
+	self:assertEquals('Jump point from Pyro to Nyx', JumpPoint.getShortDescription(unsized, {}, typeInfo))
+	self:assertEquals('A jump point in Star Citizen', JumpPoint.getShortDescription(jumpPointFixture(), {}, typeInfo))
+end
+
+-- The kind's getCategories hook adds nothing for a jump point: the
+-- system-type/affiliation trees are star-system vocabulary, and the base
+-- 'Jump points' category comes from typeInfo.category.
+function suite:testJumpPointKindCategoriesEmpty()
+	self:assertEquals(0, #Location.getCategories(jumpPointApiData(), {}, nil))
 end
 
 function suite:testShortDescriptionNoTypeKeepsLegacyShape()

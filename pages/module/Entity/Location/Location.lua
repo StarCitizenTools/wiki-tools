@@ -204,6 +204,18 @@ local function isJumpPointRecord(apiData)
 		or apiData.name:sub(1, #JUMP_POINT_SUFFIX + 1) == JUMP_POINT_SUFFIX .. ' '
 end
 
+--- Does the page declare the jump-point family? The editorial escape hatch
+--- for gates the locations API has no record for (the starmap-only tunnels:
+--- Stanton - Magnus, the placeholder Stanton/Nyx pair): with no record there
+--- is no type token and no name suffix to dispatch on, so `|family=jumppoint`
+--- names the leaf the way Vehicle's curated |family= names its branch. A
+--- genuine record always wins over the arg — family only fills the void.
+--- @param args table|nil
+--- @return boolean
+local function wantsJumpPointFamily(args)
+	return args ~= nil and type(args.family) == 'string' and mw.text.trim(args.family):lower() == 'jumppoint'
+end
+
 --- Should this payload get the starmap starsystem attachment? Record-aware: a
 --- TYPED record answers on its type alone — only SolarSystem fetches, so a
 --- jump-point record (type 'Anomaly') on a kind-declared page cannot fire a
@@ -220,7 +232,7 @@ local function shouldFetchStarsystem(apiData, args)
 	if type(apiData) == 'table' and type(apiData.type) == 'table' then
 		return apiData.type.name == 'SolarSystem'
 	end
-	return args ~= nil and args.kind ~= nil
+	return args ~= nil and args.kind ~= nil and not wantsJumpPointFamily(args)
 end
 
 --- The starmap lookup name: explicit override, then the location record's
@@ -386,7 +398,7 @@ end
 --- @param args table|nil
 --- @return table apiData
 function p.enrich(apiData, args)
-	if isJumpPointRecord(apiData) then
+	if isJumpPointRecord(apiData) or wantsJumpPointFamily(args) then
 		return enrichCelestialObject(apiData, args)
 	end
 	if not shouldFetchStarsystem(apiData, args) then
@@ -416,8 +428,8 @@ end
 --- in Module:Entity/Data, since matches() stays SolarSystem-narrow. Any other
 --- Anomaly (wreck sites) stays unresolved, kind-declared or not: the
 --- kind-declared StarSystem default applies only to pages with NO typed record
---- (the editorial fork) — the only subtype there until the planets slice adds
---- a |family=-style dispatch arg.
+--- (the editorial fork), where |family=jumppoint may name the JumpPoint leaf
+--- instead (the starmap-only tunnels); planets will extend the same arg.
 --- @param apiData table
 --- @param args table
 --- @return table|nil leaf module
@@ -427,7 +439,10 @@ function p.resolveSubtype(apiData, args)
 	end
 	local token = type(apiData.type) == 'table' and apiData.type.name or nil
 	if token == nil and args and args.kind then
-		token = 'SolarSystem'
+		-- Kind-declared, no typed record: the editorial fork. |family=jumppoint
+		-- names the JumpPoint leaf (the starmap-only tunnels have no record to
+		-- dispatch on); everything else keeps the StarSystem default.
+		token = wantsJumpPointFamily(args) and 'JumpPoint' or 'SolarSystem'
 	end
 	return subtypeResolver.resolve(token, LOCATION_SUBTYPE_MAP)
 end
@@ -513,6 +528,30 @@ function p.entrySystem(apiData)
 	return p.systemShortName(system)
 end
 
+--- The gate's entry system for ANY jump-point page: the location record's
+--- system when one exists, else the first side of the celestial designation.
+--- The designation is entry-first for the object's own system by starmap
+--- convention (every observed object under <SYS>.JUMPPOINTS.* leads with
+--- <SYS>'s name), which is what lets a record-less |family=jumppoint page
+--- (the starmap-only tunnels) still know which system it sits in — feeding
+--- the System row, the destination disambiguation, the entry-system category
+--- and the stored System property alike.
+--- @param apiData table
+--- @return string|nil
+function p.gateEntrySystem(apiData)
+	local entry = p.entrySystem(apiData)
+	if entry then
+		return entry
+	end
+	local celestial = type(apiData.celestialobject) == 'table' and apiData.celestialobject or nil
+	local designation = celestial and celestial.designation or nil
+	if type(designation) ~= 'string' then
+		return nil
+	end
+	local sideA = designation:match('^(.-)%s+%-%s+')
+	return sideA and p.systemShortName(mw.text.trim(sideA)) or nil
+end
+
 --- The system-type entry for a page: the editorial value when one resolved
 --- (hand value beats starmap, the house rule), else the starmap record's.
 --- Single accessor so the type row, categories, SMW and short description
@@ -560,8 +599,8 @@ function p.getCategories(apiData, args, resolved)
 	-- legacy pages' flat 'Astronomical objects'/'Locations' memberships are
 	-- deliberately NOT carried over: the classification bucket (typeInfo's
 	-- 'Jump points', under Astronomy) covers that taxonomy.
-	if isJumpPointRecord(apiData) then
-		local entry = p.entrySystem(apiData)
+	if isJumpPointRecord(apiData) or wantsJumpPointFamily(args) then
+		local entry = p.gateEntrySystem(apiData)
 		if entry then
 			return { entry .. ' system' }
 		end

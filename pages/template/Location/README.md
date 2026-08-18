@@ -46,6 +46,16 @@ In-game jump point: the location record supplies the entry system, parent anchor
 }}
 ```
 
+Starmap-only jump point (no location record exists): `family` names the leaf and `starmapcode` supplies everything renderable.
+
+```wikitext
+{{Location
+| name        = Stanton - Magnus jump point
+| family      = jumppoint
+| starmapcode = STANTON.JUMPPOINTS.MAGNUS
+}}
+```
+
 Star system with curated overrides and lore fields (the discovery citation belongs in the article body, not the parameter):
 
 ```wikitext
@@ -67,6 +77,7 @@ Star system with curated overrides and lore fields (the discovery citation belon
 | `uuid` | UUID | string | No | (none) | Location UUID from the game data API. Only in-game systems have one; lore systems omit it and the infobox renders from the starmap record plus the parameters below. There is no fallback to a UUID stored on the page: this template declares its kind, which deliberately suppresses that lookup so a stale or placeholder stored UUID cannot resurrect itself. | `c9c137cf-c520-47ee-9e6d-5d653dfbe201` |
 | `starmapname` | Starmap name | string | No | (the API record's name, else `name`, else the page title) | Starmap lookup name override — only when neither the page title nor `name` resolves the starmap record. | `Rihlah` |
 | `name` | Name | string | No | (page title) | Infobox display title. | `Stanton system` |
+| `family` | Family | string | No | (none) | Leaf selector for a page with no location record: `jumppoint` renders the jump-point infobox from the starmap celestial object alone (the starmap-only tunnels, e.g. Stanton - Magnus). Ignored when a genuine record resolves. | `jumppoint` |
 | `starmapcode` | Starmap code | string | No | (none) | ARK starmap code of a jump point's celestial object — the `?location=` key on the RSI starmap. Keys the starmap fetch that supplies the destination system and gate size, and feeds the Starmap footer button and the Metadata row. Jump points only; star systems derive their code from the starmap record. `code` works as a legacy alias (the `{{Astronomical object}}` parameter name); `starmapcode` wins when both are set. | `PYRO.JUMPPOINTS.NYX` |
 | `image` | Image | wiki-file-name | No |  | Infobox image. | `Stanton 2D.png` |
 | `size` | Size | number | No | (starmap aggregated size) | System size in AU, overriding the starmap value. | `9.83` |

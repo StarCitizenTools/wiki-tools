@@ -192,12 +192,18 @@ local JUMP_POINT_SUFFIX = 'Jump Point'
 --- @param apiData table|nil
 --- @return boolean
 local function isJumpPointRecord(apiData)
-	if
-		type(apiData) ~= 'table'
-		or type(apiData.type) ~= 'table'
-		or apiData.type.name ~= 'Anomaly'
-		or type(apiData.name) ~= 'string'
-	then
+	if type(apiData) ~= 'table' or type(apiData.type) ~= 'table' then
+		return false
+	end
+	-- The unambiguous token: a handful of records (the Stanton-side gates) are
+	-- typed 'JumpPoint' outright — no name check needed or wanted there, since
+	-- repurposed gates carry STALE names ("Stanton - Magnus Jump Point" is the
+	-- in-game Stanton - Nyx gate; its parent object, Nyx Gateway, is the
+	-- truth). Name anchors below apply only to the ambiguous 'Anomaly' token.
+	if apiData.type.name == 'JumpPoint' then
+		return true
+	end
+	if apiData.type.name ~= 'Anomaly' or type(apiData.name) ~= 'string' then
 		return false
 	end
 	return apiData.name:sub(-#JUMP_POINT_SUFFIX) == JUMP_POINT_SUFFIX

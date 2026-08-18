@@ -41,7 +41,7 @@ Primary entry point for sibling renderers. Takes the `args` table returned by `p
 {
     args        = table,        -- the parsed wikitext args passed in
     kind        = string,       -- canonical kind name from the matched kind's p.name
-                                --   (Item/Vehicle/Commodity/Mission); 'Item' when no kind
+                                --   (Item/Vehicle/Commodity/Mission/Location); 'Item' when no kind
                                 --   matched, mirroring resolveLeaf's fallback. Sibling
                                 --   renderers branch on this instead of re-deriving from apiData.
     apiData     = table,        -- merged API response (empty table when no uuid or all fetches fail)
@@ -104,7 +104,7 @@ When there is **no** genuine record **and** `args.kind` names a registered kind 
 - `hasApiError` is forced `false` (a missing record is expected here, not an error);
 - `unresolvedReference` is set `true` **iff** a `|uuid=` was provided: a planned page declares no uuid, so a present-but-unresolved uuid is a typo or not-yet-in-API reference worth flagging (`[[Category:Pages with an unresolved entity reference]]`, emitted by `Module:Entity/Categories`).
 
-`args.kind` is consulted in exactly two places, both safe against a wrong declaration. With a uuid, `probeKind`'s declared-kind path (Flow step 1) trusts it behind the validity gate, which rejects any record the kind can neither match nor refine. Without a genuine record, it selects the editorial fork here, where `resolveEditorialKind` requires an opted-in registered kind. See [Module:Entity/Vehicle](https://starcitizen.tools/Module:Entity/Vehicle) and [Module:Entity/Location](https://starcitizen.tools/Module:Entity/Location) for the consumer side.
+`args.kind` is consulted in three places, each safe against a wrong declaration: `parseArgs` reads it first, to suppress the SMW-stored-uuid fallback (a declared page must not resurrect a stale stored uuid). With a uuid, `probeKind`'s declared-kind path (Flow step 1) trusts it behind the validity gate, which rejects any record the kind can neither match nor refine. Without a genuine record, it selects the editorial fork here, where `resolveEditorialKind` requires an opted-in registered kind. See [Module:Entity/Vehicle](https://starcitizen.tools/Module:Entity/Vehicle) and [Module:Entity/Location](https://starcitizen.tools/Module:Entity/Location) for the consumer side.
 
 A kind-declared page also satisfies `Module:Entity`'s identity guard on its own: an entity is identifiable by a `uuid`, by a name (curated or from the record), **or** by a kind that claimed the page, which derives its identity from the page title. The guard tests `result.matchedKind`, not raw `args.kind`, so a misspelled kind still errors rather than rendering a title-only shell.
 

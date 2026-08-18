@@ -240,14 +240,10 @@ end
 --- @param name string|nil
 --- @return string|nil
 local function plainKey(name)
-	if type(name) ~= 'string' or name == '' then
-		return nil
-	end
-	local key = name:gsub('%s+[Ss]ystem$', ''):lower()
-	if key == '' then
-		return nil
-	end
-	return key
+	-- One suffix-stripper: p.systemShortName owns the ' System' handling (and
+	-- trims); this is just its lowercased form for the filter[name] URL key.
+	local short = p.systemShortName(name)
+	return short and short:lower() or nil
 end
 
 --- The row for a plain key from a filter[name] result list. filter[name] is a
@@ -326,7 +322,7 @@ end
 --- the two must not drift (same raw-args mirror getTypeInfo documents).
 --- @param args table|nil
 --- @return string|nil
-local function starmapCodeArg(args)
+function p.starmapCodeArg(args)
 	if type(args) ~= 'table' then
 		return nil
 	end
@@ -352,7 +348,7 @@ end
 --- @param args table|nil
 --- @return table apiData
 local function enrichCelestialObject(apiData, args)
-	local code = starmapCodeArg(args)
+	local code = p.starmapCodeArg(args)
 	if not code then
 		return apiData
 	end
@@ -577,13 +573,12 @@ function p.getCategories(apiData, args, resolved)
 	return categories
 end
 
--- Test-only exports — with one exception: starmapCodeArg is also consumed by
--- the JumpPoint leaf (its shared starmap-code accessor falls back to the raw
--- arg), so the leaf, enrich and the editorial manifest all share the ONE
--- alias-order implementation.
+-- Test-only exports. Not part of the public API. (starmapCodeArg graduated to
+-- a public function — the JumpPoint leaf consumes it in production, and the
+-- leaf, enrich and the editorial manifest share the ONE alias-order
+-- implementation there.)
 p._internal = {
 	isJumpPointRecord = isJumpPointRecord,
-	starmapCodeArg = starmapCodeArg,
 	shouldFetchStarsystem = shouldFetchStarsystem,
 	resolveLookupName = resolveLookupName,
 	plainKey = plainKey,

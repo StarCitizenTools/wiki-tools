@@ -97,5 +97,5 @@ Star system with curated overrides and lore fields (the discovery citation belon
 - A count or size parameter that is not a number ("?", "TBD", "Unknown") is ignored rather than displayed, so a placeholder cannot blank a real starmap value. Leave the parameter out instead; the starmap figure is used.
 - The starmap does not publish a survey for every system (the Vanduul systems and those with incomplete probe data). Where it withholds one, the size and the economy/population readings are omitted rather than shown as the placeholder figures the starmap returns.
 - The RSI Starmap footer button is generated from the starmap system code (star systems) or from the fetched celestial object's code falling back to `starmapcode` (jump points); the Galactapedia and VerseGuide buttons appear when `galactapediaurl` / `verseguideurl` are supplied.
-- A jump point's Distance from star row is omitted when the starmap reports 0 (no measurement), and its Destination row is omitted rather than guessed when the celestial designation names neither side as the entry system.
+- A jump point's Destination row is omitted rather than guessed when the celestial designation names neither side as the entry system.
 - Stored property values are sanitized: wiki links are reduced to their display text and reference tags are stripped, so query results stay clean.

@@ -128,7 +128,7 @@ end
 
 --- The ARK starmap code (the `?location=` key): the fetched celestial record's
 --- own code first, else the raw |starmapcode=/|code= arg (via the kind's
---- shared starmapCodeArg accessor — the same alias order enrich fetches with,
+--- public starmapCodeArg accessor — the same alias order enrich fetches with,
 --- so a page whose fetch soft-failed still gets its button and metadata row
 --- from the arg that would have keyed it). One accessor for both consumers
 --- (Starmap button, Metadata row), StarSystem's pattern: they cannot drift,
@@ -142,7 +142,7 @@ local function starmapCode(apiData, args)
 	if type(code) == 'string' and code ~= '' then
 		return code
 	end
-	return location._internal.starmapCodeArg(args)
+	return location.starmapCodeArg(args)
 end
 
 --- @return { name: string, category: string }

@@ -1102,13 +1102,18 @@ end
 
 function suite:testJumpPointGeneralRows()
 	local apiData = jumpPointApiData()
-	apiData.parent = { name = 'Pyro', type_name = 'Star' }
+	-- A parent whose (star) page exists NOWHERE: the plain-text branch then
+	-- holds under the offline runner (title shim can't answer `exists`) AND
+	-- under live Scribunto (the page genuinely doesn't exist), so this test
+	-- is environment-stable — the on-wiki suite runs these same cases, and a
+	-- real-page fixture ('Pyro') turned red there when live resolved the
+	-- link. Candidate selection is pinned separately; live linking is
+	-- browser-verified.
+	apiData.parent = { name = 'Zzyzx Test Star', type_name = 'Star' }
 	local general = findSection(JumpPoint.getSections(apiData, {}, nil), 'general')
 	self:assertEquals('[[Pyro system]]', findItem(general, 'System'))
 	self:assertEquals('[[Nyx system]]', findItem(general, 'Destination'))
-	-- Plain text under the runner: the title shim cannot answer `exists`, so
-	-- the link wrapper degrades; candidate selection is pinned separately.
-	self:assertEquals('Pyro', findItem(general, 'Parent'))
+	self:assertEquals('Zzyzx Test Star', findItem(general, 'Parent'))
 	self:assertEquals('Medium', findItem(general, 'Size'))
 	self:assertEquals('[[UEE]]', findItem(general, 'Jurisdiction'))
 	-- Distance from star was dropped by design review: not a row.
@@ -1212,16 +1217,20 @@ function suite:testJumpPointTravelRows()
 	-- Adoption radius was dropped by design review.
 	self:assertEquals(nil, findItem(travel, 'Adoption radius'))
 	self:assertEquals('11 km', findItem(travel, 'Obstruction radius'))
-	self:assertEquals('Hidden', findItem(travel, 'Starmap'))
+	-- Boolean icon, negated polarity: the fixture's gate is HIDDEN, so the
+	-- icon answers "on the starmap?" with no.
+	self:assertStringContains('data%-state="no"', findItem(travel, 'Starmap'))
 end
 
--- hide_in_starmap is tri-state in display terms: true -> Hidden,
--- false -> Shown, absent -> no row (never a fabricated value).
+-- The standard tri-state boolean icon with NEGATED polarity (the icon answers
+-- "is it on the starmap?"): hidden -> no, shown -> yes, absent -> no row
+-- (never the Unknown icon for a field the record does not carry).
 function suite:testJumpPointStarmapVisibility()
 	local f = JumpPoint._internal.starmapVisibility
-	self:assertEquals('Hidden', f({ hide_in_starmap = true }))
-	self:assertEquals('Shown', f({ hide_in_starmap = false }))
+	self:assertStringContains('data%-state="no"', f({ hide_in_starmap = true }))
+	self:assertStringContains('data%-state="yes"', f({ hide_in_starmap = false }))
 	self:assertEquals(nil, f({}))
+	self:assertEquals(nil, f({ hide_in_starmap = 'true' })) -- non-boolean shape
 end
 
 -- The Travel section drops only when radii AND the visibility flag are all
@@ -1230,7 +1239,7 @@ function suite:testJumpPointTravelSectionDropsWithoutData()
 	local apiData = jumpPointApiData()
 	apiData.quantum_travel = nil
 	local travel = findSection(JumpPoint.getSections(apiData, {}, nil), 'travel')
-	self:assertEquals('Hidden', findItem(travel, 'Starmap'))
+	self:assertStringContains('data%-state="no"', findItem(travel, 'Starmap'))
 	self:assertEquals(nil, findItem(travel, 'Arrival radius'))
 	apiData.hide_in_starmap = nil
 	self:assertEquals(nil, findSection(JumpPoint.getSections(apiData, {}, nil), 'travel'))

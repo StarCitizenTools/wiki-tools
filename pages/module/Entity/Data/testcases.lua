@@ -494,7 +494,7 @@ local function jumpPointRecord()
 		name = 'Pyro - Nyx Jump Point',
 		respawn_location_type = 'Other',
 		type = { name = 'Anomaly', classification = 'Anomaly' },
-		system = { name = 'Pyro System' },
+		system = 'Pyro System', -- plain string: the live field shape (not an embedded record)
 	}
 end
 

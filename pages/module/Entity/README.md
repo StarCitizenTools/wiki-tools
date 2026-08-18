@@ -25,7 +25,13 @@ feeds the next:
    fetches the kind's primary endpoint and calls `kind.matches(apiData)`; the first
    true result wins and the loop short-circuits. Common-case Item is listed first, so
    most pages pay one fetch. With no uuid, nothing is probed (see the editorial fork
-   below).
+   below). When the page declares `|kind=` **alongside** a uuid, the declaration is
+   trusted ahead of the probe behind a validity gate — the declared kind's endpoint is
+   fetched directly and holds when `matches(data)` or `resolveSubtype(data, {})`
+   accepts the record. This is how records a deliberately-narrow `matches()` rejects
+   get in (a jump point's location record is typed `Anomaly`); see
+   [Module:Entity/Data](https://starcitizen.tools/Module:Entity/Data)'s Flow for the
+   gate semantics.
 
 3. **Resolve subtype leaf**: if the matched kind exposes `resolveSubtype(apiData,
    args)`, it is called now to refine the kind to a more-specific leaf module. The
@@ -50,7 +56,8 @@ feeds the next:
 6. **Enrich**: if the matched kind exposes an `enrich(apiData, args)` hook, it runs
    now to post-process or normalise the merged data, or to attach a secondary record
    the primary endpoint does not carry (Commodity attaches raw/refined records;
-   Location attaches the RSI starmap star-system record, looked up by name). It also
+   Location attaches the RSI starmap star-system record, looked up by name — or, for
+   jump-point records, the starmap celestial object, keyed by `|starmapcode=`). It also
    runs on the editorial fork, where `apiData` is empty and `args` is the only input
    — that is how a kind-declared lore page with no uuid still fills its infobox.
 
@@ -261,7 +268,7 @@ A quick map to every piece of the system.
 | [Module:Entity/Item](https://starcitizen.tools/Module:Entity/Item) | Item kind + subtype dispatch (`itemSubtypeMapping`); shared item helpers |
 | [Module:Entity/Vehicle](https://starcitizen.tools/Module:Entity/Vehicle) | Vehicle kind orchestrator; family dispatch + the Vehicle/ section sub-builders (Overview, Capacity, Cost, Stats, Dimensions, Lore, Development) |
 | [Module:Entity/Commodity](https://starcitizen.tools/Module:Entity/Commodity) | Commodity kind (raw/refined records via `enrich`) |
-| [Module:Entity/Location](https://starcitizen.tools/Module:Entity/Location) | Location kind (SolarSystem only); attaches the RSI starmap record via `enrich` and dispatches to the StarSystem leaf. Opts into editorial mode for the lore systems that have no game record |
+| [Module:Entity/Location](https://starcitizen.tools/Module:Entity/Location) | Location kind; dispatches to the StarSystem leaf (SolarSystem records, and the kind-declared default) or the JumpPoint leaf (Anomaly records named `… Jump Point`, admitted via the declared-kind trust path). `enrich` attaches the matching RSI starmap record: the star system by name, or the celestial object by starmap code for jump points. Opts into editorial mode for the lore systems that have no game record |
 | [Module:Entity/Mission](https://starcitizen.tools/Module:Entity/Mission) | Mission kind (WIP) |
 
 ### Pipeline core modules

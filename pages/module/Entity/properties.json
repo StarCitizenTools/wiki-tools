@@ -342,6 +342,14 @@
 		],
 		"desc": "Density of a commodity, in g/cm³."
 	},
+	"Destination system": {
+		"smw": "Page",
+		"bucket": "PAGE",
+		"modules": [
+			"Location/JumpPoint"
+		],
+		"desc": "Star system on the far side of a jump-point tunnel, stored as the wiki page name ('Nyx system'): the side of the starmap celestial designation that is not the gate's entry system."
+	},
 	"Discovered by": {
 		"smw": "Text",
 		"bucket": "TEXT",
@@ -728,6 +736,14 @@
 			"Location/StarSystem"
 		],
 		"desc": "Number of jump points in a star system (typed celestialObjects count from the starmap record)."
+	},
+	"Jump point size": {
+		"smw": "Text",
+		"bucket": "TEXT",
+		"modules": [
+			"Location/JumpPoint"
+		],
+		"desc": "Ship size class a jump point admits (Small, Medium, Large), mapped from the starmap jumppoints.size code (S/M/L); an unmapped code stores nothing."
 	},
 	"Jump tuning rate": {
 		"smw": "Number",
@@ -1716,6 +1732,14 @@
 			"Entity"
 		],
 		"desc": "Most-specific structural type of the page subject (e.g. Gun, Cooler, Company). Injected centrally by Module:Entity from the resolved typeInfo."
+	},
+	"System": {
+		"smw": "Page",
+		"bucket": "PAGE",
+		"modules": [
+			"Location/JumpPoint"
+		],
+		"desc": "Star system a location resides in, stored as the wiki page name ('Pyro system'). Written today by the JumpPoint leaf (the gate's entry system); the vocabulary is kind-wide for future Location leaves."
 	},
 	"System size": {
 		"smw": "Number",

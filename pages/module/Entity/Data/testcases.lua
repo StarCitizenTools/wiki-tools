@@ -179,6 +179,32 @@ function suite:testEditorialKindNilWhenUnknown()
 	self:assertEquals(nil, helpers.resolveEditorialKind({ kind = 'Nonsense' }))
 end
 
+-- kindByName (case-insensitive registry lookup, no editorial gating)
+
+function suite:testKindByNameResolvesLocation()
+	local mod = helpers.kindByName('Location')
+	self:assertEquals('Location', mod and mod.name)
+end
+
+function suite:testKindByNameCaseInsensitive()
+	local mod = helpers.kindByName('location')
+	self:assertEquals('Location', mod and mod.name)
+end
+
+-- Unlike resolveEditorialKind, the lookup itself carries no editorialMode
+-- gate: the probeKind trust path may name any registered kind.
+function suite:testKindByNameIgnoresEditorialOptIn()
+	local mod = helpers.kindByName('Commodity')
+	self:assertEquals('Commodity', mod and mod.name)
+end
+
+function suite:testKindByNameNilForAbsentOrUnknown()
+	self:assertEquals(nil, helpers.kindByName(nil))
+	self:assertEquals(nil, helpers.kindByName(''))
+	self:assertEquals(nil, helpers.kindByName('Nonsense'))
+	self:assertEquals(nil, helpers.kindByName(42))
+end
+
 -- resolveLeaf threads args into resolveSubtype
 
 function suite:testResolveLeafThreadsArgsToSubtype()
@@ -302,6 +328,172 @@ function suite:testRunEditorialForkWithoutEnrich()
 	local apiData, chain = helpers.runEditorialFork(stubKind, { kind = 'Stub' })
 	self:assertEquals(nil, next(apiData))
 	self:assertEquals(stubKind, chain[#chain])
+end
+
+-- ── probeKind's declared-kind trust path (via p.get) ───────────────────────
+--
+-- probeKind takes no injection point, but Data holds the Module:Entity/Api
+-- module TABLE from the require cache and calls `api.fetchApi` through it
+-- (fetchAllApis routes through the same field), so swapping that field is the
+-- seam — the same one the Location suite uses for enrich(). Recording which
+-- endpoint patterns the stub is asked for is what lets these tests tell the
+-- trust path (declared kind's endpoint, no search) from the probe (search
+-- first) apart.
+
+--- Run `fn(seen)` with Module:Entity/Api.fetchApi replaced by a stub that
+--- marks each requested endpoint pattern in `seen` and answers from
+--- `responses` (endpoint pattern → payload; unlisted endpoints answer nil,
+--- the soft no-record shape). Always restores the real function, so one
+--- failing test cannot poison the rest of the suite.
+--- @param responses table<string, table>
+--- @param fn fun(seen: table<string, boolean>)
+local function withStubbedFetch(responses, fn)
+	local api = require('Module:Entity/Api')
+	local realFetch = api.fetchApi
+	local seen = {}
+	api.fetchApi = function(config, _)
+		seen[config.endpoint] = true
+		return responses[config.endpoint]
+	end
+	local ok, err = pcall(fn, seen)
+	api.fetchApi = realFetch
+	if not ok then
+		error(err, 0)
+	end
+end
+
+--- SolarSystem-shaped location record (what locations/<uuid> answers for a
+--- star system; trimmed from the live API response).
+local function solarSystemRecord()
+	return {
+		uuid = 'c9c137cf-c520-47ee-9e6d-5d653dfbe201',
+		name = 'Stanton System',
+		respawn_location_type = 'None',
+		type = { name = 'SolarSystem', classification = 'Solar System' },
+	}
+end
+
+function suite:testDeclaredKindWithUuidSkipsTheResolver()
+	withStubbedFetch({ ['locations/%s'] = solarSystemRecord() }, function(seen)
+		local r = Data.get({ uuid = 'c9c137cf-c520-47ee-9e6d-5d653dfbe201', kind = 'Location' })
+		self:assertEquals('Location', r.kind)
+		self:assertEquals(false, r.hasApiError)
+		self:assertEquals(false, r.unresolvedReference)
+		self:assertEquals(true, seen['locations/%s'])
+		self:assertEquals(nil, seen['search/%s'])
+	end)
+end
+
+function suite:testDeclaredKindLowercaseTakesTheTrustPath()
+	withStubbedFetch({ ['locations/%s'] = solarSystemRecord() }, function(seen)
+		local r = Data.get({ uuid = 'c9c137cf-c520-47ee-9e6d-5d653dfbe201', kind = 'location' })
+		self:assertEquals('Location', r.kind)
+		self:assertEquals(nil, seen['search/%s'])
+	end)
+end
+
+-- A vehicle uuid pasted into {{Location}}: the declared endpoint answers a
+-- record the kind can neither match nor refine, so the declaration is NOT
+-- trusted and the resolver probe runs exactly as it does today (here it finds
+-- nothing, so the page lands in the editorial fork with the uuid flagged
+-- unresolved — the vehicle record is never adopted).
+function suite:testDeclaredKindGateFailureFallsThroughToProbe()
+	local vehicleRecord = { uuid = 'abc', class_name = 'AEGS_Gladius', is_vehicle = true }
+	withStubbedFetch({ ['locations/%s'] = vehicleRecord }, function(seen)
+		local r = Data.get({ uuid = 'abc', kind = 'Location' })
+		self:assertEquals(true, seen['search/%s'])
+		self:assertEquals(true, r.unresolvedReference)
+		self:assertEquals(nil, r.apiData.uuid)
+	end)
+end
+
+-- The gate must judge the record ALONE: probeKind hands resolveSubtype an
+-- empty args table, never the real args (which carry kind=). A kind whose
+-- resolveSubtype accepts kind-declared pages unconditionally — Location
+-- defaults them to its StarSystem leaf — would otherwise turn the gate into a
+-- tautology: any record would pass because the page declared a kind.
+function suite:testDeclaredKindGateStripsArgsFromResolveSubtype()
+	local registry = require('Module:Entity/Registry')
+	local stubKind = {
+		name = 'Gatecheck',
+		matches = function()
+			return false
+		end,
+		-- The pathological shape the {} contract exists for: accepts any
+		-- record as soon as the caller leaks args carrying kind=.
+		resolveSubtype = function(_, args)
+			if args and args.kind then
+				return { name = 'GatecheckLeaf' }
+			end
+			return nil
+		end,
+		getApiConfigs = function()
+			return { { name = 'StarCitizenWikiAPI', endpoint = 'gatecheck/%s', params = {} } }
+		end,
+	}
+	table.insert(registry.kinds, stubKind)
+	local ok, err = pcall(function()
+		withStubbedFetch({ ['gatecheck/%s'] = { uuid = 'abc' } }, function(seen)
+			Data.get({ uuid = 'abc', kind = 'Gatecheck' })
+			self:assertEquals(true, seen['gatecheck/%s']) -- the trust path fetched the declared endpoint …
+			self:assertEquals(true, seen['search/%s']) -- … and the gate failed, so the probe still ran
+		end)
+	end)
+	table.remove(registry.kinds)
+	if not ok then
+		error(err, 0)
+	end
+end
+
+-- The gate's second disjunct must be able to ADMIT on its own: a record the
+-- kind's matches() rejects but whose shape resolveSubtype refines to a leaf
+-- still earns the trust path. This is the mechanism jump points ride —
+-- Location.matches() stays SolarSystem-narrow by design — so deleting the
+-- resolveSubtype disjunct from the gate must fail here, not silently.
+function suite:testDeclaredKindGateAdmitsViaResolveSubtypeAlone()
+	local registry = require('Module:Entity/Registry')
+	local leaf = { name = 'GateadmitLeaf' }
+	local stubKind = {
+		name = 'Gateadmit',
+		matches = function()
+			return false
+		end,
+		-- Judges the RECORD alone; args are never consulted.
+		resolveSubtype = function(data)
+			if data.acceptme == true then
+				return leaf
+			end
+			return nil
+		end,
+		getApiConfigs = function()
+			return { { name = 'StarCitizenWikiAPI', endpoint = 'gateadmit/%s', params = {} } }
+		end,
+	}
+	table.insert(registry.kinds, stubKind)
+	local ok, err = pcall(function()
+		withStubbedFetch({ ['gateadmit/%s'] = { uuid = 'abc', acceptme = true } }, function(seen)
+			local r = Data.get({ uuid = 'abc', kind = 'Gateadmit' })
+			self:assertEquals('Gateadmit', r.kind)
+			self:assertEquals(false, r.hasApiError)
+			self:assertEquals(true, seen['gateadmit/%s'])
+			self:assertEquals(nil, seen['search/%s'])
+		end)
+	end)
+	table.remove(registry.kinds)
+	if not ok then
+		error(err, 0)
+	end
+end
+
+-- No |kind=: today's resolver-first behaviour, untouched. One search fetch
+-- answers, and the matched kind's own endpoint is marked fetched (no re-fetch).
+function suite:testUuidWithoutKindStillProbesTheResolver()
+	withStubbedFetch({ ['search/%s'] = solarSystemRecord() }, function(seen)
+		local r = Data.get({ uuid = 'c9c137cf-c520-47ee-9e6d-5d653dfbe201' })
+		self:assertEquals('Location', r.kind)
+		self:assertEquals(true, seen['search/%s'])
+		self:assertEquals(nil, seen['locations/%s'])
+	end)
 end
 
 return suite

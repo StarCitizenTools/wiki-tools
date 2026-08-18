@@ -1131,6 +1131,45 @@ function suite:testJumpPointSystemShortName()
 	self:assertEquals(nil, f(nil))
 end
 
+-- The alias leak (user-reported): the celestial designation carries naming
+-- forms that are NOT wiki page names — alias parentheticals, the Vanduul
+-- catalogue form, and one bare legacy name. Rendering them produced
+-- "[[Kyuk'ya (Indra) system]]": a red link, a bogus category and a junk
+-- stored System value.
+function suite:testSystemShortNameStripsStarmapDecorations()
+	local f = Location.systemShortName
+	self:assertEquals("Kyuk'ya", f("Kyuk'ya (Indra)"))
+	self:assertEquals("Yā'mon", f("Yā'mon (Hadur) System"))
+	self:assertEquals('Vulture', f('VS-9 "Vulture"'))
+	self:assertEquals('Pyro', f('Pyro System')) -- unchanged
+	self:assertEquals(nil, f(' System'))
+end
+
+-- The canonical page name beats the designation outright — the only fix that
+-- also repairs the bare-legacy-name case ("Th.us'ūng (Pallas) - Hadur", where
+-- Hadur is now Yā'mon and no amount of decoration-stripping helps).
+function suite:testJumpPointSystemsComeFromTheCanonicalName()
+	local apiData = jumpPointApiData()
+	apiData.system = nil
+	apiData.celestialobject.designation = "Th.us'ūng (Pallas) - Hadur"
+	local args = { name = "Th.us'ūng - Yā'mon jump point" }
+	local general = findSection(JumpPoint.getSections(apiData, args, nil), 'general')
+	self:assertEquals("[[Th.us'ūng system]]", findItem(general, 'System'))
+	self:assertEquals("[[Yā'mon system]]", findItem(general, 'Destination'))
+	local data = JumpPoint.getStructuredData(apiData, args, nil)
+	self:assertEquals("Th.us'ūng system", data.system)
+	self:assertEquals("Yā'mon system", data.destination_system)
+end
+
+-- A page whose name is not gate-shaped falls through to the record/designation
+-- chain, so the sandbox and any oddly-titled page keep working.
+function suite:testJumpPointFallsBackWhenNameIsNotGateShaped()
+	local apiData = jumpPointApiData()
+	local general = findSection(JumpPoint.getSections(apiData, { name = 'Some Sandbox Page' }, nil), 'general')
+	self:assertEquals('[[Pyro system]]', findItem(general, 'System'))
+	self:assertEquals('[[Nyx system]]', findItem(general, 'Destination'))
+end
+
 function suite:testJumpPointGeneralRows()
 	local apiData = jumpPointApiData()
 	-- A parent whose (star) page exists NOWHERE: the plain-text branch then

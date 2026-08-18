@@ -1,6 +1,6 @@
 # Template:Location
 
-Renders a location's infobox through `Module:Entity`, the same engine that powers `{{Entity}}`. Currently covers star systems and jump points: supply the location UUID and the infobox fills itself from the live game data and the RSI starmap — for a star system that means affiliation, jurisdiction, star types, sensor readings, and astronomical object counts; for a jump point (a record the API names `… Jump Point`) it means the entry and destination systems, the gate size, and the quantum-travel radii, with the starmap side keyed by `starmapcode`. Lore systems that exist only in the starmap have no UUID and need no parameters at all — the template looks the starmap record up by the page title. Systems the starmap does not list at all (Hyoton, Krell, …) supply their identity through `affiliation` and `systemtype` instead. The editorial parameters below override a wrong or missing API value with a hand-curated one.
+Renders a location's infobox through `Module:Entity`, the same engine that powers `{{Entity}}`. Currently covers star systems and jump points: supply the location UUID and the infobox fills itself from the live game data and the RSI starmap — for a star system that means affiliation, jurisdiction, star types, sensor readings, and astronomical object counts; for a jump point (a record the API names `… Jump Point`) it means the entry and destination systems, the parent anchor (star or gateway station), the gate size, and the travel data (arrival/obstruction radii, starmap visibility), with the starmap side keyed by `starmapcode`. Lore systems that exist only in the starmap have no UUID and need no parameters at all — the template looks the starmap record up by the page title. Systems the starmap does not list at all (Hyoton, Krell, …) supply their identity through `affiliation` and `systemtype` instead. The editorial parameters below override a wrong or missing API value with a hand-curated one.
 
 ## Usage
 
@@ -36,7 +36,7 @@ System the starmap does not list: identity comes from the editorial parameters.
 }}
 ```
 
-In-game jump point: the location record supplies the entry system, jurisdiction, and quantum-travel radii; `starmapcode` keys the starmap celestial object that supplies the destination, gate size, distance from the star, and the Starmap footer button.
+In-game jump point: the location record supplies the entry system, parent anchor, jurisdiction, and travel data; `starmapcode` keys the starmap celestial object that supplies the destination, the gate size, and the Starmap footer button.
 
 ```wikitext
 {{Location
@@ -67,7 +67,7 @@ Star system with curated overrides and lore fields (the discovery citation belon
 | `uuid` | UUID | string | No | (none) | Location UUID from the game data API. Only in-game systems have one; lore systems omit it and the infobox renders from the starmap record plus the parameters below. There is no fallback to a UUID stored on the page: this template declares its kind, which deliberately suppresses that lookup so a stale or placeholder stored UUID cannot resurrect itself. | `c9c137cf-c520-47ee-9e6d-5d653dfbe201` |
 | `starmapname` | Starmap name | string | No | (the API record's name, else `name`, else the page title) | Starmap lookup name override — only when neither the page title nor `name` resolves the starmap record. | `Rihlah` |
 | `name` | Name | string | No | (page title) | Infobox display title. | `Stanton system` |
-| `starmapcode` | Starmap code | string | No | (none) | ARK starmap code of a jump point's celestial object — the `?location=` key on the RSI starmap. Keys the starmap fetch that supplies the destination system, gate size, and distance, and feeds the Starmap footer button and the Metadata row. Jump points only; star systems derive their code from the starmap record. `code` works as a legacy alias (the `{{Astronomical object}}` parameter name); `starmapcode` wins when both are set. | `PYRO.JUMPPOINTS.NYX` |
+| `starmapcode` | Starmap code | string | No | (none) | ARK starmap code of a jump point's celestial object — the `?location=` key on the RSI starmap. Keys the starmap fetch that supplies the destination system and gate size, and feeds the Starmap footer button and the Metadata row. Jump points only; star systems derive their code from the starmap record. `code` works as a legacy alias (the `{{Astronomical object}}` parameter name); `starmapcode` wins when both are set. | `PYRO.JUMPPOINTS.NYX` |
 | `image` | Image | wiki-file-name | No |  | Infobox image. | `Stanton 2D.png` |
 | `size` | Size | number | No | (starmap aggregated size) | System size in AU, overriding the starmap value. | `9.83` |
 | `startypes` | Star types | string | No | (derived from the starmap star list) | Star type display text, overriding the starmap-derived list. | `Flare star` |

@@ -29,6 +29,7 @@ local function jumpPointFixture()
 		type = { name = 'Anomaly', classification = 'Anomaly' },
 		jurisdiction = { name = 'UEE' },
 		system = 'Pyro System', -- plain string: the live field shape (not an embedded record)
+		hide_in_starmap = true, -- true on all four live gates
 		quantum_travel = {
 			arrival_radius_formatted = '18 km',
 			adoption_radius_formatted = '500 km',
@@ -1080,12 +1081,44 @@ function suite:testJumpPointSystemShortName()
 end
 
 function suite:testJumpPointGeneralRows()
-	local general = findSection(JumpPoint.getSections(jumpPointApiData(), {}, nil), 'general')
+	local apiData = jumpPointApiData()
+	apiData.parent = { name = 'Pyro', type_name = 'Star' }
+	local general = findSection(JumpPoint.getSections(apiData, {}, nil), 'general')
 	self:assertEquals('[[Pyro system]]', findItem(general, 'System'))
 	self:assertEquals('[[Nyx system]]', findItem(general, 'Destination'))
+	-- Plain text under the runner: the title shim cannot answer `exists`, so
+	-- the link wrapper degrades; candidate selection is pinned separately.
+	self:assertEquals('Pyro', findItem(general, 'Parent'))
 	self:assertEquals('Medium', findItem(general, 'Size'))
 	self:assertEquals('[[UEE]]', findItem(general, 'Jurisdiction'))
-	self:assertEquals('13 AU', findItem(general, 'Distance from star'))
+	-- Distance from star was dropped by design review: not a row.
+	self:assertEquals(nil, findItem(general, 'Distance from star'))
+end
+
+-- The link-candidate rule: a Star parent targets its (star) page; anything
+-- else targets the system-disambiguated title — two stations share the name
+-- "Pyro Gateway" (one per side), so the bare title is a disambiguation page
+-- and is never a candidate. No entry system -> no candidate, name only.
+function suite:testJumpPointParentLinkCandidate()
+	local f = JumpPoint._internal.parentLinkCandidate
+	local star = jumpPointApiData()
+	star.parent = { name = 'Pyro', type_name = 'Star' }
+	local name, candidate = f(star)
+	self:assertEquals('Pyro', name)
+	self:assertEquals('Pyro (star)', candidate)
+	local station = jumpPointApiData()
+	station.parent = { name = 'Pyro Gateway', type_name = 'Manmade' }
+	station.system = 'Stanton System'
+	name, candidate = f(station)
+	self:assertEquals('Pyro Gateway', name)
+	self:assertEquals('Pyro Gateway (Stanton)', candidate)
+	local orphan = jumpPointApiData()
+	orphan.parent = { name = 'Pyro Gateway', type_name = 'Manmade' }
+	orphan.system = nil
+	name, candidate = f(orphan)
+	self:assertEquals('Pyro Gateway', name)
+	self:assertEquals(nil, candidate)
+	self:assertEquals(nil, (f(jumpPointApiData()))) -- no parent field at all
 end
 
 -- The destination is whichever designation side is NOT the entry system —
@@ -1143,36 +1176,44 @@ function suite:testJumpPointUnknownSizeOmitsRow()
 	self:assertEquals(nil, findItem(general, 'Size'))
 end
 
--- The starmap reports distance 0 where it has no measurement (the
--- withheld-survey rule): no row rather than a fabricated "0 AU".
-function suite:testJumpPointZeroDistanceSuppressed()
-	local apiData = jumpPointApiData()
-	apiData.celestialobject.distance = 0
-	local general = findSection(JumpPoint.getSections(apiData, {}, nil), 'general')
+-- Distance from star was removed from the infobox by design review (not
+-- important for a gate); the celestial record still carries it, unused.
+function suite:testJumpPointDistanceNotRendered()
+	local general = findSection(JumpPoint.getSections(jumpPointApiData(), {}, nil), 'general')
 	self:assertEquals(nil, findItem(general, 'Distance from star'))
-	local f = JumpPoint._internal.distanceDisplay
-	self:assertEquals('13 AU', f(celestialObjectFixture()))
-	self:assertEquals(nil, f({ distance = 0 }))
-	self:assertEquals(nil, f({ distance = -1 }))
-	self:assertEquals(nil, f({ distance = 'Unknown' }))
+end
+
+function suite:testJumpPointTravelRows()
+	local travel = findSection(JumpPoint.getSections(jumpPointApiData(), {}, nil), 'travel')
+	self:assertEquals('Travel', travel.label)
+	self:assertEquals(true, travel.collapsible)
+	self:assertEquals(nil, travel.collapsed) -- open by default, like StarSystem's Lore
+	self:assertEquals('18 km', findItem(travel, 'Arrival radius'))
+	-- Adoption radius was dropped by design review.
+	self:assertEquals(nil, findItem(travel, 'Adoption radius'))
+	self:assertEquals('11 km', findItem(travel, 'Obstruction radius'))
+	self:assertEquals('Hidden', findItem(travel, 'Starmap'))
+end
+
+-- hide_in_starmap is tri-state in display terms: true -> Hidden,
+-- false -> Shown, absent -> no row (never a fabricated value).
+function suite:testJumpPointStarmapVisibility()
+	local f = JumpPoint._internal.starmapVisibility
+	self:assertEquals('Hidden', f({ hide_in_starmap = true }))
+	self:assertEquals('Shown', f({ hide_in_starmap = false }))
 	self:assertEquals(nil, f({}))
-	self:assertEquals(nil, f(nil))
 end
 
-function suite:testJumpPointQuantumTravelRows()
-	local quantum = findSection(JumpPoint.getSections(jumpPointApiData(), {}, nil), 'quantumtravel')
-	self:assertEquals('Quantum travel', quantum.label)
-	self:assertEquals(true, quantum.collapsible)
-	self:assertEquals(nil, quantum.collapsed) -- open by default, like StarSystem's Lore
-	self:assertEquals('18 km', findItem(quantum, 'Arrival radius'))
-	self:assertEquals('500 km', findItem(quantum, 'Adoption radius'))
-	self:assertEquals('11 km', findItem(quantum, 'Obstruction radius'))
-end
-
-function suite:testJumpPointQuantumSectionDropsWithoutData()
+-- The Travel section drops only when radii AND the visibility flag are all
+-- absent; radii-less records still show the Starmap row.
+function suite:testJumpPointTravelSectionDropsWithoutData()
 	local apiData = jumpPointApiData()
 	apiData.quantum_travel = nil
-	self:assertEquals(nil, findSection(JumpPoint.getSections(apiData, {}, nil), 'quantumtravel'))
+	local travel = findSection(JumpPoint.getSections(apiData, {}, nil), 'travel')
+	self:assertEquals('Hidden', findItem(travel, 'Starmap'))
+	self:assertEquals(nil, findItem(travel, 'Arrival radius'))
+	apiData.hide_in_starmap = nil
+	self:assertEquals(nil, findSection(JumpPoint.getSections(apiData, {}, nil), 'travel'))
 end
 
 -- One accessor feeds the Starmap button and the Metadata row: the fetched

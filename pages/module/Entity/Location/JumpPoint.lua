@@ -70,17 +70,60 @@ local function sizeLabel(celestial)
 	return size ~= nil and SIZE_LABELS[size] or nil
 end
 
---- Distance from the star as a display string ("13 AU"), or nil. The starmap
---- reports 0 where it has no measurement (the withheld-survey lesson: zero is
---- "no data", not a distance), so only a positive number renders or stores.
---- @param celestial table|nil
+--- The gate's parent anchor (display name + link-candidate title). A Star
+--- parent's candidate is its `(star)` page ("Pyro (star)"); anything else —
+--- the gateway stations — gets the wiki's system-disambiguated title
+--- ("Pyro Gateway (Stanton)": two stations share the name "Pyro Gateway", one
+--- per side, so the bare title is a disambiguation page and must not be
+--- linked). The candidate may be nil (no entry system to disambiguate with)
+--- while the name still displays as plain text.
+--- @param apiData table
+--- @return string|nil name
+--- @return string|nil candidate
+local function parentLinkCandidate(apiData)
+	local parent = type(apiData.parent) == 'table' and apiData.parent or nil
+	local name = parent and type(parent.name) == 'string' and parent.name ~= '' and parent.name or nil
+	if not name then
+		return nil, nil
+	end
+	if parent.type_name == 'Star' then
+		return name, name .. ' (star)'
+	end
+	local entry = location.entrySystem(apiData)
+	return name, entry and (name .. ' (' .. entry .. ')') or nil
+end
+
+--- Display wrapper over parentLinkCandidate: link the candidate when its page
+--- exists (one existence check per render), else plain text. Kept thin and
+--- untested offline — the runner's title shim cannot answer `exists`; the
+--- candidate selection above carries the logic and the tests.
+--- @param apiData table
 --- @return string|nil
-local function distanceDisplay(celestial)
-	local distance = celestial and tonumber(celestial.distance) or nil
-	if not distance or distance <= 0 then
+local function parentDisplay(apiData)
+	local name, candidate = parentLinkCandidate(apiData)
+	if not name then
 		return nil
 	end
-	return tostring(distance) .. ' AU'
+	local title = candidate and mw.title.new(candidate) or nil
+	if title and title.exists then
+		return '[[' .. candidate .. '|' .. name .. ']]'
+	end
+	return name
+end
+
+--- The Starmap visibility row: the ARK starmap application does not list every
+--- in-game location, and `hide_in_starmap` records that editorial choice.
+--- Rendered as Hidden/Shown under the plain label "Starmap"; absent → no row.
+--- @param apiData table
+--- @return string|nil
+local function starmapVisibility(apiData)
+	if apiData.hide_in_starmap == true then
+		return 'Hidden'
+	end
+	if apiData.hide_in_starmap == false then
+		return 'Shown'
+	end
+	return nil
 end
 
 --- The ARK starmap code (the `?location=` key): the fetched celestial record's
@@ -123,16 +166,16 @@ function p.getSections(apiData, args, resolved)
 	sectionBuilder.push(general, 'System', entry and ('[[' .. entry .. ' system]]'))
 	local destination = destinationSystem(apiData)
 	sectionBuilder.push(general, 'Destination', destination and ('[[' .. destination .. ' system]]'))
+	sectionBuilder.push(general, 'Parent', parentDisplay(apiData))
 	sectionBuilder.push(general, 'Size', sizeLabel(celestial))
 	local jurisdiction = type(apiData.jurisdiction) == 'table' and apiData.jurisdiction.name or nil
 	sectionBuilder.push(general, 'Jurisdiction', jurisdiction and ('[[' .. jurisdiction .. ']]'))
-	sectionBuilder.push(general, 'Distance from star', distanceDisplay(celestial))
 
-	local quantumTravel = {}
+	local travel = {}
 	local radii = type(apiData.quantum_travel) == 'table' and apiData.quantum_travel or {}
-	sectionBuilder.push(quantumTravel, 'Arrival radius', radii.arrival_radius_formatted)
-	sectionBuilder.push(quantumTravel, 'Adoption radius', radii.adoption_radius_formatted)
-	sectionBuilder.push(quantumTravel, 'Obstruction radius', radii.obstruction_radius_formatted)
+	sectionBuilder.push(travel, 'Arrival radius', radii.arrival_radius_formatted)
+	sectionBuilder.push(travel, 'Obstruction radius', radii.obstruction_radius_formatted)
+	sectionBuilder.push(travel, 'Starmap', starmapVisibility(apiData))
 
 	local lore = {}
 	sectionBuilder.push(lore, 'Discovered in', ed:value('discoveredin'))
@@ -144,10 +187,10 @@ function p.getSections(apiData, args, resolved)
 		-- collapsible with no `collapsed` renders open (StarSystem's Lore
 		-- idiom): the radii are the gate's headline in-game numbers.
 		sectionBuilder.section({
-			key = 'quantumtravel',
-			label = 'Quantum travel',
+			key = 'travel',
+			label = 'Travel',
 			collapsible = true,
-			items = quantumTravel,
+			items = travel,
 		}),
 		sectionBuilder.section({ key = 'lore', label = 'Lore', collapsible = true, items = lore })
 	)
@@ -229,7 +272,9 @@ end
 p._internal = {
 	destinationSystem = destinationSystem,
 	sizeLabel = sizeLabel,
-	distanceDisplay = distanceDisplay,
+	parentLinkCandidate = parentLinkCandidate,
+	parentDisplay = parentDisplay,
+	starmapVisibility = starmapVisibility,
 	starmapCode = starmapCode,
 	SIZE_LABELS = SIZE_LABELS,
 }

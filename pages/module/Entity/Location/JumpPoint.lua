@@ -34,6 +34,47 @@ local function getCelestialObject(apiData)
 	return type(apiData.celestialobject) == 'table' and apiData.celestialobject or nil
 end
 
+--- The gate's two systems, read off the page's own canonical name. The title
+--- IS the curated statement of which gate this is ("<Entry> - <Destination>
+--- jump point") and it uses canonical system names by construction, whereas
+--- the upstream celestial designation carries three naming forms that are not
+--- wiki page names: alias parentheticals ("Kyuk'ya (Indra)"), the Vanduul
+--- catalogue form (VS-9 "Vulture"), and — on one live tunnel — a bare legacy
+--- name ("Th.us'ūng (Pallas) - Hadur", where Hadur is now Yā'mon). Each would
+--- render a red link, file a wrong category and store a junk System value, and
+--- the legacy-name case cannot be repaired by stripping decorations at all.
+--- The designation stays as the fallback for a page whose name is not
+--- gate-shaped.
+--- @param args table|nil
+--- @return string|nil entry
+--- @return string|nil destination
+local function titleSystems(args)
+	local name = args and type(args.name) == 'string' and args.name ~= '' and args.name or nil
+	if not name then
+		local title = mw.title.getCurrentTitle()
+		name = title and title.text or nil
+	end
+	if type(name) ~= 'string' then
+		return nil, nil
+	end
+	local base = mw.text.trim((name:gsub('%s+[Jj]ump%s+[Pp]oint$', '')))
+	local a, b = base:match('^(.-)%s+%-%s+(.+)$')
+	if not a then
+		return nil, nil
+	end
+	return location.systemShortName(a), location.systemShortName(b)
+end
+
+--- The gate's entry system: the canonical name on the page first, then the
+--- kind's record/designation chain.
+--- @param apiData table
+--- @param args table|nil
+--- @return string|nil
+local function entryFor(apiData, args)
+	local fromTitle = titleSystems(args)
+	return fromTitle or location.gateEntrySystem(apiData)
+end
+
 --- The system on the far side of the tunnel (short form), parsed from the
 --- celestial designation "<A> - <B>". The destination is WHICHEVER side is not
 --- the entry system — the designation's order is not assumed, so a record
@@ -42,14 +83,18 @@ end
 --- the gate's own system as its destination.
 --- @param apiData table
 --- @return string|nil
-local function destinationSystem(apiData)
+local function destinationSystem(apiData, args)
+	local _, fromTitle = titleSystems(args)
+	if fromTitle then
+		return fromTitle
+	end
 	local celestial = getCelestialObject(apiData)
 	local designation = celestial and celestial.designation or nil
 	if type(designation) ~= 'string' then
 		return nil
 	end
 	local sideA, sideB = designation:match('^(.-)%s+%-%s+(.+)$')
-	local entry = location.gateEntrySystem(apiData)
+	local entry = entryFor(apiData, args)
 	if not sideA or not entry then
 		return nil
 	end
@@ -81,7 +126,7 @@ end
 --- @param apiData table
 --- @return string|nil name
 --- @return string|nil candidate
-local function parentLinkCandidate(apiData)
+local function parentLinkCandidate(apiData, args)
 	local parent = type(apiData.parent) == 'table' and apiData.parent or nil
 	local name = parent and type(parent.name) == 'string' and parent.name ~= '' and parent.name or nil
 	if not name then
@@ -90,7 +135,7 @@ local function parentLinkCandidate(apiData)
 	if parent.type_name == 'Star' then
 		return name, name .. ' (star)'
 	end
-	local entry = location.gateEntrySystem(apiData)
+	local entry = entryFor(apiData, args)
 	return name, entry and (name .. ' (' .. entry .. ')') or nil
 end
 
@@ -100,8 +145,8 @@ end
 --- candidate selection above carries the logic and the tests.
 --- @param apiData table
 --- @return string|nil
-local function parentDisplay(apiData)
-	local name, candidate = parentLinkCandidate(apiData)
+local function parentDisplay(apiData, args)
+	local name, candidate = parentLinkCandidate(apiData, args)
 	if not name then
 		return nil
 	end
@@ -163,11 +208,11 @@ function p.getSections(apiData, args, resolved)
 	local celestial = getCelestialObject(apiData)
 
 	local general = {}
-	local entry = location.gateEntrySystem(apiData)
+	local entry = entryFor(apiData, args)
 	sectionBuilder.push(general, 'System', entry and ('[[' .. entry .. ' system]]'))
-	local destination = destinationSystem(apiData)
+	local destination = destinationSystem(apiData, args)
 	sectionBuilder.push(general, 'Destination', destination and ('[[' .. destination .. ' system]]'))
-	sectionBuilder.push(general, 'Parent', parentDisplay(apiData))
+	sectionBuilder.push(general, 'Parent', parentDisplay(apiData, args))
 	sectionBuilder.push(general, 'Size', sizeLabel(celestial))
 	local jurisdiction = type(apiData.jurisdiction) == 'table' and apiData.jurisdiction.name or nil
 	sectionBuilder.push(general, 'Jurisdiction', jurisdiction and ('[[' .. jurisdiction .. ']]'))
@@ -206,8 +251,8 @@ end
 --- @param resolved table|nil
 --- @return table<string, any>
 function p.getStructuredData(apiData, args, resolved)
-	local entry = location.gateEntrySystem(apiData)
-	local destination = destinationSystem(apiData)
+	local entry = entryFor(apiData, args)
+	local destination = destinationSystem(apiData, args)
 	return {
 		jump_point_size = sizeLabel(getCelestialObject(apiData)),
 		system = entry and (entry .. ' system') or nil,
@@ -225,8 +270,8 @@ end
 --- @param resolved table|nil
 --- @return string
 function p.getShortDescription(apiData, args, typeInfo, prefix, resolved)
-	local entry = location.gateEntrySystem(apiData)
-	local destination = destinationSystem(apiData)
+	local entry = entryFor(apiData, args)
+	local destination = destinationSystem(apiData, args)
 	if entry and destination then
 		local size = sizeLabel(getCelestialObject(apiData))
 		local head = size and (size .. ' jump point') or 'Jump point'

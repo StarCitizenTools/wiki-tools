@@ -513,7 +513,19 @@ function p.systemShortName(name)
 	if type(name) ~= 'string' then
 		return nil
 	end
-	local short = mw.text.trim(name:gsub('%s+[Ss]ystem$', ''))
+	-- Strip the starmap's naming decorations before the ' System' suffix: an
+	-- alias parenthetical ("Kyuk'ya (Indra)") and the Vanduul catalogue form
+	-- (VS-9 "Vulture"). Both appear in celestial designations and neither is a
+	-- wiki page name, so leaving one in renders a red link, files a bogus
+	-- "<alias> system" category and stores a junk System value. Defence in
+	-- depth for the fallback paths; a gate page's own canonical name is the
+	-- primary source (see the JumpPoint leaf's titleSystems).
+	-- Order matters: the ' System' suffix is stripped from the UNTRIMMED string
+	-- so a bare ' System' collapses to empty (nil) rather than surviving as the
+	-- word 'System'.
+	local short = name:match('^%s*VS%-%d+%s*"(.+)"%s*$') or name
+	short = short:gsub('%s+[Ss]ystem$', '') -- before the parenthetical: "Yā'mon (Hadur) System"
+	short = mw.text.trim((short:gsub('%s*%b()%s*$', '')))
 	if short == '' then
 		return nil
 	end

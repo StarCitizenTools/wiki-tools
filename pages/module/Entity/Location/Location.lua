@@ -177,12 +177,14 @@ local JUMP_POINT_SUFFIX = 'Jump Point'
 --- Is this location record a jump-point gate? The locations API types jump
 --- points as 'Anomaly', a token it shares with records that are NOT jump
 --- points (the "Stanton-Pyro Jump Point Wreck Site"), so the type alone cannot
---- dispatch; only a name ending exactly in "Jump Point" is a gate. A real
---- suffix match, not a substring one: the wreck site (suffix elsewhere) and
---- the misnamed inactive gate "Jump Point Pyro Castra" (prefix) both stay
---- unresolved. Case-sensitive and untrimmed BY DESIGN: the API emits the
---- title-case 'Jump Point' form with no trailing whitespace on every observed
---- record, and normalizing here would loosen the gate beyond observed data.
+--- dispatch; a gate's name either ends exactly in "Jump Point" (every record
+--- but one) or begins exactly with "Jump Point " (the one upstream misnaming,
+--- "Jump Point Pyro Castra" — a real Pyro gate whose page still deserves its
+--- record). Exact anchored matches, never a substring one: the wreck site
+--- carries the words mid-name (neither anchor) and stays unresolved.
+--- Case-sensitive and untrimmed BY DESIGN: the API emits the title-case
+--- 'Jump Point' form with no trailing whitespace on every observed record,
+--- and normalizing here would loosen the gate beyond observed data.
 --- The ONE predicate shared by resolveSubtype (leaf dispatch — and
 --- through it the declared-kind validity gate in Module:Entity/Data) and
 --- enrich (the celestial-object fetch), so dispatch and enrichment cannot
@@ -190,11 +192,16 @@ local JUMP_POINT_SUFFIX = 'Jump Point'
 --- @param apiData table|nil
 --- @return boolean
 local function isJumpPointRecord(apiData)
-	return type(apiData) == 'table'
-		and type(apiData.type) == 'table'
-		and apiData.type.name == 'Anomaly'
-		and type(apiData.name) == 'string'
-		and apiData.name:sub(-#JUMP_POINT_SUFFIX) == JUMP_POINT_SUFFIX
+	if
+		type(apiData) ~= 'table'
+		or type(apiData.type) ~= 'table'
+		or apiData.type.name ~= 'Anomaly'
+		or type(apiData.name) ~= 'string'
+	then
+		return false
+	end
+	return apiData.name:sub(-#JUMP_POINT_SUFFIX) == JUMP_POINT_SUFFIX
+		or apiData.name:sub(1, #JUMP_POINT_SUFFIX + 1) == JUMP_POINT_SUFFIX .. ' '
 end
 
 --- Should this payload get the starmap starsystem attachment? Record-aware: a

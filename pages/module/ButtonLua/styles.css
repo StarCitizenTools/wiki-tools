@@ -47,3 +47,54 @@
 	width: 1.25rem;
 	height: 1.25rem;
 }
+
+/*
+ * Branded buttons: an opt-in for buttons carrying an external site's
+ * identity. Pass class="t-button--branded t-button--<brand>": the brand
+ * block declares its ground and content color, and the base, hover and
+ * active grounds all derive from --t-button-ground via color-mix in oklch,
+ * so every brand dims by the same perceptual step and per-brand shades
+ * cannot drift. The mask icon above follows `color`, so it picks up the
+ * brand content color for free. The compound selectors outweigh Codex's
+ * .cdx-button defaults.
+ *
+ * The sanitizer rejects color-mix() as a direct property value; the
+ * derivations ride custom properties, which TemplateStylesExtender passes
+ * through (it bans only image/url functions there — the same pin the icon
+ * mask HACK above depends on) and the browser resolves. Upstream support
+ * proposal (drop the detour when it lands):
+ * https://github.com/octfx/mediawiki-extensions-TemplateStylesExtender/issues/46
+ */
+.t-button--branded.cdx-button {
+	--t-button-ground-hover: color-mix(in oklch, var(--t-button-ground) 88%, #000);
+	--t-button-ground-active: color-mix(in oklch, var(--t-button-ground) 78%, #000);
+	background-color: var(--t-button-ground);
+}
+
+.t-button--branded.cdx-button:hover {
+	background-color: var(--t-button-ground-hover);
+}
+
+.t-button--branded.cdx-button:active {
+	background-color: var(--t-button-ground-active);
+}
+
+/* Star Citizen Wiki API. */
+.t-button--wiki-api.cdx-button {
+	--t-button-ground: oklch(19.314% 0.037 265.754);
+	color: oklch(84.153% 0.007 265.754);
+}
+
+/* Galactapedia, shared by the Starmap button (the mark is the Starmap's
+ * logo, so both RSI map properties share it). */
+.t-button--galactapedia.cdx-button,
+.t-button--starmap.cdx-button {
+	--t-button-ground: #162535;
+	color: #bae4f2;
+}
+
+/* VerseGuide. */
+.t-button--verseguide.cdx-button {
+	--t-button-ground: #206484;
+	color: #fff;
+}

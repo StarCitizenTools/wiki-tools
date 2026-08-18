@@ -39,7 +39,12 @@
     gap: var(--space-xs);
 }
 
-.t-infobox-footer-actions > .t-button:last-child:nth-child(odd) {
+/* Of-type, not nth-child: TemplateStyles emits ButtonLua's <style> tag inside
+   this container on pages whose first ButtonLua use is the footer (an
+   icon-less lore system), and nth-child counting it shifted the parity —
+   Malkail's lone Starmap button rendered half-width. The buttons are spans;
+   of-type skips the style tag. */
+.t-infobox-footer-actions > .t-button:nth-of-type(odd):last-of-type {
     grid-column: 1 / -1;
 }
 
@@ -49,49 +54,13 @@
     display: block;
 }
 
+/* Layout only: brand identity (grounds, content colors, the derived
+   hover/active shades) is a button concern and lives with the t-button--*
+   namespace in Module:ButtonLua/styles.css. */
 .t-infobox-section--footer .cdx-button {
     display: flex;
     width: 100%;
     justify-content: center;
-}
-
-/* Wiki API footer button: themed with the Star Citizen Wiki API brand colors.
-   The compound selector outweighs Codex's .cdx-button defaults, and the mask
-   icon follows `color`, so it picks up the brand content color too. */
-.t-button--wiki-api.cdx-button {
-    background-color: oklch(19.314% 0.037 265.754);
-    color: oklch(84.153% 0.007 265.754);
-}
-
-.t-button--wiki-api.cdx-button:hover {
-    background-color: oklch(17.86% 0.034 265.754);
-}
-
-/* Galactapedia + Starmap footer buttons: themed with the Galactapedia brand
-   colors (the mark is the Starmap's logo, so both RSI map properties share
-   it). Same compound-selector / mask-icon-follows-color treatment as the API
-   button. */
-.t-button--galactapedia.cdx-button,
-.t-button--starmap.cdx-button {
-    background-color: #162535;
-    color: #bae4f2;
-}
-
-.t-button--galactapedia.cdx-button:hover,
-.t-button--starmap.cdx-button:hover {
-    background-color: #111d29;
-}
-
-/* VerseGuide footer button: themed from the site's accent (#339fd1) — dark
-   ground in the same hue, light content the mask icon follows. Same
-   compound-selector treatment as the buttons above. */
-.t-button--verseguide.cdx-button {
-    background-color: #142731;
-    color: #a8d8ef;
-}
-
-.t-button--verseguide.cdx-button:hover {
-    background-color: #101f28;
 }
 
 /* Vehicle Overview ring-gauge profile: fit 5 word-labelled tiles at infobox width. */

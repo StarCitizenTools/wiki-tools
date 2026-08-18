@@ -143,7 +143,7 @@ local function buildFooterSection(chain, apiData, args)
 				url = galactapediaUrl,
 				icon = 'Sc-icon-galactapedia.svg',
 				weight = 'normal',
-				class = 't-button--galactapedia',
+				class = 't-button--branded t-button--galactapedia',
 			})
 		)
 	end
@@ -171,7 +171,7 @@ local function buildFooterSection(chain, apiData, args)
 				url = verseguideUrl,
 				icon = 'VerseGuide logo.svg',
 				weight = 'normal',
-				class = 't-button--verseguide',
+				class = 't-button--branded t-button--verseguide',
 			})
 		)
 	end
@@ -185,7 +185,7 @@ local function buildFooterSection(chain, apiData, args)
 				url = WIKI_API_SEARCH_URL .. uuid,
 				icon = 'Star Citizen Wiki API - Logo.svg',
 				weight = 'normal',
-				class = 't-button--wiki-api',
+				class = 't-button--branded t-button--wiki-api',
 			})
 		)
 	end

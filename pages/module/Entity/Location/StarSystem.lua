@@ -360,7 +360,7 @@ function p.getFooterButtons(apiData, args)
 			label = 'Starmap',
 			url = 'https://robertsspaceindustries.com/starmap?location=' .. code,
 			icon = 'Sc-icon-galactapedia.svg',
-			class = 't-button--starmap',
+			class = 't-button--branded t-button--starmap',
 		},
 	}
 end

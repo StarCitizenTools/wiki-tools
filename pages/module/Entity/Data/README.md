@@ -67,7 +67,9 @@ Primary entry point for sibling renderers. Takes the `args` table returned by `p
 
 `p.get` calls `fetchApiData` and then resolves `typeInfo`/`displayType`. The full ordered sequence is:
 
-1. **`probeKind`** resolves the UUID's kind in a single request. `buildResolverConfig` composes the API's `search/<uuid>` endpoint — which answers with an HTTP redirect to the canonical typed record — carrying the union of every kind's primary query params (params survive the redirect; endpoints ignore includes they don't recognise, so the union is free). `identifyKind` then offers that one payload to every registered kind's `matches()`. Because all of them see the same payload, **each `matches()` must be positive and order-independent**; the registry order is not a tiebreaker here. The matched kind's own primary endpoint is marked fetched alongside the resolver's, so step 4 doesn't request it again.
+1. **`probeKind`** resolves the UUID's kind. When the page also declares its kind — `|kind=` naming a registered kind, matched case-insensitively by `kindByName` — the declaration is trusted first: the declared kind's own primary endpoint is fetched directly and the probe below is skipped. This is what admits records whose API type a deliberately-narrow `matches()` will never claim (a jump point's location record reports type `Anomaly`, which `Location.matches` rejects by design). The trust is gated: the declaration holds only when the fetched record passes `kind.matches(data)` **or** the kind's `resolveSubtype(data, {})` resolves a leaf. The empty args table in that call is load-bearing — Location's `resolveSubtype` defaults kind-declared pages (real args carry `kind`) to its StarSystem leaf, which would accept *any* record — so the gate judges the record alone, and a vehicle uuid pasted into `{{Location}}` fails it. On gate failure (a fetch error included) the probe below runs unchanged; on success the declared kind's endpoint is marked fetched so step 4 doesn't request it again.
+
+   Otherwise the resolver answers in a single request. `buildResolverConfig` composes the API's `search/<uuid>` endpoint — which answers with an HTTP redirect to the canonical typed record — carrying the union of every kind's primary query params (params survive the redirect; endpoints ignore includes they don't recognise, so the union is free). `identifyKind` then offers that one payload to every registered kind's `matches()`. Because all of them see the same payload, **each `matches()` must be positive and order-independent**; the registry order is not a tiebreaker here. The matched kind's own primary endpoint is marked fetched alongside the resolver's, so step 4 doesn't request it again.
 
    `probeKindByEndpoint` is the fallback, and is what the module did unconditionally before the resolver existed: it walks `registry.kinds` in registration order, fetching each kind's primary endpoint until one matches, at up to one request per kind. It runs only when the resolver produces no kind — an unknown UUID, a kind Entity doesn't model (the resolver also resolves blueprints and starmap locations), or a transient failure such as a rate-limit rejection on the throttled `search` endpoint. Errors on a *non-matching* kind are discarded there: the items endpoint rejecting a vehicle UUID is expected and does not set `hasApiError`. Only the matched kind's own fetch error is propagated.
 
@@ -102,7 +104,7 @@ When there is **no** genuine record **and** `args.kind` names a registered kind 
 - `hasApiError` is forced `false` (a missing record is expected here, not an error);
 - `unresolvedReference` is set `true` **iff** a `|uuid=` was provided: a planned page declares no uuid, so a present-but-unresolved uuid is a typo or not-yet-in-API reference worth flagging (`[[Category:Pages with an unresolved entity reference]]`, emitted by `Module:Entity/Categories`).
 
-`args.kind` is consulted **only** when there is no genuine record, so an in-game page's API-matched kind always wins and `|kind=`/`|family=` are harmless no-ops once a uuid resolves. See [Module:Entity/Vehicle](https://starcitizen.tools/Module:Entity/Vehicle) and [Module:Entity/Location](https://starcitizen.tools/Module:Entity/Location) for the consumer side.
+`args.kind` is consulted in exactly two places, both safe against a wrong declaration. With a uuid, `probeKind`'s declared-kind path (Flow step 1) trusts it behind the validity gate, which rejects any record the kind can neither match nor refine. Without a genuine record, it selects the editorial fork here, where `resolveEditorialKind` requires an opted-in registered kind. See [Module:Entity/Vehicle](https://starcitizen.tools/Module:Entity/Vehicle) and [Module:Entity/Location](https://starcitizen.tools/Module:Entity/Location) for the consumer side.
 
 A kind-declared page also satisfies `Module:Entity`'s identity guard on its own: an entity is identifiable by a `uuid`, by a name (curated or from the record), **or** by a kind that claimed the page, which derives its identity from the page title. The guard tests `result.matchedKind`, not raw `args.kind`, so a misspelled kind still errors rather than rendering a title-only shell.
 
@@ -136,7 +138,7 @@ Renderers use `hasApiError` to display an error notice instead of an empty infob
 
 ## Gotchas
 
-**`p._internal` exports `detectFacets`, `resolveLeaf`, `isGenuineRecord`, `resolveEditorialKind`, `buildResolverConfig`, `identifyKind`, and `runEditorialFork`.** `probeKind`, `probeKindByEndpoint`, `fetchChainExtras`, and `fetchApiData` are local functions with no test export; they are covered only indirectly, through the suite's `p.get({})` calls (which take the no-uuid path and never fetch). The editorial-mode dispatch glue inside `p.get` (the genuine-record branch on a real API miss) is browser-verified, not unit-tested (the runner has no live API), but its constituent parts — `isGenuineRecord`, `resolveEditorialKind`, `resolveLeaf` arg-threading, and `runEditorialFork`'s enrich call — are unit-tested in isolation.
+**`p._internal` exports `detectFacets`, `resolveLeaf`, `isGenuineRecord`, `resolveEditorialKind`, `buildResolverConfig`, `identifyKind`, `kindByName`, and `runEditorialFork`.** `probeKind`, `probeKindByEndpoint`, `fetchChainExtras`, and `fetchApiData` are local functions with no test export; they are covered indirectly, through the suite's `p.get({})` calls (which take the no-uuid path and never fetch) and through the `p.get` trust-path tests, which stub `Module:Entity/Api.fetchApi` on the require-cached module table and assert on the endpoints requested. The editorial-mode dispatch glue inside `p.get` is exercised the same two ways: its constituent parts — `isGenuineRecord`, `resolveEditorialKind`, `resolveLeaf` arg-threading, and `runEditorialFork`'s enrich call — in isolation, and the dispatch itself through the stubbed-fetch gate-failure test (a uuid that resolves nothing on a kind-declared page lands in the fork). Behaviour against the live API remains browser-verified.
 
 **The resolver depends on Apiunto following redirects.** `search/<uuid>` answers with a `302` to the typed record, so the `StarCitizenWikiAPI` source must set `followRedirects => true` in `$wgApiuntoSources` (Apiunto ≥ 3.1; MediaWiki's HTTP client does not follow redirects by default). Without it every resolver fetch returns the upstream's redirect *body*, `matches()` sees nothing, and every page silently falls back to `probeKindByEndpoint` — correct output at the old cost, which is why the regression is easy to miss. The unit suite cannot catch it: the test runner has no live API.
 
@@ -148,24 +150,26 @@ Renderers use `hasApiError` to display an error notice instead of an empty infob
 
 ## Tests
 
-`Data/testcases.lua` is a ScribuntoUnit suite exercising the module's pure logic through `p._internal`, plus the offline (no-uuid) path of the public `p.get`:
+`Data/testcases.lua` is a ScribuntoUnit suite exercising the module's pure logic through `p._internal`, plus the public `p.get` on the offline (no-uuid) path and — with `Module:Entity/Api.fetchApi` stubbed — the declared-kind trust path:
 
 - `detectFacets`: matches a consumable facet when `apiData.food` is present, matches nothing on an empty table, and is nil-safe.
 - `resolveLeaf`: uses the subtype returned by `resolveSubtype`; falls back to the kind when `resolveSubtype` returns `nil`; uses the kind directly when `resolveSubtype` is absent; returns `Module:Entity/Item` with `hasApiError = true` when no kind matched but a UUID was present (and `false` when none was); and threads `args` through to `resolveSubtype`.
 - `isGenuineRecord`: true only when `apiData.uuid` is present and non-empty.
 - `resolveEditorialKind`: resolves an opted-in kind by name (case-insensitively), and returns `nil` when `args.kind` is absent, unknown, or names a registered-but-not-opted-in kind.
+- `kindByName`: case-insensitive registry lookup with no editorial gating (`'Commodity'` resolves here but not through `resolveEditorialKind`); `nil` for absent/unknown names.
 - `runEditorialFork`: calls the declared kind's `enrich` with the parsed args and returns the enriched `apiData` plus the rebuilt chain; a kind with no `enrich` yields an empty `apiData`.
 - `parseArgs`: strips empty strings, lets a direct frame arg win over a parent-frame arg, reads the SMW uuid when no `kind` is present, and *skips* the SMW uuid when `|kind=` is supplied (the editorial-mode guard).
 - `p.get({})`: the no-uuid call returns the documented table shape, defaults `kind` to `'Item'`, leaves `apiData` empty with `hasApiError = false`, and exposes `family`/`matchedKind` as `nil`.
+- the declared-kind trust path (via `p.get` with a stubbed `fetchApi` recording endpoints): a declared `Location` + uuid answering a SolarSystem-shaped record resolves the kind without the search resolver being fetched (lowercase `kind=location` included); a vehicle-shaped record fails the gate and falls through to the probe (search *is* fetched, the record is never adopted); a registry-injected stub kind whose `resolveSubtype` accepts only when `args.kind` is set fails the gate, pinning the empty-args contract; a second stub whose `matches()` is false but whose `resolveSubtype` admits on the record alone takes the trust path, pinning the gate's admission disjunct (the mechanism jump points ride); and a uuid without `|kind=` still takes the resolver path.
 
-The suite is auto-discovered and run headless by the off-wiki runner (`mise run test`, a merge-blocking CI gate) against the real registry. No wiki deploy is required. The runner cannot reach a live API, so anything that depends on a real fetch (the editorial-mode dispatch on an API hit, chain extras, `enrich`) is browser-verified instead.
+The suite is auto-discovered and run headless by the off-wiki runner (`mise run test`, a merge-blocking CI gate) against the real registry. No wiki deploy is required. The runner cannot reach a live API: fetch-dependent flows are unit-tested through the `fetchApi` stub seam where the suite covers them, and browser-verified against the live API beyond that.
 
 ## Architecture
 
 ```
 Entity/
-├── Data.lua          # parseArgs + p.get public API; buildResolverConfig/identifyKind/probeKind/
-│                     #   probeKindByEndpoint/resolveLeaf/fetchChainExtras/fetchApiData/
+├── Data.lua          # parseArgs + p.get public API; buildResolverConfig/identifyKind/kindByName/
+│                     #   probeKind/probeKindByEndpoint/resolveLeaf/fetchChainExtras/fetchApiData/
 │                     #   resolveEditorialKind/runEditorialFork local
 └── Data/
     └── testcases.lua # ScribuntoUnit suite (detectFacets, resolveLeaf, isGenuineRecord, resolveEditorialKind, runEditorialFork, parseArgs, p.get)

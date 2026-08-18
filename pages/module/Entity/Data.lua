@@ -152,6 +152,25 @@ local function identifyKind(apiData)
 	return nil
 end
 
+--- Looks up a registered kind by name, case-insensitively. Returns nil when the
+--- name is absent, empty, or matches no registered kind's `mod.name`. Pure
+--- lookup — editorial opt-in and any other gating stay with the callers.
+---
+--- @param name any
+--- @return table|nil
+local function kindByName(name)
+	if type(name) ~= 'string' or name == '' then
+		return nil
+	end
+	local wanted = mw.ustring.lower(name)
+	for _, mod in ipairs(registry.kinds) do
+		if type(mod.name) == 'string' and mw.ustring.lower(mod.name) == wanted then
+			return mod
+		end
+	end
+	return nil
+end
+
 --- Endpoint-by-endpoint fallback: fetches each kind's identity endpoint until one
 --- matches, costing up to one request per registered kind. Failures on a
 --- NON-matching kind don't count toward hasApiError (the items endpoint rejecting
@@ -175,10 +194,25 @@ local function probeKindByEndpoint(uuid)
 	return nil, {}, fetchedEndpoints, false
 end
 
---- Resolves the UUID's kind. The resolver answers in a single request whatever the
---- kind; the per-endpoint probe runs only when it can't — an unknown UUID, a kind
---- Entity doesn't model, or a transient failure such as a rate-limit rejection on
---- the throttled search endpoint. That fallback is what keeps pages rendering when
+--- Resolves the UUID's kind. A page that declares its kind (`|kind=`) alongside
+--- the uuid is trusted first: the declared kind's own primary endpoint is fetched
+--- directly, skipping the probe. The declaration is trusted because it is what
+--- admits records the probe can never claim — a jump point's location record
+--- reports type 'Anomaly', which the deliberately-narrow Location.matches()
+--- rejects by design — and because it is gated: the declared kind must claim the
+--- fetched record via matches(), or refine it via resolveSubtype. The gate is
+--- what stops a wrong uuid (a vehicle uuid pasted into {{Location}}) from
+--- rendering under the declared kind; it strips the args from the resolveSubtype
+--- call — the empty table is load-bearing — because Location's resolveSubtype
+--- defaults kind-declared pages (real args carry `kind`) to its StarSystem leaf,
+--- which would accept ANY record and turn the gate into a tautology. Judged on
+--- the record alone, a gate failure (fetch error included) falls through to the
+--- probe unchanged.
+---
+--- Otherwise the resolver answers in a single request whatever the kind; the
+--- per-endpoint probe runs only when it can't — an unknown UUID, a kind Entity
+--- doesn't model, or a transient failure such as a rate-limit rejection on the
+--- throttled search endpoint. That fallback is what keeps pages rendering when
 --- search is unavailable, at the old cost. With no uuid, nothing is fetched.
 ---
 --- @param args table
@@ -189,6 +223,20 @@ end
 local function probeKind(args)
 	if not args.uuid then
 		return nil, {}, {}, false
+	end
+
+	local declaredKind = kindByName(args.kind)
+	local declaredConfig = declaredKind and declaredKind.getApiConfigs()[1]
+	if declaredConfig then
+		local data, err = api.fetchApi(declaredConfig, args.uuid)
+		-- Validity gate (see the docstring). matches() is nil-safe by contract;
+		-- resolveSubtype is not, so a failed fetch (data nil) skips straight to
+		-- the fall-through.
+		local claimed = declaredKind.matches(data)
+			or (data ~= nil and declaredKind.resolveSubtype ~= nil and declaredKind.resolveSubtype(data, {}) ~= nil)
+		if claimed then
+			return declaredKind, data, { [declaredConfig.endpoint] = true }, err ~= nil
+		end
 	end
 
 	local resolverConfig = buildResolverConfig()
@@ -308,15 +356,9 @@ end
 --- @param args table
 --- @return table|nil
 local function resolveEditorialKind(args)
-	local kindName = args.kind
-	if type(kindName) ~= 'string' or kindName == '' then
-		return nil
-	end
-	local wanted = mw.ustring.lower(kindName)
-	for _, mod in ipairs(registry.kinds) do
-		if mod.editorialMode == true and type(mod.name) == 'string' and mw.ustring.lower(mod.name) == wanted then
-			return mod
-		end
+	local mod = kindByName(args.kind)
+	if mod and mod.editorialMode == true then
+		return mod
 	end
 	return nil
 end
@@ -440,6 +482,7 @@ p._internal = {
 	resolveEditorialKind = resolveEditorialKind,
 	buildResolverConfig = buildResolverConfig,
 	identifyKind = identifyKind,
+	kindByName = kindByName,
 	runEditorialFork = runEditorialFork,
 }
 

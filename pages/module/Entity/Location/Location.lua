@@ -2,19 +2,27 @@ require('strict')
 
 --- @module Entity/Location
 --- Location kind: entities backed by the game-data /api/locations endpoint
---- (star systems, planets, moons, stations, …). Only the SolarSystem
---- classification is modelled: matches() is deliberately narrow so every other
---- location keeps today's unmatched behavior until its leaf exists. Adding a
---- classification means widening matches() AND giving it a leaf in
---- LOCATION_SUBTYPE_MAP. The starmap attachment is gated separately, by
---- shouldFetchStarsystem — deliberately NOT coupled to matches(), so a planet
---- payload cannot trigger a star-system fetch once matches() widens.
+--- (star systems, planets, moons, stations, …). Two classifications are
+--- modelled: SolarSystem (the StarSystem leaf) and jump points (the JumpPoint
+--- leaf). matches() stays SolarSystem-narrow BY DESIGN: the locations API
+--- types jump points as 'Anomaly', a token shared with records this kind must
+--- not claim (wreck sites), so jump points are admitted only through the
+--- declared-kind trust path in Module:Entity/Data — its validity gate accepts
+--- a record when resolveSubtype() returns a leaf, and only there does the
+--- name-suffix refinement run. Every other location keeps today's unmatched
+--- behavior until its leaf exists. The starmap attachment is gated separately,
+--- by shouldFetchStarsystem — deliberately NOT coupled to matches(), so a
+--- planet payload cannot trigger a star-system fetch once matches() widens.
 ---
 --- For star systems the location record is thin; the substantive data lives in
 --- the starmap-derived /api/starsystems endpoint. The two records share no
 --- key, so enrich() bridges by name and attaches the record as
 --- apiData.starsystem — namespaced, never flat-merged: both payloads carry
---- colliding name/type/description/affiliation keys.
+--- colliding name/type/description/affiliation keys. Jump-point records bridge
+--- to the starmap differently: by the editor-supplied starmap code, to the
+--- /api/celestial-objects endpoint, attached as apiData.celestialobject. The
+--- two fetches are mutually exclusive by construction — a record is either
+--- SolarSystem-typed or Anomaly-typed, never both.
 
 local api = require('Module:Entity/Api')
 local editorial = require('Module:Entity/Editorial')
@@ -34,9 +42,13 @@ p.editorialMode = true
 --- @type string
 p.parent = 'Entity/Base'
 
---- API location type.name → leaf module path (SubtypeResolver adds 'Module:').
+--- Dispatch token → leaf module path (SubtypeResolver adds 'Module:').
+--- SolarSystem is a raw API type.name; JumpPoint is a DERIVED token — the API
+--- types jump points as 'Anomaly', a token shared with wreck sites, so
+--- resolveSubtype refines it through isJumpPointRecord before the lookup.
 local LOCATION_SUBTYPE_MAP = {
 	SolarSystem = 'Entity/Location/StarSystem',
+	JumpPoint = 'Entity/Location/JumpPoint',
 }
 
 --- RSI starmap affiliation code (lowercased) → display data. `label` is the
@@ -157,17 +169,49 @@ function p.matches(apiData)
 		and apiData.type.name == 'SolarSystem'
 end
 
---- Should this payload get the starmap starsystem attachment? True for a
---- SolarSystem location record (uuid path) and for a kind-declared page (the
---- editorial fork, where apiData is empty). Deliberately NOT coupled to
---- matches(): when matches() widens to planets, planet payloads must not
---- trigger starsystem fetches.
---- @param apiData table
+--- The literal name suffix that separates a jump-point gate from every other
+--- Anomaly-typed record. One constant so the length arithmetic below cannot
+--- drift from the text.
+local JUMP_POINT_SUFFIX = 'Jump Point'
+
+--- Is this location record a jump-point gate? The locations API types jump
+--- points as 'Anomaly', a token it shares with records that are NOT jump
+--- points (the "Stanton-Pyro Jump Point Wreck Site"), so the type alone cannot
+--- dispatch; only a name ending exactly in "Jump Point" is a gate. A real
+--- suffix match, not a substring one: the wreck site (suffix elsewhere) and
+--- the misnamed inactive gate "Jump Point Pyro Castra" (prefix) both stay
+--- unresolved. Case-sensitive and untrimmed BY DESIGN: the API emits the
+--- title-case 'Jump Point' form with no trailing whitespace on every observed
+--- record, and normalizing here would loosen the gate beyond observed data.
+--- The ONE predicate shared by resolveSubtype (leaf dispatch — and
+--- through it the declared-kind validity gate in Module:Entity/Data) and
+--- enrich (the celestial-object fetch), so dispatch and enrichment cannot
+--- drift.
+--- @param apiData table|nil
+--- @return boolean
+local function isJumpPointRecord(apiData)
+	return type(apiData) == 'table'
+		and type(apiData.type) == 'table'
+		and apiData.type.name == 'Anomaly'
+		and type(apiData.name) == 'string'
+		and apiData.name:sub(-#JUMP_POINT_SUFFIX) == JUMP_POINT_SUFFIX
+end
+
+--- Should this payload get the starmap starsystem attachment? Record-aware: a
+--- TYPED record answers on its type alone — only SolarSystem fetches, so a
+--- jump-point record (type 'Anomaly') on a kind-declared page cannot fire a
+--- bogus starsystems name-lookup. The kind-declared fallback (the editorial
+--- fork, where apiData is empty) applies only when the record carries no type
+--- table at all. Deliberately NOT coupled to matches(): when matches() widens
+--- to planets, planet payloads must not trigger starsystem fetches.
+--- Nil-tolerant like isJumpPointRecord: a non-table apiData is treated as an
+--- untyped record.
+--- @param apiData table|nil
 --- @param args table|nil
 --- @return boolean
 local function shouldFetchStarsystem(apiData, args)
-	if type(apiData.type) == 'table' and apiData.type.name == 'SolarSystem' then
-		return true
+	if type(apiData) == 'table' and type(apiData.type) == 'table' then
+		return apiData.type.name == 'SolarSystem'
 	end
 	return args ~= nil and args.kind ~= nil
 end
@@ -274,15 +318,74 @@ local function normalizeAggregates(record)
 	return record
 end
 
---- Attach the starmap starsystem record as apiData.starsystem: for SolarSystem
---- location records (uuid path) and for kind-declared lore pages (the
---- editorial fork). Soft-fails: on a fetch error or an empty result the record
+--- The starmap celestial-object code from the editor args: |starmapcode= wins
+--- over the legacy {{Astronomical object}} alias |code=; trimmed; an
+--- absent/blank value falls through to the alias, and no usable value at all
+--- means no fetch. Reads the RAW args because enrich runs before editorial
+--- resolution — the starmapcode manifest entry mirrors this alias order, and
+--- the two must not drift (same raw-args mirror getTypeInfo documents).
+--- @param args table|nil
+--- @return string|nil
+local function starmapCodeArg(args)
+	if type(args) ~= 'table' then
+		return nil
+	end
+	for _, key in ipairs({ 'starmapcode', 'code' }) do
+		if type(args[key]) == 'string' then
+			local code = mw.text.trim(args[key])
+			if code ~= '' then
+				return code
+			end
+		end
+	end
+	return nil
+end
+
+--- Attach the starmap celestial-object record as apiData.celestialobject (the
+--- jump-point counterpart of the starsystem attachment below — namespaced,
+--- never flat-merged, for the same colliding-key reason). The bridge key is
+--- the editor-supplied starmap code; no code, no fetch. Soft-fails exactly
+--- like the starsystem fetch: on a fetch error or an empty result the record
 --- stays absent and the infobox renders what it has.
 ---
 --- @param apiData table
 --- @param args table|nil
 --- @return table apiData
+local function enrichCelestialObject(apiData, args)
+	local code = starmapCodeArg(args)
+	if not code then
+		return apiData
+	end
+	-- Unlike the starsystems endpoint below, this is a plain path with no query
+	-- string of its own, so locale rides `params` — exactly like the primary
+	-- locations/%s config — and cannot corrupt anything.
+	local data = api.fetchApi({
+		name = 'StarCitizenWikiAPI',
+		endpoint = 'celestial-objects/%s',
+		params = { locale = 'en_EN' },
+		responseDataPath = 'data',
+	}, code)
+	if type(data) == 'table' and next(data) ~= nil then
+		apiData.celestialobject = data
+	end
+	return apiData
+end
+
+--- Attach the starmap starsystem record as apiData.starsystem: for SolarSystem
+--- location records (uuid path) and for kind-declared lore pages (the
+--- editorial fork). Jump-point records branch to the celestial-object fetch
+--- instead — the two are mutually exclusive by construction (a record is
+--- either SolarSystem-typed or Anomaly-typed). Soft-fails: on a fetch error or
+--- an empty result the record stays absent and the infobox renders what it
+--- has.
+---
+--- @param apiData table
+--- @param args table|nil
+--- @return table apiData
 function p.enrich(apiData, args)
+	if isJumpPointRecord(apiData) then
+		return enrichCelestialObject(apiData, args)
+	end
 	if not shouldFetchStarsystem(apiData, args) then
 		return apiData
 	end
@@ -304,14 +407,21 @@ function p.enrich(apiData, args)
 	return apiData
 end
 
---- Refine to the classification leaf (Item-style token dispatch). A
---- kind-declared page without a location record defaults to the StarSystem
---- leaf — the only subtype until the planets slice adds a |family=-style
---- dispatch arg.
+--- Refine to the classification leaf (Item-style token dispatch). A jump-point
+--- record dispatches on the derived JumpPoint token (see isJumpPointRecord) —
+--- this refinement doubles as the declared-kind validity gate's admission path
+--- in Module:Entity/Data, since matches() stays SolarSystem-narrow. Any other
+--- Anomaly (wreck sites) stays unresolved, kind-declared or not: the
+--- kind-declared StarSystem default applies only to pages with NO typed record
+--- (the editorial fork) — the only subtype there until the planets slice adds
+--- a |family=-style dispatch arg.
 --- @param apiData table
 --- @param args table
 --- @return table|nil leaf module
 function p.resolveSubtype(apiData, args)
+	if isJumpPointRecord(apiData) then
+		return subtypeResolver.resolve('JumpPoint', LOCATION_SUBTYPE_MAP)
+	end
 	local token = type(apiData.type) == 'table' and apiData.type.name or nil
 	if token == nil and args and args.kind then
 		token = 'SolarSystem'
@@ -333,6 +443,13 @@ function p.getEditorialManifest()
 		historicalnames = { arg = 'historicalnames' },
 		population = { arg = 'population' },
 		size = { arg = 'size', smw = 'System size', apiPath = 'starsystem.aggregated.size', transform = 'number' },
+		-- The starmap celestial-object code (jump-point pages; `code` is the
+		-- legacy {{Astronomical object}} arg name). No smw key, no transform:
+		-- the JumpPoint leaf surfaces it itself (metadata row, Starmap button).
+		-- enrich reads the RAW args through starmapCodeArg — enrich runs before
+		-- editorial resolution — so that helper mirrors this alias order
+		-- exactly, the same raw-args mirror getTypeInfo documents.
+		starmapcode = { arg = { 'starmapcode', 'code' } },
 		startypes = { arg = 'startypes' },
 		-- Pure-editorial identity fields for the systems the starmap does not
 		-- list (Hyoton, Krell, Ophos, …): the record supplies affiliation and
@@ -415,6 +532,8 @@ end
 
 -- Test-only exports. Not part of the public API.
 p._internal = {
+	isJumpPointRecord = isJumpPointRecord,
+	starmapCodeArg = starmapCodeArg,
 	shouldFetchStarsystem = shouldFetchStarsystem,
 	resolveLookupName = resolveLookupName,
 	plainKey = plainKey,

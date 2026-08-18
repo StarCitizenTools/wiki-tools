@@ -485,6 +485,39 @@ function suite:testDeclaredKindGateAdmitsViaResolveSubtypeAlone()
 	end
 end
 
+--- Jump-point-shaped location record (what locations/<uuid> answers for a
+--- gate; trimmed from the live API response). Typed 'Anomaly' — the token
+--- Location.matches() rejects by design.
+local function jumpPointRecord()
+	return {
+		uuid = '80bac534-3e84-4a2d-97c2-3edefa2d5bef',
+		name = 'Pyro - Nyx Jump Point',
+		respawn_location_type = 'Other',
+		type = { name = 'Anomaly', classification = 'Anomaly' },
+		system = { name = 'Pyro System' },
+	}
+end
+
+-- The stub-kind admission test above, incarnated with the REAL Location kind
+-- and a real jump-point record: matches() rejects the Anomaly type, so the
+-- page renders under Location only because resolveSubtype refines the record
+-- to the JumpPoint leaf inside the gate. This is the running proof of the
+-- coupling between Data's trust path and Location's dispatch — either side
+-- drifting (the gate losing its resolveSubtype disjunct, or Location's suffix
+-- predicate changing shape) fails HERE, not only in a per-module suite.
+function suite:testDeclaredKindTrustsJumpPointRecordViaResolveSubtype()
+	withStubbedFetch({ ['locations/%s'] = jumpPointRecord() }, function(seen)
+		local r = Data.get({ uuid = '80bac534-3e84-4a2d-97c2-3edefa2d5bef', kind = 'Location' })
+		self:assertEquals('Location', r.kind)
+		self:assertEquals(false, r.hasApiError)
+		self:assertEquals(false, r.unresolvedReference)
+		-- The chain tail IS the JumpPoint leaf module (identity, not name).
+		self:assertEquals(require('Module:Entity/Location/JumpPoint'), r.chain[#r.chain])
+		self:assertEquals(true, seen['locations/%s'])
+		self:assertEquals(nil, seen['search/%s']) -- trust path: the probe never ran
+	end)
+end
+
 -- No |kind=: today's resolver-first behaviour, untouched. One search fetch
 -- answers, and the matched kind's own endpoint is marked fetched (no re-fetch).
 function suite:testUuidWithoutKindStillProbesTheResolver()

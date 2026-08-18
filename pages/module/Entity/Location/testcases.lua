@@ -289,6 +289,32 @@ function suite:testResolveSubtypeKindDeclaredDefaultsToStarSystem()
 	self:assertEquals('Entity/Location', leaf.parent)
 end
 
+-- |family=jumppoint fills the no-record void with the JumpPoint leaf (the
+-- starmap-only tunnels have nothing else to dispatch on); a genuine record
+-- always wins over the arg, and no family keeps the StarSystem default.
+function suite:testResolveSubtypeFamilyJumpPoint()
+	local jp = require('Module:Entity/Location/JumpPoint')
+	self:assertEquals(jp, Location.resolveSubtype({}, { kind = 'Location', family = 'jumppoint' }))
+	self:assertEquals(jp, Location.resolveSubtype({}, { kind = 'Location', family = ' JumpPoint ' }))
+	local star = require('Module:Entity/Location/StarSystem')
+	self:assertEquals(star, Location.resolveSubtype({}, { kind = 'Location' }))
+	self:assertEquals(star, Location.resolveSubtype(solarSystemFixture(), { kind = 'Location', family = 'jumppoint' }))
+end
+
+function suite:testShouldFetchStarsystemFamilyJumpPointNeverFetches()
+	local f = Location._internal.shouldFetchStarsystem
+	self:assertFalse(f({}, { kind = 'Location', family = 'jumppoint' }))
+	self:assertTrue(f({}, { kind = 'Location' })) -- default fork unchanged
+end
+
+function suite:testGateEntrySystemFallsBackToDesignation()
+	local f = Location.gateEntrySystem
+	self:assertEquals('Pyro', f(jumpPointFixture())) -- record system wins
+	self:assertEquals('Stanton', f({ celestialobject = { designation = 'Stanton - Nyx' } }))
+	self:assertEquals(nil, f({ celestialobject = { designation = 'Malformed' } }))
+	self:assertEquals(nil, f({}))
+end
+
 function suite:testResolveSubtypeUndeclaredWithoutRecordIsNil()
 	self:assertEquals(nil, Location.resolveSubtype({}, {}))
 end
@@ -1140,6 +1166,7 @@ function suite:testJumpPointParentLinkCandidate()
 	local orphan = jumpPointApiData()
 	orphan.parent = { name = 'Pyro Gateway', type_name = 'Manmade' }
 	orphan.system = nil
+	orphan.celestialobject = nil -- no designation to fall back to either
 	name, candidate = f(orphan)
 	self:assertEquals('Pyro Gateway', name)
 	self:assertEquals(nil, candidate)
@@ -1162,9 +1189,12 @@ function suite:testJumpPointDestinationOrderIndependence()
 	self:assertEquals('Nyx', f(reversed))
 end
 
--- No guessing: an absent celestial record, an unparsable designation, a
--- missing entry system, or a designation naming neither side of the entry all
--- yield no destination (a guessed side could name the gate's own system).
+-- No guessing where a RECORD disagrees: an absent celestial record, an
+-- unparsable designation, or a record system naming neither designation side
+-- all yield no destination (a guessed side could name the gate's own
+-- system). A record-LESS page differs: entry falls back to the designation's
+-- first side (the starmap's entry-first convention), so the destination
+-- resolves — that is what lets |family=jumppoint pages render.
 function suite:testJumpPointDestinationUnresolvable()
 	local f = JumpPoint._internal.destinationSystem
 	self:assertEquals(nil, f(jumpPointFixture())) -- no celestial record
@@ -1173,7 +1203,7 @@ function suite:testJumpPointDestinationUnresolvable()
 	self:assertEquals(nil, f(strangers))
 	local noEntry = jumpPointApiData()
 	noEntry.system = nil
-	self:assertEquals(nil, f(noEntry))
+	self:assertEquals('Nyx', f(noEntry)) -- fallback: side A is the entry
 	local noDesignation = jumpPointApiData()
 	noDesignation.celestialobject.designation = nil
 	self:assertEquals(nil, f(noDesignation))
@@ -1343,7 +1373,17 @@ end
 function suite:testJumpPointKindCategoriesEmptyWithoutEntry()
 	local record = jumpPointApiData()
 	record.system = nil
+	record.celestialobject = nil -- no designation fallback either
 	self:assertEquals(0, #Location.getCategories(record, {}, nil))
+end
+
+-- The record-less family page still files under its entry system: the
+-- designation's first side carries it (the entry-first convention).
+function suite:testJumpPointKindCategoriesFamilyFallback()
+	local apiData = { celestialobject = { designation = 'Stanton - Nyx', jumppoints = { size = 'L' } } }
+	local categories = Location.getCategories(apiData, { kind = 'Location', family = 'jumppoint' }, nil)
+	self:assertEquals('Stanton system', categories[1])
+	self:assertEquals(1, #categories)
 end
 
 function suite:testShortDescriptionNoTypeKeepsLegacyShape()

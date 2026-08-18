@@ -49,7 +49,7 @@ local function destinationSystem(apiData)
 		return nil
 	end
 	local sideA, sideB = designation:match('^(.-)%s+%-%s+(.+)$')
-	local entry = location.entrySystem(apiData)
+	local entry = location.gateEntrySystem(apiData)
 	if not sideA or not entry then
 		return nil
 	end
@@ -90,7 +90,7 @@ local function parentLinkCandidate(apiData)
 	if parent.type_name == 'Star' then
 		return name, name .. ' (star)'
 	end
-	local entry = location.entrySystem(apiData)
+	local entry = location.gateEntrySystem(apiData)
 	return name, entry and (name .. ' (' .. entry .. ')') or nil
 end
 
@@ -163,7 +163,7 @@ function p.getSections(apiData, args, resolved)
 	local celestial = getCelestialObject(apiData)
 
 	local general = {}
-	local entry = location.entrySystem(apiData)
+	local entry = location.gateEntrySystem(apiData)
 	sectionBuilder.push(general, 'System', entry and ('[[' .. entry .. ' system]]'))
 	local destination = destinationSystem(apiData)
 	sectionBuilder.push(general, 'Destination', destination and ('[[' .. destination .. ' system]]'))
@@ -206,7 +206,7 @@ end
 --- @param resolved table|nil
 --- @return table<string, any>
 function p.getStructuredData(apiData, args, resolved)
-	local entry = location.entrySystem(apiData)
+	local entry = location.gateEntrySystem(apiData)
 	local destination = destinationSystem(apiData)
 	return {
 		jump_point_size = sizeLabel(getCelestialObject(apiData)),
@@ -225,7 +225,7 @@ end
 --- @param resolved table|nil
 --- @return string
 function p.getShortDescription(apiData, args, typeInfo, prefix, resolved)
-	local entry = location.entrySystem(apiData)
+	local entry = location.gateEntrySystem(apiData)
 	local destination = destinationSystem(apiData)
 	if entry and destination then
 		local size = sizeLabel(getCelestialObject(apiData))

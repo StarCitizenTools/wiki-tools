@@ -478,6 +478,38 @@ function p.getEditorialManifest()
 	}
 end
 
+--- A system name reduced to its bare form: a trailing " System"/" system"
+--- stripped, whitespace trimmed ("Pyro System" → "Pyro", "Nyx" → "Nyx").
+--- This is the short form the short description uses; page links and stored
+--- values append the lowercase " system" suffix to it ("Pyro system"), the
+--- wiki's canonical system page-name form.
+--- @param name any
+--- @return string|nil
+function p.systemShortName(name)
+	if type(name) ~= 'string' then
+		return nil
+	end
+	local short = mw.text.trim(name:gsub('%s+[Ss]ystem$', ''))
+	if short == '' then
+		return nil
+	end
+	return short
+end
+
+--- The gate's entry system (short form) from the location record. The live
+--- locations endpoint serves `system` as a plain string ("Pyro System"); the
+--- table-with-name shape is tolerated defensively in case the API ever
+--- upgrades the field to an embedded record.
+--- @param apiData table
+--- @return string|nil
+function p.entrySystem(apiData)
+	local system = apiData.system
+	if type(system) == 'table' then
+		system = system.name
+	end
+	return p.systemShortName(system)
+end
+
 --- The system-type entry for a page: the editorial value when one resolved
 --- (hand value beats starmap, the house rule), else the starmap record's.
 --- Single accessor so the type row, categories, SMW and short description
@@ -517,6 +549,21 @@ end
 --- @param resolved table|nil
 --- @return string[]
 function p.getCategories(apiData, args, resolved)
+	-- Jump-point gates file under their entry system's category ("Pyro
+	-- system") — a FUNCTIONAL membership, not just browse taxonomy:
+	-- {{System navplate}} builds its "Jump points" row from the per-system
+	-- category intersected with Jump points, so dropping it (as the first
+	-- migration pass did) emptied the row on every system navplate. The
+	-- legacy pages' flat 'Astronomical objects'/'Locations' memberships are
+	-- deliberately NOT carried over: the classification bucket (typeInfo's
+	-- 'Jump points', under Astronomy) covers that taxonomy.
+	if isJumpPointRecord(apiData) then
+		local entry = p.entrySystem(apiData)
+		if entry then
+			return { entry .. ' system' }
+		end
+		return {}
+	end
 	local categories = {}
 	local starsystem = type(apiData.starsystem) == 'table' and apiData.starsystem or nil
 	local _, typeEntry = p.resolveSystemType(starsystem, resolved)

@@ -1066,8 +1066,11 @@ function suite:testJumpPointTypeInfo()
 	self:assertEquals('Jump points', info.category)
 end
 
+-- Promoted to the kind (Location.systemShortName): the kind's getCategories
+-- needs it for the per-system gate category, and the kind cannot require the
+-- leaf back (cycle), so the helpers live where both can reach them.
 function suite:testJumpPointSystemShortName()
-	local f = JumpPoint._internal.systemShortName
+	local f = Location.systemShortName
 	self:assertEquals('Pyro', f('Pyro System'))
 	self:assertEquals('Terra', f('Terra system'))
 	self:assertEquals('Nyx', f('Nyx'))
@@ -1255,11 +1258,22 @@ function suite:testJumpPointShortDescription()
 	self:assertEquals('A jump point in Star Citizen', JumpPoint.getShortDescription(jumpPointFixture(), {}, typeInfo))
 end
 
--- The kind's getCategories hook adds nothing for a jump point: the
--- system-type/affiliation trees are star-system vocabulary, and the base
--- 'Jump points' category comes from typeInfo.category.
-function suite:testJumpPointKindCategoriesEmpty()
-	self:assertEquals(0, #Location.getCategories(jumpPointApiData(), {}, nil))
+-- A gate files under its ENTRY system's category — functional membership:
+-- {{System navplate}} builds its "Jump points" row from the per-system
+-- category ∩ Jump points, so this is what keeps that row populated. The
+-- star-system trees stay out, and the legacy flat 'Astronomical objects' /
+-- 'Locations' memberships are deliberately not carried (the classification
+-- bucket covers that taxonomy).
+function suite:testJumpPointKindCategoriesEntrySystem()
+	local categories = Location.getCategories(jumpPointApiData(), {}, nil)
+	self:assertEquals('Pyro system', categories[1])
+	self:assertEquals(1, #categories)
+end
+
+function suite:testJumpPointKindCategoriesEmptyWithoutEntry()
+	local record = jumpPointApiData()
+	record.system = nil
+	self:assertEquals(0, #Location.getCategories(record, {}, nil))
 end
 
 function suite:testShortDescriptionNoTypeKeepsLegacyShape()

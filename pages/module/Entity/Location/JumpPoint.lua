@@ -33,38 +33,6 @@ local function getCelestialObject(apiData)
 	return type(apiData.celestialobject) == 'table' and apiData.celestialobject or nil
 end
 
---- A system name reduced to its bare form: a trailing " System"/" system"
---- stripped, whitespace trimmed ("Pyro System" → "Pyro", "Nyx" → "Nyx").
---- This is the short form the short description uses; page links and stored
---- values append the lowercase " system" suffix to it ("Pyro system"), the
---- wiki's canonical system page-name form.
---- @param name any
---- @return string|nil
-local function systemShortName(name)
-	if type(name) ~= 'string' then
-		return nil
-	end
-	local short = mw.text.trim(name:gsub('%s+[Ss]ystem$', ''))
-	if short == '' then
-		return nil
-	end
-	return short
-end
-
---- The gate's entry system (short form) from the location record. The live
---- locations endpoint serves `system` as a plain string ("Pyro System"); the
---- table-with-name shape is tolerated defensively in case the API ever
---- upgrades the field to an embedded record.
---- @param apiData table
---- @return string|nil
-local function entrySystem(apiData)
-	local system = apiData.system
-	if type(system) == 'table' then
-		system = system.name
-	end
-	return systemShortName(system)
-end
-
 --- The system on the far side of the tunnel (short form), parsed from the
 --- celestial designation "<A> - <B>". The destination is WHICHEVER side is not
 --- the entry system — the designation's order is not assumed, so a record
@@ -80,16 +48,16 @@ local function destinationSystem(apiData)
 		return nil
 	end
 	local sideA, sideB = designation:match('^(.-)%s+%-%s+(.+)$')
-	local entry = entrySystem(apiData)
+	local entry = location.entrySystem(apiData)
 	if not sideA or not entry then
 		return nil
 	end
 	sideA, sideB = mw.text.trim(sideA), mw.text.trim(sideB)
 	if sideA:lower() == entry:lower() then
-		return systemShortName(sideB)
+		return location.systemShortName(sideB)
 	end
 	if sideB:lower() == entry:lower() then
-		return systemShortName(sideA)
+		return location.systemShortName(sideA)
 	end
 	return nil
 end
@@ -151,7 +119,7 @@ function p.getSections(apiData, args, resolved)
 	local celestial = getCelestialObject(apiData)
 
 	local general = {}
-	local entry = entrySystem(apiData)
+	local entry = location.entrySystem(apiData)
 	sectionBuilder.push(general, 'System', entry and ('[[' .. entry .. ' system]]'))
 	local destination = destinationSystem(apiData)
 	sectionBuilder.push(general, 'Destination', destination and ('[[' .. destination .. ' system]]'))
@@ -194,7 +162,7 @@ end
 --- @param resolved table|nil
 --- @return table<string, any>
 function p.getStructuredData(apiData, args, resolved)
-	local entry = entrySystem(apiData)
+	local entry = location.entrySystem(apiData)
 	local destination = destinationSystem(apiData)
 	return {
 		jump_point_size = sizeLabel(getCelestialObject(apiData)),
@@ -213,7 +181,7 @@ end
 --- @param resolved table|nil
 --- @return string
 function p.getShortDescription(apiData, args, typeInfo, prefix, resolved)
-	local entry = entrySystem(apiData)
+	local entry = location.entrySystem(apiData)
 	local destination = destinationSystem(apiData)
 	if entry and destination then
 		local size = sizeLabel(getCelestialObject(apiData))
@@ -259,8 +227,6 @@ end
 
 -- Test-only exports. Not part of the public API.
 p._internal = {
-	systemShortName = systemShortName,
-	entrySystem = entrySystem,
 	destinationSystem = destinationSystem,
 	sizeLabel = sizeLabel,
 	distanceDisplay = distanceDisplay,

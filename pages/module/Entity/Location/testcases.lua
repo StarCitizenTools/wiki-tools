@@ -133,6 +133,11 @@ function suite:testIsJumpPointRecord()
 	-- real Pyro gate); "Jump PointX" (no space) does not.
 	self:assertTrue(f({ type = { name = 'Anomaly' }, name = 'Jump Point Pyro Castra' }))
 	self:assertFalse(f({ type = { name = 'Anomaly' }, name = 'Jump Pointer Pyro' }))
+	-- The unambiguous 'JumpPoint' type token admits regardless of name — the
+	-- repurposed Stanton-side gates carry STALE names (the record called
+	-- 'Stanton - Magnus Jump Point' is the in-game Stanton - Nyx gate).
+	self:assertTrue(f({ type = { name = 'JumpPoint' }, name = 'Stanton - Magnus Jump Point' }))
+	self:assertTrue(f({ type = { name = 'JumpPoint' } })) -- even nameless
 	-- The type half: the suffix alone does not admit other classifications.
 	self:assertFalse(f({ type = { name = 'SolarSystem' }, name = 'Odd Jump Point' }))
 	self:assertFalse(f({ name = 'Pyro - Nyx Jump Point' })) -- untyped record

@@ -17,6 +17,30 @@ local function solarSystemFixture()
 	}
 end
 
+--- Pyro - Nyx gate location payload (trimmed from the live API response): the
+--- record shape the declared-kind trust path fetches for a jump-point uuid.
+--- Typed 'Anomaly' — the token the locations API gives jump points AND
+--- non-jump-point anomalies; only the exact name suffix separates a gate.
+local function jumpPointFixture()
+	return {
+		uuid = '80bac534-3e84-4a2d-97c2-3edefa2d5bef',
+		name = 'Pyro - Nyx Jump Point',
+		respawn_location_type = 'Other',
+		type = { name = 'Anomaly', classification = 'Anomaly' },
+		system = { name = 'Pyro System' },
+	}
+end
+
+--- Starmap celestial-object record as enrichCelestialObject() attaches it
+--- (trimmed; the full shape is the JumpPoint leaf's concern).
+local function celestialObjectFixture()
+	return {
+		code = 'PYRO.JUMPPOINTS.NYX',
+		designation = 'Pyro - Nyx',
+		type = 'JUMPPOINT',
+	}
+end
+
 --- Starmap record as enrich() attaches it (trimmed).
 local function starsystemFixture()
 	return {
@@ -67,9 +91,57 @@ end
 function suite:testShouldFetchStarsystem()
 	local f = Location._internal.shouldFetchStarsystem
 	self:assertTrue(f(solarSystemFixture(), nil)) -- uuid path, SolarSystem record
-	self:assertTrue(f({}, { kind = 'Location' })) -- editorial fork, kind-declared
+	self:assertTrue(f(solarSystemFixture(), { kind = 'Location' })) -- declaring the kind changes nothing
+	self:assertTrue(f({}, { kind = 'Location' })) -- editorial fork, kind-declared, NO typed record
 	self:assertFalse(f({ type = { name = 'Planet' } }, nil)) -- other location, undeclared
 	self:assertFalse(f({}, {})) -- nothing at all
+	-- Nil-tolerant (symmetric with isJumpPointRecord): a non-table apiData is
+	-- an untyped record, so only the declared kind decides.
+	self:assertTrue(f(nil, { kind = 'Location' }))
+	self:assertFalse(f(nil, nil))
+end
+
+-- The record-aware half of the truth table — a DELIBERATE change from the
+-- pre-jump-point behavior, where a declared kind alone was enough: a typed
+-- non-SolarSystem record must not fetch even on a kind-declared page. A
+-- jump-point record with |kind=Location would otherwise fire a bogus
+-- starsystems name-lookup for "Pyro - Nyx Jump Point".
+function suite:testShouldFetchStarsystemTypedRecordBeatsDeclaredKind()
+	local f = Location._internal.shouldFetchStarsystem
+	self:assertFalse(f(jumpPointFixture(), { kind = 'Location' }))
+	self:assertFalse(f({ type = { name = 'Planet' } }, { kind = 'Location' }))
+end
+
+-- The one predicate shared by resolveSubtype and enrich, exercised directly:
+-- the Anomaly type alone is NOT a jump point, and the name check is a real
+-- suffix match — the wreck site (suffix mid-name) and the misnamed inactive
+-- gate (prefix) must both stay out.
+function suite:testIsJumpPointRecord()
+	local f = Location._internal.isJumpPointRecord
+	self:assertTrue(f(jumpPointFixture()))
+	self:assertFalse(f({ type = { name = 'Anomaly' }, name = 'Stanton-Pyro Jump Point Wreck Site' }))
+	self:assertFalse(f({ type = { name = 'Anomaly' }, name = 'Jump Point Pyro Castra' }))
+	-- The type half: the suffix alone does not admit other classifications.
+	self:assertFalse(f({ type = { name = 'SolarSystem' }, name = 'Odd Jump Point' }))
+	self:assertFalse(f({ name = 'Pyro - Nyx Jump Point' })) -- untyped record
+	self:assertFalse(f({ type = { name = 'Anomaly' } })) -- nameless record
+	self:assertFalse(f(nil))
+	self:assertFalse(f({}))
+end
+
+-- |starmapcode= wins over the legacy |code= alias; values are trimmed; a
+-- blank primary falls through to the alias; no usable value at all → nil
+-- (no fetch).
+function suite:testStarmapCodeArg()
+	local f = Location._internal.starmapCodeArg
+	self:assertEquals('PYRO.JUMPPOINTS.NYX', f({ starmapcode = 'PYRO.JUMPPOINTS.NYX' }))
+	self:assertEquals('NYX.JUMPPOINTS.PYRO', f({ code = 'NYX.JUMPPOINTS.PYRO' }))
+	self:assertEquals('PYRO.JUMPPOINTS.NYX', f({ starmapcode = 'PYRO.JUMPPOINTS.NYX', code = 'NYX.JUMPPOINTS.PYRO' }))
+	self:assertEquals('NYX.JUMPPOINTS.PYRO', f({ starmapcode = '  ', code = 'NYX.JUMPPOINTS.PYRO' }))
+	self:assertEquals('TRIMMED', f({ starmapcode = ' TRIMMED ' }))
+	self:assertEquals(nil, f({ starmapcode = '' }))
+	self:assertEquals(nil, f({}))
+	self:assertEquals(nil, f(nil))
 end
 
 function suite:testResolveLookupNamePrecedence()
@@ -113,6 +185,13 @@ function suite:testSubtypeMapTargetsStarSystem()
 	self:assertEquals('Entity/Location/StarSystem', Location._internal.LOCATION_SUBTYPE_MAP.SolarSystem)
 end
 
+-- Pins the leaf PATH Task 3's module must occupy (Module: prefix added by the
+-- SubtypeResolver); the identity assertion lives in
+-- testResolveSubtypeJumpPointRecord.
+function suite:testSubtypeMapTargetsJumpPoint()
+	self:assertEquals('Entity/Location/JumpPoint', Location._internal.LOCATION_SUBTYPE_MAP.JumpPoint)
+end
+
 function suite:testGetCategoriesFullRecord()
 	local apiData = solarSystemFixture()
 	apiData.starsystem = starsystemFixture()
@@ -143,6 +222,13 @@ function suite:testEditorialManifestShape()
 	self:assertEquals('number', manifest.size.transform)
 	self:assertEquals('startypes', manifest.startypes.arg)
 	self:assertEquals(nil, manifest.startypes.apiPath)
+	-- starmapcode: legacy |code= alias, no smw key, no transform — the leaf
+	-- surfaces the code itself, and enrich reads the raw args (it runs before
+	-- editorial resolution).
+	self:assertEquals('starmapcode', manifest.starmapcode.arg[1])
+	self:assertEquals('code', manifest.starmapcode.arg[2])
+	self:assertEquals(nil, manifest.starmapcode.smw)
+	self:assertEquals(nil, manifest.starmapcode.transform)
 end
 
 function suite:testPrimaryConfigShape()
@@ -171,11 +257,37 @@ end
 
 function suite:testResolveSubtypeKindDeclaredDefaultsToStarSystem()
 	local leaf = Location.resolveSubtype({}, { kind = 'Location' })
+	self:assertEquals(StarSystem, leaf)
 	self:assertEquals('Entity/Location', leaf.parent)
 end
 
 function suite:testResolveSubtypeUndeclaredWithoutRecordIsNil()
 	self:assertEquals(nil, Location.resolveSubtype({}, {}))
+end
+
+-- The empty args table is the call shape of the declared-kind validity gate in
+-- Module:Entity/Data, so this doubles as the gate's admission test: matches()
+-- stays SolarSystem-narrow, and THIS resolution is how a jump-point uuid gets
+-- in.
+function suite:testResolveSubtypeJumpPointRecord()
+	local leaf = Location.resolveSubtype(jumpPointFixture(), {})
+	self:assertEquals(require('Module:Entity/Location/JumpPoint'), leaf)
+	self:assertEquals('Entity/Location', leaf.parent)
+end
+
+-- The wreck site shares the Anomaly token: it must stay unresolved — and a
+-- declared kind must not rescue it into the StarSystem default either (the
+-- default is for pages with NO typed record).
+function suite:testResolveSubtypeAnomalyWreckSiteIsNil()
+	local wreck = { type = { name = 'Anomaly' }, name = 'Stanton-Pyro Jump Point Wreck Site' }
+	self:assertEquals(nil, Location.resolveSubtype(wreck, {}))
+	self:assertEquals(nil, Location.resolveSubtype(wreck, { kind = 'Location' }))
+end
+
+-- "Jump Point" as a PREFIX (the misnamed inactive gate) is not a suffix match.
+function suite:testResolveSubtypeJumpPointPrefixNameIsNil()
+	local castra = { type = { name = 'Anomaly' }, name = 'Jump Point Pyro Castra' }
+	self:assertEquals(nil, Location.resolveSubtype(castra, {}))
 end
 
 --- The search resolver offers one payload to every kind: only Location may
@@ -611,7 +723,9 @@ end
 --- Run `fn(captured)` with Module:Entity/Api.fetchApi replaced by a stub that
 --- records its arguments and answers with `rows`. Always restores the real
 --- function, so one failing test cannot poison the rest of the suite.
---- @param rows table[]|nil the `data` list the stubbed fetch returns
+--- @param rows table|nil the decoded `data` payload the stubbed fetch returns
+---   (a result LIST for the starsystems endpoint, a single record for
+---   celestial-objects, nil for a failed fetch)
 --- @param fn fun(captured: { config: table|nil, key: string|nil })
 local function withStubbedFetch(rows, fn)
 	local api = require('Module:Entity/Api')
@@ -678,6 +792,87 @@ end
 function suite:testEnrichSoftFailsOnEmptyResult()
 	withStubbedFetch({}, function()
 		self:assertEquals(nil, Location.enrich(solarSystemFixture(), nil).starsystem)
+	end)
+end
+
+-- ── enrich: the celestial-object branch (jump-point records) ───────────────
+
+function suite:testEnrichJumpPointFetchesCelestialObject()
+	withStubbedFetch(celestialObjectFixture(), function(captured)
+		local apiData = Location.enrich(jumpPointFixture(), { kind = 'Location', starmapcode = 'PYRO.JUMPPOINTS.NYX' })
+		self:assertEquals('PYRO.JUMPPOINTS.NYX', captured.key)
+		self:assertEquals('celestial-objects/%s', captured.config.endpoint)
+		-- A plain path endpoint (no query string of its own), so locale rides
+		-- params like the primary locations/%s config — NOT the endpoint
+		-- string, which the starsystems fetch needs only to survive its
+		-- ?filter[…] query.
+		self:assertEquals('en_EN', captured.config.params.locale)
+		self:assertEquals('data', captured.config.responseDataPath)
+		self:assertEquals('Pyro - Nyx', apiData.celestialobject.designation)
+		-- Mutually exclusive with the starsystems bridge by construction.
+		self:assertEquals(nil, apiData.starsystem)
+	end)
+end
+
+-- The legacy |code= alias fetches too, and |starmapcode= wins when both are
+-- present — the same order the starmapcode manifest entry declares.
+function suite:testEnrichCelestialCodeAliasAndPrecedence()
+	withStubbedFetch(celestialObjectFixture(), function(captured)
+		Location.enrich(jumpPointFixture(), { code = 'NYX.JUMPPOINTS.PYRO' })
+		self:assertEquals('NYX.JUMPPOINTS.PYRO', captured.key)
+		Location.enrich(jumpPointFixture(), { starmapcode = 'PYRO.JUMPPOINTS.NYX', code = 'NYX.JUMPPOINTS.PYRO' })
+		self:assertEquals('PYRO.JUMPPOINTS.NYX', captured.key)
+	end)
+end
+
+-- No code arg → no fetch of ANY kind: not the celestial-objects endpoint (no
+-- bridge key), and not starsystems either — the record is typed non-
+-- SolarSystem, so the kind-declared fallback must not fire.
+function suite:testEnrichJumpPointWithoutCodeFetchesNothing()
+	withStubbedFetch(celestialObjectFixture(), function(captured)
+		local apiData = Location.enrich(jumpPointFixture(), { kind = 'Location' })
+		self:assertEquals(nil, captured.key)
+		self:assertEquals(nil, apiData.celestialobject)
+		self:assertEquals(nil, apiData.starsystem)
+	end)
+end
+
+-- Soft-fail exactly like the starsystem fetch: a failed fetch (nil) and an
+-- empty payload both leave apiData unchanged.
+function suite:testEnrichCelestialSoftFailsOnErrorOrEmptyPayload()
+	for _, payload in ipairs({ 'error', 'empty' }) do
+		withStubbedFetch(payload == 'empty' and {} or nil, function()
+			local apiData = Location.enrich(jumpPointFixture(), { starmapcode = 'PYRO.JUMPPOINTS.NYX' })
+			self:assertEquals(nil, apiData.celestialobject, payload .. ' payload must not attach')
+		end)
+	end
+end
+
+-- The two bridges dispatch on the RECORD shape, not the args: a SolarSystem
+-- record keeps the starsystems fetch even when a starmapcode arg is present,
+-- and attaches no celestial object.
+function suite:testEnrichSolarSystemIgnoresStarmapCodeArg()
+	withStubbedFetch({ starsystemFixture() }, function(captured)
+		local apiData = Location.enrich(solarSystemFixture(), { starmapcode = 'STANTON' })
+		self:assertEquals('starsystems?filter[name]=%s&include=celestialObjects&locale=en_EN', captured.config.endpoint)
+		self:assertEquals('STANTON', apiData.starsystem.code)
+		self:assertEquals(nil, apiData.celestialobject)
+	end)
+end
+
+-- The wreck site shares the Anomaly token but is NOT a jump point: no
+-- celestial fetch despite a code arg, and — typed, non-SolarSystem — no
+-- starsystems fetch despite the declared kind. captured.key doubles as the
+-- no-fetch-at-all sentinel for both branches.
+function suite:testEnrichWreckSiteFetchesNothing()
+	withStubbedFetch(celestialObjectFixture(), function(captured)
+		local apiData = Location.enrich(
+			{ type = { name = 'Anomaly' }, name = 'Stanton-Pyro Jump Point Wreck Site' },
+			{ kind = 'Location', starmapcode = 'STANTON.JUMPPOINTS.PYRO' }
+		)
+		self:assertEquals(nil, captured.key)
+		self:assertEquals(nil, apiData.celestialobject)
+		self:assertEquals(nil, apiData.starsystem)
 	end)
 end
 

@@ -129,7 +129,10 @@ function suite:testIsJumpPointRecord()
 	local f = Location._internal.isJumpPointRecord
 	self:assertTrue(f(jumpPointFixture()))
 	self:assertFalse(f({ type = { name = 'Anomaly' }, name = 'Stanton-Pyro Jump Point Wreck Site' }))
-	self:assertFalse(f({ type = { name = 'Anomaly' }, name = 'Jump Point Pyro Castra' }))
+	-- The one upstream misnaming: exact "Jump Point " PREFIX also admits (a
+	-- real Pyro gate); "Jump PointX" (no space) does not.
+	self:assertTrue(f({ type = { name = 'Anomaly' }, name = 'Jump Point Pyro Castra' }))
+	self:assertFalse(f({ type = { name = 'Anomaly' }, name = 'Jump Pointer Pyro' }))
 	-- The type half: the suffix alone does not admit other classifications.
 	self:assertFalse(f({ type = { name = 'SolarSystem' }, name = 'Odd Jump Point' }))
 	self:assertFalse(f({ name = 'Pyro - Nyx Jump Point' })) -- untyped record
@@ -309,10 +312,11 @@ function suite:testResolveSubtypeAnomalyWreckSiteIsNil()
 	self:assertEquals(nil, Location.resolveSubtype(wreck, { kind = 'Location' }))
 end
 
--- "Jump Point" as a PREFIX (the misnamed inactive gate) is not a suffix match.
-function suite:testResolveSubtypeJumpPointPrefixNameIsNil()
+-- "Jump Point " as an exact PREFIX (the one upstream misnaming, a real Pyro
+-- gate) resolves the leaf just like the suffix form.
+function suite:testResolveSubtypeJumpPointPrefixNameResolves()
 	local castra = { type = { name = 'Anomaly' }, name = 'Jump Point Pyro Castra' }
-	self:assertEquals(nil, Location.resolveSubtype(castra, {}))
+	self:assertEquals(require('Module:Entity/Location/JumpPoint'), Location.resolveSubtype(castra, {}))
 end
 
 --- The search resolver offers one payload to every kind: only Location may

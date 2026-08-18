@@ -142,7 +142,7 @@ end
 -- blank primary falls through to the alias; no usable value at all → nil
 -- (no fetch).
 function suite:testStarmapCodeArg()
-	local f = Location._internal.starmapCodeArg
+	local f = Location.starmapCodeArg
 	self:assertEquals('PYRO.JUMPPOINTS.NYX', f({ starmapcode = 'PYRO.JUMPPOINTS.NYX' }))
 	self:assertEquals('NYX.JUMPPOINTS.PYRO', f({ code = 'NYX.JUMPPOINTS.PYRO' }))
 	self:assertEquals('PYRO.JUMPPOINTS.NYX', f({ starmapcode = 'PYRO.JUMPPOINTS.NYX', code = 'NYX.JUMPPOINTS.PYRO' }))
@@ -188,6 +188,22 @@ function suite:testPickStarsystemExactBeatsAliasBeatsFirst()
 	}
 	self:assertEquals("K.ap'a'ri (Khabari)", f(aliasRows, 'khabari').name)
 	self:assertEquals('Something Else', f(aliasRows, 'nomatch').name)
+end
+
+-- Every subtype leaf in the map conforms to the chain-link contract, strict
+-- mode included: a misspelled hook (getMetadateItems) currently no-ops
+-- silently at render time, and the trust gate leans on leaf resolution for
+-- admission, so a mis-hooked leaf is load-bearing twice over. Kinds and
+-- facets get this from Registry/testcases; subtype leaves got nothing until
+-- here (final-review recommendation).
+function suite:testSubtypeLeavesConformToChainLinkContract()
+	local Contract = require('Module:Entity/Contract')
+	for token, path in pairs(Location._internal.LOCATION_SUBTYPE_MAP) do
+		local leaf = require('Module:' .. path)
+		local ok, errors = Contract.validate(leaf, Contract.CHAIN_LINK, { strict = true })
+		self:assertTrue(ok, token .. ' leaf fails the chain contract: ' .. table.concat(errors or {}, '; '))
+		self:assertEquals('Entity/Location', leaf.parent, token .. ' leaf parent')
+	end
 end
 
 function suite:testSubtypeMapTargetsStarSystem()

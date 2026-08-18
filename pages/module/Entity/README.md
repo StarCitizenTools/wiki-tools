@@ -19,13 +19,14 @@ feeds the next:
    wikitext and must **not** resurrect a stale/placeholder stored uuid (an all-zeros
    or legacy dev-stub value), which would defeat editorial mode.
 
-2. **Probe kinds**: iterates `Registry.kinds` (from
-   [Module:Entity/Registry](https://starcitizen.tools/Module:Entity/Registry)) in
-   registration order. For each kind, [Module:Entity/Api](https://starcitizen.tools/Module:Entity/Api)
-   fetches the kind's primary endpoint and calls `kind.matches(apiData)`; the first
-   true result wins and the loop short-circuits. Common-case Item is listed first, so
-   most pages pay one fetch. With no uuid, nothing is probed (see the editorial fork
-   below). When the page declares `|kind=` **alongside** a uuid, the declaration is
+2. **Probe kinds**: one `search/<uuid>` fetch through the wiki API's universal
+   resolver answers for any entity type; `identifyKind` then asks each kind in
+   `Registry.kinds` (from
+   [Module:Entity/Registry](https://starcitizen.tools/Module:Entity/Registry))
+   to claim the payload via `kind.matches(apiData)`. Only when the resolver
+   yields nothing does the fallback walk fetch each kind's primary endpoint in
+   registration order, first `matches()` winning. With no uuid, nothing is
+   probed (see the editorial fork below). When the page declares `|kind=` **alongside** a uuid, the declaration is
    trusted ahead of the probe behind a validity gate — the declared kind's endpoint is
    fetched directly and holds when `matches(data)` or `resolveSubtype(data, {})`
    accepts the record. This is how records a deliberately-narrow `matches()` rejects

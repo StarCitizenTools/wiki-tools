@@ -10,6 +10,7 @@ require('strict')
 --- location-only rows). apiData.starsystem is never present here: the two
 --- starmap bridges are mutually exclusive by construction.
 
+local boolean = require('Module:Boolean')
 local location = require('Module:Entity/Location')
 local sectionBuilder = require('Module:Entity/SectionBuilder')
 local Editorial = require('Module:Entity/Editorial')
@@ -111,19 +112,19 @@ local function parentDisplay(apiData)
 	return name
 end
 
---- The Starmap visibility row: the ARK starmap application does not list every
---- in-game location, and `hide_in_starmap` records that editorial choice.
---- Rendered as Hidden/Shown under the plain label "Starmap"; absent → no row.
+--- The Starmap row: whether the gate appears in the in-game starmap app, as
+--- the standard tri-state boolean icon (Mission's Shareable row is the
+--- precedent). The value is `hide_in_starmap` NEGATED — the icon answers "is
+--- it on the starmap?", so a shown gate gets the green check. An absent field
+--- yields no row, never the Unknown icon: that would claim uncertainty about
+--- data the record simply does not carry.
 --- @param apiData table
 --- @return string|nil
 local function starmapVisibility(apiData)
-	if apiData.hide_in_starmap == true then
-		return 'Hidden'
+	if type(apiData.hide_in_starmap) ~= 'boolean' then
+		return nil
 	end
-	if apiData.hide_in_starmap == false then
-		return 'Shown'
-	end
-	return nil
+	return boolean.render(not apiData.hide_in_starmap)
 end
 
 --- The ARK starmap code (the `?location=` key): the fetched celestial record's

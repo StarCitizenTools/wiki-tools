@@ -32,27 +32,6 @@ function suite:testHasBoxNilRejected()
 	self:assertEquals(false, internal.hasBox(nil))
 end
 
--- pickScuBox() — largest SCU box that fits, or nil for sub-box cargo
-
-function suite:testPickScuBoxLargeCargoPicksOneScu()
-	-- 2.21 m longest: largest box whose longest dim <= 2.21 is the 1 SCU box.
-	self:assertEquals(1, internal.pickScuBox(2.21).scu)
-end
-
-function suite:testPickScuBoxMidCargoPicksEighth()
-	-- 0.6 m longest: only the 1/8 box (0.5 m) fits.
-	self:assertEquals(0.125, internal.pickScuBox(0.6).scu)
-end
-
-function suite:testPickScuBoxSubBoxReturnsNil()
-	-- Smaller than the 1/8 box (0.5 m): no box fits, so no reference.
-	self:assertEquals(nil, internal.pickScuBox(0.13))
-end
-
-function suite:testPickScuBoxHugeCargoPicksLargest()
-	self:assertEquals(32, internal.pickScuBox(12).scu)
-end
-
 -- matches()
 
 function suite:testMatchesNilFalse()

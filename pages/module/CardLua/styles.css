@@ -1,5 +1,11 @@
 .t-card {
 	margin-block: var(--space-md);
+	/* Opaque, not transparent. In article flow this is a no-op — surface-0 is
+	 * what shows through anyway — but a transparent card lets whatever sits
+	 * behind it bleed through, which is visible the moment one overlaps
+	 * something (a card riding up over a hero shows the artwork through its
+	 * top edge). */
+	background-color: var(--color-surface-0);
 	border: var(--border-base);
 	border-radius: var(--border-radius-medium);
 	/* `overflow: clip` (both axes) so child header hover / open background
@@ -66,4 +72,252 @@
 	line-height: var(--line-height-x-small);
 	margin-inline: var(--space-sm);
 	padding-block: var(--space-xs) var(--space-sm);
+}
+/* ---- Media card (p.renderMediaCard) ----------------------------------------
+ * The art needs no negative margins: `.t-card` carries no padding of its own,
+ * so a section that declines to add any already reaches the card's inner edge,
+ * and the shell's `overflow: clip` trims it to the inside of the border radius.
+ */
+.t-card__media-layout {
+	display: flex;
+	min-width: 0;
+	/* Grow into the card. A card stretched by a grid row is taller than its own
+	 * content, and without this the spare height lands below the layout as dead
+	 * space rather than inside it, where the foot's auto margin can spend it —
+	 * which shows up as two cards' read-more cues sitting at different heights
+	 * in the same row. */
+	flex-grow: 1;
+}
+
+.t-card__media-layout--split {
+	flex-direction: row;
+	align-items: stretch;
+}
+
+.t-card__media-layout--banner {
+	flex-direction: column;
+}
+
+.t-card__media {
+	flex: none;
+	overflow: hidden;
+	background-color: var(--color-surface-2);
+}
+
+.t-card__media-layout--split > .t-card__media {
+	inline-size: 13rem;
+	align-self: stretch;
+}
+
+.t-card__media-layout--banner > .t-card__media {
+	aspect-ratio: 21 / 7;
+}
+
+/* MediaWiki wraps the file in two spans, a <picture>, and an anchor when linked
+ * — every one of them inline by default — so the whole chain has to be opened
+ * up before object-fit can reach the image. Listed explicitly because
+ * :is()/:where() are rejected by the TemplateStyles sanitizer. */
+.t-card__media span,
+.t-card__media a,
+.t-card__media picture {
+	display: block;
+	block-size: 100%;
+	inline-size: 100%;
+}
+
+.t-card__media img {
+	display: block;
+	inline-size: 100%;
+	block-size: 100%;
+	object-fit: cover;
+}
+
+.t-card__media-body {
+	flex-grow: 1;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-xs);
+	padding: var(--space-md);
+}
+
+.t-card__kicker {
+	font-family: var(--font-family-monospace);
+	font-size: var(--font-size-x-small);
+	line-height: var(--line-height-x-small);
+	font-weight: var(--font-weight-medium);
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--color-subtle);
+}
+
+.t-card__media-body .t-card__title {
+	font-size: var(--font-size-medium);
+	line-height: var(--line-height-medium);
+}
+
+.t-card__body {
+	color: var(--color-subtle);
+	font-size: var(--font-size-small);
+	line-height: var(--line-height-small);
+}
+
+/* A wikitext list in the body, styled down to card scale. This deliberately
+ * targets whatever list the author wrote rather than adding a `highlights`
+ * parameter: `* item` is already how Update: pages write "what's new", so the
+ * card reads the same source shape the wiki already uses.
+ *
+ * The marker is absolutely positioned rather than a flex child, so an item that
+ * does wrap keeps its dot beside the FIRST line instead of centred against the
+ * whole item. */
+.t-card__body ul {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.t-card__body li {
+	position: relative;
+	margin: 0;
+	padding-inline-start: var(--space-md);
+}
+
+.t-card__body li + li {
+	margin-block-start: 2px;
+}
+
+.t-card__body li::before {
+	content: '';
+	position: absolute;
+	inset-inline-start: var(--space-xs);
+	/* Optically on the first line's centre, not the item's. */
+	top: 0.6em;
+	inline-size: 3px;
+	block-size: 3px;
+	border-radius: 50%;
+	background-color: currentcolor;
+}
+
+/* Pinned to the foot: cards in a row are stretched to the tallest, and this
+ * puts the spare height above the foot rather than below everything. The auto
+ * margin lives on the wrapper and not on each child, because flex splits free
+ * space evenly between auto margins — two of them would drive the pair apart
+ * instead of holding it at the bottom. */
+.t-card__foot {
+	margin-top: auto;
+	padding-top: var(--space-xs);
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-xs);
+}
+
+.t-card__readout {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	gap: var(--space-md);
+	font-family: var(--font-family-monospace);
+}
+
+.t-card__readout-label {
+	font-size: var(--font-size-x-small);
+	line-height: var(--line-height-x-small);
+	color: var(--color-subtle);
+}
+
+.t-card__readout-value {
+	font-size: var(--font-size-large);
+	line-height: var(--line-height-large);
+	font-weight: var(--font-weight-medium);
+	letter-spacing: -0.02em;
+	color: var(--color-emphasized);
+}
+
+@media (max-width: 639px) {
+	.t-card__media-layout--split {
+		flex-direction: column;
+	}
+
+	.t-card__media-layout--split > .t-card__media {
+		inline-size: auto;
+		aspect-ratio: 21 / 8;
+	}
+}
+
+/* ---- Whole-card link (renderMediaCard stretchLink) -------------------------
+ * The title's own anchor is stretched over the card by a pseudo-element rather
+ * than overlaying a second, empty anchor: an overlay with no text has no
+ * accessible name, and one repeating the title gives keyboard and screen-reader
+ * users a duplicate stop for the same destination. This way the card has
+ * exactly one link, named by its title, in its natural reading order.
+ *
+ * The cost is real and worth knowing: the pseudo-element sits over the body, so
+ * text inside the card can no longer be selected.
+ */
+.t-card--link {
+	position: relative;
+	/* Longhand on purpose: the sanitizer takes var() as a whole `transition`
+	 * value but not as one component beside a literal property name, so the
+	 * house idiom is the token for duration/easing plus a longhand for what
+	 * moves (see Module:Tiles). */
+	transition: var(--transition-hover);
+	transition-property: border-color, background-color;
+}
+
+/* The title stops looking like a link once the whole card is one: the card is
+ * the affordance, so a blue underlined title inside it would advertise a second
+ * target that does not exist. The anchor keeps its focus ring, which is what a
+ * keyboard user needs. */
+.t-card--link .t-card__title a,
+.t-card--link .t-card__title a:hover {
+	color: inherit;
+	text-decoration: none;
+}
+
+.t-card--link .t-card__title a::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	z-index: 1;
+}
+
+.t-card--link:hover {
+	border-color: var(--border-color-interactive--hover);
+	background-color: var(--color-surface-2);
+}
+
+/* No card-level focus ring: `:focus-within` is rejected by the TemplateStyles
+ * sanitizer, as are :has()/:is()/:where(). The title's anchor is a real,
+ * visible element, so it keeps the skin's own focus ring around the title text
+ * — which is where a keyboard user is looking anyway. */
+
+/* The affordance for the stretched anchor. Blue because that is what a link
+ * looks like on this wiki, and underlined on card hover so the cue answers the
+ * same gesture the border and background do. Deliberately NOT lifted above the
+ * overlay below — it is a span, so a click on it lands on the card's own link,
+ * which is the whole point. */
+.t-card__more {
+	color: var(--color-progressive);
+	font-size: var(--font-size-small);
+	line-height: var(--line-height-small);
+	font-weight: var(--font-weight-medium);
+}
+
+.t-card--link:hover .t-card__more {
+	text-decoration: underline;
+}
+
+/* Anything else interactive has to be lifted above the stretched anchor, or the
+ * card swallows its clicks. */
+.t-card--link .t-card__body a,
+.t-card--link .t-card__readout a,
+.t-card--link .t-card__footer a {
+	position: relative;
+	z-index: 2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.t-card--link {
+		transition: none;
+	}
 }

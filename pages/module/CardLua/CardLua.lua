@@ -12,11 +12,11 @@ require('strict')
 ---    trailing element is a Module:ButtonLua button (e.g. "view on external
 ---    source") — for summaries that link out rather than expand in place.
 ---  * `renderMediaCard` is a built-in specialization for cards that lead with a
----    picture: art, an overline, a title, prose, and an optional readout row.
----    The art bleeds to the card's inner edge without any negative margins,
----    because `.t-card` carries no padding of its own — each section supplies
----    its own — and the shell's `overflow: clip` trims the picture to the
----    inside of the border and radius.
+---    picture. It owns only the art — that it bleeds to the card's inner edge
+---    without any negative margins, because `.t-card` carries no padding of its
+---    own and the shell's `overflow: clip` trims the picture to the inside of
+---    the border — and hands everything else to a content slot, with
+---    `renderMediaBody` as the helper for the usual text block.
 
 local button = require('Module:ButtonLua')
 
@@ -116,9 +116,15 @@ end
 --- @field attrs? table<string, string>  Attributes set on the value element, for
 ---        gadgets that animate or refresh it (e.g. a countdown target date).
 
+--- @class MediaBodyProps
+--- @field title string      Required.
+--- @field link? string      Page the title links to.
+--- @field kicker? string    Overline above the title.
+--- @field body? string      Prose. A longer register than the header row's
+---        one-line `description`.
+--- @field readout? MediaCardReadout
+
 --- @class MediaCardProps
---- @field title string        Card title. Required.
---- @field link? string        Page the title links to.
 --- @field image? string       File name for the leading art; a "File:" prefix is optional.
 --- @field imageAlt? string    Alt text. Defaults to empty, which is correct for
 ---        decorative art sitting next to a title that already names the subject.
@@ -128,13 +134,15 @@ end
 --- @field layout? string      'split' (art beside the text, the default) or
 ---        'banner' (art across the top). Split stays short; banner is taller for
 ---        the same content, which matters when the card sits above the fold.
---- @field kicker? string      Overline above the title.
---- @field body? string        Prose. A longer register than the header row's
----        one-line `description`.
---- @field stretchLink? boolean  Make the whole card clickable, not just the
----        title. Requires `link`. Off by default, because a card that swallows
----        every click also swallows text selection over its body.
---- @field readout? MediaCardReadout
+--- @field content string|mw.html  Everything that is not the art. Usually
+---        `renderMediaBody(…)`, optionally followed by more elements — they
+---        become further columns of the card's flex row, which is how a
+---        countdown or any other aside gets in without this module growing a
+---        prop for it.
+--- @field stretchLink? boolean  Make the whole card clickable. Requires a link
+---        in `content` — the CSS stretches the title's anchor — so it pairs with
+---        `link` on the body rather than on the card. Off by default, because a
+---        card that swallows every click also swallows text selection.
 --- @field footer? string      Card footer, below a divider.
 --- @field class? string
 
@@ -150,10 +158,9 @@ local function mediaWikitext(props)
 	return string.format('[[File:%s|%dpx|link=|alt=%s]]', name, tonumber(props.imageWidth) or 480, props.imageAlt or '')
 end
 
---- @param props MediaCardProps
+--- @param readout MediaCardReadout
 --- @return string
-local function readoutHtml(props)
-	local readout = props.readout
+local function readoutHtml(readout)
 	local row = mw.html.create('div'):addClass('t-card__readout')
 	row:tag('span'):addClass('t-card__readout-label'):wikitext(readout.label or '')
 	local value = row:tag('span'):addClass('t-card__readout-value')
@@ -164,53 +171,73 @@ local function readoutHtml(props)
 	return tostring(row)
 end
 
---- A card that leads with a picture: art, overline, title, prose, and an
---- optional readout row pinned to the foot.
+--- Builds the standard text block: overline, title, prose, and an optional
+--- readout row pinned to the foot.
+---
+--- Exposed rather than inlined because the card takes a content slot, not a
+--- fixed set of fields. A consumer that wants the usual text plus something
+--- beside it composes this with whatever else, exactly as `renderLinkCard`
+--- composes `renderHeader` with buttons.
 ---
 --- The readout is bottom-anchored on purpose. Cards laid out in a row are
 --- stretched to the tallest of them, and this decides where that spare height
 --- lands: as a gap above the readout, which reads as deliberate, rather than as
 --- a hole below everything, which reads as a mistake.
 ---
+--- @param props MediaBodyProps
+--- @return string
+function p.renderMediaBody(props)
+	if not props.title or props.title == '' then
+		error('renderMediaBody: title is required')
+	end
+
+	local root = mw.html.create('div'):addClass('t-card__media-body')
+
+	if props.kicker and props.kicker ~= '' then
+		root:tag('div'):addClass('t-card__kicker'):wikitext(props.kicker)
+	end
+
+	local linked = props.link and props.link ~= ''
+	local title = linked and string.format('[[%s|%s]]', props.link, props.title) or props.title
+	root:tag('div'):addClass('t-card__title'):wikitext(title)
+
+	if props.body and props.body ~= '' then
+		root:tag('div'):addClass('t-card__body'):wikitext(props.body)
+	end
+
+	if props.readout and (props.readout.label or props.readout.value) then
+		root:wikitext(readoutHtml(props.readout))
+	end
+
+	return tostring(root)
+end
+
+--- A card that leads with a picture, followed by whatever `content` supplies.
+---
+--- The card owns only the media: where it sits, that it bleeds to the inner
+--- edge, and whether the row runs across or down. Everything else is the
+--- caller's, laid out as flex children of the same row — so a second element
+--- after the body becomes a second column without this module needing to know
+--- what it is.
+---
 --- @param props MediaCardProps
 --- @return string
 function p.renderMediaCard(props)
-	if not props.title or props.title == '' then
-		error('renderMediaCard: title is required')
-	end
-
 	local layout = props.layout == 'banner' and 'banner' or 'split'
 	local root = mw.html.create('div'):addClass('t-card__media-layout'):addClass('t-card__media-layout--' .. layout)
-	local linked = props.link and props.link ~= ''
-	local stretch = linked and props.stretchLink == true
 
 	if props.image and props.image ~= '' then
 		root:tag('div'):addClass('t-card__media'):wikitext(mediaWikitext(props))
 	end
 
-	local body = root:tag('div'):addClass('t-card__media-body')
-
-	if props.kicker and props.kicker ~= '' then
-		body:tag('div'):addClass('t-card__kicker'):wikitext(props.kicker)
-	end
-
-	local title = linked and string.format('[[%s|%s]]', props.link, props.title) or props.title
-	body:tag('div'):addClass('t-card__title'):wikitext(title)
-
-	if props.body and props.body ~= '' then
-		body:tag('div'):addClass('t-card__body'):wikitext(props.body)
-	end
-
-	if props.readout and (props.readout.label or props.readout.value) then
-		body:wikitext(readoutHtml(props))
-	end
+	root:wikitext(tostring(props.content or ''))
 
 	-- The stretch is a class on the card, not an extra element: the title's own
 	-- anchor is grown to cover the card by CSS. A separate overlay anchor would
 	-- either have no accessible name, or repeat the title and hand keyboard and
 	-- screen-reader users a second stop for the same destination.
 	local class = props.class
-	if stretch then
+	if props.stretchLink == true then
 		class = class and (class .. ' t-card--link') or 't-card--link'
 	end
 
@@ -221,7 +248,12 @@ function p.renderMediaCard(props)
 	})
 end
 
---- Wikitext entry point for the media card.
+--- Wikitext entry point for the media card: the common case, where the content
+--- slot is a standard body, optionally followed by something else.
+---
+--- `after` is deliberately untyped — wikitext cannot compose Lua, so it is how a
+--- template hands a second column in (`|after={{#invoke:Countdown|main|…}}`)
+--- without this module learning what a countdown is.
 ---
 --- Readout attributes are Lua-only: they exist for gadget hooks, which belong to
 --- a module that knows what it is hooking, not to a template parameter.
@@ -232,16 +264,18 @@ function p.mediaCard(frame)
 	local args = require('Module:Arguments').getArgs(frame)
 	local yesno = require('Module:Yesno')
 	return p.renderMediaCard({
-		title = args.title,
-		link = args.link,
-		stretchLink = yesno(args.stretchlink, false) == true,
 		image = args.image,
 		imageAlt = args.imagealt,
 		imageWidth = args.imagewidth,
 		layout = args.layout,
-		kicker = args.kicker,
-		body = args.body,
-		readout = { label = args.readoutlabel, value = args.readout },
+		stretchLink = yesno(args.stretchlink, false) == true,
+		content = p.renderMediaBody({
+			title = args.title,
+			link = args.link,
+			kicker = args.kicker,
+			body = args.body,
+			readout = { label = args.readoutlabel, value = args.readout },
+		}) .. (args.after or ''),
 		footer = args.footer,
 		class = args.class,
 	})

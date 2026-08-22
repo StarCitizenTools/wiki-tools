@@ -1,5 +1,11 @@
 .t-card {
 	margin-block: var(--space-md);
+	/* Opaque, not transparent. In article flow this is a no-op — surface-0 is
+	 * what shows through anyway — but a transparent card lets whatever sits
+	 * behind it bleed through, which is visible the moment one overlaps
+	 * something (a card riding up over a hero shows the artwork through its
+	 * top edge). */
+	background-color: var(--color-surface-0);
 	border: var(--border-base);
 	border-radius: var(--border-radius-medium);
 	/* `overflow: clip` (both axes) so child header hover / open background

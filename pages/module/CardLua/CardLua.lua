@@ -123,6 +123,14 @@ end
 --- @field body? string      Prose. A longer register than the header row's
 ---        one-line `description`.
 --- @field readout? MediaCardReadout
+--- @field more? string     Read-more affordance at the foot of the body.
+---        Rendered as styled text, never a second anchor: the title already
+---        links to the same page, and on a stretch-linked card the whole
+---        surface is that link, so an anchor here would only hand keyboard and
+---        screen-reader users a duplicate stop to a place they have already
+---        been offered. Hidden from assistive tech for the same reason — "read
+---        more" is precisely the link text a screen reader user is taught to
+---        distrust, and it carries nothing the title has not already said.
 
 --- @class MediaCardProps
 --- @field image? string       File name for the leading art; a "File:" prefix is optional.
@@ -158,6 +166,16 @@ local function mediaWikitext(props)
 	return string.format('[[File:%s|%dpx|link=|alt=%s]]', name, tonumber(props.imageWidth) or 480, props.imageAlt or '')
 end
 
+--- The visible cue that a card is clickable. A stretched anchor is invisible,
+--- so without this the card gives no sign of being a link until a cursor is
+--- already over it, and no sign at all to someone reading rather than pointing.
+---
+--- @param text string
+--- @return string
+local function moreHtml(text)
+	return tostring(mw.html.create('span'):addClass('t-card__more'):attr('aria-hidden', 'true'):wikitext(text))
+end
+
 --- @param readout MediaCardReadout
 --- @return string
 local function readoutHtml(readout)
@@ -179,10 +197,10 @@ end
 --- beside it composes this with whatever else, exactly as `renderLinkCard`
 --- composes `renderHeader` with buttons.
 ---
---- The readout is bottom-anchored on purpose. Cards laid out in a row are
+--- The foot is bottom-anchored on purpose. Cards laid out in a row are
 --- stretched to the tallest of them, and this decides where that spare height
---- lands: as a gap above the readout, which reads as deliberate, rather than as
---- a hole below everything, which reads as a mistake.
+--- lands: as a gap above the foot, which reads as deliberate, rather than as a
+--- hole below everything, which reads as a mistake.
 ---
 --- @param props MediaBodyProps
 --- @return string
@@ -205,8 +223,18 @@ function p.renderMediaBody(props)
 		root:tag('div'):addClass('t-card__body'):wikitext(props.body)
 	end
 
+	-- One wrapper rather than an auto margin on each: flex splits free space
+	-- evenly between auto margins, so two of them would push the pair apart
+	-- instead of holding it together at the bottom.
+	local foot = {}
 	if props.readout and (props.readout.label or props.readout.value) then
-		root:wikitext(readoutHtml(props.readout))
+		foot[#foot + 1] = readoutHtml(props.readout)
+	end
+	if props.more and props.more ~= '' then
+		foot[#foot + 1] = moreHtml(props.more)
+	end
+	if #foot > 0 then
+		root:tag('div'):addClass('t-card__foot'):wikitext(table.concat(foot))
 	end
 
 	return tostring(root)
@@ -275,6 +303,7 @@ function p.mediaCard(frame)
 			kicker = args.kicker,
 			body = args.body,
 			readout = { label = args.readoutlabel, value = args.readout },
+			more = args.more,
 		}) .. (args.after or ''),
 		footer = args.footer,
 		class = args.class,

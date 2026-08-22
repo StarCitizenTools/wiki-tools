@@ -81,6 +81,12 @@
 .t-card__media-layout {
 	display: flex;
 	min-width: 0;
+	/* Grow into the card. A card stretched by a grid row is taller than its own
+	 * content, and without this the spare height lands below the layout as dead
+	 * space rather than inside it, where the foot's auto margin can spend it —
+	 * which shows up as two cards' read-more cues sitting at different heights
+	 * in the same row. */
+	flex-grow: 1;
 }
 
 .t-card__media-layout--split {
@@ -157,10 +163,19 @@
 }
 
 /* Pinned to the foot: cards in a row are stretched to the tallest, and this
- * puts the spare height above the readout rather than below everything. */
-.t-card__readout {
+ * puts the spare height above the foot rather than below everything. The auto
+ * margin lives on the wrapper and not on each child, because flex splits free
+ * space evenly between auto margins — two of them would drive the pair apart
+ * instead of holding it at the bottom. */
+.t-card__foot {
 	margin-top: auto;
 	padding-top: var(--space-xs);
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-xs);
+}
+
+.t-card__readout {
 	display: flex;
 	justify-content: space-between;
 	align-items: baseline;
@@ -239,6 +254,22 @@
  * sanitizer, as are :has()/:is()/:where(). The title's anchor is a real,
  * visible element, so it keeps the skin's own focus ring around the title text
  * — which is where a keyboard user is looking anyway. */
+
+/* The affordance for the stretched anchor. Blue because that is what a link
+ * looks like on this wiki, and underlined on card hover so the cue answers the
+ * same gesture the border and background do. Deliberately NOT lifted above the
+ * overlay below — it is a span, so a click on it lands on the card's own link,
+ * which is the whole point. */
+.t-card__more {
+	color: var(--color-progressive);
+	font-size: var(--font-size-small);
+	line-height: var(--line-height-small);
+	font-weight: var(--font-weight-medium);
+}
+
+.t-card--link:hover .t-card__more {
+	text-decoration: underline;
+}
 
 /* Anything else interactive has to be lifted above the stretched anchor, or the
  * card swallows its clicks. */

@@ -162,6 +162,42 @@
 	line-height: var(--line-height-small);
 }
 
+/* A wikitext list in the body, styled down to card scale. This deliberately
+ * targets whatever list the author wrote rather than adding a `highlights`
+ * parameter: `* item` is already how Update: pages write "what's new", so the
+ * card reads the same source shape the wiki already uses.
+ *
+ * The marker is absolutely positioned rather than a flex child, so an item that
+ * does wrap keeps its dot beside the FIRST line instead of centred against the
+ * whole item. */
+.t-card__body ul {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.t-card__body li {
+	position: relative;
+	margin: 0;
+	padding-inline-start: var(--space-md);
+}
+
+.t-card__body li + li {
+	margin-block-start: 2px;
+}
+
+.t-card__body li::before {
+	content: '';
+	position: absolute;
+	inset-inline-start: var(--space-xs);
+	/* Optically on the first line's centre, not the item's. */
+	top: 0.6em;
+	inline-size: 3px;
+	block-size: 3px;
+	border-radius: 50%;
+	background-color: currentcolor;
+}
+
 /* Pinned to the foot: cards in a row are stretched to the tallest, and this
  * puts the spare height above the foot rather than below everything. The auto
  * margin lives on the wrapper and not on each child, because flex splits free

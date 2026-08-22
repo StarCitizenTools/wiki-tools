@@ -120,8 +120,12 @@ end
 --- @field title string      Required.
 --- @field link? string      Page the title links to.
 --- @field kicker? string    Overline above the title.
---- @field body? string      Prose. A longer register than the header row's
----        one-line `description`.
+--- @field body? string      Prose, or a wikitext list. A longer register than
+---        the header row's one-line `description`. A `*` list renders as a
+---        compact bulleted list — the shape Update: pages already use for
+---        "what's new" — and each item should stay to one line, because a
+---        wrapped item costs a slot in a card whose height is fixed by whatever
+---        sits beside it.
 --- @field readout? MediaCardReadout
 --- @field more? string     Read-more affordance at the foot of the body.
 ---        Rendered as styled text, never a second anchor: the title already
@@ -220,7 +224,13 @@ function p.renderMediaBody(props)
 	root:tag('div'):addClass('t-card__title'):wikitext(title)
 
 	if props.body and props.body ~= '' then
-		root:tag('div'):addClass('t-card__body'):wikitext(props.body)
+		-- The leading newline is load-bearing. mw.html emits this div inline, so a
+		-- body that opens with `*` would sit immediately after `>` rather than at
+		-- the start of a line, and the parser renders it as literal text instead
+		-- of opening a list. Only the FIRST item is affected, so the bug looks
+		-- like a typo in the wikitext rather than a rendering problem. Harmless
+		-- for prose: a leading newline inside a block element changes nothing.
+		root:tag('div'):addClass('t-card__body'):wikitext('\n' .. props.body)
 	end
 
 	-- One wrapper rather than an auto margin on each: flex splits free space

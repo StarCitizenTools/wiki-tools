@@ -26,6 +26,7 @@ Determine the namespace from the path (`pages/module/...` → `Module:`, `pages/
 - `README.md` → `Module:<Name>/doc` — content model: `wikitext` (requires conversion, see step 5)
 - `module.json` → **skip** — module metadata, not deployed (see step 5 for how it's used)
 - `overlay.json` → **skip** — hand-owned input to a generator under `scripts/`, not a page the wiki reads. Pushing one would create a wiki page nothing loads, which an editor could then change with no effect — and a silent divergence between wiki and repo is exactly the failure this file exists to prevent.
+- `Mainpage/settings.json` → **skip** — EDITOR-owned content. It is the main page's control panel, changed on the wiki by whoever is updating the featured article or the running event, so the wiki is its source of truth and any local copy is stale the moment they do. It is gitignored for the same reason, but a stale copy can still be sitting on disk from before that, which is why this skip is here and not left to the file's absence. Deploying it reverts an editor's work with no warning and no diff anyone reads.
 
 **Template namespace (`pages/template/<Name>/`):**
 

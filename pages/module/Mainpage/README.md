@@ -14,6 +14,8 @@ The page needs nothing else: the module emits its own TemplateStyles and the tra
 
 Everything an editor changes is in one file, [[Module:Mainpage/settings.json]], linked from the foot of the rendered page. It carries its own guidance in a `_readme` at the top; what follows is the reference.
 
+**That page is not in this repository, deliberately.** It is content rather than code — changed on the wiki by whoever is updating the featured article or the running event — so the wiki is its source of truth and keeps its own history. A copy here would be stale the moment somebody edited it, and a stale tracked copy is worse than none: deploying the module would quietly revert them. It is gitignored, and `deploy-to-wiki` skips it even if an old copy is still sitting on disk. Read the live page to see what it currently holds; the table below is what it may hold.
+
 | Section | Holds |
 | --- | --- |
 | `featured` | `page` and `text` — the article in the featured card and the line beside its title. The picture is the article's own **Page Image**, so the page name is all there is to set; without one it falls back to a placeholder. With no `page` at all the card falls back to [Star Citizen](https://starcitizen.tools/Star_Citizen) — deliberately not the main page itself, which would render as a self-link and silently kill the whole-card link. |

@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  EVENT CARD — PHOTOGRAPH GUIDES
+  Module:Mainpage, settings key `image` (Module:Mainpage/Event/Legacy).
+
+  Place artwork BELOW the #guides group, then hide or delete that group and
+  export at 1600 x 900. The canvas is 16:9 because that is what the geometry
+  below is solved for; a source of another ratio moves the safe area.
+
+  WHY THE SAFE AREA IS ONLY 36% OF THE CANVAS. The card crops the same file to
+  two very different boxes, both centred, both object-fit: cover:
+
+    wide screens (>= 900px)   256 x 270  ratio 0.95   a near-square column
+    narrow screens (< 900px)  full width ratio 2.63   a 21:8 strip
+
+  A 16:9 source keeps 8/15 of its WIDTH in the column and 128/189 of its HEIGHT
+  in the strip. What survives both is the intersection — the box marked SAFE.
+
+  Anything that must always be seen (a logo, a ship, a face) belongs inside
+  SAFE. Everything outside it is real picture that carries the composition on
+  one layout and is cut on the other; it is margin, not waste.
+
+  Numbers are exact, not rounded: x 373.333, y 145.238.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+	<title>Event card photograph guides — 1600 x 900</title>
+	<desc>Safe area and crop windows for the main page event card's `image` key. The safe box, 853 by 610 centred, is visible in every layout; the bands around it are cropped on one layout or the other.</desc>
+
+	<defs>
+		<pattern id="hatch" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+			<line x1="0" y1="0" x2="0" y2="14" stroke="#ffffff" stroke-width="1" stroke-opacity="0.14"/>
+		</pattern>
+		<style>
+			.zone   { fill: #000000; fill-opacity: 0.42; }
+			.zone-h { fill: url(#hatch); }
+			.safe   { fill: none; stroke: #ff2e88; stroke-width: 3; }
+			.safe-i { fill: none; stroke: #ffffff; stroke-width: 1; stroke-opacity: 0.85; }
+			.win    { fill: none; stroke: #22d3ee; stroke-width: 2; stroke-dasharray: 12 8; stroke-opacity: 0.9; }
+			.mid    { stroke: #ff2e88; stroke-width: 1; stroke-dasharray: 6 7; stroke-opacity: 0.75; }
+			text {
+				font-family: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+				fill: #ffffff; paint-order: stroke; stroke: #000000; stroke-width: 4;
+				stroke-linejoin: round;
+			}
+			.h1  { font-size: 26px; font-weight: 600; letter-spacing: 2px; }
+			.h2  { font-size: 16px; fill: #cbd5e1; }
+			.lbl { font-size: 15px; letter-spacing: 1.5px; }
+			.key { font-size: 14px; fill: #cbd5e1; }
+			.pin { font-size: 13px; fill: #22d3ee; letter-spacing: 1px; }
+			.big { font-size: 34px; font-weight: 600; letter-spacing: 5px; fill: #ff2e88; }
+		</style>
+	</defs>
+
+	<!-- ============================================================
+	     ARTWORK GOES HERE — below this line, above nothing.
+	     ============================================================ -->
+
+	<g id="guides">
+
+		<!-- Cropped bands: the canvas minus the safe box. -->
+		<g id="cropped-zones">
+			<rect class="zone" x="0" y="0" width="1600" height="145.238"/>
+			<rect class="zone" x="0" y="754.762" width="1600" height="145.238"/>
+			<rect class="zone" x="0" y="145.238" width="373.333" height="609.524"/>
+			<rect class="zone" x="1226.667" y="145.238" width="373.333" height="609.524"/>
+			<rect class="zone-h" x="0" y="0" width="1600" height="145.238"/>
+			<rect class="zone-h" x="0" y="754.762" width="1600" height="145.238"/>
+			<rect class="zone-h" x="0" y="145.238" width="373.333" height="609.524"/>
+			<rect class="zone-h" x="1226.667" y="145.238" width="373.333" height="609.524"/>
+		</g>
+
+		<!-- What each layout actually shows. -->
+		<g id="crop-windows">
+			<rect class="win" x="373.333" y="0" width="853.333" height="900"/>
+			<rect class="win" x="0" y="145.238" width="1600" height="609.524"/>
+		</g>
+
+		<!-- The intersection: seen on every screen. -->
+		<g id="safe-area">
+			<rect class="safe" x="374.833" y="146.738" width="850.333" height="606.524"/>
+			<rect class="safe-i" x="377.333" y="149.238" width="845.333" height="601.524"/>
+		</g>
+
+		<!-- Centre, for placing a subject. -->
+		<g id="centre">
+			<line class="mid" x1="800" y1="145.238" x2="800" y2="754.762"/>
+			<line class="mid" x1="373.333" y1="450" x2="1226.667" y2="450"/>
+		</g>
+
+		<g id="labels">
+			<text class="h1" x="40" y="46">EVENT CARD &#183; PHOTOGRAPH</text>
+			<text class="h2" x="40" y="72">settings key `image` &#183; export 1600 &#215; 900 &#183; source must be 16:9</text>
+
+			<text class="big" x="800" y="440" text-anchor="middle">SAFE</text>
+			<text class="lbl" x="800" y="472" text-anchor="middle">853 &#215; 610 &#183; seen on every screen</text>
+			<text class="key" x="800" y="496" text-anchor="middle">this line is the exact crop limit &#8212; keep the subject clear of it</text>
+
+			<text class="pin" x="800" y="128" text-anchor="middle">cut on narrow screens &#8595;</text>
+			<text class="pin" x="800" y="790" text-anchor="middle">&#8593; cut on narrow screens</text>
+			<text class="pin" x="187" y="450" text-anchor="middle" transform="rotate(-90 187 450)">cut on wide screens</text>
+			<text class="pin" x="1413" y="450" text-anchor="middle" transform="rotate(90 1413 450)">cut on wide screens</text>
+
+			<text class="key" x="40" y="836">wide  &#8805;900px  256 &#215; 270 column   keeps 8/15 of the width</text>
+			<text class="key" x="40" y="858">narrow &#60;900px  21:8 strip        keeps 128/189 of the height</text>
+			<text class="key" x="40" y="880">both centred, object-fit: cover &#183; upload at 1600px or wider</text>
+		</g>
+
+	</g>
+</svg>

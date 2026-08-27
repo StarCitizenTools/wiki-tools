@@ -58,7 +58,13 @@ function p.render()
 
 	local card = mw.html.create('div'):addClass('t-card'):addClass('home-card--aside')
 
-	local pad = card:tag('div'):addClass('home-pad'):addClass('home-otd')
+	-- The frame the scroll fade is painted on. Its scroller is TabberNeue's, so
+	-- the selector names it rather than a class of ours.
+	local pad = card:tag('div')
+		:addClass('home-pad')
+		:addClass('home-otd')
+		:addClass('home-scrollfade')
+		:attr('data-gadget-mainpage-scrollfade', '.tabber__section')
 
 	pad:tag('div'):addClass('home-kicker'):wikitext('On this day &middot; ' .. lang:formatDate('j M'))
 

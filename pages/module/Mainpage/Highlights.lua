@@ -15,7 +15,6 @@ require('strict')
 --- The patch card stays here: it carries no picture, so it has no such choice
 --- to make.
 
-local cardLua = require('Module:CardLua')
 local cfg = require('Module:Mainpage/Config')
 local eventBanner = require('Module:Mainpage/Event')
 local eventSplit = require('Module:Mainpage/Event/Legacy')
@@ -35,6 +34,15 @@ end
 
 --- The current-patch card, for whichever build Config resolves as live.
 ---
+--- Not a Module:CardLua media card. It carries no picture, and its list has to
+--- scroll — which a whole-card link makes impossible: the bullets' own links
+--- work, but a stretched anchor owns the gaps between them, so a wheel over the
+--- list scrolls the page.
+---
+--- The foot link is a real one rather than CardLua's `more`, which is an
+--- aria-hidden cue for that anchor and would be a dead label without it. The
+--- version sits in the kicker so the list gets the row a separate title took.
+---
 --- @return string|nil
 function p.renderPatch()
 	local patch = cfg.livePatch()
@@ -50,17 +58,29 @@ function p.renderPatch()
 		bullets[#bullets + 1] = '* ' .. item
 	end
 
-	return cardLua.renderMediaCard({
-		class = 'home-card--aside',
-		stretchLink = true,
-		content = cardLua.renderMediaBody({
-			kicker = 'This patch',
-			title = 'New in ' .. patch.name,
-			link = patch.page,
-			body = bullets[1] and table.concat(bullets, '\n') or nil,
-			more = 'Read more',
-		}),
-	})
+	local card = mw.html.create('div'):addClass('t-card'):addClass('home-card--aside')
+
+	-- The frame the scroll fade is painted on, and the scroller it watches. The
+	-- gadget needs both because a pseudo-element inside a scroller scrolls away
+	-- with the rows it is covering.
+	local pad = card:tag('div')
+		:addClass('home-pad')
+		:addClass('home-patch')
+		:addClass('home-scrollfade')
+		:attr('data-gadget-mainpage-scrollfade', '.home-patch__list')
+
+	pad:tag('div'):addClass('home-kicker'):wikitext('New in ' .. patch.name)
+
+	if bullets[1] then
+		-- The leading newline is load-bearing: mw.html emits this div inline,
+		-- so a body opening with `*` would sit after `>` rather than at the
+		-- start of a line and the parser would render it as literal text.
+		pad:tag('div'):addClass('home-patch__list'):wikitext('\n' .. table.concat(bullets, '\n'))
+	end
+
+	pad:tag('div'):addClass('home-more'):wikitext(string.format('[[%s|Read more]]', patch.page))
+
+	return tostring(card)
 end
 
 --- @return string

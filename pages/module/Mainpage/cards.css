@@ -75,6 +75,66 @@
 }
 
 
+/* ---- the scroll fade ------------------------------------------------------
+   Two cards hold a list nobody bounds, and a list cut off with no cue reads as
+   a bug rather than as more. Both get the same pair of gradients, and the
+   mainpage gadget decides when each one is true.
+
+   IT HAS TO BE THE GADGET. CSS cannot see how far a box is scrolled, so a
+   pure-CSS fade is painted always and lies twice: over the last line when the
+   content happens to fit exactly, and again at the end of a long list where it
+   still promises more. Both were live before this. The gadget also buys the
+   top fade, which CSS could not have at all.
+
+   So the default here is INVISIBLE, not visible. Without JS there is no fade
+   rather than one that cannot tell the truth — the scrollbar is then the only
+   cue, which is honest.
+
+   The gadget measures where the scroller sits inside the frame and publishes
+   it as --home-fade-top / --home-fade-bottom, so one rule serves both cards
+   even though their scrollers start at different heights: under a kicker on
+   one, under a tab strip on the other. */
+.home-scrollfade {
+	position: relative;
+}
+
+.home-scrollfade::before,
+.home-scrollfade::after {
+	content: "";
+	position: absolute;
+	inset-inline: var( --space-md );
+	block-size: var( --space-xl );
+	pointer-events: none;
+	opacity: 0;
+	transition: opacity 0.15s ease;
+}
+
+.home-scrollfade::before {
+	inset-block-start: var( --home-fade-top, 0px );
+	background-image: linear-gradient( to bottom, var( --color-surface-0 ), transparent );
+}
+
+.home-scrollfade::after {
+	inset-block-end: var( --home-fade-bottom, 0px );
+	background-image: linear-gradient( to top, var( --color-surface-0 ), transparent );
+}
+
+.home-scrollfade--up::before {
+	opacity: 1;
+}
+
+.home-scrollfade--down::after {
+	opacity: 1;
+}
+
+@media ( prefers-reduced-motion: reduce ) {
+	.home-scrollfade::before,
+	.home-scrollfade::after {
+		transition: none;
+	}
+}
+
+
 /* ---- the event card, banner design ----------------------------------------
    Module:Mainpage/Event. Every file in Category:Main page banner images is
    1080x83, so the band holds that height at every card width and crops
@@ -121,6 +181,44 @@
 	.home-event-split .t-card__media-layout--split > .t-card__media {
 		inline-size: 16rem;
 	}
+}
+
+
+/* ---- this patch -----------------------------------------------------------
+   Kicker, a scrolling list, a foot link — the same three parts as the day card.
+
+   The ceiling is not optional. A grid row sizes to its tallest item's CONTENT,
+   so overflow-y alone bounds nothing: uncapped, twenty bullets took this card
+   to 634px and the event card with it.
+
+   Two ceilings, because the event card is 250px at the full measure and 414px
+   stacked, and one number cannot serve both — tight enough to bound the first
+   strands 124px of empty card in the second. Each is the whole rows of list
+   that fit the height that card already sets.
+
+   COUPLED to the event card, which is invisible from here: change its height
+   and these are stale. */
+.home-patch__list {
+	flex-grow: 1;
+	min-block-size: 0;
+	/* 6/6 and single column: the event card is 394-414px there. */
+	max-block-size: calc( var( --line-height-small ) * 13 );
+	overflow-y: auto;
+	font-size: var( --font-size-small );
+	line-height: var( --line-height-small );
+	color: var( --color-subtle );
+}
+
+@media ( min-width: 900px ) {
+	/* Side by side, where the event card is only 250-272px tall. */
+	.home-patch__list {
+		max-block-size: calc( var( --line-height-small ) * 7 );
+	}
+}
+
+.home-patch__list ul {
+	margin: 0;
+	padding-inline-start: var( --space-md );
 }
 
 
@@ -361,27 +459,20 @@
    dozen — so the height is fixed and the overflow is handled, rather than the
    content being silently truncated to whatever happened to fit.
 
-   NO MAXIMUM IS NEEDED, and one was briefly added here on the strength of a bad
-   test before being taken out again. The card holds its height on content of
-   any size: measured at 25 rows, 1424px of list, the card is still 403px and
-   the plate still 1.78 at every width down to 900. Below that the SECTION FLOOR
-   sets the card at 284px and the plate yields to it — but that is the floor,
-   not the content, so it happens on a day with one event exactly as on a day
-   with twenty.
+   NO MAXIMUM HERE, unlike the patch card above: TabberNeue supplies the
+   containment — `overflow: hidden` on `.tabber`, a `display: grid` scroll
+   container inside. Measured at 25 rows the card is still 403px, at every
+   width including single column. Do not copy this to a card without a tabber;
+   the patch card needed an explicit max-block-size.
 
-   Fixing the height also settles two couplings at once. The featured plate
-   beside this card holds its 16:9 only while nothing in the row is taller: a
-   stretched grid row overrides aspect-ratio, and the plate then takes the row's
-   shape instead of its own. And because the section does not resize with its
-   content, switching tabs cannot restretch the row either.
+   Below 900 the section FLOOR sets the card at 284px, which happens on a day
+   with one event exactly as on a day with twenty.
 
    The floor is what carries the card in a context with no plate beside it to
    set the height. It is derived from the row leading rather than picked, so it
    tracks the type scale. The scrollbar cannot be styled — TemplateStyles
    rejects scrollbar-width and scrollbar-color — so it is the platform's. */
 .home-otd .tabber {
-	/* The containing block for the overflow fade below. */
-	position: relative;
 	display: flex;
 	flex-direction: column;
 	flex-grow: 1;
@@ -397,29 +488,6 @@
 	flex-grow: 1;
 	min-block-size: calc( var( --line-height-x-small ) * 8 );
 	overflow-y: auto;
-}
-
-/* The cue that the list continues. The panel has always scrolled; nothing said
-   so, and a list cut off mid-row reads as a bug rather than as more.
-
-   It hangs off .tabber and NOT off .tabber__section, because the section is the
-   scroller: a pseudo-element inside it is positioned against the scrolled
-   content and slides away with the rows it is meant to be covering.
-
-   Nothing detects overflow, and nothing needs to. The gradient ends in the
-   card's own surface, so on a list that does not fill the panel it covers blank
-   card and is invisible. Its one dishonesty is at the far end of a long list,
-   where it still suggests more after the last row; only script can know that,
-   and this card asks for none. */
-.home-otd .tabber::after {
-	content: "";
-	position: absolute;
-	inset-inline: 0;
-	inset-block-end: 0;
-	block-size: var( --space-xxl );
-	background-image: linear-gradient( to top, var( --color-surface-0 ), transparent );
-	/* The rows underneath stay clickable; the fade is a picture, not a lid. */
-	pointer-events: none;
 }
 
 /* The minimal tabber treatment from Module:InfoboxLua, which solves the same

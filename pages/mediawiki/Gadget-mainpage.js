@@ -65,11 +65,13 @@
  *     classes are the ONLY thing the tense publishes, and they go on the
  *     countdown element itself — never on the card around it — so a card can
  *     host a clock without learning what one is. The module's stylesheet owns
- *     what each state looks like. It ticks on the minute rather
- *     than the second — a per-second clock is motion the reader cannot pause,
- *     which WCAG 2.2.2 would make us owe a control for — pauses with the tab,
- *     and rolls only once the card is on screen. Without JS the date range
- *     stands, and unlike a stale duration it never stops being true.
+ *     what each state looks like, INCLUDING the room this will need: the range
+ *     and the clock are different heights, so the stylesheet reserves the
+ *     taller in both states and the swap costs no layout. It ticks on the
+ *     minute rather than the second — a per-second clock is motion the reader
+ *     cannot pause, which WCAG 2.2.2 would make us owe a control for — pauses
+ *     with the tab, and rolls only once the card is on screen. Without JS the
+ *     date range stands, and unlike a stale duration it never stops being true.
  *
  *   scrollFade — says whether a scrolling card has more above or below.
  *     Contract: a frame carrying
@@ -1112,8 +1114,15 @@
 	// list is in the first group and still costs nothing early — its one read is
 	// gated on the list coming into view, not on this. The fade is there for the
 	// same reason: an absent cue at first paint is as wrong as a stale number.
-	const EARLY = [ recentActivity, scrollFade ];
-	const FEATURES = [ heroImage, liveStats, searchReel, countdown ];
+	//
+	// The countdown is EARLY for that rule and not as an exception to it: it
+	// swaps a date range for a duration and fetches nothing, and its one
+	// animation is gated on the card coming into view rather than on boot.
+	// window.load waits for every image on the page — the hero art, the event
+	// photograph, the featured plate — so the swap landed a long way after
+	// first paint and took the card's height with it.
+	const EARLY = [ recentActivity, scrollFade, countdown ];
+	const FEATURES = [ heroImage, liveStats, searchReel ];
 
 	function run( features ) {
 		features.forEach( ( feature ) => feature() );

@@ -1,0 +1,1 @@
+<includeonly>{{#invoke:Mainpage|main}}</includeonly><noinclude>{{/doc}}</noinclude>

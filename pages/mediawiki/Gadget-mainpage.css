@@ -1,0 +1,47 @@
+/*
+ * Gadget: mainpage — styles for markup this gadget creates.
+ *
+ * Nothing on the server emits an odometer: mainpage.js builds it, so a reader
+ * whose browser never runs the script never needs these rules, and shipping
+ * them with the script rather than with a component's TemplateStyles is what
+ * lets two unrelated components — the hero statline and the event countdown —
+ * share one implementation instead of each carrying a copy of it.
+ *
+ * Sizing is deliberately absent. A reel inherits font-size, weight and colour
+ * from whatever it was built inside, which is how the same markup is a 13px
+ * figure in the hero and a 3rem digit in the countdown without this file
+ * knowing that either exists.
+ */
+
+.mainpage-odometer {
+	display: inline-flex;
+	align-items: center;
+}
+
+.mainpage-odometer__digit {
+	display: inline-block;
+	height: 1em;
+	overflow: hidden;
+	line-height: 1;
+}
+
+.mainpage-odometer__reel {
+	display: block;
+	transition: transform 520ms cubic-bezier( 0.22, 1, 0.36, 1 );
+}
+
+/* Centre the glyph geometrically rather than via line-height: a reader may set
+   `line-height: 1.5 !important` (WCAG 1.4.12 Text Spacing) and an author cannot
+   outrank that, which would push each digit out of its 1em window and clip it. */
+.mainpage-odometer__reel span {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	height: 1em;
+}
+
+@media ( prefers-reduced-motion: reduce ) {
+	.mainpage-odometer__reel {
+		transition: none;
+	}
+}

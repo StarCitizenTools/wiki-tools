@@ -1,0 +1,245 @@
+/* Module:Countdown
+ *
+ * Two states. Before the gadget runs — and forever, without JavaScript — the
+ * element holds a date range and is styled as a plain readout. Once the gadget
+ * has built the digit stack it replaces that range with a label and three units
+ * and adds `t-countdown--live`, and the rules below take over. The range is
+ * dropped rather than hidden: the stack says everything it said and more, so
+ * keeping it would only have assistive tech read the same span of time twice.
+ *
+ * The gadget also adds one of three tense classes — `--upcoming`, `--running`,
+ * `--ended` — which is what the colour keys off. Nothing here reaches outside
+ * the countdown element, which is the point: the card hosting it never has to
+ * learn what a clock is.
+ *
+ * ARRANGEMENT. The clock stands its units in a column by default, for a card
+ * that gives it a slot down one side, and lies them down into a strip when
+ * there is no such slot. Two things ask for the strip, and they are different
+ * questions: below 639px the media query does, because every card is stacked
+ * there; and at any width `--flat` does, for a card that is stacked throughout
+ * and therefore has no viewport question to ask. A card must never restyle the
+ * clock itself — the arrangement is the clock's, the slot is the card's.
+ */
+.t-countdown {
+	flex: none;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	padding: var(--space-md);
+	font-family: var(--font-family-monospace);
+	text-align: center;
+	/* The hairline is the clock's own edge, not the card's: the card takes a
+	 * content slot and has no business deciding that whatever lands in it gets a
+	 * rule. Logical so it follows the flex row's direction rather than assuming
+	 * the clock is always on the right. It runs the full height of the card,
+	 * meeting the border top and bottom. */
+	border-inline-start: var(--border-subtle);
+}
+
+.t-countdown__fallback {
+	font-size: var(--font-size-small);
+	line-height: var(--line-height-small);
+	color: var(--color-subtle);
+}
+
+/* Deliberately the same size and tracking as Module:CardLua's kicker: the two
+ * sit at opposite ends of the card's head and share a top and bottom edge, so
+ * anything smaller here breaks that line. */
+.t-countdown__label {
+	font-size: var(--font-size-x-small);
+	line-height: var(--line-height-x-small);
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--color-subtle);
+}
+
+/* Live: the unit rows share whatever height the card has, so the clock fills
+ * its column instead of clustering. Sizing the digits BY the height would want
+ * `cqh`, which needs `container-type` — rejected by the TemplateStyles
+ * sanitizer — so the digits stay on a scale and the rows do the adapting. */
+.t-countdown--live {
+	display: grid;
+	grid-template-rows: auto;
+	grid-auto-rows: 1fr;
+	align-items: center;
+	justify-items: center;
+}
+
+.t-countdown__unit {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	line-height: 1;
+}
+
+.t-countdown__value {
+	/* 3rem is the ceiling before the clock, rather than the card's content,
+	 * starts deciding how tall the row is. */
+	font-size: var(--countdown-size, 3rem);
+	font-weight: var(--font-weight-medium);
+	letter-spacing: -0.04em;
+	color: var(--color-emphasized);
+	/* Tabular figures so the stacked numbers line up: without it a 1 is
+	 * narrower than a 0 and the column reads ragged. */
+	font-variant-numeric: tabular-nums;
+}
+
+/* The plain number behind each reel — what assistive tech reads instead of a
+   column of digits. The class is the gadget's to apply but this stylesheet's to
+   define: the odometer markup is shared with the hero, and only the component it
+   was built inside knows which stylesheet is guaranteed to be on the page. */
+.t-countdown__sr {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip-path: inset( 50% );
+	white-space: nowrap;
+}
+
+.t-countdown__unit-label {
+	font-size: 0.62rem;
+	line-height: 1;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--color-subtle);
+	margin-top: 0.25em;
+}
+
+/* ---- Tense --------------------------------------------------------------
+ * Colour is reinforcement here, never the only carrier: the label already says
+ * "Coming", "Ends" or "Ended" in words, so nothing is lost on a monochrome
+ * display or to a screen reader, and no visually-hidden partner is owed.
+ *
+ * The stripe is Module:Entity/Ports' overlay retuned for the area. Ports draws
+ * 2px lines on a 6px period at alpha 0.10 over a 32px pill; the same rule here
+ * covers roughly twenty times that, and its average lift — duty cycle times
+ * alpha, 0.033 — visibly washes the colour underneath toward grey. The line
+ * weight stays at 2px because that is the house signature; the spacing and the
+ * alpha come down, landing at a lift of 0.012, about a third of Ports.
+ */
+.t-countdown--running,
+.t-countdown--upcoming {
+	background-image: repeating-linear-gradient(
+		-45deg,
+		light-dark(rgba(0, 0, 0, 0.03), rgba(255, 255, 255, 0.06)),
+		light-dark(rgba(0, 0, 0, 0.03), rgba(255, 255, 255, 0.06)) 2px,
+		transparent 2px,
+		transparent 10px
+	);
+}
+
+.t-countdown--running {
+	background-color: var(--background-color-success-subtle);
+	border-inline-start-color: var(--border-color-success);
+}
+
+.t-countdown--running .t-countdown__label {
+	color: var(--color-success);
+}
+
+.t-countdown--upcoming {
+	background-color: var(--background-color-warning-subtle);
+	border-inline-start-color: var(--border-color-warning);
+}
+
+.t-countdown--upcoming .t-countdown__label {
+	color: var(--color-warning);
+}
+
+/* Ended takes no colour at all — there is no state left to claim — and the
+ * digits step back to match their own captions. They still carry a fact worth
+ * reading (how long ago, and so how stale the card is), which is why this is
+ * `--color-subtle` and not `--color-disabled`: the number is past, not inert. */
+.t-countdown--ended .t-countdown__value {
+	color: var(--color-subtle);
+}
+
+/* ---- Lying down ----------------------------------------------------------
+ * The strip. `display` has to be reset explicitly: the live state is a grid,
+ * and flex-direction is inert on a grid, so flipping the direction alone would
+ * silently leave the units stacked.
+ *
+ * These rules must stay BELOW the tense block. They are single-class like it,
+ * so which wins is decided on source order, and the strip has to be able to
+ * move the tense colour from the inline edge to the block edge.
+ *
+ * The declarations appear twice, here and in the media query at the foot,
+ * because one is asked for by a class and the other by a viewport and CSS
+ * cannot share a block across a media query. Keep them identical.
+ */
+.t-countdown--flat,
+.t-countdown--flat.t-countdown--live {
+	display: flex;
+	flex-direction: row;
+	/* The units end-align as a group; the auto margin below holds the label at
+	 * the start. Both together, so the strip reads left to right as what this
+	 * is and then how long, with the empty space between the two rather than
+	 * spread through them the way space-between would. */
+	justify-content: flex-end;
+	align-items: flex-end;
+	gap: var(--space-md);
+	inline-size: 100%;
+	/* Lying down, the rule that divided two columns becomes the one that
+	 * divides two rows. */
+	border-inline-start: 0;
+	border-block-start: var(--border-subtle);
+	/* Three units abreast rather than stacked down a column: at 3rem the strip
+	 * dominates the card it is attached to. */
+	--countdown-size: 2.5rem;
+}
+
+.t-countdown--flat .t-countdown__label,
+.t-countdown--flat .t-countdown__fallback {
+	margin-inline-end: auto;
+}
+
+.t-countdown--flat.t-countdown--running {
+	border-block-start-color: var(--border-color-success);
+}
+
+.t-countdown--flat.t-countdown--upcoming {
+	border-block-start-color: var(--border-color-warning);
+}
+
+.t-countdown--flat.t-countdown--live .t-countdown__label {
+	align-self: center;
+}
+
+/* Narrow lies every clock down, whether its card asked or not. */
+@media (max-width: 639px) {
+	.t-countdown,
+	.t-countdown--live {
+		display: flex;
+		flex-direction: row;
+		justify-content: flex-end;
+		align-items: flex-end;
+		gap: var(--space-md);
+		inline-size: 100%;
+		border-inline-start: 0;
+		border-block-start: var(--border-subtle);
+		--countdown-size: 2.5rem;
+	}
+
+	.t-countdown__label,
+	.t-countdown__fallback {
+		margin-inline-end: auto;
+	}
+
+	.t-countdown--running {
+		border-block-start-color: var(--border-color-success);
+	}
+
+	.t-countdown--upcoming {
+		border-block-start-color: var(--border-color-warning);
+	}
+
+	.t-countdown--live .t-countdown__label {
+		align-self: center;
+	}
+}
+
+/* Note what lying down does NOT change: alignment inside a unit. Each unit
+ * centres its digits over its own caption either way, so the clock reads the
+ * same on its side as it does standing up. Only the axis changes. */

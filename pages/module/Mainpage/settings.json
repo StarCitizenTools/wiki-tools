@@ -1,0 +1,222 @@
+{
+	"_readme": [
+		"THE MAIN PAGE CONTROL PANEL. Edit a value, save, and the main page follows.",
+		"",
+		"Clearing a value, or removing its line, REMOVES what it feeds rather than leaving a hole — empty the event and the event card goes; empty its end time and the card stays but loses its countdown. A value the page cannot read costs only the thing it feeds, never the page.",
+		"",
+		"featured  — the article in the big featured card. Its picture comes from the article itself, so the page name is all there is to set.",
+		"event     — the event card. starts/ends drive its countdown, written YYYY-MM-DD HH:MM in UTC. Leave starts empty for something already under way. See PICKING AN EVENT PICTURE below for banner and image.",
+		"patches   — the build chips at the top of the page, one per entry. channel LIVE gets the filled marker and its entry also fills the 'this patch' card; anything else gets the hollow one. Add a chip by adding an entry.",
+		"hero      — the big picture, the two-tone headline over it, and the phrases that cycle through the search box.",
+		"chips     — the row of links under the hero.",
+		"directory — the groups of links at the very bottom of the page.",
+		"",
+		"A link is { page, label } for somewhere on this wiki, or { url, label } for somewhere else. label is optional on a wiki link.",
+		"",
+		"Putting a _ in front of a key PARKS it: the page stops reading it but the value stays here for when you want it back. That is how the unused event picture below is kept.",
+		"",
+		"Full documentation: Module:Mainpage/doc",
+		"",
+		"PICKING AN EVENT PICTURE — the event card has two designs and the picture you set chooses between them, so set one key or the other, not both. Setting both uses banner.",
+		"",
+		"  banner  — one of the strips from Category:Main page banner images. It runs across the top of the card at the height it was drawn, and the card shows the MIDDLE of it: about two thirds on a wide screen, about a quarter on a phone. Check that the logo is somewhere near the middle of the file rather than out at an edge, or a narrow screen loses it.",
+		"  image   — an ordinary screenshot. It stands in a column beside the text on a wide screen and across the top on a narrow one, so its subject wants to be near the middle. A banner strip set here comes out a smear; use banner for those."
+	],
+	"featured": {
+		"page": "Basher",
+		"text": "Use more gun."
+	},
+	"event": {
+		"name": "Ship Showdown 2956",
+		"page": "Ship Showdown",
+		"_banner": "Ship Showdown Banner 01a.png",
+		"image": "IAE2951-day10-bis-mpuv-01.jpg",
+		"text": "The community picks its favourite ship of the year, one head-to-head round at a time.",
+		"starts": "2026-08-18 16:00",
+		"ends": "2026-09-02 20:00"
+	},
+	"patches": [
+		{
+			"channel": "LIVE",
+			"name": "4.10.0",
+			"page": "Update:Star Citizen Alpha 4.10.0",
+			"highlights": [
+				"The [[S-65 Stingray]] is now flyable",
+				"[[Instancing]] arrives in the 'verse",
+				"[[BUL-H4 Armor|BUL-H4 super heavy armor]] and the [[Vendetta HMG]]",
+				"[[Recco Battaglia]] starts giving missions in [[Levski]]"
+			]
+		}
+	],
+	"hero": {
+		"image": "UEEN fleet in Invictus Launch Week 2950 trailer.png",
+		"lede": "Bespoke Star Citizen and Squadron\u0026nbsp;42 wiki.",
+		"ledeDetail": "Held the line since 2016.",
+		"searchTails": [
+			"the Star Citizen Wiki",
+			"every item in the ’verse",
+			"the best ship that is not Carrack",
+			"what is in the Stanton system"
+		]
+	},
+	"chips": [
+		{
+			"page": "Ships"
+		},
+		{
+			"page": "Ship components",
+			"label": "Components"
+		},
+		{
+			"page": "Personal equipment",
+			"label": "Equipment"
+		},
+		{
+			"page": "Locations"
+		},
+		{
+			"page": "Commodities"
+		},
+		{
+			"page": "Lore timeline",
+			"label": "Lore"
+		}
+	],
+	"directory": [
+		{
+			"label": "Game",
+			"links": [
+				{
+					"page": "Ships"
+				},
+				{
+					"page": "Ship components",
+					"label": "Components"
+				},
+				{
+					"page": "Personal equipment",
+					"label": "Equipment"
+				},
+				{
+					"page": "Commodity",
+					"label": "Commodities"
+				},
+				{
+					"page": "Careers"
+				},
+				{
+					"page": "Contract",
+					"label": "Missions"
+				}
+			]
+		},
+		{
+			"label": "Universe",
+			"links": [
+				{
+					"page": "Locations"
+				},
+				{
+					"page": "Lore timeline",
+					"label": "Lore"
+				},
+				{
+					"page": "Characters"
+				},
+				{
+					"page": "Alien races"
+				},
+				{
+					"page": "Squadron 42"
+				}
+			]
+		},
+		{
+			"label": "Data",
+			"links": [
+				{
+					"page": "List of pledge vehicles",
+					"label": "Pledge vehicles"
+				},
+				{
+					"page": "List of ship packages",
+					"label": "Ship packages"
+				},
+				{
+					"page": "List of contracts",
+					"label": "Contracts"
+				},
+				{
+					"page": "Starmap"
+				}
+			]
+		},
+		{
+			"label": "Wiki",
+			"links": [
+				{
+					"page": ":Category:Community",
+					"label": "Community"
+				},
+				{
+					"page": "Development team",
+					"label": "Development"
+				},
+				{
+					"page": "Help:Contents",
+					"label": "Help portal"
+				},
+				{
+					"page": "Star Citizen Wiki:About",
+					"label": "About the wiki"
+				},
+				{
+					"page": "Star Citizen Wiki:Style guide",
+					"label": "Style guide"
+				}
+			]
+		},
+		{
+			"label": "Official",
+			"links": [
+				{
+					"url": "https://robertsspaceindustries.com",
+					"label": "RSI website"
+				},
+				{
+					"url": "https://support.robertsspaceindustries.com/",
+					"label": "Knowledge Base"
+				},
+				{
+					"url": "https://robertsspaceindustries.com/playstarcitizen",
+					"label": "Welcome Hub"
+				},
+				{
+					"url": "https://robertsspaceindustries.com/galactapedia",
+					"label": "Galactapedia"
+				},
+				{
+					"url": "https://robertsspaceindustries.com/spectrum/community/SC",
+					"label": "Spectrum"
+				}
+			]
+		},
+		{
+			"label": "Elsewhere",
+			"links": [
+				{
+					"url": "https://star-citizen.wiki",
+					"label": "Deutsch"
+				},
+				{
+					"url": "https://citizenwiki.cn",
+					"label": "中文"
+				},
+				{
+					"page": "Star Citizen resources megalist",
+					"label": "Resources megalist"
+				}
+			]
+		}
+	]
+}

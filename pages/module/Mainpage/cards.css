@@ -100,6 +100,30 @@
 }
 
 
+/* ---- the event card, split design ------------------------------------------
+   Module:Mainpage/Event/Legacy. A wider picture column than Module:CardLua's
+   own 13rem default, which is the right general value but leaves this card's
+   photograph in a slot narrower than it is tall: 208x248 at the full measure,
+   208x270 at 900. A landscape screenshot cropped to 0.77 keeps well under half
+   its width. At 16rem the slot is 256x248 and 256x270, near enough square, and
+   the text column still sets three comfortable lines at its narrowest (186px
+   of prose at a 900px viewport, measured).
+
+   Scoped rather than changed in CardLua: 13rem is that module's considered
+   default for a card of unknown content, and the event card is only the first
+   consumer to have an opinion.
+
+   Keyed to 900 because that is where the side-by-side layout exists at all —
+   CardLua stacks the split card below 639 and Module:Mainpage/styles.css
+   stacks it again for the 6/6 stage in between, so this range is disjoint from
+   both and neither has to know about it. */
+@media ( min-width: 900px ) {
+	.home-event-split .t-card__media-layout--split > .t-card__media {
+		inline-size: 16rem;
+	}
+}
+
+
 /* ---- featured -------------------------------------------------------------
    The plate states 16:9 rather than inheriting whatever shape the row leaves,
    because object-fit: cover cuts whichever axis overflows: a box flatter than

@@ -66,3 +66,9 @@ func TestLatestBuild(t *testing.T) {
 		t.Error("maintenance-only history must not yield a build")
 	}
 }
+
+func TestDumpURL(t *testing.T) {
+	if got, want := DumpURL("master"), "https://raw.githubusercontent.com/StarCitizenWiki/scunpacked-data/master/items.json"; got != want {
+		t.Errorf("DumpURL = %q, want %q", got, want)
+	}
+}

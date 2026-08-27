@@ -138,13 +138,15 @@ specifically for"). Those phrases are deliberately narrow: an earlier attempt
 matched "built into the", which caught armor whose *boots* have "tubing built
 into the soles".
 
-**Manufacturer resolution** (`ResolveManufacturer`) layers over the dump's own
-`Manufacturer` field: `byPrefix` (matched against the lowercased class name)
-wins outright — it exists for items whose manufacturer data is missing or
-wrong — then the dump's own code, overridden by `byName` and then `renames`.
-A code with no `names` entry falls back to the dump's manufacturer name as the
-link target. `omitInLead` codes (generic/unknown makers like `UNKN`) resolve
-successfully but with an empty page, which drops the lead's "manufactured by"
+**Manufacturer resolution** (`ResolveManufacturer`) starts from the dump's own
+`Manufacturer` field: its code, overridden by `byName` and then `renames`.
+`byPrefix` (matched against the lowercased class name) comes last and **only
+fills a blank** — an empty code or `UNKN`. It cannot correct a code the dump
+states wrongly, so a prefix rule is safe to add for a maker whose items are
+partly unlabelled, and useless against one whose items are mislabelled; that
+case needs `byName` or `renames`. A code with no `names` entry falls back to
+the dump's manufacturer name as the link target. `omitInLead` codes
+(generic/unknown makers like `UNKN`) resolve successfully but with an empty page, which drops the lead's "manufactured by"
 clause and the manufacturer navplate — linking `[[Consumable]]` as if it were
 a company would be wrong.
 
@@ -311,11 +313,18 @@ means an agent works through it via the MediaWiki MCP server:
 
 ## Where the dump and build id come from
 
-`items.json` is tracked in this repo's Git LFS, so the obvious
-`raw.githubusercontent.com` URL serves only an LFS pointer file (a few dozen
-bytes of text), not the ~130 MB of actual content. `DumpURL` instead points at
-`media.githubusercontent.com/media/...`, which resolves LFS objects to their
-real bytes.
+`DumpURL` reads `items.json` from `raw.githubusercontent.com`, the ordinary
+raw-content host, because `items.json` is an ordinary file.
+
+It used to point at `media.githubusercontent.com/media/...` on the reasoning
+that the dump was tracked in Git LFS, where the raw host serves a pointer file
+rather than the content. `.gitattributes` did say so — but upstream never
+committed an `items.json` under that rule. The first one landed on 2026-08-20
+(`db00b74`), immediately after the line was removed (`7d622b5`), so the media
+URL 404'd at every ref that has ever had a dump to fetch, and no reachable ref
+serves a pointer for this path. There is no fallback for the same reason the
+blocklist keeps no pattern that cannot match this data source: insurance
+against an impossible case is noise.
 
 There's no dump-level field for which game build it was extracted from, so the
 build id is read out of the commit history instead: `LatestBuild` walks

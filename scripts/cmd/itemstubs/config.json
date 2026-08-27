@@ -100,14 +100,17 @@
     },
     "Char_Armor_Arms.Heavy": {
       "kind": "wearable",
+      "labelLink": "Arms armor",
       "navplate": "personal armor"
     },
     "Char_Armor_Arms.Light": {
       "kind": "wearable",
+      "labelLink": "Arms armor",
       "navplate": "personal armor"
     },
     "Char_Armor_Arms.Medium": {
       "kind": "wearable",
+      "labelLink": "Arms armor",
       "navplate": "personal armor"
     },
     "Char_Armor_Backpack.LightArmor": {
@@ -148,14 +151,17 @@
     },
     "Char_Armor_Legs.Heavy": {
       "kind": "wearable",
+      "labelLink": "Legs armor",
       "navplate": "personal armor"
     },
     "Char_Armor_Legs.Light": {
       "kind": "wearable",
+      "labelLink": "Legs armor",
       "navplate": "personal armor"
     },
     "Char_Armor_Legs.Medium": {
       "kind": "wearable",
+      "labelLink": "Legs armor",
       "navplate": "personal armor"
     },
     "Char_Armor_Torso.Heavy": {
@@ -511,7 +517,8 @@
       "navplate": "vehicle weapons"
     },
     "WeaponMining.Gun": {
-      "kind": "component"
+      "kind": "component",
+      "labelLink": "Mining laser"
     },
     "WeaponPersonal.Gadget": {
       "kind": "item",
@@ -670,7 +677,8 @@
       "srvl_": "SRVL",
       "volt_": "VOLT",
       "none_": "NONE",
-      "cds_": "CDS"
+      "cds_": "CDS",
+      "rrs_": "RRS"
     },
     "omitInLead": [
       "GEND",

@@ -1,0 +1,878 @@
+/* Main page — the cards.
+   ---------------------------------------------------------------------------
+   The cards for the two bands below the game row. The twelve-column grid they
+   sit on, the span classes and the band gap all live in
+   Module:Mainpage/styles.css, so every band on the page shares one grid; this
+   file is only the components.
+
+   Band 1, what is worth reading:  [ featured 8 ][ on this day 4 ]
+   Band 2, how to take part:       [ your wiki 8, spanning 2 rows ]
+                                   [ support 4 ]
+                                   [ discussion 4 ]
+   Band 3, the directory:          [ six groups of text links ]
+
+   The measure stays at 1080. The featured plate states its own 16:9 rather
+   than taking whatever shape the column leaves over, so a wider band does not
+   improve its crop and only grows its height. Nothing clips at eight columns
+   either, so there is no case for widening past --width-layout.
+
+   Sizes and spacing come from Citizen's tokens throughout. The literals that
+   remain are display figures above the top of the type scale, one caption below
+   its bottom, and optical nudges — each commented where it sits.
+
+   NEVER put `t-card` on the same element as a class that sets `display`.
+   Module:CardLua declares `.t-card { display: flex; flex-direction: column }`
+   at single-class specificity, so which wins is decided by stylesheet source
+   order, which this page does not control. Placement properties like
+   grid-column are safe on the card; arrangement goes on a nested element. */
+
+.home-pad {
+	display: flex;
+	flex-direction: column;
+	flex-grow: 1;
+	min-width: 0;
+	padding: var( --space-md );
+}
+
+.home-kicker {
+	font-family: var( --font-family-monospace );
+	font-size: var( --font-size-x-small );
+	line-height: var( --line-height-x-small );
+	font-weight: var( --font-weight-medium );
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var( --color-subtle );
+	margin-bottom: var( --space-xs );
+}
+
+.home-title {
+	font-size: var( --font-size-medium );
+	line-height: var( --line-height-medium );
+	font-weight: var( --font-weight-medium );
+	color: var( --color-emphasized );
+}
+
+.home-body {
+	margin-top: var( --space-xxs );
+	font-size: var( --font-size-small );
+	line-height: var( --line-height-small );
+	color: var( --color-subtle );
+}
+
+.home-more {
+	margin-top: auto;
+	padding-top: var( --space-xs );
+	font-size: var( --font-size-small );
+	line-height: var( --line-height-small );
+	font-weight: var( --font-weight-medium );
+}
+
+
+/* A kicker that is not the first thing in its card, so it has no padding above
+   it to sit under. Used for the Follow row on the discussion card. */
+.home-kicker--inset {
+	margin-top: var( --space-md );
+}
+
+
+/* ---- the event card, banner design ----------------------------------------
+   Module:Mainpage/Event. Every file in Category:Main page banner images is
+   1080x83, so the band holds that height at every card width and crops
+   sideways rather than scaling down with the column: at 715px of card it shows
+   about two thirds of the strip, at 288px about a quarter, and the ships stay
+   the size they were drawn either way. Scaling instead would put 22px of
+   picture in the narrowest column.
+
+   The height is stated in px, not a token, because it is not a spacing
+   decision — it is the pixel height of the source files, and it has to change
+   only if those change.
+
+   CardLua's banner layout states 21 / 7 for the ordinary case of a landscape
+   photograph across the top. Cancelled rather than overridden: both dimensions
+   are known here, so a ratio has nothing left to supply.
+
+   The clock under it is NOT styled from here. The card asks Module:Countdown
+   for `t-countdown--flat` and the clock arranges itself; a copy of those
+   declarations lived here once and went stale the first time the clock changed. */
+.home-event-banner .t-card__media {
+	block-size: 83px;
+	aspect-ratio: auto;
+}
+
+
+/* ---- featured -------------------------------------------------------------
+   The plate states 16:9 rather than inheriting whatever shape the row leaves,
+   because object-fit: cover cuts whichever axis overflows: a box flatter than
+   the source loses its top and bottom, a taller box loses its sides. Featured
+   Page Images run about 1.78:1, so the box matches them and crops neither.
+
+   COUPLING: this only holds while nothing else in the row is taller. The plate
+   grows with the card, and a grid row stretched by a tall neighbour overrides
+   aspect-ratio — which is why the day card beside it fixes its own height and
+   scrolls, rather than growing with however many events the day has. */
+
+.home-feat {
+	position: relative;
+	/* Creates a stacking context, which is what lets the art and scrim below
+	   sit at z-index -1 and still paint above the card's own ground. */
+	z-index: 0;
+	display: flex;
+	flex-direction: column;
+	flex-grow: 1;
+	aspect-ratio: 16 / 9;
+}
+
+/* Behind the in-flow body rather than above it. */
+.home-feat__media,
+.home-feat__scrim {
+	z-index: -1;
+}
+
+.home-feat__media {
+	position: absolute;
+	inset: 0;
+}
+
+/* MediaWiki wraps a file in spans and a <picture>, all inline by default, so
+   the chain has to be opened up before object-fit can reach the image. Listed
+   one by one because the sanitizer rejects :is() and :where(). */
+.home-feat__media span,
+.home-feat__media a,
+.home-feat__media picture {
+	display: block;
+	inline-size: 100%;
+	block-size: 100%;
+}
+
+.home-feat__media img {
+	display: block;
+	inline-size: 100%;
+	block-size: 100%;
+	object-fit: cover;
+	/* Longhand on purpose: the sanitizer takes var() as a whole `transition`
+	   value but not as one component beside a literal property name, which is
+	   the house idiom (see Module:CardLua). */
+	transition: var( --transition-hover );
+	transition-property: transform;
+}
+
+/* A slow push on the art, so an image card answers the pointer with something
+   an image card can actually do. The card clips, so the overflow never shows. */
+.home-feat:hover .home-feat__media img {
+	transform: scale( 1.03 );
+}
+
+/* Two stops, not one: a hard floor under the text and a light wash over the
+   rest, so the picture keeps its top half. */
+.home-feat__scrim {
+	position: absolute;
+	inset: 0;
+	background: linear-gradient( to top, rgba( 8, 11, 14, 0.92 ) 0%, rgba( 8, 11, 14, 0.55 ) 42%, rgba( 8, 11, 14, 0.12 ) 100% );
+}
+
+.home-feat__body {
+	margin-top: auto;
+	padding: var( --space-sm );
+	display: flex;
+	flex-direction: column;
+	gap: var( --space-xxs );
+	min-width: 0;
+}
+
+/* The label is Module:BadgeLua, so the card takes the same badge component as
+   the rest of the wiki rather than a one-off kicker. Only its colours are
+   overridden: this one sits on artwork in both themes, so it cannot follow the
+   surface tokens the badge normally takes.
+
+   The row wrapper is load-bearing. A flex item is blockified, so the badge's
+   own display: inline-flex resolves to flex and it would stretch the full
+   width of the card. Wrapped, the row is the flex item and the badge inside it
+   stays inline and shrinks to its text. */
+.home-feat__badge-row {
+	display: flex;
+}
+
+.home-feat__badge.t-badge {
+	background-color: rgba( 255, 255, 255, 0.12 );
+	border-color: rgba( 255, 255, 255, 0.18 );
+	color: #d7e3ee;
+}
+
+/* Title and caption sit on one baseline across the card's width rather than
+   stacking down its left edge, so the pair costs two rows of the card's height
+   instead of a column of its width and leaves more of the artwork clear. */
+.home-feat__foot {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: var( --space-md );
+	min-width: 0;
+}
+
+/* A display size, above the top of the type scale, so it is a literal.
+   min-width: 0 because it is a flex item, and a flex item refuses to go below
+   its content's intrinsic width without it — the row would overflow instead of
+   the title wrapping. */
+.home-feat__title {
+	min-width: 0;
+	font-size: 2.5rem;
+	line-height: 1.15;
+	font-weight: var( --font-weight-medium );
+	letter-spacing: -0.02em;
+	color: #f4f8fb;
+}
+
+/* THE WHOLE CARD IS THE LINK, and it is its own anchor rather than a stretch
+   pseudo-element on the title. That is not a preference, it is what lets the
+   caption move.
+
+   A transform makes an element the containing block for its absolutely
+   positioned descendants. The body below carries one on hover, so a stretch
+   pseudo-element hung off the title would resolve against the body rather than
+   the card, and the click target would shrink to whatever the body covers.
+
+   As a sibling of the body the anchor is unaffected: the body can transform
+   freely and the click target stays the whole card.
+   The two objections to an overlay anchor are both answered — it carries a
+   real accessible name in the span below, and the visible title is not itself a
+   link, so it adds no second stop to the same destination. */
+.home-feat__link a {
+	position: absolute;
+	inset: 0;
+	z-index: 1;
+}
+
+/* Same clip-path pattern as .home-hero__sr in Module:Mainpage/styles.css,
+   repeated rather than shared because that one belongs to the hero and this one
+   to the card. A single .home-sr for both is worth doing if a third ever wants
+   it. */
+.home-feat__sr {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip-path: inset( 50% );
+	white-space: nowrap;
+}
+
+/* The card carries the hover the way CardLua's linked cards do. No
+   :focus-within here — the sanitizer rejects it — but the overlay anchor is a
+   real element and keeps the skin's focus ring. */
+.home-feat-card {
+	transition: var( --transition-hover );
+	transition-property: border-color;
+}
+
+.home-feat-card:hover {
+	border-color: var( --border-color-interactive--hover );
+}
+
+/* The tagline, not a summary: the settings page tells the next editor to put
+   "something short and fun" there, and that voice is worth keeping.
+
+   It sits to the right of the title on the same baseline, and it is the half
+   allowed to shrink — the title is the thing that has to stay whole. */
+.home-feat__tag {
+	flex: 0 1 auto;
+	min-width: 0;
+	text-align: right;
+	font-size: var( --font-size-small );
+	line-height: var( --line-height-small );
+	font-style: italic;
+	color: #cbd7e2;
+}
+
+/* Hovering clears the overlay off the artwork: scrim and caption both slide
+   down out of the card and fade as they go. The card clips, so neither is ever
+   visible below it, and the anchor above stays put so the card is still one
+   click target the whole way through. */
+.home-feat__scrim,
+.home-feat__body {
+	transition: var( --transition-hover );
+	transition-property: transform, opacity;
+}
+
+.home-feat:hover .home-feat__scrim,
+.home-feat:hover .home-feat__body {
+	transform: translateY( 100% );
+	opacity: 0;
+}
+
+/* The reveal survives; the movement does not. A fade is not the part that
+   causes trouble, so reduced motion keeps it and drops the slide rather than
+   losing the behaviour altogether.
+
+   Hover only, deliberately. Keyboard focus does not trigger this: the
+   sanitizer rejects :focus-within, and it is the better outcome anyway — a
+   keyboard user tabbing onto the card keeps the title in view rather than
+   watching the label they are aiming at disappear. */
+@media ( prefers-reduced-motion: reduce ) {
+	.home-feat:hover .home-feat__scrim,
+	.home-feat:hover .home-feat__body {
+		transform: none;
+	}
+}
+
+
+/* ---- on this day ----------------------------------------------------------
+   Module:Transcluder hands over the day page's own `class="timeline"` tables,
+   so the rules below restyle a wikitable rather than build a list.
+
+   The card shows BOTH of the day page's tables: real-life events (table 1) and
+   in-lore events (table 2), as the two panels of a TabberNeue tabber rather
+   than stacked under a heading each, which does not fit the column this card
+   gets. The tabs also do the labelling the two sources need:
+   their years are not distinguishable on sight, since a lore row reads 2773
+   where a real-life row reads 1991, and only someone who knows the in-universe
+   calendar could tell which is which.
+
+   The two differ in markup as well: real-life cells arrive wrapped in
+   <ul><li>, lore cells are bare text, which is why the list reset below exists
+   at all. When a day has no lore yet the page supplies its own row reading
+   "No info yet" plus an edit invitation, so the empty state is the day page's
+   to own rather than something to detect here. */
+
+/* The tabber fills the card and the panel scrolls. How many events a day has
+   is not something this card gets to decide — some days carry two, some a
+   dozen — so the height is fixed and the overflow is handled, rather than the
+   content being silently truncated to whatever happened to fit.
+
+   NO MAXIMUM IS NEEDED, and one was briefly added here on the strength of a bad
+   test before being taken out again. The card holds its height on content of
+   any size: measured at 25 rows, 1424px of list, the card is still 403px and
+   the plate still 1.78 at every width down to 900. Below that the SECTION FLOOR
+   sets the card at 284px and the plate yields to it — but that is the floor,
+   not the content, so it happens on a day with one event exactly as on a day
+   with twenty.
+
+   Fixing the height also settles two couplings at once. The featured plate
+   beside this card holds its 16:9 only while nothing in the row is taller: a
+   stretched grid row overrides aspect-ratio, and the plate then takes the row's
+   shape instead of its own. And because the section does not resize with its
+   content, switching tabs cannot restretch the row either.
+
+   The floor is what carries the card in a context with no plate beside it to
+   set the height. It is derived from the row leading rather than picked, so it
+   tracks the type scale. The scrollbar cannot be styled — TemplateStyles
+   rejects scrollbar-width and scrollbar-color — so it is the platform's. */
+.home-otd .tabber {
+	/* The containing block for the overflow fade below. */
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	flex-grow: 1;
+	min-block-size: 0;
+	/* Pulls the strip back under the kicker. The tab buttons carry 7px of top
+	   padding of their own, so the kicker's 8px bottom margin would otherwise
+	   read as 15px of separation; this trims it to a gap in line with the
+	   kicker-to-content spacing in the cards beside it. */
+	margin-block-start: calc( var( --space-xxs ) * -1 );
+}
+
+.home-otd .tabber__section {
+	flex-grow: 1;
+	min-block-size: calc( var( --line-height-x-small ) * 8 );
+	overflow-y: auto;
+}
+
+/* The cue that the list continues. The panel has always scrolled; nothing said
+   so, and a list cut off mid-row reads as a bug rather than as more.
+
+   It hangs off .tabber and NOT off .tabber__section, because the section is the
+   scroller: a pseudo-element inside it is positioned against the scrolled
+   content and slides away with the rows it is meant to be covering.
+
+   Nothing detects overflow, and nothing needs to. The gradient ends in the
+   card's own surface, so on a list that does not fill the panel it covers blank
+   card and is invisible. Its one dishonesty is at the far end of a long list,
+   where it still suggests more after the last row; only script can know that,
+   and this card asks for none. */
+.home-otd .tabber::after {
+	content: "";
+	position: absolute;
+	inset-inline: 0;
+	inset-block-end: 0;
+	block-size: var( --space-xxl );
+	background-image: linear-gradient( to top, var( --color-surface-0 ), transparent );
+	/* The rows underneath stay clickable; the fade is a picture, not a lid. */
+	pointer-events: none;
+}
+
+/* The minimal tabber treatment from Module:InfoboxLua, which solves the same
+   problem: TabberNeue ships page-level tab chrome, and dropped into a card it
+   outweighs what it is navigating.
+
+   The move worth copying is the padding/margin swap. A tab's inline PADDING
+   makes its box wider than its label, and TabberNeue's indicator tracks the
+   box — so the underline runs wider than the word and the first label sits
+   indented from everything else in the card. Trading the padding for an equal
+   margin makes box and label the same thing, and the negative margin on the
+   header pulls the strip back to the card's own left edge, so the first tab
+   lines up with the kicker above it and the year column below.
+
+   Exact tokens rather than InfoboxLua's ems: the type here is a step smaller
+   than TabberNeue's default, and an em would then resolve differently on the
+   header than on the tabs and leave the two out of register. */
+.home-otd .tabber__header {
+	margin-inline: calc( var( --space-sm ) * -1 );
+	/* Tabber's bottom rule, dropped to reduce clutter — the rows below already
+	   carry their own dividers. */
+	box-shadow: none;
+}
+
+.home-otd .tabber__tab {
+	margin-inline: var( --space-sm );
+	padding-inline: 0;
+	font-size: var( --font-size-small );
+	line-height: var( --line-height-small );
+	font-weight: var( --font-weight-normal );
+	color: var( --color-subtle );
+}
+
+/* State by colour ALONE, plus the indicator. Never by weight: a heavier glyph
+   is a wider glyph, so a bolder active tab grows on click and shoves the tab
+   after it — and the indicator with it — every time someone switches. Every tab
+   keeps one weight so the strip cannot move.
+
+   Deliberately not TabberNeue's progressive blue either: the entries below are
+   full of blue links, so a blue tab label joins that noise instead of standing
+   out from it. The indicator underline still carries the blue, which is where
+   it reads as state rather than as a link. */
+.home-otd .tabber__tab[aria-selected="true"] {
+	color: var( --color-emphasized );
+}
+
+.home-otd table {
+	inline-size: 100%;
+	border-collapse: collapse;
+	margin: 0;
+	background: none;
+}
+
+.home-otd th,
+.home-otd td {
+	border: 0;
+	padding: 0;
+	background: none;
+	vertical-align: top;
+}
+
+.home-otd tr {
+	display: flex;
+	gap: var( --space-sm );
+	padding-block: var( --space-xs );
+	font-size: var( --font-size-small );
+	line-height: var( --line-height-x-small );
+}
+
+.home-otd tr + tr {
+	border-block-start: var( --border-subtle );
+}
+
+/* The year. A floor rather than a fixed measure: four digits is what both
+   calendars use, real-life and in-lore alike, so 4ch keeps the second column's
+   left edge straight down the card — but the empty-lore row puts the words
+   "No info yet" in this cell, which a fixed 4ch would break across three lines.
+   nowrap plus a minimum lets that one row take the width it needs while every
+   real year still lands on the same line. */
+.home-otd td:first-child {
+	flex: none;
+	min-inline-size: 4ch;
+	white-space: nowrap;
+	/* Size and leading are INHERITED from the row on purpose, not restated. A
+	   year set a step smaller than the entry beside it sits in the same line
+	   box with more half-leading, so the two baselines never quite meet;
+	   sharing the row's metrics is what puts them on one line. Inheriting
+	   rather than repeating the token also means the two columns cannot drift
+	   apart if the row's size is ever changed. */
+	font-family: var( --font-family-monospace );
+	font-weight: var( --font-weight-medium );
+	font-variant-numeric: tabular-nums;
+	color: var( --color-subtle );
+}
+
+/* No clamp on the entry. A two-line window cut mid-word — "releases a digital
+   virus which" — which reads as broken rather than as truncated, and there is
+   no honest ellipsis available: TemplateStyles rejects `display: -webkit-box`,
+   so line-clamp's usual form is out. The panel scrolls, so an entry simply runs
+   to its natural length. */
+.home-otd td:last-child {
+	min-width: 0;
+}
+
+/* The foot carries two things on this card: where to read the rest, and where
+   to add to it. space-between rather than an auto margin on the second, and
+   flex-wrap so the pair stacks instead of overflowing if either label grows —
+   insurance, not a live case: the two come to 212px against the 254px the
+   narrowest card gives them, so today they always share the line. */
+.home-otd .home-more {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: var( --space-sm );
+}
+
+/* Transcluder brings the day page's bullets with it; inside a two-line window
+   a marker and its indent are pure noise. */
+.home-otd ul,
+.home-otd li {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+
+/* ---- your wiki ------------------------------------------------------------
+   The recent-changes list reads as evidence rather than as navigation: the
+   claim, the proof, and the invitation in one card. It carries usernames, for
+   editor recognition, which is what earns the card the wide column rather than
+   a narrow aside. */
+
+/* The header is the pitch and the button, and nothing else: the count belongs
+   beside the list it counts, not above the sentence. Two zones rather than
+   three also leaves the sentence enough of the card to stay on one line at the
+   full measure.
+
+   NO RULE UNDERNEATH. `border-block-end: var( --border-subtle )` here would be
+   the identical 1px drawn between every row of the list below, at the same
+   width and with no gap to the first row, so the header would read as row zero
+   rather than as a header. Spacing carries it instead, as it does under the
+   directory's group labels. The list keeps its own dividers, because there the
+   rules ARE the structure: they separate like from like, and a header is not
+   like a row. */
+.home-part__head {
+	display: flex;
+	align-items: center;
+	gap: var( --space-md );
+	padding-bottom: var( --space-md );
+}
+
+.home-part__text {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+/* display: flex so the wrapper takes the button's real height. ButtonLua's
+   root is an inline span, so an unopened wrapper is only as tall as its line
+   box, and align-self would then centre that box rather than the button inside
+   it. Same shape as the .home-btns wrappers below, same fix.
+
+   align-self, not the parent's align-items: a child's own align-self always
+   wins, and Citizen's button styles set their own. */
+.home-part__btn {
+	flex: none;
+	display: flex;
+	align-self: center;
+}
+
+/* The count lives beside the list it is a count of, rather than in the header.
+   The label pays for itself twice: it says what the ten page names below are,
+   which nothing else on the card does.
+
+   flex-wrap rather than a breakpoint. The two halves come to 121 + 144px and
+   the card bottoms out around 303 on a 360px phone, so they still clear each
+   other by about 38px — five characters of the mono face, which reads as a gap
+   and not as one string. A stacking rule keyed to a width would have cost 30px
+   of card height at every narrow size for a collision that does not happen;
+   wrap costs nothing until it is genuinely needed, and then handles it. */
+.home-act__cap {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: var( --space-sm );
+	padding-bottom: var( --space-xs );
+}
+
+.home-act__caplabel {
+	font-family: var( --font-family-monospace );
+	font-size: var( --font-size-x-small );
+	line-height: var( --line-height-x-small );
+	font-weight: var( --font-weight-medium );
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var( --color-subtle );
+}
+
+.home-act__stat {
+	flex: none;
+	font-family: var( --font-family-monospace );
+	font-size: var( --font-size-x-small );
+	line-height: var( --line-height-x-small );
+	color: var( --color-subtle );
+	font-variant-numeric: tabular-nums;
+}
+
+.home-act__stat b {
+	font-weight: var( --font-weight-medium );
+	color: var( --color-emphasized );
+}
+
+/* DPL emits one of these per change: page, who, when. Three things a reader
+   scans left to right without stopping. */
+.home-act__row {
+	display: flex;
+	align-items: baseline;
+	gap: var( --space-xs );
+	padding-block: var( --space-xxs );
+	font-size: var( --font-size-small );
+	line-height: var( --line-height-x-small );
+	min-width: 0;
+}
+
+.home-act__row + .home-act__row {
+	border-block-start: var( --border-subtle );
+}
+
+.home-act__row a {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.home-act__by {
+	flex: none;
+	font-size: var( --font-size-x-small );
+	color: var( --color-subtle );
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	max-inline-size: 14ch;
+}
+
+.home-act__when {
+	margin-inline-start: auto;
+	flex: none;
+	font-family: var( --font-family-monospace );
+	font-size: var( --font-size-x-small );
+	color: var( --color-subtle );
+}
+
+/* Two ranges, because the card's width is not monotonic in the viewport's. The
+   header stacks when the CARD drops under about 360px, which is where the
+   sentence beside a 120px button goes past four lines: a 358px card gives four,
+   a 318px card six, a 298px card seven. That happens in two places: on a phone,
+   where the column is the viewport (400px and under), and again in the 6/6
+   stage, where a 640–700px viewport gives a 288–318px card, NARROWER than the
+   phone ever gets.
+
+   The gap between them is deliberate. From 401 to 639 the card is 369–607px,
+   and a full-width button there cannot fill it: .cdx-button carries Codex's own
+   448px max-width (the Discord and Patreon buttons below hit the same ceiling),
+   so stacking would leave dead space to the button's right and cost height for
+   nothing. */
+@media ( max-width: 400px ), ( min-width: 640px ) and ( max-width: 700px ) {
+	.home-part__head {
+		display: block;
+	}
+
+	/* The CHILD combinator again: ButtonLua puts t-button on the wrapper AND
+	   on the inner .cdx-button, so a descendant selector would blockify the
+	   Codex button too and drop the flex that spaces its icon from its label. */
+	.home-part__btn {
+		display: block;
+		margin-top: var( --space-sm );
+	}
+
+	.home-part__btn > .t-button {
+		display: block;
+		min-width: 0;
+	}
+
+	.home-part__btn .cdx-button {
+		width: 100%;
+	}
+}
+
+
+/* ---- support and discussion -----------------------------------------------
+   Two cards rather than one with a rule through it: a hairline between
+   sections is a card boundary you are refusing to draw, and split, both halves
+   size to their own content instead of one stretching to fill.
+
+   Three tiers of link, and the tiers are the argument. Patreon and Ko-fi share
+   a row because they are one favour offered two ways, so neither gets to be
+   primary. Discord takes a full-width button of its own because it is the
+   channel people join rather than follow. The rest are follows, so they are
+   icon-only quiet buttons, which also avoids X and Threads arriving as two
+   indistinguishable brand-black squares in a dark theme.
+
+   The pair sharing a row is what sets this card's floor at about 260px: below
+   that the Patreon label overflows its own button. That measurement is what
+   the 6/6 stage in Module:Mainpage/styles.css exists to respect. */
+
+.home-give,
+.home-talk {
+	display: flex;
+	flex-direction: column;
+	flex-grow: 1;
+	justify-content: center;
+	align-items: flex-start;
+	padding: var( --space-md );
+	min-width: 0;
+}
+
+/* Layout only. The buttons themselves are Module:ButtonLua, which brings the
+   Codex chrome, focus rings, and hover and active grounds derived from one
+   --t-button-ground by a fixed perceptual step. Patreon, Ko-fi and Discord are
+   declared there as t-button--branded brands rather than restyled here, so
+   anything else on the wiki linking those services gets the same button. */
+.home-btns {
+	align-self: stretch;
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: var( --space-xs );
+	margin-top: var( --space-sm );
+}
+
+/* ButtonLua's root is an inline <span> and the Codex button inside it
+   shrink-wraps to its label, so a button left alone fills neither its grid cell
+   nor its card. Opening both up is what makes Patreon and Ko-fi equal halves
+   and Discord full width. The wrapper div around the Discord button is there
+   for the same reason: an inline span alone on a line gets swallowed into a
+   <p>, which then owns the block box instead of the button.
+
+   The CHILD combinator is load-bearing. ButtonLua puts `t-button` on both the
+   outer wrapper AND the inner .cdx-button, so a descendant selector here sets
+   `display: block` on the Codex button too — which drops its flex, and with it
+   the gap that separates the icon from the label. */
+.home-btns > .t-button,
+.home-btn--wide > .t-button {
+	display: block;
+	min-width: 0;
+}
+
+.home-btns .cdx-button,
+.home-btn--wide .cdx-button {
+	width: 100%;
+}
+
+.home-btn--wide {
+	align-self: stretch;
+	margin-top: var( --space-sm );
+}
+
+.home-icons {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var( --space-xs );
+	margin-top: var( --space-xs );
+}
+
+
+/* ---- the directory --------------------------------------------------------
+   One grouped text directory at the foot, carrying everything that would
+   otherwise be a pile of links at the bottom of the page. Text and not tiles:
+   image pills at this size cost about two screens on a phone before any
+   content appears, so anything here that reintroduces artwork undoes the
+   decision that retired them.
+
+   Six groups fill the measure in one row.
+
+   One rule across the top of the whole band, where the directory genuinely
+   does start, rather than one under each of the six labels. */
+.home-dir {
+	display: grid;
+	/* Intrinsic, not a column count, and so the only band on the page with no
+	   breakpoint of its own. A fixed six columns truncates its own links long
+	   before the page reaches phone width. auto-fit drops a column whenever the
+	   next one would fall under the floor, so the directory reflows on its own —
+	   six groups at the measure, four around 640, two on a phone.
+
+	   125px is where the longest label, "Pledge vehicles", stops fitting. It is
+	   a literal because the sanitizer rejects var() inside minmax(). */
+	grid-template-columns: repeat( auto-fit, minmax( 125px, 1fr ) );
+	gap: var( --space-md );
+	margin-top: var( --space-xs );
+	padding-top: var( --space-md );
+	border-top: var( --border-subtle );
+}
+
+.home-dir__group {
+	min-width: 0;
+}
+
+.home-dir__label {
+	font-family: var( --font-family-monospace );
+	font-size: var( --font-size-x-small );
+	line-height: var( --line-height-x-small );
+	font-weight: var( --font-weight-medium );
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var( --color-subtle );
+	/* Spacing carries the hierarchy, not a rule. Six short lists are not six
+	   sections, so a line under every label would divide them harder than the
+	   content warrants — and the band's own rule above already says where the
+	   directory begins. */
+	padding-bottom: var( --space-sm );
+}
+
+/* The directory is emitted as a real list, which is the right shape for it and
+   what lets a screen reader skip it in one move; only the marker and its indent
+   go. */
+.home-dir__group ul,
+.home-dir__group li {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.home-dir__group a {
+	display: block;
+	padding-block: 3px;
+	font-size: var( --font-size-small );
+	line-height: var( --line-height-small );
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+
+/* ---- the narrow plate ------------------------------------------------------
+   Everything below 900 — the 6/6 stage in Module:Mainpage/styles.css as well as
+   the single column under it — puts the featured card in the 288–607px range,
+   which is narrower than it ever gets at 8/4. So the narrow treatment is keyed
+   to 900, not to the single-column breakpoint: a 2.5rem title on a 288px card
+   wraps, and 16:9 alone would leave the plate 162px tall.
+
+   The floor and the ratio do not fight: `min-width: 0` on the grid item
+   (Module:Mainpage/styles.css) stops the two of them implying a minimum WIDTH,
+   so the ratio yields to the column once the card is under 391px wide and the
+   plate goes as tall as the floor says.
+
+   Below 639 the grid order also becomes the reading order, and the bands
+   collapse in DOM order: featured, on this day, your wiki, support,
+   discussion. Editorial content ahead of the asks, which is where asks
+   belong. */
+@media ( max-width: 899.98px ) {
+	.home-feat {
+		min-block-size: 220px;
+	}
+
+	.home-feat__title {
+		font-size: 1.875rem;
+	}
+}
+
+
+/* ---- the foot -------------------------------------------------------------
+   Where to go to change what the page says. Every other link on the page is
+   for a reader; these two are for whoever maintains it, so they are set apart
+   from the directory above by spacing rather than by a rule — the same way the
+   directory's own group labels are — and in the mono face, which on this page
+   marks instrumentation rather than content.
+
+   The band carries the page's normal bottom padding, so nothing extra is
+   needed under it. */
+.home-foot {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: var( --space-md );
+	padding-top: var( --space-lg );
+	font-family: var( --font-family-monospace );
+	font-size: var( --font-size-x-small );
+	line-height: var( --line-height-x-small );
+	color: var( --color-subtle );
+}

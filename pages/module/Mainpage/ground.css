@@ -1,0 +1,149 @@
+/* Main page ground -- HUD graduation tapes down the two outer margins, with a
+   dot grid in the band outside each of them.
+
+   The tape is the divider. Inside it: the content column and clean ground,
+   with nothing running under the cards or through the gutters between them.
+   Outside it: the dot lattice, ending exactly where the tape begins.
+
+   Kept page-local rather than put in MediaWiki:Citizen.css so none of it
+   rides along with every other page on the wiki. A position: fixed layer
+   inside the parser output still covers the whole viewport; the only thing
+   it cannot reach is the opaque 56px header rail, which nothing here paints.
+
+   No -webkit-mask-* on purpose: the sanitizer rejects -webkit-mask-size
+   outright, and Citizen uses the unprefixed properties throughout.
+
+   ONE SET OF NUMBERS drives the whole file, and they are all measured from
+   the content column's centre:
+
+       540   half the 1080 measure
+      + 32   the gap the tape keeps off the column
+      + 16   the major tick, which is also the tape's width
+      = 588  the tape's outer edge, and where the dot band stops
+
+   The tape is viewport-anchored and the band is not, so only the tape carries
+   the 28px rail correction (588 - 28 = 560 on the left, 572 + 28 = 600 on the
+   right). Change the gap or the tick length and every figure below moves. */
+
+/* The bands hang off this, and TemplateStyles prefixes every selector with
+   .mw-parser-output, so that box is unreachable -- hence a wrapper of our own. */
+.home-page {
+	position: relative;
+}
+
+.home-sky {
+	position: absolute;
+	inset: 0;
+	z-index: -2;
+	pointer-events: none;
+}
+
+/* One band down each outer margin, from the window edge to the tape. No rail
+   correction here, unlike the tape: this element spans the content area, so
+   its own 50% already IS the column centre. The band is 24px at 1280, 104px
+   at 1440 and 344px at 1920.
+
+   A dot only exists where two axes cross and a gradient cannot place a mark
+   at an intersection, so this is the one pattern that needs a tile. Used as a
+   mask, so the colour stays on a token and one file serves both themes. A
+   data: URI is fatal to the sanitizer written plainly and survives intact on
+   a custom property. */
+.home-sky::before,
+.home-sky::after {
+	--home-dot: url( "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgc2hhcGUtcmVuZGVyaW5nPSJjcmlzcEVkZ2VzIj48cmVjdCB4PSI4IiB5PSI4IiB3aWR0aD0iMSIgaGVpZ2h0PSIxIi8+PC9zdmc+" );
+
+	content: "";
+	position: absolute;
+	inset-block: 0;
+	inline-size: calc( 50% - 588px );
+	background-color: light-dark( rgba( 12, 24, 36, 0.148 ), rgba( 214, 233, 245, 0.212 ) );
+	mask-image: var( --home-dot );
+	mask-size: 16px 16px;
+	mask-repeat: repeat;
+}
+
+/* Each band is phase-locked to the tape rather than to the window, because
+   the tape is the edge the eye actually reads the lattice against and the
+   band's width changes with the viewport. The dot sits at the centre of its
+   16px tile, so aligning the left band right and the right band left leaves
+   it the same 8px off the tape on both sides from a single tile. Whatever
+   partial cell is left over falls at the window edge, where nothing lines up
+   against it. */
+.home-sky::before {
+	left: 0;
+	mask-position: right top;
+}
+
+.home-sky::after {
+	right: 0;
+	mask-position: left top;
+}
+
+/* Fixed on purpose: an instrument does not scroll with the view outside it,
+   so the tape holds still while the dots move past with the page. A fixed
+   layer is also rastered once and reused by the compositor -- the opposite of
+   background-attachment: fixed, which re-rasters on every scroll. */
+.home-tape {
+	--home-minor: light-dark( rgba( 12, 24, 36, 0.064 ), rgba( 214, 233, 245, 0.092 ) );
+	--home-major: light-dark( rgba( 12, 24, 36, 0.102 ), rgba( 214, 233, 245, 0.147 ) );
+
+	position: fixed;
+	inset: 0;
+	z-index: -1;
+	pointer-events: none;
+}
+
+/* Each tape is its own positioned box rather than a background layer placed
+   with a percentage, and that is a correctness requirement, not tidying.
+
+   background-position percentages resolve against (container - image), so two
+   layers of different widths sharing one calc() do NOT line up: each is offset
+   by half its own excess, which reads as the graduations being centred on each
+   other instead of aligned to a common edge. An element's own `left` has no
+   such subtraction, so anchoring the box and then aligning the backgrounds to
+   its edge with keywords (left / right, which are 0% and 100% and so exact at
+   any image width) puts every tick on the same line.
+
+   The box is exactly one major tick wide, so the major fills it and the minor
+   sits inside it. The left tape grows rightwards from its edge and the right
+   tape leftwards, so both sets of graduations point at the content. */
+.home-tape::before,
+.home-tape::after {
+	content: "";
+	position: absolute;
+	inset-block: 0;
+	inline-size: 16px;
+	background-image:
+		repeating-linear-gradient( to bottom, var( --home-minor ), var( --home-minor ) 1px, transparent 1px, transparent 12px ),
+		repeating-linear-gradient( to bottom, var( --home-major ), var( --home-major ) 1px, transparent 1px, transparent 60px );
+	background-size: 8px 100%, 16px 100%;
+	background-repeat: repeat-y;
+}
+
+.home-tape::before {
+	left: calc( 50% - 560px );
+	background-position: left top, left top;
+}
+
+.home-tape::after {
+	left: calc( 50% + 600px );
+	background-position: right top, right top;
+}
+
+/* Cut off below 1280, not below the 1200 where the column stops holding its
+   full measure, because the tape runs out of room first. At 1232 its outer
+   edge reaches the 56px rail and the band computes to zero; below that the
+   tape would sit behind the rail and the band width would go negative. 1280
+   is the last width where either still reads as anything -- 24px of band and
+   24px of clearance -- so it has to stay visible.
+
+   Hence 1279.98 and not 1280: `max-width: 1280px` also matches AT 1280 and
+   would hide the width this is trying to keep. The fraction rather than 1279
+   is so a viewport landing between the two integers, which zoom and fractional
+   device pixels both produce, does not fall through the gap. */
+@media ( max-width: 1279.98px ) {
+	.home-tape,
+	.home-sky {
+		display: none;
+	}
+}

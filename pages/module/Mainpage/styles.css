@@ -1,0 +1,599 @@
+/* Main page — the hero, the bands, and the twelve-column grid they share.
+   Rendered by Module:Mainpage; the component styles live in
+   Module:Mainpage/cards.css and the ground in Module:Mainpage/ground.css.
+   The artwork arrives via the mainpage gadget (data-gadget-mainpage-hero-src on the
+   container), which fades it in by adding home-hero--loaded.
+   Spacing, radii, and type ride Citizen tokens. Colors are deliberately HARD-CODED:
+   the light-dark() color tokens flip per theme, but the hero commits to dark artwork
+   in both themes, so its palette is fixed (values match the approved comp). */
+
+/* ---- Home page layout system --------------------------------------------
+   The home page runs full bleed: MediaWiki:Citizen.css drops the body
+   container's gutter for this page, so every band paints edge to edge.
+   Each band therefore has to constrain its own content, which is what these
+   two classes do -- .home-band paints, .home-band__inner measures.
+
+   --home-measure is Citizen's default --width-layout. Matching it keeps the
+   home page column in line with article text, the sticky header and the
+   footer, so the page reads as part of the wiki rather than a landing page
+   bolted onto it. --home-gutter is the MINIMUM inset: once the viewport is
+   narrower than the measure, the gutter is what remains -- so it is the
+   skin's own --padding-page (16/24/32 by breakpoint), which keeps the band
+   aligned with the footer and page header at every width below the measure.
+   Above the measure the gutter is inert and the column governs. */
+
+.home-band {
+	--home-measure: 1080px;
+	--home-gutter: var( --padding-page );
+	position: relative;
+	padding-inline: var( --home-gutter );
+}
+
+/* The measured column. Anything that must line up across bands goes in one
+   of these -- including absolutely positioned overlays, which cannot be
+   children of it and instead re-derive the same column (see
+   .home-hero__status). */
+.home-band__inner {
+	/* width is explicit because auto inline margins suppress the cross-axis
+	   stretch of a flex item -- without it the column collapses to its content
+	   and stops lining up with the rest of the page. */
+	width: 100%;
+	max-width: var( --home-measure );
+	margin-inline: auto;
+}
+
+.home-hero {
+	overflow: hidden;
+	min-height: 560px;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	padding-block: calc( var( --space-xxl ) * 2 );
+	background-color: #101418;
+	color: #f4f8fb;
+	border-bottom: 1px solid #1c242e;
+}
+
+.home-hero__media,
+.home-hero__scrim {
+	position: absolute;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	left: 0;
+}
+
+.home-hero__media img {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	object-position: center 35%;
+	opacity: 0;
+	transition: opacity 0.6s ease;
+}
+
+.home-hero--loaded .home-hero__media img {
+	opacity: 1;
+}
+
+@media ( prefers-reduced-motion: reduce ) {
+	.home-hero__media img {
+		transition: none;
+	}
+}
+
+.home-hero__scrim {
+	background: linear-gradient( to bottom, rgba( 13, 17, 23, 0.7 ) 0%, rgba( 13, 17, 23, 0.3 ) 35%, rgba( 13, 17, 23, 0.45 ) 100% );
+}
+
+/* Pinned to the top of the band, but aligned to the measured column rather
+   than the hero edge -- left+right insets with max-width and auto margins
+   reproduce .home-band__inner for an absolutely positioned box, so the chips
+   stay level with the content instead of drifting to the far edge on a wide
+   display. */
+.home-hero__status {
+	position: absolute;
+	top: var( --space-xl );
+	right: var( --home-gutter );
+	left: var( --home-gutter );
+	z-index: 1;
+	display: flex;
+	justify-content: flex-end;
+	gap: var( --space-xl );
+	max-width: var( --home-measure );
+	margin-inline: auto;
+	font-family: var( --font-family-monospace );
+	font-weight: var( --font-weight-semi-bold );
+	font-size: var( --font-size-x-small );
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+}
+
+.home-hero__status-live {
+	color: #5fe0a1;
+}
+
+.home-hero__status-ptu {
+	color: #f0bd68;
+}
+
+.home-hero__status a {
+	color: inherit;
+}
+
+.home-hero__content {
+	position: relative;
+	z-index: 1;
+}
+
+.home-hero__statline {
+	display: flex;
+	align-items: center;
+	gap: var( --space-lg );
+	margin: 0 0 var( --space-xl );
+	font-family: var( --font-family-monospace );
+	font-size: var( --font-size-x-small );
+	letter-spacing: 0.1em;
+}
+
+.home-hero__stat {
+	display: inline-flex;
+	align-items: center;
+	gap: var( --space-xs );
+}
+
+.home-hero__stat-label,
+.home-hero__stat-value {
+	display: inline-flex;
+	align-items: center;
+	margin: 0;
+}
+
+.home-hero__stat-value {
+	font-weight: var( --font-weight-medium );
+	font-size: var( --font-size-small );
+	letter-spacing: -0.025em;
+	color: #e9eef4;
+}
+
+/* The odometer's rules live in MediaWiki:Gadget-mainpage.css, not here: nothing
+   on this page emits that markup — the gadget builds it — and the event
+   countdown needs the same reels, so they belong with the script that creates
+   them rather than duplicated across two component stylesheets. .home-hero__sr
+   stays because server-rendered markup uses it and it must keep working with
+   the script switched off. */
+.home-hero__sr {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip-path: inset( 50% );
+	white-space: nowrap;
+}
+
+.home-hero__statline .citizen-ui-icon {
+	width: 1rem;
+	height: 1rem;
+	min-width: 0;
+	min-height: 0;
+	color: #9db0c0;
+}
+
+.home-hero__title {
+	max-width: 960px;
+	font-weight: 500;
+	font-optical-sizing: none;
+	font-size: 3rem;
+	letter-spacing: -0.025em;
+	line-height: 1;
+	color: #f4f8fb;
+	text-shadow: 0 2px 24px rgba( 0, 0, 0, 0.55 );
+}
+
+.home-hero__title-dim {
+	color: #b8c6d3;
+}
+
+.home-hero__search {
+	display: flex;
+	align-items: center;
+	gap: var( --space-md );
+	width: 100%;
+	max-width: 820px;
+	height: 4rem;
+	margin-top: var( --space-xxl );
+	padding: 0 var( --space-xl );
+	font-size: var( --font-size-large );
+	color: #9fb0bf;
+	background-color: #12181f;
+	border: 1px solid #2b3846;
+	border-radius: var( --border-radius-large );
+	cursor: pointer;
+	transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+/* The rolling tail of the search label (mainpage gadget, searchReel).
+   The label is a flex row so the tail's window can be centred against the
+   "Search" text without relying on vertical-align; the cells centre their glyph
+   with flex rather than line-height, because a reader may force
+   `line-height: 1.5 !important` (WCAG 1.4.12) and an author cannot outrank it,
+   which would push each string out of its window and clip it.
+   Everything here is inert until the gadget builds the reel -- with no JS the
+   tail is just the label's last words. */
+
+/* COUPLING: because this is a flex container, the bare "Search" text becomes an
+   anonymous flex item and its TRAILING SPACE IS COLLAPSED AWAY -- the words run
+   together as "Searchthe Star Citizen Wiki". The wikitext therefore separates
+   them with &nbsp;, which is not collapsible. Keep it there. It matters with or
+   without the gadget: the label is flex in the no-JS and reduced-motion states
+   too. */
+.home-hero__search-label {
+	display: flex;
+	align-items: center;
+	min-width: 0;
+}
+
+.home-hero__search-tail {
+	display: inline-block;
+	height: 1.5em;
+	overflow: hidden;
+}
+
+.home-hero__search-reel {
+	display: flex;
+	flex-direction: column;
+	transition: transform 520ms cubic-bezier( 0.22, 1, 0.36, 1 );
+}
+
+.home-hero__search-reel > span {
+	display: flex;
+	flex: none;
+	align-items: center;
+	height: 1.5em;
+}
+
+@media ( prefers-reduced-motion: reduce ) {
+	.home-hero__search-reel {
+		transition: none;
+	}
+}
+
+.home-hero__search:hover {
+	border-color: #6fb1e8;
+	box-shadow: 0 0 0 3px rgba( 111, 177, 232, 0.16 );
+}
+
+.home-hero__search img {
+	filter: invert( 0.85 );
+	opacity: 0.9;
+}
+
+/* {{Key press}} ships a key cap with balanced padding; this rule only restyles
+   it for the dark field. The block padding is a real step on the scale rather
+   than a hairline, or the cap flattens into a pill, and line-height is pinned
+   here rather than inherited from the template so the cap's height is owned by
+   this rule. */
+.home-hero__search kbd {
+	margin-left: auto;
+	font-family: var( --font-family-monospace );
+	font-size: var( --font-size-x-small );
+	line-height: 1;
+	color: #8d9dab;
+	background: none;
+	border: 1px solid rgba( 159, 176, 191, 0.4 );
+	border-radius: var( --border-radius-base );
+	padding: var( --space-xxs ) var( --space-xs );
+}
+
+.home-hero__tabs {
+	position: relative;
+	z-index: 1;
+	display: inline-flex;
+	align-self: flex-start;
+	margin-left: var( --space-xxl );
+	background-color: rgba( 13, 17, 23, 0.85 );
+	border: 1px solid #2b3846;
+	border-top: 0;
+	border-radius: 0 0 var( --border-radius-large ) var( --border-radius-large );
+	overflow: hidden;
+}
+
+/* The click area is the line box, not padding around it: one 36px line-height
+   sets the tab's height directly, so the row is the same height whether a tab
+   wraps to a second line or not, and the inline padding is left to do only what
+   it is for. */
+.home-hero__tabs a {
+	padding-inline: var( --space-md );
+	font-size: var( --font-size-x-small );
+	line-height: 36px;
+	font-weight: var( --font-weight-medium );
+	color: #c2cdd8;
+}
+
+.home-hero__tabs a:hover {
+	color: #fff;
+	background-color: rgba( 111, 177, 232, 0.1 );
+	text-decoration: none;
+}
+
+.home-hero__tabs a + a {
+	border-left: 1px solid #232c36;
+}
+
+@media ( max-width: 639px ) {
+	.home-hero {
+		min-height: 480px;
+		padding-block: calc( var( --space-xxl ) * 2 ) var( --space-xxl );
+	}
+
+	.home-hero__status {
+		top: var( --space-lg );
+		justify-content: flex-start;
+		gap: var( --space-md );
+	}
+
+	.home-hero__statline {
+		gap: var( --space-md );
+		margin-bottom: var( --space-md );
+	}
+
+	.home-hero__statline .citizen-ui-icon {
+		width: 0.875rem;
+		height: 0.875rem;
+	}
+
+	.home-hero__title {
+		font-size: 2rem;
+	}
+
+	.home-hero__title-dim {
+		display: none;
+	}
+
+	.home-hero__search {
+		height: 3rem;
+		margin-top: var( --space-lg );
+		padding: 0 var( --space-md );
+		font-size: var( --font-size-small );
+		border-radius: var( --border-radius-medium );
+	}
+
+	.home-hero__search kbd {
+		display: none;
+	}
+
+	.home-hero__tabs {
+		display: grid;
+		grid-template-columns: 1fr 1fr 1fr;
+		align-self: stretch;
+		margin: 0 var( --space-sm );
+		border-radius: 0 0 var( --border-radius-medium ) var( --border-radius-medium );
+	}
+
+	.home-hero__tabs a {
+		padding-inline: 0;
+		text-align: center;
+	}
+
+	.home-hero__tabs a:nth-child( 4 ) {
+		border-left: 0;
+	}
+
+	.home-hero__tabs a:nth-child( n+4 ) {
+		border-top: 1px solid #232c36;
+	}
+}
+
+
+/* ---- The card band ---------------------------------------------------------
+   Rides var( --home-overlap ) up over the hero. The negative margin belongs to
+   the BAND, never the hero: the hero has `overflow: hidden` to clip its artwork,
+   so anything overlapping upward has to be a sibling that follows it. Both are
+   positioned, so the later sibling paints on top; the z-index is belt-and-
+   braces against anything the skin positions between them.
+
+   The overlap reads from --home-overlap, falling back to --space-xxl, so the
+   amount can be retuned from a single custom property. */
+.home-cards {
+	z-index: 2;
+	margin-top: calc( -1 * var( --home-overlap, var( --space-xxl ) ) );
+}
+
+
+/* ---- The column grid ------------------------------------------------------
+   ONE grid for every band on the page, so a card edge in the game row lands on
+   the same line as a card edge in the wiki rows. Every band must therefore use
+   this grid and these span classes; a band that sets its own `fr` ratios lands
+   on different lines and the rows visibly fail to align.
+
+   Twelve is the granularity that carries every split the page needs: 8/4 for
+   the game row and the support column, and a tall 8 spanning two rows beside
+   a stacked 4. Six would only offer 4/2, then 2/2/2 or 2/3/1.
+
+   Module:CardLua gives every card `margin-block` for article flow. In a grid
+   that spacing is the gap's job, and in the card band it would also cancel the
+   overlap over the hero. */
+.home-grid {
+	display: grid;
+	grid-template-columns: repeat( 12, 1fr );
+	gap: var( --space-md );
+	align-items: stretch;
+}
+
+.home-grid .t-card {
+	margin-block: 0;
+}
+
+/* The three spans the page uses. They go on the card itself: grid-column is a
+   placement property, so unlike a class that sets `display` it cannot collide
+   with CardLua's own `.t-card { display: flex }`. */
+.home-card--read {
+	grid-column: span 8;
+}
+
+.home-card--aside {
+	grid-column: span 4;
+}
+
+/* Spans both rows so its band still resolves to a single height while the two
+   cards beside it size to their own content. */
+.home-card--tall {
+	grid-column: span 8;
+	grid-row: span 2;
+}
+
+/* A band carries its own bottom gap, the same value as the grid gap inside it,
+   so a boundary BETWEEN bands never reads as a bigger break than one between
+   cards. */
+.home-cards,
+.home-wiki {
+	padding-block-end: var( --space-md );
+}
+
+@media ( max-width: 639px ) {
+	.home-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.home-card--read,
+	.home-card--aside,
+	.home-card--tall {
+		grid-column: auto;
+		grid-row: auto;
+	}
+}
+
+
+/* ---- responsive: the middle stage ------------------------------------------
+   The four-column card carries Patreon and Ko-fi side by side, so it cannot go
+   under about 260px, which 8/4 reaches at a viewport of 860. Holding 8/4 from
+   there down to the single-column breakpoint spends 220px of viewport on a
+   layout that no longer fits, and then jumps the same card from 185px to 605 in
+   one pixel of viewport.
+
+   Every card becoming `span 6` settles it without changing the arrangement.
+   grid-row is deliberately NOT touched, so the tall editing card still stands
+   two rows high beside the stacked pair and band three keeps its shape the
+   whole way down. At 640 this stage gives two 288px cards.
+
+   The range is explicit at both ends rather than open-ended, so this block and
+   the single-column one above it are disjoint and neither depends on the
+   other's position in the file. */
+@media ( min-width: 640px ) and ( max-width: 899.98px ) {
+	.home-card--read,
+	.home-card--tall,
+	.home-card--aside {
+		grid-column: span 6;
+	}
+}
+
+/* A grid item defaults to `min-width: auto`, which refuses to shrink below its
+   content's own minimum -- so a card whose content has a large intrinsic width
+   pushes its column wider instead of the content adapting, and hangs out of the
+   band. The featured card is the live case: `min-block-size: 220px` against
+   `aspect-ratio: 16 / 9` implies 391px of minimum WIDTH, which is wider than
+   the column on any phone.
+
+   The height floor is still honoured; it just can no longer dictate the width.
+   The ratio yields to the column instead. */
+.home-grid .t-card {
+	min-width: 0;
+}
+
+
+/* ---- responsive: the cards inside the middle stage --------------------------
+   Deliberately a second block against the same range as the one above, because
+   it is a different concern: that one is the grid's own spans, this one is an
+   override of a child component the grid does not own.
+
+   Module:CardLua's split layout pins its media column at a fixed 13rem and
+   swaps to a stacked, banner-shaped one below 639. That breakpoint is a proxy
+   for a question about CARD width asked in terms of VIEWPORT width, which only
+   holds while the card is roughly as wide as the window -- and in the 6/6 stage
+   it is not: the card is 288-418px while the viewport is still 640-899. Without
+   this rule the card keeps the side-by-side layout and spends 208 of its 288px
+   on the image, leaving a body too narrow to set a word on one line.
+
+   The page is what knows its own grid, so the page is where this belongs;
+   CardLua cannot know how wide the column it was dropped into is. A container
+   query would express it properly and TemplateStyles rejects those. 21 / 8 is
+   CardLua's own stacked ratio, kept rather than invented so the card looks the
+   same here as it does on a phone.
+
+   Scoped to the card that needs it rather than to every split card in the
+   grid. Module:Mainpage/Event, the banner design, is a single column at every
+   width and would be re-stacking something already stacked. */
+@media ( min-width: 640px ) and ( max-width: 899.98px ) {
+	.home-event-split .t-card__media-layout--split {
+		flex-direction: column;
+	}
+
+	.home-event-split .t-card__media-layout--split > .t-card__media {
+		inline-size: auto;
+		aspect-ratio: 21 / 8;
+	}
+}
+
+
+/* ---- responsive: the clock inside the middle stage --------------------------
+   Third block against the same range, one per component it overrides, for the
+   reason given above: the grid owns its spans, and each child component it
+   dropped a breakpoint of its own into has to be corrected separately.
+
+   Module:Countdown lies its clock down two ways: on its own below 639px, where
+   every card is stacked, and on request for a card that carries
+   `t-countdown--flat`. NEITHER covers this. The split event card is stacked
+   here and side by side above 900, so what it needs is a clock that lies down
+   for one range of viewport widths — and a class cannot be conditional on the
+   viewport, which is why this is a media query holding a copy of the
+   declarations rather than the modifier the banner card uses. Keep it in step
+   with Module:Countdown/styles.css.
+
+   The card class raises this to 0,2,0 because it has to: Module:Countdown's
+   stylesheet is inlined at its #invoke, which is further down the page than
+   these three, so at equal specificity the module would win on source order.
+   It also scopes the rule to the card that needs it. */
+@media ( min-width: 640px ) and ( max-width: 899.98px ) {
+	.home-event-split .t-countdown,
+	.home-event-split .t-countdown--live {
+		display: flex;
+		flex-direction: row;
+		/* Held together at the end of the row rather than spread across it: the
+		   label belongs to the units, and space-between reads as four unrelated
+		   things sharing a line. */
+		justify-content: flex-end;
+		align-items: flex-end;
+		gap: var( --space-md );
+		inline-size: 100%;
+		/* The card stacks here, so the rule that divided two columns becomes
+		   the one that divides two rows. */
+		border-inline-start: 0;
+		border-block-start: var( --border-subtle );
+		/* Three units abreast rather than stacked down a column: at 3rem the
+		   strip dominates the card it is attached to. */
+		--countdown-size: 2.5rem;
+	}
+
+	/* The label holds the start of the row and the auto margin pushes the units
+	   to the end, so the strip reads left-to-right as "what this is" then "how
+	   long": justify-content alone would bunch the label up against the days. */
+	.home-event-split .t-countdown__label,
+	.home-event-split .t-countdown__fallback {
+		margin-inline-end: auto;
+	}
+
+	.home-event-split .t-countdown--live .t-countdown__label {
+		align-self: center;
+	}
+
+	.home-event-split .t-countdown--running {
+		border-block-start-color: var( --border-color-success );
+	}
+
+	.home-event-split .t-countdown--upcoming {
+		border-block-start-color: var( --border-color-warning );
+	}
+}

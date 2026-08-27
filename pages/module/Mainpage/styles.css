@@ -575,6 +575,10 @@
 		/* Three units abreast rather than stacked down a column: at 3rem the
 		   strip dominates the card it is attached to. */
 		--countdown-size: 2.5rem;
+		/* One row now, not four. The third copy of the reservation, for the
+		   same reason as the declarations around it — and the value itself is
+		   Module:Countdown's, so only the reference is duplicated. */
+		min-block-size: var( --countdown-reserve-flat );
 	}
 
 	/* The label holds the start of the row and the auto margin pushes the units

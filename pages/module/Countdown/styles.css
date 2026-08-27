@@ -21,13 +21,60 @@
  * clock itself — the arrangement is the clock's, the slot is the card's.
  */
 .t-countdown {
+	/* The caption's size, named because three rules need it: the caption draws
+	 * itself with it, and the reservation below is measured in it. */
+	--countdown-caption: 0.62rem;
+	/* One unit, as tall as the gadget will build it. The digits carry
+	 * line-height 1, so they are exactly their own size; the caption adds its
+	 * own height plus the 0.25em that separates them, hence the 1.25. */
+	--countdown-unit: calc(var(--countdown-size, 3rem) + var(--countdown-caption) * 1.25);
+	/* The reservation for a clock lying down: one unit row, not four. Named
+	 * rather than repeated because all three arrangements that lie the clock
+	 * down need it, and they already have enough to keep in step.
+	 *
+	 * The trailing 1px is the hairline. Lying down it runs across the BLOCK
+	 * axis, and box-sizing is border-box, so it counts against the height —
+	 * standing up the same hairline is on the inline edge and costs nothing,
+	 * which is why the reservation below has no such term. */
+	--countdown-reserve-flat: calc(var(--countdown-unit) + var(--space-md) * 2 + 1px);
 	flex: none;
 	display: flex;
 	flex-direction: column;
 	justify-content: center;
+	/* THE COLUMN THE CLOCK STANDS IN, pinned rather than left to its content,
+	 * and the shift is only the first of two reasons.
+	 *
+	 * The range and the units are different widths — 268px against 87 — so
+	 * going live shrank the clock by 181 and rewrapped the card's prose beside
+	 * it. And left to itself the column's width depends on how long the DATE in
+	 * the settings happens to be, so an event running into September gave the
+	 * body less room to set than one running into May. Neither is something the
+	 * card next to it should be able to feel.
+	 *
+	 * 7rem leaves 80px of content box once the padding is out, which clears
+	 * both sides: the units need 54px, and the range's longest unbreakable word
+	 * is "September" at 76. All three arrangements that lie the clock down
+	 * already set `inline-size: 100%`, so this needs no reset of its own. */
+	inline-size: 7rem;
 	padding: var(--space-md);
+	/* THE ROOM THE CLOCK WILL NEED, reserved before it needs it: a label row and
+	 * three unit rows. The two states hold different things — a date range now,
+	 * a label and three counters once the gadget runs — and left to themselves
+	 * they are different heights, so going live grew the card under the reader
+	 * and pushed every band below it down the page (11px standing up, 30px
+	 * lying down, measured). Reserving the taller of the two in BOTH means the
+	 * swap changes what the clock says and never how much room it takes.
+	 *
+	 * Derived from the same tokens that draw a unit rather than measured off a
+	 * screenshot, so it cannot drift from what it is reserving for. */
+	min-block-size: calc(var(--line-height-x-small) + var(--countdown-unit) * 3 + var(--space-md) * 2);
 	font-family: var(--font-family-monospace);
 	text-align: center;
+	/* THE TENSE COLOUR, set once here and inherited. The label and the digits
+	 * are halves of one statement — what this is, and how long — so they take
+	 * one colour between them, and each tense below has a single declaration to
+	 * change rather than one per part. Only the unit captions opt back out. */
+	color: var(--color-subtle);
 	/* The hairline is the clock's own edge, not the card's: the card takes a
 	 * content slot and has no business deciding that whatever lands in it gets a
 	 * rule. Logical so it follows the flex row's direction rather than assuming
@@ -39,7 +86,10 @@
 .t-countdown__fallback {
 	font-size: var(--font-size-small);
 	line-height: var(--line-height-small);
-	color: var(--color-subtle);
+	/* Standing up the range wraps down a narrow column, so a date whose longest
+	 * word outgrows it breaks rather than hangs out of the card. Insurance:
+	 * "September" is the longest word any English date produces and it fits. */
+	overflow-wrap: break-word;
 }
 
 /* Deliberately the same size and tracking as Module:CardLua's kicker: the two
@@ -50,7 +100,6 @@
 	line-height: var(--line-height-x-small);
 	letter-spacing: 0.12em;
 	text-transform: uppercase;
-	color: var(--color-subtle);
 }
 
 /* Live: the unit rows share whatever height the card has, so the clock fills
@@ -79,7 +128,6 @@
 	font-size: var(--countdown-size, 3rem);
 	font-weight: var(--font-weight-medium);
 	letter-spacing: -0.04em;
-	color: var(--color-emphasized);
 	/* Tabular figures so the stacked numbers line up: without it a 1 is
 	 * narrower than a 0 and the column reads ragged. */
 	font-variant-numeric: tabular-nums;
@@ -99,10 +147,12 @@
 }
 
 .t-countdown__unit-label {
-	font-size: 0.62rem;
+	font-size: var(--countdown-caption);
 	line-height: 1;
 	letter-spacing: 0.14em;
 	text-transform: uppercase;
+	/* The one part that opts out: the captions name the units and are not part
+	 * of the statement the tense is colouring. */
 	color: var(--color-subtle);
 	margin-top: 0.25em;
 }
@@ -131,30 +181,22 @@
 }
 
 .t-countdown--running {
+	color: var(--color-success);
 	background-color: var(--background-color-success-subtle);
 	border-inline-start-color: var(--border-color-success);
 }
 
-.t-countdown--running .t-countdown__label {
-	color: var(--color-success);
-}
-
 .t-countdown--upcoming {
+	color: var(--color-warning);
 	background-color: var(--background-color-warning-subtle);
 	border-inline-start-color: var(--border-color-warning);
 }
 
-.t-countdown--upcoming .t-countdown__label {
-	color: var(--color-warning);
-}
-
-/* Ended takes no colour at all — there is no state left to claim — and the
- * digits step back to match their own captions. They still carry a fact worth
- * reading (how long ago, and so how stale the card is), which is why this is
- * `--color-subtle` and not `--color-disabled`: the number is past, not inert. */
-.t-countdown--ended .t-countdown__value {
-	color: var(--color-subtle);
-}
+/* Ended has no rule, and needs none: claiming no tense means taking no tense
+ * colour, so it falls back to the subtle the root already sets. That is
+ * `--color-subtle` rather than `--color-disabled` on purpose — the number still
+ * carries a fact worth reading, how long ago and so how stale the card is. It
+ * is past, not inert. */
 
 /* ---- Lying down ----------------------------------------------------------
  * The strip. `display` has to be reset explicitly: the live state is a grid,
@@ -188,6 +230,8 @@
 	/* Three units abreast rather than stacked down a column: at 3rem the strip
 	 * dominates the card it is attached to. */
 	--countdown-size: 2.5rem;
+	/* One row now, not four, and the label is shorter than a unit. */
+	min-block-size: var(--countdown-reserve-flat);
 }
 
 .t-countdown--flat .t-countdown__label,
@@ -220,6 +264,7 @@
 		border-inline-start: 0;
 		border-block-start: var(--border-subtle);
 		--countdown-size: 2.5rem;
+		min-block-size: var(--countdown-reserve-flat);
 	}
 
 	.t-countdown__label,

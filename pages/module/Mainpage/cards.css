@@ -76,24 +76,19 @@
 
 
 /* ---- the scroll fade ------------------------------------------------------
-   Two cards hold a list nobody bounds, and a list cut off with no cue reads as
-   a bug rather than as more. Both get the same pair of gradients, and the
-   mainpage gadget decides when each one is true.
+   Two cards hold an unbounded list, and a list cut off with no cue reads as a
+   bug rather than as more. Both get the same pair of gradients; the mainpage
+   gadget decides when each is true.
 
-   IT HAS TO BE THE GADGET. CSS cannot see how far a box is scrolled, so a
-   pure-CSS fade is painted always and lies twice: over the last line when the
-   content happens to fit exactly, and again at the end of a long list where it
-   still promises more. Both were live before this. The gadget also buys the
-   top fade, which CSS could not have at all.
+   The default is INVISIBLE, not visible. CSS cannot see how far a box is
+   scrolled, so a fade it paints unconditionally covers the last line when the
+   content fits exactly and still promises more at the end of a long list.
+   Without JS there is no fade and the scrollbar is the cue, which is honest.
 
-   So the default here is INVISIBLE, not visible. Without JS there is no fade
-   rather than one that cannot tell the truth — the scrollbar is then the only
-   cue, which is honest.
-
-   The gadget measures where the scroller sits inside the frame and publishes
-   it as --home-fade-top / --home-fade-bottom, so one rule serves both cards
-   even though their scrollers start at different heights: under a kicker on
-   one, under a tab strip on the other. */
+   --home-fade-top / --home-fade-bottom are published by the gadget: where the
+   scroller sits inside the frame, so one rule serves cards whose lists start
+   at different heights. The inline inset MATCHES .home-pad's padding, because
+   an absolutely positioned child resolves against the padding box. */
 .home-scrollfade {
 	position: relative;
 }
@@ -104,6 +99,7 @@
 	position: absolute;
 	inset-inline: var( --space-md );
 	block-size: var( --space-xl );
+	/* The rows underneath stay clickable; the fade is a picture, not a lid. */
 	pointer-events: none;
 	opacity: 0;
 	transition: opacity 0.15s ease;
@@ -187,33 +183,23 @@
 /* ---- this patch -----------------------------------------------------------
    Kicker, a scrolling list, a foot link — the same three parts as the day card.
 
-   The ceiling is not optional. A grid row sizes to its tallest item's CONTENT,
-   so overflow-y alone bounds nothing: uncapped, twenty bullets took this card
-   to 634px and the event card with it.
+   `block-size: 0` is what bounds this card, and overflow-y alone would not: a
+   grid row sizes to its tallest item's CONTENT, so an uncapped list took the
+   card to 634px and the event card with it. A definite zero base keeps the
+   list out of that contribution, so the row is the event card's and flex-grow
+   hands the list whatever is left — at every width, with no number to keep in
+   step with the card next door.
 
-   Two ceilings, because the event card is 250px at the full measure and 414px
-   stacked, and one number cannot serve both — tight enough to bound the first
-   strands 124px of empty card in the second. Each is the whole rows of list
-   that fit the height that card already sets.
-
-   COUPLED to the event card, which is invisible from here: change its height
-   and these are stale. */
+   The floor is for the single column below 640, where there is no sibling to
+   set the row at all. */
 .home-patch__list {
+	block-size: 0;
 	flex-grow: 1;
-	min-block-size: 0;
-	/* 6/6 and single column: the event card is 394-414px there. */
-	max-block-size: calc( var( --line-height-small ) * 13 );
+	min-block-size: calc( var( --line-height-small ) * 6 );
 	overflow-y: auto;
 	font-size: var( --font-size-small );
 	line-height: var( --line-height-small );
 	color: var( --color-subtle );
-}
-
-@media ( min-width: 900px ) {
-	/* Side by side, where the event card is only 250-272px tall. */
-	.home-patch__list {
-		max-block-size: calc( var( --line-height-small ) * 7 );
-	}
 }
 
 .home-patch__list ul {
@@ -459,11 +445,15 @@
    dozen — so the height is fixed and the overflow is handled, rather than the
    content being silently truncated to whatever happened to fit.
 
-   NO MAXIMUM HERE, unlike the patch card above: TabberNeue supplies the
-   containment — `overflow: hidden` on `.tabber`, a `display: grid` scroll
-   container inside. Measured at 25 rows the card is still 403px, at every
-   width including single column. Do not copy this to a card without a tabber;
-   the patch card needed an explicit max-block-size.
+   KNOWN LIMIT, pre-dating the scroll fade. TabberNeue pins
+   `section.style.height` to the active panel's max-content height on every
+   activation, init included, so a day whose panel is taller than the card
+   grows the card instead of scrolling: measured 404px and a 1.77 plate on a
+   short panel against 1206px and 0.59 on a 1082px one. The patch card's
+   `block-size: 0` cannot fix it, because an inline height beats a stylesheet;
+   only max-block-size clamps it, and a single max tall enough for the full
+   measure is too tall at 900 and takes the plate off 16:9 there instead. It
+   needs a per-stage max or the inline height cleared, and has neither.
 
    Below 900 the section FLOOR sets the card at 284px, which happens on a day
    with one event exactly as on a day with twenty.

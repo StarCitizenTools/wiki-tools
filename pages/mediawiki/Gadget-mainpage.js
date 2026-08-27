@@ -74,22 +74,15 @@
  *   scrollFade — says whether a scrolling card has more above or below.
  *     Contract: a frame carrying
  *       data-gadget-mainpage-scrollfade="<selector for its scroller>"
- *     which the CSS paints two gradients on, both transparent until this says
- *     otherwise. THE DEFAULT IS INVISIBLE on purpose: CSS cannot see how far a
- *     box is scrolled, so a fade it paints unconditionally lies twice — over
- *     the last line when the content happens to fit exactly, and again at the
- *     end of a long list where it still promises more. Both were live before
- *     this feature. Without JS there is no fade rather than one that cannot
- *     tell the truth, and the scrollbar carries it.
- *     The frame and the scroller are different elements because a
- *     pseudo-element inside a scroller is positioned against the scrolled
- *     content and slides away with the rows it is meant to be covering. Where
- *     the scroller sits inside the frame is published as --home-fade-top and
- *     --home-fade-bottom, so one CSS rule serves cards whose lists start at
- *     different heights — under a kicker on one, under a tab strip on another.
- *     Re-measured on resize and on mutation, the second because a tabber swaps
- *     which panel is in the scroller and changes how much there is to scroll
- *     without changing any box that can be observed.
+ *     on which the CSS paints two gradients, both transparent until this says
+ *     otherwise. The default is INVISIBLE on purpose: CSS cannot see how far a
+ *     box is scrolled, so a fade it paints unconditionally covers the last line
+ *     when the content fits exactly and still promises more at the end of a
+ *     long list. Without JS there is no fade and the scrollbar is the cue.
+ *     Frame and scroller are separate elements because a pseudo-element inside
+ *     a scroller is positioned against the scrolled content and slides away
+ *     with the rows it is covering; the offset between them is published as
+ *     --home-fade-top / --home-fade-bottom so one CSS rule serves both cards.
  *
  *   recentActivity — keeps the recent-changes list current and turns its
  *     absolute timestamps into ages. Contract: a container carrying
@@ -137,6 +130,8 @@
 	const ACTIVITY_POOL = 50;
 	const ACTIVITY_ROOT_MARGIN = '400px';
 	const TEMP_USER_RE = /^~\d{4}-/;
+	// Trailing-edge throttle for re-measuring: coalesces a burst without
+	// dropping the last event.
 	const FADE_SETTLE_MS = 60;
 	const RELATIVE_STEPS = [
 		{ unit: 'year', span: 31536000000, short: 'y' },
@@ -1032,10 +1027,10 @@
 	/**
 	 * Tells the two scrolling cards' fades when they are true.
 	 *
-	 * Reading and writing are kept apart on purpose. Scrolling only toggles
-	 * classes, which needs no layout read; the geometry is re-measured only when
-	 * something could actually have moved it. A getBoundingClientRect on every
-	 * scroll event would be a forced reflow per frame on the busiest page here.
+	 * Scrolling only toggles classes: no layout-affecting WRITE, so the reads
+	 * stay cheap. The geometry is re-measured only when something could have
+	 * moved it — a getBoundingClientRect per scroll frame would be a forced
+	 * reflow on the busiest page here.
 	 */
 	function scrollFade() {
 		document.querySelectorAll( '[' + SCROLLFADE_ATTR + ']' ).forEach( ( frame ) => {
@@ -1044,8 +1039,7 @@
 				return;
 			}
 
-			// Where the scroller sits inside the frame, so one CSS rule can serve
-			// cards whose lists start at different heights.
+			// Published for the CSS; see the contract in the header.
 			function measure() {
 				const fr = frame.getBoundingClientRect();
 				const sr = scroller.getBoundingClientRect();
@@ -1085,8 +1079,10 @@
 				window.addEventListener( 'resize', settle, { passive: true } );
 			}
 
-			// A tabber swaps which panel is in the scroller. Nothing resizes, so
-			// only the mutation says the list is now a different length.
+			// A tabber swaps which panel is in the scroller: it toggles
+			// hidden="until-found" on the panels and rewrites the section's
+			// inline height. Nothing resizes, so only the mutation says the
+			// list is now a different length.
 			if ( 'MutationObserver' in window ) {
 				new MutationObserver( settle ).observe( scroller, {
 					subtree: true,
@@ -1095,6 +1091,14 @@
 					attributeFilter: [ 'class', 'style', 'hidden', 'aria-hidden' ]
 				} );
 			}
+
+			// A webfont swap or an image loading inside a row changes how much
+			// there is to scroll without mutating anything or resizing any box
+			// the observers above are watching.
+			if ( document.fonts && document.fonts.ready ) {
+				document.fonts.ready.then( settle );
+			}
+			window.addEventListener( 'load', settle, { passive: true, once: true } );
 
 			measure();
 			state();
@@ -1106,7 +1110,8 @@
 	// value it is there to replace; anything that fetches, animates or pulls an
 	// image waits for window load and stays off the critical path. The activity
 	// list is in the first group and still costs nothing early — its one read is
-	// gated on the list coming into view, not on this.
+	// gated on the list coming into view, not on this. The fade is there for the
+	// same reason: an absent cue at first paint is as wrong as a stale number.
 	const EARLY = [ recentActivity, scrollFade ];
 	const FEATURES = [ heroImage, liveStats, searchReel, countdown ];
 

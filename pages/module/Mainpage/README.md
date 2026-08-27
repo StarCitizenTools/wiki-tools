@@ -68,7 +68,7 @@ The clock is the one worth spelling out, because it is arranged two ways and nei
 
 `Mainpage/Highlights` renders the band and the patch card, and hands the event card to whichever of the two event modules the settings call for. Both return nil when the settings do not carry what they need, so an unset event still costs only its own card.
 
-The two highlight cards are `Module:CardLua` media cards. The other five are built here with `.t-card` on a plain div, because they are not media cards — the featured card puts its body *over* the picture under a scrim, and the rest carry no picture at all. `Module:CardLua/styles.css` is therefore listed explicitly in `STYLESHEETS`; leaving it to arrive with a CardLua call would strip the card chrome off the page whenever the highlights band is empty.
+The event card is a `Module:CardLua` media card. The other six are built here with `.t-card` on a plain div, because they are not media cards — the featured card puts its body *over* the picture under a scrim, and the rest carry no picture at all. `Module:CardLua/styles.css` is therefore listed explicitly in `STYLESHEETS`; leaving it to arrive with a CardLua call would strip the card chrome off the page whenever the settings carry no event.
 
 ### The grid
 
@@ -88,7 +88,7 @@ Between 640 and 900 every card becomes `span 6`, which keeps two columns without
 
 ## The gadget
 
-`MediaWiki:Gadget-mainpage.js` enhances the rendered page: it loads the hero artwork after page load, rolls the stat digits and the search label's tail, drives the clock, and refreshes the activity list — which matters because DPL forces a one-hour parser cache on any page that calls it.
+`MediaWiki:Gadget-mainpage.js` enhances the rendered page: it loads the hero artwork after page load, rolls the stat digits and the search label's tail, drives the clock, tells the two scrolling cards' fades when there is more above or below them, and refreshes the activity list — which matters because DPL forces a one-hour parser cache on any page that calls it.
 
 It reads its context from `data-gadget-mainpage-*` attributes on the elements it enhances, so `grep gadget-mainpage-` finds every emitter and the gadget that consumes them. The page renders and reads correctly with the gadget absent.
 

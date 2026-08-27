@@ -40,8 +40,7 @@ end
 --- list scrolls the page.
 ---
 --- The foot link is a real one rather than CardLua's `more`, which is an
---- aria-hidden cue for that anchor and would be a dead label without it. The
---- version sits in the kicker so the list gets the row a separate title took.
+--- aria-hidden cue for that anchor and would be a dead label without it.
 ---
 --- @return string|nil
 function p.renderPatch()
@@ -60,9 +59,8 @@ function p.renderPatch()
 
 	local card = mw.html.create('div'):addClass('t-card'):addClass('home-card--aside')
 
-	-- The frame the scroll fade is painted on, and the scroller it watches. The
-	-- gadget needs both because a pseudo-element inside a scroller scrolls away
-	-- with the rows it is covering.
+	-- The scroll fade's frame; the attribute names its scroller. See
+	-- Module:Mainpage/cards.css for why the two are different elements.
 	local pad = card:tag('div')
 		:addClass('home-pad')
 		:addClass('home-patch')
@@ -72,13 +70,30 @@ function p.renderPatch()
 	pad:tag('div'):addClass('home-kicker'):wikitext('New in ' .. patch.name)
 
 	if bullets[1] then
+		-- tabindex because a scroll container that is not focusable is
+		-- mouse-only on engines without keyboard-scrollable regions, which is
+		-- the failure the stretch link was removed to fix, moved to another
+		-- input device.
+		--
 		-- The leading newline is load-bearing: mw.html emits this div inline,
 		-- so a body opening with `*` would sit after `>` rather than at the
 		-- start of a line and the parser would render it as literal text.
-		pad:tag('div'):addClass('home-patch__list'):wikitext('\n' .. table.concat(bullets, '\n'))
+		-- (Same hazard as Module:CardLua's renderMediaBody.)
+		pad:tag('div')
+			:addClass('home-patch__list')
+			:attr('tabindex', '0')
+			:attr('role', 'group')
+			:attr('aria-label', 'Patch highlights')
+			:wikitext('\n' .. table.concat(bullets, '\n'))
 	end
 
-	pad:tag('div'):addClass('home-more'):wikitext(string.format('[[%s|Read more]]', patch.page))
+	-- Guarded because Config.livePatch only promises `name`: `page` is optional
+	-- in the schema, and string.format raises on nil in Lua 5.1.
+	if patch.page then
+		pad:tag('div')
+			:addClass('home-more')
+			:wikitext(string.format('[[%s|Read more about %s]]', patch.page, patch.name))
+	end
 
 	return tostring(card)
 end

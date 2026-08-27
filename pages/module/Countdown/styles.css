@@ -28,10 +28,34 @@
 	 * line-height 1, so they are exactly their own size; the caption adds its
 	 * own height plus the 0.25em that separates them, hence the 1.25. */
 	--countdown-unit: calc(var(--countdown-size, 3rem) + var(--countdown-caption) * 1.25);
+	/* The reservation for a clock lying down: one unit row, not four. Named
+	 * rather than repeated because all three arrangements that lie the clock
+	 * down need it, and they already have enough to keep in step.
+	 *
+	 * The trailing 1px is the hairline. Lying down it runs across the BLOCK
+	 * axis, and box-sizing is border-box, so it counts against the height —
+	 * standing up the same hairline is on the inline edge and costs nothing,
+	 * which is why the reservation below has no such term. */
+	--countdown-reserve-flat: calc(var(--countdown-unit) + var(--space-md) * 2 + 1px);
 	flex: none;
 	display: flex;
 	flex-direction: column;
 	justify-content: center;
+	/* THE COLUMN THE CLOCK STANDS IN, pinned rather than left to its content,
+	 * and the shift is only the first of two reasons.
+	 *
+	 * The range and the units are different widths — 268px against 87 — so
+	 * going live shrank the clock by 181 and rewrapped the card's prose beside
+	 * it. And left to itself the column's width depends on how long the DATE in
+	 * the settings happens to be, so an event running into September gave the
+	 * body less room to set than one running into May. Neither is something the
+	 * card next to it should be able to feel.
+	 *
+	 * 7rem leaves 80px of content box once the padding is out, which clears
+	 * both sides: the units need 54px, and the range's longest unbreakable word
+	 * is "September" at 76. All three arrangements that lie the clock down
+	 * already set `inline-size: 100%`, so this needs no reset of its own. */
+	inline-size: 7rem;
 	padding: var(--space-md);
 	/* THE ROOM THE CLOCK WILL NEED, reserved before it needs it: a label row and
 	 * three unit rows. The two states hold different things — a date range now,
@@ -62,6 +86,10 @@
 .t-countdown__fallback {
 	font-size: var(--font-size-small);
 	line-height: var(--line-height-small);
+	/* Standing up the range wraps down a narrow column, so a date whose longest
+	 * word outgrows it breaks rather than hangs out of the card. Insurance:
+	 * "September" is the longest word any English date produces and it fits. */
+	overflow-wrap: break-word;
 }
 
 /* Deliberately the same size and tracking as Module:CardLua's kicker: the two
@@ -203,7 +231,7 @@
 	 * dominates the card it is attached to. */
 	--countdown-size: 2.5rem;
 	/* One row now, not four, and the label is shorter than a unit. */
-	min-block-size: calc(var(--countdown-unit) + var(--space-md) * 2);
+	min-block-size: var(--countdown-reserve-flat);
 }
 
 .t-countdown--flat .t-countdown__label,
@@ -236,7 +264,7 @@
 		border-inline-start: 0;
 		border-block-start: var(--border-subtle);
 		--countdown-size: 2.5rem;
-		min-block-size: calc(var(--countdown-unit) + var(--space-md) * 2);
+		min-block-size: var(--countdown-reserve-flat);
 	}
 
 	.t-countdown__label,

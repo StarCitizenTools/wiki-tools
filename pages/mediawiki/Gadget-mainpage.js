@@ -71,6 +71,19 @@
  *     and rolls only once the card is on screen. Without JS the date range
  *     stands, and unlike a stale duration it never stops being true.
  *
+ *   scrollFade — says whether a scrolling card has more above or below.
+ *     Contract: a frame carrying
+ *       data-gadget-mainpage-scrollfade="<selector for its scroller>"
+ *     on which the CSS paints two gradients, both transparent until this says
+ *     otherwise. The default is INVISIBLE on purpose: CSS cannot see how far a
+ *     box is scrolled, so a fade it paints unconditionally covers the last line
+ *     when the content fits exactly and still promises more at the end of a
+ *     long list. Without JS there is no fade and the scrollbar is the cue.
+ *     Frame and scroller are separate elements because a pseudo-element inside
+ *     a scroller is positioned against the scrolled content and slides away
+ *     with the rows it is covering; the offset between them is published as
+ *     --home-fade-top / --home-fade-bottom so one CSS rule serves both cards.
+ *
  *   recentActivity — keeps the recent-changes list current and turns its
  *     absolute timestamps into ages. Contract: a container carrying
  *       data-gadget-mainpage-activity
@@ -97,6 +110,7 @@
 	const ACTIVITY_ATTR = 'data-gadget-mainpage-activity';
 	const ACTIVITY_LIMIT_ATTR = 'data-gadget-mainpage-activity-limit';
 	const ACTIVITY_NS_ATTR = 'data-gadget-mainpage-activity-namespace';
+	const SCROLLFADE_ATTR = 'data-gadget-mainpage-scrollfade';
 
 	const POLL_MS = 60000;
 	const MAX_BACKOFF_MS = 960000;
@@ -116,6 +130,9 @@
 	const ACTIVITY_POOL = 50;
 	const ACTIVITY_ROOT_MARGIN = '400px';
 	const TEMP_USER_RE = /^~\d{4}-/;
+	// Trailing-edge throttle for re-measuring: coalesces a burst without
+	// dropping the last event.
+	const FADE_SETTLE_MS = 60;
 	const RELATIVE_STEPS = [
 		{ unit: 'year', span: 31536000000, short: 'y' },
 		{ unit: 'month', span: 2592000000, short: 'mo' },
@@ -1007,13 +1024,95 @@
 		}
 	}
 
+	/**
+	 * Tells the two scrolling cards' fades when they are true.
+	 *
+	 * Scrolling only toggles classes: no layout-affecting WRITE, so the reads
+	 * stay cheap. The geometry is re-measured only when something could have
+	 * moved it — a getBoundingClientRect per scroll frame would be a forced
+	 * reflow on the busiest page here.
+	 */
+	function scrollFade() {
+		document.querySelectorAll( '[' + SCROLLFADE_ATTR + ']' ).forEach( ( frame ) => {
+			const scroller = frame.querySelector( frame.getAttribute( SCROLLFADE_ATTR ) );
+			if ( !scroller ) {
+				return;
+			}
+
+			// Published for the CSS; see the contract in the header.
+			function measure() {
+				const fr = frame.getBoundingClientRect();
+				const sr = scroller.getBoundingClientRect();
+				frame.style.setProperty( '--home-fade-top', ( sr.top - fr.top ) + 'px' );
+				frame.style.setProperty( '--home-fade-bottom', ( fr.bottom - sr.bottom ) + 'px' );
+			}
+
+			// A pixel of tolerance: fractional scroll offsets are normal at
+			// non-integer zoom, and without it the bottom fade flickers back on
+			// at the end of every list.
+			function state() {
+				const top = scroller.scrollTop;
+				const room = scroller.scrollHeight - scroller.clientHeight;
+				frame.classList.toggle( 'home-scrollfade--up', top > 1 );
+				frame.classList.toggle( 'home-scrollfade--down', room - top > 1 );
+			}
+
+			let settling = null;
+			function settle() {
+				if ( settling ) {
+					return;
+				}
+				settling = setTimeout( () => {
+					settling = null;
+					measure();
+					state();
+				}, FADE_SETTLE_MS );
+			}
+
+			scroller.addEventListener( 'scroll', state, { passive: true } );
+
+			if ( 'ResizeObserver' in window ) {
+				const sizes = new ResizeObserver( settle );
+				sizes.observe( frame );
+				sizes.observe( scroller );
+			} else {
+				window.addEventListener( 'resize', settle, { passive: true } );
+			}
+
+			// A tabber swaps which panel is in the scroller: it toggles
+			// hidden="until-found" on the panels and rewrites the section's
+			// inline height. Nothing resizes, so only the mutation says the
+			// list is now a different length.
+			if ( 'MutationObserver' in window ) {
+				new MutationObserver( settle ).observe( scroller, {
+					subtree: true,
+					childList: true,
+					attributes: true,
+					attributeFilter: [ 'class', 'style', 'hidden', 'aria-hidden' ]
+				} );
+			}
+
+			// A webfont swap or an image loading inside a row changes how much
+			// there is to scroll without mutating anything or resizing any box
+			// the observers above are watching.
+			if ( document.fonts && document.fonts.ready ) {
+				document.fonts.ready.then( settle );
+			}
+			window.addEventListener( 'load', settle, { passive: true, once: true } );
+
+			measure();
+			state();
+		} );
+	}
+
 	// Two boot points. Anything that only rewrites text the server already
 	// rendered runs at DOM ready, so a reader is never left looking at the raw
 	// value it is there to replace; anything that fetches, animates or pulls an
 	// image waits for window load and stays off the critical path. The activity
 	// list is in the first group and still costs nothing early — its one read is
-	// gated on the list coming into view, not on this.
-	const EARLY = [ recentActivity ];
+	// gated on the list coming into view, not on this. The fade is there for the
+	// same reason: an absent cue at first paint is as wrong as a stale number.
+	const EARLY = [ recentActivity, scrollFade ];
 	const FEATURES = [ heroImage, liveStats, searchReel, countdown ];
 
 	function run( features ) {

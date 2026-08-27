@@ -42,10 +42,10 @@ local onThisDay = require('Module:Mainpage/OnThisDay')
 --- the components that sit on the grid, then the ground behind both.
 ---
 --- CardLua's sheet is listed EXPLICITLY rather than left to arrive with a
---- CardLua call. Five of the seven cards are built here with `.t-card` on a
+--- CardLua call. Six of the seven cards are built here with `.t-card` on a
 --- plain div, so the card surface, border and radius would otherwise depend on
---- the highlights band happening to render — and that band is empty whenever
---- both its settings keys are blank.
+--- the event card happening to render — and it does not when the settings
+--- carry no event.
 local STYLESHEETS = {
 	'Module:CardLua/styles.css',
 	'Module:Mainpage/styles.css',

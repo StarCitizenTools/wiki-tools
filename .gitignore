@@ -11,3 +11,10 @@ PRODUCT.md
 # Generated wiki payloads from scripts/ (see scripts/README.md). These mirror
 # upstream APIs and are deployed via MCP, not stored here.
 scripts/out/
+
+# The main page's control panel is EDITOR-owned content, not code. It is edited
+# on the wiki, which is its source of truth and keeps its own history, so a copy
+# here is stale the moment someone changes a featured article — and a tracked
+# stale copy is worse than none, because deploying the module would quietly
+# revert them. The schema lives in pages/module/Mainpage/README.md.
+pages/module/Mainpage/settings.json

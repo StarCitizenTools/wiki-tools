@@ -2,6 +2,8 @@
 docs/superpowers
 .playwright-cli
 .superpowers/
+.impeccable/
+PRODUCT.md
 
 # Scribunto lualib cache fetched by scribuntounit-fetch (see scribuntounit.config.lua)
 .scribuntounit/

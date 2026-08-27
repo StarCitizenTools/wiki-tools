@@ -677,7 +677,8 @@
       "srvl_": "SRVL",
       "volt_": "VOLT",
       "none_": "NONE",
-      "cds_": "CDS"
+      "cds_": "CDS",
+      "rrs_": "RRS"
     },
     "omitInLead": [
       "GEND",

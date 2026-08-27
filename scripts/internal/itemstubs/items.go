@@ -99,10 +99,13 @@ func DecodeItems(r io.Reader) (items []Item, unusable int, err error) {
 	return items, unusable, nil
 }
 
-// The dump lives in Git LFS, so the raw.githubusercontent URL serves only a
-// pointer file; the media host resolves to the actual content.
+// items.json is an ordinary file, so raw.githubusercontent serves it. It was
+// declared LFS-tracked in .gitattributes until 2026-08-20 (commit 7d622b5),
+// which is why this used to point at media.githubusercontent — but upstream
+// only committed the file after untracking it, so no reachable ref serves a
+// pointer here and the media host now 404s.
 const (
-	dumpURLFormat    = "https://media.githubusercontent.com/media/StarCitizenWiki/scunpacked-data/%s/items.json"
+	dumpURLFormat    = "https://raw.githubusercontent.com/StarCitizenWiki/scunpacked-data/%s/items.json"
 	commitsURLFormat = "https://api.github.com/repos/StarCitizenWiki/scunpacked-data/commits?per_page=30&sha=%s"
 )
 

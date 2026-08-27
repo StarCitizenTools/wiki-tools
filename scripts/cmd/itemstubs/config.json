@@ -659,12 +659,6 @@
         "designed specifically for",
         "built specifically for"
       ]
-    },
-    {
-      "id": "superheavy",
-      "classPrefixes": [
-        "cds_combat_superheavy"
-      ]
     }
   ],
   "manufacturers": {

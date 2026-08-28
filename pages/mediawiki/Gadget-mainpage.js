@@ -28,9 +28,9 @@
  *     The number is split into per-digit reels; the plain value is kept in a
  *     visually-hidden span so assistive tech reads a number, not a reel, and
  *     updates stay silent (no aria-live — a counter must not natter).
- *     Polling is same-origin and CDN-cacheable (see the api URL note below), it
- *     reads once on arrival, pauses while the tab is hidden, and backs off on
- *     failure. Without JS the server-rendered number simply stands.
+ *     Polling is same-origin and CDN-cacheable (see the api URL note below),
+ *     pauses while the tab is hidden or the statline is scrolled off, and backs
+ *     off on failure. Without JS the server-rendered number simply stands.
  *
  *   searchReel — rolls the tail of the search label through a few things worth
  *     searching for, then rests on the real label.
@@ -131,13 +131,9 @@
 	const HOUR_MS = 3600000;
 	const DAY_MS = 86400000;
 	const COUNTDOWN_UNITS = [ 'Days', 'Hours', 'Minutes' ];
-	// Poll and TTL are different levers: the TTL bounds how fresh the data can
-	// be, the poll bounds how fast a reader picks up a rotated entry. 120s is
-	// the measured median gap between consecutive edits on this wiki (the mean
-	// rate is ~1/hour, but it arrives in bursts: p25 of that gap is 0 and p90 is
-	// over two hours), so a longer TTL would routinely be a burst behind.
-	// The poll must never be SLOWER than the TTL — the shared entry would then
-	// expire unattended and the reader would hold data older than it.
+	// 120s is the measured median gap between edits here; a longer TTL leaves
+	// the card a burst behind however often it polls. The poll must never be
+	// SLOWER than the TTL, or the shared entry expires unattended.
 	const ACTIVITY_CACHE_S = 120;
 	const ACTIVITY_POLL_MS = 60000;
 	const ACTIVITY_POOL = 50;
@@ -404,14 +400,19 @@
 		let timer = null;
 		let failures = 0;
 		let inFlight = null;
+		let onScreen = false;
 
 		function schedule( ms ) {
 			clearTimeout( timer );
 			timer = setTimeout( poll, ms );
 		}
 
+		// A hidden tab and a statline scrolled off the top both keep the timer
+		// alive but skip the request. The hero is the first thing past, so
+		// without the second test this polls all day for a reader who is not
+		// looking at it.
 		function poll() {
-			if ( document.hidden ) {
+			if ( document.hidden || !onScreen ) {
 				schedule( POLL_MS );
 				return;
 			}
@@ -452,18 +453,24 @@
 				} );
 		}
 
-		// Roll in when the numbers are actually on screen, Stripe-style.
+		// One observer, two jobs: it rolls the digits in the first time they are
+		// on screen, Stripe-style, and thereafter it is the on/off switch for
+		// polling. settle() guards on its own flag, so re-entry is free.
 		if ( 'IntersectionObserver' in window ) {
-			const seen = new IntersectionObserver( ( entries ) => {
+			new IntersectionObserver( ( entries ) => {
 				entries.forEach( ( entry ) => {
-					if ( entry.isIntersecting ) {
+					const was = onScreen;
+					onScreen = entry.isIntersecting;
+					if ( onScreen ) {
 						meters.forEach( ( meter ) => meter.settle() );
-						seen.disconnect();
+						if ( !was ) {
+							schedule( 0 );
+						}
 					}
 				} );
-			}, { threshold: 0.4 } );
-			seen.observe( meters[ 0 ].node );
+			}, { threshold: 0.4 } ).observe( meters[ 0 ].node );
 		} else {
+			onScreen = true;
 			meters.forEach( ( meter ) => meter.settle() );
 		}
 
@@ -475,7 +482,8 @@
 
 		// One read on arrival: {{NUMBEROFEDITS}} and friends are parser-cached and
 		// can be hours stale, so this is the correction the reveal actually rolls.
-		poll();
+		// Via the timer, so the observer above has settled onScreen first.
+		schedule( 0 );
 	}
 
 	/**
@@ -768,55 +776,36 @@
 	 * The rows are server-rendered by DPL and are the entire feature with JS off.
 	 * What this adds is the two things a parser cache cannot do:
 	 *
-	 *   Freshness. DPL renders inside the page's parser cache — an hour here —
-	 *   and the HTML sits behind the CDN on top of that, so a list headed
-	 *   "recently updated" can be hours old before anyone notices, and it goes
-	 *   on being wrong for as long as the reader sits there. Polling
-	 *   list=recentchanges is what corrects it.
+	 *   Freshness. DPL renders inside the page's parser cache and the CDN sits
+	 *   on top of that, so the rows are FIRST PAINT and never the freshness
+	 *   mechanism. Polling list=recentchanges is what keeps them true.
 	 *
-	 *   Relative time. The server ships an absolute ISO timestamp in <time
-	 *   datetime> and never a duration, for exactly the reason the countdown
-	 *   does: a duration computed at parse time is frozen in the cache and goes
-	 *   quietly wrong. "4h" is worked out here against the reader's own clock and
-	 *   re-checked on the minute.
+	 *   Relative time. The server ships an absolute ISO instant and never a
+	 *   duration, for the reason the countdown does: a duration computed at
+	 *   parse time is frozen in the cache and goes quietly wrong.
 	 *
-	 * It POLLS, and the edit pattern is the reason rather than a preference. This
-	 * wiki averages about one main-namespace edit an hour, but that average is a
-	 * lie: the median gap between consecutive edits is two minutes, p25 is zero,
-	 * and p90 is over two hours. It is silent for long stretches and then someone
-	 * sits down and works. A one-shot read fails exactly when this card matters
-	 * most — a reader watching during a burst would see none of it.
+	 * It POLLS because of the edit pattern, not as a preference: this wiki
+	 * averages an edit an hour, but the median gap between consecutive edits is
+	 * two minutes. It is quiet for long stretches and then someone sits down and
+	 * works, which is exactly when a one-shot read fails.
 	 *
-	 * Cost is still a constraint, so:
+	 * Three rules about the URL, all load-bearing:
 	 *
-	 *   The URL is ONE fixed string with nothing reader-specific in it, so the CDN
-	 *   holds a single entry for the whole audience and origin load is bounded by
-	 *   the TTL rather than by how many people are reading. Polling faster than
-	 *   the TTL is close to free — the browser's own HTTP cache answers the
-	 *   intermediate polls and expires in lockstep with the shared entry — so the
-	 *   poll buys pickup latency, not requests.
+	 *   maxage/smaxage are what make it cacheable at all — without them api.php
+	 *   answers `private` and the CDN reports BYPASS. They must be EQUAL.
 	 *
-	 *   maxage/smaxage are what make it cacheable at all; without them api.php
-	 *   answers `private, must-revalidate, max-age=0` and the CDN reports BYPASS
-	 *   (measured). They must be EQUAL: maxage lower and the browser refetches
-	 *   faster than the shared entry rotates, for guaranteed-identical bodies;
-	 *   higher and the reader holds something staler than the CDN is serving.
+	 *   Nothing reader-specific may enter it, and it must NEVER be cache-busted.
+	 *   This CDN ignores the response's `Vary: Cookie` (measured: an anonymous
+	 *   MISS populated the entry, a cookie-bearing request then got a HIT off
+	 *   it), so ONE entry serves everybody — a per-reader URL would hand one
+	 *   reader's body to another and turn a TTL-bound origin load into a
+	 *   request-bound one.
 	 *
-	 *   credentials:'omit' is load-bearing, but NOT for the reason it is easy to
-	 *   assume. The response carries `Vary: Cookie` and this CDN IGNORES it —
-	 *   measured: an anonymous request took a MISS and populated the entry, and a
-	 *   cookie-bearing request straight after was served a HIT off that same
-	 *   entry. So one entry serves everybody, which is why nothing user-specific
-	 *   may ever enter this URL and why it must never be cache-busted: one
-	 *   reader's body is handed to another, and a unique URL per reader converts a
-	 *   TTL-bound origin load into a request-bound one on the busiest page here.
-	 *   The flag stays because a credentialed api.php request is answered
-	 *   `private` and bypasses the cache, punching to origin on every poll.
+	 *   credentials:'omit' stays for MediaWiki's reason, not the CDN's: a
+	 *   credentialed api.php response is `private` and bypasses the cache.
 	 *
-	 *   It is deliberately NOT folded into the statline's poll, which would be
-	 *   one fewer round trip. A combined query has to be re-fetched on the
-	 *   shortest cadence in it, which would put the more expensive half of the
-	 *   pair on the more volatile half's schedule.
+	 * Deliberately NOT folded into the statline's poll — a combined query has to
+	 * be re-fetched on the shortest cadence in it.
 	 *
 	 * Contract: a container carrying
 	 *   data-gadget-mainpage-activity           (marks the list)
@@ -963,11 +952,9 @@
 			} ).join( '\n' );
 		}
 
-		// Whether the reader is currently IN the list. Three ways to be, and one
-		// cheap test each: `:hover` matches ancestors of the hovered node, so a
-		// single matches() call covers every row and link without a listener.
-		// It is gated on a real hover-capable pointer because a tap leaves
-		// `:hover` stuck on a touch device, which would freeze the list for good.
+		// `:hover` matches ancestors of the hovered node, so one matches() call
+		// covers every row without a listener. Gated on a hover-capable pointer
+		// because a tap leaves `:hover` stuck and would freeze the list for good.
 		const canHover = window.matchMedia( '(hover: hover)' ).matches;
 
 		function busy() {
@@ -1012,24 +999,17 @@
 				return;
 			}
 
-			// The reader is in the list right now, so leave it alone and let the
-			// next poll carry the change. This is the objection that used to be
-			// the reason not to poll at all, and deferring answers it: nothing
-			// moves under a pointer, a caret, or a keyboard focus ring.
+			// Nothing moves under a pointer, a caret or a focus ring; the next
+			// poll carries the change instead.
 			if ( busy() ) {
 				return;
 			}
 
-			// A KEYED update, not a rebuild. `list.textContent = ''` was the
-			// actual mechanism of the hazard: it throws away every node, which
-			// blurs whatever held focus out to <body> and hands a screen reader
-			// a brand new subtree. Measured: reordering, inserting and removing
-			// rows all keep focus; only destroying or moving the focused node
-			// itself loses it, and busy() has already ruled that out.
-			//
+			// KEYED, never `list.textContent = ''`: measured, reordering and
+			// inserting and removing rows all keep focus, but destroying the
+			// subtree blurs to <body> and hands a screen reader a new one.
 			// appendChild MOVES a node that is already a child, so walking the
-			// wanted order and appending each row lands them in the right
-			// sequence whether they are new or already present.
+			// wanted order and appending lands everything in sequence.
 			const rows = new Map();
 			list.querySelectorAll( '.home-act__row' ).forEach( ( row ) => {
 				const link = row.querySelector( 'a' );
@@ -1042,15 +1022,12 @@
 				let row = rows.get( change.title );
 				if ( row ) {
 					rows.delete( change.title );
-					// Same page, newer edit: correct the row in place rather
-					// than replacing a node that is already right.
+					// Same page, newer edit: correct in place. Clearing the text
+					// is required — stamp() skips a node whose visible label
+					// already reads right, leaving a stale aria-label and title.
 					const when = row.querySelector( 'time' );
 					if ( when ) {
 						when.setAttribute( 'datetime', change.timestamp );
-						// stamp() skips a node whose visible label already reads
-						// right, so a row that moved from 9m to 8m30s would keep
-						// the aria-label and title of the older edit. Clearing
-						// the text forces the re-stamp below to do the work.
 						when.textContent = '';
 					}
 					const by = row.querySelector( '.home-act__by' );
@@ -1070,12 +1047,10 @@
 			list.querySelectorAll( 'time[datetime]' ).forEach( ( node ) => stamp( node, now ) );
 		}
 
-		// `rcshow=!bot` is NOT the same filter the server-rendered rows use, and
-		// the difference is not academic: a row is only excluded by that flag if
-		// the SAVE carried it, and 94 of the deploying account's main-namespace
-		// rows currently in this very pool did not. DPL drops the account by
-		// name, so this drops it by name too — and takes the name from the
-		// markup rather than repeating it, so the two halves cannot drift.
+		// `rcshow=!bot` is NOT the filter DPL uses: it only excludes a row whose
+		// SAVE carried the flag, and 94 of the deploying account's rows in this
+		// pool did not. Hence the by-name exclusion, with the name taken from
+		// the markup so the two halves cannot drift.
 		function load() {
 			const api = mw.config.get( 'wgScriptPath' ) +
 				'/api.php?action=query&list=recentchanges&format=json&formatversion=2' +
@@ -1125,10 +1100,8 @@
 				} );
 		}
 
-		// Poll only while it is worth polling: a hidden tab and a card below the
-		// fold both keep the timer alive but skip the request, so a reader who
-		// never scrolls down still costs nothing and one who scrolls back finds
-		// the list current within a tick.
+		// A hidden tab and an off-screen card keep the timer alive but skip the
+		// request, so a reader who never scrolls down costs nothing.
 		function poll() {
 			if ( document.hidden || !onScreen ) {
 				schedule( ACTIVITY_POLL_MS );
@@ -1150,9 +1123,8 @@
 		);
 		age();
 
-		// Coming back to the tab re-reads the clock AND asks for data straight
-		// away rather than waiting out the rest of a poll interval, so a reader
-		// returning after lunch is not looking at lunchtime's list.
+		// Returning to the tab asks immediately rather than waiting out the rest
+		// of an interval, so a reader back from lunch is not reading lunchtime.
 		document.addEventListener( 'visibilitychange', () => {
 			if ( document.hidden ) {
 				clearTimeout( timer );
@@ -1167,17 +1139,13 @@
 			}
 		} );
 
-		// The observer STAYS connected — it is the on/off switch for polling,
-		// not a one-shot trigger. A reader who never scrolls past the hero costs
-		// nothing at all; the margin means the first read has already landed by
-		// the time the card arrives.
+		// STAYS connected: it is the on/off switch for polling, not a one-shot
+		// trigger. The margin means the first read lands before the card does.
 		if ( 'IntersectionObserver' in window ) {
 			new IntersectionObserver( ( entries ) => {
 				entries.forEach( ( entry ) => {
 					const was = onScreen;
 					onScreen = entry.isIntersecting;
-					// Scrolling back to the card asks immediately, rather than
-					// leaving it stale for the remainder of an interval.
 					if ( onScreen && !was ) {
 						schedule( 0 );
 					}

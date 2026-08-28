@@ -14,10 +14,9 @@ require('strict')
 ---  * `listseparators` needs a literal `\n` before the row markup, or the row's
 ---    opening `<div>` runs onto the end of the previous line.
 ---
---- DPL also forces a one-hour parser cache on any page that calls it. That is
---- why these rows are FIRST PAINT and the no-JS reading, and never the
---- freshness mechanism: the gadget polls the API and keeps the list live for as
---- long as the reader is on the page.
+--- DPL also forces a one-hour parser cache on any page that calls it, so these
+--- rows are FIRST PAINT and the no-JS reading, never the freshness mechanism.
+--- The gadget polls the API to keep the list live.
 
 local buttonLua = require('Module:ButtonLua')
 
@@ -27,17 +26,11 @@ local ROW = '<div class="home-act__row">[[%PAGE%]]'
 
 local LIMIT = 10
 
---- The deploying account. Its syncs are not what a reader means by recent
---- activity, so both halves of this card have to drop them — and they filter by
---- different mechanisms, so the NAME is published to the gadget rather than
---- written down twice.
----
---- They cannot share a mechanism. DPL takes a username; the API takes
---- `rcshow=!bot`, which sounds equivalent and is not: a bot edit is only
---- excluded if the SAVE carried the bot flag, and 94 of this account's
---- main-namespace rows currently in the API's own pool did not. Filtering the
---- gadget by the flag alone would let a sync run walk onto the front page, one
---- row a minute, that the server-rendered list had correctly hidden.
+--- The deploying account, dropped from both halves of the card. Published to
+--- the gadget rather than written down twice, because the two filter by
+--- different mechanisms: DPL takes a username, the API takes `rcshow=!bot`,
+--- and that only excludes a row whose SAVE carried the flag — 94 of this
+--- account's rows in the API's own pool did not.
 local EXCLUDE_USER = 'Alistar Bot'
 
 local p = {}

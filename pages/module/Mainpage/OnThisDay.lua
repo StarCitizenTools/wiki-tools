@@ -36,6 +36,16 @@ local PANELS = {
 --- the call is guarded — a day page that does not exist yet should cost this
 --- card its panel, not the whole render.
 ---
+--- Citations take BOTH options. `references = '0'` only gsubs literal `<ref>`
+--- out of the raw wikitext, so a row citing through a template — `{{Cite link}}`
+--- carries no `<ref>` until the preprocess below expands one — put a reference
+--- list under the main page's foot. `templates = '-^Cite'` takes the family
+--- (`-` is a blacklist, the name matched as a Lua pattern), and NOT `'0'`: the
+--- lore table's `{{On this day edit message}}` is this card's "No info yet" row.
+---
+--- Both run before the preprocess because an expanded ref is already registered
+--- with the parser; stripping later would leave an orphaned list entry.
+---
 --- @param page string
 --- @param index string
 --- @return string
@@ -44,6 +54,7 @@ local function panelContent(page, index)
 		only = 'tables',
 		tables = index,
 		references = '0',
+		templates = '-^Cite',
 	})
 	if not ok or not text then
 		return ''

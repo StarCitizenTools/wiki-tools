@@ -14,9 +14,10 @@ require('strict')
 ---  * `listseparators` needs a literal `\n` before the row markup, or the row's
 ---    opening `<div>` runs onto the end of the previous line.
 ---
---- DPL also forces a one-hour parser cache on any page that calls it, which is
---- why the gadget refreshes the list client-side rather than relying on the
---- rendered output being current.
+--- DPL also forces a one-hour parser cache on any page that calls it. That is
+--- why these rows are FIRST PAINT and the no-JS reading, and never the
+--- freshness mechanism: the gadget polls the API and keeps the list live for as
+--- long as the reader is on the page.
 
 local buttonLua = require('Module:ButtonLua')
 
@@ -26,6 +27,19 @@ local ROW = '<div class="home-act__row">[[%PAGE%]]'
 
 local LIMIT = 10
 
+--- The deploying account. Its syncs are not what a reader means by recent
+--- activity, so both halves of this card have to drop them — and they filter by
+--- different mechanisms, so the NAME is published to the gadget rather than
+--- written down twice.
+---
+--- They cannot share a mechanism. DPL takes a username; the API takes
+--- `rcshow=!bot`, which sounds equivalent and is not: a bot edit is only
+--- excluded if the SAVE carried the bot flag, and 94 of this account's
+--- main-namespace rows currently in the API's own pool did not. Filtering the
+--- gadget by the flag alone would let a sync run walk onto the front page, one
+--- row a minute, that the server-rendered list had correctly hidden.
+local EXCLUDE_USER = 'Alistar Bot'
+
 local p = {}
 
 --- @return string
@@ -34,9 +48,7 @@ local function recentChanges()
 		'namespace=',
 		'ordermethod=lastedit',
 		'order=descending',
-		-- The deploying account's own syncs are not what a reader means by
-		-- recent activity.
-		'notlastmodifiedby=Alistar Bot',
+		'notlastmodifiedby=' .. EXCLUDE_USER,
 		'count=' .. LIMIT,
 		'addeditdate=true',
 		'adduser=true',
@@ -89,6 +101,7 @@ function p.render()
 		:attr('data-gadget-mainpage-activity', '1')
 		:attr('data-gadget-mainpage-activity-limit', tostring(LIMIT))
 		:attr('data-gadget-mainpage-activity-namespace', '0')
+		:attr('data-gadget-mainpage-activity-exclude', EXCLUDE_USER)
 		:wikitext(recentChanges())
 
 	pad:tag('div'):addClass('home-more'):wikitext('[[Special:RecentChanges|See all changes]]')

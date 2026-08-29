@@ -6,19 +6,32 @@ local types = require('Module:InfoboxLua/Types')
 
 local p = {}
 
+-- PageImages scores class="pageimage" at +1000 (T91683, MediaWiki 1.44+), which
+-- lets the infobox claim the page image instead of leaving it to the extension's
+-- position/width/ratio heuristics. Only the first image carries it.
+local PAGE_IMAGE_CLASS = 'pageimage'
+
+-- The upload placeholder is not a picture of the subject, so it never stands in
+-- as the page image. notpageimage short-circuits scoring at -1000, ahead of the
+-- pageimage boost, which leaves the page to fall back to a real image or none.
+local NOT_PAGE_IMAGE_CLASS = 'notpageimage'
+
 --- @param image ImageComponentData|string
+--- @param isPageImage boolean|nil Whether this image is the page's designated page image.
 --- @return mw.html
-local function getImageHtml(image)
+local function getImageHtml(image, isPageImage)
 	if type(image) == 'string' then
 		image = { src = image }
 	end
 
 	local imageData = util.validateAndConstruct(image, types.ImageComponentDataSchema)
 
+	local isPlaceholder = type(imageData.upload) == 'table' and util.isNonEmptyString(imageData.upload.name)
+
 	local root = mw.html.create('div')
 	root:addClass('t-infobox-image-container')
 
-	if type(imageData.upload) == 'table' and util.isNonEmptyString(imageData.upload.name) then
+	if isPlaceholder then
 		root:addClass('t-infobox-image-container--placeholder')
 		root:attr('data-gadget-quantumupload-name', imageData.upload.name)
 		if util.isNonEmptyString(imageData.upload.categories) then
@@ -26,9 +39,19 @@ local function getImageHtml(image)
 		end
 	end
 
+	local classes = {}
+	if util.isNonEmptyString(imageData.class) then
+		table.insert(classes, imageData.class)
+	end
+	if isPlaceholder then
+		table.insert(classes, NOT_PAGE_IMAGE_CLASS)
+	elseif isPageImage then
+		table.insert(classes, PAGE_IMAGE_CLASS)
+	end
+
 	root:tag('div')
 		:addClass('t-infobox-image')
-		:wikitext(string.format('[[File:%s|%dpx|class=%s]]', imageData.src, imageData.size, imageData.class or ''))
+		:wikitext(string.format('[[File:%s|%dpx|class=%s]]', imageData.src, imageData.size, table.concat(classes, ' ')))
 		:done()
 
 	if util.isNonEmptyString(imageData.overlay) then
@@ -54,7 +77,7 @@ local function getImagesHtml(images)
 		if util.validateAndConstruct(image, types.ImageComponentDataSchema) then
 			table.insert(tabberData, {
 				label = image.label or tostring(i),
-				content = tostring(getImageHtml(image)),
+				content = tostring(getImageHtml(image, i == 1)),
 			})
 		end
 	end
@@ -120,7 +143,7 @@ function p.getHtml(data)
 	if type(header.images) == 'table' then
 		root:node(getImagesHtml(header.images))
 	elseif type(header.image) == 'table' then
-		root:node(getImageHtml(header.image))
+		root:node(getImageHtml(header.image, true))
 	end
 
 	root:node(getHeaderContentHtml(header.title, header.subtitle))

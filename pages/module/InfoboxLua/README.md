@@ -90,6 +90,8 @@ end
 | `size` | `number` | No | `400` | Image width in pixels. |
 | `class` | `string` | No | | CSS class on the image. |
 
+The first image also carries the `pageimage` class, which tells [PageImages](https://www.mediawiki.org/wiki/Extension:PageImages) to use it as the page image rather than picking one by its own position/width/ratio heuristics. It is added alongside any `class` the caller passes. The upload placeholder is the exception: it carries `notpageimage` instead, so a page waiting on an image falls back to a real one elsewhere on the page, or to none.
+
 ## Examples
 
 ### Tabbed content

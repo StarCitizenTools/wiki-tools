@@ -55,7 +55,12 @@ local function renderTile(row, placeholderImage, imageWidth)
 
 	local tile = mw.html.create('div'):addClass('t-tiles__tile')
 	tile:tag('div'):addClass('t-tiles__link'):wikitext('[[' .. linkPage .. '|' .. linkLabel .. ']]')
-	tile:tag('div'):addClass('t-tiles__image'):wikitext('[[File:' .. image .. '|' .. imageWidth .. '|link=]]')
+	-- notpageimage: a tile always shows some OTHER page's image, so it must never
+	-- be scored as this page's page image. Without it PageImages happily promotes
+	-- a sibling's thumbnail (Agni once led with a JUST Kama drive).
+	tile:tag('div')
+		:addClass('t-tiles__image')
+		:wikitext('[[File:' .. image .. '|' .. imageWidth .. '|link=|class=notpageimage]]')
 
 	local hasPrimary = row.primary and row.primary ~= ''
 	local hasSecondary = row.secondary and row.secondary ~= ''

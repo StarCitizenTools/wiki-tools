@@ -24,6 +24,7 @@ Wiki pages, modules, and automation for [Star Citizen Wiki](https://starcitizen.
 
 - Lua 5.1 with `require('strict')` at the top of every module.
 - LuaCATS annotations (`--- @class`, `--- @field`, `--- @param`, `--- @return`).
+- Comments carry durable facts, not the story of how the code got there. Keep a line only if it would stop a specific wrong edit — a constraint, a mechanism, an upstream defect the code works around, a label that looks wrong but isn't. Drop before/after framing, the alternatives weighed, the evidence count behind a conclusion, and restatements of what the code plainly says; those belong in the commit message and `git log`. Applies to Lua, CSS and wikitext alike, and to test comments.
 - Module imports use MediaWiki paths: `require('Module:InfoboxLua/Util')`.
 - CSS class prefix follows the owning component (e.g., `t-infobox-` for InfoboxLua).
 - CSS uses design tokens from the Citizen skin (`--space-md`, `--color-surface-1`, etc.).

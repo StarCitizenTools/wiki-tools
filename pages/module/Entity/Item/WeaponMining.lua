@@ -1,19 +1,17 @@
 require('strict')
 
 --- @module Entity/Item/WeaponMining
---- Mining laser head subtype (API type "WeaponMining"). The mining laser head is
---- the swappable laser fitted to a mining arm / turret; it accepts mining modules
---- (Module:Entity/Item/MiningModule) in its module slots. Renders the
---- `mining_laser` block: laser power range, module slots, optimal / maximum range,
---- extraction throughput, then every built-in effect in the variable `modifier_map`
---- (resistance, laser instability, …) as a signed percentage — the same effect
---- vocabulary the modules modify. Heads carry a durability block, so the Component
---- facet renders. The effect helpers mirror Entity/Item/MiningModule.
+--- Mining laser head subtype (API type "WeaponMining") — the swappable laser fitted
+--- to a mining arm / turret, accepting mining modules in its slots. Renders the
+--- `mining_laser` block: laser power range, module slots, ranges, extraction
+--- throughput, then its built-in `modifier_map` effects. Those are the same
+--- vocabulary the modules modify, so the rows come from
+--- Entity/Facet/Mining.pushModifierRows rather than a second copy here.
 
 local format = require('Module:Entity/Format')
 local item = require('Module:Entity/Item')
+local mining = require('Module:Entity/Facet/Mining')
 local sectionBuilder = require('Module:Entity/SectionBuilder')
-local Util = require('Module:Entity/Facet/Util')
 
 local p = {}
 
@@ -31,24 +29,6 @@ local function toNumber(value)
 		n = tonumber((value:gsub('%%', '')))
 	end
 	return n
-end
-
---- Formats a numeric modifier as a signed percentage, rounded to one decimal.
---- "+25%", "−35%". Returns nil for non-numeric input.
----
---- @param value number|string|nil
---- @return string|nil
-local function signedPct(value)
-	local n = toNumber(value)
-	if n == nil then
-		return nil
-	end
-	local rounded = math.floor(math.abs(n) * 10 + 0.5) / 10
-	if n < 0 then
-		rounded = -rounded
-	end
-	local sign = rounded >= 0 and '+' or ''
-	return sign .. format.formatNum(rounded) .. '%'
 end
 
 --- Formats a plain numeric stat, returning nil when absent so the row collapses.
@@ -90,16 +70,7 @@ function p.getSections(apiData, args)
 	sectionBuilder.push(items, 'Maximum range', formatStat(ml.maximum_range, ' m'))
 	sectionBuilder.push(items, 'Extraction rate', formatStat(ml.extraction_throughput))
 
-	-- Built-in modifier_map effects vary per head; render each, sorted for a stable order.
-	local map = type(ml.modifier_map) == 'table' and ml.modifier_map or {}
-	local keys = {}
-	for k in pairs(map) do
-		table.insert(keys, k)
-	end
-	table.sort(keys)
-	for _, k in ipairs(keys) do
-		sectionBuilder.push(items, Util.titleCase(k), signedPct(map[k]))
-	end
+	mining.pushModifierRows(items, ml.modifier_map)
 
 	return sectionBuilder.build(sectionBuilder.section({
 		key = 'mining_laser',

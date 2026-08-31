@@ -45,10 +45,33 @@ function suite:testRows()
 	self:assertEquals('60 m', findItem(sections[1].items, 'Optimal range').content)
 	self:assertEquals('180 m', findItem(sections[1].items, 'Maximum range').content)
 	self:assertEquals('1,850', findItem(sections[1].items, 'Extraction rate').content)
-	-- Built-in effects render like the modules (signed %, typographic minus).
-	self:assertEquals('+25%', findItem(sections[1].items, 'Resistance').content)
-	self:assertEquals('−35%', findItem(sections[1].items, 'Laser instability').content)
-	self:assertEquals('+40%', findItem(sections[1].items, 'Optimal charge window size').content)
+	-- Built-in effects render exactly like the modules — same shared row builder.
+	local resistance = findItem(sections[1].items, 'Resistance').content
+	self:assertStringContains('+25%', resistance, true)
+	self:assertStringContains('--color-destructive', resistance, true)
+	local instability = findItem(sections[1].items, 'Instability').content
+	self:assertStringContains('−35%', instability, true)
+	self:assertStringContains('--color-success', instability, true)
+	local window = findItem(sections[1].items, 'Optimal charge window').content
+	self:assertStringContains('+40%', window, true)
+	self:assertStringContains('--color-success', window, true)
+	-- Labels follow the game, not the API keys.
+	self:assertEquals(nil, findItem(sections[1].items, 'Laser instability'))
+	self:assertEquals(nil, findItem(sections[1].items, 'Optimal charge window size'))
+end
+
+-- The filter figure arrives twice on a head, as +30 / −30. One negated row wins,
+-- reproducing the Arbor MH1's own item card: "Inert Material Level: -30%".
+function suite:testFilterCollapsesToOneNegatedRow()
+	local data = arborData()
+	data.mining_laser.modifier_map.all_charge_rates = 30
+	data.mining_laser.modifier_map.inert_materials = -30
+	local sections = WeaponMining.getSections(data, {})
+	local inert = findItem(sections[1].items, 'Inert material level').content
+	self:assertStringContains('−30%', inert, true)
+	self:assertStringContains('--color-success', inert, true)
+	self:assertEquals(nil, findItem(sections[1].items, 'Inert materials'))
+	self:assertEquals(nil, findItem(sections[1].items, 'All charge rates'))
 end
 
 function suite:testEmptyWhenNoBlock()

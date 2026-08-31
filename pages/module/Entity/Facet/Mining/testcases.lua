@@ -223,14 +223,28 @@ function suite:testPassiveStructuredData()
 			charges = 0,
 			duration = nil,
 			power_modifier = 0,
-			modifier_map = { inert_materials = 5 },
+			modifier_map = { all_charge_rates = 5, inert_materials = 5 },
 		},
 	})
 	self:assertEquals('Passive', data.mining_type)
 	self:assertEquals(0, data.power_modifier)
 	self:assertEquals(nil, data.charges)
 	self:assertEquals(nil, data.duration)
-	self:assertEquals(5, data.modifier_inert_materials)
+	-- Stored negated, matching the row and the item card; the phantom name is gone.
+	self:assertEquals(-5, data.modifier_inert_materials)
+	self:assertEquals(nil, data.modifier_all_charge_rates)
+end
+
+-- A query and the infobox must not disagree: the facets carry the same corrections
+-- the rows do, so every stored value matches what the reader sees.
+function suite:testFacetsMatchRows()
+	local map = { all_charge_rates = 30, inert_materials = -30, resistance = 25, warp_factor = 4 }
+	local facets = Mining.modifierFacets(map)
+	self:assertEquals(-30, facets.modifier_inert_materials)
+	self:assertEquals(nil, facets.modifier_all_charge_rates)
+	self:assertEquals(25, facets.modifier_resistance)
+	-- An effect the table doesn't know is still stored, unaltered.
+	self:assertEquals(4, facets.modifier_warp_factor)
 end
 
 return suite

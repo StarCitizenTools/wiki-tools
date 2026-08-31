@@ -118,12 +118,8 @@ function p.getStructuredData(apiData, args)
 		extraction_throughput = toNumber(ml.extraction_throughput),
 	}
 
-	local map = type(ml.modifier_map) == 'table' and ml.modifier_map or {}
-	for k, v in pairs(map) do
-		local n = toNumber(v)
-		if n ~= nil then
-			data['modifier_' .. k] = n
-		end
+	for k, v in pairs(mining.modifierFacets(ml.modifier_map)) do
+		data[k] = v
 	end
 
 	return data

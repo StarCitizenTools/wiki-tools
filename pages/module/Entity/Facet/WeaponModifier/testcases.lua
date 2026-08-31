@@ -25,6 +25,8 @@ function suite:testMatches()
 	self:assertEquals(true, WM.matches({ weapon_modifier = {} }))
 	self:assertEquals(false, WM.matches({}))
 	self:assertEquals(false, WM.matches(nil))
+	-- A mining module's weapon_modifier is its laser power, rendered by Facet/Mining.
+	self:assertEquals(false, WM.matches({ weapon_modifier = {}, mining_modifier = {} }))
 end
 
 -- XDL-style: two-stage zoom, all multipliers default (1) -> only Magnification.

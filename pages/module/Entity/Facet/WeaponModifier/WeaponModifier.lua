@@ -17,10 +17,18 @@ local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
 
+--- Mining modules are excluded: they carry a `weapon_modifier` block whose only
+--- non-neutral field is `damage_multiplier`, which is the mining laser's power and
+--- is rendered by Entity/Facet/Mining under CIG's own name for it. Matching here too
+--- would repeat that one number as a second row, "Damage ×1.35".
+---
 --- @param apiData table|nil
 --- @return boolean
 function p.matches(apiData)
-	return apiData ~= nil and type(apiData.weapon_modifier) == 'table'
+	if apiData == nil or type(apiData.weapon_modifier) ~= 'table' then
+		return false
+	end
+	return type(apiData.mining_modifier) ~= 'table'
 end
 
 --- A multiplier as "×N", or nil when absent / equal to 1 (no modification).

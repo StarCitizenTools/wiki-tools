@@ -55,7 +55,7 @@ end
 --- the game says "Instability" for `laser_instability` and "Optimal Charge Window"
 --- for `optimal_charge_window_size`. Don't "fix" them back to match the keys.
 ---
---- @type { key: string, label: string, good: string|nil, negate: boolean|nil }[]
+--- @type { key: string, label: string, good: string|nil, negate: boolean|nil, facetKey: string|nil }[]
 p.MODIFIER_EFFECTS = {
 	{ key = 'laser_instability', label = 'Instability', good = 'lower' },
 	{ key = 'resistance', label = 'Resistance', good = 'lower' },
@@ -64,7 +64,13 @@ p.MODIFIER_EFFECTS = {
 	{ key = 'overcharge_rate', label = 'Overcharge rate', good = 'lower' },
 	{ key = 'optimal_charge_rate', label = 'Optimal charge rate', good = 'higher' },
 	{ key = 'cluster_factor', label = 'Cluster factor', good = 'higher' },
-	{ key = 'all_charge_rates', label = 'Inert material level', good = 'lower', negate = true },
+	{
+		key = 'all_charge_rates',
+		label = 'Inert material level',
+		good = 'lower',
+		negate = true,
+		facetKey = 'inert_materials',
+	},
 }
 
 --- `all_charge_rates` and `inert_materials` are one game value (`filterModifier`)
@@ -123,6 +129,43 @@ local function pushPowerRows(items, apiData)
 		local delta = (multiplier - 1) * 100
 		sectionBuilder.push(items, POWER_STATS[1].label, format.colorBySign(signedPct(delta), delta))
 	end
+end
+
+--- The `modifier_map` effects as flat `modifier_<effect>` facets, carrying the same
+--- corrections the rows carry: the duplicated filter figure is dropped and its
+--- survivor negated, under the established `inert_materials` name. Storage and
+--- display therefore cannot drift apart.
+---
+--- @param map table<string, number|string>|nil
+--- @return table<string, number>
+function p.modifierFacets(map)
+	local data = {}
+	if type(map) ~= 'table' then
+		return data
+	end
+
+	local handled = {}
+	for k in pairs(DUPLICATE_OF_FILTER) do
+		handled[k] = true
+	end
+	for _, effect in ipairs(p.MODIFIER_EFFECTS) do
+		handled[effect.key] = true
+		local n = toNumber(map[effect.key])
+		if n ~= nil then
+			data['modifier_' .. (effect.facetKey or effect.key)] = effect.negate and -n or n
+		end
+	end
+
+	for k, v in pairs(map) do
+		if not handled[k] then
+			local n = toNumber(v)
+			if n ~= nil then
+				data['modifier_' .. k] = n
+			end
+		end
+	end
+
+	return data
 end
 
 --- Pushes one row per `modifier_map` effect, MODIFIER_EFFECTS first. Keys outside
@@ -234,12 +277,8 @@ function p.getStructuredData(apiData, args)
 		duration = (duration and duration > 0) and duration or nil,
 	}
 
-	local map = type(m.modifier_map) == 'table' and m.modifier_map or {}
-	for k, v in pairs(map) do
-		local n = toNumber(v)
-		if n ~= nil then
-			data['modifier_' .. k] = n
-		end
+	for k, v in pairs(p.modifierFacets(m.modifier_map)) do
+		data[k] = v
 	end
 
 	return data

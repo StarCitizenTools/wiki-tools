@@ -146,7 +146,11 @@ end
 function suite:testStructuredData()
 	local data = Mining.getStructuredData(brandtData())
 	self:assertEquals('Active', data.mining_type)
-	self:assertEquals(35, data.power_modifier)
+	-- Stored per beam. The API's own power_modifier is NOT stored: it is whichever
+	-- beam came first, so a query on it would compare fracture against extraction.
+	self:assertEquals(35, data.modifier_mining_laser_power)
+	self:assertEquals(nil, data.modifier_extraction_laser_power)
+	self:assertEquals(nil, data.power_modifier)
 	self:assertEquals(5, data.charges)
 	self:assertEquals(60, data.duration)
 	-- Each modifier_map effect becomes a numeric "Modifier <effect>" facet.
@@ -204,6 +208,33 @@ function suite:testPowerFallsBackToDamageMultiplier()
 	self:assertEquals(nil, findItem(sections[1].items, 'Extraction laser power'))
 end
 
+-- Stampede names both beams, so both are stored and a query can tell them apart —
+-- the whole reason power_modifier is not stored.
+function suite:testBothPowerBeamsStored()
+	local data = Mining.getStructuredData({
+		description_data = {
+			{ name = 'Mining Laser Power', value = '135%' },
+			{ name = 'Extraction Laser Power', value = '85%' },
+		},
+		weapon_modifier = { damage_multiplier = 1.35 },
+		mining_modifier = { type = 'Active', power_modifier = 0.35, modifier_map = {} },
+	})
+	self:assertEquals(35, data.modifier_mining_laser_power)
+	self:assertEquals(-15, data.modifier_extraction_laser_power)
+end
+
+-- Deluge / Clearcut / Overrun get an empty description_data; damage_multiplier is
+-- always the fracture beam, so the mining figure is still stored, under the right
+-- name rather than an ambiguous one.
+function suite:testPowerFacetFallbackIsMiningBeam()
+	local facets = Mining.powerFacets({
+		description_data = {},
+		weapon_modifier = { damage_multiplier = 1.15 },
+	})
+	self:assertEquals(15, facets.modifier_mining_laser_power)
+	self:assertEquals(nil, facets.modifier_extraction_laser_power)
+end
+
 -- A no-op multiplier is not a stat; the ROC Module's old "+0%" row goes away.
 function suite:testNoPowerRowWhenNeutral()
 	local sections = Mining.getSections({
@@ -227,7 +258,6 @@ function suite:testPassiveStructuredData()
 		},
 	})
 	self:assertEquals('Passive', data.mining_type)
-	self:assertEquals(0, data.power_modifier)
 	self:assertEquals(nil, data.charges)
 	self:assertEquals(nil, data.duration)
 	-- Stored negated, matching the row and the item card; the phantom name is gone.

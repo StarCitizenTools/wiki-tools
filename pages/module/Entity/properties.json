@@ -6,7 +6,9 @@
 			"property": "Modifier %s",
 			"smw": "Number",
 			"bucket": "DOUBLE",
-			"modules": ["Facet/Mining"],
+			"modules": [
+				"Facet/Mining"
+			],
 			"desc": "Per-effect mining modifier (dynamic; e.g. modifier_resistance -> 'Modifier resistance')."
 		}
 	],
@@ -1278,14 +1280,6 @@
 			"PowerPlant"
 		],
 		"desc": "Power generated per segment by a power plant."
-	},
-	"Power modifier": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
-		"modules": [
-			"MiningModule"
-		],
-		"desc": "Power modifier of a mining module, as a percentage."
 	},
 	"Power output": {
 		"smw": "Number",

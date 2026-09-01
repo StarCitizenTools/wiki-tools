@@ -293,4 +293,23 @@ function suite:testParseColumnsNoEyebrowByDefault()
 	self:assertEquals(nil, dg.parseColumns('Size')[1].eyebrow)
 end
 
+-- The numeric flag is what lets the gadget right-align a MISSING value; it must be
+-- all-or-nothing, because a mixed column has no single alignment to match.
+function suite:testPlainColumnNumericFlag()
+	local cols = dg.parseColumns('Speed')
+	local numeric = dg._internal.buildSpecs({ { Speed = '180 m/s' }, { Speed = '90 m/s' } }, cols, {}, false)
+	self:assertEquals(true, numeric[#numeric].numeric)
+
+	local mixed = dg._internal.buildSpecs({ { Speed = '180 m/s' }, { Speed = 'Variable' } }, cols, {}, false)
+	self:assertEquals(false, mixed[#mixed].numeric)
+
+	-- A gap does not disqualify the column: the present values still all align right.
+	local sparse = dg._internal.buildSpecs({ { Speed = '180 m/s' }, {} }, cols, {}, false)
+	self:assertEquals(true, sparse[#sparse].numeric)
+
+	-- No values at all is not a numeric column.
+	local empty = dg._internal.buildSpecs({ {}, {} }, cols, {}, false)
+	self:assertEquals(false, empty[#empty].numeric)
+end
+
 return suite

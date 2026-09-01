@@ -145,4 +145,28 @@ function suite:testBuildValueListDropsEmpty()
 	self:assertEquals(nil, Util.buildValueList({ '', '' }))
 end
 
+-- looksNumeric mirrors the gadget's scwNumericPart, so these cases pin the rule the
+-- two sides share: the number must LEAD, and only a digit-free unit may follow.
+function suite:testLooksNumericLeadingNumberWithUnit()
+	self:assertEquals(true, Util.looksNumeric('1,234 m/s'))
+	self:assertEquals(true, Util.looksNumeric('-15%'))
+	self:assertEquals(true, Util.looksNumeric('2.5'))
+	self:assertEquals(true, Util.looksNumeric('180&#160;m'))
+end
+
+function suite:testLooksNumericRejectsNonLeadingNumber()
+	-- Size codes and grades sort alphabetically and align left, so they are not numeric
+	-- even though Util.toNumber would happily read a number out of them.
+	self:assertEquals(false, Util.looksNumeric('S2'))
+	self:assertEquals(false, Util.looksNumeric('Gr. 3'))
+	self:assertEquals(false, Util.looksNumeric('$1,500'))
+	self:assertEquals(2, Util.toNumber('S2'))
+end
+
+function suite:testLooksNumericEmptyAndNil()
+	self:assertEquals(false, Util.looksNumeric(nil))
+	self:assertEquals(false, Util.looksNumeric(''))
+	self:assertEquals(false, Util.looksNumeric('   '))
+end
+
 return suite

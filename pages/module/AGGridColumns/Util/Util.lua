@@ -189,6 +189,29 @@ local function isFileMarkup(s)
 	return prefix ~= nil and filePrefixes()[mw.ustring.lower(mw.text.trim(prefix))] == true
 end
 
+--- Whether a value would be right-aligned by the gadget's scwSmart type. MIRRORS
+--- scwNumericPart in MediaWiki:Gadget-aggridRenderers.js and must stay in step with
+--- it: a leading number (optional sign, thousands commas, decimals) followed only by
+--- a unit token containing no digits. "12 SCU" and "-15%" are numeric; "S2" and
+--- "Gr. 3" are not, because their number does not lead.
+--- Deliberately NOT p.toNumber, which strips every non-digit and so reads "S2" as 2.
+--- @param value any
+--- @return boolean
+function p.looksNumeric(value)
+	local text = p.decodeScalar(value)
+	if text == nil then
+		return false
+	end
+	text = text:gsub('%s+', ' '):gsub('^%s+', ''):gsub('%s+$', '')
+	if text == '' then
+		return false
+	end
+	-- Two patterns rather than an optional group: Lua has no non-capturing "(?:...)?",
+	-- so "%.?%d*" would also admit a trailing bare dot that the JS rule rejects.
+	local withDecimals = text:match('^[+-]?%d[%d,]*%.%d+%s*%D*$')
+	return withDecimals ~= nil or text:match('^[+-]?%d[%d,]*%s*%D*$') ~= nil
+end
+
 --- Classify an editor column from its non-nil values:
 ---  'list'  — any value is multi-valued (a sequence); render as a splitting value list
 ---            (one set-filter option per value), covering both page links and plain text;

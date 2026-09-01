@@ -125,6 +125,8 @@
 	// digits: ' m/s', ' kg', ' SCU', '°/s', '🗡️'). 'S2' / 'Gr. 3' / '$1,500' have the
 	// number after a non-digit prefix, so they are NON-numeric and sort
 	// alphabetically ( 'S1' < 'S10' < 'S2' ). One predictable rule for every column.
+	// Module:AGGridColumns/Util.looksNumeric MIRRORS this rule for the column-level
+	// scwNumericColumn flag; change one and the two disagree about alignment.
 	function scwNumericPart( v ) {
 		if ( typeof v === 'number' ) {
 			return isFinite( v ) ? v : null;
@@ -161,12 +163,20 @@
 		return scwClean( a ).localeCompare( scwClean( b ) );
 	}
 
+	// What a renderer returns when it has no value. AG Grid appends this to the
+	// cell, and a zero-length text node does not defeat :empty (CSS Selectors 3),
+	// so the cell still matches .ag-cell:empty -- which is what draws the muted
+	// em dash. Returning a wrapper element instead, however empty, breaks that.
+	function emptyCell() {
+		return document.createTextNode( '' );
+	}
+
 	function buildCard( v ) {
+		if ( !v ) {
+			return emptyCell();
+		}
 		var card = document.createElement( 'div' );
 		card.className = 'scw-entitycard';
-		if ( !v ) {
-			return card;
-		}
 
 		// Decorative brand glyph: a faint watermark behind the content, vertically
 		// centred and aligned to the cell's right edge. Painted as a currentColor
@@ -213,11 +223,11 @@
 	// sort and the number filter:
 	//   { value: <number>, text: <primary string>, sub: <secondary string>|null }
 	function buildStack( v ) {
+		if ( !v ) {
+			return emptyCell();
+		}
 		var el = document.createElement( 'div' );
 		el.className = 'scw-stackedvalue';
-		if ( !v ) {
-			return el;
-		}
 		var primary = document.createElement( 'span' );
 		primary.className = 'scw-stackedvalue__primary';
 		primary.textContent = v.text != null ? v.text : '';
@@ -240,11 +250,11 @@
 	// way, and the figure beside it. The figure sits OUTSIDE the track rather than
 	// over the fill -- overlaying them makes the long bars unreadable.
 	function buildSignedBar( v, max ) {
+		if ( !v || typeof v.value !== 'number' ) {
+			return emptyCell();
+		}
 		var el = document.createElement( 'div' );
 		el.className = 'scw-signedbar';
-		if ( !v || typeof v.value !== 'number' ) {
-			return el;
-		}
 		var track = document.createElement( 'span' );
 		track.className = 'scw-signedbar__track';
 		var fill = document.createElement( 'span' );
@@ -315,7 +325,7 @@
 	// scwBadge cell. Value: { text, variant }. Absent value -> empty cell.
 	function buildBadge( v ) {
 		if ( !v || !v.text ) {
-			return document.createTextNode( '' );
+			return emptyCell();
 		}
 		return buildBadgeEl( v );
 	}
@@ -333,7 +343,7 @@
 				}
 			} );
 		}
-		return wrap;
+		return wrap.firstChild ? wrap : emptyCell();
 	}
 
 	// scwBoolean cell. Value: { text, state, iconSrc }. Icon-only render matching
@@ -343,7 +353,7 @@
 	// agents query [data-state]). Absent value -> empty cell.
 	function buildBoolean( v ) {
 		if ( !v || !v.text ) {
-			return document.createTextNode( '' );
+			return emptyCell();
 		}
 		var state = v.state || 'unknown';
 		var wrap = document.createElement( 'span' );
@@ -611,7 +621,14 @@
 				return scwNumericAwareCompare( a, b );
 			},
 			cellClassRules: {
+				// A missing value has nothing to look numeric, so it falls back to
+				// colDef.scwNumericColumn -- set by Module:DataGrid when every value
+				// in the column is numeric -- and the empty cell's dash lines up with
+				// the figures above it instead of jumping to the left edge.
 				'ag-right-aligned-cell': function ( params ) {
+					if ( params.value === null || params.value === undefined || params.value === '' ) {
+						return !!( params.colDef && params.colDef.scwNumericColumn );
+					}
 					return scwLooksNumeric( params.value );
 				}
 			},

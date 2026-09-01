@@ -13,6 +13,19 @@ local function contains(list, value)
 	return false
 end
 
+-- `kind=bar` opts a column into the signed-bar rendering, and `good=` names the
+-- direction that helps; both are plain clauses like label= and size=.
+function suite:testParseColumnsBarClauses()
+	local cols = dg.parseColumns('Modifier resistance ; label=Resistance ; kind=bar ; good=lower')
+	self:assertEquals(1, #cols)
+	self:assertEquals('Modifier resistance', cols[1].property)
+	self:assertEquals('Resistance', cols[1].label)
+	self:assertEquals('bar', cols[1].kind)
+	self:assertEquals('lower', cols[1].good)
+	-- good is optional: an undirected bar column parses fine without it.
+	self:assertEquals(nil, dg.parseColumns('X ; kind=bar')[1].good)
+end
+
 -- parseColumns (carried over from Module:DataTableLua)
 
 function suite:testParseColumnsEmpty()

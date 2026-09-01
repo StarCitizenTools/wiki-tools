@@ -44,14 +44,16 @@ local EYEBROW_ROW_HEIGHT = 60
 --- @field size? string    Parsed for forward-compatibility; unused (see README).
 --- @field filter? boolean
 --- @field eyebrow? boolean Promote this column into the lead card's eyebrow.
---- @field kind? string  Override the auto-classified column kind (e.g. `effect`).
+--- @field kind? string  Override the auto-classified column kind (e.g. `effect`, `bar`).
+--- @field good? string  For `kind=bar`: 'higher' | 'lower', the direction that helps.
 
 --- Parse the multi-line `columns` value. Carried over from Module:DataTableLua:
 --- one column per non-blank line; within a line, `;`-separated clauses where the
---- first is the SMW property and the rest are modifiers (`label=X`, `size=X`, or
---- the bare flags `filter` / `eyebrow`, or `kind=X`). `eyebrow` promotes the column into the
---- lead card instead of rendering it as its own column. Unknown clauses are
---- ignored. Empty-property lines drop.
+--- first is the SMW property and the rest are modifiers (`label=X`, `size=X`,
+--- `kind=X`, `good=higher|lower`, or the bare flags `filter` / `eyebrow`).
+--- `eyebrow` promotes the column into the lead card instead of rendering it as its
+--- own column. `good` applies to `kind=bar` only, naming the direction that helps
+--- the reader. Unknown clauses are ignored. Empty-property lines drop.
 --- @param raw string
 --- @return DataGridColumn[]
 function p.parseColumns(raw)
@@ -74,6 +76,8 @@ function p.parseColumns(raw)
 						column.size = value
 					elseif key == 'kind' then
 						column.kind = value
+					elseif key == 'good' then
+						column.good = value
 					elseif clause == 'filter' then
 						column.filter = true
 					elseif clause == 'eyebrow' then
@@ -214,6 +218,25 @@ local function buildSpecs(results, columns, eyebrowColumn)
 					label = alias,
 					classify = require('Module:DietaryEffect').gridClassify,
 					filter = 'aggridSet',
+				}
+			elseif column.kind == 'bar' then
+				-- Bars are scaled on the column, so the spec carries the largest
+				-- magnitude in it; a per-cell scale would make two rows incomparable,
+				-- which is the whole point of drawing them.
+				local max = 0
+				for _, result in ipairs(results) do
+					local n = Util.toNumber(result[alias])
+					if n ~= nil and math.abs(n) > max then
+						max = math.abs(n)
+					end
+				end
+				specs[#specs + 1] = {
+					kind = 'signedBar',
+					field = 'c' .. i,
+					header = header,
+					label = alias,
+					good = column.good,
+					max = max,
 				}
 			elseif column.kind == 'boolean' then
 				-- Tri-state boolean: each value classified by Module:Boolean,

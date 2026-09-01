@@ -14,7 +14,9 @@ require('strict')
 --- or a plain column (the gadget's scwSmart type). A `filter`-flagged list column gets
 --- the extension's set filter, which splits each cell into one option per value. Numeric
 --- typing is NOT decided here -- scwSmart sorts numeric-looking values numerically and
---- right-aligns them per cell at render time.
+--- right-aligns them per cell at render time. The one exception is the column-level
+--- `numeric` flag, which an empty cell falls back to because it has no value of its
+--- own to look numeric.
 
 local Util = require('Module:AGGridColumns/Util')
 local AGGridColumns = require('Module:AGGridColumns')
@@ -362,12 +364,23 @@ local function buildSpecs(results, columns, eyebrowColumns, pinLead)
 						values[#values + 1] = result[alias]
 					end
 				end
+				-- All-numeric, not majority-numeric: the flag exists so an empty cell
+				-- can be aligned like the rest of its column, and in a mixed column
+				-- there is no "rest" to align to.
+				local numeric = #values > 0
+				for _, v in ipairs(values) do
+					if not Util.looksNumeric(v) then
+						numeric = false
+						break
+					end
+				end
 				specs[#specs + 1] = {
 					kind = KINDS[Util.classifyColumn(values)],
 					field = 'c' .. i,
 					header = header,
 					label = alias,
 					filter = column.filter and 'aggridSet' or 'agTextColumnFilter',
+					numeric = numeric,
 				}
 			end
 		end

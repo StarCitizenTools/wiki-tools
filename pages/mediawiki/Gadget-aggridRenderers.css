@@ -8,6 +8,17 @@
  *  scwEntityCard: thumbnail + eyebrow over a title, with a decorative brand
  *  watermark on the right.
  */
+
+/* A cell with no value gets a muted em dash, so a gap reads as "no data" rather
+   than as a cell that failed to render. Every renderer returns emptyCell() when
+   it has no value and AG Grid's own formatter empties the cell for a null, so
+   :empty catches all of them at once -- a renderer that returns an empty wrapper
+   element instead silently opts its column out. */
+.ag-cell:empty::after {
+	color: var( --color-placeholder );
+	content: "\2014";
+}
+
 .scw-entitycard {
 	position: relative;
 	display: flex;

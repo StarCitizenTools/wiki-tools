@@ -94,6 +94,17 @@ function suite:testSignedBarColDefCarriesScale()
 	self:assertEquals('agNumberColumnFilter', Bar.buildColDef({ field = 'c1', header = 'V', max = 5 }).filter)
 end
 
+-- The lead card can be pinned so it stays on screen while the data columns scroll.
+-- Only emitted when asked: an unconditional `pinned` would split every grid's
+-- viewport and draw a divider even where nothing overflows.
+function suite:testCardPinnedPassesThrough()
+	local Card = Registry.card
+	local spec = { field = 'lead', header = 'Name', titleLabel = 'Name', width = 260 }
+	self:assertEquals(nil, Card.buildColDef(spec).pinned)
+	spec.pinned = 'left'
+	self:assertEquals('left', Card.buildColDef(spec).pinned)
+end
+
 function suite:testUnknownKindErrors()
 	self:assertThrows(function()
 		AGGridColumns.buildColumnDefs({ { kind = 'nope', field = 'c' } })

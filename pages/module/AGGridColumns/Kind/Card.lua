@@ -2,7 +2,7 @@ require('strict')
 
 --- 'card' kind — a compact entity cell (thumbnail + eyebrow + title) rendered by
 --- the gadget's scwEntityCard type. Generalised from PledgeVehicleGrid's buildCard.
---- Spec: { field, header, titleLabel, imageLabel?, filter?, filterOn?,
+--- Spec: { field, header, titleLabel, imageLabel?, filter?, filterOn?, pinned?,
 ---         width? | (flex?, minWidth?),
 ---         eyebrow? = fun(result): { text, full?, href?, icon? }|nil }.
 --- Sizing is either fixed (`width`) or flexible (`flex`, with `minWidth` as its
@@ -43,6 +43,12 @@ function p.buildColDef(spec)
 	-- PledgeVehicleGrid (no filterOn) is unaffected.
 	if spec.filterOn then
 		def.scwCardFilterOn = spec.filterOn
+	end
+	-- Pinned, the card stays on screen while the data columns scroll under it, so a
+	-- value several screens to the right still has a subject. Only set when asked:
+	-- pinning splits AG Grid's viewport and draws a divider even with no overflow.
+	if spec.pinned then
+		def.pinned = spec.pinned
 	end
 	return def
 end

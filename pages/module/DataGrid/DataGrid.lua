@@ -19,6 +19,7 @@ require('strict')
 local Util = require('Module:AGGridColumns/Util')
 local AGGridColumns = require('Module:AGGridColumns')
 local aggrid = require('mw.ext.aggrid')
+local yesno = require('Module:Yesno')
 
 local p = {}
 
@@ -46,11 +47,12 @@ local EYEBROW_ROW_HEIGHT = 60
 --- @field eyebrow? boolean Promote this column into the lead card's eyebrow.
 --- @field kind? string  Override the auto-classified column kind (e.g. `effect`, `bar`).
 --- @field good? string  For `kind=bar`: 'higher' | 'lower', the direction that helps.
+--- @field group? string  Header this column sits under; consecutive matches nest together.
 
 --- Parse the multi-line `columns` value. Carried over from Module:DataTableLua:
 --- one column per non-blank line; within a line, `;`-separated clauses where the
 --- first is the SMW property and the rest are modifiers (`label=X`, `size=X`,
---- `kind=X`, `good=higher|lower`, or the bare flags `filter` / `eyebrow`).
+--- `kind=X`, `good=higher|lower`, `group=X`, or the bare flags `filter` / `eyebrow`).
 --- `eyebrow` promotes the column into the lead card instead of rendering it as its
 --- own column. `good` applies to `kind=bar` only, naming the direction that helps
 --- the reader. Unknown clauses are ignored. Empty-property lines drop.
@@ -78,6 +80,8 @@ function p.parseColumns(raw)
 						column.kind = value
 					elseif key == 'good' then
 						column.good = value
+					elseif key == 'group' then
+						column.group = value
 					elseif clause == 'filter' then
 						column.filter = true
 					elseif clause == 'eyebrow' then
@@ -150,29 +154,65 @@ function p.buildQuery(category, columns, conditions)
 	return query
 end
 
---- A generic eyebrow resolver for the lead card, closed over the eyebrow column's
---- result-row key. Returns the value as `{ text, full, href? }`: a linked label
---- when the value is a single page printout, else plain text. No icon — the brand
---- glyph is PledgeVehicleGrid-specific. Returns nil when the value is empty.
+--- One eyebrow column's value as `{ text, href? }`: a linked label when the value
+--- is a single page printout, else plain text. No icon — the brand glyph is
+--- PledgeVehicleGrid-specific. nil when the value is empty.
+--- @param result table
 --- @param alias string
+--- @return table|nil
+local function eyebrowPart(result, alias)
+	local value = result[alias]
+	local target, display = Util.parseLink(value)
+	if target then
+		local link = aggrid.link(target, display)
+		return {
+			text = (link and link.text) or display or target,
+			href = link and link.href,
+		}
+	end
+	local text = Util.toText(value)
+	if text and text ~= '' then
+		return { text = text }
+	end
+	return nil
+end
+
+--- The lead card's eyebrow resolver, closed over every `eyebrow` column's key.
+--- Several columns compose one line — "Active · 5 charges · 60 s" — so the specs a
+--- reader needs to identify a row travel in the lead instead of costing a column
+--- each. Only a single part keeps its link: a composed line has no one target.
+---
+--- `filterAlias` is the column the lead's set filter keys on, surfaced separately
+--- as `full` (the Card kind's set-filter value). Without it the whole composed
+--- line would become the filter option, which is one option per row.
+--- @param aliases string[]
+--- @param filterAlias string|nil
 --- @return fun(result: table): table|nil
-local function eyebrowResolver(alias)
+local function eyebrowResolver(aliases, filterAlias)
 	return function(result)
-		local value = result[alias]
-		local target, display = Util.parseLink(value)
-		if target then
-			local link = aggrid.link(target, display)
-			return {
-				text = (link and link.text) or display or target,
-				full = display or target,
-				href = link and link.href,
-			}
+		local parts = {}
+		local single
+		for _, alias in ipairs(aliases) do
+			local part = eyebrowPart(result, alias)
+			if part then
+				parts[#parts + 1] = part.text
+				single = (#parts == 1) and part or nil
+			end
 		end
-		local text = Util.toText(value)
-		if text and text ~= '' then
-			return { text = text, full = text }
+		if #parts == 0 then
+			return nil
 		end
-		return nil
+		local text = table.concat(parts, ' · ')
+		local full = text
+		if filterAlias then
+			local filterPart = eyebrowPart(result, filterAlias)
+			full = filterPart and filterPart.text or nil
+		end
+		return {
+			text = text,
+			full = full,
+			href = single and single.href or nil,
+		}
 	end
 end
 
@@ -182,9 +222,10 @@ end
 --- `eyebrow` feeds the lead card and is not emitted as its own column.
 --- @param results table[]
 --- @param columns DataGridColumn[]
---- @param eyebrowColumn DataGridColumn|nil
+--- @param eyebrowColumns DataGridColumn[]
+--- @param pinLead boolean
 --- @return table[]
-local function buildSpecs(results, columns, eyebrowColumn)
+local function buildSpecs(results, columns, eyebrowColumns, pinLead)
 	local leadSpec = {
 		kind = 'card',
 		field = 'lead',
@@ -193,19 +234,47 @@ local function buildSpecs(results, columns, eyebrowColumn)
 		imageLabel = IMAGE_ALIAS,
 		filterOn = 'title',
 		filter = 'agTextColumnFilter',
-		-- Grow to fill horizontal slack left by the content-sized data columns, so
-		-- rows span the full container instead of ending short. LEAD_WIDTH floors it;
-		-- when the columns already overflow there is no slack and it sits at the floor.
-		flex = 1,
-		minWidth = LEAD_WIDTH,
 	}
-	if eyebrowColumn then
-		leadSpec.eyebrow = eyebrowResolver(p.columnAlias(eyebrowColumn))
+	-- Sizing. Unpinned, the lead grows to fill horizontal slack left by the
+	-- content-sized data columns, so rows span the full container instead of ending
+	-- short; LEAD_WIDTH floors it. Pinned, it takes that as a FIXED width: a pinned
+	-- column lives outside AG Grid's centre viewport, where flex has nothing to flex
+	-- against, and the two together leave the column unpinned.
+	--
+	-- Pinning keeps the lead on screen while the data columns scroll under it.
+	-- Sideways scrolling is not what makes a wide table unusable; losing track of
+	-- which row you are reading is. Opt-in, because pinning splits the viewport and
+	-- draws a divider even when nothing overflows.
+	if pinLead then
+		leadSpec.pinned = 'left'
+		leadSpec.width = LEAD_WIDTH
+	else
+		leadSpec.flex = 1
+		leadSpec.minWidth = LEAD_WIDTH
+	end
+	if eyebrowColumns[1] then
+		local aliases, filterAlias = {}, nil
+		for _, column in ipairs(eyebrowColumns) do
+			aliases[#aliases + 1] = p.columnAlias(column)
+			if column.filter and not filterAlias then
+				filterAlias = p.columnAlias(column)
+			end
+		end
+		leadSpec.eyebrow = eyebrowResolver(aliases, filterAlias)
+		-- A `filter`-flagged eyebrow moves the lead's filter off the name and onto
+		-- that value as a checkbox set — "show me only the Active modules". The name
+		-- stays searchable through the grid's quickSearch box, so nothing is lost.
+		if filterAlias then
+			leadSpec.filterOn = 'eyebrow'
+			leadSpec.filter = 'aggridSet'
+		end
 	end
 	local specs = { leadSpec }
+	local groups = { false }
 	local KINDS = { list = 'valueList', link = 'link', plain = 'smart' }
 	for i, column in ipairs(columns) do
 		if not column.eyebrow then
+			groups[#specs + 1] = (column.group ~= nil and column.group ~= '') and column.group or false
 			local alias = p.columnAlias(column)
 			local header = (column.label and column.label ~= '') and column.label or column.property
 			if column.kind == 'effect' then
@@ -265,7 +334,37 @@ local function buildSpecs(results, columns, eyebrowColumn)
 			end
 		end
 	end
-	return specs
+	return specs, groups
+end
+
+--- Nest runs of consecutive columns that share a `group` into AG Grid column
+--- groups. Grouping is what turns nine unfamiliar stat names into the two or three
+--- questions a reader actually has ("what does the rock do", "what do I take
+--- home"), so it is a header row, not decoration.
+---
+--- Only CONSECUTIVE matches nest: a group is a position in the table, and letting
+--- non-adjacent columns join one would silently reorder the editor's columns.
+--- @param defs table[]
+--- @param groups (string|false)[]  aligned with defs
+--- @return table[]
+local function groupColumnDefs(defs, groups)
+	local out = {}
+	local i = 1
+	while i <= #defs do
+		local group = groups[i]
+		if not group then
+			out[#out + 1] = defs[i]
+			i = i + 1
+		else
+			local children = {}
+			while i <= #defs and groups[i] == group do
+				children[#children + 1] = defs[i]
+				i = i + 1
+			end
+			out[#out + 1] = { headerName = group, children = children }
+		end
+	end
+	return out
 end
 
 --- Entry point for {{Data table}}. Reads `category`, `columns`, `conditions` from
@@ -292,16 +391,15 @@ function p.main(frame)
 		return '<strong class="error">Module:DataGrid: duplicate column "' .. duplicate .. '".</strong>'
 	end
 
-	-- At most one column may be promoted into the lead card's eyebrow.
-	local eyebrowColumn
+	-- Every `eyebrow` column composes the lead card's second line, in the order the
+	-- editor wrote them.
+	local eyebrowColumns = {}
 	for _, column in ipairs(columns) do
 		if column.eyebrow then
-			if eyebrowColumn then
-				return '<strong class="error">Module:DataGrid: only one eyebrow column allowed.</strong>'
-			end
-			eyebrowColumn = column
+			eyebrowColumns[#eyebrowColumns + 1] = column
 		end
 	end
+	local pinLead = yesno(args.pinlead, false)
 
 	-- A query that matches nothing legitimately returns no rows; coerce non-table to
 	-- {} so the grid renders empty (AG Grid shows its own "no rows" overlay) rather
@@ -311,13 +409,13 @@ function p.main(frame)
 		results = {}
 	end
 
-	local specs = buildSpecs(results, columns, eyebrowColumn)
+	local specs, groups = buildSpecs(results, columns, eyebrowColumns, pinLead)
 	local gridOptions = {
-		columnDefs = AGGridColumns.buildColumnDefs(specs),
+		columnDefs = groupColumnDefs(AGGridColumns.buildColumnDefs(specs), groups),
 		rowData = AGGridColumns.buildRowData(results, specs),
 		quickSearch = true,
 		pagination = false,
-		rowHeight = eyebrowColumn and EYEBROW_ROW_HEIGHT or ROW_HEIGHT,
+		rowHeight = eyebrowColumns[1] and EYEBROW_ROW_HEIGHT or ROW_HEIGHT,
 		autoSizeStrategy = { type = 'fitCellContents' },
 		defaultColDef = { sortable = true, resizable = true },
 	}
@@ -329,5 +427,12 @@ function p.main(frame)
 
 	return styles .. '<div class="t-datagrid">' .. aggrid.render(gridOptions) .. '</div>'
 end
+
+-- Test-only exports. Not part of the public API.
+p._internal = {
+	buildSpecs = buildSpecs,
+	groupColumnDefs = groupColumnDefs,
+	eyebrowResolver = eyebrowResolver,
+}
 
 return p

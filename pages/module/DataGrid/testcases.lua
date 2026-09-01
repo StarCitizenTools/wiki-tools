@@ -13,6 +13,77 @@ local function contains(list, value)
 	return false
 end
 
+-- Consecutive columns sharing a group nest under one header; a run ends as soon
+-- as the group changes, so a group is a POSITION and never silently reorders.
+function suite:testGroupColumnDefsNestsRuns()
+	local defs = { { field = 'lead' }, { field = 'c1' }, { field = 'c2' }, { field = 'c3' }, { field = 'c4' } }
+	local groups = { false, 'Rock', 'Rock', 'Charge', false }
+	local out = dg._internal.groupColumnDefs(defs, groups)
+	self:assertEquals(4, #out)
+	self:assertEquals('lead', out[1].field)
+	self:assertEquals('Rock', out[2].headerName)
+	self:assertEquals(2, #out[2].children)
+	self:assertEquals('c1', out[2].children[1].field)
+	self:assertEquals('Charge', out[3].headerName)
+	self:assertEquals(1, #out[3].children)
+	self:assertEquals('c4', out[4].field)
+end
+
+-- A non-adjacent repeat of a group name starts a SECOND group rather than pulling
+-- the column out of order.
+function suite:testGroupColumnDefsDoesNotReorder()
+	local defs = { { field = 'a' }, { field = 'b' }, { field = 'c' } }
+	local out = dg._internal.groupColumnDefs(defs, { 'Rock', 'Charge', 'Rock' })
+	self:assertEquals(3, #out)
+	self:assertEquals('Rock', out[1].headerName)
+	self:assertEquals('Charge', out[2].headerName)
+	self:assertEquals('Rock', out[3].headerName)
+	self:assertEquals('c', out[3].children[1].field)
+end
+
+-- Several eyebrow columns compose one line, so specs a reader needs to identify a
+-- row travel in the lead card instead of costing a column each.
+function suite:testEyebrowResolverComposes()
+	local resolve = dg._internal.eyebrowResolver({ 'Type', 'Charges' }, nil)
+	local v = resolve({ Type = 'Active', Charges = '5' })
+	self:assertEquals('Active · 5', v.text)
+	-- With no filter column the whole line is the filter value.
+	self:assertEquals('Active · 5', v.full)
+	-- Absent parts drop out rather than leaving a dangling separator.
+	self:assertEquals('Active', resolve({ Type = 'Active' }).text)
+	self:assertEquals(nil, resolve({}))
+end
+
+-- A filter-flagged eyebrow keys the lead's set filter on that column alone;
+-- filtering on the composed line would give one option per row.
+function suite:testEyebrowResolverFilterValue()
+	local resolve = dg._internal.eyebrowResolver({ 'Type', 'Charges' }, 'Type')
+	local v = resolve({ Type = 'Passive', Charges = '1' })
+	self:assertEquals('Passive · 1', v.text)
+	self:assertEquals('Passive', v.full)
+end
+
+-- A pinned lead takes a fixed width: pinned lives outside AG Grid's centre
+-- viewport, where flex has nothing to flex against, and the two together leave the
+-- column unpinned entirely.
+function suite:testPinnedLeadDropsFlex()
+	local unpinned = dg._internal.buildSpecs({}, {}, {}, false)[1]
+	self:assertEquals(1, unpinned.flex)
+	self:assertEquals(nil, unpinned.pinned)
+	self:assertEquals(nil, unpinned.width)
+	local pinned = dg._internal.buildSpecs({}, {}, {}, true)[1]
+	self:assertEquals('left', pinned.pinned)
+	self:assertEquals(260, pinned.width)
+	self:assertEquals(nil, pinned.flex)
+end
+
+-- `group=` places a column under a shared header.
+function suite:testParseColumnsGroupClause()
+	local cols = dg.parseColumns('Modifier resistance ; label=Resistance ; group=Rock')
+	self:assertEquals('Rock', cols[1].group)
+	self:assertEquals(nil, dg.parseColumns('X')[1].group)
+end
+
 -- `kind=bar` opts a column into the signed-bar rendering, and `good=` names the
 -- direction that helps; both are plain clauses like label= and size=.
 function suite:testParseColumnsBarClauses()

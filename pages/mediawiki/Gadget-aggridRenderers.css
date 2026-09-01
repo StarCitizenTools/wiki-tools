@@ -315,3 +315,12 @@
 .scw-signedbar__value--bad {
 	color: var( --color-destructive );
 }
+
+/* Column groups (Module:DataGrid `group=`) put a second header row above the
+   column headers. The theme draws no rule between the two, so they read as one
+   block and it is unclear which columns a group spans -- the whole point of
+   grouping. The border goes on the group CELL rather than the row: AG Grid
+   positions header rows absolutely, and the row box does not paint one. */
+.ag-header-row-group .ag-header-group-cell {
+	border-bottom: 1px solid var( --border-color-base );
+}

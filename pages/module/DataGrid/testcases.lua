@@ -44,7 +44,7 @@ end
 -- Several eyebrow columns compose one line, so specs a reader needs to identify a
 -- row travel in the lead card instead of costing a column each.
 function suite:testEyebrowResolverComposes()
-	local resolve = dg._internal.eyebrowResolver({ 'Type', 'Charges' }, nil)
+	local resolve = dg._internal.eyebrowResolver({ { alias = 'Type' }, { alias = 'Charges' } }, nil)
 	local v = resolve({ Type = 'Active', Charges = '5' })
 	self:assertEquals('Active · 5', v.text)
 	-- With no filter column the whole line is the filter value.
@@ -54,13 +54,56 @@ function suite:testEyebrowResolverComposes()
 	self:assertEquals(nil, resolve({}))
 end
 
+-- A composed eyebrow strips the column headers that would say what a number is, so
+-- `suffix` puts the unit back: "Active · 5 · 60" tells a reader nothing.
+function suite:testEyebrowResolverSuffixes()
+	local resolve = dg._internal.eyebrowResolver({
+		{ alias = 'Type' },
+		{ alias = 'Charges', suffix = 'charges', suffix1 = 'charge' },
+		{ alias = 'Duration', suffix = 's' },
+	}, nil)
+	self:assertEquals('Active · 5 charges · 60 s', resolve({ Type = 'Active', Charges = '5', Duration = '60' }).text)
+	-- Most passive modules have exactly one charge, so "1 charges" would be wrong on
+	-- more rows than it is right.
+	self:assertEquals('Passive · 1 charge', resolve({ Type = 'Passive', Charges = '1' }).text)
+	-- A suffix on an absent value adds nothing — no stray unit on an empty part.
+	self:assertEquals('Active', resolve({ Type = 'Active' }).text)
+end
+
 -- A filter-flagged eyebrow keys the lead's set filter on that column alone;
 -- filtering on the composed line would give one option per row.
 function suite:testEyebrowResolverFilterValue()
-	local resolve = dg._internal.eyebrowResolver({ 'Type', 'Charges' }, 'Type')
+	local typePart = { alias = 'Type' }
+	local resolve = dg._internal.eyebrowResolver(
+		{ typePart, { alias = 'Charges', suffix = 'charges', suffix1 = 'charge' } },
+		typePart
+	)
 	local v = resolve({ Type = 'Passive', Charges = '1' })
-	self:assertEquals('Passive · 1', v.text)
+	self:assertEquals('Passive · 1 charge', v.text)
+	-- An undecorated filter column is unchanged by the decoration rule.
 	self:assertEquals('Passive', v.full)
+end
+
+-- prefix joins with NO space and suffix with one, matching how each is actually
+-- written: a size is "S1", a unit is a separate word.
+function suite:testEyebrowResolverPrefix()
+	local resolve = dg._internal.eyebrowResolver({
+		{ alias = 'Size', prefix = 'S' },
+		{ alias = 'Slots', suffix = 'slots', suffix1 = 'slot' },
+	}, nil)
+	self:assertEquals('S2 · 2 slots', resolve({ Size = '2', Slots = '2' }).text)
+	self:assertEquals('S1 · 1 slot', resolve({ Size = '1', Slots = '1' }).text)
+end
+
+-- The set filter lists the DECORATED value, so a size filter offers "S1" — the
+-- term a reader recognises — rather than a bare "1".
+function suite:testEyebrowFilterValueIsDecorated()
+	local size = { alias = 'Size', prefix = 'S' }
+	local resolve =
+		dg._internal.eyebrowResolver({ size, { alias = 'Slots', suffix = 'slots', suffix1 = 'slot' } }, size)
+	local v = resolve({ Size = '1', Slots = '1' })
+	self:assertEquals('S1 · 1 slot', v.text)
+	self:assertEquals('S1', v.full)
 end
 
 -- A pinned lead takes a fixed width: pinned lives outside AG Grid's centre
@@ -81,6 +124,10 @@ end
 function suite:testParseColumnsGroupClause()
 	local cols = dg.parseColumns('Modifier resistance ; label=Resistance ; group=Rock')
 	self:assertEquals('Rock', cols[1].group)
+	local charges = dg.parseColumns('Charges ; eyebrow ; suffix=charges ; suffix1=charge')[1]
+	self:assertEquals('charges', charges.suffix)
+	self:assertEquals('charge', charges.suffix1)
+	self:assertEquals('S', dg.parseColumns('Size ; eyebrow ; prefix=S')[1].prefix)
 	self:assertEquals(nil, dg.parseColumns('X')[1].group)
 end
 

@@ -48,11 +48,15 @@ local EYEBROW_ROW_HEIGHT = 60
 --- @field kind? string  Override the auto-classified column kind (e.g. `effect`, `bar`).
 --- @field good? string  For `kind=bar`: 'higher' | 'lower', the direction that helps.
 --- @field group? string  Header this column sits under; consecutive matches nest together.
+--- @field prefix? string  For `eyebrow`: joined before the value, no space ("1" -> "S1").
+--- @field suffix? string  For `eyebrow`: unit appended after a space ("5" -> "5 charges").
+--- @field suffix1? string  The `suffix` to use when the value is exactly 1 ("1 charge").
 
 --- Parse the multi-line `columns` value. Carried over from Module:DataTableLua:
 --- one column per non-blank line; within a line, `;`-separated clauses where the
 --- first is the SMW property and the rest are modifiers (`label=X`, `size=X`,
---- `kind=X`, `good=higher|lower`, `group=X`, or the bare flags `filter` / `eyebrow`).
+--- `kind=X`, `good=higher|lower`, `group=X`, `prefix=X`, `suffix=X`, `suffix1=X`,
+--- or the bare flags `filter` / `eyebrow`).
 --- `eyebrow` promotes the column into the lead card instead of rendering it as its
 --- own column. `good` applies to `kind=bar` only, naming the direction that helps
 --- the reader. Unknown clauses are ignored. Empty-property lines drop.
@@ -82,6 +86,12 @@ function p.parseColumns(raw)
 						column.good = value
 					elseif key == 'group' then
 						column.group = value
+					elseif key == 'prefix' then
+						column.prefix = value
+					elseif key == 'suffix' then
+						column.suffix = value
+					elseif key == 'suffix1' then
+						column.suffix1 = value
 					elseif clause == 'filter' then
 						column.filter = true
 					elseif clause == 'eyebrow' then
@@ -157,11 +167,20 @@ end
 --- One eyebrow column's value as `{ text, href? }`: a linked label when the value
 --- is a single page printout, else plain text. No icon — the brand glyph is
 --- PledgeVehicleGrid-specific. nil when the value is empty.
+---
+--- A composed eyebrow strips the column headers that would otherwise say what a
+--- number is — "S1 · 1 · Active" tells a reader nothing — so `prefix` and `suffix`
+--- put the unit back. They join differently on purpose, matching how each is
+--- actually written: `prefix` has NO space, because Star Citizen writes a size as
+--- "S1"; `suffix` takes one, because a unit is a separate word ("5 charges",
+--- "60 s"). `suffix1` is the singular, used when the value is exactly 1 — most
+--- passive modules have one charge, so "1 charges" would be wrong on more rows
+--- than it is right.
 --- @param result table
---- @param alias string
+--- @param part table  { alias, prefix?, suffix?, suffix1? }
 --- @return table|nil
-local function eyebrowPart(result, alias)
-	local value = result[alias]
+local function eyebrowPart(result, part)
+	local value = result[part.alias]
 	local target, display = Util.parseLink(value)
 	if target then
 		local link = aggrid.link(target, display)
@@ -171,10 +190,20 @@ local function eyebrowPart(result, alias)
 		}
 	end
 	local text = Util.toText(value)
-	if text and text ~= '' then
-		return { text = text }
+	if text == nil or text == '' then
+		return nil
 	end
-	return nil
+	local suffix = part.suffix
+	if suffix and part.suffix1 and tonumber(text) == 1 then
+		suffix = part.suffix1
+	end
+	if suffix and suffix ~= '' then
+		text = text .. ' ' .. suffix
+	end
+	if part.prefix and part.prefix ~= '' then
+		text = part.prefix .. text
+	end
+	return { text = text }
 end
 
 --- The lead card's eyebrow resolver, closed over every `eyebrow` column's key.
@@ -182,31 +211,34 @@ end
 --- reader needs to identify a row travel in the lead instead of costing a column
 --- each. Only a single part keeps its link: a composed line has no one target.
 ---
---- `filterAlias` is the column the lead's set filter keys on, surfaced separately
---- as `full` (the Card kind's set-filter value). Without it the whole composed
---- line would become the filter option, which is one option per row.
---- @param aliases string[]
---- @param filterAlias string|nil
+--- `filterPart` is the column the lead's set filter keys on, surfaced separately as
+--- `full` (the Card kind's set-filter value). Without it the whole composed line
+--- would become the filter option, which is one option per row.
+--- @param parts table[]  { alias, prefix?, suffix?, suffix1? }
+--- @param filterPart table|nil
 --- @return fun(result: table): table|nil
-local function eyebrowResolver(aliases, filterAlias)
+local function eyebrowResolver(parts, filterPart)
 	return function(result)
-		local parts = {}
+		local rendered = {}
 		local single
-		for _, alias in ipairs(aliases) do
-			local part = eyebrowPart(result, alias)
-			if part then
-				parts[#parts + 1] = part.text
-				single = (#parts == 1) and part or nil
+		for _, part in ipairs(parts) do
+			local resolved = eyebrowPart(result, part)
+			if resolved then
+				rendered[#rendered + 1] = resolved.text
+				single = (#rendered == 1) and resolved or nil
 			end
 		end
-		if #parts == 0 then
+		if #rendered == 0 then
 			return nil
 		end
-		local text = table.concat(parts, ' · ')
+		local text = table.concat(rendered, ' · ')
 		local full = text
-		if filterAlias then
-			local filterPart = eyebrowPart(result, filterAlias)
-			full = filterPart and filterPart.text or nil
+		if filterPart then
+			-- The filter keys on ONE column, not the composed line, which would give an
+			-- option per row. It uses that column's DECORATED text, so a size filter
+			-- lists "S1" — the term a reader recognises — rather than a bare "1".
+			local resolved = eyebrowPart(result, filterPart)
+			full = resolved and resolved.text or nil
 		end
 		return {
 			text = text,
@@ -253,18 +285,24 @@ local function buildSpecs(results, columns, eyebrowColumns, pinLead)
 		leadSpec.minWidth = LEAD_WIDTH
 	end
 	if eyebrowColumns[1] then
-		local aliases, filterAlias = {}, nil
+		local parts, filterPart = {}, nil
 		for _, column in ipairs(eyebrowColumns) do
-			aliases[#aliases + 1] = p.columnAlias(column)
-			if column.filter and not filterAlias then
-				filterAlias = p.columnAlias(column)
+			local part = {
+				alias = p.columnAlias(column),
+				prefix = column.prefix,
+				suffix = column.suffix,
+				suffix1 = column.suffix1,
+			}
+			parts[#parts + 1] = part
+			if column.filter and not filterPart then
+				filterPart = part
 			end
 		end
-		leadSpec.eyebrow = eyebrowResolver(aliases, filterAlias)
+		leadSpec.eyebrow = eyebrowResolver(parts, filterPart)
 		-- A `filter`-flagged eyebrow moves the lead's filter off the name and onto
 		-- that value as a checkbox set — "show me only the Active modules". The name
 		-- stays searchable through the grid's quickSearch box, so nothing is lost.
-		if filterAlias then
+		if filterPart then
 			leadSpec.filterOn = 'eyebrow'
 			leadSpec.filter = 'aggridSet'
 		end

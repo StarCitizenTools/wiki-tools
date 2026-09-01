@@ -113,7 +113,10 @@
 		}
 		var s = typeof v === 'string' ? v : String( v );
 		s = scwDecode( s );
-		return s.replace( / /g, ' ' ).replace( /\s+/g, ' ' ).replace( /^\s+|\s+$/g, '' );
+		// \s already covers nbsp (and every other Unicode space), so one collapse
+		// handles the "&#160;" the SMW formatter emits -- no separate nbsp pass, and
+		// never a literal nbsp in the source, which is unreviewable in a diff.
+		return s.replace( /\s+/g, ' ' ).replace( /^\s+|\s+$/g, '' );
 	}
 
 	// The numeric value of a cell, or null when it is not numeric. RULE: numeric iff,

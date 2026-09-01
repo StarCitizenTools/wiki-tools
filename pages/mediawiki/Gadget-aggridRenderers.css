@@ -135,70 +135,6 @@
 	font-size: var( --font-size-x-small );
 }
 
-/* Signed bar (scwSignedBar): a centre-anchored track with the fill leaning the
-   way that helps, and the figure beside it. Track and figure sit side by side --
-   overlaying the figure on the fill makes the long bars unreadable. */
-.scw-signedbar {
-	display: flex;
-	align-items: center;
-	justify-content: flex-end;
-	gap: var( --space-xs );
-	width: 100%;
-}
-
-.scw-signedbar__track {
-	position: relative;
-	display: block;
-	flex: none;
-	width: 56px;
-	height: 10px;
-	border-radius: var( --border-radius-base );
-	background-color: var( --background-color-interactive-subtle );
-}
-
-/* The centre line is the baseline the fill grows from, drawn over the track so a
-   zero-width cell still reads as "on the baseline" rather than empty. */
-.scw-signedbar__track::before {
-	content: "";
-	position: absolute;
-	left: 50%;
-	top: -1px;
-	bottom: -1px;
-	width: 1px;
-	background-color: var( --border-color-base );
-}
-
-.scw-signedbar__fill {
-	position: absolute;
-	top: 1px;
-	height: 8px;
-	border-radius: var( --border-radius-base );
-	/* Undirected stats keep the neutral fill: a bar that leans is not a verdict. */
-	background-color: var( --color-subtle );
-}
-
-.scw-signedbar__fill--good {
-	background-color: var( --color-success );
-}
-
-.scw-signedbar__fill--bad {
-	background-color: var( --color-destructive );
-}
-
-.scw-signedbar__value {
-	min-width: 3.5em;
-	text-align: right;
-	font-variant-numeric: tabular-nums;
-}
-
-.scw-signedbar__value--good {
-	color: var( --color-success );
-}
-
-.scw-signedbar__value--bad {
-	color: var( --color-destructive );
-}
-
 /* Badge pill (scwBadge), styled to match Module:BadgeLua/styles.css so grid
    badges read the same as BadgeLua badges elsewhere. */
 .t-badge {
@@ -314,4 +250,68 @@
 	mask-position: center;
 	background-color: currentColor;
 	vertical-align: middle;
+}
+
+/* Signed bar (scwSignedBar): a centre-anchored track with the fill leaning the
+   way that helps, and the figure beside it. Track and figure sit side by side --
+   overlaying the figure on the fill makes the long bars unreadable. */
+.scw-signedbar {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: var( --space-xs );
+	width: 100%;
+}
+
+.scw-signedbar__track {
+	position: relative;
+	display: block;
+	flex: none;
+	width: 56px;
+	height: 10px;
+	border-radius: var( --border-radius-base );
+	background-color: var( --background-color-interactive-subtle );
+}
+
+/* The centre line is the baseline the fill grows from, drawn over the track so a
+   zero-width cell still reads as "on the baseline" rather than empty. */
+.scw-signedbar__track::before {
+	content: "";
+	position: absolute;
+	left: 50%;
+	top: -1px;
+	bottom: -1px;
+	width: 1px;
+	background-color: var( --border-color-base );
+}
+
+.scw-signedbar__fill {
+	position: absolute;
+	top: 1px;
+	height: 8px;
+	border-radius: var( --border-radius-base );
+	/* Undirected stats keep the neutral fill: a bar that leans is not a verdict. */
+	background-color: var( --color-subtle );
+}
+
+.scw-signedbar__fill--good {
+	background-color: var( --color-success );
+}
+
+.scw-signedbar__fill--bad {
+	background-color: var( --color-destructive );
+}
+
+.scw-signedbar__value {
+	min-width: 3.5em;
+	text-align: right;
+	font-variant-numeric: tabular-nums;
+}
+
+.scw-signedbar__value--good {
+	color: var( --color-success );
+}
+
+.scw-signedbar__value--bad {
+	color: var( --color-destructive );
 }

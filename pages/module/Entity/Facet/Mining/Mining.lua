@@ -89,11 +89,53 @@ local DUPLICATE_OF_FILTER = { inert_materials = true }
 --- modifier targets, so on its own it cannot say which. `description_data` names
 --- them, in absolute form ("135%", not "+35%").
 ---
---- @type { name: string, label: string }[]
+--- @type { name: string, label: string, facetKey: string }[]
 local POWER_STATS = {
-	{ name = 'Mining Laser Power', label = 'Mining laser power' },
-	{ name = 'Extraction Laser Power', label = 'Extraction laser power' },
+	{ name = 'Mining Laser Power', label = 'Mining laser power', facetKey = 'modifier_mining_laser_power' },
+	{
+		name = 'Extraction Laser Power',
+		label = 'Extraction laser power',
+		facetKey = 'modifier_extraction_laser_power',
+	},
 }
+
+--- Resolves the laser-power stats to `{ [facetKey] = <signed percentage> }`, so the
+--- rows and the stored facets cannot disagree about which beam a number belongs to.
+---
+--- `description_data` names each beam; `power_modifier` does not, carrying whichever
+--- one the module's first UI-visible modifier targets. Clearcut / Deluge / Overrun
+--- get an empty `description_data`, so they fall back to
+--- `weapon_modifier.damage_multiplier` — always the fracture beam, hence always
+--- mining laser power. Deluge and Overrun also carry an extraction figure that
+--- reaches no API field; it is dropped rather than mislabelled.
+---
+--- @param apiData table
+--- @return table<string, number>
+function p.powerFacets(apiData)
+	local data = {}
+	local dd = type(apiData.description_data) == 'table' and apiData.description_data or {}
+	for _, stat in ipairs(POWER_STATS) do
+		for _, entry in ipairs(dd) do
+			if type(entry) == 'table' and entry.name == stat.name then
+				local pct = toNumber(entry.value)
+				if pct ~= nil then
+					data[stat.facetKey] = pct - 100
+				end
+				break
+			end
+		end
+	end
+	if next(data) ~= nil then
+		return data
+	end
+
+	local wm = type(apiData.weapon_modifier) == 'table' and apiData.weapon_modifier or {}
+	local multiplier = toNumber(wm.damage_multiplier)
+	if multiplier ~= nil and multiplier ~= 1 then
+		data[POWER_STATS[1].facetKey] = (multiplier - 1) * 100
+	end
+	return data
+end
 
 --- Pushes the laser-power rows, preferring the named `description_data` entries.
 --- Clearcut / Deluge / Overrun get an empty `description_data`, so they fall back to
@@ -104,30 +146,12 @@ local POWER_STATS = {
 --- @param items EntityItemData[]
 --- @param apiData table
 local function pushPowerRows(items, apiData)
-	local pushed = false
-	local dd = type(apiData.description_data) == 'table' and apiData.description_data or {}
+	local facets = p.powerFacets(apiData)
 	for _, stat in ipairs(POWER_STATS) do
-		for _, entry in ipairs(dd) do
-			if type(entry) == 'table' and entry.name == stat.name then
-				local pct = toNumber(entry.value)
-				if pct ~= nil then
-					local delta = pct - 100
-					sectionBuilder.push(items, stat.label, format.colorBySign(signedPct(delta), delta))
-					pushed = true
-				end
-				break
-			end
+		local delta = facets[stat.facetKey]
+		if delta ~= nil then
+			sectionBuilder.push(items, stat.label, format.colorBySign(signedPct(delta), delta))
 		end
-	end
-	if pushed then
-		return
-	end
-
-	local wm = type(apiData.weapon_modifier) == 'table' and apiData.weapon_modifier or {}
-	local multiplier = toNumber(wm.damage_multiplier)
-	if multiplier ~= nil and multiplier ~= 1 then
-		local delta = (multiplier - 1) * 100
-		sectionBuilder.push(items, POWER_STATS[1].label, format.colorBySign(signedPct(delta), delta))
 	end
 end
 
@@ -252,8 +276,8 @@ function p.getSections(apiData, args)
 	}))
 end
 
---- Mining facets for querying / the type index table: the module type, the power
---- modifier (as a percentage), charges + duration for active modules, and every
+--- Mining facets for querying / the type index table: the module type, each laser
+--- beam's power modifier, charges + duration for active modules, and every
 --- `modifier_map` effect as a numeric `Modifier <effect>` property (e.g. "Modifier
 --- resistance" = 15.5). The effect facets are dynamic, so new effects become
 --- queryable without code changes, and the `Modifier <effect>` naming reuses the
@@ -267,16 +291,20 @@ function p.getStructuredData(apiData, args)
 	if type(m) ~= 'table' then
 		return {}
 	end
-	local power = toNumber(m.power_modifier)
 	local charges = tonumber(m.charges)
 	local duration = tonumber(m.duration)
 	local data = {
 		mining_type = m.type,
-		power_modifier = power and (math.floor(power * 1000 + 0.5) / 10) or nil,
 		charges = (charges and charges > 0) and charges or nil,
 		duration = (duration and duration > 0) and duration or nil,
 	}
 
+	-- The two beams are stored separately. The API's own `power_modifier` is NOT
+	-- stored: it is whichever beam happened to come first, so a query on it compares
+	-- fracture power against extraction power without saying so.
+	for k, v in pairs(p.powerFacets(apiData)) do
+		data[k] = v
+	end
 	for k, v in pairs(p.modifierFacets(m.modifier_map)) do
 		data[k] = v
 	end

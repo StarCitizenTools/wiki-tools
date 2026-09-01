@@ -211,8 +211,10 @@ function p.resolve(apiData, args, manifest)
 end
 
 --- SMW values are queried, not rendered: strip parser strip-markers (a ref
---- inside an editor arg has become a UNIQ…QINU token by the time Lua sees it)
---- and wiki-link markup, keeping display text. Non-strings (numbers from
+--- inside an editor arg has become a UNIQ…QINU token by the time Lua sees it),
+--- rendered HTML (an arg holding a template — `{{SDA|2578}}` — arrives expanded,
+--- so `<span>`s and `&nbsp;` would otherwise be stored verbatim) and wiki-link
+--- markup, keeping display text. Non-strings (numbers from
 --- `transform = 'number'`) pass through untouched. Display paths keep the
 --- original value — only the stored projection is sanitized. The marker
 --- pattern is Parser::MARKER_PREFIX/SUFFIX inlined rather than
@@ -228,6 +230,11 @@ function p.toSmwValue(value)
 		return value
 	end
 	value = value:gsub('\127\'"`UNIQ%-%-%a+%-%x+%-QINU`"\'\127', '')
+	value = value:gsub('<[^>]->', '')
+	value = mw.text.decode(value, true)
+	-- Entity-decoding leaves real non-breaking spaces; collapse them so the stored
+	-- value compares equal to the same text typed with ordinary spaces.
+	value = value:gsub('\194\160', ' ')
 	return mw.text.trim(delink(value))
 end
 

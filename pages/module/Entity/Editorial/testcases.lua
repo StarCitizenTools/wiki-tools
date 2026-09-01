@@ -140,6 +140,24 @@ function suite:testToStructuredDataSanitizesStrings()
 	self:assertEquals('Limited sale', data['Pledge Availability'])
 end
 
+-- An editor arg may hold a template; it reaches Lua already expanded, so the
+-- stored projection would otherwise carry <span>s, &nbsp; and a display:none
+-- duplicate. This is Template:SDA's real output for {{SDA|2578|sctime=yes}}.
+function suite:testToSmwValueStripsRenderedHtml()
+	local rendered = 'SEY&#160;2578<span class="noprint">&#59;&#32;378&#160;years ago</span>'
+		.. '<span style="display:none">&#160;(<span class="bday">2578</span>)</span>'
+	-- Tags go, entities decode, nbsp collapses. The microformat's hidden duplicate
+	-- survives as plain text — harmless, and not worth a nesting-aware matcher.
+	self:assertEquals('SEY 2578; 378 years ago (2578)', Editorial.toSmwValue(rendered))
+end
+
+-- Plain values are untouched by the HTML pass — no stray trimming or decoding.
+function suite:testToSmwValueLeavesPlainTextAlone()
+	self:assertEquals('Late 2520s', Editorial.toSmwValue('Late 2520s'))
+	self:assertEquals('2932(MkIII) • 2944(MkIV)', Editorial.toSmwValue('2932(MkIII) • 2944(MkIV)'))
+	self:assertEquals(2578, Editorial.toSmwValue(2578))
+end
+
 function suite:testPageTransform()
 	local r = Editorial.resolve({}, { series = '[[Aurora]]' }, MANIFEST)
 	self:assertEquals('Aurora', r.series.value)

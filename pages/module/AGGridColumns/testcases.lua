@@ -56,6 +56,55 @@ function suite:testValueListColDefType()
 	self:assertEquals('aggridSet', def.filter)
 end
 
+-- The bar leans the way that HELPS, not the way the sign points: a 'lower' column
+-- marks a negative value good, so a -80% overcharge rate and a +100% window both
+-- lean right. A 0 sits on the baseline and is neither.
+function suite:testSignedBarDirection()
+	local Bar = Registry.signedBar
+	local spec = { field = 'c1', label = 'V', good = 'lower', max = 80 }
+	self:assertEquals(true, Bar.buildCellValue(spec, { V = -80 }).good)
+	self:assertEquals(false, Bar.buildCellValue(spec, { V = 15 }).good)
+	local higher = { field = 'c1', label = 'V', good = 'higher', max = 100 }
+	self:assertEquals(true, Bar.buildCellValue(higher, { V = 100 }).good)
+	self:assertEquals(false, Bar.buildCellValue(higher, { V = -30 }).good)
+	-- No direction declared, and the baseline, both leave `good` absent so the
+	-- gadget draws them neutral rather than as a verdict.
+	self:assertEquals(nil, Bar.buildCellValue({ field = 'c1', label = 'V' }, { V = 20 }).good)
+	self:assertEquals(nil, Bar.buildCellValue(spec, { V = 0 }).good)
+	self:assertEquals(nil, Bar.buildCellValue(spec, { V = nil }))
+end
+
+-- The cell carries the raw number for sort/filter and a signed display string that
+-- matches the infobox row's formatting.
+function suite:testSignedBarCellValue()
+	local Bar = Registry.signedBar
+	local v = Bar.buildCellValue({ field = 'c1', label = 'V', good = 'lower', max = 80 }, { V = -15.5 })
+	self:assertEquals(-15.5, v.value)
+	self:assertEquals('−15.5%', v.text)
+	self:assertEquals('+15.5%', Bar.buildCellValue({ field = 'c1', label = 'V' }, { V = 15.5 }).text)
+end
+
+-- The column's scale reaches the gadget on the colDef; a non-positive max would
+-- divide every bar by zero, so it is normalised to 1.
+function suite:testSignedBarColDefCarriesScale()
+	local Bar = Registry.signedBar
+	self:assertEquals(80, Bar.buildColDef({ field = 'c1', header = 'V', max = 80 }).scwBarMax)
+	self:assertEquals(1, Bar.buildColDef({ field = 'c1', header = 'V', max = 0 }).scwBarMax)
+	self:assertEquals(1, Bar.buildColDef({ field = 'c1', header = 'V' }).scwBarMax)
+	self:assertEquals('agNumberColumnFilter', Bar.buildColDef({ field = 'c1', header = 'V', max = 5 }).filter)
+end
+
+-- The lead card can be pinned so it stays on screen while the data columns scroll.
+-- Only emitted when asked: an unconditional `pinned` would split every grid's
+-- viewport and draw a divider even where nothing overflows.
+function suite:testCardPinnedPassesThrough()
+	local Card = Registry.card
+	local spec = { field = 'lead', header = 'Name', titleLabel = 'Name', width = 260 }
+	self:assertEquals(nil, Card.buildColDef(spec).pinned)
+	spec.pinned = 'left'
+	self:assertEquals('left', Card.buildColDef(spec).pinned)
+end
+
 function suite:testUnknownKindErrors()
 	self:assertThrows(function()
 		AGGridColumns.buildColumnDefs({ { kind = 'nope', field = 'c' } })

@@ -29,6 +29,13 @@
  *  - scwBadgeList: a wrapping row of BadgeLua-style pills, each with an optional
  *    currentColor mask icon and optional whole-pill link. Value shape:
  *      { list: [{ text, variant, iconSrc, href }] }
+ *  - scwSignedBar: a signed number drawn as a bar growing from a centre line,
+ *    leaning the way that HELPS regardless of sign, with the figure beside it.
+ *    Value shape:
+ *      { value: <number>, text: <signed string>, good: <boolean|undefined> }
+ *    good absent = no inherent good side: the bar leans by sign, drawn neutral.
+ *    Bar length is |value| / colDef.scwBarMax, scaled on the column so two rows
+ *    compare; it does not rescale when rows are filtered.
  *  - scwSmart: a plain text column with numeric-aware sort and per-cell right-
  *    align of numeric-looking values. Cell value is a display string (no object).
  *  - scwBoolean: an icon-only tri-state boolean (check / cross / help), tinted per
@@ -106,7 +113,10 @@
 		}
 		var s = typeof v === 'string' ? v : String( v );
 		s = scwDecode( s );
-		return s.replace( / /g, ' ' ).replace( /\s+/g, ' ' ).replace( /^\s+|\s+$/g, '' );
+		// \s already covers nbsp (and every other Unicode space), so one collapse
+		// handles the "&#160;" the SMW formatter emits -- no separate nbsp pass, and
+		// never a literal nbsp in the source, which is unreviewable in a diff.
+		return s.replace( /\s+/g, ' ' ).replace( /^\s+|\s+$/g, '' );
 	}
 
 	// The numeric value of a cell, or null when it is not numeric. RULE: numeric iff,
@@ -224,6 +234,51 @@
 	// The raw number behind a stacked value (for sort / filter), or null.
 	function stackNumber( v ) {
 		return v && typeof v.value === 'number' ? v.value : null;
+	}
+
+	// Signed-bar cell: a centre-anchored track with the fill leaning the helpful
+	// way, and the figure beside it. The figure sits OUTSIDE the track rather than
+	// over the fill -- overlaying them makes the long bars unreadable.
+	function buildSignedBar( v, max ) {
+		var el = document.createElement( 'div' );
+		el.className = 'scw-signedbar';
+		if ( !v || typeof v.value !== 'number' ) {
+			return el;
+		}
+		var track = document.createElement( 'span' );
+		track.className = 'scw-signedbar__track';
+		var fill = document.createElement( 'span' );
+		fill.className = 'scw-signedbar__fill';
+		// A floor keeps a very small value visible as a mark rather than nothing;
+		// the half-width cap is the centre line, so a bar never crosses it.
+		var scale = typeof max === 'number' && max > 0 ? max : 1;
+		var ratio = Math.min( 1, Math.abs( v.value ) / scale );
+		fill.style.width = Math.max( 3, ratio * 50 ) + '%';
+		// good tells which side helps; without it the sign decides and the fill is
+		// left neutral, so an undirected stat is never coloured as a verdict.
+		var leansRight = v.good === undefined ? v.value > 0 : v.good;
+		if ( leansRight ) {
+			fill.style.left = '50%';
+		} else {
+			fill.style.right = '50%';
+		}
+		if ( v.good === true ) {
+			fill.classList.add( 'scw-signedbar__fill--good' );
+		} else if ( v.good === false ) {
+			fill.classList.add( 'scw-signedbar__fill--bad' );
+		}
+		track.appendChild( fill );
+		el.appendChild( track );
+		var num = document.createElement( 'span' );
+		num.className = 'scw-signedbar__value';
+		if ( v.good === true ) {
+			num.classList.add( 'scw-signedbar__value--good' );
+		} else if ( v.good === false ) {
+			num.classList.add( 'scw-signedbar__value--bad' );
+		}
+		num.textContent = v.text != null ? v.text : '';
+		el.appendChild( num );
+		return el;
 	}
 
 	// Badge cell, styled to match Module:BadgeLua (.t-badge). Value: { text,
@@ -439,6 +494,38 @@
 			comparator: function ( a, b ) {
 				var an = stackNumber( a );
 				var bn = stackNumber( b );
+				if ( an === null ) {
+					return bn === null ? 0 : -1;
+				}
+				if ( bn === null ) {
+					return 1;
+				}
+				return an - bn;
+			}
+		};
+
+		reg.columnTypes.scwSignedBar = {
+			cellRenderer: function ( params ) {
+				return buildSignedBar( params.value, params.colDef && params.colDef.scwBarMax );
+			},
+			// Display, CSV export and quick-search all use the signed text; sort and
+			// the number filter key on the raw number, so "widest charge window" is a
+			// header click and a range filter reads in percent.
+			valueFormatter: function ( params ) {
+				return ( params.value && params.value.text ) || '';
+			},
+			filterValueGetter: function ( params ) {
+				return stackNumber( params.data && params.data[ params.colDef.field ] );
+			},
+			getQuickFilterText: function ( params ) {
+				var v = params.data && params.data[ params.colDef.field ];
+				return ( v && v.text ) || '';
+			},
+			comparator: function ( a, b ) {
+				var an = stackNumber( a );
+				var bn = stackNumber( b );
+				// Blanks sink in both directions: a module that does not touch a stat
+				// is not "the lowest", and sorting should not bury the rows that do.
 				if ( an === null ) {
 					return bn === null ? 0 : -1;
 				}

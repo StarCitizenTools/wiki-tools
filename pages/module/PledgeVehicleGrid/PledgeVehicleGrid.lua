@@ -182,7 +182,7 @@ local COLUMNS = {
 	{ field = 'roll', header = 'Roll', kind = 'number', label = 'Roll', format = FMT_RATE, width = 75 },
 	{ field = 'pitch', header = 'Pitch', kind = 'number', label = 'Pitch', format = FMT_RATE, width = 75 },
 	{ field = 'yaw', header = 'Yaw', kind = 'number', label = 'Yaw', format = FMT_RATE, width = 75 },
-	{ field = 'conceptDate', header = 'Concept date', kind = 'text', label = 'Concept date', width = 110 },
+	{ field = 'conceptDate', header = 'Concept date', kind = 'date', label = 'Concept date' },
 	{
 		field = 'flightReady',
 		header = 'Flight ready',

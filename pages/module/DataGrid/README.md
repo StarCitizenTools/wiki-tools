@@ -18,11 +18,12 @@ Invoked through `{{Data table}}`, a bare `{{#invoke:DataGrid|main}}`. The module
 - **Numeric sort** — plain columns use the gadget's `scwSmart` type: numeric-looking values sort numerically and right-align per cell; text sorts alphabetically. No column-level numeric typing, so a stray text value never flips a column and a code like `S2` never mis-sorts.
 - **Filtering** — `filter`-flagged columns get the checkbox set filter (`aggridSet`); other columns get a text filter. On a **multi-value list** column the set filter splits each cell into one option per value, so a company in both `mining` and `salvage` appears under both checkboxes and either one matches it. A global `quickSearch` box sits above the grid.
 - **No pagination** — all rows load into one virtualised, internally-scrolling grid (70vh).
+- **Full-window view** — `expand = true` adds a toolbar button that reopens the grid in a modal filling the browser window, for wide column sets that outgrow the article column. Filter and sort state carries across.
 - **Empty category** — renders an empty grid (AG Grid's "no rows" overlay), not an error, so a new type with no pages yet still works.
 
 ## Requirements
 
-- [Extension:AGGrid](https://www.mediawiki.org/wiki/Extension:AGGrid) — `mw.ext.aggrid`, the `aggridLink`/`aggridLinkList` column types (the latter via `aggrid.list`), the `aggridSet` filter (which splits a multi-value cell into one option per value), `quickSearch`, and the `Pages using AG Grid` tracking category.
+- [Extension:AGGrid](https://www.mediawiki.org/wiki/Extension:AGGrid) — `mw.ext.aggrid`, the `aggridLink`/`aggridLinkList` column types (the latter via `aggrid.list`), the `aggridSet` filter (which splits a multi-value cell into one option per value), `quickSearch`, `expand`, and the `Pages using AG Grid` tracking category.
 - [Extension:SemanticScribunto](https://www.mediawiki.org/wiki/Extension:SemanticScribunto) — `mw.smw.ask`.
 - **aggridRenderers gadget** (`MediaWiki:Gadget-aggridRenderers.js`) — registers the `scwSmart` (plain columns) and `scwEntityCard` (lead card) column types. Gated in `MediaWiki:Gadgets-definition` by `categories=Pages using AG Grid`, so it loads on grid pages. Without it, the lead card and plain-column sort/align fall back to AG Grid defaults.
 

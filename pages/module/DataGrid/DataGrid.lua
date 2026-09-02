@@ -465,6 +465,7 @@ function p.main(frame)
 		columnDefs = groupColumnDefs(AGGridColumns.buildColumnDefs(specs), groups),
 		rowData = AGGridColumns.buildRowData(results, specs),
 		quickSearch = true,
+		expand = true,
 		pagination = false,
 		rowHeight = eyebrowColumns[1] and EYEBROW_ROW_HEIGHT or ROW_HEIGHT,
 		autoSizeStrategy = { type = 'fitCellContents' },

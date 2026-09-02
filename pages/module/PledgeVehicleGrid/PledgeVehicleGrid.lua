@@ -254,6 +254,9 @@ function p.main(frame)
 		-- Themed global search box wired to AG Grid's quick filter (client-side over
 		-- the loaded rows).
 		quickSearch = true,
+		-- Toolbar button that reopens the grid in a full-window modal, for the wide
+		-- column set.
+		expand = true,
 		-- No pagination: all vehicles in one virtualised, internally-scrolling
 		-- grid. Only the visible rows are ever in the DOM.
 		pagination = false,

@@ -10,6 +10,7 @@ return {
 	linkList = require('Module:AGGridColumns/Kind/LinkList'),
 	valueList = require('Module:AGGridColumns/Kind/ValueList'),
 	text = require('Module:AGGridColumns/Kind/Text'),
+	date = require('Module:AGGridColumns/Kind/Date'),
 	smart = require('Module:AGGridColumns/Kind/Smart'),
 	number = require('Module:AGGridColumns/Kind/Number'),
 	card = require('Module:AGGridColumns/Kind/Card'),

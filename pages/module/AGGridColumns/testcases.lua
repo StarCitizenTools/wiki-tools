@@ -28,6 +28,13 @@ function suite:testTextColDefHasNoType()
 	self:assertEquals(nil, colDefOf({ kind = 'text', field = 'c', header = 'C', label = 'C' }).type)
 end
 
+function suite:testDateColDef()
+	local def = colDefOf({ kind = 'date', field = 'c', header = 'C', label = 'C' })
+	self:assertEquals(nil, def.type)
+	self:assertEquals('agDateColumnFilter', def.filter)
+	self:assertEquals('dateString', def.cellDataType)
+end
+
 function suite:testSmartColDefType()
 	self:assertEquals('scwSmart', colDefOf({ kind = 'smart', field = 'c', header = 'C', label = 'C' }).type)
 end
@@ -122,6 +129,26 @@ end
 
 function suite:testNumberCell()
 	self:assertEquals(1234, cellOf({ kind = 'number', field = 'c', label = 'C' }, { C = '1,234 m' }))
+end
+
+-- The dateString type renders anything failing /^\d{4}-\d{2}-\d{2}$/ as an empty cell
+-- and drops it from every date condition, so an unpadded Y-M-D is padded here.
+function suite:testDateCellPadsUnpadded()
+	self:assertEquals('2020-03-16', cellOf({ kind = 'date', field = 'c', label = 'C' }, { C = '2020-3-16' }))
+end
+
+function suite:testDateCellKeepsWellFormed()
+	self:assertEquals('2018-04-18', cellOf({ kind = 'date', field = 'c', label = 'C' }, { C = '2018-04-18' }))
+end
+
+-- A value of any other shape passes through unchanged, staying visibly wrong
+-- rather than quietly invented.
+function suite:testDateCellPassesThroughNonIso()
+	self:assertEquals('2025', cellOf({ kind = 'date', field = 'c', label = 'C' }, { C = '2025' }))
+end
+
+function suite:testDateCellNilWhenAbsent()
+	self:assertEquals(nil, cellOf({ kind = 'date', field = 'c', label = 'C' }, {}))
 end
 
 function suite:testBadgeCell()

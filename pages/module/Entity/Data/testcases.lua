@@ -66,74 +66,55 @@ function suite:testResolveLeafNoMatchNoUuidNoError()
 	self:assertEquals(false, err)
 end
 
--- buildResolverConfig (the single search/<uuid> config, derived from the registry)
+-- Kind identification (which registered kind claims a payload). The declared-kind
+-- gate offers a record of ANY kind to a single kind's matches(), so every
+-- matches() must be positive and order-independent: the probe walks the
+-- registry, but nothing may depend on being asked first.
 
-function suite:testResolverConfigTargetsSearchEndpoint()
-	local config = helpers.buildResolverConfig()
-	self:assertEquals('search/%s', config.endpoint)
-	self:assertEquals('StarCitizenWikiAPI', config.name)
-	self:assertEquals('data', config.responseDataPath)
-end
-
--- The union must cover every kind's includes, or the resolver would return a
--- thinner payload than the kind's own endpoint does.
-function suite:testResolverConfigUnionsEveryKindsIncludes()
-	local config = helpers.buildResolverConfig()
-	local present = {}
-	for token in string.gmatch(config.params.include or '', '[^,]+') do
-		present[token] = true
-	end
+--- The first registered kind whose matches() accepts the payload, or nil.
+--- @param apiData table|nil
+--- @return table|nil
+local function claimingKind(apiData)
 	for _, mod in ipairs(require('Module:Entity/Registry').kinds) do
-		local params = (mod.getApiConfigs()[1] or {}).params or {}
-		for token in string.gmatch(params.include or '', '[^,]+') do
-			self:assertTrue(present[token] == true)
+		if mod.matches(apiData) then
+			return mod
 		end
 	end
+	return nil
 end
 
-function suite:testResolverConfigDoesNotRepeatIncludes()
-	local config = helpers.buildResolverConfig()
-	local seen = {}
-	for token in string.gmatch(config.params.include or '', '[^,]+') do
-		self:assertEquals(nil, seen[token])
-		seen[token] = true
-	end
+function suite:testClaimNilSafe()
+	self:assertEquals(nil, claimingKind(nil))
 end
 
--- identifyKind (single payload -> kind, order-independent)
-
-function suite:testIdentifyKindNilSafe()
-	self:assertEquals(nil, helpers.identifyKind(nil))
-end
-
-function suite:testIdentifyKindVehicle()
-	local mod = helpers.identifyKind({ uuid = 'abc', class_name = 'AEGS_Avenger', is_vehicle = false })
+function suite:testClaimVehicle()
+	local mod = claimingKind({ uuid = 'abc', class_name = 'AEGS_Avenger', is_vehicle = false })
 	self:assertEquals('Vehicle', mod and mod.name)
 end
 
-function suite:testIdentifyKindItem()
-	local mod = helpers.identifyKind({ uuid = 'abc', class_name = 'Paint_100i', type = 'Paints' })
+function suite:testClaimItem()
+	local mod = claimingKind({ uuid = 'abc', class_name = 'Paint_100i', type = 'Paints' })
 	self:assertEquals('Item', mod and mod.name)
 end
 
-function suite:testIdentifyKindCommodity()
-	local mod = helpers.identifyKind({ uuid = 'abc', box_sizes_scu = { 1, 2 } })
+function suite:testClaimCommodity()
+	local mod = claimingKind({ uuid = 'abc', box_sizes_scu = { 1, 2 } })
 	self:assertEquals('Commodity', mod and mod.name)
 end
 
-function suite:testIdentifyKindMission()
-	local mod = helpers.identifyKind({ uuid = 'abc', mission_type = 'Delivery' })
+function suite:testClaimMission()
+	local mod = claimingKind({ uuid = 'abc', mission_type = 'Delivery' })
 	self:assertEquals('Mission', mod and mod.name)
 end
 
--- The resolver also resolves blueprints and starmap locations. Neither is a kind
+-- The API also serves blueprints and starmap locations by uuid. Neither is a kind
 -- Entity models, so nothing may claim them — Item least of all.
-function suite:testIdentifyKindNilForUnmodelledLocation()
-	self:assertEquals(nil, helpers.identifyKind({ uuid = 'abc', type = 'PLANET', system = 'Stanton' }))
+function suite:testClaimNilForUnmodelledLocation()
+	self:assertEquals(nil, claimingKind({ uuid = 'abc', type = 'PLANET', system = 'Stanton' }))
 end
 
-function suite:testIdentifyKindNilForUnmodelledBlueprint()
-	self:assertEquals(nil, helpers.identifyKind({ uuid = 'abc', output_class = 'Foo', ingredients = {} }))
+function suite:testClaimNilForUnmodelledBlueprint()
+	self:assertEquals(nil, claimingKind({ uuid = 'abc', output_class = 'Foo', ingredients = {} }))
 end
 
 -- isGenuineRecord (genuine in-game record predicate)
@@ -337,8 +318,8 @@ end
 -- (fetchAllApis routes through the same field), so swapping that field is the
 -- seam — the same one the Location suite uses for enrich(). Recording which
 -- endpoint patterns the stub is asked for is what lets these tests tell the
--- trust path (declared kind's endpoint, no search) from the probe (search
--- first) apart.
+-- trust path (declared kind's endpoint only) from the probe (registry walk,
+-- items first) apart.
 
 --- Run `fn(seen)` with Module:Entity/Api.fetchApi replaced by a stub that
 --- marks each requested endpoint pattern in `seen` and answers from
@@ -373,14 +354,14 @@ local function solarSystemRecord()
 	}
 end
 
-function suite:testDeclaredKindWithUuidSkipsTheResolver()
+function suite:testDeclaredKindWithUuidSkipsTheProbe()
 	withStubbedFetch({ ['locations/%s'] = solarSystemRecord() }, function(seen)
 		local r = Data.get({ uuid = 'c9c137cf-c520-47ee-9e6d-5d653dfbe201', kind = 'Location' })
 		self:assertEquals('Location', r.kind)
 		self:assertEquals(false, r.hasApiError)
 		self:assertEquals(false, r.unresolvedReference)
 		self:assertEquals(true, seen['locations/%s'])
-		self:assertEquals(nil, seen['search/%s'])
+		self:assertEquals(nil, seen['items/%s']) -- the probe (items first) never ran
 	end)
 end
 
@@ -388,20 +369,20 @@ function suite:testDeclaredKindLowercaseTakesTheTrustPath()
 	withStubbedFetch({ ['locations/%s'] = solarSystemRecord() }, function(seen)
 		local r = Data.get({ uuid = 'c9c137cf-c520-47ee-9e6d-5d653dfbe201', kind = 'location' })
 		self:assertEquals('Location', r.kind)
-		self:assertEquals(nil, seen['search/%s'])
+		self:assertEquals(nil, seen['items/%s'])
 	end)
 end
 
 -- A vehicle uuid pasted into {{Location}}: the declared endpoint answers a
 -- record the kind can neither match nor refine, so the declaration is NOT
--- trusted and the resolver probe runs exactly as it does today (here it finds
+-- trusted and the probe walks the registry (here every endpoint answers
 -- nothing, so the page lands in the editorial fork with the uuid flagged
 -- unresolved — the vehicle record is never adopted).
 function suite:testDeclaredKindGateFailureFallsThroughToProbe()
 	local vehicleRecord = { uuid = 'abc', class_name = 'AEGS_Gladius', is_vehicle = true }
 	withStubbedFetch({ ['locations/%s'] = vehicleRecord }, function(seen)
 		local r = Data.get({ uuid = 'abc', kind = 'Location' })
-		self:assertEquals(true, seen['search/%s'])
+		self:assertEquals(true, seen['items/%s'])
 		self:assertEquals(true, r.unresolvedReference)
 		self:assertEquals(nil, r.apiData.uuid)
 	end)
@@ -436,7 +417,7 @@ function suite:testDeclaredKindGateStripsArgsFromResolveSubtype()
 		withStubbedFetch({ ['gatecheck/%s'] = { uuid = 'abc' } }, function(seen)
 			Data.get({ uuid = 'abc', kind = 'Gatecheck' })
 			self:assertEquals(true, seen['gatecheck/%s']) -- the trust path fetched the declared endpoint …
-			self:assertEquals(true, seen['search/%s']) -- … and the gate failed, so the probe still ran
+			self:assertEquals(true, seen['items/%s']) -- … and the gate failed, so the probe still ran
 		end)
 	end)
 	table.remove(registry.kinds)
@@ -476,7 +457,7 @@ function suite:testDeclaredKindGateAdmitsViaResolveSubtypeAlone()
 			self:assertEquals('Gateadmit', r.kind)
 			self:assertEquals(false, r.hasApiError)
 			self:assertEquals(true, seen['gateadmit/%s'])
-			self:assertEquals(nil, seen['search/%s'])
+			self:assertEquals(nil, seen['items/%s'])
 		end)
 	end)
 	table.remove(registry.kinds)
@@ -514,18 +495,34 @@ function suite:testDeclaredKindTrustsJumpPointRecordViaResolveSubtype()
 		-- The chain tail IS the JumpPoint leaf module (identity, not name).
 		self:assertEquals(require('Module:Entity/Location/JumpPoint'), r.chain[#r.chain])
 		self:assertEquals(true, seen['locations/%s'])
-		self:assertEquals(nil, seen['search/%s']) -- trust path: the probe never ran
+		self:assertEquals(nil, seen['items/%s']) -- trust path: the probe never ran
 	end)
 end
 
--- No |kind=: today's resolver-first behaviour, untouched. One search fetch
--- answers, and the matched kind's own endpoint is marked fetched (no re-fetch).
-function suite:testUuidWithoutKindStillProbesTheResolver()
-	withStubbedFetch({ ['search/%s'] = solarSystemRecord() }, function(seen)
+-- No |kind=: the probe walks the registry in order, fetching each kind's typed
+-- endpoint until one claims the record. Never the API's search resolver: its
+-- cache key could not coincide with the declared path's typed fetch.
+function suite:testUuidWithoutKindProbesTypedEndpointsInRegistryOrder()
+	withStubbedFetch({ ['locations/%s'] = solarSystemRecord() }, function(seen)
 		local r = Data.get({ uuid = 'c9c137cf-c520-47ee-9e6d-5d653dfbe201' })
 		self:assertEquals('Location', r.kind)
-		self:assertEquals(true, seen['search/%s'])
-		self:assertEquals(nil, seen['locations/%s'])
+		self:assertEquals(false, r.hasApiError) -- misses on non-matching kinds don't count
+		for _, endpoint in ipairs({ 'items/%s', 'vehicles/%s', 'commodities/%s', 'missions/%s', 'locations/%s' }) do
+			self:assertEquals(true, seen[endpoint])
+		end
+		self:assertEquals(nil, seen['search/%s'])
+	end)
+end
+
+-- The probe short-circuits on the first claim, so an item (the dominant kind,
+-- registered first) costs exactly one fetch.
+function suite:testUuidWithoutKindStopsAtFirstClaim()
+	local itemRecord = { uuid = 'abc', class_name = 'BEHR_P4AR', type = 'WeaponPersonal' }
+	withStubbedFetch({ ['items/%s'] = itemRecord }, function(seen)
+		local r = Data.get({ uuid = 'abc' })
+		self:assertEquals('Item', r.kind)
+		self:assertEquals(true, seen['items/%s'])
+		self:assertEquals(nil, seen['vehicles/%s'])
 	end)
 end
 

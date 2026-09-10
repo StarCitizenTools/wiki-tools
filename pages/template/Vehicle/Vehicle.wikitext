@@ -1,5 +1,5 @@
 <includeonly><!--
--->{{#invoke:Entity|main}}<!--
+-->{{#invoke:Entity|main|kind=Vehicle}}<!--
 --></includeonly><noinclude>
 {{/doc}}
 </noinclude>

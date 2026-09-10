@@ -34,6 +34,9 @@ p.CONTRIBUTOR = {
 	getEditorialManifest = false,
 	getCategories = false,
 	getAcquisition = false,
+	getRelated = false,
+	getBlueprints = false,
+	getPorts = false,
 }
 
 --- Chain link is the contributor role under its older name; kept so existing

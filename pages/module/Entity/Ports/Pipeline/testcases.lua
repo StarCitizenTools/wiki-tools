@@ -849,7 +849,7 @@ function suite:testProcessEndToEndAuroraShape()
 		equipped_item = { name = 'Door' },
 	})
 
-	local groups = pipeline.process(rawPorts, { isVehicle = true })
+	local groups = pipeline.process(rawPorts, { narrowChildren = true })
 
 	-- Primary cards sorted by order: Weapons (5) – none – Turrets (13),
 	-- Missile & Bomb Racks (14), Power Plants (33), Quantum Drives (50),
@@ -912,12 +912,12 @@ function suite:testProcessItemPathSkipsNarrow()
 		},
 	}
 
-	local vehicleGroups = pipeline.process(rawPorts, { isVehicle = true })
+	local vehicleGroups = pipeline.process(rawPorts, { narrowChildren = true })
 	-- Vehicle path: narrowChildren drops the WeaponAttachment (not in the allowlist).
 	self:assertEquals(1, #vehicleGroups[1].rows[1].children)
 	self:assertEquals('gun', vehicleGroups[1].rows[1].children[1].representative.name)
 
-	local itemGroups = pipeline.process(rawPorts, { isVehicle = false })
+	local itemGroups = pipeline.process(rawPorts, { narrowChildren = false })
 	-- Item path: narrow is skipped, so the attachment survives alongside the gun.
 	self:assertEquals(2, #itemGroups[1].rows[1].children)
 end
@@ -959,7 +959,7 @@ function suite:testProcessExpandsSalvageChainTwoLevels()
 			},
 		},
 	}
-	local groups = pipeline.process(rawPorts, { isVehicle = true })
+	local groups = pipeline.process(rawPorts, { narrowChildren = true })
 	self:assertEquals('Mining & Salvage', groups[1].label)
 	local arm = groups[1].rows[1]
 	self:assertEquals(true, arm.expandable)

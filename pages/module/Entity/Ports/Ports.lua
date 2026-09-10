@@ -2,13 +2,14 @@ require('strict')
 
 --- @module Entity/Ports
 --- Renders an entity's ports as a vertical stack of category cards.
---- Thin coordinator: parses args, fetches API data, dispatches to
---- Pipeline + Render. All real work lives in those modules.
+--- Thin coordinator: parses args, resolves the chain's getPorts payload,
+--- dispatches to Pipeline + Render. All real work lives in those modules.
 ---
 --- Consumes Module:Entity/Data so it shares Apiunto's cache with any
 --- other Entity-family template on the page.
 
 local data = require('Module:Entity/Data')
+local assembly = require('Module:Entity/Assembly')
 local pipeline = require('Module:Entity/Ports/Pipeline')
 local render = require('Module:Entity/Ports/Render')
 local PageResolver = require('Module:Entity/PageResolver')
@@ -34,12 +35,15 @@ function p.main(frame)
 	if result.hasApiError then
 		return empty('Port data unavailable.')
 	end
-	local rawPorts = result.apiData and result.apiData.ports
+	-- The chain decides what "ports" means (getPorts, leaf-first; Base
+	-- supplies the record's own tree). This renderer never reads apiData.
+	local payload = assembly.resolveMostSpecific(result.chain, 'getPorts', nil, result.apiData, args) or {}
+	local rawPorts = payload.ports
 	if type(rawPorts) ~= 'table' or #rawPorts == 0 then
 		return empty('No ports.')
 	end
 
-	local groups = pipeline.process(rawPorts, { isVehicle = result.kind == 'Vehicle' })
+	local groups = pipeline.process(rawPorts, { narrowChildren = payload.narrowChildren == true })
 	pipeline.applyResolvedLinks(groups, PageResolver.resolve(pipeline.collectEquippedUuids(groups)))
 	return styles .. render.fromGroups(groups)
 end

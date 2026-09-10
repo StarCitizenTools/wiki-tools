@@ -1117,4 +1117,16 @@ function suite:testResolveSubtypeFamilyArgIsNormalized()
 	self:assertEquals(Ship, Vehicle.resolveSubtype({}, { family = ' Ship ' }))
 end
 
+-- Vehicle port trees carry cockpit panels and displays that are not
+-- `collapsed` but do not belong in a component's L-tree; the kind asks the
+-- Ports pipeline to narrow children. Items (Base default) keep the full tree.
+function suite:testGetPortsNarrowsChildrenForEveryVehicleLeaf()
+	local apiData = { ports = { { name = 'hardpoint' } } }
+	for _, leaf in ipairs({ Vehicle, Ship, GroundVehicle, Gravlev }) do
+		local payload = assembly.resolveMostSpecific(assembly.buildChain(leaf), 'getPorts', nil, apiData, {})
+		self:assertEquals(apiData.ports, payload.ports)
+		self:assertTrue(payload.narrowChildren)
+	end
+end
+
 return suite

@@ -563,4 +563,14 @@ function p.getAcquisition(apiData, args)
 	}
 end
 
+--- Ports payload for {{Entity/Ports}}. Vehicle port trees carry cockpit
+--- panels, displays and similar sub-ports that are not `collapsed` but do
+--- not belong in a component's L-tree, so the Ports pipeline narrows
+--- children by each category's expandIntoTypes allowlist.
+--- @param apiData table
+--- @return EntityPortsPayload
+function p.getPorts(apiData)
+	return { ports = apiData.ports, narrowChildren = true }
+end
+
 return p

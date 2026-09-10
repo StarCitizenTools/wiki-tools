@@ -3,6 +3,7 @@ require('strict')
 local ScribuntoUnit = require('Module:ScribuntoUnit')
 local Data = require('Module:Entity/Data')
 local helpers = Data._internal
+local assembly = require('Module:Entity/Assembly')
 
 local suite = ScribuntoUnit:new()
 
@@ -504,6 +505,23 @@ function suite:testEditorialForkRunsLeafEnrich()
 		self:assertEquals('STANTON', r.apiData.starsystem.code)
 		self:assertEquals('Location', r.kind)
 	end)
+end
+
+-- Base supplies the sibling renderers' generic payloads (the items
+-- endpoint's own blocks); a kind or leaf overrides leaf-first.
+function suite:testBaseSuppliesSiblingPayloadDefaults()
+	local chain = assembly.buildChain(require('Module:Entity/Item'))
+	local apiData =
+		{ related_items = { set_items = {} }, blueprint = { { key = 'bp' } }, ports = { { name = 'hardpoint' } } }
+	local related = assembly.resolveMostSpecific(chain, 'getRelated', nil, apiData, {})
+	self:assertEquals(apiData.related_items, related.items)
+	self:assertEquals(nil, related.cargo)
+	local blueprints = assembly.resolveMostSpecific(chain, 'getBlueprints', nil, apiData, {})
+	self:assertEquals(apiData.blueprint, blueprints.blueprints)
+	self:assertEquals(nil, blueprints.ingredient)
+	local ports = assembly.resolveMostSpecific(chain, 'getPorts', nil, apiData, {})
+	self:assertEquals(apiData.ports, ports.ports)
+	self:assertEquals(nil, ports.narrowChildren)
 end
 
 return suite

@@ -10,7 +10,7 @@ The module is a thin coordinator that delegates to three focused sub-modules: `C
 
 ```
 Entity/Ports/
-├── Ports.lua                       # coordinator: parse args, fetch, resolve equipped links, dispatch
+├── Ports.lua                       # coordinator: parse args, resolve the chain's getPorts payload, resolve equipped links, render
 ├── Categories.lua                  # categories.lookup, categories.deriveLabel
 ├── Pipeline.lua                    # pipeline.process(rawPorts, opts) → groups
 ├── Render.lua                      # render.fromGroups(groups) → wikitext
@@ -26,11 +26,11 @@ Entity/Ports/
 
 ## Pipeline
 
-`pipeline.process(rawPorts, { isVehicle = bool })` runs the following stages and returns the render-ready `groups` array:
+`pipeline.process(rawPorts, { narrowChildren = bool })` runs the following stages and returns the render-ready `groups` array:
 
 1. **Normalize**: walk the raw API tree and produce normalized port nodes (name, displayName, type/subType, size range, equipped item, derived category, recursive children).
 2. **Clean children**: recursively drop collapsed-category nodes from every node's children, preserving the top-level so collapsed-category top-level ports can still route to "Other". A primary turret no longer shows its display screens / controller subports in its L-tree.
-3. **Narrow children (vehicles only)**: apply each parent category's `expandIntoTypes` allowlist to its remaining children, dropping types that aren't `collapsed` but still don't belong in the L-tree (cockpit panels, etc.). Items skip this step entirely.
+3. **Narrow children (when narrowChildren is set)**: apply each parent category's `expandIntoTypes` allowlist to its remaining children, dropping types that aren't `collapsed` but still don't belong in the L-tree (cockpit panels, etc.). The option comes from the chain's `getPorts` payload: `Vehicle.getPorts` sets it, Base's default does not, so items keep the full tree.
 4. **Aggregate**: collapse sibling nodes with identical signatures into `{ count, representative, expandable, children }` aggregates. Signature includes type, subType, sizeMin, sizeMax, equipped item name, editable flag, accepted compatible_types, and a recursive child signature. The `expandable` boolean is pre-computed here so Render doesn't need to inspect category internals.
 5. **Group**: bucket top-level aggregates into one primary card per distinct category label, plus a single "Other" card at the bottom whose body is sub-grouped by the original collapsed-category label. Primary cards sort by `order` ascending; the "Other" card always sorts last and renders closed by default.
 

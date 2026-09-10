@@ -4,7 +4,7 @@ Renders an entity's crafting blueprints and dismantle returns. A sibling rendere
 
 Each blueprint produces a [Module:CollapsibleCard](https://starcitizen.tools/Module:CollapsibleCard) titled with the output item name. The card description shows the blueprint key followed by a `Grade N` [Module:BadgeLua](https://starcitizen.tools/Module:BadgeLua) chip. Body lists the recipe aspects: input material quantity (SCU for resources, a bare count for discrete items) plus a modifier table (min/max deltas, colour-coded by directionality). A parallel "Dismantle" section renders one card per blueprint whose API entry includes dismantle data; the body is a single Material / Return table.
 
-The module dispatches on entity kind. **Items** read blueprint data from `apiData.blueprint` (the items endpoint) and get the two-section Blueprints / Dismantle view above. **Commodities** aren't craftable, so they short-circuit to a "Used in crafting" summary card: a recipe count plus a link to the filtered blueprints list (see [Commodity branch](#commodity-branch)). Vehicles don't carry blueprint data.
+The module draws the chain's `getBlueprints` payload (resolved leaf-first through `Module:Entity/Assembly`). Base returns the record's blueprint list (the items endpoint's `apiData.blueprint`), which gets the two-section Blueprints / Dismantle view above. Commodity returns `{ ingredient = { name } }` because commodities are crafting inputs, never outputs, and that payload renders a "Used in crafting" summary card: a recipe count plus a link to the filtered blueprints list (see [Commodity branch](#commodity-branch)). Vehicles don't carry blueprint data.
 
 > Temporary non-interactive view. An interactive crafting explorer (quality slider, recomputed values, etc.) requires a dedicated MediaWiki extension and is out of scope for this module.
 
@@ -31,10 +31,10 @@ The `uuid` argument falls back to the SMW UUID set by `Template:Entity` on a pri
 
 Entry point invoked from `Template:Entity/Blueprints`.
 
-Resolves the UUID via `Module:Entity/Data`, fetches the entity, then dispatches on `result.kind`:
+Resolves the UUID via `Module:Entity/Data`, fetches the entity, then draws the `getBlueprints` payload:
 
-- **`Commodity`** → short-circuits to the [Used in crafting](#commodity-branch) card; the two item sections below are skipped entirely.
-- **everything else** (items) → renders two adjacent sections:
+- **payload.ingredient** → the Used in crafting card; the two sections below are skipped entirely.
+- **payload.blueprints** → renders two adjacent sections:
   - **Blueprints**: one CollapsibleCard per blueprint whose entry carries `aspects.aspects`. Card title is `output_name`; description is `key` followed by a `Grade N` badge. Body holds one block per aspect, with an input material row (name + quantity) and a modifier table.
   - **Dismantle**: one CollapsibleCard per blueprint whose entry carries `dismantle_returns`. Card chrome matches the Blueprints section; body is a single Material / Return table.
 
@@ -45,7 +45,7 @@ On the item path, both sections render their headings unconditionally so the pag
 
 ### Commodity branch
 
-For a `Commodity` entity, `renderCommodityUsedIn` replaces the whole two-section view with a single [Module:CardLua](https://starcitizen.tools/Module:CardLua) link card. Commodities are consumed by hundreds of recipes (e.g. Aslarite: 830), so the module shows a count plus a link rather than enumerating a table. It resolves the commodity name (`apiData._refinedRecord.name`, falling back to `apiData.name`), then calls `usedInBlueprintCount`, which makes one cheap fetch to the Wiki API `blueprints?filter[ingredient]=<name>&page[size]=1` endpoint (via `Module:Entity/Api`) and reads `meta.total`. The card is titled "Browse N recipes" with a "Wiki API" button linking to the full filtered query.
+For an ingredient payload, `renderUsedIn` replaces the whole two-section view with a single [Module:CardLua](https://starcitizen.tools/Module:CardLua) link card. Commodities are consumed by hundreds of recipes (e.g. Aslarite: 830), so the module shows a count plus a link rather than enumerating a table. The kind supplies the ingredient name (Commodity: the refined record's name, falling back to `apiData.name`); `renderUsedIn` calls `usedInBlueprintCount`, which makes one cheap fetch to the Wiki API `blueprints?filter[ingredient]=<name>&page[size]=1` endpoint (via `Module:Entity/Api`) and reads `meta.total`. The card is titled "Browse N recipes" with a "Wiki API" button linking to the full filtered query.
 
 Three muted empty-states (same `t-entity-blueprint-empty` notice):
 

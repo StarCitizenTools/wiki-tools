@@ -364,9 +364,8 @@ function p.get(args)
 		end
 	end
 
-	-- Canonical kind name for sibling renderers — Item when nothing matched,
-	-- mirroring resolveLeaf's fallback. Renderers branch on this instead of
-	-- re-deriving the kind from apiData fields.
+	-- Canonical kind name (Item when nothing matched, mirroring resolveLeaf's
+	-- fallback), exposed for consumers that report or store the kind.
 	local kind = (matchedKind and matchedKind.name) or 'Item'
 
 	local leaf = chain[#chain]

@@ -2,7 +2,7 @@
 
 Renders an entity's "related entries"; what counts as related depends on the entity kind. A sibling renderer parallel to [Module:Entity/Availability](https://starcitizen.tools/Module:Entity/Availability) and [Module:Entity/Description](https://starcitizen.tools/Module:Entity/Description), it consumes [Module:Entity/Data](https://starcitizen.tools/Module:Entity/Data) so it shares Apiunto's cache with the Entity infobox and any other Entity-family template on the page.
 
-`p.main` dispatches on `result.kind`, giving two distinct render paths:
+`p.main` draws the chain's `getRelated` payload (resolved leaf-first through `Module:Entity/Assembly`), giving two render paths:
 
 - **Items**: set components (helmet/torso/legs etc.) and cosmetic variants, rendered as image tile grids via [Module:Tiles](https://starcitizen.tools/Module:Tiles). Reads `apiData.related_items` (only the items endpoint provides it).
 - **Commodities**: the physical cargo-box packaging variants (the SCU ladder), rendered as a sortable table inside a [Module:CollapsibleCard](https://starcitizen.tools/Module:CollapsibleCard). These "related entities" all share one image and have no pages of their own, so tiles don't fit.
@@ -33,8 +33,8 @@ The `uuid` parameter falls back to the SMW UUID set by `Template:Entity` on a pr
 Entry point invoked from `Template:Entity/Related`. Resolves args and fetches the merged Apiunto response via `Module:Entity/Data`, then dispatches:
 
 1. **API error** (`result.hasApiError`) → empty-state placeholder.
-2. **`result.kind == 'Commodity'`** → `renderCargoVariants` (cargo-box table, see the "Data: commodities" section).
-3. **Otherwise (items)** → resolves the UUID, reads `apiData.related_items`, batches a single SMW lookup through [Module:Entity/PageResolver](https://starcitizen.tools/Module:Entity/PageResolver) to map each item to its canonical wiki page and `Page Image`, and renders up to two tile grids via `Module:Tiles`: **Set pieces** then **Variants**. The tile grids use a `3 / 4` aspect ratio because Star Citizen item renders are typically portrait product shots.
+2. **payload.cargo** (Commodity's `getRelated`: the cargo-box ladder) → `renderCargoVariants` (table, see "Data: commodities").
+3. **payload.items** (Base's `getRelated`: the record's `related_items` block) → resolves the UUID, reads `apiData.related_items`, batches a single SMW lookup through [Module:Entity/PageResolver](https://starcitizen.tools/Module:Entity/PageResolver) to map each item to its canonical wiki page and `Page Image`, and renders up to two tile grids via `Module:Tiles`: **Set pieces** then **Variants**. The tile grids use a `3 / 4` aspect ratio because Star Citizen item renders are typically portrait product shots.
 
 Falls back to the muted empty-state placeholder ("No related items available from the API.") when the entity is a non-supported kind, has no `related_items`/box sizes, or both render buckets come back empty.
 
@@ -72,7 +72,7 @@ Resolving by UUID rather than API name decouples the link target from the label:
 
 ## Data: commodities
 
-When `result.kind == 'Commodity'`, `renderCargoVariants` reads the refined record (`apiData._refinedRecord`, falling back to `apiData`) and shapes its cargo-box ladder into a table:
+`Commodity.getRelated` reads the refined record (`apiData._refinedRecord`, falling back to `apiData`) and returns its cargo-box ladder as `{ scu, mass_kg }` rows, ascending; `renderCargoVariants` draws them:
 
 | Field | Description |
 |---|---|

@@ -52,8 +52,8 @@ local function shipMatrixSlug(name)
 	return (mw.ustring.lower(name):gsub(' ', '-'))
 end
 
---- Canonical kind name; the Data.get() `result.kind` value sibling renderers
---- branch on. Every kind declares one (enforced by the Registry conformance test).
+--- Canonical kind name, exposed as Data.get().result.kind (non-empty and
+--- unique, enforced by the Registry conformance test).
 p.name = 'Vehicle'
 
 --- Opt into editorial mode (Module:Entity/Data): a page declared |kind=Vehicle

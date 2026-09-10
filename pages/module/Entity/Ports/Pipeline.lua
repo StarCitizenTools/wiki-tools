@@ -490,8 +490,9 @@ local function groupByCategory(aggregatedTopLevel)
 	return ordered
 end
 
---- Runs the full pipeline: normalize → clean → narrow (vehicles only)
---- → aggregate → group. Returns the render-ready groups array.
+--- Runs the full pipeline: normalize → clean → narrow (when `narrowChildren`
+--- is set (the Vehicle kind's getPorts)) → aggregate → group. Returns the
+--- render-ready groups array.
 ---
 --- Output shape (the Pipeline → Render contract):
 ---   groups[] = { label, order, collapsed, rows[], subGroups[]? }
@@ -500,13 +501,13 @@ end
 --- full shape spec.
 ---
 --- @param rawPorts table[]|nil  the API's `data.ports`
---- @param opts { isVehicle: boolean }|nil
+--- @param opts { narrowChildren: boolean }|nil
 --- @return table[]  groups, ready for Render.fromGroups
 function p.process(rawPorts, opts)
 	opts = opts or {}
 	local normalized = normalizePorts(rawPorts)
 	local cleaned = cleanChildren(normalized)
-	if opts.isVehicle then
+	if opts.narrowChildren then
 		cleaned = narrowChildren(cleaned)
 	end
 	return groupByCategory(aggregateSiblings(cleaned))

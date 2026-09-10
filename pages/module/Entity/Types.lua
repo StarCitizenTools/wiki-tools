@@ -44,6 +44,25 @@ local p = {}
 --- @field getHeaderBadge nil|fun(apiData: table, args: table, resolved: table|nil): string|nil Header badge HTML composed into the image overlay
 --- @field getCategories nil|fun(apiData: table, args: table, resolved: table|nil): string[] Extra browse categories, collected from every link and appended after the structural + manufacturer categories
 --- @field getAcquisition nil|fun(apiData: table, args: table): { summary: table[], cards: table[] }|nil Acquisition data for {{Entity/Availability}}; leaf-first wins. Absent on every link → no acquisition block.
+--- @field getRelated nil|fun(apiData: table, args: table): EntityRelatedPayload|nil Payload for {{Entity/Related}}; leaf-first wins. Base supplies { items = apiData.related_items }
+--- @field getBlueprints nil|fun(apiData: table, args: table): EntityBlueprintsPayload|nil Payload for {{Entity/Blueprints}}; leaf-first wins. Base supplies { blueprints = apiData.blueprint }
+--- @field getPorts nil|fun(apiData: table, args: table): EntityPortsPayload|nil Payload for {{Entity/Ports}}; leaf-first wins. Base supplies { ports = apiData.ports }
+
+--- Sibling-renderer payloads. Each renderer draws exactly one payload shape
+--- and never reads apiData itself; a link that means something else by
+--- "related" / "blueprints" / "ports" returns the alternative field.
+
+--- @class EntityRelatedPayload
+--- @field items table|nil The API `related_items` block (set_items / base_item / variant_items), rendered as tile grids
+--- @field cargo { scu: number, mass_kg: number }[]|nil Cargo-box packaging variants ascending by SCU, rendered as a table instead of tiles (Commodity)
+
+--- @class EntityBlueprintsPayload
+--- @field blueprints table[]|nil The API `blueprint` list (craftable + dismantle entries)
+--- @field ingredient { name: string|nil }|nil Present when the entity is a crafting INPUT, never an output: renders the "used in crafting" count card instead of the blueprint list (Commodity)
+
+--- @class EntityPortsPayload
+--- @field ports table[]|nil The API `ports` tree
+--- @field narrowChildren boolean|nil Apply each category's expandIntoTypes allowlist to child ports (Vehicle: drops cockpit panels and displays from the L-tree)
 
 --- @class EntityKind : EntityChainLink
 --- A top-level entity with its own API endpoint and a mutually-exclusive

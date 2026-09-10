@@ -138,7 +138,15 @@ end
 
 -- A chain link may implement any contributor hook; validate() type-checks it against CHAIN_LINK.
 function suite:testChainLinkTypeChecksPromotedHooks()
-	for _, hook in ipairs({ 'enrich', 'getEditorialManifest', 'getCategories', 'getAcquisition' }) do
+	for _, hook in ipairs({
+		'enrich',
+		'getEditorialManifest',
+		'getCategories',
+		'getAcquisition',
+		'getRelated',
+		'getBlueprints',
+		'getPorts',
+	}) do
 		local leaf = { [hook] = 'nope' }
 		local ok, errors = Contract.validate(leaf, Contract.CHAIN_LINK)
 		self:assertFalse(ok, hook .. ' is not type-checked by CHAIN_LINK')

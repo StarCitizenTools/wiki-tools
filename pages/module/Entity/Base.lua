@@ -76,4 +76,28 @@ function p.getExternalSiteItems(apiData, args)
 	return { { label = 'Official sites', content = links } }
 end
 
+--- Default payloads for the sibling renderers ({{Entity/Related}},
+--- {{Entity/Blueprints}}, {{Entity/Ports}}): the record's own blocks as the
+--- items endpoint shapes them. A kind or leaf overrides leaf-first when its
+--- record carries the data elsewhere or means something else by it
+--- (Commodity: cargo variants, crafting ingredient; Vehicle: narrowed ports).
+
+--- @param apiData table
+--- @return EntityRelatedPayload
+function p.getRelated(apiData)
+	return { items = apiData.related_items }
+end
+
+--- @param apiData table
+--- @return EntityBlueprintsPayload
+function p.getBlueprints(apiData)
+	return { blueprints = apiData.blueprint }
+end
+
+--- @param apiData table
+--- @return EntityPortsPayload
+function p.getPorts(apiData)
+	return { ports = apiData.ports }
+end
+
 return p

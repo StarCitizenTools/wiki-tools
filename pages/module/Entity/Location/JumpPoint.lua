@@ -29,14 +29,14 @@ p.family = 'jumppoint'
 --- @param args table|nil
 --- @return table apiData
 function p.enrich(apiData, args)
-	return location.attachCelestialObject(apiData, args)
+	return location.attachCelestialObject(apiData, Editorial.rawArg(args, p.getEditorialManifest().starmapcode))
 end
 
 --- The starmap celestial-object code (`code` is the legacy {{Astronomical
 --- object}} arg name). No smw key, no transform: this leaf surfaces it itself
---- (metadata row, Starmap button). enrich reads the RAW args through
---- Location.starmapCodeArg — it runs before editorial resolution — so that
---- helper mirrors this alias order exactly.
+--- (metadata row, Starmap button). enrich and the starmapCode accessor read
+--- the RAW arg through Editorial.rawArg with this entry, so the alias order
+--- is declared here once.
 --- @return table
 function p.getEditorialManifest()
 	return {
@@ -216,12 +216,11 @@ local function starmapVisibility(apiData)
 end
 
 --- The ARK starmap code (the `?location=` key): the fetched celestial record's
---- own code first, else the raw |starmapcode=/|code= arg (via the kind's
---- public starmapCodeArg accessor — the same alias order enrich fetches with,
---- so a page whose fetch soft-failed still gets its button and metadata row
---- from the arg that would have keyed it). One accessor for both consumers
---- (Starmap button, Metadata row), StarSystem's pattern: they cannot drift,
---- and the empty case is rejected once.
+--- own code first, else the raw |starmapcode=/|code= arg read through the
+--- manifest entry enrich fetches with, so a page whose fetch soft-failed
+--- still gets its button and metadata row from the arg that would have keyed
+--- it. One accessor for both consumers (Starmap button, Metadata row): they
+--- cannot drift, and the empty case is rejected once.
 --- @param apiData table
 --- @param args table|nil
 --- @return string|nil
@@ -231,7 +230,7 @@ local function starmapCode(apiData, args)
 	if type(code) == 'string' and code ~= '' then
 		return code
 	end
-	return location.starmapCodeArg(args)
+	return Editorial.rawArg(args, p.getEditorialManifest().starmapcode)
 end
 
 --- @return { name: string, category: string }

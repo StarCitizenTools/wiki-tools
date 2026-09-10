@@ -10,8 +10,8 @@ require('strict')
 --- isJumpPointRecord). Every other location stays unclaimed until its leaf
 --- exists. Each leaf owns its starmap bridge: StarSystem attaches the
 --- star-system record by name, JumpPoint the celestial object by the
---- editor's starmap code; the kind exposes both fetches as attachStarsystem /
---- attachCelestialObject.
+--- editor's starmap code; the kind exposes both fetches as attachStarsystem
+--- (by name) / attachCelestialObject (by code).
 ---
 --- For star systems the location record is thin; the substantive data lives in
 --- the starmap-derived /api/starsystems endpoint. The two records share no
@@ -324,41 +324,17 @@ local function normalizeAggregates(record)
 	return record
 end
 
---- The starmap celestial-object code from the editor args: |starmapcode= wins
---- over the legacy {{Astronomical object}} alias |code=; trimmed; an
---- absent/blank value falls through to the alias, and no usable value at all
---- means no fetch. Reads the RAW args because the JumpPoint leaf's enrich
---- runs before editorial resolution — the starmapcode manifest entry mirrors
---- this alias order, and the two must not drift (same raw-args mirror
---- getTypeInfo documents).
---- @param args table|nil
---- @return string|nil
-function p.starmapCodeArg(args)
-	if type(args) ~= 'table' then
-		return nil
-	end
-	for _, key in ipairs({ 'starmapcode', 'code' }) do
-		if type(args[key]) == 'string' then
-			local code = mw.text.trim(args[key])
-			if code ~= '' then
-				return code
-			end
-		end
-	end
-	return nil
-end
-
 --- Attach the starmap celestial-object record as apiData.celestialobject: the
 --- JumpPoint leaf's enrich. The bridge key is the editor-supplied starmap
---- code; no code, no fetch. Soft-fails: on a fetch error or an empty result
---- the record stays absent and the infobox renders what it has.
+--- code (the leaf reads it from its manifest entry); no code, no fetch.
+--- Soft-fails: on a fetch error or an empty result the record stays absent
+--- and the infobox renders what it has.
 ---
 --- @param apiData table
---- @param args table|nil
+--- @param code string|nil
 --- @return table apiData
-function p.attachCelestialObject(apiData, args)
-	local code = p.starmapCodeArg(args)
-	if not code then
+function p.attachCelestialObject(apiData, code)
+	if type(code) ~= 'string' or code == '' then
 		return apiData
 	end
 	-- Unlike the starsystems endpoint below, this is a plain path with no query
@@ -534,9 +510,7 @@ function p.resolveAffiliation(starsystem, resolved)
 	return p.affiliationFromText(editorial.view(resolved):value('affiliation')) or p.affiliationEntry(starsystem)
 end
 
--- Test-only exports. Not part of the public API. starmapCodeArg is public:
--- the JumpPoint leaf's enrich and manifest read the same alias order through
--- it.
+-- Test-only exports. Not part of the public API.
 p._internal = {
 	isJumpPointRecord = isJumpPointRecord,
 	recordFamily = recordFamily,

@@ -285,7 +285,7 @@ function suite:testGetExposesFamilyAndMatchedKind()
 	self:assertEquals(nil, r.matchedKind)
 end
 
--- runEditorialFork (the fork runs the declared kind's enrich)
+-- runEditorialFork (the fork runs the rebuilt chain's enrich hooks)
 
 function suite:testRunEditorialForkCallsEnrichWithArgs()
 	local seenArgs
@@ -354,6 +354,18 @@ local function solarSystemRecord()
 	}
 end
 
+--- Starmap record as StarSystem.enrich attaches it (trimmed).
+local function starsystemRecord()
+	return {
+		code = 'STANTON',
+		type = 'SINGLE_STAR',
+		status = 'P',
+		aggregated = { size = 4.85, population = 10, economy = 10 },
+		affiliation = { { code = 'uee', name = 'UEE' } },
+		celestial_objects = { { type = 'STAR', sub_type = { name = 'Main Sequence-Dwarf-G' } }, { type = 'PLANET' } },
+	}
+end
+
 function suite:testDeclaredKindWithUuidSkipsTheProbe()
 	withStubbedFetch({ ['locations/%s'] = solarSystemRecord() }, function(seen)
 		local r = Data.get({ uuid = 'c9c137cf-c520-47ee-9e6d-5d653dfbe201', kind = 'Location' })
@@ -374,10 +386,10 @@ function suite:testDeclaredKindLowercaseTakesTheTrustPath()
 end
 
 -- A vehicle uuid pasted into {{Location}}: the declared endpoint answers a
--- record the kind can neither match nor refine, so the declaration is NOT
--- trusted and the probe walks the registry (here every endpoint answers
--- nothing, so the page lands in the editorial fork with the uuid flagged
--- unresolved — the vehicle record is never adopted).
+-- record the kind does not match, so the declaration is NOT trusted and the
+-- probe walks the registry (here every endpoint answers nothing, so the page
+-- lands in the editorial fork with the uuid flagged unresolved — the vehicle
+-- record is never adopted).
 function suite:testDeclaredKindGateFailureFallsThroughToProbe()
 	local vehicleRecord = { uuid = 'abc', class_name = 'AEGS_Gladius', is_vehicle = true }
 	withStubbedFetch({ ['locations/%s'] = vehicleRecord }, function(seen)
@@ -388,87 +400,10 @@ function suite:testDeclaredKindGateFailureFallsThroughToProbe()
 	end)
 end
 
--- The gate must judge the record ALONE: probeKind hands resolveSubtype an
--- empty args table, never the real args (which carry kind=). A kind whose
--- resolveSubtype accepts kind-declared pages unconditionally — Location
--- defaults them to its StarSystem leaf — would otherwise turn the gate into a
--- tautology: any record would pass because the page declared a kind.
-function suite:testDeclaredKindGateStripsArgsFromResolveSubtype()
-	local registry = require('Module:Entity/Registry')
-	local stubKind = {
-		name = 'Gatecheck',
-		matches = function()
-			return false
-		end,
-		-- The pathological shape the {} contract exists for: accepts any
-		-- record as soon as the caller leaks args carrying kind=.
-		resolveSubtype = function(_, args)
-			if args and args.kind then
-				return { name = 'GatecheckLeaf' }
-			end
-			return nil
-		end,
-		getApiConfigs = function()
-			return { { name = 'StarCitizenWikiAPI', endpoint = 'gatecheck/%s', params = {} } }
-		end,
-	}
-	table.insert(registry.kinds, stubKind)
-	local ok, err = pcall(function()
-		withStubbedFetch({ ['gatecheck/%s'] = { uuid = 'abc' } }, function(seen)
-			Data.get({ uuid = 'abc', kind = 'Gatecheck' })
-			self:assertEquals(true, seen['gatecheck/%s']) -- the trust path fetched the declared endpoint …
-			self:assertEquals(true, seen['items/%s']) -- … and the gate failed, so the probe still ran
-		end)
-	end)
-	table.remove(registry.kinds)
-	if not ok then
-		error(err, 0)
-	end
-end
-
--- The gate's second disjunct must be able to ADMIT on its own: a record the
--- kind's matches() rejects but whose shape resolveSubtype refines to a leaf
--- still earns the trust path. This is the mechanism jump points ride —
--- Location.matches() stays SolarSystem-narrow by design — so deleting the
--- resolveSubtype disjunct from the gate must fail here, not silently.
-function suite:testDeclaredKindGateAdmitsViaResolveSubtypeAlone()
-	local registry = require('Module:Entity/Registry')
-	local leaf = { name = 'GateadmitLeaf' }
-	local stubKind = {
-		name = 'Gateadmit',
-		matches = function()
-			return false
-		end,
-		-- Judges the RECORD alone; args are never consulted.
-		resolveSubtype = function(data)
-			if data.acceptme == true then
-				return leaf
-			end
-			return nil
-		end,
-		getApiConfigs = function()
-			return { { name = 'StarCitizenWikiAPI', endpoint = 'gateadmit/%s', params = {} } }
-		end,
-	}
-	table.insert(registry.kinds, stubKind)
-	local ok, err = pcall(function()
-		withStubbedFetch({ ['gateadmit/%s'] = { uuid = 'abc', acceptme = true } }, function(seen)
-			local r = Data.get({ uuid = 'abc', kind = 'Gateadmit' })
-			self:assertEquals('Gateadmit', r.kind)
-			self:assertEquals(false, r.hasApiError)
-			self:assertEquals(true, seen['gateadmit/%s'])
-			self:assertEquals(nil, seen['items/%s'])
-		end)
-	end)
-	table.remove(registry.kinds)
-	if not ok then
-		error(err, 0)
-	end
-end
-
 --- Jump-point-shaped location record (what locations/<uuid> answers for a
---- gate; trimmed from the live API response). Typed 'Anomaly' — the token
---- Location.matches() rejects by design.
+--- gate; trimmed from the live API response). Typed 'Anomaly', a token
+--- shared with non-gate records (wreck sites) that Location.matches()
+--- rejects; the name suffix is what admits a gate specifically.
 local function jumpPointRecord()
 	return {
 		uuid = '80bac534-3e84-4a2d-97c2-3edefa2d5bef',
@@ -479,14 +414,11 @@ local function jumpPointRecord()
 	}
 end
 
--- The stub-kind admission test above, incarnated with the REAL Location kind
--- and a real jump-point record: matches() rejects the Anomaly type, so the
--- page renders under Location only because resolveSubtype refines the record
--- to the JumpPoint leaf inside the gate. This is the running proof of the
--- coupling between Data's trust path and Location's dispatch — either side
--- drifting (the gate losing its resolveSubtype disjunct, or Location's suffix
--- predicate changing shape) fails HERE, not only in a per-module suite.
-function suite:testDeclaredKindTrustsJumpPointRecordViaResolveSubtype()
+-- The real Location kind with a real jump-point record: matches() claims the
+-- gate outright, so the declared path admits it with no admission disjunct in
+-- the gate. Either side drifting — Location.matches narrowing, or the gate
+-- growing a second condition — fails HERE.
+function suite:testDeclaredKindTrustsJumpPointRecordViaMatches()
 	withStubbedFetch({ ['locations/%s'] = jumpPointRecord() }, function(seen)
 		local r = Data.get({ uuid = '80bac534-3e84-4a2d-97c2-3edefa2d5bef', kind = 'Location' })
 		self:assertEquals('Location', r.kind)
@@ -523,6 +455,54 @@ function suite:testUuidWithoutKindStopsAtFirstClaim()
 		self:assertEquals('Item', r.kind)
 		self:assertEquals(true, seen['items/%s'])
 		self:assertEquals(nil, seen['vehicles/%s'])
+	end)
+end
+
+-- ── promoted chain hooks (enrich / getCategories / getEditorialManifest) ────
+
+-- enrich runs on every link root-to-leaf: the JumpPoint leaf's enrich (not the
+-- kind's) attaches the celestial object on a declared-kind page.
+function suite:testLeafEnrichRunsOnTheChain()
+	local celestial = { code = 'PYRO.JUMPPOINTS.NYX', designation = 'Pyro - Nyx', type = 'JUMPPOINT' }
+	withStubbedFetch({ ['locations/%s'] = jumpPointRecord(), ['celestial-objects/%s'] = celestial }, function(seen)
+		local r = Data.get({
+			uuid = '80bac534-3e84-4a2d-97c2-3edefa2d5bef',
+			kind = 'Location',
+			starmapcode = 'PYRO.JUMPPOINTS.NYX',
+		})
+		self:assertEquals(true, seen['celestial-objects/%s'])
+		self:assertEquals('Pyro - Nyx', r.apiData.celestialobject.designation)
+		self:assertEquals(nil, r.apiData.starsystem)
+	end)
+end
+
+-- getCategories is collected from every link: the StarSystem leaf's type and
+-- affiliation categories reach typeInfo.categories, and the leaf's manifest
+-- fragment (size) is merged into the editorial layer.
+function suite:testLeafCategoriesAndManifestReachTheResult()
+	local endpoint = 'starsystems?filter[name]=%s&include=celestialObjects&locale=en_EN'
+	withStubbedFetch({ ['locations/%s'] = solarSystemRecord(), [endpoint] = { starsystemRecord() } }, function()
+		local r = Data.get({ uuid = 'c9c137cf-c520-47ee-9e6d-5d653dfbe201', kind = 'Location', size = '5' })
+		local cats = {}
+		for _, c in ipairs(r.typeInfo.categories or {}) do
+			cats[c] = true
+		end
+		self:assertEquals(true, cats['Single Star systems'])
+		self:assertEquals(true, cats['United Empire of Earth systems'])
+		self:assertEquals(5, r.resolved.size.value)
+		self:assertEquals('override', r.resolved.size.source)
+	end)
+end
+
+-- The editorial fork runs the chain's enrich too: a kind-declared lore system
+-- with no record still fetches its starmap record through the StarSystem leaf.
+function suite:testEditorialForkRunsLeafEnrich()
+	local endpoint = 'starsystems?filter[name]=%s&include=celestialObjects&locale=en_EN'
+	withStubbedFetch({ [endpoint] = { starsystemRecord() } }, function(seen)
+		local r = Data.get({ kind = 'Location', name = 'Stanton system' })
+		self:assertEquals(true, seen[endpoint])
+		self:assertEquals('STANTON', r.apiData.starsystem.code)
+		self:assertEquals('Location', r.kind)
 	end)
 end
 

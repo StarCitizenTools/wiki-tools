@@ -8,6 +8,11 @@ require('strict')
 --- Stateless — module locals do not persist across #invoke calls. Repeated
 --- calls within a page parse rely on the Apiunto HTTP cache to stay cheap,
 --- so each sibling template can call p.get independently without coordination.
+---
+--- Every hook a chain link may implement is applied here with one merge
+--- policy: enrich root-to-leaf, getEditorialManifest merged root-to-leaf
+--- (leaf wins), getCategories additive, the rest as Module:Entity and
+--- Module:Entity/Infobox apply them.
 
 local api = require('Module:Entity/Api')
 local assembly = require('Module:Entity/Assembly')
@@ -154,16 +159,11 @@ end
 --- the uuid is trusted first: the declared kind's own primary endpoint is fetched
 --- directly, skipping the probe. The declaration is trusted because it is what
 --- admits records the probe can never claim — a jump point's location record
---- reports type 'Anomaly', which the deliberately-narrow Location.matches()
---- rejects by design — and because it is gated: the declared kind must claim the
---- fetched record via matches(), or refine it via resolveSubtype. The gate is
---- what stops a wrong uuid (a vehicle uuid pasted into {{Location}}) from
---- rendering under the declared kind; it strips the args from the resolveSubtype
---- call — the empty table is load-bearing — because Location's resolveSubtype
---- defaults kind-declared pages (real args carry `kind`) to its StarSystem leaf,
---- which would accept ANY record and turn the gate into a tautology. Judged on
---- the record alone, a gate failure (fetch error included) falls through to the
---- probe unchanged.
+--- reports type 'Anomaly', a token wreck sites also carry — and because it is
+--- gated: the declared kind must claim the fetched record via matches() — a
+--- kind claims exactly the records it can render, jump points included — so a
+--- wrong uuid (a vehicle uuid pasted into {{Location}}) fails the gate and
+--- falls through to the probe unchanged, a fetch error included.
 ---
 --- Otherwise probeKindByEndpoint walks the registry. Every fetch, declared or
 --- probed, targets a kind's TYPED endpoint, and that is deliberate: Apiunto
@@ -190,12 +190,9 @@ local function probeKind(args)
 	local declaredConfig = declaredKind and declaredKind.getApiConfigs()[1]
 	if declaredConfig then
 		local data, err = api.fetchApi(declaredConfig, args.uuid)
-		-- Validity gate (see the docstring). matches() is nil-safe by contract;
-		-- resolveSubtype is not, so a failed fetch (data nil) skips straight to
-		-- the fall-through.
-		local claimed = declaredKind.matches(data)
-			or (data ~= nil and declaredKind.resolveSubtype ~= nil and declaredKind.resolveSubtype(data, {}) ~= nil)
-		if claimed then
+		-- Validity gate (see the docstring). matches() is nil-safe by contract, so a
+		-- failed fetch (data nil) falls straight through.
+		if declaredKind.matches(data) then
 			return declaredKind, data, { [declaredConfig.endpoint] = true }, err ~= nil
 		end
 	end
@@ -251,8 +248,25 @@ local function fetchChainExtras(chain, uuid, fetchedEndpoints)
 	return api.fetchAllApis(additionalConfigs, uuid)
 end
 
+--- Runs every chain link's enrich hook root to leaf, each receiving the
+--- previous link's apiData. A leaf attaches the secondary record only it
+--- renders (StarSystem the starmap system, JumpPoint the celestial object);
+--- a kind's enrich (Commodity's raw/refined merge) runs first.
+--- @param chain table[]
+--- @param apiData table
+--- @param args table
+--- @return table apiData
+local function enrichChain(chain, apiData, args)
+	for _, mod in ipairs(chain) do
+		if mod.enrich then
+			apiData = mod.enrich(apiData, args)
+		end
+	end
+	return apiData
+end
+
 --- Probes the kind, resolves the leaf, builds the chain, fetches the chain's
---- extra endpoints, and runs the matched kind's enrich hook.
+--- extra endpoints, and runs the chain's enrich hooks.
 ---
 --- @param args table
 --- @return table apiData Merged API response data
@@ -275,9 +289,7 @@ local function fetchApiData(args)
 		end
 	end
 
-	if matchedKind and matchedKind.enrich then
-		apiData = matchedKind.enrich(apiData, args)
-	end
+	apiData = enrichChain(chain, apiData, args)
 
 	return apiData, chain, hasApiError, matchedKind
 end
@@ -308,7 +320,7 @@ local function resolveEditorialKind(args)
 end
 
 --- The editorial fork's data path: empty apiData, leaf re-resolved from args,
---- chain rebuilt, and the declared kind's enrich hook run with args — so a kind
+--- chain rebuilt, and the chain's enrich hooks run with args — so a kind
 --- can attach secondary API data (Location fetches the starmap record by name)
 --- even though no identity record exists.
 --- @param editorialKind table
@@ -319,9 +331,7 @@ local function runEditorialFork(editorialKind, args)
 	local apiData = {}
 	local leafMod = resolveLeaf(editorialKind, apiData, false, args)
 	local chain = assembly.buildChain(leafMod)
-	if editorialKind.enrich then
-		apiData = editorialKind.enrich(apiData, args)
-	end
+	apiData = enrichChain(chain, apiData, args)
 	return apiData, chain
 end
 
@@ -371,33 +381,32 @@ function p.get(args)
 	end
 
 	local resolved, editorialData, hasManualApiData = {}, {}, false
-	if matchedKind and matchedKind.getEditorialManifest then
-		local manifest = matchedKind.getEditorialManifest()
+	local manifest = assembly.mergeEditorialManifests(chain)
+	if manifest then
 		resolved = editorial.resolve(apiData, args, manifest)
 		editorialData = editorial.toStructuredData(resolved, manifest)
 		hasManualApiData = editorial.hasManualApiData(resolved)
 	end
 
-	-- Kind-contributed browse categories that need editorial (resolved) data.
-	-- typeInfo may be a frozen typeResolver result, so copy before appending.
-	if matchedKind and matchedKind.getCategories then
-		local extra = matchedKind.getCategories(apiData, args, resolved, family)
-		if type(extra) == 'table' and extra[1] ~= nil then
-			local copy = {}
-			for k, v in pairs(typeInfo or {}) do
-				copy[k] = v
-			end
-			local cats = {}
-			for _, c in ipairs(copy.categories or {}) do
-				cats[#cats + 1] = c
-			end
-			for _, c in ipairs(extra) do
-				cats[#cats + 1] = c
-			end
-			copy.categories = cats
-			typeInfo = copy
-			displayType = displayType or copy.name
+	-- Browse categories every chain link contributes (additive, root to leaf),
+	-- appended to typeInfo.categories. typeInfo may be a frozen typeResolver
+	-- result, so copy before appending.
+	local extra = assembly.collect(chain, 'getCategories', apiData, args, resolved)
+	if extra[1] ~= nil then
+		local copy = {}
+		for k, v in pairs(typeInfo or {}) do
+			copy[k] = v
 		end
+		local cats = {}
+		for _, c in ipairs(copy.categories or {}) do
+			cats[#cats + 1] = c
+		end
+		for _, c in ipairs(extra) do
+			cats[#cats + 1] = c
+		end
+		copy.categories = cats
+		typeInfo = copy
+		displayType = displayType or copy.name
 	end
 
 	return {

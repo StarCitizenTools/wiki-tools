@@ -41,4 +41,10 @@ function suite:testFamilyTag()
 	self:assertEquals('gravlev', Gravlev.family)
 end
 
+function suite:testPledgeCategory()
+	local cats = Gravlev.getCategories({ msrp = 100 }, {}, {})
+	self:assertEquals('Pledge vehicles', cats[#cats])
+	self:assertEquals(0, #Gravlev.getCategories({}, {}, {}))
+end
+
 return suite

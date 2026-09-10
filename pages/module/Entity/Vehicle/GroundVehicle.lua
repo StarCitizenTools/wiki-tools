@@ -12,8 +12,8 @@ local p = {}
 p.parent = 'Entity/Vehicle'
 
 --- @type string
---- Family discriminator read by Vehicle.getCategories (replaces a module-identity
---- comparison) and available to any future carried-family logic.
+--- Family token: dispatched by Vehicle.resolveSubtype and named by a curated
+--- |family= on record-less pages.
 p.family = 'ground'
 
 --- @param apiData table
@@ -31,6 +31,20 @@ end
 --- @return string
 function p.getShortDescription(apiData, args, typeInfo, prefix, resolved)
 	return vehicle.formatShortDescription(apiData, args, resolved, 'ground vehicle', true)
+end
+
+--- Pledge browse category for non-ship vehicles ("Pledge vehicles"); ground
+--- vehicles and gravlevs carry no meaningful ship-matrix size, so no size
+--- bucket.
+--- @param apiData table
+--- @param args table
+--- @param resolved table|nil
+--- @return string[]
+function p.getCategories(apiData, args, resolved)
+	if vehicle.hasPledgePrice(apiData, resolved) then
+		return { 'Pledge vehicles' }
+	end
+	return {}
 end
 
 return p

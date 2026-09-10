@@ -6,6 +6,7 @@ local Vehicle = require('Module:Entity/Vehicle')
 local Ship = require('Module:Entity/Vehicle/Ship')
 local GroundVehicle = require('Module:Entity/Vehicle/GroundVehicle')
 local Gravlev = require('Module:Entity/Vehicle/Gravlev')
+local assembly = require('Module:Entity/Assembly')
 
 local suite = ScribuntoUnit:new()
 
@@ -36,6 +37,21 @@ local function findItem(items, label)
 		end
 	end
 	return nil
+end
+
+--- Categories the way Module:Entity/Data collects them: every link of the
+--- resolved chain contributes, root to leaf.
+local function categoriesFor(apiData, args, resolved)
+	local leaf = Vehicle.resolveSubtype(apiData, args) or Vehicle
+	return assembly.collect(assembly.buildChain(leaf), 'getCategories', apiData, args, resolved)
+end
+
+local function toSet(list)
+	local set = {}
+	for _, c in ipairs(list) do
+		set[c] = true
+	end
+	return set
 end
 
 function suite:testMatchesNilReturnsFalse()
@@ -669,19 +685,7 @@ end
 
 function suite:testCategoriesSizeFromArg()
 	local apiData, args = { is_spaceship = true, size = 'medium' }, { size = 'Large' }
-	local cats = Vehicle.getCategories(
-		apiData,
-		args,
-		{},
-		(function()
-			local s = Vehicle.resolveSubtype(apiData, args)
-			return s and s.family
-		end)()
-	)
-	local set = {}
-	for _, c in ipairs(cats) do
-		set[c] = true
-	end
+	local set = toSet(categoriesFor(apiData, args, {}))
 	self:assertEquals(true, set['Large ships'])
 	self:assertEquals(nil, set['Medium ships'])
 end
@@ -734,22 +738,10 @@ end
 function suite:testCategoriesGenerationGrouping()
 	-- "<series> <generation>" (legacy category_generation "%s %s"), e.g. "Constellation Mk4".
 	local apiData, args = { is_spaceship = true }, {}
-	local cats = Vehicle.getCategories(
-		apiData,
-		args,
-		{
-			series = { value = 'Constellation', source = 'editorial' },
-			generation = { value = 'Mk4', source = 'editorial' },
-		},
-		(function()
-			local s = Vehicle.resolveSubtype(apiData, args)
-			return s and s.family
-		end)()
-	)
-	local set = {}
-	for _, c in ipairs(cats) do
-		set[c] = true
-	end
+	local set = toSet(categoriesFor(apiData, args, {
+		series = { value = 'Constellation', source = 'editorial' },
+		generation = { value = 'Mk4', source = 'editorial' },
+	}))
 	self:assertEquals(true, set['Constellation Mk4'])
 end
 
@@ -758,19 +750,8 @@ function suite:testCategoriesShip()
 	-- name == 'Gatac Manufacture', enabling the manufacturer+series category.
 	local apiData = { is_spaceship = true, size = 'large', msrp = 220, production_status = 'flight-ready' }
 	local args = { career = 'Transport', manufacturer = 'Gatac Manufacture' }
-	local cats = Vehicle.getCategories(
-		apiData,
-		args,
-		{ series = { value = 'Railen', source = 'editorial' } },
-		(function()
-			local s = Vehicle.resolveSubtype(apiData, args)
-			return s and s.family
-		end)()
-	)
-	local set = {}
-	for _, c in ipairs(cats) do
-		set[c] = true
-	end
+	local cats = categoriesFor(apiData, args, { series = { value = 'Railen', source = 'editorial' } })
+	local set = toSet(cats)
 	self:assertEquals(true, set['Large ships'])
 	self:assertEquals(true, set['Pledge ships'])
 	self:assertEquals(true, set['Flight ready'])
@@ -787,34 +768,14 @@ end
 
 function suite:testCategoriesGroundNoSizeAndPledgeVehicles()
 	local apiData, args = { is_vehicle = true, size = 'small', msrp = 50, production_status = 'flight-ready' }, {}
-	local cats = Vehicle.getCategories(
-		apiData,
-		args,
-		{},
-		(function()
-			local s = Vehicle.resolveSubtype(apiData, args)
-			return s and s.family
-		end)()
-	)
-	local set = {}
-	for _, c in ipairs(cats) do
-		set[c] = true
-	end
+	local set = toSet(categoriesFor(apiData, args, {}))
 	self:assertEquals(nil, set['Small ships']) -- size category is ships-only
 	self:assertEquals(true, set['Pledge vehicles']) -- ground uses "Pledge vehicles"
 end
 
 function suite:testCategoriesNoPledgeNoSeries()
 	local apiData, args = { is_spaceship = true, size = 'large' }, {}
-	local cats = Vehicle.getCategories(
-		apiData,
-		args,
-		{},
-		(function()
-			local s = Vehicle.resolveSubtype(apiData, args)
-			return s and s.family
-		end)()
-	)
+	local cats = categoriesFor(apiData, args, {})
 	for _, c in ipairs(cats) do
 		self:assertEquals(false, c == 'Pledge ships')
 	end
@@ -950,22 +911,10 @@ function suite:testEditorialModeCategoriesShip()
 	-- apiData = {}: isShip must be derived from |family=, not API flags.
 	local apiData = {}
 	local args = { family = 'ship', manufacturer = 'MISC', size = 'Large', career = 'Transport' }
-	local cats = Vehicle.getCategories(
-		apiData,
-		args,
-		{
-			series = { value = 'Hull', source = 'editorial' },
-			production_state = { value = 'In concept', source = 'override' },
-		},
-		(function()
-			local s = Vehicle.resolveSubtype(apiData, args)
-			return s and s.family
-		end)()
-	)
-	local set = {}
-	for _, c in ipairs(cats) do
-		set[c] = true
-	end
+	local set = toSet(categoriesFor(apiData, args, {
+		series = { value = 'Hull', source = 'editorial' },
+		production_state = { value = 'In concept', source = 'override' },
+	}))
 	self:assertEquals(true, set['Large ships'])
 	self:assertEquals(true, set['In concept'])
 	self:assertEquals(true, set['Transport career'])
@@ -977,18 +926,10 @@ function suite:testEditorialModeCategoriesLoreOnly()
 	-- "In lore" value land in it.
 	local apiData = {}
 	local args = { family = 'ship', manufacturer = 'MISC', size = 'Large' }
-	local family = (function()
-		local s = Vehicle.resolveSubtype(apiData, args)
-		return s and s.family
-	end)()
 	for _, value in ipairs({ 'Lore-only', 'In lore' }) do
-		local cats = Vehicle.getCategories(apiData, args, {
+		local set = toSet(categoriesFor(apiData, args, {
 			production_state = { value = value, source = 'editorial' },
-		}, family)
-		local set = {}
-		for _, c in ipairs(cats) do
-			set[c] = true
-		end
+		}))
 		self:assertEquals(true, set['Lore-only vehicles'])
 		self:assertEquals(nil, set['Lore-only'])
 		self:assertEquals(nil, set['In lore'])
@@ -1000,17 +941,9 @@ function suite:testEditorialModeCategoriesUnconfirmed()
 	-- category, not the plain state label.
 	local apiData = {}
 	local args = { family = 'ship', manufacturer = 'MISC', size = 'Large' }
-	local family = (function()
-		local s = Vehicle.resolveSubtype(apiData, args)
-		return s and s.family
-	end)()
-	local cats = Vehicle.getCategories(apiData, args, {
+	local set = toSet(categoriesFor(apiData, args, {
 		production_state = { value = 'Unconfirmed', source = 'editorial' },
-	}, family)
-	local set = {}
-	for _, c in ipairs(cats) do
-		set[c] = true
-	end
+	}))
 	self:assertEquals(true, set['Unconfirmed vehicles'])
 	self:assertEquals(nil, set['Unconfirmed'])
 end
@@ -1155,6 +1088,33 @@ function suite:testStructuredDataCapacityFieldsAbsent()
 	self:assertEquals(nil, d['Beds'])
 	self:assertEquals(nil, d['Weapon rack capacity'])
 	self:assertEquals(nil, d['Medical bed tier'])
+end
+
+function suite:testKindCategoriesAreFamilyIndependent()
+	-- The kind link contributes only what does not depend on the family; the
+	-- leaf owns size and pledge.
+	local cats = toSet(Vehicle.getCategories({ is_spaceship = true, size = 'large', msrp = 220 }, {}, {}))
+	self:assertEquals(nil, cats['Large ships'])
+	self:assertEquals(nil, cats['Pledge ships'])
+	local leafCats = toSet(Ship.getCategories({ is_spaceship = true, size = 'large', msrp = 220 }, {}, {}))
+	self:assertEquals(true, leafCats['Large ships'])
+	self:assertEquals(true, leafCats['Pledge ships'])
+end
+
+function suite:testNoFamilyLeafMeansNoPledgeCategory()
+	-- The pledge category is a family leaf's; a record-less page that resolves
+	-- no leaf (no |family=, or an unmapped one) gets none.
+	local resolved = { pledge_price = { value = 150, source = 'editorial' } }
+	for _, args in ipairs({ {}, { family = 'hovercraft' } }) do
+		local cats = toSet(categoriesFor({}, args, resolved))
+		self:assertEquals(nil, cats['Pledge ships'])
+		self:assertEquals(nil, cats['Pledge vehicles'])
+	end
+	self:assertEquals(true, toSet(categoriesFor({}, { family = 'ground' }, resolved))['Pledge vehicles'])
+end
+
+function suite:testResolveSubtypeFamilyArgIsNormalized()
+	self:assertEquals(Ship, Vehicle.resolveSubtype({}, { family = ' Ship ' }))
 end
 
 return suite

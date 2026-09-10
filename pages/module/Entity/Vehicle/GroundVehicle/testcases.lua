@@ -41,4 +41,10 @@ function suite:testFamilyTag()
 	self:assertEquals('ground', GroundVehicle.family)
 end
 
+function suite:testPledgeCategory()
+	local cats = GroundVehicle.getCategories({ msrp = 100 }, {}, {})
+	self:assertEquals('Pledge vehicles', cats[#cats])
+	self:assertEquals(0, #GroundVehicle.getCategories({}, {}, {}))
+end
+
 return suite

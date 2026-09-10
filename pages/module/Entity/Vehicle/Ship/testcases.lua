@@ -48,4 +48,10 @@ function suite:testFamilyTag()
 	self:assertEquals('ship', Ship.family)
 end
 
+function suite:testPledgeCategory()
+	local cats = Ship.getCategories({ msrp = 100 }, {}, {})
+	self:assertEquals('Pledge ships', cats[#cats])
+	self:assertEquals(0, #Ship.getCategories({}, {}, {}))
+end
+
 return suite

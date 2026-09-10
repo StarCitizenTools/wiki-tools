@@ -105,7 +105,8 @@ local VEHICLE_FAMILY_MAP = {
 
 --- Derive the family token: a genuine record's boolean flags (ordered
 --- most-specific-first) win; in editorial mode (apiData = {}) the curated
---- |family= arg selects it. nil when neither resolves.
+--- |family= arg, normalised by SubtypeResolver.familyArg, selects it. nil when
+--- neither resolves.
 --- @param apiData table|nil
 --- @param args table|nil
 --- @return string|nil
@@ -121,7 +122,7 @@ local function deriveFamily(apiData, args)
 			return 'ground'
 		end
 	end
-	return type(args) == 'table' and args.family or nil
+	return subtypeResolver.familyArg(args)
 end
 
 --- Refine a vehicle to its family subtype leaf. A genuine record carries all
@@ -443,30 +444,28 @@ local STATE_BROWSE_CATEGORY = {
 	unconfirmed = 'Unconfirmed vehicles',
 }
 
---- Legacy {{Vehicle}}-parity browse categories beyond the structural bucket
---- (Ships / Ground vehicles) and the manufacturer category. Size/career/etc. are
---- ALSO SMW facets; these categories are additive for navigation. Pure.
+--- Does a pledge price resolve for this vehicle? Editorial pledge_price wins,
+--- else the API msrp. Shared by the family leaves, whose pledge browse
+--- category differs by noun (Pledge ships / Pledge vehicles).
+--- @param apiData table
+--- @param resolved table|nil
+--- @return boolean
+function p.hasPledgePrice(apiData, resolved)
+	local pledge = tonumber(Editorial.view(resolved):value('pledge_price', apiData.msrp))
+	return pledge ~= nil and pledge > 0
+end
+
+--- Legacy {{Vehicle}}-parity browse categories that do not depend on the
+--- family: production state, series / generation grouping, career. The family
+--- leaves (Ship / GroundVehicle / Gravlev) contribute size and pledge. These
+--- are ALSO SMW facets; the categories are additive for navigation. Pure.
 --- @param apiData table
 --- @param args table
---- @param resolved table
---- @param family string|nil  the leaf family token, threaded from Data.get (no re-resolve)
+--- @param resolved table|nil
 --- @return string[]
-function p.getCategories(apiData, args, resolved, family)
+function p.getCategories(apiData, args, resolved)
 	local ed = Editorial.view(resolved)
 	local cats = {}
-	-- Family is threaded from Data.get (the leaf's p.family); editorial-mode pages
-	-- (apiData = {}, no is_spaceship flag) still classify as ships via |family=.
-	local isShip = family == 'ship'
-	-- Size (ships only): "Large ships" — the curated |size= wins (API may disagree)
-	local size = vehicleUtil.matrixSize(apiData, args)
-	if isShip and size then
-		cats[#cats + 1] = lang:ucfirst(size) .. ' ships'
-	end
-	-- Pledge: ship -> "Pledge ships"; ground/gravlev -> "Pledge vehicles" (when a pledge price exists)
-	local pledge = tonumber(ed:value('pledge_price', apiData.msrp))
-	if pledge and pledge > 0 then
-		cats[#cats + 1] = isShip and 'Pledge ships' or 'Pledge vehicles'
-	end
 	-- Production state category: the label ("Flight ready"), except states with a
 	-- dedicated browse category ("Lore-only vehicles" / "Unconfirmed vehicles").
 	local state = ed:value('production_state', apiData.production_status)

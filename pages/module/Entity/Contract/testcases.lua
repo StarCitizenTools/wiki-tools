@@ -136,4 +136,24 @@ function suite:testValidateDefaultUnchanged()
 	)
 end
 
+-- A chain link may implement any contributor hook; validate() type-checks it against CHAIN_LINK.
+function suite:testChainLinkTypeChecksPromotedHooks()
+	for _, hook in ipairs({ 'enrich', 'getEditorialManifest', 'getCategories', 'getAcquisition' }) do
+		local leaf = { [hook] = 'nope' }
+		local ok, errors = Contract.validate(leaf, Contract.CHAIN_LINK)
+		self:assertFalse(ok, hook .. ' is not type-checked by CHAIN_LINK')
+		self:assertTrue(hasError(errors, hook))
+	end
+end
+
+function suite:testKindIsIdentityPlusContributor()
+	for hook in pairs(Contract.CONTRIBUTOR) do
+		self:assertTrue(Contract.KIND[hook] ~= nil, 'CONTRIBUTOR hook missing from KIND: ' .. hook)
+	end
+	for hook, required in pairs(Contract.KIND_IDENTITY) do
+		self:assertEquals(required, Contract.KIND[hook], 'KIND_IDENTITY hook missing from KIND: ' .. hook)
+	end
+	self:assertEquals(Contract.CONTRIBUTOR, Contract.CHAIN_LINK)
+end
+
 return suite

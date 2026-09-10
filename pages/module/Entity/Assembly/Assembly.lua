@@ -3,7 +3,7 @@ require('strict')
 --- @module Entity/Assembly
 --- Composition primitives that assemble an entity from its component chain and
 --- facets: walk the p.parent chain, and merge the ordered section lists / flat
---- structured-data tables each component contributes. All pure.
+--- structured-data tables / category lists / editorial manifests each component contributes. All pure.
 
 local p = {}
 
@@ -127,6 +127,53 @@ end
 --- @return boolean
 function p.acceptNonEmpty(result)
 	return result ~= nil and result ~= ''
+end
+
+--- Additive policy: calls `hookName` on every link that defines it, root to
+--- leaf, and concatenates the returned lists. A link without the hook, or one
+--- returning nil or a non-table, contributes nothing. Pure.
+--- @param chain table[] Root-first chain
+--- @param hookName string
+--- @param ... any Arguments forwarded to the hook
+--- @return any[]
+function p.collect(chain, hookName, ...)
+	local out = {}
+	for _, link in ipairs(chain) do
+		local hook = link[hookName]
+		if hook then
+			local items = hook(...)
+			if type(items) == 'table' then
+				for _, item in ipairs(items) do
+					out[#out + 1] = item
+				end
+			end
+		end
+	end
+	return out
+end
+
+--- Merge policy for getEditorialManifest: every link's fragment folded root to
+--- leaf into one fresh table, so a leaf redefining a field wins. Returns nil
+--- when no link defines a manifest that is a table — the signal that the page
+--- has no editorial layer at all, distinct from an empty one. Fragments are
+--- copied shallowly; a mw.loadJsonData fragment (Vehicle's) is read-only, so
+--- nothing writes into it.
+--- @param chain table[] Root-first chain
+--- @return table|nil
+function p.mergeEditorialManifests(chain)
+	local merged = nil
+	for _, link in ipairs(chain) do
+		if link.getEditorialManifest then
+			local fragment = link.getEditorialManifest()
+			if type(fragment) == 'table' then
+				merged = merged or {}
+				for field, def in pairs(fragment) do
+					merged[field] = def
+				end
+			end
+		end
+	end
+	return merged
 end
 
 return p

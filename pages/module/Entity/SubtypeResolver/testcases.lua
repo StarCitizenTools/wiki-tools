@@ -21,4 +21,16 @@ function suite:testNilWhenTokenNilOrEmpty()
 	self:assertEquals(nil, SubtypeResolver.resolve('', MAP))
 end
 
+function suite:testFamilyArgNormalizes()
+	self:assertEquals('jumppoint', SubtypeResolver.familyArg({ family = ' JumpPoint ' }))
+	self:assertEquals('ship', SubtypeResolver.familyArg({ family = 'ship' }))
+end
+
+function suite:testFamilyArgNilWhenAbsentBlankOrNotString()
+	self:assertEquals(nil, SubtypeResolver.familyArg(nil))
+	self:assertEquals(nil, SubtypeResolver.familyArg({}))
+	self:assertEquals(nil, SubtypeResolver.familyArg({ family = '  ' }))
+	self:assertEquals(nil, SubtypeResolver.familyArg({ family = 42 }))
+end
+
 return suite

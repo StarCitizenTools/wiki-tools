@@ -216,4 +216,84 @@ function suite:testResolveMostSpecificNoneDefined()
 	self:assertEquals(nil, assembly.resolveMostSpecific({ {}, {} }, 'getX'))
 end
 
+-- collect (additive policy: every link's list, root-to-leaf)
+
+function suite:testCollectConcatenatesRootToLeaf()
+	local chain = {
+		{
+			getCategories = function()
+				return { 'Root cat' }
+			end,
+		},
+		{},
+		{
+			getCategories = function(a, b)
+				return { 'Leaf ' .. a .. b }
+			end,
+		},
+	}
+	local out = assembly.collect(chain, 'getCategories', 'x', 'y')
+	self:assertEquals(2, #out)
+	self:assertEquals('Root cat', out[1])
+	self:assertEquals('Leaf xy', out[2])
+end
+
+function suite:testCollectSkipsNilReturns()
+	local chain = { {
+		getCategories = function()
+			return nil
+		end,
+	} }
+	self:assertEquals(0, #assembly.collect(chain, 'getCategories'))
+end
+
+-- mergeEditorialManifests (root-to-leaf, leaf keys win)
+
+function suite:testMergeEditorialManifestsLeafWins()
+	local chain = {
+		{
+			getEditorialManifest = function()
+				return { a = { arg = 'a' }, shared = { arg = 'root' } }
+			end,
+		},
+		{
+			getEditorialManifest = function()
+				return { b = { arg = 'b' }, shared = { arg = 'leaf' } }
+			end,
+		},
+	}
+	local merged = assembly.mergeEditorialManifests(chain)
+	self:assertEquals('a', merged.a.arg)
+	self:assertEquals('b', merged.b.arg)
+	self:assertEquals('leaf', merged.shared.arg)
+end
+
+function suite:testMergeEditorialManifestsNilWhenNoneDefined()
+	self:assertEquals(nil, assembly.mergeEditorialManifests({ {}, {} }))
+end
+
+function suite:testMergeEditorialManifestsIgnoresNonTableFragments()
+	local chain = {
+		{
+			getEditorialManifest = function()
+				return nil
+			end,
+		},
+		{
+			getEditorialManifest = function()
+				return { a = { arg = 'a' } }
+			end,
+		},
+	}
+	self:assertEquals('a', assembly.mergeEditorialManifests(chain).a.arg)
+	self:assertEquals(
+		nil,
+		assembly.mergeEditorialManifests({ {
+			getEditorialManifest = function()
+				return nil
+			end,
+		} })
+	)
+end
+
 return suite

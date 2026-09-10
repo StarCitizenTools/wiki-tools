@@ -20,7 +20,7 @@ Module:Entity/Item/<Subtype>     ← leaf (replaces Item in the chain)
 
 When a subtype resolves, `Module:Entity/Data` uses the subtype module as the chain leaf in place of Item. Hooks on the subtype (`getSections`, `getStructuredData`, `getShortDescription`) are called directly; hooks on Item itself (`getSections`, `getStructuredData`) are called because Item is the subtype's `parent` and the chain walks root-first. This means Item always contributes its General section (Manufacturer / Size / Class / Grade) and its structured-data facets (size, grade, class, item\_type, volume, base\_variant, rarity) regardless of which subtype is active.
 
-Item declares the canonical kind name `p.name = 'Item'` (the `result.kind` value sibling renderers branch on, enforced by the Registry conformance test). It also implements `getAcquisition`, a **kind-level** hook dispatched on the matched kind (not on the subtype leaf), so the Availability / Acquisition block is driven by Item's `getAcquisition` for *every* item page, whatever the subtype.
+Item declares the canonical kind name `p.name = 'Item'` (the `result.kind` value sibling renderers branch on, enforced by the Registry conformance test). It also implements `getAcquisition`, a chain-link hook resolved leaf-first over the chain; no Item subtype currently defines its own `getAcquisition`, so the Availability / Acquisition block is driven by Item's implementation for *every* item page, whatever the subtype.
 
 ## API
 
@@ -90,7 +90,7 @@ Reads `Module:Entity/Item/communitySites.json` and returns a "Community sites" e
 
 ### `p.getAcquisition(apiData, args) → { summary, cards }`
 
-The kind-level lifecycle hook (declared on `EntityKind` in `Module:Entity/Types`) that supplies the data behind the [{{Entity/Availability}}](https://starcitizen.tools/Template:Entity/Availability) block. `Module:Entity/Availability` dispatches it on the **matched kind** (`result.matchedKind.getAcquisition`), so for items it is always Item's implementation that runs; subtypes do not participate. It returns two parts:
+The chain-link lifecycle hook (declared as part of `Module:Entity/Contract`'s `CONTRIBUTOR` set) that supplies the data behind the [{{Entity/Availability}}](https://starcitizen.tools/Template:Entity/Availability) block. `Module:Entity/Availability` resolves it leaf-first over `result.chain` (`Assembly.resolveMostSpecific`); no Item subtype defines its own `getAcquisition`, so it is always Item's implementation that runs. It returns two parts:
 
 - **`summary`**: the Buy / Rent / Loot / Craft / Pledge flag rows, each `{ label, icon, value }` where `value` is `true` / `false` / `nil` (yes / no / unknown). Every flag can be forced by an editor with a `{{Entity}}` template parameter, otherwise it is derived:
   - **Buy** (`canBuy`): derived from a non-zero `uex_prices.purchase[].price_buy`.

@@ -22,9 +22,9 @@ feeds the next:
 2. **Probe kinds**: when the page declares `|kind=` alongside a uuid (the
    `{{Vehicle}}` and `{{Location}}` facades inject it), the declared kind's own
    endpoint is fetched directly, behind a validity gate — the declaration holds
-   when `matches(data)` or `resolveSubtype(data, {})` accepts the record. This is
-   how records a deliberately-narrow `matches()` rejects get in (a jump point's
-   location record is typed `Anomaly`); see
+   only when `matches(data)` accepts the record. A kind claims exactly the records
+   it can render (Location's `matches` accepts SolarSystem records and jump-point
+   gates directly, both of which resolve a leaf); see
    [Module:Entity/Data](https://starcitizen.tools/Module:Entity/Data)'s Flow for the
    gate semantics. Otherwise the probe fetches each kind's primary endpoint in
    `Registry.kinds` order (from
@@ -36,14 +36,18 @@ feeds the next:
 
 3. **Resolve subtype leaf**: if the matched kind exposes `resolveSubtype(apiData,
    args)`, it is called now to refine the kind to a more-specific leaf module. The
-   mechanical lookup is shared: both Item and Vehicle derive a string token and pass
-   it to [Module:Entity/SubtypeResolver](https://starcitizen.tools/Module:Entity/SubtypeResolver).resolve(token,
+   mechanical lookup is shared: Item, Vehicle and Location each derive a family
+   token and pass it to [Module:Entity/SubtypeResolver](https://starcitizen.tools/Module:Entity/SubtypeResolver).resolve(token,
    map). Item dispatches on `apiData.type` (`itemSubtypeMapping`, e.g. `WeaponGun`);
-   Vehicle dispatches on the family flag or curated `|family=` (`VEHICLE_FAMILY_MAP`
-   → Ship / GroundVehicle / Gravlev). With no subtype match the kind module itself
-   stays the leaf (Item stays Item, Vehicle stays Vehicle). Separately, when **no
-   kind** matched back in step 2, the leaf falls back to Item, flagged
-   `hasApiError` only when a uuid was supplied but resolved to nothing.
+   Vehicle dispatches on the record's family flags, falling back to the curated
+   `|family=` (`SubtypeResolver.familyArg`) in editorial mode (`VEHICLE_FAMILY_MAP`
+   → Ship / GroundVehicle / Gravlev); Location dispatches on the record's family
+   (SolarSystem / jump-point gate), else `|family=` when it names a mapped family,
+   else its `defaultFamily` (`starsystem`) on a kind-declared record-less page.
+   With no subtype match the kind module itself stays the leaf (Item stays Item,
+   Vehicle stays Vehicle). Separately, when **no kind** matched back in step 2, the
+   leaf falls back to Item, flagged `hasApiError` only when a uuid was supplied but
+   resolved to nothing.
 
 4. **Build the chain**: [Module:Entity/Assembly](https://starcitizen.tools/Module:Entity/Assembly).buildChain
    walks the leaf's `p.parent` pointers upward to Base, then reverses to return
@@ -54,13 +58,15 @@ feeds the next:
    [Module:Entity/Api](https://starcitizen.tools/Module:Entity/Api).fetchAllApis;
    results are merged into `apiData`.
 
-6. **Enrich**: if the matched kind exposes an `enrich(apiData, args)` hook, it runs
-   now to post-process or normalise the merged data, or to attach a secondary record
-   the primary endpoint does not carry (Commodity attaches raw/refined records;
-   Location attaches the RSI starmap star-system record, looked up by name — or, for
-   jump-point records, the starmap celestial object, keyed by `|starmapcode=`). It also
-   runs on the editorial fork, where `apiData` is empty and `args` is the only input
-   — that is how a kind-declared lore page with no uuid still fills its infobox.
+6. **Enrich**: every chain link's `enrich(apiData, args)` hook, where present, runs
+   now root to leaf, each link receiving the previous link's result — post-processing
+   or normalising the merged data, or attaching a secondary record the primary
+   endpoint does not carry (Commodity's kind-level `enrich` attaches raw/refined
+   records; the StarSystem leaf attaches the RSI starmap star-system record, looked
+   up by name; the JumpPoint leaf attaches the starmap celestial object, keyed by
+   `|starmapcode=`). The same hooks also run on the editorial fork, where `apiData`
+   starts empty and `args` is the only input — that is how a kind-declared lore page
+   with no uuid still fills its infobox.
 
 7. **Resolve typeInfo / displayType**: the leaf's `getTypeInfo(apiData, args)` is
    tried first. On nil, [Module:Entity/TypeResolver](https://starcitizen.tools/Module:Entity/TypeResolver).resolve
@@ -70,18 +76,20 @@ feeds the next:
    structural type; `Module:Entity` also persists it as the queryable **Subject
    type** SMW property, distinct from the coarse `result.kind` (Item / Vehicle / …).
 
-8. **Resolve editorial fields**: when the matched kind exposes
-   `getEditorialManifest()`, [Module:Entity/Editorial](https://starcitizen.tools/Module:Entity/Editorial).resolve(apiData,
+8. **Resolve editorial fields**: when any chain link exposes
+   `getEditorialManifest()`, the fragments are merged root to leaf
+   (`Assembly.mergeEditorialManifests`, leaf keys winning) into one manifest, then
+   [Module:Entity/Editorial](https://starcitizen.tools/Module:Entity/Editorial).resolve(apiData,
    args, manifest) reconciles editor-supplied values against the API per the
    manifest (editor input wins, fills gaps the API lacks, records every manual value
    for later retirement). It yields `resolved` (field → `{ value, source, apiValue }`,
    read by section builders through `Editorial.view(resolved):value(field, fallback)`),
    the SMW projection `editorialData`, and `hasManualApiData`.
 
-9. **Append kind categories**: if the matched kind exposes `getCategories`, it is
-   called as `getCategories(apiData, args, resolved, family)` (the leaf's `family`
-   token is threaded from `Data.get` so it isn't re-resolved) and its results are
-   appended to the structural + manufacturer categories.
+9. **Append categories**: every chain link's `getCategories(apiData, args, resolved)`,
+   where present, is collected root to leaf (`Assembly.collect`) and the results are
+   appended to the structural + manufacturer categories. A leaf reads its own
+   `family` token directly rather than receiving it as a parameter.
 
 10. **Detect facets**: iterates `Registry.facets` in registration order; every facet
    whose `matches(apiData)` is true is appended to the result list (no
@@ -108,15 +116,16 @@ back, or the API returned a stub the matched kind accepted) but a `|kind=` that 
 a kind which opted into editorial mode (`p.editorialMode == true`) renders **without
 an identity record**. After step 6, `Data.get` resets `apiData = {}`, re-resolves the
 leaf from args (Vehicle reads the curated `|family=`; Location defaults to its
-StarSystem leaf), rebuilds the chain, and then runs the kind's `enrich(apiData, args)`
-on that empty payload. The rest of the pipeline runs unchanged, so such a page is a
-clean data-gated subset.
+StarSystem leaf), rebuilds the chain, and then runs the rebuilt chain's
+`enrich(apiData, args)` hooks on that empty payload. The rest of the pipeline runs
+unchanged, so such a page is a clean data-gated subset.
 
-What fills it depends on the kind. Vehicle has no `enrich`, so a concept ship renders
-purely from the `resolved` editorial layer — this is how not-yet-in-game vehicles
-render before they exist in the API. Location does have one, so a lore star system
-with no uuid still fetches its RSI starmap record by page title and renders real
-affiliation, size, sensor and object-count data alongside the editorial fields.
+What fills it depends on the chain. No Vehicle chain link implements `enrich`, so a
+concept ship renders purely from the `resolved` editorial layer — this is how
+not-yet-in-game vehicles render before they exist in the API. Location's StarSystem
+leaf does: a lore star system with no uuid still fetches its RSI starmap record by
+page title through the rebuilt chain's `enrich` and renders real affiliation, size,
+sensor and object-count data alongside the editorial fields.
 
 A kind-declared page is also identifiable on that basis alone: `Module:Entity`'s
 identity guard accepts a `uuid`, a name, **or** a kind that claimed the page (whose
@@ -139,9 +148,14 @@ overlay:
   `Module:Entity/Data` probes each registered kind's identity endpoint and asks
   `matches(apiData)`; the first match wins. Every kind also declares a required
   `name` string (its canonical `result.kind`).
-- **Chain link**: kinds extend a `p.parent` chain (Base → Item → subtype). Each
-  link contributes infobox sections, structured data, and so on for the level it
-  owns. Links merge root-to-leaf.
+- **Chain link (contributor)**: every link of the `p.parent` chain (Base → kind →
+  leaf) implements the same optional hook set; a kind adds only identity (`name`,
+  `matches`, `getApiConfigs`, `resolveSubtype`). Each hook has one merge policy,
+  applied by `Module:Entity/Data`: additive (sections, structured data, categories,
+  external sites, metadata rows, footer buttons), root-to-leaf (enrich, editorial
+  manifest), or leaf-first-wins (type info, short description, subtitle, header
+  badge, acquisition). A leaf therefore owns everything specific to it — the kind
+  never re-dispatches on the leaf.
 - **Facet**: a cross-cutting, additive aspect, detected by the presence of a
   data field (e.g. `consumable` on `apiData.food`) and independent of the primary
   kind. Every facet whose `matches(apiData)` is true contributes on top of the
@@ -157,9 +171,10 @@ structured data, and composes the short description.
 
 Registration lives in **`Module:Entity/Registry`** (`kinds`, `facets`). Subtype leaves
 are deliberately **not** registered there. Subtype dispatch is a kind-internal concern
-owned by each kind's `resolveSubtype`. Both Item (via `itemSubtypeMapping`) and Vehicle
-(Ship / GroundVehicle / Gravlev via `VEHICLE_FAMILY_MAP`) dispatch this way, sharing the
-mechanical `token → module` lookup in **`Module:Entity/SubtypeResolver`**.
+owned by each kind's `resolveSubtype`. Item (via `itemSubtypeMapping`), Vehicle
+(Ship / GroundVehicle / Gravlev via `VEHICLE_FAMILY_MAP`), and Location (StarSystem /
+JumpPoint via its own family-token map) all dispatch this way, sharing the mechanical
+`token → module` lookup in **`Module:Entity/SubtypeResolver`**.
 
 ## Hook reference
 
@@ -171,11 +186,12 @@ kind **fields** `name` / `editorialMode` (validated by `Contract.validateFields`
 | `name` | `string` | kind | **yes** | Canonical kind name, exposed as `Data.get().kind`. Non-empty + unique, enforced by the Registry conformance test. |
 | `matches` | `(apiData) → boolean` | kind, facet | yes | Kind identity probe / facet detection. Must be nil-safe, strict boolean. |
 | `getApiConfigs` | `() → EntityApiConfig[]` | kind (also any link) | yes (kind) | `[1]` is the kind's identity endpoint; extra configs fetched for the chain. |
-| `resolveSubtype` | `(apiData, args) → module\|nil` | kind | no | Refine to a subtype leaf module (Item → Turret; Vehicle → Ship). `args` carries the curated `|family=` for editorial mode. |
-| `enrich` | `(apiData, args) → apiData` | kind | no | Post-fetch mutation (e.g. Commodity attaches raw/refined + harvestable food). `args` is what lets a kind-declared page enrich with no identity record: Location looks the starmap record up by `\|starmapname=` / `\|name=` / the page title. |
-| `getEditorialManifest` | `() → table` | kind | no | Per-kind editorial-field manifest; its presence opts the kind into the editorial layer. |
+| `resolveSubtype` | `(apiData, args) → module\|nil` | kind | no | Refine to a subtype leaf: the record's family token first (Item: `apiData.type`; Vehicle: the `is_*` flags; Location: SolarSystem / jump-point gate), else the curated `\|family=` (`SubtypeResolver.familyArg`), else the kind's `defaultFamily` on a kind-declared record-less page. |
+| `family` / `defaultFamily` | `string\|nil` | leaf / kind | no | A leaf's family token (`ship`, `jumppoint`, …), the same string its kind's map dispatches on and a page's `\|family=` may name. `defaultFamily` on a kind names the leaf a kind-declared page with no record resolves to (Location: `starsystem`). |
+| `enrich` | `(apiData, args) → apiData` | chain link | no | Post-fetch mutation, run on every link **root to leaf** after the chain's endpoints are fetched (Commodity merges raw/refined; the StarSystem leaf attaches the starmap system by name, the JumpPoint leaf the celestial object by `\|starmapcode=`). Also runs on the editorial fork with an empty `apiData`. |
+| `getEditorialManifest` | `() → table` | chain link | no | Manifest fragment; fragments **merge root to leaf, leaf keys win**. Any link defining one opts the page into the editorial layer. |
 | `editorialMode` | `boolean\|nil` | kind | no | Opt-in: when true the kind renders from editorial args alone (`apiData = {}`) for planned / not-yet-in-game pages. |
-| `getAcquisition` | `(apiData, args) → { summary, cards }\|nil` | kind | no | Acquisition payload for `{{Entity/Availability}}`: Buy/Rent/Loot/Craft/Pledge summary flags + terminal cards. Absent → no acquisition block. |
+| `getAcquisition` | `(apiData, args) → { summary, cards }\|nil` | chain link | no | Acquisition payload for `{{Entity/Availability}}`, **leaf-first wins**. Absent on every link → no acquisition block. |
 | `getTypeInfo` | `(apiData, args) → {name, category}\|nil` | chain link | no | Display subtitle + browse category, preferred over the type map. |
 | `getSections` | `(apiData, args, resolved) → EntitySectionEntry[]` | chain link, facet | yes (facet) | Infobox sections, merged by `key`. `resolved` is the editorial view (nil-safe). |
 | `getStructuredData` | `(apiData, args, resolved) → table` | chain link, facet | no | Flat key/value data persisted to SMW. |
@@ -186,12 +202,14 @@ kind **fields** `name` / `editorialMode` (validated by `Contract.validateFields`
 | `getMetadataItems` | `(apiData, args) → EntityItemData[]` | chain link | no | Extra rows appended to the Metadata section (StarSystem: the ARK starmap code). |
 | `getSubtitle` | `(apiData, args) → string\|nil` | chain link | no | Header subtitle override (else the display type). |
 | `getHeaderBadge` | `(apiData, args, resolved) → string\|nil` | chain link | no | Badge HTML composed into the image overlay (Vehicle: production-state badge). |
-| `getCategories` | `(apiData, args, resolved, family) → string[]` | kind | no | Extra browse categories appended after the structural + manufacturer categories. |
+| `getCategories` | `(apiData, args, resolved) → string[]` | chain link | no | Extra browse categories, **collected from every link** and appended after the structural + manufacturer categories (Vehicle: state / series / career; Ship: size + `Pledge ships`). |
 | `parent` | `string\|nil` | chain link | no | Module path of the parent link. |
 
 See `Module:Entity/Types` for the full LuaCATS interfaces and
-`Module:Entity/Contract` for the validator the conformance test uses (`KIND` /
-`FACET` / `CHAIN_LINK` hook specs and `KIND_FIELDS` for `name` / `editorialMode`).
+`Module:Entity/Contract` for the validator the conformance test uses
+(`CONTRIBUTOR`, `KIND` = `KIND_IDENTITY` ∪ `CONTRIBUTOR`, `FACET`, and
+`KIND_FIELDS` for `name` / `editorialMode`; `CHAIN_LINK` is `CONTRIBUTOR`'s
+older name).
 
 ## Which one am I adding?
 
@@ -247,6 +265,8 @@ contributor repeats by hand, and is the standard the existing call sites use.
    `p.family` token, and its rendering hooks.
 2. Add a `<token> = 'Entity/Vehicle/<Family>'` entry to `VEHICLE_FAMILY_MAP` in
    `Module:Entity/Vehicle` (dispatched on the API family flag or curated `|family=`).
+3. Family-specific categories go in the leaf's own `getCategories`; the kind keeps
+   only family-independent ones.
 
 ## Component index
 
@@ -269,7 +289,7 @@ A quick map to every piece of the system.
 | [Module:Entity/Item](https://starcitizen.tools/Module:Entity/Item) | Item kind + subtype dispatch (`itemSubtypeMapping`); shared item helpers |
 | [Module:Entity/Vehicle](https://starcitizen.tools/Module:Entity/Vehicle) | Vehicle kind orchestrator; family dispatch + the Vehicle/ section sub-builders (Overview, Capacity, Cost, Stats, Dimensions, Lore, Development) |
 | [Module:Entity/Commodity](https://starcitizen.tools/Module:Entity/Commodity) | Commodity kind (raw/refined records via `enrich`) |
-| [Module:Entity/Location](https://starcitizen.tools/Module:Entity/Location) | Location kind; dispatches to the StarSystem leaf (SolarSystem records, and the kind-declared default) or the JumpPoint leaf (Anomaly records named `… Jump Point`, admitted via the declared-kind trust path). `enrich` attaches the matching RSI starmap record: the star system by name, or the celestial object by starmap code for jump points. Opts into editorial mode for the lore systems that have no game record |
+| [Module:Entity/Location](https://starcitizen.tools/Module:Entity/Location) | Location kind; dispatches to the StarSystem leaf (SolarSystem records, and the kind-declared default) or the JumpPoint leaf (jump-point gates: `JumpPoint`-typed records, or `Anomaly` records named `… Jump Point`, which `matches` claims directly). Each leaf's `enrich` attaches its starmap record through the kind's `attachStarsystem` / `attachCelestialObject`: the star system by name, or the celestial object by starmap code for jump points. Opts into editorial mode for the lore systems that have no game record |
 | [Module:Entity/Mission](https://starcitizen.tools/Module:Entity/Mission) | Mission kind (WIP) |
 
 ### Pipeline core modules
@@ -279,9 +299,9 @@ A quick map to every piece of the system.
 | [Module:Entity/Data](https://starcitizen.tools/Module:Entity/Data) | Single entry point for all sibling renderers; orchestrates the pipeline |
 | [Module:Entity/Registry](https://starcitizen.tools/Module:Entity/Registry) | Declarative lists of all registered kinds and facets |
 | [Module:Entity/Assembly](https://starcitizen.tools/Module:Entity/Assembly) | Chain construction (`buildChain`) and section/structured-data merging |
-| [Module:Entity/Contract](https://starcitizen.tools/Module:Entity/Contract) | Role-spec tables (KIND / FACET / CHAIN_LINK + KIND_FIELDS) + `validate` / `validateFields` |
+| [Module:Entity/Contract](https://starcitizen.tools/Module:Entity/Contract) | Role-spec tables (CONTRIBUTOR, KIND = KIND_IDENTITY ∪ CONTRIBUTOR, FACET + KIND_FIELDS) + `validate` / `validateFields` |
 | [Module:Entity/TypeResolver](https://starcitizen.tools/Module:Entity/TypeResolver) | Display-type resolution via `classifications.json` → `types.json` → raw-type fallback |
-| [Module:Entity/SubtypeResolver](https://starcitizen.tools/Module:Entity/SubtypeResolver) | Shared mechanical `token → leaf module` dispatch (used by Item and Vehicle) |
+| [Module:Entity/SubtypeResolver](https://starcitizen.tools/Module:Entity/SubtypeResolver) | Shared mechanical `token → leaf module` dispatch (used by Item, Vehicle and Location) |
 | [Module:Entity/Api](https://starcitizen.tools/Module:Entity/Api) | Apiunto I/O seam (`fetchApi` / `fetchAllApis`); only place `mw.ext.Apiunto` is called |
 | [Module:Entity/StructuredData](https://starcitizen.tools/Module:Entity/StructuredData) | Backend-agnostic SMW write + `properties.json` registration check |
 

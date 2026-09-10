@@ -1,6 +1,6 @@
 # Module:Entity/Contract
 
-The machine-checkable spec for what a well-formed Entity component looks like. For each role (KIND, FACET, CHAIN_LINK), it declares which lifecycle hooks exist and whether each is required or optional, then exposes `p.validate` (and `p.validateFields`) so a conformance test can reject a mis-wired component before it is merged.
+The machine-checkable spec for what a well-formed Entity component looks like. It declares the shared **contributor** hook set every chain link may implement (`CONTRIBUTOR`, aliased `CHAIN_LINK`), the extra **identity** hooks that make a component a kind (`KIND_IDENTITY`), the kind role that is their union (`KIND`), and the facet role (`FACET`) — which hooks exist per role and whether each is required or optional — then exposes `p.validate` (and `p.validateFields`) so a conformance test can reject a mis-wired component before it is merged.
 
 **Contract has no runtime role.** It is a contributor-facing guardrail. Its only callers are the conformance tests, [Module:Entity/Registry/testcases](https://starcitizen.tools/Module:Entity/Registry/testcases) and Contract's own `testcases.lua`, both of which run under the merge-blocking `mise run test` gate. `Module:Entity` never calls `Contract.validate` during infobox rendering. For the prose contract and a description of what each hook *does*, see [Module:Entity](https://starcitizen.tools/Module:Entity) and the `EntityKind` / `EntityFacet` / `EntityChainLink` classes in `Module:Entity/Types`.
 
@@ -27,7 +27,7 @@ Contract lives entirely outside the render path. `Entity.lua` guards every hook 
 
 ## Contract as interface: what a new kind must implement
 
-The full `p.KIND` spec is large, but most of it is *optional* contributor hooks a kind may make as the root of its own chain. The small interface a kind author actually has to think about is exported separately as `p.KIND_IDENTITY`, the identity/dispatch hooks a kind owns (an [ISP](https://en.wikipedia.org/wiki/Interface_segregation_principle)-style narrowing). `p.KIND` is then `KIND_IDENTITY` + the contributor hooks and page-metadata hooks listed further down.
+The full `p.KIND` spec is large, but it is built from two smaller pieces. `p.CONTRIBUTOR` is the hook set **every** chain link — Base, a kind, or a subtype leaf — may implement; every hook in it is optional, and a link implements only what it adds. `p.KIND_IDENTITY` is the small interface that makes a component a kind at all — an [ISP](https://en.wikipedia.org/wiki/Interface_segregation_principle)-style narrowing to just the identity/dispatch hooks a kind author has to think about. `p.KIND` is the union of the two: every `CONTRIBUTOR` hook plus `KIND_IDENTITY`'s, with `KIND_IDENTITY`'s requiredness winning on the one hook both name (`getApiConfigs`).
 
 **A new kind MUST implement** (the two required members of `KIND_IDENTITY`):
 
@@ -38,49 +38,58 @@ The full `p.KIND` spec is large, but most of it is *optional* contributor hooks 
 
 It must also declare a `name` field (checked via `KIND_FIELDS`, below).
 
-**A kind MAY implement** the optional identity hooks:
+**A kind MAY implement** the one remaining identity hook:
 
 | Hook | Signature | Role |
 |---|---|---|
-| `resolveSubtype` | `fun(apiData, args): table\|nil` | Refine to a subtype leaf module, or `nil`. |
-| `enrich` | `fun(apiData): table` | Post-fetch mutation hook (returns `apiData`). |
-| `getEditorialManifest` | `fun(): table` | Per-kind editorial-field manifest; its presence opts the kind into the editorial layer (see [Module:Entity/Data](https://starcitizen.tools/Module:Entity/Data)). |
+| `resolveSubtype` | `fun(apiData, args): table\|nil` | Refine to a subtype leaf module, or `nil`: the record's family token first, else the curated `\|family=` (`SubtypeResolver.familyArg`), else the kind's `defaultFamily` on a kind-declared record-less page. |
 
-Beyond identity, a kind is also the root of its own chain, so `p.KIND` additionally accepts every CHAIN_LINK contributor hook (`getSections`, `getStructuredData`, `getShortDescription`, `getExternalSiteItems`, `getTypeInfo`, `getSubtitle`, `getHeaderBadge`) plus two kind-only page-metadata hooks (`getCategories`, `getAcquisition`). All are optional. See the [Data](#data) table for the complete split and the new-hook notes below it.
+Beyond identity, a kind is also the root of its own chain, so `p.KIND` additionally accepts every `CONTRIBUTOR` hook — `getSections`, `getStructuredData`, `getShortDescription`, `getExternalSiteItems`, `getFooterButtons`, `getMetadataItems`, `getTypeInfo`, `getSubtitle`, `getHeaderBadge`, `enrich`, `getEditorialManifest`, `getCategories`, `getAcquisition` — every one of them optional, and every one of them just as implementable by a subtype leaf further down the same chain: a leaf's `enrich`, `getCategories`, or `getEditorialManifest` merges with its kind's contribution per the policy `Module:Entity/Data` applies (see [Module:Entity](https://starcitizen.tools/Module:Entity)). See the [Data](#data) table for the complete split and the hook notes below it.
 
 ## API
 
 ### Role-spec tables
 
-Three exported tables encode the contract for each role. Each key is a hook name; the value is `true` (required) or `false` (optional).
+Four exported tables encode the contract — three specs plus one alias. Each key is a hook name; the value is `true` (required) or `false` (optional).
 
-`p.KIND` is the most complex role, a top-level entity with its own API endpoint:
+`p.CONTRIBUTOR` is the hook set every chain link may implement, every hook optional:
 
 ```lua
-p.KIND = {
-    matches = true,            -- required: identity probe
-    getApiConfigs = true,      -- required: identity endpoint + supplemental configs
-    resolveSubtype = false,
-    enrich = false,
-    getTypeInfo = false,
+p.CONTRIBUTOR = {
     getSections = false,
     getStructuredData = false,
     getShortDescription = false,
     getExternalSiteItems = false,
-    getEditorialManifest = false,
+    getFooterButtons = false,
+    getMetadataItems = false,
+    getTypeInfo = false,
+    getApiConfigs = false,
     getSubtitle = false,
     getHeaderBadge = false,
+    enrich = false,
+    getEditorialManifest = false,
     getCategories = false,
     getAcquisition = false,
 }
 ```
 
-`p.FACET` (`matches` + `getSections` required) and `p.CHAIN_LINK` (every hook optional) follow the same `hook = required?` shape. The full split for all three roles is in the [Data](#data) table.
+`p.CHAIN_LINK` is `p.CONTRIBUTOR` under its older name, kept so existing callers keep validating against the same table.
 
-Two derived exports support the rest of the module:
+`p.KIND_IDENTITY` is the small interface that makes a component a kind:
 
-- **`p.KIND_IDENTITY`**: the minimal kind-identity interface (`matches`, `getApiConfigs`, `resolveSubtype`, `enrich`, `getEditorialManifest`). Exported for documentation and tooling; `p.KIND` remains the full validation spec.
-- **`p.ALL_HOOKS`**: the union of every hook name across all three role specs, built on load. Used by `validate`'s strict pass to tell a misspelled hook apart from one that is simply valid in a different role.
+```lua
+p.KIND_IDENTITY = {
+    matches = true,
+    getApiConfigs = true,
+    resolveSubtype = false,
+}
+```
+
+`p.KIND` is built from the two: every `CONTRIBUTOR` hook, then `KIND_IDENTITY`'s hooks layered on top so `matches` and `resolveSubtype` are added and `getApiConfigs` is promoted from optional to required. `p.FACET` (`matches` + `getSections` required) follows the same `hook = required?` shape independently. The full split for all roles is in the [Data](#data) table.
+
+One derived export supports the rest of the module:
+
+- **`p.ALL_HOOKS`**: the union of every hook name across `KIND`, `FACET` and `CHAIN_LINK`, built on load. Used by `validate`'s strict pass to tell a misspelled hook apart from one that is simply valid in a different role.
 
 ### `p.validate(component, spec, options) → ok, errors`
 
@@ -132,24 +141,27 @@ Required (`true`) and optional (`false`) hooks per role:
 | `getShortDescription` | optional | — | optional |
 | `getShortDescriptionPrefix` | — | optional | — |
 | `getExternalSiteItems` | optional | — | optional |
+| `getFooterButtons` | optional | — | optional |
+| `getMetadataItems` | optional | — | optional |
 | `getTypeInfo` | optional | — | optional |
 | `getSubtitle` | optional | — | optional |
 | `getHeaderBadge` | optional | — | optional |
 | `resolveSubtype` | optional | — | — |
-| `enrich` | optional | — | — |
-| `getEditorialManifest` | optional | — | — |
-| `getCategories` | optional | — | — |
-| `getAcquisition` | optional | — | — |
+| `enrich` | optional | — | optional |
+| `getEditorialManifest` | optional | — | optional |
+| `getCategories` | optional | — | optional |
+| `getAcquisition` | optional | — | optional |
 
-A "—" cell means the hook is not part of that role's spec at all: it is neither required nor validated.
+A "—" cell means the hook is not part of that role's spec at all: it is neither required nor validated. `CHAIN_LINK` is `CONTRIBUTOR`'s older name, so its column is that spec: `matches` (required) and `resolveSubtype` (optional) are `KIND_IDENTITY`-only and so read "—" for `CHAIN_LINK`; every other `KIND` hook is a `CONTRIBUTOR` hook and so is available, optionally, to any chain link.
 
-What each of these five KIND hooks contributes when a kind implements it (see `Module:Entity/Types` for full signatures; `getSubtitle` / `getHeaderBadge` are also CHAIN_LINK hooks, the rest are KIND-only):
+What each of these `CONTRIBUTOR` hooks contributes, and the merge policy `Module:Entity/Data` applies when more than one chain link implements it (see `Module:Entity/Types` for full signatures — every hook below is a `CONTRIBUTOR` hook, so a subtype leaf may implement it just as a kind can):
 
-- **`getEditorialManifest() → table`**: per-kind editorial-field manifest (`field → { arg, smw, apiPath?, transform?, default? }`); its presence opts the kind into the editorial layer.
-- **`getSubtitle(apiData, args) → string|nil`**: header subtitle override (else the display type). Composed by `Module:Entity/Infobox`.
-- **`getHeaderBadge(apiData, args, resolved) → string|nil`**: header badge HTML composed into the image overlay. Composed by `Module:Entity/Infobox`.
-- **`getCategories(apiData, args, resolved, family) → string[]`**: extra browse categories appended after the structural + manufacturer categories. Consumed by `Module:Entity/Data`.
-- **`getAcquisition(apiData, args) → { summary, cards }|nil`**: per-kind acquisition data for `{{Entity/Availability}}` (summary flag rows + render-ready cards). Absent → no acquisition block. Consumed by `Module:Entity/Availability`.
+- **`getEditorialManifest() → table`**: editorial-field manifest fragment (`field → { arg, smw, apiPath?, transform?, default? }`); fragments merge root to leaf, leaf keys winning (`Assembly.mergeEditorialManifests`). Any link defining one opts the page into the editorial layer.
+- **`enrich(apiData, args) → apiData`**: post-fetch mutation, run on every link root to leaf, each receiving the previous link's result. A leaf typically attaches the secondary record only it renders (e.g. the StarSystem leaf the starmap system, the JumpPoint leaf the celestial object).
+- **`getCategories(apiData, args, resolved) → string[]`**: extra browse categories, collected from every link (`Assembly.collect`) and appended after the structural + manufacturer categories.
+- **`getAcquisition(apiData, args) → { summary, cards }|nil`**: acquisition data for `{{Entity/Availability}}`, resolved leaf-first over the chain (`Assembly.resolveMostSpecific`). Absent on every link → no acquisition block. Consumed by `Module:Entity/Availability`.
+- **`getSubtitle(apiData, args) → string|nil`**: header subtitle override (else the display type), leaf-first wins. Composed by `Module:Entity/Infobox`.
+- **`getHeaderBadge(apiData, args, resolved) → string|nil`**: header badge HTML composed into the image overlay, leaf-first wins. Composed by `Module:Entity/Infobox`.
 
 ## Gotchas
 
@@ -161,10 +173,11 @@ What each of these five KIND hooks contributes when a kind implements it (see `M
 
 ## Tests
 
-**`Contract/testcases.lua`** is a self-contained ScribuntoUnit suite (15 tests) covering:
+**`Contract/testcases.lua`** is a self-contained ScribuntoUnit suite (19 tests) covering:
 
 - `validate` core: a valid kind, a kind missing `getApiConfigs`, a non-function hook (`getApiConfigs = 'nope'`), an optional hook absent, a valid facet, a facet missing `getSections`, and a non-table component (`nil`).
 - `validateFields`: required field present / missing, wrong-type field, optional field absent, non-table component.
+- The `CONTRIBUTOR` / `KIND_IDENTITY` split: `KIND` type-checks a `CONTRIBUTOR` hook (e.g. `getFooterButtons`, `getMetadataItems`) when a kind implements it directly, not only the identity ones (`testKindTypeChecksChainContributorHooks`); `KIND` is a superset of `CHAIN_LINK`, asserted as a property over every `CHAIN_LINK` key rather than a hard-coded pair (`testKindIsSupersetOfChainLink`); `CHAIN_LINK` type-checks any promoted contributor hook a leaf implements — `enrich`, `getEditorialManifest`, `getCategories`, `getAcquisition` (`testChainLinkTypeChecksPromotedHooks`); and `KIND` is exactly `KIND_IDENTITY` plus every `CONTRIBUTOR` hook (`testKindIsIdentityPlusContributor`).
 - Strict mode: `testValidateStrictFlagsTypoHook` (a `getSectionsn` typo is flagged), `testValidateStrictAllowsRealHookFromOtherRole` (a real cross-role hook is allowed), and `testValidateDefaultUnchanged` (the same typo passes without `{ strict = true }`).
 
 **[Module:Entity/Registry/testcases](https://starcitizen.tools/Module:Entity/Registry/testcases)** uses `Contract.validate(component, spec, { strict = true })` (and `validateFields`) as the conformance gate over the live registry: every entry in `Registry.kinds` and `Registry.facets`. Adding a new kind or facet automatically extends contract coverage: a missing required hook, a misspelled optional hook, or a mistyped `name`/`editorialMode` is caught with no change to the test file.

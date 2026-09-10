@@ -32,14 +32,15 @@ p.kinds = {
     require('Module:Entity/Vehicle'),
     require('Module:Entity/Commodity'),
     require('Module:Entity/Mission'),
+    require('Module:Entity/Location'),
 }
 ```
 
 Kinds are probed **in order**: the first kind whose `matches(apiData)` returns true is selected as the primary kind for that page. Order therefore encodes precedence.
 
-`Item` is listed first because it dominates the page mix: most wiki pages are items, so placing Item first short-circuits the probe on the most common case and avoids three wasted endpoint calls. `Vehicle` follows because ships and vehicles are the second-largest population. `Commodity` and `Mission` are narrow types that fail quickly on the common-case frames that reach them, so their position at the tail has negligible cost.
+`Item` is listed first because it dominates the page mix: most wiki pages are items, so placing Item first short-circuits the probe on the most common case and avoids three wasted endpoint calls. `Vehicle` follows because ships and vehicles are the second-largest population. `Commodity`, `Mission`, and `Location` are narrow types that fail quickly on the common-case frames that reach them, so their position at the tail has negligible cost.
 
-A kind contributes a full set of lifecycle hooks: `getApiConfigs` (required, defines what to fetch), `matches` (required, identity probe), and optionally `resolveSubtype`, `enrich`, `getTypeInfo`, `getSections`, `getStructuredData`, `getShortDescription`, and `getExternalSiteItems`. See [Module:Entity/Contract](https://starcitizen.tools/Module:Entity/Contract) for the full required/optional split.
+A kind owns the identity hooks — `getApiConfigs` (required, defines what to fetch), `matches` (required, identity probe), and optionally `resolveSubtype` — and contributes rendering hooks (`enrich`, `getSections`, `getCategories`, …) like any other chain link. See [Module:Entity/Contract](https://starcitizen.tools/Module:Entity/Contract) for the full required/optional split.
 
 ## Facets
 
@@ -104,11 +105,11 @@ All 22 registered facets, in registration order. The columns read as:
 
 Adding a new kind or facet to Registry automatically extends coverage; no change to the test file is needed. The conformance gate uses [`Module:Entity/Contract`](https://starcitizen.tools/Module:Entity/Contract) as the validator.
 
-**What the conformance tests do NOT cover:** chain-link hooks (`getTypeInfo`, `getExternalSiteItems`, etc. on `CHAIN_LINK` components) are validated by `Contract.CHAIN_LINK`, but that spec is not exercised from the Registry test suite. Chain links are internal to their kind and validated separately via kind-level tests.
+**What the conformance tests do NOT cover:** chain-link hooks (`getTypeInfo`, `getExternalSiteItems`, etc. — the `CONTRIBUTOR` hook set, aliased `CHAIN_LINK`) are validated by `Contract.CHAIN_LINK`, but that spec is not exercised from the Registry test suite. Chain links are internal to their kind and validated separately via kind-level tests.
 
 ## Tests
 
-Tests run on-wiki via `Module:ScribuntoUnit`. Deploy the module before running; there is no local CI runner. The documentation template on the module's wiki page surfaces results inline.
+Tests run headless with `mise run test` (the merge-blocking CI gate) and also on-wiki via `Module:ScribuntoUnit` once deployed. The documentation template on the module's wiki page surfaces results inline.
 
 ## Architecture
 

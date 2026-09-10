@@ -6,13 +6,13 @@ It is a sibling renderer parallel to [Module:Entity/Related](https://starcitizen
 
 ## How it works
 
-`Module:Entity/Data` resolves the entity kind through its registry and returns a `result` whose `result.matchedKind` is the **kind module** (`Module:Entity/Item`, `Module:Entity/Vehicle`, `Module:Entity/Commodity`, …). `p.main`:
+`Module:Entity/Data` resolves the entity kind through its registry and returns a `result` whose `result.matchedKind` is the **kind module** (`Module:Entity/Item`, `Module:Entity/Vehicle`, `Module:Entity/Commodity`, …) and `result.chain` the root-to-leaf module chain built from it. `p.main`:
 
-1. Calls `result.matchedKind.getAcquisition(apiData, args)`.
+1. Resolves `getAcquisition` leaf-first over `result.chain` (`Assembly.resolveMostSpecific`), so a subtype leaf may override its kind's acquisition block; every kind that defines one defines it on the kind link.
 2. The hook returns a `{ summary, cards }` spec (or `nil`/`false` to opt out).
 3. Availability renders the summary grid from `summary` and dispatches each entry in `cards` through `renderCard`.
 
-So **the kind decides what acquisition means**: which summary flags apply, how they're derived, which detail cards exist, and what's in them. Availability only knows three card *shapes* (`terminals` / `links` / `html`) and how to draw a summary grid. When a kind has no `getAcquisition` hook (e.g. `Module:Entity/Contract`, which sets `getAcquisition = false`), `p.main` returns just the TemplateStyles tag: no summary grid, no cards.
+So **the kind's chain decides what acquisition means**: which summary flags apply, how they're derived, which detail cards exist, and what's in them. Availability only knows three card *shapes* (`terminals` / `links` / `html`) and how to draw a summary grid. When `result.matchedKind` is `nil` (no kind claimed the page) or no chain link implements `getAcquisition`, `p.main` returns just the TemplateStyles tag: no summary grid, no cards.
 
 > **Extending acquisition for a new kind?** You do **not** edit this file. Implement `p.getAcquisition` on the kind module (see [the hook contract](#the-getacquisition-hook-contract) below).
 
@@ -105,9 +105,9 @@ For reference, none of this lives in `Availability.lua`; it lives in each kind's
 - **Summary**: Mine / Harvest / Buy. Mine from `is_mineable`, Harvest from `has_harvestables`, Buy from `uex_prices.purchase`.
 - **Cards**: a Mining deposit card (`html`, pre-rendered by [Module:Entity/Commodity/Mining](https://starcitizen.tools/Module:Entity/Commodity/Mining)) when present, then a `🛒 Trade` `terminals` card when priced, or a `links` card pointing at SC Trade Tools and UEX (keyed on the commodity slug) when UEX has no terminal prices.
 
-### Contract ([Module:Entity/Contract](https://starcitizen.tools/Module:Entity/Contract))
+### Mission ([Module:Entity/Mission](https://starcitizen.tools/Module:Entity/Mission))
 
-`getAcquisition = false`, so no acquisition block renders.
+Declares no `getAcquisition` on any link of its chain, so `acquisitionFor` resolves nil and no acquisition block renders.
 
 ## Editor overrides
 

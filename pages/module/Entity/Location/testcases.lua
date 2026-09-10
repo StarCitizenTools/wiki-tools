@@ -3,6 +3,7 @@ require('strict')
 local ScribuntoUnit = require('Module:ScribuntoUnit')
 local Editorial = require('Module:Entity/Editorial')
 local Location = require('Module:Entity/Location')
+local Util = require('Module:Entity/Location/Util')
 local assembly = require('Module:Entity/Assembly')
 local StarSystem = require('Module:Entity/Location/StarSystem')
 local JumpPoint = require('Module:Entity/Location/JumpPoint')
@@ -153,43 +154,6 @@ function suite:testIsJumpPointRecord()
 	self:assertFalse(f({}))
 end
 
-function suite:testResolveLookupNamePrecedence()
-	local f = Location._internal.resolveLookupName
-	self:assertEquals('Rihlah', f({ name = 'Ignored System' }, { starmapname = 'Rihlah', name = 'Also ignored' }))
-	self:assertEquals('Stanton System', f({ name = 'Stanton System' }, { name = 'Ignored' }))
-	self:assertEquals('Terra system', f({}, { name = 'Terra system' }))
-	-- Last resort: a bare {{Location}} on a lore system supplies no starmapname,
-	-- no location record and no |name=, so the page title IS the lookup key.
-	-- (The runner's current title is 'Test'.)
-	self:assertEquals(mw.title.getCurrentTitle().text, f({}, {}))
-	self:assertEquals(mw.title.getCurrentTitle().text, f({}, nil))
-end
-
-function suite:testPlainKey()
-	local f = Location._internal.plainKey
-	self:assertEquals('stanton', f('Stanton System'))
-	self:assertEquals('terra', f('Terra system'))
-	self:assertEquals("kyuk'ya", f("Kyuk'ya"))
-	self:assertEquals(nil, f(nil))
-	self:assertEquals(nil, f(''))
-	self:assertEquals(nil, f(' System'))
-end
-
-function suite:testPickStarsystemExactBeatsAliasBeatsFirst()
-	local f = Location._internal.pickStarsystem
-	local rows = {
-		{ name = 'Vega Prime' },
-		{ name = 'Vega' },
-	}
-	self:assertEquals('Vega', f(rows, 'vega').name)
-	local aliasRows = {
-		{ name = 'Something Else' },
-		{ name = "K.ap'a'ri (Khabari)" },
-	}
-	self:assertEquals("K.ap'a'ri (Khabari)", f(aliasRows, 'khabari').name)
-	self:assertEquals('Something Else', f(aliasRows, 'nomatch').name)
-end
-
 -- Every subtype leaf in the map conforms to the contributor contract, strict
 -- mode included: a misspelled hook (getMetadateItems) no-ops silently at
 -- render time. Kinds and facets get this from Registry/testcases; the leaves
@@ -301,14 +265,6 @@ function suite:testResolveSubtypeUnknownFamilyKeepsDefault()
 	local star = require('Module:Entity/Location/StarSystem')
 	self:assertEquals(star, Location.resolveSubtype({}, { kind = 'Location', family = 'planet' }))
 	self:assertEquals(nil, Location.resolveSubtype({}, { family = 'planet' }))
-end
-
-function suite:testGateEntrySystemFallsBackToDesignation()
-	local f = Location.gateEntrySystem
-	self:assertEquals('Pyro', f(jumpPointFixture())) -- record system wins
-	self:assertEquals('Stanton', f({ celestialobject = { designation = 'Stanton - Nyx' } }))
-	self:assertEquals(nil, f({ celestialobject = { designation = 'Malformed' } }))
-	self:assertEquals(nil, f({}))
 end
 
 function suite:testResolveSubtypeUndeclaredWithoutRecordIsNil()
@@ -654,102 +610,22 @@ local function withheldStubFixture(status, size)
 	return record
 end
 
--- A zero size is never a measurement, whatever the status.
-function suite:testNormalizeAggregatesDropsZeroSize()
-	local f = Location._internal.normalizeAggregates
-	local record = starsystemFixture()
-	record.aggregated.size = 0
-	self:assertEquals(nil, f(record).aggregated.size)
-end
-
-function suite:testNormalizeAggregatesDropsNonPositiveOrUnparsableSize()
-	local f = Location._internal.normalizeAggregates
-	for _, bad in ipairs({ -1, '0', 'Unknown' }) do
-		local record = starsystemFixture()
-		record.aggregated.size = bad
-		self:assertEquals(nil, f(record).aggregated.size)
-	end
-end
-
-function suite:testNormalizeAggregatesKeepsRealSize()
-	local f = Location._internal.normalizeAggregates
-	self:assertEquals(4.85, f(starsystemFixture()).aggregated.size)
-	-- Numeric strings are a legitimate measurement and survive untouched.
-	local stringy = starsystemFixture()
-	stringy.aggregated.size = '9.83'
-	self:assertEquals('9.83', f(stringy).aggregated.size)
-end
-
-function suite:testNormalizeAggregatesToleratesMissingShapes()
-	local f = Location._internal.normalizeAggregates
-	self:assertEquals(nil, f(nil))
-	self:assertEquals(nil, next(f({})))
-	local noAggregate = { code = 'STANTON' }
-	self:assertEquals('STANTON', f(noAggregate).code)
-end
-
 -- A zero-size record must leave the Size row out entirely rather than assert
 -- "0 AU"; the other rows keep rendering.
 function suite:testSectionsOmitSizeRowForZeroSizeSystem()
 	local record = starsystemFixture()
 	record.aggregated.size = 0
 	local apiData = solarSystemFixture()
-	apiData.starsystem = Location._internal.normalizeAggregates(record)
+	apiData.starsystem = Util._internal.normalizeAggregates(record)
 	local general = findSection(StarSystem.getSections(apiData, {}, nil), 'general')
 	self:assertEquals(nil, findItem(general, 'Size'))
 	self:assertEquals('Published', findItem(general, 'Starmap status'))
 end
 
--- The stub block is dropped whole — a nonzero size in it is still noise, and the
--- population/economy sensors are the same template default.
-function suite:testNormalizeAggregatesDropsWholeWithheldStub()
-	local f = Location._internal.normalizeAggregates
-	-- 0/1/7 AU are the three sizes the twelve Vanduul stubs actually report.
-	for _, size in ipairs({ 0, 1, 7 }) do
-		local aggregated = f(withheldStubFixture('M', size)).aggregated
-		self:assertEquals(nil, aggregated.size)
-		self:assertEquals(nil, aggregated.population)
-		self:assertEquals(nil, aggregated.economy)
-	end
-	-- Status N (probe data incomplete) reports the same stub as straight zeros.
-	self:assertEquals(nil, f(withheldStubFixture('N', 0)).aggregated.size)
-end
-
--- Published beats every other signal: Gurzil has no catalogued bodies and a real
--- 4.2 AU extent, so a bodies-only rule would wrongly strip it.
-function suite:testNormalizeAggregatesKeepsPublishedSystemWithNoBodies()
-	local record = withheldStubFixture('P', 4.2)
-	record.aggregated.economy = 0.93
-	record.aggregated.population = 0
-	local aggregated = Location._internal.normalizeAggregates(record).aggregated
-	self:assertEquals(4.2, aggregated.size)
-	self:assertEquals(0.93, aggregated.economy)
-end
-
--- Unpublished but properly catalogued systems keep their real aggregates, so a
--- status-only rule would wrongly strip them (Caliban / Orion / Virgil / Oretani).
-function suite:testNormalizeAggregatesKeepsCataloguedUnpublishedSystem()
-	local record = withheldStubFixture('M', 5.89)
-	record.aggregated.planets = 5
-	record.aggregated.moons = 9
-	record.aggregated.population = 7.21
-	local aggregated = Location._internal.normalizeAggregates(record).aggregated
-	self:assertEquals(5.89, aggregated.size)
-	self:assertEquals(7.21, aggregated.population)
-end
-
--- Stars must not count as bodies: the stub claims one, so counting it would
--- disable the rule on every page it exists for.
-function suite:testNormalizeAggregatesIgnoresStarsInBodyCount()
-	local record = withheldStubFixture('M', 7)
-	record.aggregated.stars = 1
-	self:assertEquals(nil, Location._internal.normalizeAggregates(record).aggregated.size)
-end
-
 -- End to end: a withheld stub renders neither a Size row nor a sensor section.
 function suite:testSectionsDropSizeAndSensorsForWithheldStub()
 	local apiData = solarSystemFixture()
-	apiData.starsystem = Location._internal.normalizeAggregates(withheldStubFixture('M', 7))
+	apiData.starsystem = Util._internal.normalizeAggregates(withheldStubFixture('M', 7))
 	local sections = StarSystem.getSections(apiData, {}, nil)
 	self:assertEquals(nil, findItem(findSection(sections, 'general'), 'Size'))
 	self:assertEquals(nil, findSection(sections, 'sensor'))
@@ -919,79 +795,6 @@ end
 -- and system type arrive as editor args, exactly as the legacy {{System}}
 -- template took them.
 
-function suite:testSystemTypeEntryNormalizesLegacyCaseDrift()
-	local f = Location.systemTypeEntry
-	-- The live pages hand-set 'SINGLE_STAR', 'TRINARY' and 'Trinary'.
-	for _, text in ipairs({ 'TRINARY', 'Trinary', 'trinary', ' Trinary ' }) do
-		local code, entry = f(text)
-		self:assertEquals('TRINARY', code)
-		self:assertEquals('Trinary star system', entry.label)
-	end
-	self:assertEquals('SINGLE_STAR', (f('Single star')))
-	self:assertEquals('SINGLE_STAR', (f('SINGLE_STAR')))
-end
-
-function suite:testSystemTypeEntryRejectsUnknownText()
-	for _, text in ipairs({ 'Quaternary', '', nil, 42 }) do
-		local code, entry = Location.systemTypeEntry(text)
-		self:assertEquals(nil, code)
-		self:assertEquals(nil, entry)
-	end
-end
-
--- The live tree's category is 'Trinary Star systems'; 'Trinary systems' does
--- not exist. Latent until GJ 667 / UDS-2943-01-22 migrated — no starmap-backed
--- system is trinary.
-function suite:testTrinaryCategoryMatchesLiveTree()
-	self:assertEquals('Trinary Star systems', Location.SYSTEM_TYPES.TRINARY.category)
-end
-
-function suite:testAffiliationFromTextMatchesCanonicalSpellings()
-	-- Legacy arg spellings collapse into the canonical entries: matched on
-	-- code, label or short after stripping case and punctuation.
-	self:assertEquals("Xi'an Empire", Location.affiliationFromText("Xi'An").label)
-	self:assertEquals('United Empire of Earth', Location.affiliationFromText('UEE').label)
-	self:assertEquals('Banu Protectorate', Location.affiliationFromText('Banu Protectorate').label)
-	self:assertEquals('Unclaimed', Location.affiliationFromText('Unclaimed').label)
-	-- Canonical entries carry no display override: callers link the label.
-	self:assertEquals(nil, Location.affiliationFromText('UEE').display)
-end
-
-function suite:testAffiliationFromTextFreeTextPassesThrough()
-	-- The editor controls linking; label carries the delinked text for the
-	-- category and the stored value.
-	local krthak = Location.affiliationFromText("[[Kr'Thak]]")
-	self:assertEquals("Kr'Thak", krthak.label)
-	self:assertEquals("[[Kr'Thak]]", krthak.display)
-	local unknown = Location.affiliationFromText('Unknown')
-	self:assertEquals('Unknown', unknown.label)
-	self:assertEquals('Unknown', unknown.display)
-	self:assertEquals(nil, Location.affiliationFromText(''))
-	self:assertEquals(nil, Location.affiliationFromText(nil))
-end
-
-function suite:testResolveSystemTypeEditorialBeatsRecord()
-	local resolved = { systemtype = { value = 'Trinary', source = 'editorial' } }
-	local code, entry = Location.resolveSystemType(starsystemFixture(), resolved)
-	self:assertEquals('TRINARY', code)
-	self:assertEquals('Trinary Star systems', entry.category)
-end
-
-function suite:testResolveSystemTypeKeepsUnmappedRecordCode()
-	-- A future ARK code must still store faithfully: raw code, no entry.
-	local record = starsystemFixture()
-	record.type = 'BLACK_HOLE'
-	local code, entry = Location.resolveSystemType(record, nil)
-	self:assertEquals('BLACK_HOLE', code)
-	self:assertEquals(nil, entry)
-end
-
-function suite:testResolveAffiliationEditorialBeatsRecord()
-	local resolved = { affiliation = { value = 'Vanduul', source = 'editorial' } }
-	self:assertEquals('Vanduul', Location.resolveAffiliation(starsystemFixture(), resolved).label)
-	self:assertEquals('UEE', Location.resolveAffiliation(starsystemFixture(), nil).short)
-end
-
 function suite:testGetTypeInfoFromEditorialArgs()
 	-- Type info runs before editorial resolution, so it reads the raw args;
 	-- the legacy `type` arg name works as the alias.
@@ -1011,8 +814,8 @@ end
 
 function suite:testNoRecordPageResolvesIdentityThroughManifest()
 	local resolved = resolveEditorially({ type = 'TRINARY', affiliation = 'Unknown' })
-	self:assertEquals('TRINARY', (Location.resolveSystemType(nil, resolved)))
-	self:assertEquals('Unknown', Location.resolveAffiliation(nil, resolved).label)
+	self:assertEquals('TRINARY', (Util.resolveSystemType(nil, resolved)))
+	self:assertEquals('Unknown', Util.resolveAffiliation(nil, resolved).label)
 end
 
 function suite:testGetCategoriesFromEditorialIdentity()
@@ -1094,31 +897,17 @@ function suite:testJumpPointTypeInfo()
 	self:assertEquals('Jump points', info.category)
 end
 
--- Promoted to the kind (Location.systemShortName): the kind's getCategories
--- needs it for the per-system gate category, and the kind cannot require the
--- leaf back (cycle), so the helpers live where both can reach them.
+-- Shared in Util: both leaves' system-name handling routes through it
+-- (StarSystem's short description, JumpPoint's title parsing), and Util's own
+-- gateEntrySystem/entrySystem call it internally.
 function suite:testJumpPointSystemShortName()
-	local f = Location.systemShortName
+	local f = Util.systemShortName
 	self:assertEquals('Pyro', f('Pyro System'))
 	self:assertEquals('Terra', f('Terra system'))
 	self:assertEquals('Nyx', f('Nyx'))
 	self:assertEquals(nil, f(''))
 	self:assertEquals(nil, f(' System'))
 	self:assertEquals(nil, f(nil))
-end
-
--- The alias leak (user-reported): the celestial designation carries naming
--- forms that are NOT wiki page names — alias parentheticals, the Vanduul
--- catalogue form, and one bare legacy name. Rendering them produced
--- "[[Kyuk'ya (Indra) system]]": a red link, a bogus category and a junk
--- stored System value.
-function suite:testSystemShortNameStripsStarmapDecorations()
-	local f = Location.systemShortName
-	self:assertEquals("Kyuk'ya", f("Kyuk'ya (Indra)"))
-	self:assertEquals("Yā'mon", f("Yā'mon (Hadur) System"))
-	self:assertEquals('Vulture', f('VS-9 "Vulture"'))
-	self:assertEquals('Pyro', f('Pyro System')) -- unchanged
-	self:assertEquals(nil, f(' System'))
 end
 
 -- The canonical page name beats the designation outright — the only fix that

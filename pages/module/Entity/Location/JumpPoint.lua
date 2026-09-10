@@ -6,13 +6,13 @@ require('strict')
 --- assembles: the location record at the top level (name, system, jurisdiction,
 --- quantum_travel radii) plus the starmap celestial-object record at
 --- apiData.celestialobject (attached by this leaf's enrich through
---- Location.attachCelestialObject from the editor's starmap code; may be
+--- Util.attachCelestialObject from the editor's starmap code; may be
 --- absent — every consumer nil-guards and degrades to location-only rows).
 --- apiData.starsystem is never present here: the two starmap bridges are
 --- mutually exclusive by construction.
 
 local boolean = require('Module:Boolean')
-local location = require('Module:Entity/Location')
+local locationUtil = require('Module:Entity/Location/Util')
 local sectionBuilder = require('Module:Entity/SectionBuilder')
 local Editorial = require('Module:Entity/Editorial')
 
@@ -29,7 +29,7 @@ p.family = 'jumppoint'
 --- @param args table|nil
 --- @return table apiData
 function p.enrich(apiData, args)
-	return location.attachCelestialObject(apiData, Editorial.rawArg(args, p.getEditorialManifest().starmapcode))
+	return locationUtil.attachCelestialObject(apiData, Editorial.rawArg(args, p.getEditorialManifest().starmapcode))
 end
 
 --- The starmap celestial-object code (`code` is the legacy {{Astronomical
@@ -56,7 +56,7 @@ end
 --- @param resolved table|nil
 --- @return string[]
 function p.getCategories(apiData, args, resolved)
-	local entry = location.gateEntrySystem(apiData)
+	local entry = locationUtil.gateEntrySystem(apiData)
 	if entry then
 		return { entry .. ' system' }
 	end
@@ -105,7 +105,7 @@ local function titleSystems(args)
 	if not a then
 		return nil, nil
 	end
-	return location.systemShortName(a), location.systemShortName(b)
+	return locationUtil.systemShortName(a), locationUtil.systemShortName(b)
 end
 
 --- The gate's entry system: the canonical name on the page first, then the
@@ -115,7 +115,7 @@ end
 --- @return string|nil
 local function entryFor(apiData, args)
 	local fromTitle = titleSystems(args)
-	return fromTitle or location.gateEntrySystem(apiData)
+	return fromTitle or locationUtil.gateEntrySystem(apiData)
 end
 
 --- The system on the far side of the tunnel (short form), parsed from the
@@ -143,10 +143,10 @@ local function destinationSystem(apiData, args)
 	end
 	sideA, sideB = mw.text.trim(sideA), mw.text.trim(sideB)
 	if sideA:lower() == entry:lower() then
-		return location.systemShortName(sideB)
+		return locationUtil.systemShortName(sideB)
 	end
 	if sideB:lower() == entry:lower() then
-		return location.systemShortName(sideA)
+		return locationUtil.systemShortName(sideA)
 	end
 	return nil
 end

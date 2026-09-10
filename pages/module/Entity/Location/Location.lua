@@ -16,8 +16,8 @@ local subtypeResolver = require('Module:Entity/SubtypeResolver')
 
 local p = {}
 
---- Canonical kind name; the Data.get() `result.kind` value sibling renderers
---- branch on (enforced by the Registry conformance test).
+--- Canonical kind name, exposed as Data.get().result.kind (non-empty and
+--- unique, enforced by the Registry conformance test).
 p.name = 'Location'
 
 --- Kind-declared pages (Template:Location injects |kind=Location) render

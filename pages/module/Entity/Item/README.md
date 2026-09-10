@@ -20,7 +20,7 @@ Module:Entity/Item/<Subtype>     ← leaf (replaces Item in the chain)
 
 When a subtype resolves, `Module:Entity/Data` uses the subtype module as the chain leaf in place of Item. Hooks on the subtype (`getSections`, `getStructuredData`, `getShortDescription`) are called directly; hooks on Item itself (`getSections`, `getStructuredData`) are called because Item is the subtype's `parent` and the chain walks root-first. This means Item always contributes its General section (Manufacturer / Size / Class / Grade) and its structured-data facets (size, grade, class, item\_type, volume, base\_variant, rarity) regardless of which subtype is active.
 
-Item declares the canonical kind name `p.name = 'Item'` (the `result.kind` value sibling renderers branch on, enforced by the Registry conformance test). It also implements `getAcquisition`, a chain-link hook resolved leaf-first over the chain; no Item subtype currently defines its own `getAcquisition`, so the Availability / Acquisition block is driven by Item's implementation for *every* item page, whatever the subtype.
+Item declares the canonical kind name `p.name = 'Item'` (exposed as `result.kind`, enforced by the Registry conformance test). It also implements `getAcquisition`, a chain-link hook resolved leaf-first over the chain; no Item subtype currently defines its own `getAcquisition`, so the Availability / Acquisition block is driven by Item's implementation for *every* item page, whatever the subtype.
 
 ## API
 

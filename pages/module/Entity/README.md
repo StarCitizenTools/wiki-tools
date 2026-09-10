@@ -4,7 +4,9 @@ Renders the entity infobox and owns the page's metadata (SMW structured data,
 short description, and categories) from a single `{{Entity}}` invocation. Sibling
 renderers (Availability, Related, Ports, UsedBy, Description, Blueprints, and the
 Mission-only Orders / Rewards) consume `Module:Entity/Data` and render their own
-page sections off the same fetch.
+page sections off the same fetch. Each sibling renderer resolves its own payload
+hook leaf-first over result.chain (getAcquisition, getRelated, getBlueprints,
+getPorts) and never branches on result.kind.
 
 ## Pipeline walkthrough
 
@@ -192,6 +194,9 @@ kind **fields** `name` / `editorialMode` (validated by `Contract.validateFields`
 | `getEditorialManifest` | `() → table` | chain link | no | Manifest fragment; fragments **merge root to leaf, leaf keys win**. Any link defining one opts the page into the editorial layer. |
 | `editorialMode` | `boolean\|nil` | kind | no | Opt-in: when true the kind renders from editorial args alone (`apiData = {}`) for planned / not-yet-in-game pages. |
 | `getAcquisition` | `(apiData, args) → { summary, cards }\|nil` | chain link | no | Acquisition payload for `{{Entity/Availability}}`, **leaf-first wins**. Absent on every link → no acquisition block. |
+| `getRelated` | `(apiData, args) → { items }\|{ cargo }\|nil` | chain link | no | Payload for `{{Entity/Related}}`, **leaf-first wins**. Base returns the record's `related_items` (tiles); Commodity returns cargo-box rows (table). |
+| `getBlueprints` | `(apiData, args) → { blueprints }\|{ ingredient }\|nil` | chain link | no | Payload for `{{Entity/Blueprints}}`, **leaf-first wins**. Base returns the record's `blueprint` list; Commodity returns `{ ingredient = { name } }` (used-in card). |
+| `getPorts` | `(apiData, args) → { ports, narrowChildren? }\|nil` | chain link | no | Payload for `{{Entity/Ports}}`, **leaf-first wins**. Base returns the record's `ports` tree; Vehicle adds `narrowChildren = true`. |
 | `getTypeInfo` | `(apiData, args) → {name, category}\|nil` | chain link | no | Display subtitle + browse category, preferred over the type map. |
 | `getSections` | `(apiData, args, resolved) → EntitySectionEntry[]` | chain link, facet | yes (facet) | Infobox sections, merged by `key`. `resolved` is the editorial view (nil-safe). |
 | `getStructuredData` | `(apiData, args, resolved) → table` | chain link, facet | no | Flat key/value data persisted to SMW. |

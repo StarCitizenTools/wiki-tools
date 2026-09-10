@@ -59,7 +59,7 @@ local p = {}
 
 --- Canonical tier key for a status string: lowercase, non-alphanumerics stripped,
 --- then aliases applied — e.g. "flight-ready" / "Flight ready" → "flightready",
---- and both "In lore" and "Lore-only" → "loreonly". Lets callers branch on
+--- and both "In lore" and "Lore-only" → "loreonly". Lets callers act on
 --- production state (e.g. suppress loaners for flight-ready ships, drop pledge
 --- availability for lore-only ships) without re-implementing the normalization.
 --- nil for an empty / non-string value.

@@ -64,6 +64,10 @@ matching API `26245` reads as `api`, not a correction.
 `fill` and `override` are the **audited** sources: a human supplied data the API
 should own. `editorial` is never audited (the API was never expected to have it).
 
+### `p.rawArg(args, def) → any|nil`
+
+The raw editor value for one manifest field: `def.arg` is a template-arg name or a list of aliases tried in order, first non-empty (trimmed) wins; `def.default` is **not** applied. `resolve` reads every field through it. It also exists for the two places that must read an arg *before* resolution has run: a leaf's `enrich` (JumpPoint fetches the celestial object by `|starmapcode=`/`|code=`) and `getTypeInfo` (StarSystem's `|systemtype=`/`|type=`). Those callers pass their own manifest entry (`p.getEditorialManifest().starmapcode`), so the alias order is declared once and cannot drift from what `resolve` sees.
+
 ### `p.toStructuredData(resolved, manifest) → table`
 
 Projects each resolved field onto its `def.smw` property, and appends

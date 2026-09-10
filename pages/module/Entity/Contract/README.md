@@ -70,6 +70,9 @@ p.CONTRIBUTOR = {
     getEditorialManifest = false,
     getCategories = false,
     getAcquisition = false,
+    getRelated = false,
+    getBlueprints = false,
+    getPorts = false,
 }
 ```
 
@@ -151,6 +154,9 @@ Required (`true`) and optional (`false`) hooks per role:
 | `getEditorialManifest` | optional | — | optional |
 | `getCategories` | optional | — | optional |
 | `getAcquisition` | optional | — | optional |
+| `getRelated` | optional | — | optional |
+| `getBlueprints` | optional | — | optional |
+| `getPorts` | optional | — | optional |
 
 A "—" cell means the hook is not part of that role's spec at all: it is neither required nor validated. `CHAIN_LINK` is `CONTRIBUTOR`'s older name, so its column is that spec: `matches` (required) and `resolveSubtype` (optional) are `KIND_IDENTITY`-only and so read "—" for `CHAIN_LINK`; every other `KIND` hook is a `CONTRIBUTOR` hook and so is available, optionally, to any chain link.
 
@@ -160,6 +166,7 @@ What each of these `CONTRIBUTOR` hooks contributes, and the merge policy `Module
 - **`enrich(apiData, args) → apiData`**: post-fetch mutation, run on every link root to leaf, each receiving the previous link's result. A leaf typically attaches the secondary record only it renders (e.g. the StarSystem leaf the starmap system, the JumpPoint leaf the celestial object).
 - **`getCategories(apiData, args, resolved) → string[]`**: extra browse categories, collected from every link (`Assembly.collect`) and appended after the structural + manufacturer categories.
 - **`getAcquisition(apiData, args) → { summary, cards }|nil`**: acquisition data for `{{Entity/Availability}}`, resolved leaf-first over the chain (`Assembly.resolveMostSpecific`). Absent on every link → no acquisition block. Consumed by `Module:Entity/Availability`.
+- **`getRelated(apiData, args) → { items }|{ cargo }|nil`**, **`getBlueprints(apiData, args) → { blueprints }|{ ingredient }|nil`**, **`getPorts(apiData, args) → { ports, narrowChildren? }|nil`**: the sibling-renderer payloads for `{{Entity/Related}}`, `{{Entity/Blueprints}}` and `{{Entity/Ports}}`, each resolved leaf-first over the chain (`Assembly.resolveMostSpecific`). `Module:Entity/Base` supplies the items-endpoint defaults, so every chain resolves something; a kind that means something else by the word returns the alternative payload field (Commodity: `cargo`, `ingredient`; Vehicle: `narrowChildren`). The renderers draw payloads and never read `apiData` or `result.kind`. Typed at `Module:Entity/Types` (`EntityRelatedPayload`, `EntityBlueprintsPayload`, `EntityPortsPayload`).
 - **`getSubtitle(apiData, args) → string|nil`**: header subtitle override (else the display type), leaf-first wins. Composed by `Module:Entity/Infobox`.
 - **`getHeaderBadge(apiData, args, resolved) → string|nil`**: header badge HTML composed into the image overlay, leaf-first wins. Composed by `Module:Entity/Infobox`.
 

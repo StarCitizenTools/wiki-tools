@@ -12,8 +12,8 @@ local yesno = require('Module:Yesno')
 
 local p = {}
 
---- Canonical kind name; the Data.get() `result.kind` value sibling renderers
---- branch on. Every kind declares one (enforced by the Registry conformance test).
+--- Canonical kind name, exposed as Data.get().result.kind (non-empty and
+--- unique, enforced by the Registry conformance test).
 p.name = 'Item'
 
 --- @type string

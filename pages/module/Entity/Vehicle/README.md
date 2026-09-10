@@ -183,7 +183,7 @@ The five multi-value args (`brochureurl` / `trailerurl` / `presentationurl` / `q
 Entity/Vehicle/
 ├── Vehicle.lua            # Orchestrator: matches, resolveSubtype, getSections (delegates),
 │                          #   getStructuredData, getCategories, getSubtitle, getHeaderBadge,
-│                          #   getExternalSiteItems, getAcquisition, getEditorialManifest,
+│                          #   getExternalSiteItems, getAcquisition, getPorts, getEditorialManifest,
 │                          #   formatShortDescription
 ├── Ship.lua               # Subtype: getTypeInfo (Spacecraft / Ships) + getShortDescription
 │                          #   + getCategories (size bucket, Pledge ships)

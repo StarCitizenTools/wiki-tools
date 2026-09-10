@@ -6,42 +6,61 @@ require('strict')
 --- module against a role. Used by the registry conformance test so a mis-wired
 --- kind or facet fails a unit test rather than silently no-opping on-wiki.
 ---
---- No runtime role in rendering — a contributor-facing guardrail. See
---- Module:Entity/doc for the prose contract reference.
+--- Roles: CONTRIBUTOR (every chain link), KIND (identity + contributor), FACET.
 
 local p = {}
 
---- Kind: a top-level entity with its own API endpoint, probed by matches().
---- `matches` + `getApiConfigs` identify it; the rest are optional chain-link
---- contributions a kind may also make as a chain root — so every CHAIN_LINK
---- contributor hook is listed here too, or the conformance gate would not
---- type-check it on a kind that implements it as the chain root.
----
---- A kind's canonical scalar fields — `name` (exposed as Data.get().result.kind)
---- and the `editorialMode` opt-in — are absent from the spec below because
---- validate() type-checks every spec key as a function hook. They live in
---- p.KIND_FIELDS and are type-checked by validateFields() (run by the Registry
---- conformance test); `name`'s non-empty + uniqueness guarantee remains enforced
---- specifically by testAllKindsDeclareName in Module:Entity/Registry/testcases.
+--- Contributor: the hook set every chain link (Base, a kind, a subtype leaf)
+--- may implement. Every hook is optional — a link implements only what it
+--- adds. Module:Entity/Data applies one merge policy per hook: sections,
+--- structured data, external sites, metadata rows, footer buttons and
+--- categories are additive root-to-leaf; enrich runs root-to-leaf, each link
+--- receiving the previous link's apiData; the editorial manifest merges
+--- root-to-leaf with leaf keys winning; type info, short description,
+--- subtitle, header badge and acquisition are leaf-first-wins.
 --- @type table<string, boolean>
-p.KIND = {
-	matches = true,
-	getApiConfigs = true,
-	resolveSubtype = false,
-	enrich = false,
-	getTypeInfo = false,
+p.CONTRIBUTOR = {
 	getSections = false,
 	getStructuredData = false,
 	getShortDescription = false,
 	getExternalSiteItems = false,
 	getFooterButtons = false,
 	getMetadataItems = false,
-	getEditorialManifest = false,
+	getTypeInfo = false,
+	getApiConfigs = false,
 	getSubtitle = false,
 	getHeaderBadge = false,
+	enrich = false,
+	getEditorialManifest = false,
 	getCategories = false,
 	getAcquisition = false,
 }
+
+--- Chain link is the contributor role under its older name; kept so existing
+--- callers (the Location leaf conformance test) keep validating.
+p.CHAIN_LINK = p.CONTRIBUTOR
+
+--- Kind identity: what a registered kind owns beyond being a contributor.
+--- `matches` + `getApiConfigs` identify it (the probe and the declared-kind
+--- gate); `resolveSubtype` refines it to a leaf.
+--- @type table<string, boolean>
+p.KIND_IDENTITY = {
+	matches = true,
+	getApiConfigs = true,
+	resolveSubtype = false,
+}
+
+--- Kind: identity plus every contributor hook, built from the two specs so the
+--- three can never drift. getApiConfigs is required here (identity) even
+--- though a plain contributor may omit it.
+--- @type table<string, boolean>
+p.KIND = {}
+for hook, required in pairs(p.CONTRIBUTOR) do
+	p.KIND[hook] = required
+end
+for hook, required in pairs(p.KIND_IDENTITY) do
+	p.KIND[hook] = required
+end
 
 --- Non-function KIND fields with declared scalar types. validate() rejects any
 --- non-function spec key, so typed scalar fields — the canonical kind `name` and
@@ -62,22 +81,6 @@ p.FACET = {
 	getShortDescriptionPrefix = false,
 }
 
---- Chain link: a p.parent-linked contributor (Base, Item, subtypes). Every hook
---- optional — a link implements only what it adds.
---- @type table<string, boolean>
-p.CHAIN_LINK = {
-	getSections = false,
-	getStructuredData = false,
-	getShortDescription = false,
-	getExternalSiteItems = false,
-	getFooterButtons = false,
-	getMetadataItems = false,
-	getTypeInfo = false,
-	getApiConfigs = false,
-	getSubtitle = false,
-	getHeaderBadge = false,
-}
-
 --- Union of every hook name across all role specs; used by validate()'s strict
 --- pass to distinguish a misspelled hook from one valid in a different role.
 --- @type table<string, boolean>
@@ -87,20 +90,6 @@ for _, spec in ipairs({ p.KIND, p.FACET, p.CHAIN_LINK }) do
 		p.ALL_HOOKS[hook] = true
 	end
 end
-
---- The minimal kind-identity interface: the dispatch/identity hooks a kind owns,
---- as opposed to the contributor hooks it shares with every CHAIN_LINK. Exported
---- for documentation and tooling. p.KIND remains the full validation spec
---- (KIND = KIND_IDENTITY + ChainLink contributions); this names the small
---- interface a kind author actually has to think about (ISP).
---- @type table<string, boolean>
-p.KIND_IDENTITY = {
-	matches = true,
-	getApiConfigs = true,
-	resolveSubtype = false,
-	enrich = false,
-	getEditorialManifest = false,
-}
 
 --- Validates a component against a role spec. Each required hook must be present
 --- and a function; each present spec-hook must be a function. Unknown keys are

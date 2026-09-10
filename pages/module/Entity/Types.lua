@@ -25,10 +25,14 @@ local p = {}
 --- @field items EntityItemData[]|nil List of label/content items
 
 --- @class EntityChainLink
---- A p.parent-linked contributor (Base → Item → subtype). Every hook optional;
---- a link implements only what it contributes.
+--- A contributor: any link in the p.parent chain (Base → kind → subtype leaf).
+--- Every hook is optional; a link implements only what it contributes.
+--- Merge policy per hook is applied by Module:Entity/Data (see Contract.CONTRIBUTOR).
 --- @field parent string|nil Module path of the parent link (e.g. 'Entity/Item')
+--- @field family string|nil Family token a subtype leaf declares; the kind's resolveSubtype maps the same token to this leaf, and a curated |family= arg names it on record-less pages
 --- @field getApiConfigs nil|fun(): EntityApiConfig[] Extra API endpoints this link needs
+--- @field enrich nil|fun(apiData: table, args: table|nil): table Post-fetch mutation, run root-to-leaf after the chain's endpoints are fetched (a leaf attaches the secondary record only it renders: StarSystem the starmap system, JumpPoint the celestial object)
+--- @field getEditorialManifest nil|fun(): table Editorial-field manifest fragment (field -> { arg, smw?, apiPath?, transform?, default? }); fragments merge root-to-leaf, leaf keys win
 --- @field getSections nil|fun(apiData: table, args: table, resolved: table|nil): EntitySectionEntry[] Ordered section entries
 --- @field getStructuredData nil|fun(apiData: table, args: table, resolved: table|nil): table<string, any> Flat key-value data
 --- @field getShortDescription nil|fun(apiData: table, args: table, typeInfo: table, prefix: string|nil, resolved: table|nil): string Page short description
@@ -38,19 +42,20 @@ local p = {}
 --- @field getTypeInfo nil|fun(apiData: table, args: table): table|nil Display metadata { name, category }
 --- @field getSubtitle nil|fun(apiData: table, args: table): string|nil Header subtitle override (else the display type)
 --- @field getHeaderBadge nil|fun(apiData: table, args: table, resolved: table|nil): string|nil Header badge HTML composed into the image overlay
---- @field getCategories nil|fun(apiData: table, args: table, resolved: table|nil, family: string|nil): string[] Extra browse categories appended after the structural + manufacturer categories
+--- @field getCategories nil|fun(apiData: table, args: table, resolved: table|nil): string[] Extra browse categories, collected from every link and appended after the structural + manufacturer categories
+--- @field getAcquisition nil|fun(apiData: table, args: table): { summary: table[], cards: table[] }|nil Acquisition data for {{Entity/Availability}}; leaf-first wins. Absent on every link → no acquisition block.
 
 --- @class EntityKind : EntityChainLink
 --- A top-level entity with its own API endpoint and a mutually-exclusive
---- identity (Item / Vehicle / Commodity). Registered in Module:Entity/Registry.
+--- identity (Item / Vehicle / Commodity / Mission / Location). Registered in
+--- Module:Entity/Registry. Identity hooks only; everything it renders it
+--- contributes as a chain link like any other.
 --- @field name string REQUIRED. Canonical kind name, exposed as Data.get().result.kind (enforced by the Registry conformance test)
---- @field matches fun(apiData: table|nil): boolean REQUIRED. Strict, nil-safe identity predicate
---- @field getApiConfigs fun(): EntityApiConfig[] REQUIRED. [1] is the identity probe endpoint
---- @field resolveSubtype nil|fun(apiData: table|nil, args: table|nil): table|nil Refine to a subtype leaf module, or nil. args carries the curated |family= for editorial mode.
---- @field enrich nil|fun(apiData: table, args: table|nil): table Post-fetch mutation (e.g. Commodity attaches raw/refined records; Location attaches the starmap record — args carries the wikitext args so kind-declared pages without a record can resolve by name)
---- @field getEditorialManifest nil|fun(): table A per-kind editorial-field manifest (field -> { arg, smw, apiPath?, transform?, default? }); presence opts the kind into the editorial layer
+--- @field matches fun(apiData: table|nil): boolean REQUIRED. Strict, nil-safe identity predicate: true exactly for the records this kind can render (its own leaf resolves, or the kind itself is the leaf)
+--- @field getApiConfigs fun(): EntityApiConfig[] REQUIRED. [1] is the identity endpoint
+--- @field resolveSubtype nil|fun(apiData: table|nil, args: table|nil): table|nil Refine to a subtype leaf module, or nil. Family token from the record, else the curated |family= arg (Module:Entity/SubtypeResolver.familyArg), else the kind's default leaf on kind-declared record-less pages
+--- @field defaultFamily string|nil Family token of the leaf a kind-declared page with no record resolves to (Location: 'starsystem'); nil means the kind stays the leaf
 --- @field editorialMode boolean|nil Opt-in: when true the kind renders from editorial args alone (apiData = {}) for planned / not-yet-in-game pages with no genuine API record. See Module:Entity/Data.
---- @field getAcquisition nil|fun(apiData: table, args: table): { summary: table[], cards: table[] }|nil Per-kind acquisition data for {{Entity/Availability}}: summary flag rows + render-ready cards. Absent → no acquisition block.
 
 --- @class EntityFacet
 --- A cross-cutting additive aspect matched on a data field, independent of kind.

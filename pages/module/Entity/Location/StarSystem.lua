@@ -3,8 +3,9 @@ require('strict')
 --- @module Entity/Location/StarSystem
 --- Star-system leaf of the Location kind. Renders from the merged payload the
 --- kind assembles: the location record at the top level plus the starmap
---- record at apiData.starsystem (attached by Location.enrich; may be absent —
---- every consumer nil-guards and degrades to location-only rows).
+--- record at apiData.starsystem (attached by this leaf's enrich through
+--- Location.attachStarsystem; may be absent — every consumer nil-guards and
+--- degrades to location-only rows).
 
 local location = require('Module:Entity/Location')
 local meterBar = require('Module:MeterBar')
@@ -64,6 +65,71 @@ local OBJECT_TILES = {
 --- @return table|nil
 local function getStarsystem(apiData)
 	return type(apiData.starsystem) == 'table' and apiData.starsystem or nil
+end
+
+--- Family token: dispatched by Location.resolveSubtype and named by a curated
+--- |family= on record-less pages; the kind's default leaf.
+p.family = 'starsystem'
+
+--- @param apiData table
+--- @param args table|nil
+--- @return table apiData
+function p.enrich(apiData, args)
+	return location.attachStarsystem(apiData, args)
+end
+
+--- Star-system editorial fields. size overlaps the starmap aggregated size
+--- attached by enrich; startypes carries no apiPath because its API value is
+--- derived from the celestial-object list — the section builder passes the
+--- computed value as the editorial view's fallback instead. affiliation and
+--- systemtype are pure-editorial identity for the systems the starmap does
+--- not list (Hyoton, Krell, Ophos, …), no smw key: this leaf stores both
+--- itself through the same resolvers the display uses (affiliationFromText /
+--- systemTypeEntry), so a free-text affiliation and its stored value cannot
+--- disagree. `type` is the legacy {{System}} arg name. The object-count
+--- overrides (legacy {{System}} arg names) beat the starmap tallies; no smw
+--- key, getStructuredData stores the resolved counts itself.
+--- @return table
+function p.getEditorialManifest()
+	return {
+		population = { arg = 'population' },
+		size = { arg = 'size', smw = 'System size', apiPath = 'starsystem.aggregated.size', transform = 'number' },
+		startypes = { arg = 'startypes' },
+		affiliation = { arg = 'affiliation' },
+		systemtype = { arg = { 'systemtype', 'type' } },
+		planets = { arg = 'planets', transform = 'number' },
+		satellites = { arg = 'satellites', transform = 'number' },
+		asteroidbelts = { arg = 'asteroidbelts', transform = 'number' },
+		asteroidfields = { arg = 'asteroidfields', transform = 'number' },
+		anomalies = { arg = 'anomalies', transform = 'number' },
+		stations = { arg = 'stations', transform = 'number' },
+		jumppoints = { arg = 'jumppoints', transform = 'number' },
+		blackholes = { arg = 'blackholes', transform = 'number' },
+		pois = { arg = 'pois', transform = 'number' },
+	}
+end
+
+--- Category parity with the legacy Module:System beyond the `Systems` bucket
+--- (typeInfo.category supplies that one): the system-type and affiliation
+--- trees. A free-text affiliation categorizes as `<text> systems` exactly as
+--- the legacy template did (Kr'Thak systems, Unknown systems — both live
+--- categories).
+--- @param apiData table
+--- @param args table|nil
+--- @param resolved table|nil
+--- @return string[]
+function p.getCategories(apiData, args, resolved)
+	local categories = {}
+	local starsystem = getStarsystem(apiData)
+	local _, typeEntry = location.resolveSystemType(starsystem, resolved)
+	if typeEntry then
+		categories[#categories + 1] = typeEntry.category
+	end
+	local affiliation = location.resolveAffiliation(starsystem, resolved)
+	if affiliation then
+		categories[#categories + 1] = affiliation.label .. ' systems'
+	end
+	return categories
 end
 
 --- The ARK starmap code (the `?location=` key), or nil. Two consumers read it —

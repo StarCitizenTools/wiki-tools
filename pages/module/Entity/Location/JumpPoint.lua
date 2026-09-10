@@ -5,10 +5,11 @@ require('strict')
 --- gate, "Pyro - Nyx jump point"). Renders from the merged payload the kind
 --- assembles: the location record at the top level (name, system, jurisdiction,
 --- quantum_travel radii) plus the starmap celestial-object record at
---- apiData.celestialobject (attached by Location.enrich from the editor's
---- starmap code; may be absent — every consumer nil-guards and degrades to
---- location-only rows). apiData.starsystem is never present here: the two
---- starmap bridges are mutually exclusive by construction.
+--- apiData.celestialobject (attached by this leaf's enrich through
+--- Location.attachCelestialObject from the editor's starmap code; may be
+--- absent — every consumer nil-guards and degrades to location-only rows).
+--- apiData.starsystem is never present here: the two starmap bridges are
+--- mutually exclusive by construction.
 
 local boolean = require('Module:Boolean')
 local location = require('Module:Entity/Location')
@@ -19,6 +20,48 @@ local p = {}
 
 --- @type string
 p.parent = 'Entity/Location'
+
+--- Family token: dispatched by Location.resolveSubtype and named by a curated
+--- |family=jumppoint on the starmap-only tunnels that have no location record.
+p.family = 'jumppoint'
+
+--- @param apiData table
+--- @param args table|nil
+--- @return table apiData
+function p.enrich(apiData, args)
+	return location.attachCelestialObject(apiData, args)
+end
+
+--- The starmap celestial-object code (`code` is the legacy {{Astronomical
+--- object}} arg name). No smw key, no transform: this leaf surfaces it itself
+--- (metadata row, Starmap button). enrich reads the RAW args through
+--- Location.starmapCodeArg — it runs before editorial resolution — so that
+--- helper mirrors this alias order exactly.
+--- @return table
+function p.getEditorialManifest()
+	return {
+		starmapcode = { arg = { 'starmapcode', 'code' } },
+	}
+end
+
+--- Jump-point gates file under their entry system's category ("Pyro
+--- system") — a FUNCTIONAL membership, not just browse taxonomy:
+--- {{System navplate}} builds its "Jump points" row from the per-system
+--- category intersected with Jump points. The legacy pages' flat
+--- 'Astronomical objects'/'Locations' memberships are deliberately NOT
+--- carried over: the classification bucket (typeInfo's 'Jump points', under
+--- Astronomy) covers that taxonomy.
+--- @param apiData table
+--- @param args table|nil
+--- @param resolved table|nil
+--- @return string[]
+function p.getCategories(apiData, args, resolved)
+	local entry = location.gateEntrySystem(apiData)
+	if entry then
+		return { entry .. ' system' }
+	end
+	return {}
+end
 
 --- Starmap jumppoints.size letter → display label. An unmapped letter yields
 --- nil (no Size row, nothing stored) rather than leaking a raw code.

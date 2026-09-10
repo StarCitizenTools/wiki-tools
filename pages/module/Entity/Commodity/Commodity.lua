@@ -103,9 +103,10 @@ function p.matches(apiData)
 	return apiData ~= nil and apiData.box_sizes_scu ~= nil
 end
 
---- Post-fetch hook (called by Module:Entity/Data on the matched kind). Delegates
---- record assembly to Module:Entity/Commodity/Records, passing the commodities
---- endpoint config so the counterpart fetch stays single-sourced here.
+--- Post-fetch hook (run by Module:Entity/Data's chain enrich pass; Commodity is
+--- its own chain's only enrich link). Delegates record assembly to
+--- Module:Entity/Commodity/Records, passing the commodities endpoint config so
+--- the counterpart fetch stays single-sourced here.
 ---
 --- @param apiData table
 --- @return table apiData (mutated and returned)

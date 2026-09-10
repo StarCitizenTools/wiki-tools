@@ -268,14 +268,14 @@ local function appendMeter(items, label, value)
 end
 
 --- Type info runs before editorial resolution in Data.get, so the editorial
---- system type is read from the raw args here (same alias order as the
---- manifest: systemtype, then the legacy `type`); everything downstream of
---- resolution goes through location.resolveSystemType instead.
+--- system type is read from the raw args through Editorial.rawArg with this
+--- leaf's own manifest entry; everything downstream of resolution goes
+--- through location.resolveSystemType instead.
 --- @param apiData table
 --- @param args table|nil
 --- @return { name: string, category: string }
 function p.getTypeInfo(apiData, args)
-	local _, editorialEntry = location.systemTypeEntry(args and (args.systemtype or args.type) or nil)
+	local _, editorialEntry = location.systemTypeEntry(Editorial.rawArg(args, p.getEditorialManifest().systemtype))
 	local starsystem = getStarsystem(apiData)
 	local typeInfo = editorialEntry or (starsystem and location.SYSTEM_TYPES[starsystem.type] or nil)
 	return {

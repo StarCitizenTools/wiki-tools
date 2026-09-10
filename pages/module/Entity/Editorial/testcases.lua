@@ -237,4 +237,39 @@ function suite:testPatchPageExtractsLinkTarget()
 	self:assertEquals('Update:Star Citizen Patch V0.8.5', r.added_in_version.value)
 end
 
+-- rawArg: the accessor for a field's raw editor value, for code that must
+-- read an arg before resolve() has run (a leaf's enrich, getTypeInfo).
+function suite:testRawArgAliasOrderAndTrim()
+	local def = { arg = { 'starmapcode', 'code' } }
+	self:assertEquals('PYRO.JUMPPOINTS.NYX', Editorial.rawArg({ starmapcode = 'PYRO.JUMPPOINTS.NYX' }, def))
+	self:assertEquals('NYX.JUMPPOINTS.PYRO', Editorial.rawArg({ code = 'NYX.JUMPPOINTS.PYRO' }, def))
+	self:assertEquals(
+		'PYRO.JUMPPOINTS.NYX',
+		Editorial.rawArg({ starmapcode = 'PYRO.JUMPPOINTS.NYX', code = 'NYX.JUMPPOINTS.PYRO' }, def)
+	)
+	self:assertEquals(
+		'NYX.JUMPPOINTS.PYRO',
+		Editorial.rawArg({ starmapcode = '  ', code = 'NYX.JUMPPOINTS.PYRO' }, def)
+	)
+	self:assertEquals('TRIMMED', Editorial.rawArg({ starmapcode = ' TRIMMED ' }, def))
+end
+
+function suite:testRawArgSingleNameAndAbsent()
+	self:assertEquals('210', Editorial.rawArg({ scmspeed = ' 210 ' }, MANIFEST.scm_speed))
+	self:assertEquals(nil, Editorial.rawArg({ scmspeed = '' }, MANIFEST.scm_speed))
+	self:assertEquals(nil, Editorial.rawArg({}, MANIFEST.scm_speed))
+	self:assertEquals(nil, Editorial.rawArg(nil, MANIFEST.scm_speed))
+	self:assertEquals(nil, Editorial.rawArg({ scmspeed = '210' }, nil))
+end
+
+function suite:testResolveReadsAliasesThroughRawArg()
+	local manifest = { systemtype = { arg = { 'systemtype', 'type' } } }
+	local r = Editorial.resolve({}, { type = 'single' }, manifest)
+	self:assertEquals('single', r.systemtype.value)
+	r = Editorial.resolve({}, { systemtype = '', type = 'single' }, manifest)
+	self:assertEquals('single', r.systemtype.value)
+	r = Editorial.resolve({}, { systemtype = 'binary', type = 'single' }, manifest)
+	self:assertEquals('binary', r.systemtype.value)
+end
+
 return suite

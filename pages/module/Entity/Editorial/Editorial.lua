@@ -132,6 +132,35 @@ local function sameValue(a, b)
 	return mw.text.trim(tostring(a)) == mw.text.trim(tostring(b))
 end
 
+--- The raw editor value for a manifest field: `def.arg` is one template-arg
+--- name or a list of aliases tried in order, first non-empty wins. Strings
+--- are trimmed and a blank string counts as absent; `def.default` is NOT
+--- applied here (resolve does that). This is the accessor for code that
+--- must read an arg before editorial resolution has run (a leaf's enrich,
+--- getTypeInfo), so the alias order lives in the manifest entry only.
+--- @param args table|nil
+--- @param def { arg: string|string[] }|nil A manifest field definition
+--- @return any|nil
+function p.rawArg(args, def)
+	if type(args) ~= 'table' or type(def) ~= 'table' then
+		return nil
+	end
+	local names = def.arg
+	if type(names) ~= 'table' then
+		names = { names }
+	end
+	for _, name in ipairs(names) do
+		local v = args[name]
+		if type(v) == 'string' then
+			v = mw.text.trim(v)
+		end
+		if v ~= nil and v ~= '' then
+			return v
+		end
+	end
+	return nil
+end
+
 --- @param apiData table|nil
 --- @param args table
 --- @param manifest table  field -> { arg, smw, apiPath?, transform?, default? }
@@ -140,27 +169,8 @@ function p.resolve(apiData, args, manifest)
 	local resolved = {}
 	for field, def in pairs(manifest) do
 		if field:sub(1, 1) ~= '%' then
-			-- def.arg is a single template-arg name, or a list of aliases tried in
-			-- order (first non-empty wins) — mirrors the legacy `[ARG_Series, ARG_Model]`.
-			local raw
-			if type(def.arg) == 'table' then
-				for _, name in ipairs(def.arg) do
-					local v = args[name]
-					if type(v) == 'string' then
-						v = mw.text.trim(v)
-					end
-					if v ~= nil and v ~= '' then
-						raw = v
-						break
-					end
-				end
-			else
-				raw = args[def.arg]
-				if type(raw) == 'string' then
-					raw = mw.text.trim(raw)
-				end
-			end
-			if (raw == nil or raw == '') and def.default ~= nil then
+			local raw = p.rawArg(args, def)
+			if raw == nil and def.default ~= nil then
 				raw = def.default
 			end
 

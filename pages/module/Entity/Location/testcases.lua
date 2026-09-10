@@ -153,21 +153,6 @@ function suite:testIsJumpPointRecord()
 	self:assertFalse(f({}))
 end
 
--- |starmapcode= wins over the legacy |code= alias; values are trimmed; a
--- blank primary falls through to the alias; no usable value at all → nil
--- (no fetch).
-function suite:testStarmapCodeArg()
-	local f = Location.starmapCodeArg
-	self:assertEquals('PYRO.JUMPPOINTS.NYX', f({ starmapcode = 'PYRO.JUMPPOINTS.NYX' }))
-	self:assertEquals('NYX.JUMPPOINTS.PYRO', f({ code = 'NYX.JUMPPOINTS.PYRO' }))
-	self:assertEquals('PYRO.JUMPPOINTS.NYX', f({ starmapcode = 'PYRO.JUMPPOINTS.NYX', code = 'NYX.JUMPPOINTS.PYRO' }))
-	self:assertEquals('NYX.JUMPPOINTS.PYRO', f({ starmapcode = '  ', code = 'NYX.JUMPPOINTS.PYRO' }))
-	self:assertEquals('TRIMMED', f({ starmapcode = ' TRIMMED ' }))
-	self:assertEquals(nil, f({ starmapcode = '' }))
-	self:assertEquals(nil, f({}))
-	self:assertEquals(nil, f(nil))
-end
-
 function suite:testResolveLookupNamePrecedence()
 	local f = Location._internal.resolveLookupName
 	self:assertEquals('Rihlah', f({ name = 'Ignored System' }, { starmapname = 'Rihlah', name = 'Also ignored' }))
@@ -1311,9 +1296,9 @@ function suite:testJumpPointTravelSectionDropsWithoutData()
 end
 
 -- One accessor feeds the Starmap button and the Metadata row: the fetched
--- record's code wins, the raw |starmapcode=/|code= arg (the kind's shared
--- starmapCodeArg, same alias order enrich fetches with) covers a soft-failed
--- fetch, and an empty record code falls through rather than blanking both.
+-- record's code wins, the raw |starmapcode=/|code= arg (read through the
+-- manifest entry enrich fetches with) covers a soft-failed fetch, and an
+-- empty record code falls through rather than blanking both.
 function suite:testJumpPointStarmapCodeAccessor()
 	local f = JumpPoint._internal.starmapCode
 	self:assertEquals('PYRO.JUMPPOINTS.NYX', f(jumpPointApiData(), { starmapcode = 'OTHER.CODE' }))

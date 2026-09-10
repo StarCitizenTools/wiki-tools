@@ -9,6 +9,7 @@ require('strict')
 --- templates on the page.
 
 local data = require('Module:Entity/Data')
+local assembly = require('Module:Entity/Assembly')
 local collapsibleCard = require('Module:CollapsibleCard')
 local cardLua = require('Module:CardLua')
 local tableLua = require('Module:TableLua')
@@ -293,9 +294,23 @@ local function renderCard(card)
 	})
 end
 
---- Main entry point. Dispatches to `result.matchedKind.getAcquisition` and
---- renders the returned summary + cards. Returns just the styles tag when the
---- matched kind carries no getAcquisition hook (e.g. Contract).
+--- The acquisition payload for a Data.get result: the most specific chain link's
+--- getAcquisition (leaf-first), or nil. A page no kind claimed renders nothing —
+--- its chain is only the Item fallback, whose hook would otherwise fabricate an
+--- all-"No" block; the editorial fork's declared kind still counts as claimed.
+--- @param result table Module:Entity/Data.get result
+--- @param args table
+--- @return { summary: table[], cards: table[] }|nil
+local function acquisitionFor(result, args)
+	if result.matchedKind == nil then
+		return nil
+	end
+	return assembly.resolveMostSpecific(result.chain, 'getAcquisition', nil, result.apiData, args)
+end
+
+--- Main entry point. Renders the acquisition payload acquisitionFor resolves
+--- (leaf-first over the chain); returns just the styles tag when nothing
+--- resolves.
 ---
 --- @param frame table
 --- @return string
@@ -308,11 +323,7 @@ function p.main(frame)
 		args = { src = 'Module:Entity/Availability/styles.css' },
 	})
 
-	local kind = result.matchedKind
-	if not (kind and kind.getAcquisition) then
-		return styles
-	end
-	local a = kind.getAcquisition(result.apiData, args)
+	local a = acquisitionFor(result, args)
 	if not a then
 		return styles
 	end
@@ -327,6 +338,7 @@ end
 -- Test-only exports. Not part of the public API.
 p._internal = {
 	renderCard = renderCard,
+	acquisitionFor = acquisitionFor,
 }
 
 return p

@@ -25,4 +25,44 @@ function suite:testRenderCardTerminalsReturnsString()
 	self:assertTrue(type(out) == 'string')
 end
 
+-- acquisitionFor(): leaf-first over the chain, nothing for an unclaimed page
+
+local function stubResult(chain, matchedKind)
+	return { chain = chain, matchedKind = matchedKind, apiData = {} }
+end
+
+function suite:testAcquisitionForNilWhenNoKindClaimedThePage()
+	local item = {
+		getAcquisition = function()
+			return { summary = {}, cards = {} }
+		end,
+	}
+	self:assertEquals(nil, Availability._internal.acquisitionFor(stubResult({ item }, nil), {}))
+end
+
+function suite:testAcquisitionForKindHook()
+	local kind = {
+		getAcquisition = function(apiData, args)
+			return { summary = { args.tag }, cards = {} }
+		end,
+	}
+	local a = Availability._internal.acquisitionFor(stubResult({ {}, kind }, kind), { tag = 'kind' })
+	self:assertEquals('kind', a.summary[1])
+end
+
+function suite:testAcquisitionForLeafOverridesKind()
+	local kind = {
+		getAcquisition = function()
+			return { summary = { 'kind' }, cards = {} }
+		end,
+	}
+	local leaf = {
+		getAcquisition = function()
+			return { summary = { 'leaf' }, cards = {} }
+		end,
+	}
+	local a = Availability._internal.acquisitionFor(stubResult({ {}, kind, leaf }, kind), {})
+	self:assertEquals('leaf', a.summary[1])
+end
+
 return suite

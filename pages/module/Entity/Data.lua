@@ -365,7 +365,7 @@ function p.get(args)
 	end
 
 	-- Canonical kind name (Item when nothing matched, mirroring resolveLeaf's
-	-- fallback), exposed for consumers that report or store the kind.
+	-- fallback), kept for off-repo consumers; nothing in this repo reads it.
 	local kind = (matchedKind and matchedKind.name) or 'Item'
 
 	local leaf = chain[#chain]

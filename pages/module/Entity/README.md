@@ -294,7 +294,7 @@ A quick map to every piece of the system.
 | [Module:Entity/Item](https://starcitizen.tools/Module:Entity/Item) | Item kind + subtype dispatch (`itemSubtypeMapping`); shared item helpers |
 | [Module:Entity/Vehicle](https://starcitizen.tools/Module:Entity/Vehicle) | Vehicle kind orchestrator; family dispatch + the Vehicle/ section sub-builders (Overview, Capacity, Cost, Stats, Dimensions, Lore, Development) |
 | [Module:Entity/Commodity](https://starcitizen.tools/Module:Entity/Commodity) | Commodity kind (raw/refined records via `enrich`) |
-| [Module:Entity/Location](https://starcitizen.tools/Module:Entity/Location) | Location kind; dispatches to the StarSystem leaf (SolarSystem records, and the kind-declared default) or the JumpPoint leaf (jump-point gates: `JumpPoint`-typed records, or `Anomaly` records named `… Jump Point`, which `matches` claims directly). Each leaf's `enrich` attaches its starmap record through the kind's `attachStarsystem` / `attachCelestialObject`: the star system by name, or the celestial object by starmap code for jump points. Opts into editorial mode for the lore systems that have no game record |
+| [Module:Entity/Location](https://starcitizen.tools/Module:Entity/Location) | Location kind; dispatches to the StarSystem leaf (SolarSystem records, and the kind-declared default) or the JumpPoint leaf (jump-point gates: `JumpPoint`-typed records, or `Anomaly` records named `… Jump Point`, which `matches` claims directly). Each leaf's `enrich` attaches its starmap record through `Module:Entity/Location/Util`'s `attachStarsystem` / `attachCelestialObject`: the star system by name, or the celestial object by starmap code for jump points. Opts into editorial mode for the lore systems that have no game record |
 | [Module:Entity/Mission](https://starcitizen.tools/Module:Entity/Mission) | Mission kind (WIP) |
 
 ### Pipeline core modules
@@ -319,6 +319,7 @@ A quick map to every piece of the system.
 | [Module:Entity/Acquisition](https://starcitizen.tools/Module:Entity/Acquisition) | Logic behind the kinds' `getAcquisition` (flag resolution, UEX price math, terminal descriptions) |
 | [Module:Entity/ProductionStatus](https://starcitizen.tools/Module:Entity/ProductionStatus) | Vehicle production-state badge / label / tooltip tiers |
 | [Module:Entity/Facet/Util](https://starcitizen.tools/Module:Entity/Facet/Util) | Stateless display helpers shared across facets (units, ranges, damage types) |
+| [Module:Entity/Location/Util](https://starcitizen.tools/Module:Entity/Location/Util) | The Location leaves' shared helpers: starmap vocabulary (affiliations, system types), system-name helpers, and the `attachStarsystem` / `attachCelestialObject` bridges |
 
 ### Sibling renderers
 

@@ -346,6 +346,19 @@ function p.getRelated(apiData)
 	return { cargo = buildCargoRows(refined.box_sizes_scu, refined.density_g_per_cc) }
 end
 
+--- Commodities are crafting INPUTS, never outputs, so {{Entity/Blueprints}}
+--- renders the recipes that consume this commodity rather than a blueprint
+--- list. The refined record carries the canonical ingredient name; the
+--- `ingredient` table is present even without a name so the renderer still
+--- takes the used-in path (and reports the missing name) rather than the
+--- blueprint list.
+--- @param apiData table
+--- @return EntityBlueprintsPayload
+function p.getBlueprints(apiData)
+	local refined = apiData._refinedRecord or apiData
+	return { ingredient = { name = refined.name or apiData.name } }
+end
+
 --- Contributes commodity community-site links (UEX, SC Trade Tools) to the
 --- infobox External sites section, mirroring Module:Entity/Item. Keyed on the
 --- commodity `slug` (url-safe; both sites resolve commodities by slug).

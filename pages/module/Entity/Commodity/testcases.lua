@@ -302,4 +302,18 @@ function suite:testGetRelatedCargoFromRefinedRecord()
 	self:assertEquals(0, #Commodity.getRelated({ name = 'Unboxed' }).cargo)
 end
 
+-- Commodities are crafting inputs, never outputs: the Blueprints renderer
+-- gets an ingredient name (refined record first) instead of a blueprint list.
+function suite:testGetBlueprintsIngredientName()
+	self:assertEquals(
+		'Aluminum',
+		Commodity.getBlueprints({ name = 'Raw', _refinedRecord = { name = 'Aluminum' } }).ingredient.name
+	)
+	self:assertEquals('Raw', Commodity.getBlueprints({ name = 'Raw' }).ingredient.name)
+	local nameless = Commodity.getBlueprints({})
+	self:assertEquals('table', type(nameless.ingredient))
+	self:assertEquals(nil, nameless.ingredient.name)
+	self:assertEquals(nil, nameless.blueprints)
+end
+
 return suite

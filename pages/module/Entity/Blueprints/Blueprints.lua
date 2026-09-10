@@ -1,13 +1,16 @@
 require('strict')
 
 --- @module Entity/Blueprints
---- Consumes Module:Entity/Data
---- so it shares Apiunto's cache with any other Entity template on the page.
+--- Consumes Module:Entity/Data so it shares Apiunto's cache with any other
+--- Entity template on the page, and draws the chain's getBlueprints payload
+--- (Base: the record's blueprint list; Commodity: the ingredient name for
+--- the used-in card).
 ---
 --- NOTE: This is a temporary non interactive implementation.
 --- An interactive implementation requires the creation of a MediaWiki extension.
 
 local data = require('Module:Entity/Data')
+local assembly = require('Module:Entity/Assembly')
 local badgeLua = require('Module:BadgeLua')
 local collapsibleCard = require('Module:CollapsibleCard')
 local cardLua = require('Module:CardLua')
@@ -61,8 +64,10 @@ local function buildDescription(blueprint)
 	return blueprint.key .. badge
 end
 
-local function getBlueprints(apiData)
-	local blueprints = apiData.blueprint
+--- The blueprint list when it is a non-empty table, else nil.
+--- @param blueprints any
+--- @return table[]|nil
+local function nonEmptyList(blueprints)
 	if type(blueprints) == 'table' and #blueprints ~= 0 then
 		return blueprints
 	end
@@ -188,16 +193,14 @@ local function renderDismantle(blueprint)
 	})
 end
 
---- Commodity branch: a static "Used in crafting" card with the count of
---- blueprints that use this commodity as an ingredient + a link to the full
---- filtered list. Commodities are used in hundreds of recipes (Aslarite: 830),
---- so a count + link scales where an enumerated table would not.
+--- Ingredient branch: a static "Used in crafting" card with the count of
+--- blueprints that use `name` as an ingredient + a link to the full filtered
+--- list. Ingredients are used in hundreds of recipes (Aslarite: 830), so a
+--- count + link scales where an enumerated table would not.
 ---
---- @param apiData table
+--- @param name string|nil
 --- @return string
-local function renderCommodityUsedIn(apiData)
-	local rec = apiData._refinedRecord or apiData
-	local name = rec.name or apiData.name
+local function renderUsedIn(name)
 	if not name then
 		return renderEmpty('No crafting data available.')
 	end
@@ -227,8 +230,10 @@ local function renderCommodityUsedIn(apiData)
 	})
 end
 
---- @param apiData table
---- @return string|nil
+--- Draws the chain's getBlueprints payload: the used-in card for
+--- `ingredient`, the Blueprints + Dismantle sections for `blueprints`.
+--- @param frame table
+--- @return string
 function p.main(frame)
 	local args = data.parseArgs(frame)
 	local result = data.get(args)
@@ -238,13 +243,13 @@ function p.main(frame)
 		args = { src = 'Module:Entity/Blueprints/styles.css' },
 	})
 
-	-- Commodities aren't craftable; render a "used in crafting" summary instead.
-	if result.kind == 'Commodity' then
-		return styles .. renderCommodityUsedIn(result.apiData)
+	local payload = assembly.resolveMostSpecific(result.chain, 'getBlueprints', nil, result.apiData, args) or {}
+	if type(payload.ingredient) == 'table' then
+		return styles .. renderUsedIn(payload.ingredient.name)
 	end
 
 	local root = mw.html.create(nil)
-	local blueprints = getBlueprints(result.apiData)
+	local blueprints = nonEmptyList(payload.blueprints)
 
 	local craftable, dismantlable = {}, {}
 	if not result.hasApiError and blueprints then

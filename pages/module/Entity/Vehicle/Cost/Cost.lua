@@ -6,6 +6,7 @@ require('strict')
 --- (standalone/warbond/availability/loaner), and Insurance.
 
 local acq = require('Module:Entity/Acquisition')
+local boolean = require('Module:Boolean')
 local format = require('Module:Entity/Format')
 local productionStatus = require('Module:Entity/ProductionStatus')
 local sectionBuilder = require('Module:Entity/SectionBuilder')
@@ -15,11 +16,13 @@ local yesno = require('Module:Yesno')
 
 local p = {}
 
---- A Universe acquisition cell. An editorial `canX=no` override is a hard "No";
+--- A Universe acquisition cell. An editorial `canX=no` override is a hard no;
 --- otherwise show the estimated UEC price (prefixed "~" — it is a cross-terminal
---- market estimate, not a fixed price). With no price: `canX=yes` → "Yes"; a
+--- market estimate, not a fixed price). With no price: `canX=yes` → yes; a
 --- flight-ready ship, or one with market data but none for this side, → definitive
---- "No"; an unreleased ship with no data at all → nil (row drops, Unknown).
+--- no; an unreleased ship with no data at all → nil (row drops, Unknown). Yes / no
+--- render as the Module:Boolean icon, the same tri-state glyph the Availability
+--- summary and the other infobox boolean rows use.
 --- @param override string|nil
 --- @param rows table[]|nil
 --- @param key string
@@ -31,7 +34,7 @@ local function universeCell(override, rows, key, flightReady)
 		overrideFlag = yesno(override) -- explicit: `x and yesno() or nil` would lose a false result
 	end
 	if overrideFlag == false then
-		return 'No'
+		return boolean.render(false)
 	end
 
 	local estimate = acq.estimatePrice(rows, key)
@@ -40,10 +43,10 @@ local function universeCell(override, rows, key, flightReady)
 	end
 
 	if overrideFlag == true then
-		return 'Yes'
+		return boolean.render(true)
 	end
 	if (type(rows) == 'table' and rows[1] ~= nil) or flightReady then
-		return 'No'
+		return boolean.render(false)
 	end
 	return nil
 end

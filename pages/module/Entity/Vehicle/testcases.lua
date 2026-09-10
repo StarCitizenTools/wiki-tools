@@ -274,7 +274,7 @@ function suite:testCostUniverseBuyShowsEstimatedPrice()
 	self:assertTrue(buy:find('500,000', 1, true) ~= nil) -- UEC-formatted price
 	self:assertTrue(buy:find('aUEC', 1, true) == nil) -- formatted via Module:UEC, no bare unit
 	-- Rental has an entry but no non-zero price → definitively No (not Unknown).
-	self:assertEquals('No', findItem(universe.items, 'Rent').content)
+	self:assertStringContains('data%-state="no"', findItem(universe.items, 'Rent').content)
 end
 
 function suite:testCostAvailabilitySkippedForLoreOnly()
@@ -378,14 +378,15 @@ function suite:testCostUniverseCanBuyOverrideNoBeatsPrice()
 		uex_prices = { purchase = { { price_buy = 2000000 } } },
 	}, { canBuy = 'no' }, {})
 	local buy = findItem(findItem(findSection(s, 'cost').sections, 'Universe').items, 'Buy').content
-	self:assertEquals('No', buy)
+	self:assertStringContains('data%-state="no"', buy)
+	self:assertEquals(nil, buy:find('2,000,000', 1, true))
 end
 
 function suite:testCostUniverseCanBuyOverrideYesNoData()
 	-- canBuy=yes with no UEX data → Yes (no price to show)
 	local s = Vehicle.getSections({ uex_prices = {} }, { canBuy = 'yes' }, {})
 	local buy = findItem(findItem(findSection(s, 'cost').sections, 'Universe').items, 'Buy').content
-	self:assertEquals('Yes', buy)
+	self:assertStringContains('data%-state="yes"', buy)
 end
 
 function suite:testCostUniverseCanRentOverrideNo()
@@ -394,15 +395,15 @@ function suite:testCostUniverseCanRentOverrideNo()
 		uex_prices = { rental = { { price_rent = 27000 } } },
 	}, { canRent = 'no' }, {})
 	local rent = findItem(findItem(findSection(s, 'cost').sections, 'Universe').items, 'Rent').content
-	self:assertEquals('No', rent)
+	self:assertStringContains('data%-state="no"', rent)
 end
 
 function suite:testCostUniverseFlightReadyNoDataIsNo()
 	-- flight-ready ship, no UEX data: Universe stays, Buy/Rent = No (in-game → definitive)
 	local s = Vehicle.getSections({ production_status = 'flight-ready', uex_prices = {} }, {}, {})
 	local universe = findItem(findSection(s, 'cost').sections, 'Universe')
-	self:assertEquals('No', findItem(universe.items, 'Buy').content)
-	self:assertEquals('No', findItem(universe.items, 'Rent').content)
+	self:assertStringContains('data%-state="no"', findItem(universe.items, 'Buy').content)
+	self:assertStringContains('data%-state="no"', findItem(universe.items, 'Rent').content)
 end
 
 function suite:testCostUniverseUnreleasedNoDataDrops()

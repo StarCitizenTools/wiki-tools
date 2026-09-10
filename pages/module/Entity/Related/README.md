@@ -4,10 +4,10 @@ Renders an entity's "related entries"; what counts as related depends on the ent
 
 `p.main` draws the chain's `getRelated` payload (resolved leaf-first through `Module:Entity/Assembly`), giving two render paths:
 
-- **Items**: set components (helmet/torso/legs etc.) and cosmetic variants, rendered as image tile grids via [Module:Tiles](https://starcitizen.tools/Module:Tiles). Reads `apiData.related_items` (only the items endpoint provides it).
+- **Items**: set components (helmet/torso/legs etc.) and cosmetic variants, rendered as image tile grids via [Module:Tiles](https://starcitizen.tools/Module:Tiles). Draws Base's `getRelated` payload: the record's own `related_items`.
 - **Commodities**: the physical cargo-box packaging variants (the SCU ladder), rendered as a sortable table inside a [Module:CollapsibleCard](https://starcitizen.tools/Module:CollapsibleCard). These "related entities" all share one image and have no pages of their own, so tiles don't fit.
 
-The container always renders. Non-supported kinds, API failures, and entities with nothing to show (no set pieces or variants; no cargo box sizes) all fall back to a muted empty-state placeholder so the page layout stays stable.
+The container always renders. API failures and a `getRelated` payload with nothing to show (no set pieces or variants; no cargo box sizes) fall back to a muted empty-state placeholder so the page layout stays stable.
 
 ## Usage
 

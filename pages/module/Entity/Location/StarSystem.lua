@@ -4,7 +4,7 @@ require('strict')
 --- Star-system leaf of the Location kind. Renders from the merged payload the
 --- kind assembles: the location record at the top level plus the starmap
 --- record at apiData.starsystem (attached by this leaf's enrich through
---- Util.attachStarsystem; may be absent — every consumer nil-guards and
+--- locationUtil.attachStarsystem; may be absent — every consumer nil-guards and
 --- degrades to location-only rows).
 
 local locationUtil = require('Module:Entity/Location/Util')
@@ -271,6 +271,9 @@ end
 --- system type is read from the raw args through Editorial.rawArg with this
 --- leaf's own manifest entry; everything downstream of resolution goes
 --- through locationUtil.resolveSystemType instead.
+--- This leaf declares the systemtype entry itself, so its own
+--- getEditorialManifest fragment is the merged chain manifest's value for
+--- the field — reading its own entry here is correct only because of that.
 --- @param apiData table
 --- @param args table|nil
 --- @return { name: string, category: string }

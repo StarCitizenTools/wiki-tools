@@ -49,4 +49,11 @@ function suite:testAllKindsConformFields()
 	end
 end
 
+-- Base is the root of every chain: a contributor, not a kind or facet, so
+-- the kind/facet sweeps above never validate it.
+function suite:testBaseConformsToContributorContract()
+	local ok, errors = Contract.validate(require('Module:Entity/Base'), Contract.CONTRIBUTOR, { strict = true })
+	self:assertTrue(ok, table.concat(errors or {}, '; '))
+end
+
 return suite

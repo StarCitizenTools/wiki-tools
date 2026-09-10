@@ -6,7 +6,7 @@ require('strict')
 --- assembles: the location record at the top level (name, system, jurisdiction,
 --- quantum_travel radii) plus the starmap celestial-object record at
 --- apiData.celestialobject (attached by this leaf's enrich through
---- Util.attachCelestialObject from the editor's starmap code; may be
+--- locationUtil.attachCelestialObject from the editor's starmap code; may be
 --- absent — every consumer nil-guards and degrades to location-only rows).
 --- apiData.starsystem is never present here: the two starmap bridges are
 --- mutually exclusive by construction.
@@ -37,6 +37,9 @@ end
 --- (metadata row, Starmap button). enrich and the starmapCode accessor read
 --- the RAW arg through Editorial.rawArg with this entry, so the alias order
 --- is declared here once.
+--- This leaf declares the starmapcode entry itself, so its own fragment is
+--- the merged chain manifest's value for the field — reading its own entry
+--- here (rather than the merged manifest) is correct only because of that.
 --- @return table
 function p.getEditorialManifest()
 	return {

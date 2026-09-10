@@ -2,6 +2,7 @@ require('strict')
 
 local ScribuntoUnit = require('Module:ScribuntoUnit')
 local Commodity = require('Module:Entity/Commodity')
+local assembly = require('Module:Entity/Assembly')
 
 local suite = ScribuntoUnit:new()
 
@@ -314,6 +315,24 @@ function suite:testGetBlueprintsIngredientName()
 	self:assertEquals('table', type(nameless.ingredient))
 	self:assertEquals(nil, nameless.ingredient.name)
 	self:assertEquals(nil, nameless.blueprints)
+end
+
+-- The Commodity overrides beat Base's defaults when resolved leaf-first
+-- over the real chain, which is how the sibling renderers reach them.
+function suite:testSiblingPayloadsResolveLeafFirstOverBase()
+	local chain = assembly.buildChain(Commodity)
+	local apiData = {
+		name = 'Aluminum',
+		related_items = { set_items = {} },
+		blueprint = { { key = 'bp' } },
+		_refinedRecord = { box_sizes_scu = { 1 }, density_g_per_cc = 1 },
+	}
+	local related = assembly.resolveMostSpecific(chain, 'getRelated', nil, apiData, {})
+	self:assertEquals(nil, related.items)
+	self:assertEquals(1, related.cargo[1].scu)
+	local blueprints = assembly.resolveMostSpecific(chain, 'getBlueprints', nil, apiData, {})
+	self:assertEquals(nil, blueprints.blueprints)
+	self:assertEquals('Aluminum', blueprints.ingredient.name)
 end
 
 return suite

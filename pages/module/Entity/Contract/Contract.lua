@@ -17,7 +17,8 @@ local p = {}
 --- categories are additive root-to-leaf; enrich runs root-to-leaf, each link
 --- receiving the previous link's apiData; the editorial manifest merges
 --- root-to-leaf with leaf keys winning; type info, short description,
---- subtitle, header badge and acquisition are leaf-first-wins.
+--- subtitle, header badge, acquisition and the sibling payloads (getRelated,
+--- getBlueprints, getPorts) are leaf-first-wins.
 --- @type table<string, boolean>
 p.CONTRIBUTOR = {
 	getSections = false,

@@ -268,4 +268,38 @@ function suite:testGetAcquisitionCommodityTradeTerminals()
 	self:assertEquals('Trade terminals', a.cards[#a.cards].caption)
 end
 
+-- buildCargoRows()
+
+function suite:testBuildCargoRowsMassFromDensity()
+	local rows = Commodity._internal.buildCargoRows({ 1, 2 }, 2.3)
+	self:assertEquals(1, rows[1].scu)
+	self:assertEquals(2300, rows[1].mass_kg)
+	self:assertEquals(4600, rows[2].mass_kg)
+end
+
+function suite:testBuildCargoRowsSortsAscending()
+	local rows = Commodity._internal.buildCargoRows({ 8, 1, 4 }, 1)
+	self:assertEquals(1, rows[1].scu)
+	self:assertEquals(4, rows[2].scu)
+	self:assertEquals(8, rows[3].scu)
+end
+
+function suite:testBuildCargoRowsEmpty()
+	self:assertEquals(0, #Commodity._internal.buildCargoRows(nil, 1))
+end
+
+-- A commodity's related entities are its cargo boxes; the refined record
+-- (commodities endpoint) carries the ladder and density.
+function suite:testGetRelatedCargoFromRefinedRecord()
+	local payload = Commodity.getRelated({
+		name = 'Aluminum',
+		_refinedRecord = { box_sizes_scu = { 2, 1 }, density_g_per_cc = 1 },
+	})
+	self:assertEquals(nil, payload.items)
+	self:assertEquals(1, payload.cargo[1].scu)
+	self:assertEquals(1000, payload.cargo[1].mass_kg)
+	self:assertEquals(2, payload.cargo[2].scu)
+	self:assertEquals(0, #Commodity.getRelated({ name = 'Unboxed' }).cargo)
+end
+
 return suite

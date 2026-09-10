@@ -15,14 +15,17 @@ require('strict')
 ---     correctly.
 ---  3. Shape rows into the Tiles row schema and call Tiles.render.
 ---
---- Items read apiData.related_items (set pieces + cosmetic variants, tiles).
---- Commodities instead render their cargo-box packaging variants (the SCU
---- ladder) as a table — those "related entities" share one image and have no
---- own pages, so tiles don't fit. The container always renders so the layout
---- is stable — falls back to a muted empty-state placeholder when the entity
---- has no related entries, isn't a supported kind, or the upstream fetch failed.
+--- The chain decides what "related" means: getRelated resolves leaf-first
+--- (Module:Entity/Assembly.resolveMostSpecific) and this module draws the
+--- payload it gets. `items` (Base: the record's related_items block — set
+--- pieces + cosmetic variants) renders as tiles; `cargo` (Commodity: the
+--- cargo-box packaging ladder, which shares one image and has no own pages)
+--- renders as a table. The container always renders so the layout is
+--- stable — falls back to a muted empty-state placeholder when the payload
+--- has nothing to show or the upstream fetch failed.
 
 local data = require('Module:Entity/Data')
+local assembly = require('Module:Entity/Assembly')
 local PageResolver = require('Module:Entity/PageResolver')
 local Tiles = require('Module:Tiles')
 local tableLua = require('Module:TableLua')
@@ -293,37 +296,14 @@ local function scuLabel(scu)
 	return format.formatNum(scu)
 end
 
---- Cargo packaging variants as table rows { scu, mass_kg } (mass = SCU ×
---- density × 1000), ascending. Safe on nil/non-table boxSizes (returns {}).
+--- Renders cargo-box variants (Commodity's getRelated payload) as a sortable
+--- table (SCU / dimensions / mass). Falls back to the empty-state when there
+--- are no rows.
 ---
---- @param boxSizes number[]|nil
---- @param density number|nil
---- @return table[]
-local function buildCargoRows(boxSizes, density)
-	local rows = {}
-	if type(boxSizes) ~= 'table' then
-		return rows
-	end
-	local d = tonumber(density) or 0
-	for _, scu in ipairs(boxSizes) do
-		rows[#rows + 1] = { scu = scu, mass_kg = scu * d * 1000 }
-	end
-	table.sort(rows, function(a, b)
-		return a.scu < b.scu
-	end)
-	return rows
-end
-
---- Renders the commodity's cargo-box variants as a sortable table (SCU / Mass),
---- read from the refined record's box ladder + density. Falls back to the
---- empty-state when there are no box sizes.
----
---- @param apiData table
+--- @param rows { scu: number, mass_kg: number }[]
 --- @return string
-local function renderCargoVariants(apiData)
-	local rec = apiData._refinedRecord or apiData
-	local rows = buildCargoRows(rec.box_sizes_scu, rec.density_g_per_cc)
-	if #rows == 0 then
+local function renderCargoVariants(rows)
+	if rows[1] == nil then
 		return renderEmpty()
 	end
 	local function metres(v)
@@ -361,9 +341,9 @@ local function renderCargoVariants(apiData)
 	})
 end
 
---- Main entry point. For commodities, renders the cargo-variants table; for
---- items, returns up to two tile grids (set components + variants); otherwise
---- the empty-state placeholder.
+--- Main entry point. Draws the chain's getRelated payload: the cargo table
+--- for `cargo`, up to two tile grids (set components + variants) for
+--- `items`, otherwise the empty-state placeholder.
 ---
 --- @param frame table
 --- @return string
@@ -375,12 +355,12 @@ function p.main(frame)
 		return renderEmpty()
 	end
 
-	-- Commodities: related entities are the physical cargo-box variants.
-	if result.kind == 'Commodity' then
-		return renderCargoVariants(result.apiData)
+	local payload = assembly.resolveMostSpecific(result.chain, 'getRelated', nil, result.apiData, args) or {}
+	if type(payload.cargo) == 'table' then
+		return renderCargoVariants(payload.cargo)
 	end
 
-	local relatedItems = result.apiData.related_items
+	local relatedItems = payload.items
 	if type(relatedItems) ~= 'table' then
 		return renderEmpty()
 	end
@@ -406,7 +386,6 @@ end
 
 -- Test-only exports. Not part of the public API.
 p._internal = {
-	buildCargoRows = buildCargoRows,
 	boxDimensions = boxDimensions,
 }
 

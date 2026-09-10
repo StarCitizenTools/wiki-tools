@@ -315,6 +315,37 @@ function p.getAcquisition(apiData, args)
 	return { summary = summary, cards = cards }
 end
 
+--- Cargo packaging variants as { scu, mass_kg } rows (mass = SCU × density
+--- × 1000), ascending. Safe on nil/non-table boxSizes (returns {}).
+--- @param boxSizes number[]|nil
+--- @param density number|nil
+--- @return { scu: number, mass_kg: number }[]
+local function buildCargoRows(boxSizes, density)
+	local rows = {}
+	if type(boxSizes) ~= 'table' then
+		return rows
+	end
+	local d = tonumber(density) or 0
+	for _, scu in ipairs(boxSizes) do
+		rows[#rows + 1] = { scu = scu, mass_kg = scu * d * 1000 }
+	end
+	table.sort(rows, function(a, b)
+		return a.scu < b.scu
+	end)
+	return rows
+end
+
+--- A commodity's "related entities" are its cargo-box packaging variants:
+--- they share one image and have no own pages, so {{Entity/Related}}
+--- renders them as a table rather than tiles. The refined record
+--- (commodities endpoint) carries the box ladder and density.
+--- @param apiData table
+--- @return EntityRelatedPayload
+function p.getRelated(apiData)
+	local refined = apiData._refinedRecord or apiData
+	return { cargo = buildCargoRows(refined.box_sizes_scu, refined.density_g_per_cc) }
+end
+
 --- Contributes commodity community-site links (UEX, SC Trade Tools) to the
 --- infobox External sites section, mirroring Module:Entity/Item. Keyed on the
 --- commodity `slug` (url-safe; both sites resolve commodities by slug).
@@ -333,5 +364,10 @@ function p.getExternalSiteItems(apiData, args)
 	end
 	return { { label = 'Community sites', content = links } }
 end
+
+-- Test-only exports. Not part of the public API.
+p._internal = {
+	buildCargoRows = buildCargoRows,
+}
 
 return p

@@ -103,9 +103,11 @@ end
 --- `is_vehicle` exclusion — the one cross-kind fact this test encodes, and the
 --- same one the API asserts by redirecting a vehicle UUID off `items/`.
 ---
---- Order-independence matters: Module:Entity/Data resolves a UUID through the
---- API's `search/` endpoint, so a single payload of *any* kind is offered to
---- every kind's matches(). A looser "has a uuid" test would claim all of them.
+--- Order-independence matters: the declared-kind gate in Module:Entity/Data
+--- offers a record of *any* kind to a single kind's matches() (a vehicle uuid
+--- pasted into an item page), and the probe's items endpoint answers a vehicle
+--- uuid with the vehicle record when redirects are followed. A looser "has a
+--- uuid" test would claim both.
 ---
 --- @param apiData table|nil
 --- @return boolean

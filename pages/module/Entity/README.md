@@ -19,20 +19,20 @@ feeds the next:
    wikitext and must **not** resurrect a stale/placeholder stored uuid (an all-zeros
    or legacy dev-stub value), which would defeat editorial mode.
 
-2. **Probe kinds**: one `search/<uuid>` fetch through the wiki API's universal
-   resolver answers for any entity type; `identifyKind` then asks each kind in
-   `Registry.kinds` (from
-   [Module:Entity/Registry](https://starcitizen.tools/Module:Entity/Registry))
-   to claim the payload via `kind.matches(apiData)`. Only when the resolver
-   yields nothing does the fallback walk fetch each kind's primary endpoint in
-   registration order, first `matches()` winning. With no uuid, nothing is
-   probed (see the editorial fork below). When the page declares `|kind=` **alongside** a uuid, the declaration is
-   trusted ahead of the probe behind a validity gate — the declared kind's endpoint is
-   fetched directly and holds when `matches(data)` or `resolveSubtype(data, {})`
-   accepts the record. This is how records a deliberately-narrow `matches()` rejects
-   get in (a jump point's location record is typed `Anomaly`); see
+2. **Probe kinds**: when the page declares `|kind=` alongside a uuid (the
+   `{{Vehicle}}` and `{{Location}}` facades inject it), the declared kind's own
+   endpoint is fetched directly, behind a validity gate — the declaration holds
+   when `matches(data)` or `resolveSubtype(data, {})` accepts the record. This is
+   how records a deliberately-narrow `matches()` rejects get in (a jump point's
+   location record is typed `Anomaly`); see
    [Module:Entity/Data](https://starcitizen.tools/Module:Entity/Data)'s Flow for the
-   gate semantics.
+   gate semantics. Otherwise the probe fetches each kind's primary endpoint in
+   `Registry.kinds` order (from
+   [Module:Entity/Registry](https://starcitizen.tools/Module:Entity/Registry)),
+   first `matches()` winning. Every fetch targets a kind's typed endpoint, so one
+   record lands on one Apiunto cache key however the page is invoked; the API's
+   `search/<uuid>` resolver is deliberately not used. With no uuid, nothing is
+   probed (see the editorial fork below).
 
 3. **Resolve subtype leaf**: if the matched kind exposes `resolveSubtype(apiData,
    args)`, it is called now to refine the kind to a more-specific leaf module. The

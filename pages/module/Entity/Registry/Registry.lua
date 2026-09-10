@@ -12,11 +12,13 @@ require('strict')
 
 local p = {}
 
---- Ordered by probe precedence, which now only governs the per-endpoint fallback
---- in Module:Entity/Data: Item first, because it dominates the page mix and so
---- short-circuits on the first fetch. The normal path resolves a UUID in one
---- request and offers that single payload to every kind, so identification does
---- NOT depend on this order — each matches() must stand on its own.
+--- Ordered by probe precedence: Module:Entity/Data fetches each kind's primary
+--- endpoint in this order until one matches, so Item goes first because it
+--- dominates the page mix and short-circuits on the first fetch (kinds with a
+--- facade — Vehicle, Location — declare themselves and skip the probe). Order
+--- is a cost optimisation only, never a correctness guarantee: the declared-kind
+--- gate offers a record of any kind to a single matches(), so each must stand on
+--- its own.
 --- @type EntityKind[]
 p.kinds = {
 	require('Module:Entity/Item'),

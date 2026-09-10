@@ -100,58 +100,6 @@ function p.parseArgs(frame)
 	return args
 end
 
---- Builds the resolver API config. The API's `search/<uuid>` endpoint answers with
---- a redirect to the canonical typed record, so one fetch resolves a UUID of any
---- kind (Apiunto follows it only because the source sets `followRedirects`).
----
---- Query params survive the redirect, so the config carries the union of every
---- kind's primary params: an endpoint ignores includes it doesn't recognise, and
---- only the items endpoint honours any of them, so the union is free on the wire.
---- It is derived from the registry rather than hardcoded so a kind changing its
---- includes cannot leave the resolver behind.
----
---- @return EntityApiConfig
-local function buildResolverConfig()
-	local includes, seen, locale = {}, {}, nil
-	for _, mod in ipairs(registry.kinds) do
-		local params = (mod.getApiConfigs()[1] or {}).params or {}
-		locale = locale or params.locale
-		for token in string.gmatch(params.include or '', '[^,]+') do
-			if not seen[token] then
-				seen[token] = true
-				includes[#includes + 1] = token
-			end
-		end
-	end
-	return {
-		name = 'StarCitizenWikiAPI',
-		endpoint = 'search/%s',
-		params = { locale = locale, include = table.concat(includes, ',') },
-		-- Every single-record endpoint the resolver can land on wraps its payload
-		-- in `data`.
-		responseDataPath = 'data',
-	}
-end
-
---- Asks each registered kind to identify a payload. Returns nil when no kind
---- claims it — the resolver also resolves blueprints and starmap locations, which
---- Entity does not model. Every matches() must therefore be positive and
---- order-independent, since all of them see the same single payload.
----
---- @param apiData table|nil
---- @return table|nil
-local function identifyKind(apiData)
-	if apiData == nil then
-		return nil
-	end
-	for _, mod in ipairs(registry.kinds) do
-		if mod.matches(apiData) then
-			return mod
-		end
-	end
-	return nil
-end
-
 --- Looks up a registered kind by name, case-insensitively. Returns nil when the
 --- name is absent, empty, or matches no registered kind's `mod.name`. Pure
 --- lookup — editorial opt-in and any other gating stay with the callers.
@@ -171,10 +119,18 @@ local function kindByName(name)
 	return nil
 end
 
---- Endpoint-by-endpoint fallback: fetches each kind's identity endpoint until one
---- matches, costing up to one request per registered kind. Failures on a
---- NON-matching kind don't count toward hasApiError (the items endpoint rejecting
---- a vehicle UUID is expected) — only the matched kind's own fetch error does.
+--- Endpoint-by-endpoint probe: fetches each kind's identity endpoint in registry
+--- order until one matches, costing up to one request per registered kind.
+--- Failures on a NON-matching kind don't count toward hasApiError (the items
+--- endpoint rejecting a vehicle UUID is expected) — only the matched kind's own
+--- fetch error does.
+---
+--- A probe miss must never be cached, or a page would pin a duplicate record
+--- under a foreign key: `items/<uuid>` answers a VEHICLE uuid with a redirect to
+--- the vehicle record (the other typed endpoints answer a foreign uuid 404), and
+--- Apiunto caches a followed redirect under the URL it requested. The
+--- StarCitizenWikiAPI source therefore keeps `followRedirects` OFF, so the
+--- redirect fails the fetch and the walk moves on to `vehicles/<uuid>`.
 ---
 --- @param uuid string
 --- @return table|nil matchedKind
@@ -209,11 +165,16 @@ end
 --- the record alone, a gate failure (fetch error included) falls through to the
 --- probe unchanged.
 ---
---- Otherwise the resolver answers in a single request whatever the kind; the
---- per-endpoint probe runs only when it can't — an unknown UUID, a kind Entity
---- doesn't model, or a transient failure such as a rate-limit rejection on the
---- throttled search endpoint. That fallback is what keeps pages rendering when
---- search is unavailable, at the old cost. With no uuid, nothing is fetched.
+--- Otherwise probeKindByEndpoint walks the registry. Every fetch, declared or
+--- probed, targets a kind's TYPED endpoint, and that is deliberate: Apiunto
+--- caches by requested URL, so one record lands on one cache key however the
+--- page is invoked — the infobox declares its kind through a facade
+--- (Template:Vehicle, Template:Location), sibling renderers cannot and probe,
+--- and both end on the same `vehicles/<uuid>` request. The API's `search/<uuid>`
+--- resolver is NOT used as a shortcut: its key can never coincide with a typed
+--- fetch of the same record, and upstream it is rate-limited (60/min) and
+--- uncacheable, so purge sweeps fell back to the probe anyway. With no uuid,
+--- nothing is fetched.
 ---
 --- @param args table
 --- @return table|nil matchedKind
@@ -237,23 +198,6 @@ local function probeKind(args)
 		if claimed then
 			return declaredKind, data, { [declaredConfig.endpoint] = true }, err ~= nil
 		end
-	end
-
-	local resolverConfig = buildResolverConfig()
-	local data = api.fetchApi(resolverConfig, args.uuid)
-	local matchedKind = identifyKind(data)
-
-	if matchedKind then
-		-- The resolver landed on the matched kind's own endpoint, so its payload is
-		-- already in hand. Mark that endpoint fetched too, or fetchChainExtras would
-		-- request it again: it dedupes on the endpoint pattern, and `search/%s` is
-		-- not `items/%s`.
-		local fetchedEndpoints = { [resolverConfig.endpoint] = true }
-		local primaryConfig = matchedKind.getApiConfigs()[1]
-		if primaryConfig then
-			fetchedEndpoints[primaryConfig.endpoint] = true
-		end
-		return matchedKind, data, fetchedEndpoints, false
 	end
 
 	return probeKindByEndpoint(args.uuid)
@@ -480,8 +424,6 @@ p._internal = {
 	resolveLeaf = resolveLeaf,
 	isGenuineRecord = isGenuineRecord,
 	resolveEditorialKind = resolveEditorialKind,
-	buildResolverConfig = buildResolverConfig,
-	identifyKind = identifyKind,
 	kindByName = kindByName,
 	runEditorialFork = runEditorialFork,
 }

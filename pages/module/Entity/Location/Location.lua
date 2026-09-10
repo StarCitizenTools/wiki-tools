@@ -158,7 +158,7 @@ end
 --- signature (`respawn_location_type`, a field no item, vehicle, commodity,
 --- mission, or blueprint record carries, plus the classification table)
 --- restricted to SolarSystem. Nil-safe, strict boolean, order-independent —
---- the search resolver offers one payload of any kind to every matches().
+--- the declared-kind gate offers a record of any kind to matches().
 ---
 --- @param apiData table|nil
 --- @return boolean

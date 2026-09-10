@@ -16,7 +16,7 @@ Module:Entity/Item               ← kind module
 Module:Entity/Item/<Subtype>     ← leaf (replaces Item in the chain)
 ```
 
-`Module:Entity/Data` resolves a UUID through the API's `search/` endpoint in one request and offers that single payload to every registered kind, so `matches()` cannot rely on being asked first — it identifies items positively instead. Item is still registered first in [Module:Entity/Registry](https://starcitizen.tools/Module:Entity/Registry), but that now only orders the per-endpoint fallback probe, where it saves fetches because items dominate the page mix.
+`Module:Entity/Data`'s declared-kind gate offers a record of any kind to a single kind's `matches()`, so `matches()` cannot rely on being asked first — it identifies items positively instead. Item is registered first in [Module:Entity/Registry](https://starcitizen.tools/Module:Entity/Registry) because that orders the per-endpoint probe, where it saves fetches: items dominate the page mix and are invoked through the generic `{{Entity}}`, which declares no kind.
 
 When a subtype resolves, `Module:Entity/Data` uses the subtype module as the chain leaf in place of Item. Hooks on the subtype (`getSections`, `getStructuredData`, `getShortDescription`) are called directly; hooks on Item itself (`getSections`, `getStructuredData`) are called because Item is the subtype's `parent` and the chain walks root-first. This means Item always contributes its General section (Manufacturer / Size / Class / Grade) and its structured-data facets (size, grade, class, item\_type, volume, base\_variant, rarity) regardless of which subtype is active.
 
@@ -36,7 +36,7 @@ end
 
 Positive identification, independent of probe order. Items carry no kind flag the way vehicles carry `is_vehicle`, so identity rests on `class_name`: every item record has one, and no commodity, mission, blueprint or starmap-location record does. Vehicles carry `class_name` too, hence the `is_vehicle` exclusion — the one cross-kind fact this test encodes, and the same one the API asserts by redirecting a vehicle UUID off `items/`.
 
-Order-independence is load-bearing: since `Module:Entity/Data` resolves through `search/`, a payload of *any* kind reaches this function. The older "has a `uuid`" heuristic was safe only because non-item endpoints never returned a decodable body, and it would now claim vehicles, commodities, missions and locations alike.
+Order-independence is load-bearing: the declared-kind gate hands this function a record of *any* kind (a vehicle uuid pasted into an item page), and the probe's `items/` request answers a vehicle uuid with the vehicle record whenever Apiunto follows redirects. The older "has a `uuid`" heuristic would claim both.
 
 ### `p.getApiConfigs() → EntityApiConfig[]`
 
@@ -193,7 +193,7 @@ One row per unique subtype module; the "API `type` key(s)" column reproduces `it
 
 `testcases.lua` is a ScribuntoUnit suite covering `matches`, `resolveSubtype`, `getStructuredData`, `classContent`, `gradeContent`, `formatGradedShortDescription`, `getItemType`, and `getVolume`. It is auto-discovered by `mise run test` and is a merge-blocking CI gate; it also runs on-wiki via `Module:ScribuntoUnit` once deployed.
 
-Notable coverage: `matches` is asserted against a payload of every kind the resolver can hand it — vehicle, commodity, mission and starmap-location shapes must all return false, and a bare `uuid` no longer suffices.
+Notable coverage: `matches` is asserted against a payload of every kind the gate can hand it — vehicle, commodity, mission and starmap-location shapes must all return false, and a bare `uuid` no longer suffices.
 
 ## Architecture
 

@@ -16,31 +16,28 @@ p.parent = 'Entity/Vehicle'
 --- |family= on record-less pages.
 p.family = 'gravlev'
 
---- @param apiData table
---- @param args table
+-- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
+p.contextHooks = true
+
+--- @param ctx EntityHookContext
 --- @return { name: string, category: string }
-function p.getTypeInfo(apiData, args)
+function p.getTypeInfo(ctx)
 	return { name = 'Grav-lev vehicle', category = 'Grav-lev vehicles' }
 end
 
---- @param apiData table
---- @param args table
---- @param typeInfo table
---- @param prefix string|nil
---- @param resolved table|nil
+--- @param ctx EntityHookContext
 --- @return string
-function p.getShortDescription(apiData, args, typeInfo, prefix, resolved)
-	return vehicle.formatShortDescription(apiData, args, resolved, 'grav-lev vehicle', true)
+function p.getShortDescription(ctx)
+	return vehicle.formatShortDescription(ctx.apiData, ctx.args, ctx.resolved, 'grav-lev vehicle', true)
 end
 
 --- Pledge browse category for non-ship vehicles ("Pledge vehicles"); ground
 --- vehicles and gravlevs carry no meaningful ship-matrix size, so no size
 --- bucket.
---- @param apiData table
---- @param args table
---- @param resolved table|nil
+--- @param ctx EntityHookContext
 --- @return string[]
-function p.getCategories(apiData, args, resolved)
+function p.getCategories(ctx)
+	local apiData, resolved = ctx.apiData, ctx.resolved
 	if vehicle.hasPledgePrice(apiData, resolved) then
 		return { 'Pledge vehicles' }
 	end

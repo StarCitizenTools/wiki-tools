@@ -327,10 +327,11 @@ function suite:testSiblingPayloadsResolveLeafFirstOverBase()
 		blueprint = { { key = 'bp' } },
 		_refinedRecord = { box_sizes_scu = { 1 }, density_g_per_cc = 1 },
 	}
-	local related = assembly.resolveMostSpecific(chain, 'getRelated', nil, apiData, {})
+	local ctx = { apiData = apiData, args = {} }
+	local related = assembly.resolveMostSpecific(chain, 'getRelated', nil, ctx)
 	self:assertEquals(nil, related.items)
 	self:assertEquals(1, related.cargo[1].scu)
-	local blueprints = assembly.resolveMostSpecific(chain, 'getBlueprints', nil, apiData, {})
+	local blueprints = assembly.resolveMostSpecific(chain, 'getBlueprints', nil, ctx)
 	self:assertEquals(nil, blueprints.blueprints)
 	self:assertEquals('Aluminum', blueprints.ingredient.name)
 end

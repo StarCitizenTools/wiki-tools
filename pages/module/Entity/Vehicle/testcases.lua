@@ -43,7 +43,11 @@ end
 --- resolved chain contributes, root to leaf.
 local function categoriesFor(apiData, args, resolved)
 	local leaf = Vehicle.resolveSubtype(apiData, args) or Vehicle
-	return assembly.collect(assembly.buildChain(leaf), 'getCategories', apiData, args, resolved)
+	return assembly.collect(
+		assembly.buildChain(leaf),
+		'getCategories',
+		{ apiData = apiData, args = args, resolved = resolved }
+	)
 end
 
 local function toSet(list)
@@ -1123,7 +1127,8 @@ end
 function suite:testGetPortsNarrowsChildrenForEveryVehicleLeaf()
 	local apiData = { ports = { { name = 'hardpoint' } } }
 	for _, leaf in ipairs({ Vehicle, Ship, GroundVehicle, Gravlev }) do
-		local payload = assembly.resolveMostSpecific(assembly.buildChain(leaf), 'getPorts', nil, apiData, {})
+		local payload =
+			assembly.resolveMostSpecific(assembly.buildChain(leaf), 'getPorts', nil, { apiData = apiData, args = {} })
 		self:assertEquals(apiData.ports, payload.ports)
 		self:assertTrue(payload.narrowChildren)
 	end

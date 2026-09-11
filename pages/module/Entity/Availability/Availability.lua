@@ -299,13 +299,12 @@ end
 --- its chain is only the Item fallback, whose hook would otherwise fabricate an
 --- all-"No" block; the editorial fork's declared kind still counts as claimed.
 --- @param result table Module:Entity/Data.get result
---- @param args table
 --- @return { summary: table[], cards: table[] }|nil
-local function acquisitionFor(result, args)
+local function acquisitionFor(result)
 	if result.matchedKind == nil then
 		return nil
 	end
-	return assembly.resolveMostSpecific(result.chain, 'getAcquisition', nil, result.apiData, args)
+	return assembly.resolveMostSpecific(result.chain, 'getAcquisition', nil, result.ctx)
 end
 
 --- Main entry point. Renders the acquisition payload acquisitionFor resolves
@@ -323,7 +322,7 @@ function p.main(frame)
 		args = { src = 'Module:Entity/Availability/styles.css' },
 	})
 
-	local a = acquisitionFor(result, args)
+	local a = acquisitionFor(result)
 	if not a then
 		return styles
 	end

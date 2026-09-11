@@ -1,34 +1,14 @@
 # Module:Icon
 
-Renders a single inline icon, either as a rasterised `[[File:]]` thumbnail or as a CSS mask filled with `currentColor` (so it recolours with the surrounding text). Optionally linked. The shared icon primitive behind [Module:IconText](https://starcitizen.tools/Module:IconText), [Module:IconLink](https://starcitizen.tools/Module:IconLink), and [Module:BadgeLua](https://starcitizen.tools/Module:BadgeLua).
+Renders a single inline icon, either as a rasterised `[[File:]]` thumbnail or as a CSS mask filled with `currentColor` (so it recolours with the surrounding text). Optionally linked.
 
-## Usage
+Required by [Module:BadgeLua](https://starcitizen.tools/Module:BadgeLua), [Module:Boolean](https://starcitizen.tools/Module:Boolean), [Module:IconText](https://starcitizen.tools/Module:IconText), [Module:IconLink](https://starcitizen.tools/Module:IconLink), and [Module:AGGridColumns](https://starcitizen.tools/Module:AGGridColumns)' `Kind/BadgeList` and `Kind/Boolean`; not invoked from templates.
 
-```lua
-local Icon = require( 'Module:Icon' )
+## For module editors
 
--- a recolourable mask icon, sized to the text, no link
-Icon.render( { icon = 'CdxIconArrowUp.svg', size = '16px', mask = true } )
+### API
 
--- a plain thumbnail linked to a page
-Icon.render( { icon = 'Sc-icon-uec.svg', link = 'United Earth Credit' } )
-```
-
-From wikitext:
-
-```wikitext
-{{#invoke:Icon|main|icon=CdxIconArrowUp.svg|mask=yes|size=16px}}
-```
-
-## Templatestyles contract
-
-`render` returns **markup only** — no `<templatestyles>`. Callers must load `Module:Icon/styles.css` themselves (the consumers above do). This keeps the style tag out of any wikilink label when a caller wraps the icon in a link of its own (e.g. BadgeLua's whole-pill link). The wikitext entry point `main` does emit the stylesheet, since it returns a standalone value.
-
-## API
-
-### `p.render( props )`
-
-Returns the icon markup string.
+`p.render(props)` returns markup only, no `<templatestyles>` (see Styles below).
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -37,23 +17,16 @@ Returns the icon markup string.
 | `mask` | `boolean` | No | `false` | Render as a `currentColor` mask instead of a thumbnail. |
 | `link` | `string` | No | | Link target; empty/nil leaves the icon unlinked. |
 | `title` | `string` | No | | Tooltip / caption. |
-| `class` | `string` | No | | Extra class(es) on the icon element. Consumers pass their own slot class (e.g. `t-icon-text__icon`) so existing selectors keep working. |
+| `class` | `string` | No | | Extra class(es), appended after the base `t-icon` (+ `t-icon--mask` in mask mode). |
 
-The icon element always carries the base class `t-icon`, plus `t-icon--mask` in mask mode.
+`p.src(icon)` resolves an icon file name to its plain (entity-decoded) URL, for a caller that paints its own mask client-side, e.g. an AG Grid badge cell whose `iconSrc` is read into a CSS custom property by JavaScript rather than an HTML style attribute.
 
-### `p.main( frame )`
+`p.main(frame)` is the `#invoke` entry point: reads named arguments (and positional `1` as `icon`), emits [Module:Icon/styles.css](https://starcitizen.tools/Module:Icon/styles.css), and forwards to `render`. `mask` accepts any [Module:Yesno](https://starcitizen.tools/Module:Yesno) truthy value.
 
-Wikitext entry point. Reads named arguments (and positional `1` as `icon`), emits `Module:Icon/styles.css`, and forwards to `render`. `mask` accepts any [Yesno](https://starcitizen.tools/Module:Yesno) truthy value.
+### Gotchas
 
-## Requirements
+A CORS-clean media host is required for mask mode: the SVG is fetched as a CSS `mask-image`. The `nowiki` `filepath` parser function HTML-entity-encodes `:` as `&#58;`; a browser decodes that inside an HTML `style` attribute (the server-rendered mask) but not when a script assigns it to a CSS custom property, which is why `p.src` decodes it back to plain text for client-side callers.
 
-- [Module:Yesno](https://starcitizen.tools/Module:Yesno) — boolean coercion for the `mask` argument.
-- A CORS-clean media host for mask mode (the SVG is used as a CSS `mask-image`).
+### Styles
 
-## Architecture
-
-```
-Icon/
-├── Icon.lua     # render (thumb | mask, optional link), main
-└── styles.css   # .t-icon + .t-icon--mask
-```
+`render` returns markup only, no `<templatestyles>`: callers must load [Module:Icon/styles.css](https://starcitizen.tools/Module:Icon/styles.css) themselves. This keeps the style tag out of any wikilink label when a caller wraps the icon in a link of its own (e.g. BadgeLua's whole-pill link). `p.main` (the wikitext entry point) does emit the stylesheet, since it returns a standalone value.

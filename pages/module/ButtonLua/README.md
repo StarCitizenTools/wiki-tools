@@ -1,94 +1,36 @@
 # Module:ButtonLua
 
-Renders a [Codex](https://doc.wikimedia.org/codex/latest/components/demos/button.html) button as a link. Pass a Lua table of props and get back a fake-button link with optional icon, action, weight, and size variants.
+Renders a [Codex](https://doc.wikimedia.org/codex/latest/components/demos/button.html) button as a link: a fake-button `<span>` wrapping a wikilink or external link, with optional icon, action, weight, and size variants.
 
-## Requirements
+Required by [Module:CardLua](https://starcitizen.tools/Module:CardLua), [Module:Mainpage/Community](https://starcitizen.tools/Module:Mainpage/Community), [Module:Mainpage/Editing](https://starcitizen.tools/Module:Mainpage/Editing), [Module:Entity/Infobox](https://starcitizen.tools/Module:Entity/Infobox), and [Module:Company](https://starcitizen.tools/Module:Company); not invoked from templates.
 
-- [Codex](https://www.mediawiki.org/wiki/Codex) styles, provided by the [Citizen skin](https://www.mediawiki.org/wiki/Skin:Citizen) (the module emits `cdx-button` classes rather than loading its own styles).
-- [Module:Arguments](https://starcitizen.tools/Module:Arguments) (for the `#invoke` entry point).
+## For module editors
 
-## Usage
+### API
 
-```lua
-local button = require( 'Module:ButtonLua' )
-
-function p.main( frame )
-    local args = require( 'Module:Arguments' ).getArgs( frame )
-
-    return button.render( {
-        label = 'View on Galactapedia',
-        url = 'https://robertsspaceindustries.com/galactapedia',
-        action = 'progressive',
-        weight = 'primary',
-        icon = 'Link.svg',
-    } )
-end
-```
-
-Or directly from wikitext via the `main` entry point:
-
-```wikitext
-{{#invoke:ButtonLua|main|label=Buy now|link=Aurora MR|weight=primary}}
-```
-
-`render` returns an HTML string with `<templatestyles>` included. One of `link` or `url` is required; the module raises an error if neither is provided.
-
-## Data Reference
+`p.render(props)` returns an HTML string with `<templatestyles>` for [Module:ButtonLua/styles.css](https://starcitizen.tools/Module:ButtonLua/styles.css) included.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `label` | `string` | Yes | | Button text. Used as the `aria-label` when `iconOnly` is set. |
-| `link` | `string` | Yes\* | | Internal wiki page to link to, rendered as a wikilink. |
-| `url` | `string` | Yes\* | | External URL to link to, rendered as an external link. |
-| `action` | `string` | No | `default` | Visual style: `default`, `progressive`, or `destructive`. |
-| `weight` | `string` | No | `normal` | Visual weight: `normal` or `primary`. |
-| `size` | `string` | No | `medium` | Button size: `small`, `medium`, or `large`. |
-| `icon` | `string` | No | | Icon file name. Injected as a CSS background image (MediaWiki disallows `<img>` inside `<a>`). |
-| `iconOnly` | `boolean` | No | `false` | Show only the icon and hide the label. Requires `icon`; `label` becomes the accessible name. |
-| `disabled` | `boolean` | No | `false` | Render in a disabled style. |
-| `class` | `string` | No | | Additional CSS class on the button. |
+| `label` | `string` | Yes | | Button text; becomes the `aria-label` when `iconOnly` is set. |
+| `link` | `string` | one of `link`/`url` | | Wiki page, rendered as `[[link\|…]]`. |
+| `url` | `string` | one of `link`/`url` | | External URL, rendered as `[url …]`. |
+| `action` | `string` | No | `default` | `default`, `progressive`, or `destructive`. |
+| `weight` | `string` | No | `normal` | `normal` or `primary`. |
+| `size` | `string` | No | `medium` | `small`, `medium`, or `large`. |
+| `icon` | `string` | No | | Icon file name, rendered as a `currentColor` mask (recolors with the button). |
+| `iconOnly` | `boolean` | No | `false` | Hide the label; requires `icon`. |
+| `disabled` | `boolean` | No | `false` | Disabled visual style. |
+| `class` | `string` | No | | Extra CSS class(es) on the button. |
 
-\* Provide exactly one of `link` or `url`.
+`p.main(frame)` is the `#invoke` entry point, reading arguments via [Module:Arguments](https://starcitizen.tools/Module:Arguments).
 
-## Examples
+### Gotchas
 
-### Internal link button
+- `render` errors only when both `link` and `url` are absent; passing both is not rejected and renders two separate links (wikilink then external link) concatenated in the same span.
+- Codex exposes only small and medium icon sizes: a `size = 'large'` button still gets a medium icon.
+- The icon is a CSS mask stashed as a custom property (`--t-button-icon-url`) and consumed bare in `styles.css`, because the sanitizer rejects `url(var())` inline; `image-set(var())` requires a TemplateStylesExtender revision before its custom-property external-resource ban, pinned in `sct-docker-images`.
 
-```lua
-button.render( {
-    label = 'Aurora MR',
-    link = 'Aurora MR',
-} )
-```
+### Styles
 
-### External link with icon
-
-```lua
-button.render( {
-    label = 'Pledge store',
-    url = 'https://robertsspaceindustries.com/pledge',
-    action = 'progressive',
-    weight = 'primary',
-    icon = 'OcShoppingCart.svg',
-} )
-```
-
-### Icon-only button
-
-```lua
-button.render( {
-    label = 'Edit',
-    link = 'Special:EditPage',
-    icon = 'OcPencil.svg',
-    iconOnly = true,
-    size = 'small',
-} )
-```
-
-## Architecture
-
-```
-ButtonLua/
-├── ButtonLua.lua    # Main entry point (render + #invoke main)
-└── styles.css       # Icon background + Codex icon size overrides
-```
+A brand button opts in with `class = 't-button--branded t-button--<brand>'`; the brand block sets `--t-button-ground` (and `color`), and hover/active shades derive from it via `color-mix`. [Module:ButtonLua/styles.css](https://starcitizen.tools/Module:ButtonLua/styles.css) currently declares `wiki-api`, `galactapedia`/`starmap` (shared, same mark), and `verseguide`; a consumer can declare its own brand block in its own stylesheet instead of adding one here.

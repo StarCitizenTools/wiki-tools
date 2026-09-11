@@ -1,71 +1,29 @@
 # Module:CollapsibleCard
 
-Reusable card with a "summary line + expandable detail" shape. Renders a header (title + optional description), a collapsible body, and an optional footer that stays visible when the card is collapsed — useful for attribution or metadata that should always read.
+A [Module:CardLua](https://starcitizen.tools/Module:CardLua) card with a "summary line + expandable detail" shape: header (title + optional description), a collapsible body, and an optional footer that stays visible when collapsed. Falls back to a static card with no collapse affordance when `content` is nil or empty.
 
-Built on top of [Module:Details](https://starcitizen.tools/Module:Details) so the underlying `<details>`/`<summary>` markup survives MediaWiki's HTML sanitizer. When `content` is nil or empty, the card falls back to a static `<div>` with the same visual shell but no collapse affordance.
+Required by [Module:SystemMap](https://starcitizen.tools/Module:SystemMap), [Module:Entity/Commodity/Mining](https://starcitizen.tools/Module:Entity/Commodity/Mining), [Module:Entity/Availability](https://starcitizen.tools/Module:Entity/Availability), [Module:Entity/Blueprints](https://starcitizen.tools/Module:Entity/Blueprints), [Module:Entity/Ports/Render](https://starcitizen.tools/Module:Entity/Ports/Render), and [Module:Entity/Related](https://starcitizen.tools/Module:Entity/Related); not invoked from templates.
 
-## Requirements
+## For module editors
 
-- [Extension:Details](https://www.mediawiki.org/wiki/Extension:Details)
-- [Module:Details](https://starcitizen.tools/Module:Details)
+### API
 
-## Usage
-
-```lua
-local CollapsibleCard = require( 'Module:CollapsibleCard' )
-
-local html = CollapsibleCard.render( {
-    title = 'Aegis Avenger Titan',
-    description = 'Light freighter · 2 SCU',
-    content = 'A multipurpose starter ship from [[Aegis Dynamics]]...',
-    footer = 'Source: Star Citizen Wiki',
-    open = false,
-} )
-```
-
-`render` returns a string: a `<templatestyles>` tag for `Module:CollapsibleCard/styles.css` followed by the card markup. Concatenate it directly into your module's output.
-
-## API
-
-### `p.render( props )`
-
-Builds and returns the card.
-
-| Parameter | Type | Description |
-|---|---|---|
-| `props` | `CollapsibleCardProps` | Card configuration. See fields below. |
-
-#### `CollapsibleCardProps`
+`p.render(props)` returns `<templatestyles>` + the card markup.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `title` | `string` | Yes | | Header title. Wikitext allowed. |
-| `description` | `string` | No | | Secondary line under the title. Renders only when non-empty. |
-| `content` | `string` | No | | Body content shown when expanded. When nil or empty, the card falls back to its static variant regardless of `collapsible`. |
-| `footer` | `string` | No | | Attribution or metadata line. Always visible (sits outside the `<details>` body). Renders only when non-empty. |
-| `open` | `boolean` | No | `false` | Whether the card starts expanded. |
-| `collapsible` | `boolean` | No | `true` | When `false`, the card always renders as static even if `content` is provided. |
+| `description` | `string` | No | | Secondary line under the title. |
+| `content` | `string` | No | | Body shown when expanded. Nil/empty forces the static variant regardless of `collapsible`. |
+| `footer` | `string` | No | | Attribution/metadata line, always visible, outside the `<details>` body. |
+| `open` | `boolean` | No | `false` | Starts expanded. |
+| `collapsible` | `boolean` | No | `true` | `false` forces the static variant even with `content`. |
 | `class` | `string` | No | | Extra class appended to the card root. |
 
-## Variants
+### Gotchas
 
-The module picks one of two layouts based on inputs:
+The collapsible variant composes [Module:Details](https://starcitizen.tools/Module:Details) (so the `<details>`/`<summary>` markup survives MediaWiki's sanitizer) with `CardLua.renderHeaderContent` in the summary and a chevron; the static variant uses `CardLua.renderHeader` directly, so its header carries no interactive class and gets no hover/active affordance. Both variants pass `footer` straight to `CardLua.render`, which places it outside the collapsible body, so it renders identically (and stays visible) in either case.
 
-- **Collapsible** — when `content` is non-empty and `collapsible` is not explicitly `false`. Header acts as the toggle; body is in a `<details>` so the disclosure works without JavaScript.
-- **Static** — when `content` is nil/empty, or `collapsible` is `false`. Same visual shell, no toggle. The header drops its hover/active affordances so it reads as a plain notice rather than an interactive control.
+### Styles
 
-The footer renders identically in both variants.
-
-## Styles
-
-CSS lives in [Module:CollapsibleCard/styles.css](https://starcitizen.tools/Module:CollapsibleCard/styles.css) and is bundled automatically. The card uses Citizen skin design tokens (`--space-*`, `--color-surface-*`, `--border-*`, `--font-size-*`) so it inherits the site theme.
-
-The collapse chevron uses the `citizen-ui-icon mw-ui-icon-wikimedia-collapse` icon class from the [Citizen skin](https://starcitizen.tools/Citizen_(skin)); it animates on open via a CSS transform.
-
-## Architecture
-
-```
-CollapsibleCard/
-├── CollapsibleCard.lua    # Render function, variant selection
-└── styles.css             # Card visuals + static-variant overrides
-```
+[Module:CollapsibleCard/styles.css](https://starcitizen.tools/Module:CollapsibleCard/styles.css) adds only the collapse-specific styling (interactive header cursor/hover/active, chevron rotate-on-open); the card shell, header row, content border, and footer come from [Module:CardLua/styles.css](https://starcitizen.tools/Module:CardLua/styles.css), loaded by `CardLua.render`. The chevron uses the Citizen skin's `citizen-ui-icon mw-ui-icon-wikimedia-collapse` class.

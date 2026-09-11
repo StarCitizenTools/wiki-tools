@@ -1,99 +1,32 @@
 # Module:Dimensions
 
-Renders an isometric 3D diagram of an object's bounding box at honest scale:
-measurement lines with end ticks on each axis, an optional reference object
-(e.g. a human) standing on the same ground plane, and a footer bar with the
-mass and the reference legend. Hovering the diagram rotates it to a top-down
-plan view (pointer devices only; touch gets the static isometric view). The rotation animation is disabled for users with reduced-motion preferences.
+Renders an isometric CSS-3D diagram of an object's bounding box at honest scale: measurement lines with end ticks on each axis, an optional reference cuboid on the same ground plane, and a footer bar of caller-supplied metrics plus the reference legend. Hovering the diagram (pointer devices only) rotates it to a top-down plan view; the rotation is disabled under reduced-motion preferences.
 
-The module emits a `<div class="t-dimensions">` with bundled TemplateStyles.
-`transform-style: preserve-3d` is set inline from Lua because the
-TemplateStyles sanitizer rejects it. CSS lives in [[Module:Dimensions/styles.css]] and is injected automatically.
+Required by [Module:Entity/Vehicle/Dimensions](https://starcitizen.tools/Module:Entity/Vehicle/Dimensions) and [Module:Entity/Facet/Dimensions](https://starcitizen.tools/Module:Entity/Facet/Dimensions), both thin adapters; [Module:Dimensions/presets](https://starcitizen.tools/Module:Dimensions/presets) supplies reusable reference objects. Not invoked from templates.
 
-## Usage
+## For module editors
 
-From Lua:
+### API
 
-```lua
-local dimensions = require( 'Module:Dimensions' )
+`p._main(args, frame?)` returns an HTML string, or `nil` when `length`/`width`/`height` are missing, non-numeric, or not positive. `frame` is optional and falls back to `mw.getCurrentFrame()`.
 
-local html = dimensions._main( {
-    length = 18,
-    width = 8,
-    height = 4,
-    mass = 25172,
-    referenceType = 'human',
-} )
--- html is nil when length/width/height are missing, non-numeric or <= 0
-```
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `length`, `width`, `height` | number (m) | Yes | Must be > 0. |
+| `lengthAlt`, `widthAlt`, `heightAlt` | number (m) | No | Shown as a subtle parenthetical; dropped when equal to the primary value. |
+| `reference` | table | No | A resolved reference cuboid: `{ length, width, height, label, color?, colorLight?, colorDark? }` (metres; colour trio falls back to the CSS default). Not a type key; the caller resolves it. |
+| `metrics` | `{ label, value }[]` | No | Ordered footer rows, e.g. mass; `value` is a pre-formatted display string. |
 
-`_main` takes an optional second `frame` argument; when omitted it falls back to `mw.getCurrentFrame()`.
+`p.main(frame)` is the `#invoke` entry point (reads [Module:Arguments](https://starcitizen.tools/Module:Arguments)), but renders a bare box: `reference` and `metrics` are Lua-only table arguments with no wikitext form.
 
-From wikitext:
+[Module:Dimensions/presets](https://starcitizen.tools/Module:Dimensions/presets) (domain-agnostic references only; a consumer defines its own domain-specific ones):
 
-```wikitext
-{{#invoke:Dimensions|main|length=18|width=8|height=4|mass=25172|referenceType=human}}
-```
+- `p.human`: 0.3 × 0.5 × 1.8 m.
+- `p.banana`: 0.05 × 0.05 × 0.2 m, standing upright, with its own yellow colour trio.
+- `p.resolveAuto(longest)`: the largest of the two above whose longest dimension does not exceed `longest`; falls back to the smallest when the object is smaller than both (being dwarfed by the banana is the intended scale story, not an edge case to hide).
 
-## Parameters
+### Gotchas
 
-| Parameter | Type | Required | Description |
-| --- | --- | --- | --- |
-| `length` | number (m) | yes | Object length; must be > 0 |
-| `width` | number (m) | yes | Object width; must be > 0 |
-| `height` | number (m) | yes | Object height; must be > 0 |
-| `lengthAlt` | number (m) | no | Alternate length (e.g. retracted); shown as a subtle parenthetical, dropped when equal to `length` |
-| `widthAlt` | number (m) | no | Alternate width |
-| `heightAlt` | number (m) | no | Alternate height |
-| `mass` | number (kg) | no | Shown in the footer bar, not on the geometry |
-| `referenceType` | string | no | Key into the reference table: `human` (0.3 × 0.5 × 1.8 m), `banana` (0.05 × 0.05 × 0.2 m, standing upright), or `auto`, which picks the largest reference not exceeding the object's longest dimension (smallest reference for tinier objects). Unknown values render no reference |
-
-## Machine-readable output
-
-The root element carries raw SI values (unformatted, dot-decimal):
-
-- `data-length`, `data-width`, `data-height` — always
-- `data-length-alt`, `data-width-alt`, `data-height-alt` — when the alternate renders
-- `data-mass` — when mass was given
-- `data-reference` — the reference type key, when a reference renders
-
-A visually-hidden text summary of all values is included for screen readers;
-the visual scene itself is `aria-hidden`.
-
-## Adding a reference type
-
-Add one entry to `REFERENCE_TYPES` in the module (dimensions in metres plus
-a `legend` string). The cuboid, ground placement, dimension-line clearance
-and footer legend all derive from it automatically.
-
-```lua
-REFERENCE_TYPES.crate = {
-    length = 1.25,
-    width = 1.25,
-    height = 1.25,
-    legend = 'Cargo crate · 1 SCU',
-}
-```
-
-The root element also gets a `t-dimensions--ref-<type>` modifier class. To
-recolor a type, override the reference color trio in the styles
-(`--t-dimensions-ref-color`, `-light`, `-dark`); the cuboid faces and the
-legend swatch both consume them, so one block recolors everything (see the
-banana's yellow).
-
-After extending the table, update [[Module:Dimensions/testcases]] accordingly.
-
-## Consumers
-
-`Module:Vehicle` and `Module:Item` call `_main` directly. The diagram falls
-back to nothing (nil) on invalid input, letting callers render their plain
-dimension tables instead.
-
-## Architecture
-
-```
-Dimensions/
-├── Dimensions.lua   # Module logic (validation, formatting, HTML assembly)
-├── styles.css       # TemplateStyles (isometric geometry, lines, labels, footer)
-└── testcases.lua    # ScribuntoUnit tests for the logic layer
-```
+- `transform-style: preserve-3d` is set inline from Lua on several elements because the TemplateStyles sanitizer rejects it as a stylesheet property.
+- The root carries `data-length`/`data-width`/`data-height` (+ `-alt` variants when they render) for machine reading; a reference's identity is not exposed as a data attribute, only its geometry via CSS custom properties. A visually-hidden text summary covers all values for screen readers; the visual scene itself is `aria-hidden`.
+- Composite CSS transforms are stashed in custom properties and consumed bare: the sanitizer rejects `var()` nested inside a `transform` function argument, but not inside a custom-property declaration.

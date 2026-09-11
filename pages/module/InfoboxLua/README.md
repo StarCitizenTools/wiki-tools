@@ -1,150 +1,25 @@
 # Module:InfoboxLua
 
-Data-driven infobox system. Pass a Lua table describing your infobox and get back rendered HTML with collapsible sections, tabbed content, and multi-column layouts.
+Data-driven infobox system: pass a Lua table describing the infobox and get back rendered HTML with collapsible sections, tabbed images and subsections, and multi-column item layouts.
 
-## Requirements
+Required by [Module:WearableSet](https://starcitizen.tools/Module:WearableSet), [Module:Entity/Infobox](https://starcitizen.tools/Module:Entity/Infobox), and [Module:Company](https://starcitizen.tools/Module:Company); not invoked from templates.
 
-- [Extension:Details](https://www.mediawiki.org/wiki/Extension:Details)
-- [Extension:TabberNeue](https://www.mediawiki.org/wiki/Extension:TabberNeue)
-- [Module:Details](https://starcitizen.tools/Module:Details)
+## For module editors
 
-## Usage
+### API
 
-```lua
-local infobox = require( 'Module:InfoboxLua' )
+`p.render(data)` returns `<templatestyles>` + the infobox HTML. Schemas are defined in [Module:InfoboxLua/Types](https://starcitizen.tools/Module:InfoboxLua/Types) and enforced per component by [Module:InfoboxLua/Util](https://starcitizen.tools/Module:InfoboxLua/Util)'s `validateAndConstruct`.
 
-function p.main( frame )
-    local args = require( 'Module:Arguments' ).getArgs( frame )
+**Infobox**: `title` (required), `subtitle?`, `image?` (filename string or an Image table), `imageUploadName?` (overrides the auto-discovery/upload convention base, default `'<page title> - infobox'`), `images?` (Image[], rendered as tabs), `sections?` (Section[]), `class?`, `css?` (`{ property = value }`).
 
-    return infobox.render( {
-        title = args.title,
-        subtitle = args.subtitle,
-        image = args.image,
-        sections = {
-            {
-                label = 'Overview',
-                items = {
-                    { label = 'Manufacturer', content = args.manufacturer },
-                    { label = 'Role', content = args.role },
-                }
-            },
-            {
-                label = 'Specifications',
-                collapsible = true,
-                columns = 3,
-                items = {
-                    { label = 'Crew', content = args.crew },
-                    { label = 'Cargo', content = args.cargo },
-                    { label = 'Stowage', content = args.stowage },
-                }
-            }
-        }
-    } )
-end
-```
+**Section**: `label?`, `content?` (wikitext), `items?` (Item[]), `sections?` (nested Section[], rendered as tabs, keyed only by `label`), `columns?` (default `1`), `collapsible?` (default `false`; not honoured on a nested subsection), `collapsed?` (default `false`; only takes effect when `collapsible = true`), `class?`.
 
-`render` returns an HTML string with `<templatestyles>` included.
+**Item**: `content` (required, wikitext), `label?`, `class?`. [Module:InfoboxLua/Components/Item/Card](https://starcitizen.tools/Module:InfoboxLua/Components/Item/Card) (`getItemComponentData(data)`) composes a `label?` + `content?` + `items?` block into one Item, for a card-shaped entry nested inside a section's `items`.
 
-## Data Reference
+**Image**: `src?` (filename; auto-discovered when omitted, see Gotchas), `overlay?` (wikitext), `label?` (tab label), `size?` (px, default `400`), `class?`.
 
-### Infobox
+### Gotchas
 
-| Field | Type | Required | Default | Description |
-|---|---|---|---|---|
-| `title` | `string` | Yes | | Infobox title. |
-| `subtitle` | `string` | No | | Subtitle below the title. |
-| `image` | `string` or `table` | No | Placeholder | Single image. Pass a filename string or an Image table. |
-| `images` | `table` | No | | Multiple images, rendered as tabs. Array of Image tables. |
-| `sections` | `table` | No | | Array of Section tables. |
-| `class` | `string` | No | | CSS class on the infobox container. |
-| `css` | `table` | No | | Inline CSS as `{ property = value }` pairs. |
-
-### Section
-
-| Field | Type | Required | Default | Description |
-|---|---|---|---|---|
-| `label` | `string` | No | | Section heading. |
-| `content` | `string` | No | | Wikitext content. |
-| `items` | `table` | No | | Array of Item tables. |
-| `sections` | `table` | No | | Nested sections, rendered as tabs. |
-| `columns` | `number` | No | `1` | Number of columns for items. |
-| `collapsible` | `boolean` | No | `false` | Make section collapsible. |
-| `collapsed` | `boolean` | No | `false` | Start collapsed. Requires `collapsible = true`. |
-| `class` | `string` | No | | CSS class on the section container. |
-
-### Item
-
-| Field | Type | Required | Default | Description |
-|---|---|---|---|---|
-| `content` | `string` | Yes | | Item content (wikitext). |
-| `label` | `string` | No | | Label displayed beside the content. |
-| `class` | `string` | No | | CSS class on the item container. |
-
-### Image
-
-| Field | Type | Required | Default | Description |
-|---|---|---|---|---|
-| `src` | `string` | Yes | | Image filename. |
-| `overlay` | `string` | No | | Wikitext overlay on the image. |
-| `label` | `string` | No | | Tab label when using multiple images. |
-| `size` | `number` | No | `400` | Image width in pixels. |
-| `class` | `string` | No | | CSS class on the image. |
-
-The first image also carries the `pageimage` class, which tells [PageImages](https://www.mediawiki.org/wiki/Extension:PageImages) to use it as the page image rather than picking one by its own position/width/ratio heuristics. It is added alongside any `class` the caller passes. The upload placeholder is the exception: it carries `notpageimage` instead, so a page waiting on an image falls back to a real one elsewhere on the page, or to none.
-
-## Examples
-
-### Tabbed content
-
-Nested sections automatically render as tabs:
-
-```lua
-{
-    label = 'Cost',
-    sections = {
-        { label = 'Universe', items = { ... } },
-        { label = 'Pledge', items = { ... } }
-    }
-}
-```
-
-### Collapsible sections
-
-```lua
-{
-    label = 'Specifications',
-    collapsible = true,
-    collapsed = false,
-    items = { ... }
-}
-```
-
-### Multi-column layout
-
-```lua
-{
-    label = 'Capacity',
-    columns = 3,
-    items = {
-        { label = 'Crew', content = '1' },
-        { label = 'Cargo', content = '0 SCU' },
-        { label = 'Stowage', content = '1,300 KµSCU' }
-    }
-}
-```
-
-## Architecture
-
-```
-InfoboxLua/
-├── InfoboxLua.lua           # Main entry point
-├── styles.css               # Component styles
-├── Types.lua                # Type definitions and schemas
-├── Util.lua                 # Validation and helper functions
-└── Components/
-    ├── Header.lua           # Header component
-    ├── Section.lua          # Section component
-    ├── Item.lua             # Item component
-    ├── Item/Card.lua        # Card item component
-    └── Collapsible.lua      # Collapsible component
-```
+- `validateAndConstruct` raises a hard Lua error, not `nil`, for a missing required field or a key absent from the schema; a component's `if not x then return nil end` guard is unreachable dead code.
+- An `Image` with no `src` auto-discovers `'<page title> - infobox.webp'`/`.png`/`.jpg` in that order ([Module:InfoboxLua/ImageResolver](https://starcitizen.tools/Module:InfoboxLua/ImageResolver)); finding none, it falls back to the placeholder image and marks the container `data-gadget-quantumupload-name` (+ `-categories`) for the QuantumUpload gadget's upload control.
+- The first rendered image carries `pageimage` (scores +1000 for [PageImages](https://www.mediawiki.org/wiki/Extension:PageImages), MediaWiki 1.44+); the upload placeholder carries `notpageimage` instead (-1000), so a page waiting on an image falls back to a real image elsewhere, or none.

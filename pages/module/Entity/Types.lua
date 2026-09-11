@@ -84,7 +84,7 @@ local p = {}
 --- identity (Item / Vehicle / Commodity / Mission / Location). Registered in
 --- Module:Entity/Registry. Identity hooks only; everything it renders it
 --- contributes as a chain link like any other.
---- @field name string REQUIRED. Canonical kind name, exposed as Data.get().result.kind (enforced by the Registry conformance test)
+--- @field name string REQUIRED. Canonical kind name, exposed as Data.get(args).kind (enforced by the Registry conformance test)
 --- @field matches fun(apiData: table|nil): boolean REQUIRED. Strict, nil-safe identity predicate: true exactly for the records this kind can render (its own leaf resolves, or the kind itself is the leaf)
 --- @field getApiConfigs fun(): EntityApiConfig[] REQUIRED. [1] is the identity endpoint
 --- @field resolveSubtype nil|fun(apiData: table|nil, args: table|nil): table|nil Refine to a subtype leaf module, or nil. Family token from the record, else the curated |family= arg (Module:Entity/SubtypeResolver.familyArg), else the kind's default leaf on kind-declared record-less pages

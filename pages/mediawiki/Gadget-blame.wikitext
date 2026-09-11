@@ -1,0 +1,1 @@
+'''Blame''': git blame for articles. "Blame this page" (toolbox) colours every word by the editor who last changed it, with a legend of editors and their share; click a word, or tab into the text and use the arrow keys, for the revision, date, summary and diff. Text produced by a template or module is marked as such rather than attributed. Under test.

@@ -26,7 +26,7 @@ Wiki pages, modules, and automation for [Star Citizen Wiki](https://starcitizen.
 - LuaCATS annotations (`--- @class`, `--- @field`, `--- @param`, `--- @return`).
 - Comments carry durable facts, not the story of how the code got there. Keep a line only if it would stop a specific wrong edit — a constraint, a mechanism, an upstream defect the code works around, a label that looks wrong but isn't. Drop before/after framing, the alternatives weighed, the evidence count behind a conclusion, and restatements of what the code plainly says; those belong in the commit message and `git log`. Applies to Lua, CSS and wikitext alike, and to test comments.
 - Module imports use MediaWiki paths: `require('Module:InfoboxLua/Util')`.
-- CSS class prefix follows the owning component (e.g., `t-infobox-` for InfoboxLua).
+- CSS class prefix follows the owning component (e.g., `t-infobox-` for InfoboxLua). The `t-` prefix means **template**, so it is wrong for a gadget: gadget classes use `gadget-<gadgetname>-` (e.g. `gadget-blame-legend`), matching the `data-gadget-<gadgetname>-<key>` attribute convention below.
 - CSS uses design tokens from the Citizen skin (`--space-md`, `--color-surface-1`, etc.).
 - Gadgets that enhance server-rendered HTML read their context from `data-gadget-<gadgetname>-<key>` attributes on the target element (e.g. a `quantumUpload` placeholder carries `data-gadget-quantumupload-name`). Prefixing by gadget name keeps the contract traceable — `grep gadget-<name>-` finds every emitter and the owning gadget. HTML lowercases attribute names, so keep each segment lowercase in markup and read them via `el.dataset.gadget<Name><Key>`.
 

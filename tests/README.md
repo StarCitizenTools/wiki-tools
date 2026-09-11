@@ -35,7 +35,18 @@ invariants. It uses only the vendored `tests/vendor/dkjson.lua`, no `mw` harness
 mise run test:lua:manifest
 ```
 
-## Future test types
+## Gadget JavaScript
 
-Other test types (e.g. vitest for JS gadgets) get their own subdir here and their
-own mise task.
+`tests/js/` holds Node's built-in `node:test` suites for gadget JavaScript. They
+`require()` the gadget source straight out of `pages/mediawiki/`, with no build
+step and no dependencies, so a gadget file under test must stay CommonJS,
+side-effect free, and free of the DOM and `mw` — `MediaWiki:Gadget-blame-text.js`
+is split out from the gadget entry point for exactly that reason.
+
+```
+mise run test:js
+```
+
+Pass a name to filter, e.g. `node --test tests/js/blame-text.test.js`. Note that
+pointing `node --test` at a bare directory exits 0 without running anything, so
+the mise task globs the files.

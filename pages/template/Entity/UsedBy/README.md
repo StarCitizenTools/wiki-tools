@@ -10,7 +10,7 @@ Explicit UUID:
 {{Entity/UsedBy|uuid=08a5bfdb-1972-421f-83fe-be03b7ac5222}}
 ```
 
-When `{{Entity}}` has been invoked earlier on the page, the UUID can be omitted; it falls back to the value stored in SMW on the current page:
+When `{{Entity}}` has been invoked earlier on the page, the UUID can be omitted; it falls back to the value a previous parse stored in SMW on the current page, so on a brand-new page it resolves only after the page has been saved and re-parsed (purged or re-saved):
 
 ```wikitext
 {{Entity}}
@@ -25,10 +25,10 @@ When `{{Entity}}` has been invoked earlier on the page, the UUID can be omitted;
 |------|-------|------|----------|---------|-------------|---------|
 | `uuid` | UUID | string | No | (falls back to the SMW uuid stored by a prior `{{Entity}}` parse) | UUID of the entity to render. Required if `{{Entity}}` hasn't been invoked. | `08a5bfdb-1972-421f-83fe-be03b7ac5222` |
 
-## Behaviour
+## Behavior
 
 - It is the inverse of `{{Entity/Related}}`: Related shows an item's own variants and set pieces, this shows the vehicles that use it.
-- Works for items only; commodities, vehicles, and missions render the muted placeholder instead, since only the items endpoint carries a `vehicles` include.
+- Works for items only; commodities, vehicles, missions, and locations render the muted placeholder instead, since only the items endpoint carries a `vehicles` include.
 - Renders a single tile grid sorted by manufacturer code then by name, so vehicles from the same brand (e.g. all Anvil Hornets) cluster naturally without explicit subheadings.
 - Each tile shows the vehicle's page image with the vehicle name overlaid at the bottom and the in-game role (e.g. `Medium Fighter`) as a small kicker above the name.
 - Link target and image resolve through the SMW `uuid` property, so disambiguated titles (e.g. `Hyperion (quantum drive)` for a variant, or any vehicle whose API name collides with another article) link to the canonical article rather than the disambiguation page. A vehicle with no resolvable page falls back to a placeholder image.

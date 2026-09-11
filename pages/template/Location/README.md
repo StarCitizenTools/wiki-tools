@@ -100,7 +100,7 @@ Star system with curated overrides and lore fields (the discovery citation belon
 | `blackholes` | Black holes | number | No | (starmap tally) | Hand count of black holes, overriding the starmap tally. | `1` |  |
 | `pois` | Points of interest | number | No | (starmap tally) | Hand count of points of interest, overriding the starmap tally. | `3` |  |
 
-## Behaviour
+## Behavior
 
 - The infobox, page categories, short description, and SMW properties are all owned by the single invocation, exactly like `{{Entity}}`.
 - No parameter is required. With no `uuid`, the page identifies itself by its own title: that is the infobox heading and the starmap lookup key alike, so a bare `{{Location}}` never hits the "no uuid, name, or kind" error.

@@ -10,7 +10,7 @@ Explicit UUID:
 {{Entity/Blueprints|uuid=80ee3b95-5665-4548-9e2d-d2067895c0ac}}
 ```
 
-When `{{Entity}}` has been invoked earlier on the page, the UUID can be omitted; it falls back to the value stored in SMW on the current page:
+When `{{Entity}}` has been invoked earlier on the page, the UUID can be omitted; it falls back to the value a previous parse stored in SMW on the current page, so on a brand-new page it resolves only after the page has been saved and re-parsed (purged or re-saved):
 
 ```wikitext
 {{Entity}}
@@ -25,7 +25,7 @@ When `{{Entity}}` has been invoked earlier on the page, the UUID can be omitted;
 |------|-------|------|----------|---------|-------------|---------|
 | `uuid` | UUID | string | No | (falls back to the SMW uuid stored by a prior `{{Entity}}` parse) | UUID of the entity to render. Required if `{{Entity}}` hasn't been invoked. | `80ee3b95-5665-4548-9e2d-d2067895c0ac` |
 
-## Behaviour
+## Behavior
 
 - **Items** render two sections, Blueprints and Dismantle, each with one collapsible card per blueprint entry that has matching data (recipe aspects, or dismantle returns). Both section headings always render, even when both are empty.
 - **Commodities** render neither section; instead a single card titled "Browse N recipes" (or "Browse 1 recipe") shows how many recipes use the commodity as an ingredient, with a button to the full filtered list, since a commodity can be an ingredient in far more recipes than an item's own blueprint list could usefully enumerate as cards. Three empty states cover it: no resolvable name shows "No crafting data available.", a failed count fetch shows "Crafting usage data unavailable.", and a genuine zero shows "Not used as an ingredient in any known crafting recipe."

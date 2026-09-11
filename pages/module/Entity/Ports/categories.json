@@ -1,6 +1,6 @@
 {
 	"_source": "https://github.com/StarCitizenWiki/API/blob/develop/app/Support/Game/HardpointCategory.php",
-	"_doc": "Categories are keyed by the API's `category_label` string. Mirrors HardpointCategory.php's column/collapsed split — primary categories carry `order` (lower = earlier); collapsed categories carry `collapsed:true` and route into the single 'Other' card at the bottom. `expandIntoTypes` is the vehicle-only per-parent child-type allowlist for the L-tree. typeAliases maps API `type` strings to category labels for ports that lack a category_label (typically item-endpoint responses).",
+	"_doc": "Categories are keyed by the API's `category_label` string. Mirrors HardpointCategory.php's column/collapsed split — primary categories carry `order` (lower = earlier); collapsed categories carry `collapsed:true` and route into the single 'Other' card at the bottom. `expandIntoTypes` is the per-parent child-type allowlist for the L-tree; its presence gates whether a category's children render as a tree at all, for every kind — only the narrowing pass that prunes to the allowlist (Vehicle's `narrowChildren`) is vehicle-only. typeAliases maps API `type` strings to category labels for ports that lack a category_label (typically item-endpoint responses).",
 	"categories": {
 		"Docked Vehicles":     { "order": 1 },
 		"Weapons":             { "order": 5, "expandIntoTypes": ["WeaponGun"] },

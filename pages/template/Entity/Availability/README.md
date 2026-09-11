@@ -10,7 +10,7 @@ Explicit UUID, same invocation for every kind:
 {{Entity/Availability|uuid=80ee3b95-5665-4548-9e2d-d2067895c0ac}}
 ```
 
-When `{{Entity}}` has been invoked earlier on the page, the UUID can be omitted; it falls back to the value stored in SMW on the current page:
+When `{{Entity}}` has been invoked earlier on the page, the UUID can be omitted; it falls back to the value a previous parse stored in SMW on the current page, so on a brand-new page it resolves only after the page has been saved and re-parsed (purged or re-saved):
 
 ```wikitext
 {{Entity}}
@@ -30,22 +30,22 @@ Editor overrides for the summary flags, set only when the API-derived value is w
 | Name | Label | Type | Required | Default | Description | Example |
 |------|-------|------|----------|---------|-------------|---------|
 | `uuid` | UUID | string | No | (falls back to the SMW uuid stored by a prior `{{Entity}}` parse) | UUID of the entity to render. Required if `{{Entity}}` hasn't been invoked. | `80ee3b95-5665-4548-9e2d-d2067895c0ac` |
-| `canBuy` | Can buy | boolean | No | Derived from UEX purchase data (all three kinds) | Override for the "Buy" summary card. Set to `no` when UEX has stale prices for an entity removed from shops. | `no` |
-| `canRent` | Can rent | boolean | No | Items: card hidden unless set. Vehicles: derived from `uex_prices.rental`. Not used for commodities. | Whether the entity is rentable; for items the card is hidden by default. | `yes` |
-| `canLoot` | Can loot | boolean | No | Items: derived from `apiData.is_lootable`. Not used for vehicles or commodities. | Override for the "Loot" summary card. Items only. | `yes` |
-| `canCraft` | Can craft | boolean | No | Items: derived from `is_craftable`. Not used for vehicles or commodities. | Override for the "Craft" summary card. Items only. | `no` |
-| `canPledge` | Can pledge | boolean | No | Items: entity tag. Vehicles: `msrp` presence. Not used for commodities. | Override for the "Pledge" summary card. | `yes` |
-| `canMine` | Can mine | boolean | No | Commodities: derived from `is_mineable`. Not used for items or vehicles. | Override for the "Mine" summary card. Commodities only. | `yes` |
-| `canHarvest` | Can harvest | boolean | No | Commodities: derived from `has_harvestables`. Not used for items or vehicles. | Override for the "Harvest" summary card. Commodities only. | `yes` |
+| `canBuy` | Can buy | boolean | No | (derived from UEX purchase data, all three kinds) | Override for the "Buy" summary flag. Set to `no` when UEX has stale prices for an entity removed from shops. | `no` |
+| `canRent` | Can rent | boolean | No | (items: card hidden unless set; vehicles: derived from uex_prices.rental; not used for commodities) | Whether the entity is rentable; for items the card is hidden by default. | `yes` |
+| `canLoot` | Can loot | boolean | No | (items: derived from apiData.is_lootable; not used for vehicles or commodities) | Override for the "Loot" summary flag. Items only. | `yes` |
+| `canCraft` | Can craft | boolean | No | (items: derived from is_craftable; not used for vehicles or commodities) | Override for the "Craft" summary flag. Items only. | `no` |
+| `canPledge` | Can pledge | boolean | No | (items: entity tag; vehicles: msrp presence; not used for commodities) | Override for the "Pledge" summary flag. | `yes` |
+| `canMine` | Can mine | boolean | No | (commodities: derived from is_mineable; not used for items or vehicles) | Override for the "Mine" summary flag. Commodities only. | `yes` |
+| `canHarvest` | Can harvest | boolean | No | (commodities: derived from has_harvestables; not used for items or vehicles) | Override for the "Harvest" summary flag. Commodities only. | `yes` |
 
-## Behaviour
+## Behavior
 
 ### What renders, by kind
 
-- **Items** render a summary grid of Buy, Loot, Craft, Pledge (Rent is inserted only when `canRent` is set explicitly), plus one Shops card of UEX purchase terminals.
+- **Items** render summary flags for Buy, Loot, Craft, Pledge (Rent is inserted only when `canRent` is set explicitly), plus one Shops card of UEX purchase terminals.
 - **Vehicles** render Buy, Rent, Pledge, plus a Shops card and a Rentals card.
 - **Commodities** render Mine, Harvest, Buy, plus a mining-deposit card when the commodity has one, then a Trade card: a UEX terminal table when priced, otherwise link-out buttons to SC Trade Tools and UEX.
-- **Missions**, and any page no kind claims (an unresolved or missing uuid), render nothing at all, not even an empty grid.
+- **Missions and locations**, and any page no kind claims (an unresolved or missing uuid), render nothing at all, not even an empty grid.
 
 ### Cards and flags
 

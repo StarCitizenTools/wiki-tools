@@ -2,7 +2,7 @@
 
 The pure composition primitives that turn a resolved type chain into render-ready output: chain construction, additive merges for sections and structured data, leaf-first resolution for single-value fields, and editorial-manifest merging. Every function is stateless.
 
-Editors never invoke this module directly; it runs inside [Template:Entity](https://starcitizen.tools/Template:Entity), [Template:Vehicle](https://starcitizen.tools/Template:Vehicle) and [Template:Location](https://starcitizen.tools/Template:Location).
+Editors never invoke this module directly; it runs inside [Template:Entity](https://starcitizen.tools/Template:Entity), [Template:Vehicle](https://starcitizen.tools/Template:Vehicle) and [Template:Location](https://starcitizen.tools/Template:Location); the pipeline and the hook table are on [Module:Entity](https://starcitizen.tools/Module:Entity).
 
 ## For module editors
 

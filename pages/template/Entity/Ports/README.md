@@ -10,7 +10,7 @@ Explicit UUID:
 {{Entity/Ports|uuid=80ee3b95-5665-4548-9e2d-d2067895c0ac}}
 ```
 
-When `{{Entity}}` has been invoked earlier on the page, the UUID can be omitted; it falls back to the value stored in SMW on the current page:
+When `{{Entity}}` has been invoked earlier on the page, the UUID can be omitted; it falls back to the value a previous parse stored in SMW on the current page, so on a brand-new page it resolves only after the page has been saved and re-parsed (purged or re-saved):
 
 ```wikitext
 {{Entity}}
@@ -25,7 +25,7 @@ When `{{Entity}}` has been invoked earlier on the page, the UUID can be omitted;
 |------|-------|------|----------|---------|-------------|---------|
 | `uuid` | UUID | string | No | (falls back to the SMW uuid stored by a prior `{{Entity}}` parse) | UUID of the entity to render. Required if `{{Entity}}` hasn't been invoked. | `80ee3b95-5665-4548-9e2d-d2067895c0ac` |
 
-## Behaviour
+## Behavior
 
 - Renders for both items and vehicles, but not identically: vehicle port trees go through an extra narrowing pass that drops child ports whose type isn't on that category's allowlist (a turret's L-tree keeps its mounted gun but drops cockpit panels and displays). Item port trees skip that pass, so the same category can show more children on an item page than on the equivalent vehicle page.
 - Cards render one per category, sorted by an ordering defined in `categories.json` (Weapons before Turrets before Coolers, and so on); primary categories open by default. A category CIG adds before the list is synced still renders as its own card, rather than being dropped.

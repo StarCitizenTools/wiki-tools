@@ -2,7 +2,7 @@
 
 The shared constructor for the section tables every Entity `getSections()` returns: collapses missing item rows, drops sections that end up empty, and assembles the final list without a stray `nil` truncating it.
 
-Editors never invoke this module directly; it runs inside [Template:Entity](https://starcitizen.tools/Template:Entity), [Template:Vehicle](https://starcitizen.tools/Template:Vehicle) and [Template:Location](https://starcitizen.tools/Template:Location).
+Editors never invoke this module directly; it runs inside [Template:Entity](https://starcitizen.tools/Template:Entity), [Template:Vehicle](https://starcitizen.tools/Template:Vehicle) and [Template:Location](https://starcitizen.tools/Template:Location); the pipeline and the hook table are on [Module:Entity](https://starcitizen.tools/Module:Entity).
 
 ## For module editors
 

@@ -2,7 +2,7 @@
 
 Resolves an entity's display metadata, the infobox header label and the plural browse category, from the API record's raw `type` and `classification` strings. A pure lookup: loads two curated JSON manifests, applies a fixed precedence ladder, and returns.
 
-Editors never invoke this module directly; it runs inside [Template:Entity](https://starcitizen.tools/Template:Entity), [Template:Vehicle](https://starcitizen.tools/Template:Vehicle) and [Template:Location](https://starcitizen.tools/Template:Location).
+Editors never invoke this module directly; it runs inside [Template:Entity](https://starcitizen.tools/Template:Entity), [Template:Vehicle](https://starcitizen.tools/Template:Vehicle) and [Template:Location](https://starcitizen.tools/Template:Location); the pipeline and the hook table are on [Module:Entity](https://starcitizen.tools/Module:Entity).
 
 ## For module editors
 

@@ -2,7 +2,7 @@
 
 Renders the vehicles that have this item installed in their loadout, as a grid of image tiles. Inverse of [Module:Entity/Related](https://starcitizen.tools/Module:Entity/Related): Related shows an item's own variants, UsedBy shows the vehicles that equip it.
 
-Editors use this through `{{Entity/UsedBy}}`; see [Template:Entity/UsedBy](https://starcitizen.tools/Template:Entity/UsedBy).
+Editors use this through `{{Entity/UsedBy}}`; see [Template:Entity/UsedBy](https://starcitizen.tools/Template:Entity/UsedBy). The pipeline and the hook table are on [Module:Entity](https://starcitizen.tools/Module:Entity).
 
 ## For module editors
 

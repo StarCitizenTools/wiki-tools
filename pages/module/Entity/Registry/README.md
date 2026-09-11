@@ -2,7 +2,7 @@
 
 The declarative list of every Entity kind and facet: `p.kinds` is probed in order to resolve a page's primary kind, `p.facets` are matched additively regardless of which kind matched. Registering either is a one-line edit here, the component module itself, and a passing conformance test.
 
-Editors never invoke this module directly; it runs inside [Template:Entity](https://starcitizen.tools/Template:Entity), [Template:Vehicle](https://starcitizen.tools/Template:Vehicle) and [Template:Location](https://starcitizen.tools/Template:Location).
+Editors never invoke this module directly; it runs inside [Template:Entity](https://starcitizen.tools/Template:Entity), [Template:Vehicle](https://starcitizen.tools/Template:Vehicle) and [Template:Location](https://starcitizen.tools/Template:Location); the pipeline and the hook table are on [Module:Entity](https://starcitizen.tools/Module:Entity).
 
 ## For module editors
 
@@ -39,9 +39,9 @@ Editors never invoke this module directly; it runs inside [Template:Entity](http
 
 ### Extending
 
-A new kind implements `matches` and `getApiConfigs` (required), a string `p.name` (required, non-empty, unique across `p.kinds`: `Contract.KIND_FIELDS`), and optionally `resolveSubtype`, then is appended to `p.kinds`. A new facet implements `matches` and `getSections` (required), then is appended to `p.facets`; reach for the shared helpers in [Module:Entity/Facet/Util](https://starcitizen.tools/Module:Entity/Facet/Util) (`withUnit`, `rangeStr`, `titleCase`, `DAMAGE_TYPES`) rather than re-implementing display logic, and render yes/no rows through [Module:Boolean](https://starcitizen.tools/Module:Boolean) so they match the house convention. See [Module:Entity/Contract](https://starcitizen.tools/Module:Entity/Contract) for the full hook spec.
+A new kind implements `matches` and `getApiConfigs` (required), a string `p.name` (required per `Contract.KIND_FIELDS`; non-empty and unique across `p.kinds` per the registry's own tests), and optionally `resolveSubtype`, then is appended to `p.kinds`. A new facet implements `matches` and `getSections` (required), then is appended to `p.facets`; reach for the shared helpers in [Module:Entity/Facet/Util](https://starcitizen.tools/Module:Entity/Facet/Util) (`withUnit`, `rangeStr`, `titleCase`, `DAMAGE_TYPES`) rather than re-implementing display logic, and render yes/no rows through [Module:Boolean](https://starcitizen.tools/Module:Boolean) so they match the house convention. See [Module:Entity/Contract](https://starcitizen.tools/Module:Entity/Contract) for the full hook spec.
 
-[Module:Entity/Registry/testcases](https://starcitizen.tools/Module:Entity/Registry/testcases) runs three checks over every entry in `p.kinds` and `p.facets`: `Contract.validate(component, KIND or FACET, { strict = true })`, `Contract.validateFields(kind, KIND_FIELDS)` for kinds, and a name-uniqueness sweep over every kind's `p.name`. A registration missing a required hook or field, or reusing another kind's name, fails that merge-blocking suite with no test-file edit needed.
+[Module:Entity/Registry/testcases](https://starcitizen.tools/Module:Entity/Registry/testcases) runs three per-entry checks over every entry in `p.kinds` and `p.facets`: `Contract.validate(component, KIND or FACET, { strict = true })`, `Contract.validateFields(kind, KIND_FIELDS)` for kinds, and a name-uniqueness sweep over every kind's `p.name`. A registration missing a required hook or field, or reusing another kind's name, fails that merge-blocking suite with no test-file edit needed.
 
 ### Gotchas
 

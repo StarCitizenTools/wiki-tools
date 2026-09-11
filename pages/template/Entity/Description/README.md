@@ -10,7 +10,7 @@ Explicit UUID:
 {{Entity/Description|uuid=80ee3b95-5665-4548-9e2d-d2067895c0ac}}
 ```
 
-When `{{Entity}}` has been invoked earlier on the page, the UUID can be omitted; it falls back to the value stored in SMW on the current page:
+When `{{Entity}}` has been invoked earlier on the page, the UUID can be omitted; it falls back to the value a previous parse stored in SMW on the current page, so on a brand-new page it resolves only after the page has been saved and re-parsed (purged or re-saved):
 
 ```wikitext
 {{Entity}}
@@ -25,7 +25,7 @@ When `{{Entity}}` has been invoked earlier on the page, the UUID can be omitted;
 |------|-------|------|----------|---------|-------------|---------|
 | `uuid` | UUID | string | No | (falls back to the SMW uuid stored by a prior `{{Entity}}` parse) | UUID of the entity to render. Required if `{{Entity}}` hasn't been invoked. | `80ee3b95-5665-4548-9e2d-d2067895c0ac` |
 
-## Behaviour
+## Behavior
 
 - The container always renders, so the page layout stays stable. When the API returns no description, a "No description available from the API." placeholder is shown in a muted style instead of the quote.
 - Some in-game descriptions carry coloured emphasis spans; these are preserved in the rendered quote, not stripped.

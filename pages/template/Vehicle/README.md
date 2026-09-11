@@ -97,9 +97,9 @@ Concept or unreleased ship with no in-game record. Declare the page as a planned
 | `retiredate` | Retirement date | string | No |  | Retirement date (removed from sale or game). Editorial only. | `2018-11-30` |  |
 | `conceptdate` | Concept announcement date | string | No |  | Date the concept was announced. Editorial only. | `2012-11-26` |  |
 | `saledate` | Concept sale date | string | No |  | Date of the concept sale. Editorial only. | `2012-11-26` |  |
-| `novariant` | Suppress variant category | boolean | No |  | Suppress the variant category for vehicles with no variants (e.g. the Aegis Gladius). Legacy parameter: accepted for compatibility, but the current Entity pipeline does not emit variant categories, so it has no effect. | `yes` |  |
+| `novariant` | Suppress variant category | boolean | No |  | Suppress the variant category for vehicles with no variants (e.g. the Aegis Gladius). Legacy parameter: accepted for compatibility, but the Entity pipeline does not emit variant categories, so it has no effect. | `yes` |  |
 
-## Behaviour
+## Behavior
 
 - `{{Vehicle}}` is a thin facade over `Module:Entity` that injects `|kind=Vehicle`. The declared kind lets the infobox fetch the vehicles endpoint directly, so every invocation on the page shares one Apiunto cache key, and it deliberately suppresses any fallback to a UUID stored on the page: an in-game vehicle page must carry its `uuid` explicitly.
 - For an in-game vehicle the infobox pulls its stats from the API. The editorial/planned parameters (speeds, crew, cargo, mass, dimensions, prices, production state, dates) are primarily for concept and unreleased ships; where the same value also exists in the API, the wikitext value overrides the API value.

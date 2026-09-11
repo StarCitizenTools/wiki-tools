@@ -2,7 +2,7 @@
 
 The Vehicle kind covers every ship, ground vehicle, and gravlev served by Apiunto's `/vehicles/{uuid}` endpoint. `Vehicle.lua` is an orchestrator: it owns kind-level concerns (matching, subtype resolution, structured data, categories, acquisition, header badge, short description) and delegates every infobox section to a per-section sub-builder under `Vehicle/`.
 
-Editors never invoke this module directly; it runs inside [Template:Entity](https://starcitizen.tools/Template:Entity), [Template:Vehicle](https://starcitizen.tools/Template:Vehicle) and [Template:Location](https://starcitizen.tools/Template:Location).
+Editors never invoke this module directly; it runs inside [Template:Entity](https://starcitizen.tools/Template:Entity), [Template:Vehicle](https://starcitizen.tools/Template:Vehicle) and [Template:Location](https://starcitizen.tools/Template:Location); the pipeline and the hook table are on [Module:Entity](https://starcitizen.tools/Module:Entity).
 
 ## For module editors
 

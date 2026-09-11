@@ -1,12 +1,12 @@
 # Module:Entity
 
-Renders the entity infobox and owns an item, commodity, mission, vehicle, or location page's SMW data, short description, and categories from a single template invocation. Editors reach it through `{{Entity}}` and its `{{Vehicle}}`/`{{Location}}` facades; sibling templates read the same fetch to render the rest of the page.
+Renders the entity infobox and owns an item, commodity, mission, vehicle, or location page's SMW data, short description, and categories from a single template invocation. Editors reach it through `{{Entity}}` and its `{{Vehicle}}`/`{{Location}}` facades; sibling templates share Apiunto's cached data to render the rest of the page.
 
 ## For editors
 
 Use `{{Entity}}` at the top of an item, commodity, or mission page; `{{Vehicle}}` for a ship, ground vehicle, or gravlev; `{{Location}}` for a star system or jump point. All three render through this module and write the page's SMW data, `SHORTDESC`, and categories.
 
-Sibling templates read the same fetch; place them further down the page: [Template:Entity/Description](https://starcitizen.tools/Template:Entity/Description) (in-game description prose), [Template:Entity/Availability](https://starcitizen.tools/Template:Entity/Availability) (where to buy/rent/loot/craft it), [Template:Entity/Related](https://starcitizen.tools/Template:Entity/Related) (variants or cargo sizes), [Template:Entity/UsedBy](https://starcitizen.tools/Template:Entity/UsedBy) (vehicles that equip this item), [Template:Entity/Blueprints](https://starcitizen.tools/Template:Entity/Blueprints) (crafting recipes), and [Template:Entity/Ports](https://starcitizen.tools/Template:Entity/Ports) (hardpoint/port tree). On a Mission page, `{{Entity/Orders}}` and `{{Entity/Rewards}}` also store their SMW data.
+Sibling templates share Apiunto's cached data; place them further down the page: [Template:Entity/Description](https://starcitizen.tools/Template:Entity/Description) (in-game description prose), [Template:Entity/Availability](https://starcitizen.tools/Template:Entity/Availability) (where to buy/rent/loot/craft it), [Template:Entity/Related](https://starcitizen.tools/Template:Entity/Related) (variants or cargo sizes), [Template:Entity/UsedBy](https://starcitizen.tools/Template:Entity/UsedBy) (vehicles that equip this item), [Template:Entity/Blueprints](https://starcitizen.tools/Template:Entity/Blueprints) (crafting recipes), and [Template:Entity/Ports](https://starcitizen.tools/Template:Entity/Ports) (hardpoint/port tree). On a Mission page, `{{Entity/Orders}}` and `{{Entity/Rewards}}` also store their SMW data.
 
 ## Index
 
@@ -99,7 +99,7 @@ Identity-shaped hooks take no `ctx`; the rest take `EntityHookContext`. `*` mark
 | `getEditorialManifest` | link | `() → table` | root-to-leaf, leaf wins | `Assembly.mergeEditorialManifests` |
 | `enrich` | link | `(ctx) → table` | root-to-leaf | `Data.enrichChain` |
 | `getSections` | link, facet* | `(ctx) → EntitySectionEntry[]` | additive by key | `Infobox` |
-| `getStructuredData` | link, facet | `(ctx) → table` | additive, leaf wins on collision | `Entity.storeStructuredData` |
+| `getStructuredData` | link, facet | `(ctx) → table` | root-to-leaf, facets, editorial; last wins | `Entity.storeStructuredData` |
 | `getShortDescription` | link | `(ctx) → string` | leaf-first wins | `Entity.setShortDescription` |
 | `getShortDescriptionPrefix` | facet | `(ctx) → string\|nil` | first non-nil wins | `Entity.setShortDescription` |
 | `getExternalSiteItems` | link | `(ctx) → EntityItemData[]` | additive | `Infobox` |

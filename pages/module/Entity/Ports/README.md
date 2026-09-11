@@ -16,7 +16,7 @@ Draws `getPorts`, resolved leaf-first (see the Hooks table on [Module:Entity](ht
 
 To catalogue a new API category, add it to `categories.json`'s `categories` map:
 
-```jsonc
+```json
 {
   "categories": {
     "<category_label>": {

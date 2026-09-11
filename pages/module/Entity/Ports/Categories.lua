@@ -70,8 +70,11 @@ end
 --- `collapsed:true` (routed into the single "Other" card at the
 --- bottom). Unknown / empty labels default to primary with order 999
 --- (fail-open — a new CIG category renders as its own card until we
---- catalogue it). `expandIntoTypes` is the vehicle-only per-parent
---- child-type allowlist for the L-tree.
+--- catalogue it). `expandIntoTypes` is the per-parent child-type
+--- allowlist for the L-tree; its presence gates whether a category's
+--- children render as a tree at all, for every kind — only the
+--- narrowing pass that prunes to the allowlist (Vehicle's
+--- `narrowChildren`) is vehicle-only.
 ---
 --- @param label string|nil  the API's `category_label`, or a derived fallback
 --- @return { label: string, order: integer, collapsed: boolean, expandIntoTypes: string[]|nil }

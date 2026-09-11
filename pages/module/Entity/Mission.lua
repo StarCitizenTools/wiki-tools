@@ -67,6 +67,9 @@ p.name = 'Mission'
 --- @type string
 p.parent = 'Entity/Base'
 
+-- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
+p.contextHooks = true
+
 --- @return EntityApiConfig[]
 function p.getApiConfigs()
 	return {
@@ -84,9 +87,10 @@ function p.matches(apiData)
 	return apiData ~= nil and apiData.mission_type ~= nil
 end
 
---- @param apiData table
+--- @param ctx EntityHookContext
 --- @return table|nil { name, category, categories }
-function p.getTypeInfo(apiData)
+function p.getTypeInfo(ctx)
+	local apiData = ctx.apiData
 	local g = resolveTypes(apiData)
 	if not g then
 		return nil
@@ -98,11 +102,11 @@ function p.getTypeInfo(apiData)
 	}
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table[]
-function p.getSections(apiData, args)
-	local typeInfo = p.getTypeInfo(apiData, args)
+function p.getSections(ctx)
+	local apiData, args = ctx.apiData, ctx.args
+	local typeInfo = p.getTypeInfo(ctx)
 	local faction = apiData.mission_giver
 
 	local data = {
@@ -281,11 +285,11 @@ function p.getSections(apiData, args)
 	return sections
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table<string, any>
-function p.getStructuredData(apiData, args)
-	local typeInfo = p.getTypeInfo(apiData, args)
+function p.getStructuredData(ctx)
+	local apiData, args = ctx.apiData, ctx.args
+	local typeInfo = p.getTypeInfo(ctx)
 	local faction = apiData.faction and apiData.faction.name or apiData.mission_giver
 	local scrip
 	local available = true
@@ -329,20 +333,18 @@ end
 
 --- "<Faction> <type> contract" e.g. "Headhunter mercenary contract".
 ---
---- @param apiData table
---- @param args table
---- @param typeInfo table
+--- @param ctx EntityHookContext
 --- @return string
-function p.getShortDescription(apiData, args, typeInfo)
+function p.getShortDescription(ctx)
+	local apiData, typeInfo = ctx.apiData, ctx.typeInfo
 	local faction = apiData.faction and apiData.faction.name or apiData.mission_giver
 
 	return string.format('%s %s contract', faction:lower():gsub('^%l', string.upper), typeInfo.name:lower())
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return EntityItemData[]
-function p.getExternalSiteItems(apiData, args)
+function p.getExternalSiteItems(ctx)
 	return {}
 end
 

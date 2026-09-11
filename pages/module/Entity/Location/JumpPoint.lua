@@ -25,11 +25,16 @@ p.parent = 'Entity/Location'
 --- |family=jumppoint on the starmap-only tunnels that have no location record.
 p.family = 'jumppoint'
 
---- @param apiData table
---- @param args table|nil
+-- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
+p.contextHooks = true
+
+--- @param ctx EntityHookContext
 --- @return table apiData
-function p.enrich(apiData, args)
-	return locationUtil.attachCelestialObject(apiData, Editorial.rawArg(args, p.getEditorialManifest().starmapcode))
+function p.enrich(ctx)
+	return locationUtil.attachCelestialObject(
+		ctx.apiData,
+		Editorial.rawArg(ctx.args, p.getEditorialManifest().starmapcode)
+	)
 end
 
 --- The starmap celestial-object code (`code` is the legacy {{Astronomical
@@ -54,11 +59,10 @@ end
 --- 'Astronomical objects'/'Locations' memberships are deliberately NOT
 --- carried over: the classification bucket (typeInfo's 'Jump points', under
 --- Astronomy) covers that taxonomy.
---- @param apiData table
---- @param args table|nil
---- @param resolved table|nil
+--- @param ctx EntityHookContext
 --- @return string[]
-function p.getCategories(apiData, args, resolved)
+function p.getCategories(ctx)
+	local apiData = ctx.apiData
 	local entry = locationUtil.gateEntrySystem(apiData)
 	if entry then
 		return { entry .. ' system' }
@@ -236,19 +240,19 @@ local function starmapCode(apiData, args)
 	return Editorial.rawArg(args, p.getEditorialManifest().starmapcode)
 end
 
+--- @param ctx EntityHookContext
 --- @return { name: string, category: string }
-function p.getTypeInfo()
+function p.getTypeInfo(ctx)
 	return {
 		name = 'Jump point',
 		category = 'Jump points',
 	}
 end
 
---- @param apiData table
---- @param args table
---- @param resolved table|nil
+--- @param ctx EntityHookContext
 --- @return EntitySectionEntry[]
-function p.getSections(apiData, args, resolved)
+function p.getSections(ctx)
+	local apiData, args, resolved = ctx.apiData, ctx.args, ctx.resolved
 	local ed = Editorial.view(resolved)
 	local celestial = getCelestialObject(apiData)
 
@@ -291,11 +295,10 @@ end
 --- PAGE names ("Pyro system"), so [[System::Pyro system]] queries resolve the
 --- actual wiki pages. discoveredin/discoveredby storage is owned by the
 --- editorial manifest — not double-stored here.
---- @param apiData table
---- @param args table
---- @param resolved table|nil
+--- @param ctx EntityHookContext
 --- @return table<string, any>
-function p.getStructuredData(apiData, args, resolved)
+function p.getStructuredData(ctx)
+	local apiData, args = ctx.apiData, ctx.args
 	local entry = entryFor(apiData, args)
 	local destination = destinationSystem(apiData, args)
 	return {
@@ -308,13 +311,10 @@ end
 --- Gate-directional, no trailing period: "Medium jump point from Pyro to Nyx".
 --- No size → "Jump point from Pyro to Nyx"; either system unresolvable → the
 --- catch-all (a bare "Medium jump point" names no route and reads wrong).
---- @param apiData table
---- @param args table
---- @param typeInfo table
---- @param prefix string|nil
---- @param resolved table|nil
+--- @param ctx EntityHookContext
 --- @return string
-function p.getShortDescription(apiData, args, typeInfo, prefix, resolved)
+function p.getShortDescription(ctx)
+	local apiData, args = ctx.apiData, ctx.args
 	local entry = entryFor(apiData, args)
 	local destination = destinationSystem(apiData, args)
 	if entry and destination then
@@ -328,10 +328,10 @@ end
 --- RSI Starmap as a footer action button, from the shared code accessor.
 --- Same button contract as StarSystem's (the Galactapedia mark doubles as the
 --- Starmap's logo); no usable code → no button.
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table[]
-function p.getFooterButtons(apiData, args)
+function p.getFooterButtons(ctx)
+	local apiData, args = ctx.apiData, ctx.args
 	local code = starmapCode(apiData, args)
 	if not code then
 		return {}
@@ -348,10 +348,10 @@ end
 
 --- Chain-contributed Metadata rows: the ARK starmap code, through the same
 --- accessor as the footer button so the two cannot disagree.
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return EntityItemData[]
-function p.getMetadataItems(apiData, args)
+function p.getMetadataItems(ctx)
+	local apiData, args = ctx.apiData, ctx.args
 	local code = starmapCode(apiData, args)
 	if not code then
 		return {}

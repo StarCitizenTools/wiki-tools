@@ -71,11 +71,13 @@ end
 --- |family= on record-less pages; the kind's default leaf.
 p.family = 'starsystem'
 
---- @param apiData table
---- @param args table|nil
+-- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
+p.contextHooks = true
+
+--- @param ctx EntityHookContext
 --- @return table apiData
-function p.enrich(apiData, args)
-	return locationUtil.attachStarsystem(apiData, args)
+function p.enrich(ctx)
+	return locationUtil.attachStarsystem(ctx.apiData, ctx.args)
 end
 
 --- Star-system editorial fields. size overlaps the starmap aggregated size
@@ -114,11 +116,10 @@ end
 --- trees. A free-text affiliation categorizes as `<text> systems` exactly as
 --- the legacy template did (Kr'Thak systems, Unknown systems — both live
 --- categories).
---- @param apiData table
---- @param args table|nil
---- @param resolved table|nil
+--- @param ctx EntityHookContext
 --- @return string[]
-function p.getCategories(apiData, args, resolved)
+function p.getCategories(ctx)
+	local apiData, resolved = ctx.apiData, ctx.resolved
 	local categories = {}
 	local starsystem = getStarsystem(apiData)
 	local _, typeEntry = locationUtil.resolveSystemType(starsystem, resolved)
@@ -274,10 +275,10 @@ end
 --- This leaf declares the systemtype entry itself, so its own
 --- getEditorialManifest fragment is the merged chain manifest's value for
 --- the field — reading its own entry here is correct only because of that.
---- @param apiData table
---- @param args table|nil
+--- @param ctx EntityHookContext
 --- @return { name: string, category: string }
-function p.getTypeInfo(apiData, args)
+function p.getTypeInfo(ctx)
+	local apiData, args = ctx.apiData, ctx.args
 	local _, editorialEntry = locationUtil.systemTypeEntry(Editorial.rawArg(args, p.getEditorialManifest().systemtype))
 	local starsystem = getStarsystem(apiData)
 	local typeInfo = editorialEntry or (starsystem and locationUtil.SYSTEM_TYPES[starsystem.type] or nil)
@@ -287,11 +288,10 @@ function p.getTypeInfo(apiData, args)
 	}
 end
 
---- @param apiData table
---- @param args table
---- @param resolved table|nil
+--- @param ctx EntityHookContext
 --- @return EntitySectionEntry[]
-function p.getSections(apiData, args, resolved)
+function p.getSections(ctx)
+	local apiData, resolved = ctx.apiData, ctx.resolved
 	local ed = Editorial.view(resolved)
 	local starsystem = getStarsystem(apiData)
 	local aggregated = getAggregated(starsystem)
@@ -336,11 +336,10 @@ end
 
 --- Pure-API structured data. size / discoveredin / discoveredby storage is
 --- owned by the editorial manifest (smw fields there) — do not double-store.
---- @param apiData table
---- @param args table
---- @param resolved table|nil
+--- @param ctx EntityHookContext
 --- @return table<string, any>
-function p.getStructuredData(apiData, args, resolved)
+function p.getStructuredData(ctx)
+	local apiData, resolved = ctx.apiData, ctx.resolved
 	local starsystem = getStarsystem(apiData)
 	local ed = Editorial.view(resolved)
 	local counts = countObjects(starsystem)
@@ -377,13 +376,10 @@ end
 --- "UEE single star system with 4 planets" / "Unclaimed single star system
 --- with 6 planets"; fallbacks: no planets → no count clause; no type →
 --- "System with N planets"; no record at all → the legacy catch-all.
---- @param apiData table
---- @param args table
---- @param typeInfo table
---- @param prefix string|nil
---- @param resolved table|nil
+--- @param ctx EntityHookContext
 --- @return string
-function p.getShortDescription(apiData, args, typeInfo, prefix, resolved)
+function p.getShortDescription(ctx)
+	local apiData, typeInfo, resolved = ctx.apiData, ctx.typeInfo, ctx.resolved
 	local starsystem = getStarsystem(apiData)
 	local _, typeEntry = locationUtil.resolveSystemType(starsystem, resolved)
 	local planets = tonumber(Editorial.view(resolved):value('planets', countObjects(starsystem).PLANET)) or 0
@@ -416,10 +412,10 @@ end
 --- as the icon — it is technically the Starmap's logo. Galactapedia itself is
 --- NOT handled here: the Infobox footer already renders it from
 --- args.galactapediaurl.
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table[]
-function p.getFooterButtons(apiData, args)
+function p.getFooterButtons(ctx)
+	local apiData = ctx.apiData
 	local code = starmapCode(apiData)
 	if not code then
 		return {}
@@ -437,10 +433,10 @@ end
 --- Chain-contributed Metadata rows: the ARK starmap code — the `?location=`
 --- key on the RSI starmap, the same vocabulary the legacy System and
 --- Astronomical object templates expose.
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return EntityItemData[]
-function p.getMetadataItems(apiData, args)
+function p.getMetadataItems(ctx)
+	local apiData = ctx.apiData
 	local code = starmapCode(apiData)
 	if not code then
 		return {}

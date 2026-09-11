@@ -1,6 +1,6 @@
 # Module:Entity/Item
 
-The Item kind covers every equippable object served by Apiunto's `/items/{uuid}` endpoint: vehicle components, personal weapons, attachments, ordnance, mining and salvage gear, FPS consumables, and habitat flair. Item resolves a subtype leaf from the API `type` string; Food and Drink route entirely through the data-driven [Module:Entity/Facet/Consumable](https://starcitizen.tools/Module:Entity/Facet/Consumable) instead of a subtype leaf.
+The Item kind covers every equippable object served by Apiunto's `/items/{uuid}` endpoint: vehicle components, personal weapons, attachments, ordnance, mining and salvage gear, FPS consumables, and habitat flair. Item resolves a subtype leaf from the API `type` string; Food and Drink have none, so their stats come from the data-driven [Module:Entity/Facet/Consumable](https://starcitizen.tools/Module:Entity/Facet/Consumable) instead, while their label and browse category still resolve through `types.json` like any other unmapped type.
 
 Editors never invoke this module directly; it runs inside [Template:Entity](https://starcitizen.tools/Template:Entity), [Template:Vehicle](https://starcitizen.tools/Template:Vehicle) and [Template:Location](https://starcitizen.tools/Template:Location).
 

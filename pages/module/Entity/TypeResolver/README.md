@@ -14,8 +14,10 @@ Not to be confused with [Module:Entity/SubtypeResolver](https://starcitizen.tool
 
 ### Precedence ladder
 
+`Data.get` calls `p.resolve(args.type or apiData.type, apiData.classification)`: an editor's `|type=` override, when given, substitutes for the API's raw type and feeds steps 3 and 4 below.
+
 1. The leaf's own `getTypeInfo(ctx)`, tried by `Data.get` before `TypeResolver` runs at all; a non-nil return wins outright.
-2. [classifications.json](https://starcitizen.tools/Module:Entity/Item/classifications.json), only when `classification` starts with `Ship.`: walks the full path, then drops trailing `.segment`s until a match, so a grouping-level entry (`Ship.Turret`) catches every unmapped child under it.
+2. [classifications.json](https://starcitizen.tools/Module:Entity/Item/classifications.json), only when `classification` starts with `Ship.`: walks the full path, then drops trailing `.segment`s until a match, so a grouping-level entry (`Ship.Turret`) catches every unmapped child under it. There is no top-level `Ship` key, so a classification with no match at any depth (e.g. a lone `Ship.SomethingNew`) falls through to `types.json` rather than landing in a catch-all.
 3. [types.json](https://starcitizen.tools/Module:Entity/Item/types.json), keyed by the raw `type` string; the fallback for FPS items, vehicles, and any kind whose classification isn't a `Ship.*` path.
 4. The raw `apiType` string itself: `typeInfo` is `nil`, `displayType` is the unformatted API value. No error is raised.
 
@@ -23,4 +25,4 @@ Not to be confused with [Module:Entity/SubtypeResolver](https://starcitizen.tool
 
 - Some entries duplicate across both JSON files with identical values (`Ship.Cooler` in classifications, `Cooler` in types). For an item-endpoint record the classification path wins, so the `types.json` entry is dead for those items, but a name change must still update both files to stay consistent.
 - The API's `classification_label` field is never read; only `classification` (the path) and `type` feed the ladder.
-- A miscategorised entity renders with the raw API type string as its label rather than erroring, and files in no browse category. A label that looks like a raw identifier (`Char_Armor_Helmet`) is the tell.
+- A miscategorised entity renders with the raw API type string as its label rather than erroring, and gets no type-derived browse category; other chain-link categories (career, production state, and so on) still apply. A label that looks like a raw identifier (`Char_Armor_Helmet`) is the tell.

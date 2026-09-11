@@ -8,6 +8,11 @@ local assembly = require('Module:Entity/Assembly')
 local StarSystem = require('Module:Entity/Location/StarSystem')
 local JumpPoint = require('Module:Entity/Location/JumpPoint')
 
+--- Hook context for direct hook calls (Module:Entity/Types EntityHookContext).
+local function ctx(apiData, args, resolved)
+	return { apiData = apiData, args = args or {}, resolved = resolved }
+end
+
 local suite = ScribuntoUnit:new()
 
 --- Stanton-shaped location payload (trimmed from the live API response).
@@ -182,13 +187,13 @@ end
 function suite:testGetCategoriesFullRecord()
 	local apiData = solarSystemFixture()
 	apiData.starsystem = starsystemFixture()
-	local categories = StarSystem.getCategories(apiData, {}, nil)
+	local categories = StarSystem.getCategories(ctx(apiData, {}, nil))
 	self:assertEquals('Single Star systems', categories[1])
 	self:assertEquals('United Empire of Earth systems', categories[2])
 end
 
 function suite:testGetCategoriesWithoutStarsystem()
-	local categories = StarSystem.getCategories(solarSystemFixture(), {}, nil)
+	local categories = StarSystem.getCategories(ctx(solarSystemFixture(), {}, nil))
 	self:assertEquals(0, #categories)
 end
 
@@ -197,7 +202,7 @@ function suite:testGetCategoriesUnclaimed()
 	local starsystem = starsystemFixture()
 	starsystem.affiliation = { { code = 'UNC', name = 'UNC' } }
 	apiData.starsystem = starsystem
-	local categories = StarSystem.getCategories(apiData, {}, nil)
+	local categories = StarSystem.getCategories(ctx(apiData, {}, nil))
 	self:assertEquals('Unclaimed systems', categories[2])
 end
 
@@ -310,13 +315,13 @@ end
 function suite:testGetTypeInfo()
 	local apiData = solarSystemFixture()
 	apiData.starsystem = starsystemFixture()
-	local info = StarSystem.getTypeInfo(apiData)
+	local info = StarSystem.getTypeInfo(ctx(apiData))
 	self:assertEquals('Single star system', info.name)
 	self:assertEquals('Systems', info.category)
 end
 
 function suite:testGetTypeInfoFallback()
-	local info = StarSystem.getTypeInfo(solarSystemFixture())
+	local info = StarSystem.getTypeInfo(ctx(solarSystemFixture()))
 	self:assertEquals('Star system', info.name)
 end
 
@@ -364,7 +369,7 @@ function suite:testStructuredDataCountOverride()
 	local apiData = solarSystemFixture()
 	apiData.starsystem = starsystemFixture()
 	local resolved = { stations = { value = 24, source = 'editorial' } }
-	local data = StarSystem.getStructuredData(apiData, {}, resolved)
+	local data = StarSystem.getStructuredData(ctx(apiData, {}, resolved))
 	self:assertEquals(24, data.station_count)
 	self:assertEquals(2, data.planet_count) -- un-overridden counts keep the API tally
 end
@@ -373,10 +378,16 @@ function suite:testShortDescriptionPlanetOverride()
 	local apiData = solarSystemFixture()
 	apiData.starsystem = starsystemFixture()
 	local resolved = { planets = { value = 4, source = 'editorial' } }
-	local typeInfo = StarSystem.getTypeInfo(apiData)
+	local typeInfo = StarSystem.getTypeInfo(ctx(apiData))
 	self:assertEquals(
 		'UEE single star system with 4 planets',
-		StarSystem.getShortDescription(apiData, {}, typeInfo, nil, resolved)
+		StarSystem.getShortDescription({
+			apiData = apiData,
+			args = {},
+			typeInfo = typeInfo,
+			prefix = nil,
+			resolved = resolved,
+		})
 	)
 end
 
@@ -393,7 +404,7 @@ end
 function suite:testGetFooterButtons()
 	local apiData = solarSystemFixture()
 	apiData.starsystem = starsystemFixture()
-	local buttons = StarSystem.getFooterButtons(apiData, {})
+	local buttons = StarSystem.getFooterButtons(ctx(apiData, {}))
 	self:assertEquals(1, #buttons)
 	self:assertEquals('Starmap', buttons[1].label)
 	self:assertEquals('https://robertsspaceindustries.com/starmap?location=STANTON', buttons[1].url)
@@ -401,20 +412,20 @@ function suite:testGetFooterButtons()
 end
 
 function suite:testGetFooterButtonsWithoutRecord()
-	self:assertEquals(0, #StarSystem.getFooterButtons(solarSystemFixture(), {}))
+	self:assertEquals(0, #StarSystem.getFooterButtons(ctx(solarSystemFixture(), {})))
 end
 
 function suite:testGetMetadataItems()
 	local apiData = solarSystemFixture()
 	apiData.starsystem = starsystemFixture()
-	local items = StarSystem.getMetadataItems(apiData, {})
+	local items = StarSystem.getMetadataItems(ctx(apiData, {}))
 	self:assertEquals(1, #items)
 	self:assertEquals('Starmap code', items[1].label)
 	self:assertEquals('STANTON', items[1].content)
 end
 
 function suite:testGetMetadataItemsWithoutRecord()
-	self:assertEquals(0, #StarSystem.getMetadataItems(solarSystemFixture(), {}))
+	self:assertEquals(0, #StarSystem.getMetadataItems(ctx(solarSystemFixture(), {})))
 end
 
 -- Both consumers read the code through one accessor, so they cannot disagree
@@ -438,16 +449,19 @@ function suite:testEmptyStarmapCodeYieldsNeitherButtonNorRow()
 	local apiData = solarSystemFixture()
 	apiData.starsystem = starsystemFixture()
 	apiData.starsystem.code = ''
-	self:assertEquals(0, #StarSystem.getFooterButtons(apiData, {}))
-	self:assertEquals(0, #StarSystem.getMetadataItems(apiData, {}))
+	self:assertEquals(0, #StarSystem.getFooterButtons(ctx(apiData, {})))
+	self:assertEquals(0, #StarSystem.getMetadataItems(ctx(apiData, {})))
 end
 
 -- Legacy planet-count formula + affiliation prefix, no trailing period.
 function suite:testShortDescriptionUee()
 	local apiData = solarSystemFixture()
 	apiData.starsystem = starsystemFixture() -- 2 planets in the fixture
-	local typeInfo = StarSystem.getTypeInfo(apiData)
-	self:assertEquals('UEE single star system with 2 planets', StarSystem.getShortDescription(apiData, {}, typeInfo))
+	local typeInfo = StarSystem.getTypeInfo(ctx(apiData))
+	self:assertEquals(
+		'UEE single star system with 2 planets',
+		StarSystem.getShortDescription({ apiData = apiData, args = {}, typeInfo = typeInfo })
+	)
 end
 
 function suite:testShortDescriptionUnclaimed()
@@ -455,10 +469,10 @@ function suite:testShortDescriptionUnclaimed()
 	local starsystem = starsystemFixture()
 	starsystem.affiliation = { { code = 'UNC' } }
 	apiData.starsystem = starsystem
-	local typeInfo = StarSystem.getTypeInfo(apiData)
+	local typeInfo = StarSystem.getTypeInfo(ctx(apiData))
 	self:assertEquals(
 		'Unclaimed single star system with 2 planets',
-		StarSystem.getShortDescription(apiData, {}, typeInfo)
+		StarSystem.getShortDescription({ apiData = apiData, args = {}, typeInfo = typeInfo })
 	)
 end
 
@@ -467,8 +481,11 @@ function suite:testShortDescriptionSingularPlanet()
 	local starsystem = starsystemFixture()
 	starsystem.celestial_objects = { { type = 'STAR' }, { type = 'PLANET' } }
 	apiData.starsystem = starsystem
-	local typeInfo = StarSystem.getTypeInfo(apiData)
-	self:assertEquals('UEE single star system with 1 planet', StarSystem.getShortDescription(apiData, {}, typeInfo))
+	local typeInfo = StarSystem.getTypeInfo(ctx(apiData))
+	self:assertEquals(
+		'UEE single star system with 1 planet',
+		StarSystem.getShortDescription({ apiData = apiData, args = {}, typeInfo = typeInfo })
+	)
 end
 
 function suite:testShortDescriptionNoPlanetsNoAffiliation()
@@ -477,14 +494,20 @@ function suite:testShortDescriptionNoPlanetsNoAffiliation()
 	starsystem.celestial_objects = { { type = 'STAR' } }
 	starsystem.affiliation = nil
 	apiData.starsystem = starsystem
-	local typeInfo = StarSystem.getTypeInfo(apiData)
-	self:assertEquals('Single star system', StarSystem.getShortDescription(apiData, {}, typeInfo))
+	local typeInfo = StarSystem.getTypeInfo(ctx(apiData))
+	self:assertEquals(
+		'Single star system',
+		StarSystem.getShortDescription({ apiData = apiData, args = {}, typeInfo = typeInfo })
+	)
 end
 
 function suite:testShortDescriptionNoRecordFallsBackToLegacyCatchAll()
 	local apiData = solarSystemFixture()
-	local typeInfo = StarSystem.getTypeInfo(apiData)
-	self:assertEquals('A star system in Star Citizen', StarSystem.getShortDescription(apiData, {}, typeInfo))
+	local typeInfo = StarSystem.getTypeInfo(ctx(apiData))
+	self:assertEquals(
+		'A star system in Star Citizen',
+		StarSystem.getShortDescription({ apiData = apiData, args = {}, typeInfo = typeInfo })
+	)
 end
 
 local function findSection(sections, key)
@@ -525,10 +548,16 @@ function suite:testUnparseableCountOverrideKeepsTheStarmapTally()
 		end
 	end
 	self:assertEquals(2, planetTile and planetTile.value)
-	self:assertEquals(2, StarSystem.getStructuredData(apiData, {}, resolved).planet_count)
+	self:assertEquals(2, StarSystem.getStructuredData(ctx(apiData, {}, resolved)).planet_count)
 	self:assertEquals(
 		'UEE single star system with 2 planets',
-		StarSystem.getShortDescription(apiData, {}, StarSystem.getTypeInfo(apiData), nil, resolved)
+		StarSystem.getShortDescription({
+			apiData = apiData,
+			args = {},
+			typeInfo = StarSystem.getTypeInfo(ctx(apiData)),
+			prefix = nil,
+			resolved = resolved,
+		})
 	)
 end
 
@@ -543,14 +572,14 @@ function suite:testUnparseableSizeOverrideKeepsTheStarmapSize()
 	self:assertEquals('api', resolved.size.source)
 	self:assertEquals(
 		'4.85 AU',
-		findItem(findSection(StarSystem.getSections(apiData, {}, resolved), 'general'), 'Size')
+		findItem(findSection(StarSystem.getSections(ctx(apiData, {}, resolved)), 'general'), 'Size')
 	)
 end
 
 function suite:testGetSectionsGeneralRows()
 	local apiData = solarSystemFixture()
 	apiData.starsystem = starsystemFixture()
-	local general = findSection(StarSystem.getSections(apiData, {}, nil), 'general')
+	local general = findSection(StarSystem.getSections(ctx(apiData, {}, nil)), 'general')
 	self:assertEquals('[[United Empire of Earth]]', findItem(general, 'Affiliation'))
 	self:assertEquals('[[UEE]]', findItem(general, 'Jurisdiction'))
 	self:assertEquals('4.85 AU', findItem(general, 'Size'))
@@ -566,7 +595,7 @@ function suite:testGetSectionsRowsCollapse()
 	local apiData = solarSystemFixture()
 	apiData.name = 'Pyro System'
 	apiData.jurisdiction = nil
-	local sections = StarSystem.getSections(apiData, {}, nil)
+	local sections = StarSystem.getSections(ctx(apiData, {}, nil))
 	local general = findSection(sections, 'general')
 	if general then
 		self:assertEquals(nil, findItem(general, 'Jurisdiction'))
@@ -579,7 +608,7 @@ end
 function suite:testStructuredData()
 	local apiData = solarSystemFixture()
 	apiData.starsystem = starsystemFixture()
-	local data = StarSystem.getStructuredData(apiData, {}, nil)
+	local data = StarSystem.getStructuredData(ctx(apiData, {}, nil))
 	-- Display label + compact affiliation: store equals display. (The raw-code
 	-- vocabulary retired with legacy Module:System — this leaf is the only
 	-- writer now.)
@@ -593,7 +622,7 @@ function suite:testStructuredData()
 end
 
 function suite:testStructuredDataWithoutStarsystem()
-	local data = StarSystem.getStructuredData(solarSystemFixture(), {}, nil)
+	local data = StarSystem.getStructuredData(ctx(solarSystemFixture(), {}, nil))
 	self:assertEquals(nil, next(data))
 end
 
@@ -617,7 +646,7 @@ function suite:testSectionsOmitSizeRowForZeroSizeSystem()
 	record.aggregated.size = 0
 	local apiData = solarSystemFixture()
 	apiData.starsystem = Util._internal.normalizeAggregates(record)
-	local general = findSection(StarSystem.getSections(apiData, {}, nil), 'general')
+	local general = findSection(StarSystem.getSections(ctx(apiData, {}, nil)), 'general')
 	self:assertEquals(nil, findItem(general, 'Size'))
 	self:assertEquals('Published', findItem(general, 'Starmap status'))
 end
@@ -626,7 +655,7 @@ end
 function suite:testSectionsDropSizeAndSensorsForWithheldStub()
 	local apiData = solarSystemFixture()
 	apiData.starsystem = Util._internal.normalizeAggregates(withheldStubFixture('M', 7))
-	local sections = StarSystem.getSections(apiData, {}, nil)
+	local sections = StarSystem.getSections(ctx(apiData, {}, nil))
 	self:assertEquals(nil, findItem(findSection(sections, 'general'), 'Size'))
 	self:assertEquals(nil, findSection(sections, 'sensor'))
 end
@@ -637,7 +666,7 @@ function suite:testSizeOverrideSurvivesDroppedStarmapSize()
 	apiData.starsystem = starsystemFixture()
 	apiData.starsystem.aggregated.size = nil
 	local resolved = { size = { value = 12, source = 'override' } }
-	local general = findSection(StarSystem.getSections(apiData, {}, resolved), 'general')
+	local general = findSection(StarSystem.getSections(ctx(apiData, {}, resolved)), 'general')
 	self:assertEquals('12 AU', findItem(general, 'Size'))
 end
 
@@ -676,7 +705,7 @@ end
 -- filter[name] query value.
 function suite:testEnrichUrlEncodesTheLookupKey()
 	withStubbedFetch({ starsystemFixture() }, function(captured)
-		StarSystem.enrich({}, { kind = 'Location', starmapname = "Kyuk'ya" })
+		StarSystem.enrich(ctx({}, { kind = 'Location', starmapname = "Kyuk'ya" }))
 		self:assertEquals('kyuk%27ya', captured.key)
 		self:assertEquals(
 			'starsystems?filter[name]=kyuk%27ya&include=celestialObjects&locale=en_EN',
@@ -690,7 +719,7 @@ end
 -- and a 0.1/10 economy on twelve Vanduul pages.
 function suite:testEnrichNormalizesTheAttachedRecord()
 	withStubbedFetch({ withheldStubFixture('M', 7) }, function()
-		local apiData = StarSystem.enrich(solarSystemFixture(), nil)
+		local apiData = StarSystem.enrich(ctx(solarSystemFixture(), nil))
 		self:assertEquals(nil, apiData.starsystem.aggregated.size)
 		self:assertEquals(nil, apiData.starsystem.aggregated.population)
 		self:assertEquals(nil, apiData.starsystem.aggregated.economy)
@@ -701,7 +730,7 @@ end
 -- substring match returned by the filter[name] query.
 function suite:testEnrichAttachesThePickedRow()
 	withStubbedFetch({ { name = 'Vega Prime' }, { name = 'Vega', code = 'VEGA' } }, function()
-		local apiData = StarSystem.enrich({ name = 'Vega System', type = { name = 'SolarSystem' } }, nil)
+		local apiData = StarSystem.enrich(ctx({ name = 'Vega System', type = { name = 'SolarSystem' } }, nil))
 		self:assertEquals('VEGA', apiData.starsystem.code)
 	end)
 end
@@ -710,7 +739,7 @@ end
 -- attaching an empty table the section builders would have to nil-guard.
 function suite:testEnrichSoftFailsOnEmptyResult()
 	withStubbedFetch({}, function()
-		self:assertEquals(nil, StarSystem.enrich(solarSystemFixture(), nil).starsystem)
+		self:assertEquals(nil, StarSystem.enrich(ctx(solarSystemFixture(), nil)).starsystem)
 	end)
 end
 
@@ -718,7 +747,8 @@ end
 
 function suite:testEnrichJumpPointFetchesCelestialObject()
 	withStubbedFetch(celestialObjectFixture(), function(captured)
-		local apiData = JumpPoint.enrich(jumpPointFixture(), { kind = 'Location', starmapcode = 'PYRO.JUMPPOINTS.NYX' })
+		local apiData =
+			JumpPoint.enrich(ctx(jumpPointFixture(), { kind = 'Location', starmapcode = 'PYRO.JUMPPOINTS.NYX' }))
 		self:assertEquals('PYRO.JUMPPOINTS.NYX', captured.key)
 		self:assertEquals('celestial-objects/%s', captured.config.endpoint)
 		-- A plain path endpoint (no query string of its own), so locale rides
@@ -737,9 +767,9 @@ end
 -- present — the same order the starmapcode manifest entry declares.
 function suite:testEnrichCelestialCodeAliasAndPrecedence()
 	withStubbedFetch(celestialObjectFixture(), function(captured)
-		JumpPoint.enrich(jumpPointFixture(), { code = 'NYX.JUMPPOINTS.PYRO' })
+		JumpPoint.enrich(ctx(jumpPointFixture(), { code = 'NYX.JUMPPOINTS.PYRO' }))
 		self:assertEquals('NYX.JUMPPOINTS.PYRO', captured.key)
-		JumpPoint.enrich(jumpPointFixture(), { starmapcode = 'PYRO.JUMPPOINTS.NYX', code = 'NYX.JUMPPOINTS.PYRO' })
+		JumpPoint.enrich(ctx(jumpPointFixture(), { starmapcode = 'PYRO.JUMPPOINTS.NYX', code = 'NYX.JUMPPOINTS.PYRO' }))
 		self:assertEquals('PYRO.JUMPPOINTS.NYX', captured.key)
 	end)
 end
@@ -747,7 +777,7 @@ end
 -- No code arg → no fetch of ANY kind.
 function suite:testEnrichJumpPointWithoutCodeFetchesNothing()
 	withStubbedFetch(celestialObjectFixture(), function(captured)
-		local apiData = JumpPoint.enrich(jumpPointFixture(), { kind = 'Location' })
+		local apiData = JumpPoint.enrich(ctx(jumpPointFixture(), { kind = 'Location' }))
 		self:assertEquals(nil, captured.key)
 		self:assertEquals(nil, apiData.celestialobject)
 		self:assertEquals(nil, apiData.starsystem)
@@ -759,7 +789,7 @@ end
 function suite:testEnrichCelestialSoftFailsOnErrorOrEmptyPayload()
 	for _, payload in ipairs({ 'error', 'empty' }) do
 		withStubbedFetch(payload == 'empty' and {} or nil, function()
-			local apiData = JumpPoint.enrich(jumpPointFixture(), { starmapcode = 'PYRO.JUMPPOINTS.NYX' })
+			local apiData = JumpPoint.enrich(ctx(jumpPointFixture(), { starmapcode = 'PYRO.JUMPPOINTS.NYX' }))
 			self:assertEquals(nil, apiData.celestialobject, payload .. ' payload must not attach')
 		end)
 	end
@@ -776,7 +806,7 @@ end
 -- never reach the celestial fetch however the args look, and vice versa.
 function suite:testBridgesAreLeafExclusive()
 	withStubbedFetch({ starsystemFixture() }, function(captured)
-		local apiData = StarSystem.enrich(solarSystemFixture(), { starmapcode = 'STANTON' })
+		local apiData = StarSystem.enrich(ctx(solarSystemFixture(), { starmapcode = 'STANTON' }))
 		self:assertEquals('starsystems?filter[name]=%s&include=celestialObjects&locale=en_EN', captured.config.endpoint)
 		self:assertEquals('STANTON', apiData.starsystem.code)
 		self:assertEquals(nil, apiData.celestialobject)
@@ -798,10 +828,10 @@ end
 function suite:testGetTypeInfoFromEditorialArgs()
 	-- Type info runs before editorial resolution, so it reads the raw args;
 	-- the legacy `type` arg name works as the alias.
-	self:assertEquals('Trinary star system', StarSystem.getTypeInfo({}, { type = 'Trinary' }).name)
-	self:assertEquals('Single star system', StarSystem.getTypeInfo({}, { systemtype = 'SINGLE_STAR' }).name)
-	self:assertEquals('Star system', StarSystem.getTypeInfo({}, {}).name)
-	self:assertEquals('Star system', StarSystem.getTypeInfo({}).name)
+	self:assertEquals('Trinary star system', StarSystem.getTypeInfo(ctx({}, { type = 'Trinary' })).name)
+	self:assertEquals('Single star system', StarSystem.getTypeInfo(ctx({}, { systemtype = 'SINGLE_STAR' })).name)
+	self:assertEquals('Star system', StarSystem.getTypeInfo(ctx({}, {})).name)
+	self:assertEquals('Star system', StarSystem.getTypeInfo(ctx({})).name)
 end
 
 --- Drive the REAL manifest through Editorial.resolve: the integration seam a
@@ -820,7 +850,7 @@ end
 
 function suite:testGetCategoriesFromEditorialIdentity()
 	local resolved = resolveEditorially({ type = 'Trinary', affiliation = "[[Kr'Thak]]" })
-	local categories = StarSystem.getCategories({}, {}, resolved)
+	local categories = StarSystem.getCategories(ctx({}, {}, resolved))
 	self:assertEquals('Trinary Star systems', categories[1])
 	self:assertEquals("Kr'Thak systems", categories[2])
 end
@@ -828,9 +858,9 @@ end
 function suite:testSectionsAffiliationRowFromEditorial()
 	-- Free text renders exactly as written; canonical text renders linked.
 	local general =
-		findSection(StarSystem.getSections({}, {}, resolveEditorially({ affiliation = "[[Kr'Thak]]" })), 'general')
+		findSection(StarSystem.getSections(ctx({}, {}, resolveEditorially({ affiliation = "[[Kr'Thak]]" }))), 'general')
 	self:assertEquals("[[Kr'Thak]]", findItem(general, 'Affiliation'))
-	general = findSection(StarSystem.getSections({}, {}, resolveEditorially({ affiliation = "Xi'An" })), 'general')
+	general = findSection(StarSystem.getSections(ctx({}, {}, resolveEditorially({ affiliation = "Xi'An" }))), 'general')
 	self:assertEquals("[[Xi'an Empire]]", findItem(general, 'Affiliation'))
 end
 
@@ -839,7 +869,7 @@ function suite:testStructuredDataFromEditorialIdentityWithoutRecord()
 	-- exactly like a record-backed page, with the free-text affiliation
 	-- delinked for the store.
 	local resolved = resolveEditorially({ type = 'Trinary', affiliation = "[[Kr'Thak]]", planets = '9' })
-	local data = StarSystem.getStructuredData({}, {}, resolved)
+	local data = StarSystem.getStructuredData(ctx({}, {}, resolved))
 	self:assertEquals('Trinary star system', data.system_type)
 	self:assertEquals("Kr'Thak", data.affiliation)
 	self:assertEquals(9, data.planet_count)
@@ -853,21 +883,27 @@ function suite:testStructuredDataStoresRawCodeForUnmappedType()
 	local apiData = solarSystemFixture()
 	apiData.starsystem = starsystemFixture()
 	apiData.starsystem.type = 'BLACK_HOLE'
-	self:assertEquals('BLACK_HOLE', StarSystem.getStructuredData(apiData, {}, nil).system_type)
+	self:assertEquals('BLACK_HOLE', StarSystem.getStructuredData(ctx(apiData, {}, nil)).system_type)
 end
 
 function suite:testStructuredDataStillEmptyWithNothingAtAll()
-	self:assertEquals(nil, next(StarSystem.getStructuredData({}, {}, resolveEditorially({}))))
+	self:assertEquals(nil, next(StarSystem.getStructuredData(ctx({}, {}, resolveEditorially({})))))
 end
 
 function suite:testShortDescriptionFromEditorialIdentity()
 	-- Ophos shape: canonical affiliation + editorial type + 1 planet.
 	local args = { type = 'SINGLE_STAR', affiliation = 'Banu Protectorate', planets = '1' }
 	local resolved = resolveEditorially(args)
-	local typeInfo = StarSystem.getTypeInfo({}, args)
+	local typeInfo = StarSystem.getTypeInfo(ctx({}, args))
 	self:assertEquals(
 		'Banu Protectorate single star system with 1 planet',
-		StarSystem.getShortDescription({}, args, typeInfo, nil, resolved)
+		StarSystem.getShortDescription({
+			apiData = {},
+			args = args,
+			typeInfo = typeInfo,
+			prefix = nil,
+			resolved = resolved,
+		})
 	)
 end
 
@@ -877,7 +913,13 @@ function suite:testShortDescriptionSkipsFreeTextAffiliationPrefix()
 	local args = { type = 'Trinary', affiliation = 'Unknown' }
 	self:assertEquals(
 		'Trinary star system',
-		StarSystem.getShortDescription({}, args, StarSystem.getTypeInfo({}, args), nil, resolveEditorially(args))
+		StarSystem.getShortDescription({
+			apiData = {},
+			args = args,
+			typeInfo = StarSystem.getTypeInfo(ctx({}, args)),
+			prefix = nil,
+			resolved = resolveEditorially(args),
+		})
 	)
 end
 
@@ -892,7 +934,7 @@ local function jumpPointApiData()
 end
 
 function suite:testJumpPointTypeInfo()
-	local info = JumpPoint.getTypeInfo(jumpPointApiData(), {})
+	local info = JumpPoint.getTypeInfo(ctx(jumpPointApiData(), {}))
 	self:assertEquals('Jump point', info.name)
 	self:assertEquals('Jump points', info.category)
 end
@@ -918,10 +960,10 @@ function suite:testJumpPointSystemsComeFromTheCanonicalName()
 	apiData.system = nil
 	apiData.celestialobject.designation = "Th.us'ūng (Pallas) - Hadur"
 	local args = { name = "Th.us'ūng - Yā'mon jump point" }
-	local general = findSection(JumpPoint.getSections(apiData, args, nil), 'general')
+	local general = findSection(JumpPoint.getSections(ctx(apiData, args, nil)), 'general')
 	self:assertEquals("[[Th.us'ūng system]]", findItem(general, 'System'))
 	self:assertEquals("[[Yā'mon system]]", findItem(general, 'Destination'))
-	local data = JumpPoint.getStructuredData(apiData, args, nil)
+	local data = JumpPoint.getStructuredData(ctx(apiData, args, nil))
 	self:assertEquals("Th.us'ūng system", data.system)
 	self:assertEquals("Yā'mon system", data.destination_system)
 end
@@ -930,7 +972,7 @@ end
 -- chain, so the sandbox and any oddly-titled page keep working.
 function suite:testJumpPointFallsBackWhenNameIsNotGateShaped()
 	local apiData = jumpPointApiData()
-	local general = findSection(JumpPoint.getSections(apiData, { name = 'Some Sandbox Page' }, nil), 'general')
+	local general = findSection(JumpPoint.getSections(ctx(apiData, { name = 'Some Sandbox Page' }, nil)), 'general')
 	self:assertEquals('[[Pyro system]]', findItem(general, 'System'))
 	self:assertEquals('[[Nyx system]]', findItem(general, 'Destination'))
 end
@@ -945,7 +987,7 @@ function suite:testJumpPointGeneralRows()
 	-- link. Candidate selection is pinned separately; live linking is
 	-- browser-verified.
 	apiData.parent = { name = 'Zzyzx Test Star', type_name = 'Star' }
-	local general = findSection(JumpPoint.getSections(apiData, {}, nil), 'general')
+	local general = findSection(JumpPoint.getSections(ctx(apiData, {}, nil)), 'general')
 	self:assertEquals('[[Pyro system]]', findItem(general, 'System'))
 	self:assertEquals('[[Nyx system]]', findItem(general, 'Destination'))
 	self:assertEquals('Zzyzx Test Star', findItem(general, 'Parent'))
@@ -1036,19 +1078,19 @@ end
 function suite:testJumpPointUnknownSizeOmitsRow()
 	local apiData = jumpPointApiData()
 	apiData.celestialobject.jumppoints.size = 'X'
-	local general = findSection(JumpPoint.getSections(apiData, {}, nil), 'general')
+	local general = findSection(JumpPoint.getSections(ctx(apiData, {}, nil)), 'general')
 	self:assertEquals(nil, findItem(general, 'Size'))
 end
 
 -- Distance from star was removed from the infobox by design review (not
 -- important for a gate); the celestial record still carries it, unused.
 function suite:testJumpPointDistanceNotRendered()
-	local general = findSection(JumpPoint.getSections(jumpPointApiData(), {}, nil), 'general')
+	local general = findSection(JumpPoint.getSections(ctx(jumpPointApiData(), {}, nil)), 'general')
 	self:assertEquals(nil, findItem(general, 'Distance from star'))
 end
 
 function suite:testJumpPointTravelRows()
-	local travel = findSection(JumpPoint.getSections(jumpPointApiData(), {}, nil), 'travel')
+	local travel = findSection(JumpPoint.getSections(ctx(jumpPointApiData(), {}, nil)), 'travel')
 	self:assertEquals('Travel', travel.label)
 	self:assertEquals(true, travel.collapsible)
 	self:assertEquals(nil, travel.collapsed) -- open by default, like StarSystem's Lore
@@ -1077,11 +1119,11 @@ end
 function suite:testJumpPointTravelSectionDropsWithoutData()
 	local apiData = jumpPointApiData()
 	apiData.quantum_travel = nil
-	local travel = findSection(JumpPoint.getSections(apiData, {}, nil), 'travel')
+	local travel = findSection(JumpPoint.getSections(ctx(apiData, {}, nil)), 'travel')
 	self:assertStringContains('data%-state="no"', findItem(travel, 'Starmap'))
 	self:assertEquals(nil, findItem(travel, 'Arrival radius'))
 	apiData.hide_in_starmap = nil
-	self:assertEquals(nil, findSection(JumpPoint.getSections(apiData, {}, nil), 'travel'))
+	self:assertEquals(nil, findSection(JumpPoint.getSections(ctx(apiData, {}, nil)), 'travel'))
 end
 
 -- One accessor feeds the Starmap button and the Metadata row: the fetched
@@ -1110,7 +1152,7 @@ function suite:testJumpPointManifestStarmapCode()
 end
 
 function suite:testJumpPointFooterButton()
-	local buttons = JumpPoint.getFooterButtons(jumpPointApiData(), {})
+	local buttons = JumpPoint.getFooterButtons(ctx(jumpPointApiData(), {}))
 	self:assertEquals(1, #buttons)
 	self:assertEquals('Starmap', buttons[1].label)
 	self:assertEquals('https://robertsspaceindustries.com/starmap?location=PYRO.JUMPPOINTS.NYX', buttons[1].url)
@@ -1119,27 +1161,27 @@ function suite:testJumpPointFooterButton()
 end
 
 function suite:testJumpPointMetadataItems()
-	local items = JumpPoint.getMetadataItems(jumpPointApiData(), {})
+	local items = JumpPoint.getMetadataItems(ctx(jumpPointApiData(), {}))
 	self:assertEquals(1, #items)
 	self:assertEquals('Starmap code', items[1].label)
 	self:assertEquals('PYRO.JUMPPOINTS.NYX', items[1].content)
 	-- The arg fallback feeds the row too (soft-failed fetch).
-	local fromArg = JumpPoint.getMetadataItems(jumpPointFixture(), { code = 'NYX.JUMPPOINTS.PYRO' })
+	local fromArg = JumpPoint.getMetadataItems(ctx(jumpPointFixture(), { code = 'NYX.JUMPPOINTS.PYRO' }))
 	self:assertEquals('NYX.JUMPPOINTS.PYRO', fromArg[1].content)
 end
 
 -- No usable code from record or args → neither button nor metadata row.
 function suite:testJumpPointAbsentCodeYieldsNeitherButtonNorRow()
-	self:assertEquals(0, #JumpPoint.getFooterButtons(jumpPointFixture(), {}))
-	self:assertEquals(0, #JumpPoint.getMetadataItems(jumpPointFixture(), {}))
+	self:assertEquals(0, #JumpPoint.getFooterButtons(ctx(jumpPointFixture(), {})))
+	self:assertEquals(0, #JumpPoint.getMetadataItems(ctx(jumpPointFixture(), {})))
 	local blankCode = jumpPointApiData()
 	blankCode.celestialobject.code = ''
-	self:assertEquals(0, #JumpPoint.getFooterButtons(blankCode, {}))
-	self:assertEquals(0, #JumpPoint.getMetadataItems(blankCode, {}))
+	self:assertEquals(0, #JumpPoint.getFooterButtons(ctx(blankCode, {})))
+	self:assertEquals(0, #JumpPoint.getMetadataItems(ctx(blankCode, {})))
 end
 
 function suite:testJumpPointStructuredData()
-	local data = JumpPoint.getStructuredData(jumpPointApiData(), {}, nil)
+	local data = JumpPoint.getStructuredData(ctx(jumpPointApiData(), {}, nil))
 	self:assertEquals('Medium', data.jump_point_size)
 	-- Page-name forms ('Pyro system'), so [[System::…]] resolves wiki pages.
 	self:assertEquals('Pyro system', data.system)
@@ -1147,7 +1189,7 @@ function suite:testJumpPointStructuredData()
 end
 
 function suite:testJumpPointStructuredDataDegradesWithoutCelestialRecord()
-	local data = JumpPoint.getStructuredData(jumpPointFixture(), {}, nil)
+	local data = JumpPoint.getStructuredData(ctx(jumpPointFixture(), {}, nil))
 	self:assertEquals(nil, data.jump_point_size)
 	-- The location record alone still carries the entry system.
 	self:assertEquals('Pyro system', data.system)
@@ -1156,7 +1198,7 @@ end
 
 function suite:testJumpPointLoreRowsThroughManifest()
 	local resolved = resolveEditorially({ discoveredin = '[[2469]]', discoveredby = '[[Nick Croshaw]]' })
-	local lore = findSection(JumpPoint.getSections(jumpPointApiData(), {}, resolved), 'lore')
+	local lore = findSection(JumpPoint.getSections(ctx(jumpPointApiData(), {}, resolved)), 'lore')
 	self:assertEquals('[[2469]]', findItem(lore, 'Discovered in'))
 	self:assertEquals('[[Nick Croshaw]]', findItem(lore, 'Discovered by'))
 end
@@ -1165,15 +1207,21 @@ end
 -- route → the catch-all (size or not: "Medium jump point" alone names no
 -- route).
 function suite:testJumpPointShortDescription()
-	local typeInfo = JumpPoint.getTypeInfo()
+	local typeInfo = JumpPoint.getTypeInfo(ctx())
 	self:assertEquals(
 		'Medium jump point from Pyro to Nyx',
-		JumpPoint.getShortDescription(jumpPointApiData(), {}, typeInfo)
+		JumpPoint.getShortDescription({ apiData = jumpPointApiData(), args = {}, typeInfo = typeInfo })
 	)
 	local unsized = jumpPointApiData()
 	unsized.celestialobject.jumppoints = nil
-	self:assertEquals('Jump point from Pyro to Nyx', JumpPoint.getShortDescription(unsized, {}, typeInfo))
-	self:assertEquals('A jump point in Star Citizen', JumpPoint.getShortDescription(jumpPointFixture(), {}, typeInfo))
+	self:assertEquals(
+		'Jump point from Pyro to Nyx',
+		JumpPoint.getShortDescription({ apiData = unsized, args = {}, typeInfo = typeInfo })
+	)
+	self:assertEquals(
+		'A jump point in Star Citizen',
+		JumpPoint.getShortDescription({ apiData = jumpPointFixture(), args = {}, typeInfo = typeInfo })
+	)
 end
 
 -- A gate files under its ENTRY system's category — functional membership:
@@ -1183,7 +1231,7 @@ end
 -- 'Locations' memberships are deliberately not carried (the classification
 -- bucket covers that taxonomy).
 function suite:testJumpPointKindCategoriesEntrySystem()
-	local categories = JumpPoint.getCategories(jumpPointApiData(), {}, nil)
+	local categories = JumpPoint.getCategories(ctx(jumpPointApiData(), {}, nil))
 	self:assertEquals('Pyro system', categories[1])
 	self:assertEquals(1, #categories)
 end
@@ -1192,14 +1240,14 @@ function suite:testJumpPointKindCategoriesEmptyWithoutEntry()
 	local record = jumpPointApiData()
 	record.system = nil
 	record.celestialobject = nil -- no designation fallback either
-	self:assertEquals(0, #JumpPoint.getCategories(record, {}, nil))
+	self:assertEquals(0, #JumpPoint.getCategories(ctx(record, {}, nil)))
 end
 
 -- The record-less family page still files under its entry system: the
 -- designation's first side carries it (the entry-first convention).
 function suite:testJumpPointCategoriesFromDesignationFallback()
 	local apiData = { celestialobject = { designation = 'Stanton - Nyx', jumppoints = { size = 'L' } } }
-	local categories = JumpPoint.getCategories(apiData, {}, nil)
+	local categories = JumpPoint.getCategories(ctx(apiData, {}, nil))
 	self:assertEquals('Stanton system', categories[1])
 	self:assertEquals(1, #categories)
 end
@@ -1210,7 +1258,37 @@ function suite:testShortDescriptionNoTypeKeepsLegacyShape()
 	local args = { affiliation = "[[Kr'Thak]]", planets = '9' }
 	self:assertEquals(
 		'System with 9 planets',
-		StarSystem.getShortDescription({}, args, StarSystem.getTypeInfo({}, args), nil, resolveEditorially(args))
+		StarSystem.getShortDescription({
+			apiData = {},
+			args = args,
+			typeInfo = StarSystem.getTypeInfo(ctx({}, args)),
+			prefix = nil,
+			resolved = resolveEditorially(args),
+		})
+	)
+end
+
+-- Dispatch: every Location leaf takes an EntityHookContext (Task 1 review
+-- requirement — a leaf whose contextHooks flag is set but whose hooks weren't
+-- rewritten must fail here, not render wrong values silently on the wiki).
+-- StarSystem's getTypeInfo and JumpPoint's getShortDescription are each
+-- ctx-dependent (unlike JumpPoint's own getTypeInfo, which is static), so a
+-- leaf still reading its old positional (apiData, args, ...) parameters sees
+-- the whole ctx table where it expects the domain apiData and produces the
+-- fallback value the assertions below reject.
+function suite:testLeavesDispatchThroughContext()
+	self:assertEquals(true, StarSystem.contextHooks)
+	local typeInfo = assembly.callHook(
+		StarSystem,
+		'getTypeInfo',
+		{ apiData = { starsystem = { type = 'SINGLE_STAR' } }, args = {}, resolved = {} }
+	)
+	self:assertEquals('Single star system', typeInfo.name)
+
+	self:assertEquals(true, JumpPoint.contextHooks)
+	self:assertEquals(
+		'Medium jump point from Pyro to Nyx',
+		assembly.callHook(JumpPoint, 'getShortDescription', { apiData = jumpPointApiData(), args = {}, resolved = {} })
 	)
 end
 

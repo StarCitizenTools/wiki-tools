@@ -78,6 +78,9 @@ p.name = 'Commodity'
 --- @type string
 p.parent = 'Entity/Base'
 
+-- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
+p.contextHooks = true
+
 --- @return EntityApiConfig[]
 function p.getApiConfigs()
 	return {
@@ -108,10 +111,10 @@ end
 --- Module:Entity/Commodity/Records, passing the commodities endpoint config so
 --- the counterpart fetch stays single-sourced here.
 ---
---- @param apiData table
+--- @param ctx EntityHookContext
 --- @return table apiData (mutated and returned)
-function p.enrich(apiData)
-	return records.enrich(apiData, p.getApiConfigs()[1])
+function p.enrich(ctx)
+	return records.enrich(ctx.apiData, p.getApiConfigs()[1])
 end
 
 -- Public alias so sibling renderers (Module:Entity/Availability) can title the
@@ -125,9 +128,10 @@ p.acquisitionLabel = mining.acquisitionLabel
 --- (Module:Entity/Categories honours typeInfo.categories). Returns nil for
 --- placeholder/unmapped parents so the subtitle and categories collapse out.
 ---
---- @param apiData table
+--- @param ctx EntityHookContext
 --- @return table|nil { name, category, categories }
-function p.getTypeInfo(apiData)
+function p.getTypeInfo(ctx)
+	local apiData = ctx.apiData
 	local g = resolveGroups(apiData)
 	if not g then
 		return nil
@@ -139,13 +143,13 @@ function p.getTypeInfo(apiData)
 	}
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table[]
-function p.getSections(apiData, args)
+function p.getSections(ctx)
+	local apiData = ctx.apiData
 	local raw = apiData._rawRecord
 	local refined = apiData._refinedRecord or apiData
-	local typeInfo = p.getTypeInfo(apiData, args)
+	local typeInfo = p.getTypeInfo(ctx)
 
 	local tier = apiData.tier or (raw and raw.tier)
 	local refinable = (apiData.refined_version and apiData.refined_version.uuid)
@@ -214,10 +218,10 @@ function p.getSections(apiData, args)
 	return sections
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table<string, any>
-function p.getStructuredData(apiData, args)
+function p.getStructuredData(ctx)
+	local apiData = ctx.apiData
 	local raw = apiData._rawRecord
 	local g = resolveGroups(apiData)
 	return {
@@ -237,11 +241,10 @@ end
 
 --- "<Tier> <kind> <family>", any component optional. e.g. "Uncommon mineable mineral".
 ---
---- @param apiData table
---- @param args table
---- @param typeInfo table
+--- @param ctx EntityHookContext
 --- @return string
-function p.getShortDescription(apiData, args, typeInfo)
+function p.getShortDescription(ctx)
+	local apiData, typeInfo = ctx.apiData, ctx.typeInfo
 	local parts = {}
 	local tier = apiData.tier or (apiData._rawRecord and apiData._rawRecord.tier)
 	if tier then
@@ -260,10 +263,10 @@ end
 --- and a Mining deposit card (pre-rendered HTML) + a Trade card (UEX terminal
 --- table when priced, else a SC-Trade-Tools/UEX link-out keyed on slug).
 ---
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return { summary: table[], cards: table[] }
-function p.getAcquisition(apiData, args)
+function p.getAcquisition(ctx)
+	local apiData, args = ctx.apiData, ctx.args
 	local raw = apiData._rawRecord or apiData
 	local refined = apiData._refinedRecord or apiData
 	local purchase = type(refined.uex_prices) == 'table' and refined.uex_prices.purchase or nil
@@ -339,9 +342,10 @@ end
 --- they share one image and have no own pages, so {{Entity/Related}}
 --- renders them as a table rather than tiles. The refined record
 --- (commodities endpoint) carries the box ladder and density.
---- @param apiData table
+--- @param ctx EntityHookContext
 --- @return EntityRelatedPayload
-function p.getRelated(apiData)
+function p.getRelated(ctx)
+	local apiData = ctx.apiData
 	local refined = apiData._refinedRecord or apiData
 	return { cargo = buildCargoRows(refined.box_sizes_scu, refined.density_g_per_cc) }
 end
@@ -352,9 +356,10 @@ end
 --- `ingredient` table is present even without a name so the renderer still
 --- takes the used-in path (and reports the missing name) rather than the
 --- blueprint list.
---- @param apiData table
+--- @param ctx EntityHookContext
 --- @return EntityBlueprintsPayload
-function p.getBlueprints(apiData)
+function p.getBlueprints(ctx)
+	local apiData = ctx.apiData
 	local refined = apiData._refinedRecord or apiData
 	return { ingredient = { name = refined.name or apiData.name } }
 end
@@ -363,10 +368,10 @@ end
 --- infobox External sites section, mirroring Module:Entity/Item. Keyed on the
 --- commodity `slug` (url-safe; both sites resolve commodities by slug).
 ---
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return EntityItemData[]
-function p.getExternalSiteItems(apiData, args)
+function p.getExternalSiteItems(ctx)
+	local apiData, args = ctx.apiData, ctx.args
 	local siteDefs = mw.loadJsonData('Module:Entity/Commodity/communitySites.json')
 	local links = format.buildSiteLinks(siteDefs, {
 		name = args.name or apiData.name,

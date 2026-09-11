@@ -4,6 +4,11 @@ local ScribuntoUnit = require('Module:ScribuntoUnit')
 local Commodity = require('Module:Entity/Commodity')
 local assembly = require('Module:Entity/Assembly')
 
+--- Hook context for direct hook calls (Module:Entity/Types EntityHookContext).
+local function ctx(apiData, args, resolved)
+	return { apiData = apiData, args = args or {}, resolved = resolved }
+end
+
 local suite = ScribuntoUnit:new()
 
 function suite:testGetSectionsFpsSuppressesLaserStats()
@@ -19,7 +24,7 @@ function suite:testGetSectionsFpsSuppressesLaserStats()
 		locations = { { quality_min = 201, quality_max = 1000 } },
 	}
 	local apiData = { key = 'Aphorite', _rawRecord = raw, _refinedRecord = { key = 'Aphorite' } }
-	local sections = Commodity.getSections(apiData, {})
+	local sections = Commodity.getSections(ctx(apiData, {}))
 	local mining
 	for _, s in ipairs(sections) do
 		if s.key == 'mining' then
@@ -48,7 +53,7 @@ function suite:testGetSectionsHarvestableLabel()
 		locations = { { quality_min = 1, quality_max = 100 } },
 	}
 	local apiData = { key = 'BluemoonFungus', _rawRecord = raw, _refinedRecord = { key = 'BluemoonFungus' } }
-	local sections = Commodity.getSections(apiData, {})
+	local sections = Commodity.getSections(ctx(apiData, {}))
 	local mining
 	for _, s in ipairs(sections) do
 		if s.key == 'mining' then
@@ -71,7 +76,7 @@ function suite:testGetSectionsHarvestableShowsSignatureNotEmpty()
 		locations = { { quality_min = nil, quality_max = nil } },
 	}
 	local apiData = { key = 'AmioshiPlague', _rawRecord = raw, _refinedRecord = { key = 'AmioshiPlague' } }
-	local sections = Commodity.getSections(apiData, {})
+	local sections = Commodity.getSections(ctx(apiData, {}))
 	local mining
 	for _, s in ipairs(sections) do
 		if s.key == 'mining' then
@@ -88,7 +93,7 @@ function suite:testGetSectionsNoStatsOmitsMiningGroup()
 	-- Mineable but no signature, not laser, no quality → no mining group at all.
 	local raw = { is_mineable = true, kind = 'mineable', methods = { 'FPS' }, locations = {} }
 	local apiData = { key = 'X', _rawRecord = raw, _refinedRecord = { key = 'X' } }
-	local sections = Commodity.getSections(apiData, {})
+	local sections = Commodity.getSections(ctx(apiData, {}))
 	for _, s in ipairs(sections) do
 		self:assertEquals(true, s.key ~= 'mining')
 	end
@@ -116,25 +121,25 @@ function suite:testGetApiConfigsEndpoint()
 end
 
 function suite:testResolveGroupsDepthOne()
-	local ti = Commodity.getTypeInfo({ commodity_groups = { 'Metal' } })
+	local ti = Commodity.getTypeInfo(ctx({ commodity_groups = { 'Metal' } }))
 	self:assertEquals('Metal', ti.name)
 	self:assertEquals('Metals', ti.category)
 	self:assertEquals('Commodities', ti.categories[1])
 end
 
 function suite:testResolveGroupsDepthTwo()
-	local ti = Commodity.getTypeInfo({ commodity_groups = { 'ProcessedGoods', 'Vice' } })
+	local ti = Commodity.getTypeInfo(ctx({ commodity_groups = { 'ProcessedGoods', 'Vice' } }))
 	self:assertEquals('Vice', ti.name)
 	self:assertEquals('Processed goods', ti.category)
 end
 
 function suite:testGetTypeInfoPlaceholderParentReturnsNil()
-	self:assertEquals(nil, Commodity.getTypeInfo({ commodity_groups = { 'HeatPlaceholder' } }))
+	self:assertEquals(nil, Commodity.getTypeInfo(ctx({ commodity_groups = { 'HeatPlaceholder' } })))
 end
 
 function suite:testGetTypeInfoMissingGroupsReturnsNil()
-	self:assertEquals(nil, Commodity.getTypeInfo({}))
-	self:assertEquals(nil, Commodity.getTypeInfo({ commodity_groups = {} }))
+	self:assertEquals(nil, Commodity.getTypeInfo(ctx({})))
+	self:assertEquals(nil, Commodity.getTypeInfo(ctx({ commodity_groups = {} })))
 end
 
 function suite:testGetStructuredDataGroupAndType()
@@ -144,7 +149,7 @@ function suite:testGetStructuredDataGroupAndType()
 		kind = 'mineable',
 		_rawRecord = { is_mineable = true, density_g_per_cc = 2.3 },
 	}
-	local sd = Commodity.getStructuredData(apiData, {})
+	local sd = Commodity.getStructuredData(ctx(apiData, {}))
 	self:assertEquals('Processed goods', sd.commodity_group)
 	self:assertEquals('Vice', sd.commodity_type)
 	self:assertEquals(nil, sd.family)
@@ -154,7 +159,7 @@ function suite:testGetStructuredDataGroupAndType()
 end
 
 function suite:testGetStructuredDataNoGroupOmitsFields()
-	local sd = Commodity.getStructuredData({ commodity_groups = { 'CleanAir' } }, {})
+	local sd = Commodity.getStructuredData(ctx({ commodity_groups = { 'CleanAir' } }, {}))
 	self:assertEquals(nil, sd.commodity_group)
 	self:assertEquals(nil, sd.commodity_type)
 end
@@ -178,7 +183,7 @@ function suite:testGetSectionsOverviewAndMining()
 		_rawRecord = raw,
 	}
 	apiData._refinedRecord = apiData
-	local sections = Commodity.getSections(apiData, {})
+	local sections = Commodity.getSections(ctx(apiData, {}))
 
 	local function group(key)
 		for _, s in ipairs(sections) do
@@ -213,7 +218,7 @@ end
 
 function suite:testGetSectionsNonMineableHasNoMiningGroup()
 	local apiData = { key = 'Aslarite', _refinedRecord = { key = 'Aslarite' }, _rawRecord = nil }
-	local sections = Commodity.getSections(apiData, {})
+	local sections = Commodity.getSections(ctx(apiData, {}))
 	for _, s in ipairs(sections) do
 		self:assertEquals(true, s.key ~= 'mining')
 	end
@@ -227,7 +232,7 @@ function suite:testGetStructuredData()
 		kind = 'mineable',
 		_rawRecord = { is_mineable = true, density_g_per_cc = 2.3, signature = 4000, systems = { 'Pyro System' } },
 	}
-	local sd = Commodity.getStructuredData(apiData, {})
+	local sd = Commodity.getStructuredData(ctx(apiData, {}))
 	self:assertEquals('Mineral', sd.commodity_group)
 	self:assertEquals('Mineral', sd.commodity_type)
 	self:assertEquals(nil, sd.family)
@@ -238,18 +243,23 @@ end
 
 function suite:testGetShortDescriptionFull()
 	local apiData = { key = 'Aslarite', tier = 'uncommon', kind = 'mineable' }
-	self:assertEquals('Uncommon mineable mineral', Commodity.getShortDescription(apiData, {}, { name = 'Mineral' }))
+	self:assertEquals(
+		'Uncommon mineable mineral',
+		Commodity.getShortDescription({ apiData = apiData, args = {}, typeInfo = { name = 'Mineral' } })
+	)
 end
 
 function suite:testGetShortDescriptionBare()
-	self:assertEquals('Mineral', Commodity.getShortDescription({ key = 'Aslarite' }, {}, { name = 'Mineral' }))
+	self:assertEquals(
+		'Mineral',
+		Commodity.getShortDescription({ apiData = { key = 'Aslarite' }, args = {}, typeInfo = { name = 'Mineral' } })
+	)
 end
 
 function suite:testGetAcquisitionCommodityLinkOut()
 	-- No refined prices → Trade is a link-out card keyed on slug; no locations → no mining card.
 	local a = Commodity.getAcquisition(
-		{ _rawRecord = { is_mineable = true, slug = 'gold' }, _refinedRecord = { slug = 'gold' } },
-		{}
+		ctx({ _rawRecord = { is_mineable = true, slug = 'gold' }, _refinedRecord = { slug = 'gold' } }, {})
 	)
 	local byLabel = {}
 	for _, r in ipairs(a.summary) do
@@ -261,10 +271,10 @@ function suite:testGetAcquisitionCommodityLinkOut()
 end
 
 function suite:testGetAcquisitionCommodityTradeTerminals()
-	local a = Commodity.getAcquisition({
+	local a = Commodity.getAcquisition(ctx({
 		_rawRecord = { is_mineable = false },
 		_refinedRecord = { uex_prices = { purchase = { { price_buy = 5, price_sell = 7 } } } },
-	}, {})
+	}, {}))
 	self:assertEquals('terminals', a.cards[#a.cards].type)
 	self:assertEquals('Trade terminals', a.cards[#a.cards].caption)
 end
@@ -292,15 +302,15 @@ end
 -- A commodity's related entities are its cargo boxes; the refined record
 -- (commodities endpoint) carries the ladder and density.
 function suite:testGetRelatedCargoFromRefinedRecord()
-	local payload = Commodity.getRelated({
+	local payload = Commodity.getRelated(ctx({
 		name = 'Aluminum',
 		_refinedRecord = { box_sizes_scu = { 2, 1 }, density_g_per_cc = 1 },
-	})
+	}))
 	self:assertEquals(nil, payload.items)
 	self:assertEquals(1, payload.cargo[1].scu)
 	self:assertEquals(1000, payload.cargo[1].mass_kg)
 	self:assertEquals(2, payload.cargo[2].scu)
-	self:assertEquals(0, #Commodity.getRelated({ name = 'Unboxed' }).cargo)
+	self:assertEquals(0, #Commodity.getRelated(ctx({ name = 'Unboxed' })).cargo)
 end
 
 -- Commodities are crafting inputs, never outputs: the Blueprints renderer
@@ -308,10 +318,10 @@ end
 function suite:testGetBlueprintsIngredientName()
 	self:assertEquals(
 		'Aluminum',
-		Commodity.getBlueprints({ name = 'Raw', _refinedRecord = { name = 'Aluminum' } }).ingredient.name
+		Commodity.getBlueprints(ctx({ name = 'Raw', _refinedRecord = { name = 'Aluminum' } })).ingredient.name
 	)
-	self:assertEquals('Raw', Commodity.getBlueprints({ name = 'Raw' }).ingredient.name)
-	local nameless = Commodity.getBlueprints({})
+	self:assertEquals('Raw', Commodity.getBlueprints(ctx({ name = 'Raw' })).ingredient.name)
+	local nameless = Commodity.getBlueprints(ctx({}))
 	self:assertEquals('table', type(nameless.ingredient))
 	self:assertEquals(nil, nameless.ingredient.name)
 	self:assertEquals(nil, nameless.blueprints)
@@ -327,13 +337,33 @@ function suite:testSiblingPayloadsResolveLeafFirstOverBase()
 		blueprint = { { key = 'bp' } },
 		_refinedRecord = { box_sizes_scu = { 1 }, density_g_per_cc = 1 },
 	}
-	local ctx = { apiData = apiData, args = {} }
-	local related = assembly.resolveMostSpecific(chain, 'getRelated', nil, ctx)
+	local hookCtx = { apiData = apiData, args = {} }
+	local related = assembly.resolveMostSpecific(chain, 'getRelated', nil, hookCtx)
 	self:assertEquals(nil, related.items)
 	self:assertEquals(1, related.cargo[1].scu)
-	local blueprints = assembly.resolveMostSpecific(chain, 'getBlueprints', nil, ctx)
+	local blueprints = assembly.resolveMostSpecific(chain, 'getBlueprints', nil, hookCtx)
 	self:assertEquals(nil, blueprints.blueprints)
 	self:assertEquals('Aluminum', blueprints.ingredient.name)
+end
+
+-- Dispatch: Commodity and Mission (which has no suite of its own) take an
+-- EntityHookContext (Task 1 review requirement — a kind whose contextHooks
+-- flag is set but whose hooks weren't rewritten must fail here, not render
+-- wrong values silently on the wiki).
+function suite:testCommodityAndMissionDispatchThroughContext()
+	self:assertEquals(true, Commodity.contextHooks)
+	local commodityInfo = assembly.callHook(
+		Commodity,
+		'getTypeInfo',
+		{ apiData = { commodity_groups = { 'Metal' } }, args = {}, resolved = {} }
+	)
+	self:assertEquals('Metal', commodityInfo.name)
+
+	local Mission = require('Module:Entity/Mission')
+	self:assertEquals(true, Mission.contextHooks)
+	local missionInfo =
+		assembly.callHook(Mission, 'getTypeInfo', { apiData = { mission_type = 'Delivery' }, args = {}, resolved = {} })
+	self:assertEquals('Delivery', missionInfo.name)
 end
 
 return suite

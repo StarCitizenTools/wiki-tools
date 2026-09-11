@@ -15,14 +15,14 @@ Suited to compact inline metadata such as a clock beside a duration, a map pin b
 
 ## Parameters
 
-| Name | Label | Type | Required | Default | Description | Example |
-|------|-------|------|----------|---------|-------------|---------|
-| `1` | Text | string | Yes |  | Visible text label. Alias: `text` (takes precedence over the positional argument). | `5 minutes` |
-| `icon` | Icon | wiki-file-name | Yes |  | File name (without the `File:` prefix) of the leading icon. | `CdxIconClock.svg` |
-| `iconTitle` | Icon tooltip | string | No |  | Tooltip shown when hovering the icon; also sets the icon's alt text. | `Estimated time` |
-| `size` | Icon size | string | No | `20px` | Icon size, as a MediaWiki image size. | `16px` |
-| `mask` | Mask icon | boolean | No | `false` | Render the icon as a recolorable CSS mask filled with the current text color, instead of an image. | `yes` |
-| `class` | CSS class | string | No |  | Extra class appended to the root span. | `my-icon-text` |
+| Name | Label | Type | Required | Default | Description | Example | Aliases |
+|------|-------|------|----------|---------|-------------|---------|---------|
+| `1` | Text | string | Yes |  | Visible text label. | `5 minutes` | `text` |
+| `icon` | Icon | wiki-file-name | Yes |  | File name (without the `File:` prefix) of the leading icon. | `CdxIconClock.svg` |  |
+| `iconTitle` | Icon tooltip | string | No |  | Tooltip shown when hovering the icon; also sets the icon's alt text. | `Estimated time` |  |
+| `size` | Icon size | string | No | `20px` | Icon size, as a MediaWiki image size. | `16px` |  |
+| `mask` | Mask icon | boolean | No | `false` | Render the icon as a recolorable CSS mask filled with the current text color, instead of an image. | `yes` |  |
+| `class` | CSS class | string | No |  | Extra class appended to the root span. | `my-icon-text` |  |
 
 ## Behavior
 

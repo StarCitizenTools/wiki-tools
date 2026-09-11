@@ -25,7 +25,7 @@ Renders a company infobox for organizations in the Star Citizen universe: manufa
 | `name` | line | No | (page title) | Company name shown in the infobox title (SMW). | `Aegis Dynamics` |
 | `industry` | string | No | | Industry or industries (SMW). | `[[Spacecraft]] manufacturing` |
 | `products` | string | No | | Products or product categories (SMW). | `[[Fighter]]s; [[Capital ship]]s` |
-| `race` | string | No | `Human` | Species affiliation of the company (SMW). | `Human` |
+| `race` | string | No | `Human` | Species affiliation (SMW). | `Human` |
 | `headquarters` | string | No | | Headquarters location(s), as "place, …, system" (SMW). | `[[Lorville]], [[Hurston]]; [[Area18]], [[ArcCorp]]` |
 | `areaserved` | string | No | | Area served, narrower than the whole UEE (SMW). | `[[Lorville]]; [[Hurston]]` |
 | `keypeople` | string | No | | Key people; display only. | `[[John Donahue]] (CEO)` |
@@ -45,10 +45,10 @@ Renders a company infobox for organizations in the Star Citizen universe: manufa
 
 ## Behavior
 
-- Every list-type field above (`industry`, `products`, `headquarters`, `areaserved`, `keypeople`, `founder`, `predecessor`, `successor`, `subsidiaries`, `allies`, `rivals`) is `;`-separated; two or more items render as a bulleted list, a single item renders plain.
-- `headquarters` stores one star system per HQ to SMW: the last wikilink in each `;`-separated segment ("place, …, system"). `areaserved` stores every place's own link target instead; fill it only when narrower than the whole UEE, since a bare `[[United Empire of Earth]]` carries no signal.
+- Every list-type field above (`industry`, `products`, `headquarters`, `areaserved`, `keypeople`, `founder`, `predecessor`, `successor`, `subsidiaries`, `allies`, `rivals`) is `;`-separated; two or more items render as an unbulleted list with a hanging indent, a single item renders plain.
+- `headquarters` stores one star system per HQ to SMW: the last wikilink in each `;`-separated segment ("place, …, system"). `areaserved` stores every place's own link target instead; fill it only when narrower than the whole UEE (a bare `[[United Empire of Earth]]` carries no signal).
 - There is no manufacturer-code parameter: the code is looked up from `name` against the manufacturer registry and shown in a collapsed Metadata section.
-- `founded` accepts a bare year, displayed through `{{Start date and age}}` while SMW stores the plain year; any other value displays as-is and isn't stored.
+- `founded` is stored to SMW exactly as typed; only the infobox display branches, rendering a bare year through `{{Start date and age}}`, else showing it as-is.
 - `keypeople`, `fate`, `defunct`, `formerly`, `allies`, and `rivals` are display-only and never reach SMW.
 - A wikilinked `industry`/`products` item and its plain-text equivalent normalise to the same stored value, so they don't fork the property into near-duplicates.
 - A failed SMW write adds the page to `Category:Pages with structured data errors` instead of raising an error.

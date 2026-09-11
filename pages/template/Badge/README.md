@@ -4,7 +4,7 @@ Renders an inline badge: a small pill-shaped label suited for status tags, versi
 
 ## Usage
 
-The first positional argument is the badge text. `variant` themes the badge via Citizen design tokens; `color`/`bg` override those tokens with literal CSS values; `icon` adds a 16px image before the text.
+The first positional argument is the badge text. `variant` themes the badge via Citizen design tokens; `color`/`backgroundColor` (or its `bg` shorthand) override those tokens with literal CSS values; `icon` adds a 16px image before the text.
 
 | Wikitext | Result |
 |---|---|
@@ -16,20 +16,21 @@ The first positional argument is the badge text. `variant` themes the badge via 
 
 ## Parameters
 
-| Name | Label | Type | Required | Default | Description | Example |
-|------|-------|------|----------|---------|-------------|---------|
-| `1` | Text | string | Yes |  | Badge label. Wikitext is allowed. | `New` |
-| `variant` | Variant | string | No |  | Semantic preset that themes the badge via Citizen design tokens: one of `error`, `success`, `warning`. | `warning` |
-| `icon` | Icon | wiki-file-name | No |  | File name (without the `File:` prefix) of an icon rendered before the text at 16px. | `Sparkle.svg` |
-| `mask` | Mask icon | boolean | No | `false` | Render the icon as a recolorable CSS mask filled with the badge text color, instead of an image. | `yes` |
-| `color` | Text color | string | No |  | CSS color applied to the badge text, overriding `variant`. | `#fff` |
-| `bg` | Background color | string | No |  | CSS background color applied to the badge, overriding `variant`. Alias: `backgroundColor`. | `#2a6df4` |
-| `link` | Link | wiki-page-name | No |  | Wrap the whole badge in a single anchor to this page. | `Aurora MR` |
-| `class` | CSS class | string | No |  | Extra class appended to the badge root. | `my-badge` |
+| Name | Label | Type | Required | Default | Description | Example | Aliases |
+|------|-------|------|----------|---------|-------------|---------|---------|
+| `1` | Text | string | Yes |  | Badge label. Wikitext is allowed. | `New` |  |
+| `variant` | Variant | string | No |  | Semantic preset that themes the badge via Citizen design tokens: one of `error`, `success`, `warning`. | `warning` |  |
+| `icon` | Icon | wiki-file-name | No |  | File name (without the `File:` prefix) of an icon rendered before the text at 16px. | `Sparkle.svg` |  |
+| `mask` | Mask icon | boolean | No | `false` | Render the icon as a recolorable CSS mask filled with the badge text color, instead of an image. | `yes` |  |
+| `color` | Text color | string | No |  | CSS color applied to the badge text, overriding `variant`. | `#fff` |  |
+| `backgroundColor` | Background color | string | No |  | CSS background color applied to the badge, overriding `variant`. | `#2a6df4` | `bg` |
+| `link` | Link | wiki-page-name | No |  | Wrap the whole badge in a single anchor to this page. | `Aurora MR` |  |
+| `class` | CSS class | string | No |  | Extra class appended to the badge root. | `my-badge` |  |
 
 ## Behavior
 
-- `variant` and the raw `color`/`bg` props are independent axes. Setting both is allowed: the inline color overrides the variant's text/background color but the variant's border color is kept unless the caller adds their own.
+- `bg` is an alias for `backgroundColor`; an explicit `backgroundColor=` wins if both are given.
+- `variant` and the raw `color`/`backgroundColor` props are independent axes. Setting both is allowed: the inline color overrides the variant's text/background color but the variant's border color is kept unless the caller adds their own.
 - Unknown `variant` values are silently ignored (the badge falls back to the default surface color), so a typo never produces a broken-looking class like `t-badge--warnng`.
 - The icon image is rendered with `class=metadata|link=` so it's excluded from MultimediaViewer and is not clickable, and the badge reads as inert decoration.
 - Badges are never underlined, even when wrapped via `link`.

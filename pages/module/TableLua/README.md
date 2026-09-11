@@ -34,6 +34,6 @@ TableLua.render( {
 
 MediaWiki's `sortable` class only sorts on user click; modules render once on the server, so a `sort` entry triggers a manual `table.sort` for readers who don't run JavaScript (mobile, exports, search):
 
-- A column's `textAlign = 'number'` only styles alignment; it plays no part in sorting. The comparator decides per cell: two Lua numbers compare numerically; two strings first strip HTML tags (`<...>`, not `[[...]]` wiki-link brackets) and extract the *first* number pattern each contains, comparing numerically when both extract to different values, else falling back to alphanumeric order on the stripped text. A page name with an embedded digit sorts on that digit: `'[[Behring P4-AR]]'` extracts `4`, not any numeric column value in the same row.
+- A column's `textAlign = 'number'` only styles alignment; it plays no part in sorting. The comparator decides per cell: two Lua numbers compare numerically; two strings first strip HTML tags (`<...>`, not `[[...]]` wiki-link brackets) and extract the *first* number pattern each contains, comparing numerically when both extract to different values, else falling back to alphanumeric order on the stripped text. A page name with an embedded digit sorts on that digit: `'[[Behring P4-AR]]'` extracts `4`.
 - `nil` cells sort first ascending, last descending.
 - Multiple `sort` keys are honored in alphabetical order of column id, not insertion order.

@@ -16,6 +16,9 @@ local p = {}
 --- @type string
 p.parent = 'Entity/Item'
 
+-- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
+p.contextHooks = true
+
 --- The type segment of an RSI class_name, lowercased: the underscore-part after
 --- the manufacturer prefix. "KBAR_BallisticCannon_S2" -> "ballisticcannon",
 --- "BEHR_DistortionRepeater_VNG_S2" -> "distortionrepeater". nil when absent.
@@ -170,10 +173,10 @@ function p.getVehicleWeaponSections(vehicleWeapon)
 	}))
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return EntitySectionEntry[]
-function p.getSections(apiData, args)
+function p.getSections(ctx)
+	local apiData = ctx.apiData
 	return p.getVehicleWeaponSections(apiData.vehicle_weapon)
 end
 
@@ -184,12 +187,10 @@ end
 --- still gains the size prefix (e.g. "S2 Rocket pod by X"). Size is omitted only
 --- when the API has none.
 ---
---- @param apiData table
---- @param args table
---- @param typeInfo table
---- @param prefix string|nil
+--- @param ctx EntityHookContext
 --- @return string
-function p.getShortDescription(apiData, args, typeInfo, prefix)
+function p.getShortDescription(ctx)
+	local apiData, args, typeInfo, prefix = ctx.apiData, ctx.args, ctx.typeInfo, ctx.prefix
 	local class = parseWeaponClass(apiData)
 	local typeName
 	if class.damage_type and class.firing_type then
@@ -207,10 +208,10 @@ end
 --- nil-guarded: energy weapons null out many `vehicle_weapon` fields, and
 --- the block itself may be absent.
 ---
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table<string, any>
-function p.getStructuredData(apiData, args)
+function p.getStructuredData(ctx)
+	local apiData = ctx.apiData
 	local vw = apiData.vehicle_weapon
 	if type(vw) ~= 'table' then
 		return {}

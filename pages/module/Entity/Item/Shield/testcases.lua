@@ -6,6 +6,11 @@ local Item = require('Module:Entity/Item')
 
 local suite = ScribuntoUnit:new()
 
+--- Hook context for direct hook calls (Module:Entity/Types EntityHookContext).
+local function ctx(apiData, args, resolved)
+	return { apiData = apiData, args = args or {}, resolved = resolved }
+end
+
 local function findItem(items, label)
 	for _, it in ipairs(items or {}) do
 		if it.label == label then
@@ -16,7 +21,7 @@ local function findItem(items, label)
 end
 
 function suite:testShieldStatsRows()
-	local sections = Shield.getSections({
+	local sections = Shield.getSections(ctx({
 		shield = {
 			max_health = 3168,
 			regen_rate = 697,
@@ -32,7 +37,7 @@ function suite:testShieldStatsRows()
 				distortion = { min = 0.75, max = 0.95 },
 			},
 		},
-	}, {})
+	}, {}))
 	self:assertEquals(1, #sections)
 	self:assertEquals('shield', sections[1].key)
 	self:assertEquals('3,168', findItem(sections[1].items, 'Shield HP').content)
@@ -67,19 +72,19 @@ function suite:testDamageMapNoneQualifyReturnsNil()
 end
 
 function suite:testDownedDelayOmittedWhenAbsent()
-	local sections = Shield.getSections({ shield = { max_health = 1000, regen_rate = 200 } }, {})
+	local sections = Shield.getSections(ctx({ shield = { max_health = 1000, regen_rate = 200 } }, {}))
 	self:assertEquals(nil, findItem(sections[1].items, 'Regen delay'))
 	self:assertEquals(nil, findItem(sections[1].items, 'Downed delay'))
 end
 
 function suite:testEmptyWhenNoBlock()
-	self:assertEquals(0, #Shield.getSections({}, {}))
+	self:assertEquals(0, #Shield.getSections(ctx({}, {})))
 end
 
 function suite:testStructuredData()
-	local data = Shield.getStructuredData({
+	local data = Shield.getStructuredData(ctx({
 		shield = { max_health = 3168, regen_rate = 697, regen_delay = { damage = 4.79 } },
-	})
+	}))
 	self:assertEquals(3168, data.shield_health)
 	self:assertEquals(697, data.shield_regeneration)
 	self:assertEquals(4.79, data.shield_regen_delay)

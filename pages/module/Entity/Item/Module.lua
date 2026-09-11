@@ -21,6 +21,9 @@ local p = {}
 --- @type string
 p.parent = 'Entity/Item'
 
+-- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
+p.contextHooks = true
+
 --- Resolves the owning vehicle name(s) for a module. Prefers the API
 --- `vehicles` relation (the Item endpoint includes it) — each entry's `name`
 --- is the real wiki vehicle title, and a module shared across variants lists
@@ -62,10 +65,10 @@ end
 --- `Vehicle modules` type bucket. A module with no resolvable vehicle falls
 --- back to `Vehicle modules` as its primary bucket.
 ---
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table { name, category, categories }
-function p.getTypeInfo(apiData, args)
+function p.getTypeInfo(ctx)
+	local apiData = ctx.apiData
 	local vehicles = resolveVehicles(apiData)
 	if #vehicles == 0 then
 		return { name = 'Vehicle module', category = 'Vehicle modules' }
@@ -83,10 +86,10 @@ end
 --- Pluralises the label when a module serves more than one vehicle. Collapses
 --- when no vehicle resolves.
 ---
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return EntitySectionEntry[]
-function p.getSections(apiData, args)
+function p.getSections(ctx)
+	local apiData = ctx.apiData
 	local vehicles = resolveVehicles(apiData)
 	if #vehicles == 0 then
 		return {}
@@ -107,27 +110,25 @@ end
 --- (Oxford-joined when more than one). Falls back to Item's
 --- "<type> by <manufacturer>" form when no vehicle resolves.
 ---
---- @param apiData table
---- @param args table
---- @param typeInfo table
---- @param prefix string|nil
+--- @param ctx EntityHookContext
 --- @return string
-function p.getShortDescription(apiData, args, typeInfo, prefix)
+function p.getShortDescription(ctx)
+	local apiData = ctx.apiData
 	local vehicles = resolveVehicles(apiData)
 	if #vehicles > 0 then
 		return 'Vehicle module for the ' .. mw.text.listToText(vehicles)
 	end
-	return item.getShortDescription(apiData, args, typeInfo, prefix)
+	return item.getShortDescription(ctx)
 end
 
 --- Stores the owning vehicle(s) as a queryable property so a vehicle page can
 --- list its modules in the reverse direction later. A single vehicle stores a
 --- scalar; multiple store a list (multi-valued). Omitted when none resolve.
 ---
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table<string, any>
-function p.getStructuredData(apiData, args)
+function p.getStructuredData(ctx)
+	local apiData = ctx.apiData
 	local vehicles = resolveVehicles(apiData)
 	if #vehicles == 0 then
 		return {}

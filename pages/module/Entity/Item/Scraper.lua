@@ -17,10 +17,13 @@ local p = {}
 --- @type string
 p.parent = 'Entity/Item'
 
---- @param apiData table
---- @param args table
+-- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
+p.contextHooks = true
+
+--- @param ctx EntityHookContext
 --- @return table[] Ordered list of section entries with key field
-function p.getSections(apiData, args)
+function p.getSections(ctx)
+	local apiData = ctx.apiData
 	local s = apiData.salvage_modifier
 	if type(s) ~= 'table' then
 		return {}
@@ -67,12 +70,10 @@ end
 --- Short description prepends the mount size — "S1 scraper module by Greycat" —
 --- mirroring the other component descriptors.
 ---
---- @param apiData table
---- @param args table
---- @param typeInfo table
---- @param prefix string|nil
+--- @param ctx EntityHookContext
 --- @return string
-function p.getShortDescription(apiData, args, typeInfo, prefix)
+function p.getShortDescription(ctx)
+	local apiData, args, typeInfo, prefix = ctx.apiData, ctx.args, ctx.typeInfo, ctx.prefix
 	local typeName = typeInfo.name
 	if apiData.size then
 		typeName = 'S' .. tostring(apiData.size) .. ' ' .. typeName:lower()
@@ -80,10 +81,10 @@ function p.getShortDescription(apiData, args, typeInfo, prefix)
 	return item.formatShortDescription({ name = typeName }, apiData, args, prefix)
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table<string, any>
-function p.getStructuredData(apiData, args)
+function p.getStructuredData(ctx)
+	local apiData = ctx.apiData
 	local s = apiData.salvage_modifier
 	if type(s) ~= 'table' then
 		return {}

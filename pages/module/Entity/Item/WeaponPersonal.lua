@@ -24,6 +24,9 @@ local p = {}
 --- @type string
 p.parent = 'Entity/Item'
 
+-- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
+p.contextHooks = true
+
 --- Appends a label/content item to a list only when content is non-nil — the
 --- nil-collapsing every subtype relies on so absent stats drop their row.
 ---
@@ -60,10 +63,10 @@ local function formatMode(mode)
 	return table.concat(parts, ', ')
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return EntitySectionEntry[]
-function p.getSections(apiData, args)
+function p.getSections(ctx)
+	local apiData = ctx.apiData
 	-- Gadgets share the personal_weapon block but the gun "Weapon" section is
 	-- meaningless for a utility tool — they render via the Gadget facet instead.
 	if apiData.sub_type == 'Gadget' then
@@ -134,12 +137,10 @@ end
 --- size-prefixed. Falls back to the family type name ("Personal weapon") when
 --- the block omits a class. Size is dropped only when the API has none.
 ---
---- @param apiData table
---- @param args table
---- @param typeInfo table
---- @param prefix string|nil
+--- @param ctx EntityHookContext
 --- @return string
-function p.getShortDescription(apiData, args, typeInfo, prefix)
+function p.getShortDescription(ctx)
+	local apiData, args, typeInfo, prefix = ctx.apiData, ctx.args, ctx.typeInfo, ctx.prefix
 	local pw = apiData.personal_weapon
 	local typeName = typeInfo.name
 	if type(pw) == 'table' and type(pw.type) == 'string' and pw.type ~= '' then
@@ -158,10 +159,10 @@ end
 --- umbrella. Data.get prefers this leaf hook over the classification resolver
 --- (which ignores FPS.* paths).
 ---
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table|nil { name, category }
-function p.getTypeInfo(apiData, args)
+function p.getTypeInfo(ctx)
+	local apiData = ctx.apiData
 	local sub = apiData and apiData.sub_type
 	if sub == 'Knife' then
 		return { name = 'Knife', category = 'Knives' }
@@ -180,10 +181,10 @@ end
 --- out damage and ammo. `weapon_class` is the facet the per-class index tables
 --- filter on; `damage_class` (Ballistic / Energy) is a secondary facet.
 ---
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table<string, any>
-function p.getStructuredData(apiData, args)
+function p.getStructuredData(ctx)
+	local apiData = ctx.apiData
 	local pw = apiData.personal_weapon
 	if type(pw) ~= 'table' then
 		return {}

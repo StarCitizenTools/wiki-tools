@@ -6,6 +6,11 @@ local Item = require('Module:Entity/Item')
 
 local suite = ScribuntoUnit:new()
 
+--- Hook context for direct hook calls (Module:Entity/Types EntityHookContext).
+local function ctx(apiData, args, resolved)
+	return { apiData = apiData, args = args or {}, resolved = resolved }
+end
+
 local function findItem(items, label)
 	for _, it in ipairs(items or {}) do
 		if it.label == label then
@@ -16,7 +21,7 @@ local function findItem(items, label)
 end
 
 function suite:testEmpStatsRows()
-	local sections = EMP.getSections({
+	local sections = EMP.getSections(ctx({
 		emp = {
 			emp_radius = 1100,
 			distortion_damage = 3300,
@@ -24,7 +29,7 @@ function suite:testEmpStatsRows()
 			unleash_duration = 1.5,
 			cooldown_duration = 16,
 		},
-	}, {})
+	}, {}))
 	self:assertEquals(1, #sections)
 	self:assertEquals('emp', sections[1].key)
 	self:assertEquals('1,100 m', findItem(sections[1].items, 'EMP radius').content)
@@ -35,11 +40,11 @@ function suite:testEmpStatsRows()
 end
 
 function suite:testEmptyWhenNoBlock()
-	self:assertEquals(0, #EMP.getSections({}, {}))
+	self:assertEquals(0, #EMP.getSections(ctx({}, {})))
 end
 
 function suite:testStructuredData()
-	local data = EMP.getStructuredData({
+	local data = EMP.getStructuredData(ctx({
 		emp = {
 			emp_radius = 1100,
 			distortion_damage = 3300,
@@ -47,7 +52,7 @@ function suite:testStructuredData()
 			unleash_duration = 1.5,
 			cooldown_duration = 16,
 		},
-	})
+	}))
 	self:assertEquals(1100, data.emp_radius)
 	self:assertEquals(3300, data.emp_distortion_damage)
 	self:assertEquals(22, data.emp_charge_time)

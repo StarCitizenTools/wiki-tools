@@ -17,6 +17,9 @@ local p = {}
 --- @type string
 p.parent = 'Entity/Item'
 
+-- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
+p.contextHooks = true
+
 -- Full type names per enforcement subdivision, used in the short description.
 local SUBTYPE_NAME = {
 	QED = 'Quantum enforcement device',
@@ -61,10 +64,10 @@ local MODE_DESCRIPTION = {
 	QID = 'Snare',
 }
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table[] Ordered list of section entries with key field
-function p.getSections(apiData, args)
+function p.getSections(ctx)
+	local apiData = ctx.apiData
 	local qig = apiData.quantum_interdiction_generator
 	if type(qig) ~= 'table' then
 		return {}
@@ -91,10 +94,10 @@ function p.getSections(apiData, args)
 	}))
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table<string, any>
-function p.getStructuredData(apiData, args)
+function p.getStructuredData(ctx)
+	local apiData = ctx.apiData
 	local qig = apiData.quantum_interdiction_generator
 	if type(qig) ~= 'table' then
 		return {}
@@ -118,12 +121,10 @@ end
 --- Falls back to the umbrella "quantum interdiction generator" type when the
 --- subdivision can't be determined.
 ---
---- @param apiData table
---- @param args table
---- @param typeInfo table
---- @param prefix string|nil
+--- @param ctx EntityHookContext
 --- @return string
-function p.getShortDescription(apiData, args, typeInfo, prefix)
+function p.getShortDescription(ctx)
+	local apiData, args, prefix = ctx.apiData, ctx.args, ctx.prefix
 	local qig = apiData.quantum_interdiction_generator
 	if type(qig) == 'table' then
 		local hasSnare, hasDampener = capabilities(qig)
@@ -134,7 +135,7 @@ function p.getShortDescription(apiData, args, typeInfo, prefix)
 				or item.formatShortDescription(subInfo, apiData, args, prefix)
 		end
 	end
-	return item.getShortDescription(apiData, args, typeInfo, prefix)
+	return item.getShortDescription(ctx)
 end
 
 -- Test-only exports. Not part of the public API.

@@ -5,6 +5,11 @@ local suite = ScribuntoUnit:new()
 local Turret = require('Module:Entity/Item/Turret')
 local helpers = Turret._internal
 
+--- Hook context for direct hook calls (Module:Entity/Types EntityHookContext).
+local function ctx(apiData, args, resolved)
+	return { apiData = apiData, args = args or {}, resolved = resolved }
+end
+
 -- A vehicle_weapon block shaped like the PDC's embedded gun. Enough for
 -- WeaponGun.getVehicleWeaponSections to yield a non-empty Weapon section.
 local function gunVehicleWeapon()
@@ -106,36 +111,36 @@ end
 -- getSections
 
 function suite:testGetSectionsPdcTurretAndWeapon()
-	local sections = Turret.getSections({
+	local sections = Turret.getSections(ctx({
 		turret = { rotation_style = 'SingleAxis', mounts = 1 },
 		ports = { { editable = false, equipped_item = { vehicle_weapon = gunVehicleWeapon() } } },
-	}, {})
+	}, {}))
 	self:assertEquals(2, #sections)
 	self:assertEquals('Turret', sections[1].label)
 	self:assertEquals('Weapon', sections[2].label)
 end
 
 function suite:testGetSectionsGimbalTurretOnly()
-	local sections = Turret.getSections({
+	local sections = Turret.getSections(ctx({
 		turret = { rotation_style = 'SingleAxis', mounts = 1 },
 		ports = { { editable = true, equipped_item = nil } },
-	}, {})
+	}, {}))
 	self:assertEquals(1, #sections)
 	self:assertEquals('Turret', sections[1].label)
 end
 
 function suite:testGetSectionsNoTurretBlockReturnsEmpty()
 	-- No turret block and no locked gun → the module contributes no sections.
-	self:assertEquals(0, #Turret.getSections({}, {}))
+	self:assertEquals(0, #Turret.getSections(ctx({}, {})))
 end
 
 -- getStructuredData
 
 function suite:testGetStructuredDataWithBothSpeeds()
 	-- Standalone gimbal mount (VariPuck) shape: outer turret block has the speeds.
-	local data = Turret.getStructuredData({
+	local data = Turret.getStructuredData(ctx({
 		turret = { yaw_axis = { speed = 80 }, pitch_axis = { speed = 60 } },
-	}, {})
+	}, {}))
 	self:assertEquals(80, data.yaw_speed)
 	self:assertEquals(60, data.pitch_speed)
 end
@@ -144,15 +149,15 @@ function suite:testGetStructuredDataNullSpeedsAreNil()
 	-- Housing turrets (TMSB-5, Anvil ball/nose, PDCs): outer speeds are null;
 	-- we do NOT fall back to the inner equipped gimbal mount, per the
 	-- "store only outer" policy. Partial coverage is honest.
-	local data = Turret.getStructuredData({
+	local data = Turret.getStructuredData(ctx({
 		turret = { yaw_axis = { speed = nil }, pitch_axis = { speed = nil } },
-	}, {})
+	}, {}))
 	self:assertEquals(nil, data.yaw_speed)
 	self:assertEquals(nil, data.pitch_speed)
 end
 
 function suite:testGetStructuredDataMissingTurretBlock()
-	local data = Turret.getStructuredData({}, {})
+	local data = Turret.getStructuredData(ctx({}, {}))
 	self:assertEquals(nil, data.yaw_speed)
 	self:assertEquals(nil, data.pitch_speed)
 end
@@ -160,9 +165,9 @@ end
 function suite:testGetStructuredDataMissingOneAxis()
 	-- Defensive: if the API ever ships only one axis populated, the other
 	-- comes back nil without erroring.
-	local data = Turret.getStructuredData({
+	local data = Turret.getStructuredData(ctx({
 		turret = { yaw_axis = { speed = 80 } },
-	}, {})
+	}, {}))
 	self:assertEquals(80, data.yaw_speed)
 	self:assertEquals(nil, data.pitch_speed)
 end

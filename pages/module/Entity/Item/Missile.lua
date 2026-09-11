@@ -24,6 +24,9 @@ local p = {}
 --- @type string
 p.parent = 'Entity/Item'
 
+-- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
+p.contextHooks = true
+
 --- Normalizes the API's lock signal type to a readable label by splitting
 --- CamelCase: "CrossSection" -> "Cross Section". Single-word values
 --- ("Infrared", "Electromagnetic") pass through unchanged. Returns nil for a
@@ -38,10 +41,10 @@ local function signalLabel(raw)
 	return (raw:gsub('(%l)(%u)', '%1 %2'))
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table[] Ordered list of section entries with key field
-function p.getSections(apiData, args)
+function p.getSections(ctx)
+	local apiData = ctx.apiData
 	local missile = apiData.missile
 	if type(missile) ~= 'table' then
 		return {}
@@ -77,12 +80,10 @@ end
 --- missile by Behring". Falls back to the plain type name when the signal type
 --- is absent (dumbfire / unknown). Size is prepended when the API has one.
 ---
---- @param apiData table
---- @param args table
---- @param typeInfo table
---- @param prefix string|nil
+--- @param ctx EntityHookContext
 --- @return string
-function p.getShortDescription(apiData, args, typeInfo, prefix)
+function p.getShortDescription(ctx)
+	local apiData, args, typeInfo, prefix = ctx.apiData, ctx.args, ctx.typeInfo, ctx.prefix
 	local missile = apiData.missile
 	local signal = type(missile) == 'table' and signalLabel(missile.signal_type) or nil
 	local typeName = typeInfo.name:lower()
@@ -95,10 +96,10 @@ function p.getShortDescription(apiData, args, typeInfo, prefix)
 	return item.formatShortDescription({ name = typeName }, apiData, args, prefix)
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table<string, any>
-function p.getStructuredData(apiData, args)
+function p.getStructuredData(ctx)
+	local apiData = ctx.apiData
 	local missile = apiData.missile
 	if type(missile) ~= 'table' then
 		return {}

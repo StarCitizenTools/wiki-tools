@@ -15,15 +15,16 @@ local p = {}
 --- @type string
 p.parent = 'Entity/Item'
 
+-- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
+p.contextHooks = true
+
 --- Short description prepends the mount size — "S1 tractor beam by Greycat
 --- Industrial" — mirroring the other vehicle-component descriptors.
 ---
---- @param apiData table
---- @param args table
---- @param typeInfo table
---- @param prefix string|nil
+--- @param ctx EntityHookContext
 --- @return string
-function p.getShortDescription(apiData, args, typeInfo, prefix)
+function p.getShortDescription(ctx)
+	local apiData, args, typeInfo, prefix = ctx.apiData, ctx.args, ctx.typeInfo, ctx.prefix
 	local typeName = typeInfo.name
 	if apiData.size then
 		typeName = 'S' .. tostring(apiData.size) .. ' ' .. typeName:lower()

@@ -6,6 +6,11 @@ local Module = require('Module:Entity/Item/Module')
 local item = require('Module:Entity/Item')
 local helpers = Module._internal
 
+--- Hook context for direct hook calls (Module:Entity/Types EntityHookContext).
+local function ctx(apiData, args, resolved)
+	return { apiData = apiData, args = args or {}, resolved = resolved }
+end
+
 -- An item shaped like the Aurora Mk II DM Module: empty vehicles array, owning
 -- vehicle resolved from related_items.set_name (the fallback path).
 local function moduleWithSet()
@@ -67,7 +72,7 @@ end
 -- getTypeInfo
 
 function suite:testGetTypeInfoSingleVehicle()
-	local info = Module.getTypeInfo(moduleWithSet(), {})
+	local info = Module.getTypeInfo(ctx(moduleWithSet(), {}))
 	self:assertEquals('Vehicle module', info.name)
 	self:assertEquals('Aurora Mk II', info.category)
 	self:assertEquals(1, #info.categories)
@@ -75,7 +80,7 @@ function suite:testGetTypeInfoSingleVehicle()
 end
 
 function suite:testGetTypeInfoMultipleVehicles()
-	local info = Module.getTypeInfo(moduleWithVehicles(), {})
+	local info = Module.getTypeInfo(ctx(moduleWithVehicles(), {}))
 	self:assertEquals('Apollo Medivac', info.category)
 	-- Second vehicle rides along as an extra, then the shared bucket.
 	self:assertEquals(2, #info.categories)
@@ -84,7 +89,7 @@ function suite:testGetTypeInfoMultipleVehicles()
 end
 
 function suite:testGetTypeInfoNoVehicle()
-	local info = Module.getTypeInfo({ type = 'Module' }, {})
+	local info = Module.getTypeInfo(ctx({ type = 'Module' }, {}))
 	self:assertEquals('Vehicle module', info.name)
 	self:assertEquals('Vehicle modules', info.category)
 end
@@ -92,7 +97,7 @@ end
 -- getSections
 
 function suite:testGetSectionsSingleVehicle()
-	local sections = Module.getSections(moduleWithSet(), {})
+	local sections = Module.getSections(ctx(moduleWithSet(), {}))
 	self:assertEquals(1, #sections)
 	self:assertEquals('general', sections[1].key)
 	self:assertEquals('Vehicle', sections[1].items[1].label)
@@ -100,29 +105,32 @@ function suite:testGetSectionsSingleVehicle()
 end
 
 function suite:testGetSectionsMultipleVehicles()
-	local sections = Module.getSections(moduleWithVehicles(), {})
+	local sections = Module.getSections(ctx(moduleWithVehicles(), {}))
 	self:assertEquals('Vehicles', sections[1].items[1].label)
 	self:assertEquals('[[Apollo Medivac]], [[Apollo Triage]]', sections[1].items[1].content)
 end
 
 function suite:testGetSectionsNoVehicle()
-	self:assertEquals(0, #Module.getSections({ type = 'Module' }, {}))
+	self:assertEquals(0, #Module.getSections(ctx({ type = 'Module' }, {})))
 end
 
 -- getShortDescription
 
 function suite:testGetShortDescriptionSingleVehicle()
 	local apiData = moduleWithSet()
-	local typeInfo = Module.getTypeInfo(apiData, {})
-	self:assertEquals('Vehicle module for the Aurora Mk II', Module.getShortDescription(apiData, {}, typeInfo, nil))
+	local typeInfo = Module.getTypeInfo(ctx(apiData, {}))
+	self:assertEquals(
+		'Vehicle module for the Aurora Mk II',
+		Module.getShortDescription({ apiData = apiData, args = {}, typeInfo = typeInfo })
+	)
 end
 
 function suite:testGetShortDescriptionMultipleVehicles()
 	local apiData = moduleWithVehicles()
-	local typeInfo = Module.getTypeInfo(apiData, {})
+	local typeInfo = Module.getTypeInfo(ctx(apiData, {}))
 	self:assertEquals(
 		'Vehicle module for the Apollo Medivac and Apollo Triage',
-		Module.getShortDescription(apiData, {}, typeInfo, nil)
+		Module.getShortDescription({ apiData = apiData, args = {}, typeInfo = typeInfo })
 	)
 end
 
@@ -130,26 +138,27 @@ function suite:testGetShortDescriptionNoVehicleDelegatesToItem()
 	-- No vehicle → defer to Item's "<type> by <manufacturer>" composer; assert
 	-- it matches Item's own output for the same inputs (delegation).
 	local apiData = { type = 'Module' }
-	local typeInfo = Module.getTypeInfo(apiData, {})
-	local expected = item.getShortDescription(apiData, {}, typeInfo, nil)
-	self:assertEquals(expected, Module.getShortDescription(apiData, {}, typeInfo, nil))
+	local typeInfo = Module.getTypeInfo(ctx(apiData, {}))
+	local shortDescCtx = { apiData = apiData, args = {}, typeInfo = typeInfo }
+	local expected = item.getShortDescription(shortDescCtx)
+	self:assertEquals(expected, Module.getShortDescription(shortDescCtx))
 end
 
 -- getStructuredData
 
 function suite:testGetStructuredDataSingleVehicleScalar()
-	self:assertEquals('Aurora Mk II', Module.getStructuredData(moduleWithSet(), {}).vehicle)
+	self:assertEquals('Aurora Mk II', Module.getStructuredData(ctx(moduleWithSet(), {})).vehicle)
 end
 
 function suite:testGetStructuredDataMultipleVehiclesList()
-	local v = Module.getStructuredData(moduleWithVehicles(), {}).vehicle
+	local v = Module.getStructuredData(ctx(moduleWithVehicles(), {})).vehicle
 	self:assertEquals(2, #v)
 	self:assertEquals('Apollo Medivac', v[1])
 	self:assertEquals('Apollo Triage', v[2])
 end
 
 function suite:testGetStructuredDataNoVehicle()
-	self:assertEquals(nil, Module.getStructuredData({ type = 'Module' }, {}).vehicle)
+	self:assertEquals(nil, Module.getStructuredData(ctx({ type = 'Module' }, {})).vehicle)
 end
 
 return suite

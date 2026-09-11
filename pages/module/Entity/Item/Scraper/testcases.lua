@@ -6,6 +6,11 @@ local Item = require('Module:Entity/Item')
 
 local suite = ScribuntoUnit:new()
 
+--- Hook context for direct hook calls (Module:Entity/Types EntityHookContext).
+local function ctx(apiData, args, resolved)
+	return { apiData = apiData, args = args or {}, resolved = resolved }
+end
+
 local function findItem(items, label)
 	for _, it in ipairs(items or {}) do
 		if it.label == label then
@@ -28,7 +33,7 @@ local function abradeData()
 end
 
 function suite:testRows()
-	local sections = Scraper.getSections(abradeData(), {})
+	local sections = Scraper.getSections(ctx(abradeData(), {}))
 	self:assertEquals(1, #sections)
 	self:assertEquals('salvage_modifier', sections[1].key)
 	self:assertEquals('Salvage', sections[1].label)
@@ -45,33 +50,33 @@ end
 
 -- The ReadyGrip: a neutral tractor-flavoured SalvageModifier (all multipliers 1).
 function suite:testNeutralModifier()
-	local sections = Scraper.getSections({
+	local sections = Scraper.getSections(ctx({
 		size = 1,
 		salvage_modifier = {
 			salvage_speed_multiplier = 1,
 			radius_multiplier = 1,
 			extraction_efficiency = 1,
 		},
-	}, {})
+	}, {}))
 	self:assertEquals('×1', findItem(sections[1].items, 'Salvage speed').content)
 	self:assertEquals('100%', findItem(sections[1].items, 'Extraction efficiency').content)
 end
 
 function suite:testEmptyWhenNoBlock()
-	self:assertEquals(0, #Scraper.getSections({}, {}))
+	self:assertEquals(0, #Scraper.getSections(ctx({}, {})))
 end
 
 function suite:testShortDescription()
-	local desc = Scraper.getShortDescription(
-		abradeData(),
-		{ manufacturer = 'Greycat Industrial' },
-		{ name = 'Scraper module' }
-	)
+	local desc = Scraper.getShortDescription({
+		apiData = abradeData(),
+		args = { manufacturer = 'Greycat Industrial' },
+		typeInfo = { name = 'Scraper module' },
+	})
 	self:assertEquals('S1 scraper module by Greycat', desc)
 end
 
 function suite:testStructuredData()
-	local data = Scraper.getStructuredData(abradeData())
+	local data = Scraper.getStructuredData(ctx(abradeData()))
 	self:assertEquals(0.15, data.salvage_speed_multiplier)
 	self:assertEquals(3.5, data.radius_multiplier)
 	self:assertEquals(90, data.extraction_efficiency)

@@ -6,6 +6,11 @@ local Item = require('Module:Entity/Item')
 
 local suite = ScribuntoUnit:new()
 
+--- Hook context for direct hook calls (Module:Entity/Types EntityHookContext).
+local function ctx(apiData, args, resolved)
+	return { apiData = apiData, args = args or {}, resolved = resolved }
+end
+
 local function findItem(items, label)
 	for _, it in ipairs(items or {}) do
 		if it.label == label then
@@ -36,7 +41,7 @@ local function arborData()
 end
 
 function suite:testRows()
-	local sections = WeaponMining.getSections(arborData(), {})
+	local sections = WeaponMining.getSections(ctx(arborData(), {}))
 	self:assertEquals(1, #sections)
 	self:assertEquals('mining_laser', sections[1].key)
 	self:assertEquals('Mining laser', sections[1].label)
@@ -66,7 +71,7 @@ function suite:testFilterCollapsesToOneNegatedRow()
 	local data = arborData()
 	data.mining_laser.modifier_map.all_charge_rates = 30
 	data.mining_laser.modifier_map.inert_materials = -30
-	local sections = WeaponMining.getSections(data, {})
+	local sections = WeaponMining.getSections(ctx(data, {}))
 	local inert = findItem(sections[1].items, 'Inert material level').content
 	self:assertStringContains('−30%', inert, true)
 	self:assertStringContains('--color-success', inert, true)
@@ -75,21 +80,21 @@ function suite:testFilterCollapsesToOneNegatedRow()
 end
 
 function suite:testEmptyWhenNoBlock()
-	self:assertEquals(0, #WeaponMining.getSections({}, {}))
+	self:assertEquals(0, #WeaponMining.getSections(ctx({}, {})))
 end
 
 function suite:testShortDescription()
-	local desc = WeaponMining.getShortDescription(
-		arborData(),
-		{ manufacturer = 'Greycat Industrial' },
-		{ name = 'Mining laser head' }
-	)
+	local desc = WeaponMining.getShortDescription({
+		apiData = arborData(),
+		args = { manufacturer = 'Greycat Industrial' },
+		typeInfo = { name = 'Mining laser head' },
+	})
 	-- formatShortDescription uses the manufacturer's short form (Greycat for GRIN).
 	self:assertEquals('S1 mining laser head by Greycat', desc)
 end
 
 function suite:testStructuredData()
-	local data = WeaponMining.getStructuredData(arborData())
+	local data = WeaponMining.getStructuredData(ctx(arborData()))
 	self:assertEquals(94.5, data.mining_power_min)
 	self:assertEquals(1890, data.mining_power_max)
 	self:assertEquals(1, data.module_slots)

@@ -6,6 +6,11 @@ local Item = require('Module:Entity/Item')
 
 local suite = ScribuntoUnit:new()
 
+--- Hook context for direct hook calls (Module:Entity/Types EntityHookContext).
+local function ctx(apiData, args, resolved)
+	return { apiData = apiData, args = args or {}, resolved = resolved }
+end
+
 local function findItem(items, label)
 	for _, it in ipairs(items or {}) do
 		if it.label == label then
@@ -30,7 +35,7 @@ local function sampleData()
 end
 
 function suite:testBombRows()
-	local sections = Bomb.getSections(sampleData(), {})
+	local sections = Bomb.getSections(ctx(sampleData(), {}))
 	self:assertEquals(1, #sections)
 	self:assertEquals('bomb', sections[1].key)
 	self:assertEquals('Bomb', sections[1].label)
@@ -43,37 +48,41 @@ end
 
 -- Radii nested under `explosion`, and arm time under `delays`, still resolve.
 function suite:testNestedExplosionAndDelays()
-	local sections = Bomb.getSections({
+	local sections = Bomb.getSections(ctx({
 		bomb = {
 			damage_total = 568297,
 			explosion = { radius_min = 18, radius_max = 22 },
 			delays = { arm_time = 5 },
 		},
-	}, {})
+	}, {}))
 	self:assertEquals('18–22 m', findItem(sections[1].items, 'Explosion radius').content)
 	self:assertEquals('5 s', findItem(sections[1].items, 'Arm time').content)
 end
 
 -- The Colossus reports null radii: the row collapses, damage still shows.
 function suite:testNullRadiusCollapses()
-	local sections = Bomb.getSections({
+	local sections = Bomb.getSections(ctx({
 		bomb = { damage_total = 568297, explosion_radius_min = nil, explosion_radius_max = nil },
-	}, {})
+	}, {}))
 	self:assertEquals(nil, findItem(sections[1].items, 'Explosion radius'))
 	self:assertEquals('568,297', findItem(sections[1].items, 'Damage').content)
 end
 
 function suite:testEmptyWhenNoBlock()
-	self:assertEquals(0, #Bomb.getSections({}, {}))
+	self:assertEquals(0, #Bomb.getSections(ctx({}, {})))
 end
 
 function suite:testShortDescription()
-	local desc = Bomb.getShortDescription(sampleData(), { manufacturer = 'FireStorm Kinetics' }, { name = 'Bomb' })
+	local desc = Bomb.getShortDescription({
+		apiData = sampleData(),
+		args = { manufacturer = 'FireStorm Kinetics' },
+		typeInfo = { name = 'Bomb' },
+	})
 	self:assertEquals('S5 bomb by FireStorm Kinetics', desc)
 end
 
 function suite:testStructuredData()
-	local data = Bomb.getStructuredData(sampleData())
+	local data = Bomb.getStructuredData(ctx(sampleData()))
 	self:assertEquals(200001, data.warhead_damage)
 	self:assertEquals(30, data.explosion_radius)
 	self:assertEquals(3, data.arm_time)

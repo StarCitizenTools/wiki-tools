@@ -15,10 +15,13 @@ local p = {}
 --- @type string
 p.parent = 'Entity/Item'
 
---- @param apiData table
---- @param args table
+-- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
+p.contextHooks = true
+
+--- @param ctx EntityHookContext
 --- @return table[] Ordered list of section entries with key field
-function p.getSections(apiData, args)
+function p.getSections(ctx)
+	local apiData = ctx.apiData
 	local cooler = apiData.cooler
 	if type(cooler) ~= 'table' then
 		return {}
@@ -37,10 +40,10 @@ function p.getSections(apiData, args)
 	}))
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table<string, any>
-function p.getStructuredData(apiData, args)
+function p.getStructuredData(ctx)
+	local apiData = ctx.apiData
 	local cooler = apiData.cooler
 	if type(cooler) ~= 'table' then
 		return {}

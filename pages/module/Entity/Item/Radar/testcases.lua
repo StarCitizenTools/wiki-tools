@@ -6,6 +6,11 @@ local Item = require('Module:Entity/Item')
 
 local suite = ScribuntoUnit:new()
 
+--- Hook context for direct hook calls (Module:Entity/Types EntityHookContext).
+local function ctx(apiData, args, resolved)
+	return { apiData = apiData, args = args or {}, resolved = resolved }
+end
+
 local function findItem(items, label)
 	for _, it in ipairs(items or {}) do
 		if it.label == label then
@@ -16,13 +21,13 @@ local function findItem(items, label)
 end
 
 function suite:testRadarStatsRows()
-	local sections = Radar.getSections({
+	local sections = Radar.getSections(ctx({
 		radar = {
 			cooldown = 2.5,
 			sensitivity = { infrared = 0.9, cross_section = 0.9, electromagnetic = 0.9, resource = 0.85 },
 			aim_assist = { distance_max_assignment = 1610 },
 		},
-	}, {})
+	}, {}))
 	self:assertEquals(1, #sections)
 	self:assertEquals('radar', sections[1].key)
 	self:assertEquals('90%', findItem(sections[1].items, 'Sensitivity').content)
@@ -32,17 +37,17 @@ function suite:testRadarStatsRows()
 end
 
 function suite:testEmptyWhenNoBlock()
-	self:assertEquals(0, #Radar.getSections({}, {}))
+	self:assertEquals(0, #Radar.getSections(ctx({}, {})))
 end
 
 function suite:testStructuredData()
-	local data = Radar.getStructuredData({
+	local data = Radar.getStructuredData(ctx({
 		radar = {
 			cooldown = 2.5,
 			sensitivity = { infrared = 0.8, resource = 1 },
 			aim_assist = { distance_max_assignment = 1062.5 },
 		},
-	})
+	}))
 	self:assertEquals(0.8, data.radar_sensitivity)
 	self:assertEquals(1, data.radar_resource_sensitivity)
 	self:assertEquals(2.5, data.radar_cooldown)

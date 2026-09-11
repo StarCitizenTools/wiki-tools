@@ -17,6 +17,9 @@ local p = {}
 --- @type string
 p.parent = 'Entity/Item'
 
+-- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
+p.contextHooks = true
+
 --- Rounds a numeric damage value to a whole number (the API reports fractional
 --- totals like 568296.99). Returns nil for non-numeric input.
 ---
@@ -30,10 +33,10 @@ local function roundDamage(value)
 	return math.floor(n + 0.5)
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table[] Ordered list of section entries with key field
-function p.getSections(apiData, args)
+function p.getSections(ctx)
+	local apiData = ctx.apiData
 	local bomb = apiData.bomb
 	if type(bomb) ~= 'table' then
 		return {}
@@ -68,12 +71,10 @@ end
 --- Kinetics" — mirroring the missile / gun descriptors. Size is omitted only when
 --- the API has none.
 ---
---- @param apiData table
---- @param args table
---- @param typeInfo table
---- @param prefix string|nil
+--- @param ctx EntityHookContext
 --- @return string
-function p.getShortDescription(apiData, args, typeInfo, prefix)
+function p.getShortDescription(ctx)
+	local apiData, args, typeInfo, prefix = ctx.apiData, ctx.args, ctx.typeInfo, ctx.prefix
 	local typeName = typeInfo.name
 	if apiData.size then
 		typeName = 'S' .. tostring(apiData.size) .. ' ' .. typeName:lower()
@@ -81,10 +82,10 @@ function p.getShortDescription(apiData, args, typeInfo, prefix)
 	return item.formatShortDescription({ name = typeName }, apiData, args, prefix)
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table<string, any>
-function p.getStructuredData(apiData, args)
+function p.getStructuredData(ctx)
+	local apiData = ctx.apiData
 	local bomb = apiData.bomb
 	if type(bomb) ~= 'table' then
 		return {}

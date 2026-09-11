@@ -6,6 +6,11 @@ local Item = require('Module:Entity/Item')
 
 local suite = ScribuntoUnit:new()
 
+--- Hook context for direct hook calls (Module:Entity/Types EntityHookContext).
+local function ctx(apiData, args, resolved)
+	return { apiData = apiData, args = args or {}, resolved = resolved }
+end
+
 local function findItem(items, label)
 	for _, it in ipairs(items or {}) do
 		if it.label == label then
@@ -33,7 +38,7 @@ local function sampleBlock()
 end
 
 function suite:testFlightRows()
-	local sections = FlightController.getSections(sampleBlock(), {})
+	local sections = FlightController.getSections(ctx(sampleBlock(), {}))
 	self:assertEquals(1, #sections)
 	self:assertEquals('flight_controller', sections[1].key)
 	self:assertEquals('Flight performance', sections[1].label)
@@ -47,29 +52,29 @@ end
 
 -- No boosted counterpart -> no parenthetical, just the base value.
 function suite:testNoBoostOmitsParenthetical()
-	local sections = FlightController.getSections({
+	local sections = FlightController.getSections(ctx({
 		flight_controller = { scm_speed = 200, pitch = 50 },
-	}, {})
+	}, {}))
 	self:assertEquals('200 m/s', findItem(sections[1].items, 'SCM speed').content)
 	self:assertEquals('50 °/s', findItem(sections[1].items, 'Pitch').content)
 end
 
 -- A missing base value collapses the row entirely.
 function suite:testMissingBaseCollapsesRow()
-	local sections = FlightController.getSections({
+	local sections = FlightController.getSections(ctx({
 		flight_controller = { max_speed = 1000 },
-	}, {})
+	}, {}))
 	self:assertEquals(nil, findItem(sections[1].items, 'SCM speed'))
 	self:assertEquals(nil, findItem(sections[1].items, 'Pitch'))
 	self:assertEquals('1,000 m/s', findItem(sections[1].items, 'Max speed').content)
 end
 
 function suite:testEmptyWhenNoBlock()
-	self:assertEquals(0, #FlightController.getSections({}, {}))
+	self:assertEquals(0, #FlightController.getSections(ctx({}, {})))
 end
 
 function suite:testStructuredData()
-	local data = FlightController.getStructuredData(sampleBlock())
+	local data = FlightController.getStructuredData(ctx(sampleBlock()))
 	self:assertEquals(226, data.scm_speed)
 	self:assertEquals(520, data.boost_speed)
 	self:assertEquals(1193, data.max_speed)

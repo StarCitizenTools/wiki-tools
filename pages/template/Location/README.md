@@ -1,6 +1,6 @@
 # Template:Location
 
-`{{Location}}` renders a star system or jump point infobox through the same `Module:Entity` engine as `{{Entity}}`, with the editing form scoped to location parameters. Place it at the top of a system or jump-point page in place of `{{Entity}}`.
+Renders a star system or jump point infobox through the same `Module:Entity` engine as `{{Entity}}`, with the editing form scoped to location parameters. Place it at the top of a system or jump-point page in place of `{{Entity}}`.
 
 ## Usage
 
@@ -72,33 +72,33 @@ Star system with curated overrides and lore fields (the discovery citation belon
 
 ## Parameters
 
-| Name | Label | Type | Required | Default | Description | Example |
-|------|-------|------|----------|---------|-------------|---------|
-| `uuid` | UUID | string | No | (none) | Location UUID from the game data API. Only in-game systems have one; lore systems omit it and the infobox renders from the starmap record plus the parameters below. There is no fallback to a UUID stored on the page: this template declares its kind, which deliberately suppresses that lookup so a stale or placeholder stored UUID cannot resurrect itself. | `c9c137cf-c520-47ee-9e6d-5d653dfbe201` |
-| `starmapname` | Starmap name | string | No | (the API record's name, else `name`, else the page title) | Starmap lookup name override, used only when neither the page title nor `name` resolves the starmap record. | `Rihlah` |
-| `name` | Name | string | No | (page title) | Infobox display title. | `Stanton system` |
-| `family` | Family | string | No | (none) | Leaf selector for a page with no location record: `jumppoint` renders the jump-point infobox from the starmap celestial object alone (the starmap-only tunnels, e.g. Stanton - Magnus). Ignored when a genuine record resolves. | `jumppoint` |
-| `starmapcode` | Starmap code | string | No | (none) | ARK starmap code of a jump point's celestial object, the `?location=` key on the RSI starmap. Jump points only; star systems derive their code from the starmap record. `code` works as a legacy alias; `starmapcode` wins when both are set. | `PYRO.JUMPPOINTS.NYX` |
-| `image` | Image | wiki-file-name | No |  | Infobox image. | `Stanton 2D.png` |
-| `size` | Size | number | No | (starmap aggregated size) | System size in AU, overriding the starmap value. | `9.83` |
-| `startypes` | Star types | string | No | (derived from the starmap star list) | Star type display text, overriding the starmap-derived list. | `Flare star` |
-| `affiliation` | Affiliation | content | No | (from the starmap record) | Controlling polity, for systems the starmap does not list or gets wrong. Canonical names (`UEE`, `Xi'an Empire`, `Banu Protectorate`, `Unclaimed`, `Vanduul`, `Developing`) render as their standard link; anything else renders exactly as written (link it yourself if a page exists). | `[[Kr'Thak]]` |
-| `systemtype` | System type | string | No | (from the starmap record) | Starmap system-type code (`SINGLE_STAR`, `BINARY`, `TRINARY`; case-insensitive), for systems the starmap does not list. Drives the type label, category, and stored `System type`. `type` works as a legacy alias. | `TRINARY` |
-| `population` | Population | string | No |  | Population figure or description. | `10 billion` |
-| `discoveredin` | Discovered in | content | No |  | Lore year of discovery. Keep citations in the article body. | `[[2851]]` |
-| `discoveredby` | Discovered by | content | No |  | Discoverer of the system. Keep citations in the article body. | `[[Toshi Aaron]]` |
-| `historicalnames` | Historical names | string | No |  | Former names of the system, comma-separated. | `Cathcart` |
-| `galactapediaurl` | Galactapedia URL | url | No |  | Galactapedia article URL, rendered as a footer button. | `https://robertsspaceindustries.com/galactapedia/article/RX3lKBA3dq-stanton-system` |
-| `verseguideurl` | VerseGuide URL | url | No |  | VerseGuide location URL, rendered as a footer button after the Starmap one. | `https://verseguide.com/location/STANTON` |
-| `planets` | Planets | number | No | (starmap tally) | Hand count of planets, overriding the starmap tally. | `4` |
-| `satellites` | Moons | number | No | (starmap tally) | Hand count of moons, overriding the starmap tally. | `12` |
-| `asteroidbelts` | Asteroid belts | number | No | (starmap tally) | Hand count of asteroid belts, overriding the starmap tally. | `2` |
-| `asteroidfields` | Asteroid fields | number | No | (starmap tally) | Hand count of asteroid fields, overriding the starmap tally. | `1` |
-| `anomalies` | Anomalies | number | No | (starmap tally) | Hand count of anomalies, overriding the starmap tally. | `1` |
-| `stations` | Stations | number | No | (starmap tally) | Hand count of stations, overriding the starmap tally. | `24` |
-| `jumppoints` | Jump points | number | No | (starmap tally) | Hand count of jump points, overriding the starmap tally. | `4` |
-| `blackholes` | Black holes | number | No | (starmap tally) | Hand count of black holes, overriding the starmap tally. | `1` |
-| `pois` | Points of interest | number | No | (starmap tally) | Hand count of points of interest, overriding the starmap tally. | `3` |
+| Name | Label | Type | Required | Default | Description | Example | Aliases |
+|------|-------|------|----------|---------|-------------|---------|---------|
+| `uuid` | UUID | string | No | (none) | Location UUID from the game data API. Only in-game systems have one; lore systems omit it and the infobox renders from the starmap record plus the parameters below. There is no fallback to a UUID stored on the page: this template declares its kind, which deliberately suppresses that lookup so a stale or placeholder stored UUID cannot resurrect itself. | `c9c137cf-c520-47ee-9e6d-5d653dfbe201` |  |
+| `starmapname` | Starmap name | string | No | (the API record's name, else `name`, else the page title) | Starmap lookup name override, used only when neither the page title nor `name` resolves the starmap record. | `Rihlah` |  |
+| `name` | Name | string | No | (page title) | Infobox display title. | `Stanton system` |  |
+| `family` | Family | string | No | (none) | Leaf selector for a page with no location record: `jumppoint` renders the jump-point infobox from the starmap celestial object alone (the starmap-only tunnels, e.g. Stanton - Magnus). Ignored when a genuine record resolves. | `jumppoint` |  |
+| `starmapcode` | Starmap code | string | No | (none) | ARK starmap code of a jump point's celestial object, the `?location=` key on the RSI starmap. Jump points only; star systems derive their code from the starmap record; wins over the legacy alias when both are set. | `PYRO.JUMPPOINTS.NYX` | `code` |
+| `image` | Image | wiki-file-name | No |  | Infobox image. | `Stanton 2D.png` |  |
+| `size` | Size | number | No | (starmap aggregated size) | System size in AU, overriding the starmap value. | `9.83` |  |
+| `startypes` | Star types | string | No | (derived from the starmap star list) | Star type display text, overriding the starmap-derived list. | `Flare star` |  |
+| `affiliation` | Affiliation | content | No | (from the starmap record) | Controlling polity, for systems the starmap does not list or gets wrong. Canonical names (`UEE`, `Xi'an Empire`, `Banu Protectorate`, `Unclaimed`, `Vanduul`, `Developing`) render as their standard link; anything else renders exactly as written (link it yourself if a page exists). | `[[Kr'Thak]]` |  |
+| `systemtype` | System type | string | No | (from the starmap record) | Starmap system-type code (`SINGLE_STAR`, `BINARY`, `TRINARY`; case-insensitive), for systems the starmap does not list. Drives the type label, category, and stored `System type`. | `TRINARY` | `type` |
+| `population` | Population | string | No |  | Population figure or description. | `10 billion` |  |
+| `discoveredin` | Discovered in | content | No |  | Lore year of discovery. Keep citations in the article body. | `[[2851]]` |  |
+| `discoveredby` | Discovered by | content | No |  | Discoverer of the system. Keep citations in the article body. | `[[Toshi Aaron]]` |  |
+| `historicalnames` | Historical names | string | No |  | Former names of the system, comma-separated. | `Cathcart` |  |
+| `galactapediaurl` | Galactapedia URL | url | No |  | Galactapedia article URL, rendered as a footer button. | `https://robertsspaceindustries.com/galactapedia/article/RX3lKBA3dq-stanton-system` |  |
+| `verseguideurl` | VerseGuide URL | url | No |  | VerseGuide location URL, rendered as a footer button after the Starmap one. | `https://verseguide.com/location/STANTON` |  |
+| `planets` | Planets | number | No | (starmap tally) | Hand count of planets, overriding the starmap tally. | `4` |  |
+| `satellites` | Moons | number | No | (starmap tally) | Hand count of moons, overriding the starmap tally. | `12` |  |
+| `asteroidbelts` | Asteroid belts | number | No | (starmap tally) | Hand count of asteroid belts, overriding the starmap tally. | `2` |  |
+| `asteroidfields` | Asteroid fields | number | No | (starmap tally) | Hand count of asteroid fields, overriding the starmap tally. | `1` |  |
+| `anomalies` | Anomalies | number | No | (starmap tally) | Hand count of anomalies, overriding the starmap tally. | `1` |  |
+| `stations` | Stations | number | No | (starmap tally) | Hand count of stations, overriding the starmap tally. | `24` |  |
+| `jumppoints` | Jump points | number | No | (starmap tally) | Hand count of jump points, overriding the starmap tally. | `4` |  |
+| `blackholes` | Black holes | number | No | (starmap tally) | Hand count of black holes, overriding the starmap tally. | `1` |  |
+| `pois` | Points of interest | number | No | (starmap tally) | Hand count of points of interest, overriding the starmap tally. | `3` |  |
 
 ## Behaviour
 
@@ -110,6 +110,7 @@ Star system with curated overrides and lore fields (the discovery citation belon
 - The starmap does not publish a survey for every system (the Vanduul systems and those with incomplete probe data). Where it withholds one, the size and the economy/population readings are omitted rather than shown as the placeholder figures the starmap returns.
 - The RSI Starmap footer button is generated from the starmap system code (star systems) or from the fetched celestial object's code falling back to `starmapcode` (jump points); the Galactapedia and VerseGuide buttons appear when `galactapediaurl` / `verseguideurl` are supplied.
 - A jump point's Destination row is omitted rather than guessed when the celestial designation names neither side as the entry system.
+- `affiliation` feeds a `<value> systems` browse category directly from whatever text is written: a canonical name (`UEE`, `Xi'an Empire`, ...) normalizes to its standard entry, but anything else is used verbatim, so a typo or inconsistent spelling files the page under its own new category instead of the intended one.
 - Stored property values are sanitized: wiki links are reduced to their display text and reference tags are stripped, so query results stay clean.
 
 ## See also

@@ -1,6 +1,6 @@
 # Template:Vehicle
 
-`{{Vehicle}}` renders a ship or ground-vehicle infobox through the same `Module:Entity` engine as `{{Entity}}`, with the editing form scoped to vehicle parameters. Place it at the top of a vehicle page in place of `{{Entity}}`.
+Renders a ship or ground-vehicle infobox through the same `Module:Entity` engine as `{{Entity}}`, with the editing form scoped to vehicle parameters. Place it at the top of a vehicle page in place of `{{Entity}}`.
 
 ## Usage
 
@@ -106,6 +106,8 @@ Concept or unreleased ship with no in-game record. Declare the page as a planned
 - A page with no in-game record (a concept or unreleased ship) is declared planned with `kind=Vehicle`; its family then comes from `family=` (`ship`, `ground`, or `gravlev`) and every stat is supplied by hand. A bare `{{Vehicle}}` with no other parameters still renders, titled from the page name, rather than erroring: the injected `kind=Vehicle` alone is enough to identify the page, so `name` is not actually required for a planned page.
 - A `uuid` that is supplied but doesn't resolve to a genuine vehicle record is not treated as a planned vehicle either: it adds the page to `Pages with an unresolved entity reference` instead of silently rendering one.
 - Adding `uuid=` to a page written as a planned vehicle switches it to the live API render on the next parse: `family` and `kind` become no-ops once a genuine record resolves, and any editorial overrides already on the page carry over as overrides on top of the API values.
+- A record-less page whose `family` doesn't resolve to `ship`, `ground`, or `gravlev` renders from the Vehicle kind alone, with no subtype leaf; it loses both the size browse category (`<Size> ships`) and the `Pledge ships`/`Pledge vehicles` category, since only the leaf emits those.
+- Setting any parameter that also has an API counterpart (`size`, `career`, `scmspeed`, `mass`, and the rest of the stats/prices/production-state fields) adds the page to `Entities with manual API data`, whether it fills a gap on a planned page or overrides a live API value. Pure-editorial fields with no API counterpart (pledge prices, lore/development dates) don't trigger this by themselves.
 - `canBuy=no` / `canRent=no` affect more than the Availability summary: they also force the infobox's own Cost section Universe row to a hard No, not only the linked `{{Entity/Availability}}` card.
 - Like `{{Entity}}`, this template is what writes the page's SMW structured data, sets `SHORTDESC`, and appends categories for the whole page.
 - The multi-value URL parameters (`brochureurl`, `trailerurl`, `presentationurl`, `qaurl`, `whitleysguideurl`) each accept a `;`-separated list to register more than one link.

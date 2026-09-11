@@ -1,6 +1,6 @@
 # Template:Entity/Description
 
-`{{Entity/Description}}` renders an entity's in-game description as a quoted block, with the API capture version printed below. Place it as body prose further down the page, separate from the `{{Entity}}` infobox at the top.
+Renders an entity's in-game description as a quoted block, with the API capture version printed below. Place it as body prose further down the page, separate from the `{{Entity}}` infobox at the top.
 
 ## Usage
 
@@ -23,7 +23,7 @@ When `{{Entity}}` has been invoked earlier on the page, the UUID can be omitted;
 
 | Name | Label | Type | Required | Default | Description | Example |
 |------|-------|------|----------|---------|-------------|---------|
-| `uuid` | UUID | string | No | (falls back to SMW UUID on the current page) | UUID of the entity to render. Required if `{{Entity}}` hasn't been invoked. | `80ee3b95-5665-4548-9e2d-d2067895c0ac` |
+| `uuid` | UUID | string | No | (falls back to the SMW uuid stored by a prior `{{Entity}}` parse) | UUID of the entity to render. Required if `{{Entity}}` hasn't been invoked. | `80ee3b95-5665-4548-9e2d-d2067895c0ac` |
 
 ## Behaviour
 

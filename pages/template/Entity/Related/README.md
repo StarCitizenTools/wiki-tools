@@ -1,6 +1,6 @@
 # Template:Entity/Related
 
-`{{Entity/Related}}` renders an item's set components and cosmetic variants as a grid of image cards, or, for a commodity, its cargo-box packaging sizes as a table. Place it as body content further down the page, separate from the `{{Entity}}` infobox at the top.
+Renders an item's set components and cosmetic variants as a grid of image cards, or, for a commodity, its cargo-box packaging sizes as a table. Place it as body content further down the page, separate from the `{{Entity}}` infobox at the top.
 
 ## Usage
 
@@ -23,13 +23,13 @@ When `{{Entity}}` has been invoked earlier on the page, the UUID can be omitted;
 
 | Name | Label | Type | Required | Default | Description | Example |
 |------|-------|------|----------|---------|-------------|---------|
-| `uuid` | UUID | string | No | (falls back to SMW UUID on the current page) | UUID of the entity to render. Required if `{{Entity}}` hasn't been invoked. | `80ee3b95-5665-4548-9e2d-d2067895c0ac` |
+| `uuid` | UUID | string | No | (falls back to the SMW uuid stored by a prior `{{Entity}}` parse) | UUID of the entity to render. Required if `{{Entity}}` hasn't been invoked. | `80ee3b95-5665-4548-9e2d-d2067895c0ac` |
 
 ## Behaviour
 
 - **Items** render up to two tile grids in order: Set pieces (other items forming a wearable set) then Variants (cosmetic variants of the same base item). A grid is omitted when its bucket is empty; if both are empty, the template falls back to a single muted placeholder line instead.
-- **Commodities** render neither grid; instead a sortable Cargo variants table lists each SCU box size with its dimensions and mass, since cargo boxes share one image and have no wiki pages of their own.
-- **Vehicles, missions, and locations** have no related-items data, so the template falls back to the muted placeholder line.
+- **Commodities** render neither grid; instead a sortable Cargo variants table lists each SCU box size with its dimensions and mass, since cargo boxes share one image and have no wiki pages of their own. A box size outside the standard SCU ladder (0.125 through 32) still gets a row, but its Length/Width/Height cells render `-` instead of a dimension.
+- **Vehicles, missions, and locations** have no related-items data, so the template falls back to the muted placeholder line, "No related items available from the API." An upstream fetch failure shows that exact same line: there is no separate "API error" wording here, unlike `{{Entity/Blueprints}}`.
 - The current page is filtered out of the Variants grid so an entity never links to itself; Set pieces need no such filter, since set components are always distinct items.
 - A variant's size or grade only appears as a small caption above the name when it actually differs across the family; if every variant shares the same size and grade, the caption is omitted.
 - Tile links and images resolve through the SMW `uuid` property, so a disambiguated title like `Hyperion (quantum drive)` links to the right article; an item with no resolvable page falls back to the API name for both link and image, with a placeholder image.

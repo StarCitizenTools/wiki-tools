@@ -22,7 +22,7 @@ Renders a company infobox for organizations in the Star Citizen universe: manufa
 |------|------|----------|---------|-------------|---------|
 | `image` | wiki-file-name | No | | Infobox logo filename, without the `File:` prefix. | `Aegis-Dynamics-Logo.png` |
 | `imagebg` | string | No | | Logo background hint for transparent logos: `light` or `dark`. | `light` |
-| `name` | line | No | (page title) | Company name shown in the infobox title (SMW). | `Aegis Dynamics` |
+| `name` | line | No | (page title, infobox title only) | Company name; the SMW `Name` property and manufacturer-code lookup get no fallback. | `Aegis Dynamics` |
 | `industry` | string | No | | Industry or industries (SMW). | `[[Spacecraft]] manufacturing` |
 | `products` | string | No | | Products or product categories (SMW). | `[[Fighter]]s; [[Capital ship]]s` |
 | `race` | string | No | `Human` | Species affiliation (SMW). | `Human` |
@@ -50,7 +50,7 @@ Renders a company infobox for organizations in the Star Citizen universe: manufa
 - There is no manufacturer-code parameter: the code is looked up from `name` against the manufacturer registry and shown in a collapsed Metadata section.
 - `founded` is stored to SMW exactly as typed; only the infobox display branches, rendering a bare year through `{{Start date and age}}`, else showing it as-is.
 - `keypeople`, `fate`, `defunct`, `formerly`, `allies`, and `rivals` are display-only and never reach SMW.
-- A wikilinked `industry`/`products` item and its plain-text equivalent normalise to the same stored value, so they don't fork the property into near-duplicates.
+- A wikilinked `industry`/`products` item and its plain-text equivalent normalise to the same stored value.
 - A failed SMW write adds the page to `Category:Pages with structured data errors` instead of raising an error.
 - SMW writes and content categories are gated to the main namespace, so `/doc` and sandbox pages stay clean.
 

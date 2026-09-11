@@ -2,7 +2,7 @@
 
 A reusable card primitive: a bordered, surface-coloured, rounded container with a shared header row (title + description, an optional trailing element) and an optional always-visible footer. [Module:CollapsibleCard](https://starcitizen.tools/Module:CollapsibleCard), `renderLinkCard`, and `renderMediaCard` are specializations built on it.
 
-Required by [Module:CollapsibleCard](https://starcitizen.tools/Module:CollapsibleCard), [Module:Mainpage/Event/Event](https://starcitizen.tools/Module:Mainpage/Event/Event), [Module:Mainpage/Event/Legacy](https://starcitizen.tools/Module:Mainpage/Event/Legacy), [Module:Entity/Availability](https://starcitizen.tools/Module:Entity/Availability), and [Module:Entity/Blueprints](https://starcitizen.tools/Module:Entity/Blueprints); not invoked from templates.
+Required by [Module:CollapsibleCard](https://starcitizen.tools/Module:CollapsibleCard), [Module:Mainpage/Event](https://starcitizen.tools/Module:Mainpage/Event), [Module:Mainpage/Event/Legacy](https://starcitizen.tools/Module:Mainpage/Event/Legacy), [Module:Entity/Availability](https://starcitizen.tools/Module:Entity/Availability), and [Module:Entity/Blueprints](https://starcitizen.tools/Module:Entity/Blueprints); not invoked from templates.
 
 ## For module editors
 

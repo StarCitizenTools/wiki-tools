@@ -2,7 +2,7 @@
 
 A live countdown display, split by responsibility: the module renders the markup, the data attributes, and a no-JS fallback date; a mainpage gadget computes the actual remaining time and animates the digit stack client-side.
 
-Required by [Module:Mainpage/Event/Event](https://starcitizen.tools/Module:Mainpage/Event/Event) and [Module:Mainpage/Event/Legacy](https://starcitizen.tools/Module:Mainpage/Event/Legacy); not invoked from templates.
+Required by [Module:Mainpage/Event](https://starcitizen.tools/Module:Mainpage/Event) and [Module:Mainpage/Event/Legacy](https://starcitizen.tools/Module:Mainpage/Event/Legacy); not invoked from templates.
 
 ## For module editors
 

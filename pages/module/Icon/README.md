@@ -13,7 +13,7 @@ Required by [Module:BadgeLua](https://starcitizen.tools/Module:BadgeLua), [Modul
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `icon` | `string` | Yes | | File name (without the `File:` prefix). |
-| `size` | `string` | No | `20px` | CSS length for width and height. |
+| `size` | `string` | No | `20px` | Mode-dependent: with `mask` a CSS length for width and height (`1em` works); otherwise a MediaWiki image size passed into `[[File:…]]` (`x16px` works, `1em` does not). |
 | `mask` | `boolean` | No | `false` | Render as a `currentColor` mask instead of a thumbnail. |
 | `link` | `string` | No | | Link target; empty/nil leaves the icon unlinked. |
 | `title` | `string` | No | | Tooltip / caption. |

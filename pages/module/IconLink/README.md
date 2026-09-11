@@ -13,5 +13,5 @@ Editors use this through `{{IconLink}}`; see [Template:IconLink](https://starcit
 
 ### Gotchas
 
-- The icon is delegated to Module:Icon with the slot class `t-icon-link__icon`; the label span carries `t-icon-link__text`. Neither class is targeted anywhere else in the repository, unlike the matching classes in Module:IconText.
+- The icon is delegated to Module:Icon with the slot class `t-icon-link__icon`; the label span carries `t-icon-link__text`. Neither class is targeted anywhere else in the repository, unlike `t-icon-text__icon` in Module:IconText.
 - `text` falls back to `link`, not to the empty string, so an icon link with no `text=` still shows the page name rather than going blank.

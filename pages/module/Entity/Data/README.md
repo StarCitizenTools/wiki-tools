@@ -1,186 +1,38 @@
 # Module:Entity/Data
 
-The data provider for the Entity infobox system. Every sibling renderer (`{{Entity}}`, `{{Entity/Availability}}`, `{{Entity/Ports}}`, `{{Entity/Related}}`, `{{Entity/UsedBy}}`, `{{Entity/Description}}`, `{{Entity/Blueprints}}`) calls `Data.get` to obtain one normalized result: parsed wikitext args, merged API data, the resolved module chain, matched facets, and display-type metadata.
+Fetches and normalizes an entity's render data: parses wikitext args, probes the API for the matching kind, builds the type chain, runs enrich hooks, and resolves editorial fields and display type into one result table every sibling renderer shares.
 
-The module is **stateless** across `#invoke` calls: no module-level state persists between page parses. Each sibling template calls `Data.get` independently, with no coordination or shared mutable state; repeated calls within the same parse stay cheap by riding the Apiunto HTTP cache.
+Editors never invoke this module directly; it runs inside [Template:Entity](https://starcitizen.tools/Template:Entity), [Template:Vehicle](https://starcitizen.tools/Template:Vehicle) and [Template:Location](https://starcitizen.tools/Template:Location).
 
-## Role in the pipeline
+## For module editors
 
-```
-{{Entity}} ──────────────────────────────────────────────────────────────┐
-{{Entity/Availability}} ──────────────────────────────────────────────┐  │
-{{Entity/Ports}} ──────────────────────────────────────────────────┐  │  │
-{{Entity/Description}} ─────────────────────────────────────────┐  │  │  │
-(… other sibling templates …)                                    │  │  │  │
-                                                                 ↓  ↓  ↓  ↓
-                                                            Entity/Data.get
-                                                                    │
-                              ┌─────────────────────────────────────┤
-                              ↓                                     ↓
-                         Entity/Registry                       Entity/Api
-                    (kinds + facets lists)           (Apiunto fetch + merge)
-                              │
-                 ┌────────────┼────────────┐
-                 ↓            ↓            ↓
-           kind.matches  Assembly.buildChain  TypeResolver.resolve
-```
+### API
 
-`Data.get` is the single seam between the wikitext template layer and the rendering modules. Renderers do not talk to [Module:Entity/Api](https://starcitizen.tools/Module:Entity/Api), [Module:Entity/Registry](https://starcitizen.tools/Module:Entity/Registry), or [Module:Entity/Assembly](https://starcitizen.tools/Module:Entity/Assembly) directly; they consume the result table that `Data.get` returns.
+- `p.parseArgs(frame) → args`: merges direct `#invoke` args over parent-frame (template call-site) args; empty strings become `nil`. Falls back to the page's SMW-stored `uuid` only when both `uuid` and `kind` are absent from the merged args, so a `|kind=`-declared page never resurrects a stale stored uuid.
+- `p.get(args) → result`: the primary entry point; every sibling renderer calls it independently. See Extending for the pipeline and the result shape.
 
-## API
+### Extending
 
-### `p.parseArgs(frame) → args`
+`p.get` probes for a kind (a declared `|kind=` is trusted first, behind a `matches()` gate; otherwise it walks `Registry.kinds`, fetching each kind's primary endpoint until one matches), resolves a leaf via the kind's `resolveSubtype` (or falls back to `Module:Entity/Item` with no match), builds the chain, fetches any endpoints the chain still needs, and runs every chain link's `enrich(ctx)` root to leaf. When no genuine record came back (`apiData.uuid` absent) and `args.kind` names an opted-in (`editorialMode = true`) kind, it forks: `apiData` resets to `{}`, the chain rebuilds from `args` alone, and `enrich` reruns on the empty data. That is the editorial (planned-page) path.
 
-Merges `frame.args` with parent-frame args (the template's call site). Empty strings are normalised to `nil`. The result is a plain table keyed by argument name. See [Data](#data) for the `uuid` fallback behaviour.
+`result` fields and what they feed:
 
-### `p.get(args) → result`
+| Field | Type | Feeds |
+|---|---|---|
+| `apiData` | table | merged API record (`{}` on the editorial fork); read by every hook |
+| `chain` | table[] | root-to-leaf module list; walked by `Assembly`'s merge/resolve primitives |
+| `facets` | table[] | matched facet modules; additive `getSections`/`getStructuredData` |
+| `typeInfo` / `displayType` | table\|nil / string\|nil | leaf `getTypeInfo` else `TypeResolver`; infobox header, SMW `subject_type` |
+| `resolved` / `editorialData` / `hasManualApiData` | table / table / boolean | `Editorial.resolve` output; render display, SMW write, maintenance category |
+| `hasApiError` | boolean | renderers show an error notice instead of an empty infobox |
+| `unresolvedReference` | boolean | a `\|uuid=` given on an editorial-mode page failed to resolve; tracking category |
+| `matchedKind` / `kind` / `family` | table\|nil / string / string\|nil | the resolved kind module, its canonical name, the leaf's family token |
+| `ctx` | `EntityHookContext` | passed straight through to every hook call by every renderer |
 
-Primary entry point for sibling renderers. Takes the `args` table returned by `p.parseArgs` and returns:
+### Gotchas
 
-```lua
-{
-    args        = table,        -- the parsed wikitext args passed in
-    kind        = string,       -- canonical kind name from the matched kind's p.name
-                                --   (Item/Vehicle/Commodity/Mission/Location); 'Item' when no kind
-                                --   matched, mirroring resolveLeaf's fallback. Exposed for
-                                --   consumers that report or store the kind.
-    apiData     = table,        -- merged API response (empty table when no uuid or all fetches fail)
-    chain       = table[],      -- module chain from root to leaf, as built by Assembly.buildChain
-    facets      = table[],      -- facet modules whose matches(apiData) returned true
-    typeInfo    = table|nil,    -- { name, category, … } from leaf.getTypeInfo or TypeResolver.resolve
-    displayType = string|nil,   -- typeInfo.name convenience alias; nil when type is unknown
-    hasApiError = boolean,      -- true when the matched kind's own fetch, or a chain-extra fetch, failed (see Data section for semantics)
-    resolved          = table,    -- editorial fields resolved by Module:Entity/Editorial ({} when the kind has no manifest)
-    editorialData     = table,    -- editorial values projected to SMW key/value pairs
-    hasManualApiData  = boolean,  -- an editor overrode/filled an overlap (apiPath) field → maintenance category
-    unresolvedReference = boolean, -- a uuid was provided but resolved to no genuine record (editorial-mode safety)
-    matchedKind       = table|nil, -- the matched kind module itself (the same identity `kind` names),
-                                   --   or nil when nothing matched (Item fallback, where kind == 'Item').
-                                   --   In editorial mode this is the opted-in kind. Renderers that need
-                                   --   the module (not just its name) read this; `kind` is the string form.
-    family            = string|nil, -- the leaf module's declared `family` (e.g. a Vehicle family);
-                                   --   nil when the leaf declares none.
-    ctx               = table,     -- EntityHookContext: the same { apiData, args, resolved, typeInfo,
-                                   --   prefix, kind, family } table every chain/facet hook is called
-                                   --   with (Module:Entity/Assembly.callHook); sibling renderers pass
-                                   --   this straight through to resolveMostSpecific / collect.
-}
-```
-
-## Flow
-
-`p.get` calls `fetchApiData` and then resolves `typeInfo`/`displayType`. The full ordered sequence is:
-
-1. **`probeKind`** resolves the UUID's kind. When the page also declares its kind — `|kind=` naming a registered kind, matched case-insensitively by `kindByName` — the declaration is trusted first: the declared kind's own primary endpoint is fetched directly and the probe below is skipped. This is what lets a page short-circuit straight to its kind's own endpoint instead of walking every other kind first (a jump point's location record reports type `Anomaly`, a token wreck sites also carry, so `Location.matches` identifies a gate by name rather than by type alone). The trust is gated: the declaration holds only when the fetched record passes `kind.matches(data)`. A kind claims exactly the records it can render (Location's `matches` accepts SolarSystem records and jump-point gates, both of which resolve a leaf), so a vehicle uuid pasted into `{{Location}}` fails the gate. On gate failure (a fetch error included) the probe below runs unchanged; on success the declared kind's endpoint is marked fetched so step 4 doesn't request it again.
-
-   Otherwise `probeKindByEndpoint` walks `registry.kinds` in registration order, fetching each kind's primary endpoint until one matches, at up to one request per kind. Errors on a *non-matching* kind are discarded there: the items endpoint rejecting a vehicle UUID is expected and does not set `hasApiError`. Only the matched kind's own fetch error is propagated.
-
-   Every fetch, declared or probed, targets a kind's **typed** endpoint, and that is the point: Apiunto caches by *requested* URL, so one record lands on one cache key however the page is invoked. The infobox declares its kind through a facade (`{{Vehicle}}` injects `|kind=Vehicle`, `{{Location}}` `|kind=Location`); sibling renderers cannot and probe; both end on the same `vehicles/<uuid>` request, which the per-parse request cache then dedupes. The API's `search/<uuid>` resolver is deliberately not used as a shortcut: its key could never coincide with a typed fetch of the same record, and upstream it is rate-limited (60 requests a minute) and marked uncacheable, so purge sweeps fell back to the probe anyway. The probe's misses must stay uncached for the same reason — see Gotchas.
-
-2. **`resolveLeaf`** resolves the leaf module from the matched kind (or `nil`):
-   - If the kind has `resolveSubtype`, calls `kind.resolveSubtype(apiData, args)` (the `args` let a kind resolve its sub-identity editorially, e.g. Vehicle reads `|family=` when the API family flags are absent). If it returns a module, that module is the leaf; if it returns `nil`, the kind itself is the leaf.
-   - If there was no matched kind, falls back to `Module:Entity/Item`. A UUID that was provided but produced no match sets `hasApiError = true` at this step (a given-but-unmatched UUID indicates a genuine fetch problem).
-
-3. **`Assembly.buildChain`** calls [Module:Entity/Assembly](https://starcitizen.tools/Module:Entity/Assembly) with the leaf module. Assembly walks the `p.parent` chain upward (leaf → … → Base) to produce the ordered `chain` array (root first, leaf last).
-
-4. **`fetchChainExtras`** iterates every module in the chain and collects `getApiConfigs()` endpoints that were *not* already fetched during probing. Calls `api.fetchAllApis` for those configs and merges the results into `apiData`.
-
-5. **`enrich`**: runs every chain link's `enrich(ctx)` root to leaf, each receiving the previous link's result (`enrichChain`). A leaf attaches the secondary record only it renders: the StarSystem leaf fetches the starmap star-system record by `|starmapname=`, the location record's name, `|name=`, or the page title, in that order; the JumpPoint leaf fetches the celestial object by `|starmapcode=`. The same hooks run on the editorial fork (see below), where `ctx.apiData` starts empty and `ctx.args` is the only input.
-
-6. **`typeInfo` / `displayType` resolution** tries `leaf.getTypeInfo(ctx)` first. If that returns a result, `displayType` is set to `typeInfo.name`. If `getTypeInfo` is absent or returns `nil`, falls back to [Module:Entity/TypeResolver](https://starcitizen.tools/Module:Entity/TypeResolver)`.resolve(args.type or apiData.type, apiData.classification)`.
-
-7. **editorial `resolve`**: if any chain link exposes `getEditorialManifest()`, the fragments are merged root to leaf (`Assembly.mergeEditorialManifests`, leaf keys win) and run through [Module:Entity/Editorial](https://starcitizen.tools/Module:Entity/Editorial): `editorial.resolve(apiData, args, manifest)` merges API and `args` values into `resolved`, `editorial.toStructuredData(resolved, manifest)` projects them to SMW key/value pairs (`editorialData`), and `editorial.hasManualApiData(resolved)` flags whether an editor overrode an API-overlap field (`hasManualApiData`). A chain with no link defining a manifest leaves all three at their empty defaults (`{}`, `{}`, `false`).
-
-8. **`getCategories` collect**: every chain link's `getCategories(ctx)` is collected root to leaf (`Assembly.collect`) and merged into `typeInfo.categories` (copying `typeInfo` first, since a `typeResolver` result may be frozen). `ctx.resolved` lets a link derive categories from editorial data; a leaf reads its own `family` token directly rather than through `ctx`.
-
-9. **`detectFacets`** iterates `registry.facets` in registration order and appends every facet whose `facet.matches(apiData)` returns `true`. All matches are collected (no short-circuit); facets are additive. This runs last, as `p.get` builds its return table.
-
-### Editorial mode (planned entities)
-
-Between `fetchApiData` (steps 1–5) and `typeInfo` resolution, `p.get` checks whether a **genuine in-game record** came back, tested by `isGenuineRecord(apiData)`: `apiData.uuid` present and non-empty. This is deliberately *not* "the fetch returned something": the API can return a stub/partial for some in-concept entities, so presence-of-record is not enough.
-
-When there is **no** genuine record **and** `args.kind` names a registered kind that opts in (`editorialMode = true`, looked up case-insensitively by `resolveEditorialKind`), `p.get` switches to **editorial mode**:
-
-- the opted-in kind becomes `matchedKind`;
-- `apiData` is reset to `{}` so the render is driven entirely by the editorial `resolved` layer;
-- the chain is rebuilt from `kind.resolveSubtype(apiData, args)` (the kind resolves its sub-identity from args, such as Vehicle's `|family=`, or Location defaulting to its StarSystem leaf);
-- the chain's `enrich` hooks then run on that empty `apiData` (`runEditorialFork`), so a kind-declared page can still attach a secondary record keyed off the page rather than off a uuid. This is the entry path for the ~84 lore star systems that exist only in the RSI starmap: no location record, no uuid, yet the infobox fills from `apiData.starsystem`. A chain whose links define no `enrich` is unaffected — `apiData` stays `{}`;
-- `hasApiError` is forced `false` (a missing record is expected here, not an error);
-- `unresolvedReference` is set `true` **iff** a `|uuid=` was provided: a planned page declares no uuid, so a present-but-unresolved uuid is a typo or not-yet-in-API reference worth flagging (`[[Category:Pages with an unresolved entity reference]]`, emitted by `Module:Entity/Categories`).
-
-`args.kind` is consulted in three places, each safe against a wrong declaration: `parseArgs` reads it first, to suppress the SMW-stored-uuid fallback (a declared page must not resurrect a stale stored uuid). With a uuid, `probeKind`'s declared-kind path (Flow step 1) trusts it behind the validity gate, which rejects any record the declared kind's `matches()` doesn't accept. Without a genuine record, it selects the editorial fork here, where `resolveEditorialKind` requires an opted-in registered kind. See [Module:Entity/Vehicle](https://starcitizen.tools/Module:Entity/Vehicle) and [Module:Entity/Location](https://starcitizen.tools/Module:Entity/Location) for the consumer side.
-
-A kind-declared page also satisfies `Module:Entity`'s identity guard on its own: an entity is identifiable by a `uuid`, by a name (curated or from the record), **or** by a kind that claimed the page, which derives its identity from the page title. The guard tests `result.matchedKind`, not raw `args.kind`, so a misspelled kind still errors rather than rendering a title-only shell.
-
-## Data
-
-### `parseArgs` argument merging
-
-`parseArgs` merges in two passes: direct frame args first, then parent-frame args for any key not already set. This means an argument supplied directly to `#invoke` takes precedence over one supplied at the template call site. Empty strings (`""`) are treated as absent in both passes: they become `nil` in the result table.
-
-### UUID fallback via SMW
-
-When `uuid` is absent from both frame and parent-frame args after merging **and** no explicit `kind` was supplied, `parseArgs` calls `#show` on the current page to read the SMW-stored `uuid` property (with a fallback to the legacy `UUID` property for pages not yet re-rendered). This means sibling templates (`{{Entity/Availability}}`, `{{Entity/Ports}}`, etc.) can be transcluded without an explicit `uuid` argument as long as `{{Entity}}` was invoked earlier on the same page (it writes the UUID to SMW during its own parse).
-
-The `not args.kind` half of that guard keeps editorial mode working. A planned page declares its identity with `|kind=` and carries no real uuid, so `parseArgs` must *not* resurrect a stale or placeholder SMW uuid (an all-zeros dev-stub, or a legacy value left by an earlier render). Doing so would re-engage in-game mode and re-store the bad uuid, defeating editorial mode. So supplying `|kind=` deliberately suppresses the SMW-uuid fallback.
-
-The SMW read is namespace-aware: on non-mainspace pages (e.g. `User:` or `Module:` sandboxes), the property name is prefixed with the lowercased namespace (`user_uuid`, `module_uuid`) so test pages do not pollute canonical SMW queries.
-
-### `hasApiError` semantics
-
-`hasApiError` is `true` when:
-- The matched kind's primary endpoint returned an error, **or**
-- A UUID was provided but neither the declared kind nor the endpoint probe matched a kind, **or**
-- Any supplemental endpoint fetched by `fetchChainExtras` returned an error.
-
-It is `false` when:
-- No UUID was provided (nothing was fetched; not an error), **or**
-- A kind probed and *rejected* an endpoint: the items endpoint rejecting a vehicle UUID is discarded before `hasApiError` can be set for it, **or**
-- A declared kind failed its validity gate and the endpoint probe then matched a kind. A wrong declaration costs one extra fetch, not correctness.
-
-Renderers use `hasApiError` to display an error notice instead of an empty infobox.
-
-## Gotchas
-
-**`p._internal` exports `detectFacets`, `resolveLeaf`, `isGenuineRecord`, `resolveEditorialKind`, `kindByName`, and `runEditorialFork`.** `probeKind`, `probeKindByEndpoint`, `fetchChainExtras`, and `fetchApiData` are local functions with no test export; they are covered indirectly, through the suite's `p.get({})` calls (which take the no-uuid path and never fetch) and through the `p.get` trust-path tests, which stub `Module:Entity/Api.fetchApi` on the require-cached module table and assert on the endpoints requested. The editorial-mode dispatch glue inside `p.get` is exercised the same two ways: its constituent parts — `isGenuineRecord`, `resolveEditorialKind`, `resolveLeaf` arg-threading, and `runEditorialFork`'s enrich call — in isolation, and the dispatch itself through the stubbed-fetch gate-failure test (a uuid that resolves nothing on a kind-declared page lands in the fork). Behaviour against the live API remains browser-verified.
-
-**The probe depends on Apiunto NOT following redirects.** Of the typed endpoints only `items/<uuid>` answers a foreign uuid with a redirect (a vehicle's, to `vehicles/<uuid>`); the rest answer 404. Apiunto caches a followed redirect under the URL it *requested*, so with `followRedirects => true` on the `StarCitizenWikiAPI` source a sibling renderer probing a vehicle page would pin a duplicate of the vehicle record under the items key — exactly the cache fragmentation the typed-endpoint design exists to prevent. With it off, the redirect fails the fetch (a failed fetch is never cached), `matches()` sees nothing, and the walk moves on to `vehicles/<uuid>`, where it meets the infobox's own fetch in the per-parse request cache. The unit suite cannot catch a wrong setting: the test runner has no live API; `action=info` on a vehicle page shows it (one typed URL per record, not two).
-
-**Every `matches()` must be positive and order-independent.** The declared-kind gate offers a record of any kind to a single kind's `matches()`, so a catch-all test would render a vehicle uuid pasted into an item page as an item. `Module:Entity/Item` is the one to watch: items carry no kind flag, so it identifies on `class_name` (present on every item, absent from commodities, missions, blueprints and starmap locations) while excluding `is_vehicle` (vehicles carry `class_name` too). `Registry.kinds` order governs only the probe walk, where it is a fetch-cost optimisation — Item first because it dominates the page mix — and never a correctness guarantee.
-
-**A given-but-unmatched UUID surfaces as `hasApiError = true`.** If a UUID is provided but every kind's `matches()` returns false (for example because the API is down or the item is unlisted), `resolveLeaf` falls back to `Module:Entity/Item` *and* sets `hasApiError`. The infobox renders with an error notice rather than silently producing an empty result. Pages without a UUID do not trigger this: `hasApiError` stays false.
-
-**`resolveSubtype` returning `nil` silently falls back to the kind.** If a kind's `resolveSubtype` returns `nil` (unknown subtype), the kind itself becomes the leaf. This is intentional (the kind's own chain and sections still render), but it means a new subtype that the kind doesn't recognise will silently render as the base kind rather than emitting an error.
-
-## Tests
-
-`Data/testcases.lua` is a ScribuntoUnit suite exercising the module's pure logic through `p._internal`, plus the public `p.get` on the offline (no-uuid) path and — with `Module:Entity/Api.fetchApi` stubbed — the declared-kind trust path and the chain-hook merge policies:
-
-- `detectFacets`: matches a consumable facet when `apiData.food` is present, matches nothing on an empty table, and is nil-safe.
-- `resolveLeaf`: uses the subtype returned by `resolveSubtype`; falls back to the kind when `resolveSubtype` returns `nil`; uses the kind directly when `resolveSubtype` is absent; returns `Module:Entity/Item` with `hasApiError = true` when no kind matched but a UUID was present (and `false` when none was); and threads `args` through to `resolveSubtype`.
-- `isGenuineRecord`: true only when `apiData.uuid` is present and non-empty.
-- `resolveEditorialKind`: resolves an opted-in kind by name (case-insensitively), and returns `nil` when `args.kind` is absent, unknown, or names a registered-but-not-opted-in kind.
-- `kindByName`: case-insensitive registry lookup with no editorial gating (`'Commodity'` resolves here but not through `resolveEditorialKind`); `nil` for absent/unknown names.
-- `runEditorialFork`: runs the rebuilt chain's `enrich` hooks with the parsed args and returns the enriched `apiData` plus the chain; a chain with no `enrich` link yields an empty `apiData`.
-- `parseArgs`: strips empty strings, lets a direct frame arg win over a parent-frame arg, reads the SMW uuid when no `kind` is present, and *skips* the SMW uuid when `|kind=` is supplied (the editorial-mode guard).
-- `p.get({})`: the no-uuid call returns the documented table shape, defaults `kind` to `'Item'`, leaves `apiData` empty with `hasApiError = false`, and exposes `family`/`matchedKind` as `nil`.
-- the declared-kind trust path (via `p.get` with a stubbed `fetchApi` recording endpoints): a declared `Location` + uuid answering a SolarSystem-shaped record resolves the kind without the probe running (lowercase `kind=location` included); a vehicle-shaped record fails the gate and falls through to the probe (the items endpoint *is* fetched, the record is never adopted); a real jump-point record on a declared `{{Location}}` is admitted by `matches` alone; a uuid without `|kind=` walks every typed endpoint in registry order and never the search resolver; and an item uuid stops the walk at the first fetch.
-- chain hooks: a declared Location + jump-point record + `starmapcode` attaches the celestial object through the JumpPoint leaf's `enrich`; a SolarSystem record's leaf categories (`Single Star systems`) and manifest fragment (`size`) reach the result; the editorial fork runs the StarSystem leaf's `enrich`.
-- kind identification against the real registry: a vehicle, item, commodity and mission payload is each claimed by exactly the right kind, and a blueprint or starmap-location payload by none.
-
-The suite is auto-discovered and run headless by the off-wiki runner (`mise run test`, a merge-blocking CI gate) against the real registry. No wiki deploy is required. The runner cannot reach a live API: fetch-dependent flows are unit-tested through the `fetchApi` stub seam where the suite covers them, and browser-verified against the live API beyond that.
-
-## Architecture
-
-```
-Entity/
-├── Data.lua          # parseArgs + p.get public API; kindByName/
-│                     #   probeKind/probeKindByEndpoint/resolveLeaf/fetchChainExtras/enrichChain/fetchApiData/
-│                     #   resolveEditorialKind/runEditorialFork local
-└── Data/
-    └── testcases.lua # ScribuntoUnit suite (detectFacets, resolveLeaf, isGenuineRecord, resolveEditorialKind, runEditorialFork, parseArgs, p.get)
-```
-
-Unlike its sibling components (`Entity/Registry/Registry.lua`, `Entity/Api/Api.lua`, …), the module file lives at `Entity/Data.lua` rather than inside the `Entity/Data/` directory: that directory holds only the testcases subpage and this README.
-
-`Data.lua` has five dependencies: [Module:Entity/Api](https://starcitizen.tools/Module:Entity/Api) (Apiunto I/O), [Module:Entity/Assembly](https://starcitizen.tools/Module:Entity/Assembly) (chain construction and section merging), [Module:Entity/Editorial](https://starcitizen.tools/Module:Entity/Editorial) (editorial-field resolution, SMW projection, and manual-override detection for planned pages), [Module:Entity/Registry](https://starcitizen.tools/Module:Entity/Registry) (the canonical kinds and facets lists), and [Module:Entity/TypeResolver](https://starcitizen.tools/Module:Entity/TypeResolver) (fallback display-type resolution from classification/type maps). It has no dependency on any renderer module: the data flow is strictly one-directional.
+- `ctx` fields fill in pipeline order, so a hook that runs early (`enrich`, `getTypeInfo`) sees later fields as `nil`; see the Hook context table on [Module:Entity](https://starcitizen.tools/Module:Entity).
+- The kind probe depends on the configured Apiunto source keeping redirect-following off: a foreign uuid that would redirect (a vehicle uuid fetched on the items endpoint) must fail the fetch rather than get cached under the wrong key.
+- A given uuid that matches no kind still resolves to `Module:Entity/Item` as the leaf, but sets `hasApiError = true`; a page without a uuid never triggers this.
+- `resolveSubtype` returning `nil` silently falls back to the kind itself; a subtype the kind doesn't recognise renders as the base kind with no error.
+- `Registry.kinds` order is a probe-cost optimisation only (Item first, since it dominates the page mix); the declared-`kind` gate can hand any kind's `matches()` a record belonging to a different kind, so every `matches()` must reject on its own regardless of order.

@@ -5,6 +5,11 @@ local Salvage = require('Module:Entity/Facet/Salvage')
 
 local suite = ScribuntoUnit:new()
 
+--- Hook context for direct hook calls (Module:Entity/Types EntityHookContext).
+local function ctx(apiData, args, resolved)
+	return { apiData = apiData, args = args or {}, resolved = resolved }
+end
+
 local salvageItems = Salvage._internal.salvageItems
 local findSalvageMode = Salvage._internal.findSalvageMode
 
@@ -85,7 +90,7 @@ end
 -- The facet renders the stat rows under the 'salvage' key for BOTH populations;
 -- it never emits Range (that is the SalvageHead subtype's row).
 function suite:testGetSectionsHead()
-	local sections = Salvage.getSections(salvageHead(), {})
+	local sections = Salvage.getSections(ctx(salvageHead(), {}))
 	local sec = findSection(sections, 'salvage')
 	self:assertEquals('Salvage', sec.label)
 	self:assertEquals('80%', findItem(sec.items, 'Material efficiency').content)
@@ -93,23 +98,23 @@ function suite:testGetSectionsHead()
 end
 
 function suite:testGetSectionsGadget()
-	local sec = findSection(Salvage.getSections(salvageGadget(), {}), 'salvage')
+	local sec = findSection(Salvage.getSections(ctx(salvageGadget(), {})), 'salvage')
 	self:assertEquals('80%', findItem(sec.items, 'Material efficiency').content)
 end
 
 function suite:testGetSectionsEmpty()
-	self:assertEquals(0, #Salvage.getSections({ personal_weapon = { modes = {} } }, {}))
+	self:assertEquals(0, #Salvage.getSections(ctx({ personal_weapon = { modes = {} } }, {})))
 end
 
 function suite:testStructuredData()
-	local d = Salvage.getStructuredData(salvageHead(), {})
+	local d = Salvage.getStructuredData(ctx(salvageHead(), {}))
 	self:assertEquals(80, d.material_efficiency)
 	self:assertEquals(310, d.health_repair_rate)
 	self:assertEquals(10, d.damage_repair_rate)
 	self:assertEquals(4, d.ramp_up_time)
 	self:assertEquals(0.25, d.ramp_down_time)
 	-- Reads identically off the gadget's personal_weapon block.
-	self:assertEquals(80, Salvage.getStructuredData(salvageGadget(), {}).material_efficiency)
+	self:assertEquals(80, Salvage.getStructuredData(ctx(salvageGadget(), {})).material_efficiency)
 end
 
 return suite

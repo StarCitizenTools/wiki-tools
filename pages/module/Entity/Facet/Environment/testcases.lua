@@ -5,6 +5,11 @@ local Environment = require('Module:Entity/Facet/Environment')
 
 local suite = ScribuntoUnit:new()
 
+--- Hook context for direct hook calls (Module:Entity/Types EntityHookContext).
+local function ctx(apiData, args, resolved)
+	return { apiData = apiData, args = args or {}, resolved = resolved }
+end
+
 local function findItem(items, label)
 	for _, it in ipairs(items or {}) do
 		if it.label == label then
@@ -85,7 +90,7 @@ function suite:testGforceLabel()
 end
 
 function suite:testArmorRows()
-	local sections = Environment.getSections(armorData(), {})
+	local sections = Environment.getSections(ctx(armorData(), {}))
 	self:assertEquals(1, #sections)
 	self:assertEquals('environment', sections[1].key)
 	self:assertEquals('Environment', sections[1].label)
@@ -104,13 +109,13 @@ end
 
 function suite:testClothingRowsGated()
 	-- A jacket has zero radiation / g-force, so only the temperature bar item shows.
-	local sections = Environment.getSections(jacketData(), {})
+	local sections = Environment.getSections(ctx(jacketData(), {}))
 	self:assertEquals(1, #sections[1].items)
 	self:assertEquals('t-infobox-item--block', sections[1].items[1].class)
 end
 
 function suite:testStructuredDataArmor()
-	local data = Environment.getStructuredData(armorData())
+	local data = Environment.getStructuredData(ctx(armorData()))
 	self:assertEquals(-75, data.minimum_temperature)
 	self:assertEquals(105, data.maximum_temperature)
 	self:assertEquals(26800, data.radiation_capacity)
@@ -120,7 +125,7 @@ end
 
 function suite:testStructuredDataClothing()
 	-- Clothing stores only the temperature bounds; zero radiation / g-force omitted.
-	local data = Environment.getStructuredData(jacketData())
+	local data = Environment.getStructuredData(ctx(jacketData()))
 	self:assertEquals(2, data.minimum_temperature)
 	self:assertEquals(30, data.maximum_temperature)
 	self:assertEquals(nil, data.radiation_capacity)
@@ -130,14 +135,14 @@ end
 
 function suite:testEmptyWhenNoBlock()
 	self:assertEquals(false, Environment.matches({ size = 1 }))
-	self:assertEquals(0, #Environment.getSections({}, {}))
+	self:assertEquals(0, #Environment.getSections(ctx({}, {})))
 end
 
 function suite:testGetSectionsReturnsMutableListForWearableSet()
-	local sections = Environment.getSections({
+	local sections = Environment.getSections(ctx({
 		temperature_resistance = { min = -40, max = 60 },
 		gforce_resistance = 5,
-	})
+	}))
 	self:assertTrue(#sections > 0)
 	self:assertEquals('environment', sections[1].key)
 	self:assertEquals('table', type(sections[1].items))
@@ -146,7 +151,7 @@ function suite:testGetSectionsReturnsMutableListForWearableSet()
 end
 
 function suite:testGetSectionsEmptyWhenNoData()
-	self:assertEquals(0, #Environment.getSections({}))
+	self:assertEquals(0, #Environment.getSections(ctx({})))
 end
 
 return suite

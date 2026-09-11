@@ -15,6 +15,9 @@ local Boolean = require('Module:Boolean')
 
 local p = {}
 
+-- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
+p.contextHooks = true
+
 --- Data-driven match: presence of the `seat` block.
 ---
 --- @param apiData table|nil
@@ -48,10 +51,10 @@ local function formatRange(axis)
 	return format.formatNum(min) .. '° — ' .. format.formatNum(max) .. '°'
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table[] Ordered list of section entries with key field
-function p.getSections(apiData, args)
+function p.getSections(ctx)
+	local apiData = ctx.apiData
 	local seat = apiData.seat
 	if type(seat) ~= 'table' then
 		return {}
@@ -79,10 +82,10 @@ end
 --- in the section but kept out of the query layer for now — booleans aren't yet
 --- used as Entity facets.
 ---
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table<string, any>
-function p.getStructuredData(apiData, args)
+function p.getStructuredData(ctx)
+	local apiData = ctx.apiData
 	local seat = apiData.seat
 	if type(seat) ~= 'table' then
 		return {}

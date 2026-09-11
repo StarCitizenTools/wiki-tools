@@ -5,6 +5,11 @@ local Hacking = require('Module:Entity/Facet/Hacking')
 
 local suite = ScribuntoUnit:new()
 
+--- Hook context for direct hook calls (Module:Entity/Types EntityHookContext).
+local function ctx(apiData, args, resolved)
+	return { apiData = apiData, args = args or {}, resolved = resolved }
+end
+
 local function findItem(items, label)
 	for _, it in ipairs(items or {}) do
 		if it.label == label then
@@ -34,7 +39,7 @@ function suite:testMatches()
 end
 
 function suite:testRows()
-	local sections = Hacking.getSections(icePickData(), {})
+	local sections = Hacking.getSections(ctx(icePickData(), {}))
 	self:assertEquals(1, #sections)
 	self:assertEquals('hacking', sections[1].key)
 	self:assertEquals('Hacking', sections[1].label)
@@ -48,9 +53,9 @@ end
 
 -- A neutral duration multiplier (1) is not worth a row; charges of 0 collapse.
 function suite:testGatedRows()
-	local sections = Hacking.getSections({
+	local sections = Hacking.getSections(ctx({
 		hacking_chip = { max_charges = 0, duration_multiplier = 1, error_chance = 0 },
-	}, {})
+	}, {}))
 	self:assertEquals(nil, findItem(sections[1] and sections[1].items, 'Charges'))
 	self:assertEquals(nil, findItem(sections[1] and sections[1].items, 'Hack time'))
 	-- 0% error chance is still a meaningful, displayable value.
@@ -58,11 +63,11 @@ function suite:testGatedRows()
 end
 
 function suite:testEmptyWhenNoBlock()
-	self:assertEquals(0, #Hacking.getSections({}, {}))
+	self:assertEquals(0, #Hacking.getSections(ctx({}, {})))
 end
 
 function suite:testStructuredData()
-	local data = Hacking.getStructuredData(icePickData())
+	local data = Hacking.getStructuredData(ctx(icePickData()))
 	self:assertEquals(3, data.charges)
 	self:assertEquals(50, data.error_chance)
 end

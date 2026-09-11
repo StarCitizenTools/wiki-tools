@@ -11,6 +11,9 @@ local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
 
+-- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
+p.contextHooks = true
+
 --- The storage capacity in microSCU. The API exposes both `scu` (SCU as a
 --- fraction) and `scu_converted` (the precision-preserving µSCU integer the
 --- display uses, e.g. 10500 for a 0.0105 SCU torso); read the latter. Returns nil
@@ -35,10 +38,10 @@ function p.matches(apiData)
 	return apiData ~= nil and capacityMicroScu(apiData.inventory) ~= nil
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table[] Ordered list of section entries with key field
-function p.getSections(apiData, args)
+function p.getSections(ctx)
+	local apiData = ctx.apiData
 	local capacity = capacityMicroScu(apiData.inventory)
 	if capacity == nil then
 		return {}
@@ -54,10 +57,10 @@ function p.getSections(apiData, args)
 	}))
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table<string, any>
-function p.getStructuredData(apiData, args)
+function p.getStructuredData(ctx)
+	local apiData = ctx.apiData
 	local capacity = capacityMicroScu(apiData.inventory)
 	if capacity == nil then
 		return {}

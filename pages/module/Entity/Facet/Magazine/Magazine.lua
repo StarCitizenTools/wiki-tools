@@ -16,6 +16,9 @@ local Util = require('Module:Entity/Facet/Util')
 
 local p = {}
 
+-- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
+p.contextHooks = true
+
 --- @param apiData table|nil
 --- @return boolean
 function p.matches(apiData)
@@ -72,10 +75,10 @@ local function explosionRadius(radius)
 	return format.formatNum(min) .. ' — ' .. format.formatNum(max) .. ' m'
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table[] Ordered list of section entries with key field
-function p.getSections(apiData, args)
+function p.getSections(ctx)
+	local apiData = ctx.apiData
 	local mag = apiData.magazine
 	if type(mag) ~= 'table' then
 		return {}
@@ -107,10 +110,10 @@ end
 --- range, and total damage (summed across the active damage map) as numeric
 --- facets.
 ---
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table<string, any>
-function p.getStructuredData(apiData, args)
+function p.getStructuredData(ctx)
+	local apiData = ctx.apiData
 	local mag = apiData.magazine
 	if type(mag) ~= 'table' then
 		return {}

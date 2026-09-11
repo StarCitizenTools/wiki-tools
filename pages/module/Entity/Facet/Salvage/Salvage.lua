@@ -19,6 +19,9 @@ local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
 
+-- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
+p.contextHooks = true
+
 --- Formats a plain numeric stat, returning nil when absent so the row collapses.
 ---
 --- @param value number|string|nil
@@ -134,10 +137,10 @@ function p.matches(apiData)
 	return salvageModeOf(apiData) ~= nil
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table[] Ordered list of section entries with key field
-function p.getSections(apiData, args)
+function p.getSections(ctx)
+	local apiData = ctx.apiData
 	local items = salvageItems(salvageModeOf(apiData))
 	return sectionBuilder.build(sectionBuilder.section({
 		key = 'salvage',
@@ -150,10 +153,10 @@ end
 --- Structured data for the Salvage mode. Property names are shared across every
 --- salvage population (vehicle heads + FPS tools) so they query alike.
 ---
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table<string, any>
-function p.getStructuredData(apiData, args)
+function p.getStructuredData(ctx)
+	local apiData = ctx.apiData
 	local mode = salvageModeOf(apiData)
 	if type(mode) ~= 'table' then
 		return {}

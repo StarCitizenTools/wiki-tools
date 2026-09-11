@@ -14,6 +14,9 @@ local statFormat = require('Module:Entity/StatFormat')
 
 local p = {}
 
+-- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
+p.contextHooks = true
+
 -- Damage types in display order. `impact` is a flat multiplier; the others are
 -- {multiplier, threshold} objects, but `damage_resistance_map` flattens them all
 -- to a bare damage-taken multiplier, which is what we read.
@@ -141,10 +144,10 @@ local function buildTiles(map)
 	return tiles
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table[] Ordered list of section entries with key field
-function p.getSections(apiData, args)
+function p.getSections(ctx)
+	local apiData = ctx.apiData
 	local sa = apiData.suit_armor
 	if type(sa) ~= 'table' then
 		return {}
@@ -170,10 +173,10 @@ end
 --- Weight class as the short-description prefix ("Heavy" -> "Heavy torso armor
 --- by CDS"). Nil for undersuits (no weight class), which read "Undersuit by X".
 ---
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return string|nil
-function p.getShortDescriptionPrefix(apiData, args)
+function p.getShortDescriptionPrefix(ctx)
+	local apiData = ctx.apiData
 	if type(apiData.suit_armor) ~= 'table' then
 		return nil
 	end
@@ -184,10 +187,10 @@ end
 --- structured data for querying / the slot index tables. Each resistance is
 --- omitted when its multiplier is absent; weight_class is omitted for undersuits.
 ---
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table<string, any>
-function p.getStructuredData(apiData, args)
+function p.getStructuredData(ctx)
+	local apiData = ctx.apiData
 	local sa = apiData.suit_armor
 	if type(sa) ~= 'table' then
 		return {}

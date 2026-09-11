@@ -5,6 +5,11 @@ local Grenade = require('Module:Entity/Facet/Grenade')
 
 local suite = ScribuntoUnit:new()
 
+--- Hook context for direct hook calls (Module:Entity/Types EntityHookContext).
+local function ctx(apiData, args, resolved)
+	return { apiData = apiData, args = args or {}, resolved = resolved }
+end
+
 local function findItem(items, label)
 	for _, it in ipairs(items or {}) do
 		if it.label == label then
@@ -28,7 +33,7 @@ function suite:testMatches()
 end
 
 function suite:testRows()
-	local sections = Grenade.getSections(fragData(), {})
+	local sections = Grenade.getSections(ctx(fragData(), {}))
 	self:assertEquals(1, #sections)
 	self:assertEquals('grenade', sections[1].key)
 	self:assertEquals('Grenade', sections[1].label)
@@ -39,20 +44,20 @@ end
 
 -- A flare carries an all-null grenade block; the section drops entirely.
 function suite:testCollapsesNullFlare()
-	local sections = Grenade.getSections({
+	local sections = Grenade.getSections(ctx({
 		grenade = { damage_type = nil, damage = nil, aoe = { min = nil, max = nil } },
-	}, {})
+	}, {}))
 	self:assertEquals(0, #sections)
 end
 
 -- Equal blast bounds collapse to a single value.
 function suite:testEqualRadius()
-	local sections = Grenade.getSections({ grenade = { damage = 5, aoe = { min = 3, max = 3 } } }, {})
+	local sections = Grenade.getSections(ctx({ grenade = { damage = 5, aoe = { min = 3, max = 3 } } }, {}))
 	self:assertEquals('3 m', findItem(sections[1].items, 'Blast radius').content)
 end
 
 function suite:testStructuredData()
-	local data = Grenade.getStructuredData(fragData())
+	local data = Grenade.getStructuredData(ctx(fragData()))
 	self:assertEquals(20, data.damage)
 	self:assertEquals('Physical', data.damage_type)
 	self:assertEquals(5.5, data.blast_radius)

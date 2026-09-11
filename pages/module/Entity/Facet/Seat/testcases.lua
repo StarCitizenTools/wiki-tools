@@ -5,6 +5,11 @@ local Seat = require('Module:Entity/Facet/Seat')
 
 local suite = ScribuntoUnit:new()
 
+--- Hook context for direct hook calls (Module:Entity/Types EntityHookContext).
+local function ctx(apiData, args, resolved)
+	return { apiData = apiData, args = args or {}, resolved = resolved }
+end
+
 local function findItem(items, label)
 	for _, it in ipairs(items or {}) do
 		if it.label == label then
@@ -33,7 +38,7 @@ function suite:testMatches()
 end
 
 function suite:testRows()
-	local sections = Seat.getSections(turretData(), {})
+	local sections = Seat.getSections(ctx(turretData(), {}))
 	self:assertEquals(1, #sections)
 	self:assertEquals('seat', sections[1].key)
 	self:assertEquals('Seat', sections[1].label)
@@ -47,19 +52,19 @@ end
 
 -- An ejection seat reports Yes.
 function suite:testEjectionYes()
-	local sections = Seat.getSections({
+	local sections = Seat.getSections(ctx({
 		seat = { yaw = { min = 0, max = 0 }, pitch = { min = -90, max = 90 }, has_ejection = true },
-	}, {})
+	}, {}))
 	self:assertStringContains('data-state="yes"', findItem(sections[1].items, 'Ejection seat').content, true)
 	self:assertEquals('−90° — 90°', findItem(sections[1].items, 'Pitch').content)
 end
 
 function suite:testEmptyWhenNoSeat()
-	self:assertEquals(0, #Seat.getSections({}, {}))
+	self:assertEquals(0, #Seat.getSections(ctx({}, {})))
 end
 
 function suite:testStructuredData()
-	local data = Seat.getStructuredData(turretData())
+	local data = Seat.getStructuredData(ctx(turretData()))
 	self:assertEquals('−20° — 20°', data.yaw)
 	self:assertEquals('−20° — 80°', data.pitch)
 	self:assertEquals(-20, data.yaw_min)

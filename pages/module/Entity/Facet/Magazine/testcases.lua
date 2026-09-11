@@ -5,6 +5,11 @@ local Magazine = require('Module:Entity/Facet/Magazine')
 
 local suite = ScribuntoUnit:new()
 
+--- Hook context for direct hook calls (Module:Entity/Types EntityHookContext).
+local function ctx(apiData, args, resolved)
+	return { apiData = apiData, args = args or {}, resolved = resolved }
+end
+
 local function findSection(sections, key)
 	for _, s in ipairs(sections or {}) do
 		if s.key == key then
@@ -56,7 +61,7 @@ function suite:testMatches()
 end
 
 function suite:testBallistic()
-	local sec = findSection(Magazine.getSections(ballistic(), {}), 'magazine')
+	local sec = findSection(Magazine.getSections(ctx(ballistic(), {})), 'magazine')
 	self:assertEquals('Magazine', sec.label)
 	self:assertEquals('15', findItem(sec.items, 'Capacity').content)
 	self:assertEquals('800 m/s', findItem(sec.items, 'Velocity').content)
@@ -66,7 +71,7 @@ function suite:testBallistic()
 end
 
 function suite:testMissile()
-	local sec = findSection(Magazine.getSections(missile(), {}), 'magazine')
+	local sec = findSection(Magazine.getSections(ctx(missile(), {})), 'magazine')
 	-- max_ammo_count 0 -> Capacity suppressed.
 	self:assertEquals(nil, findItem(sec.items, 'Capacity'))
 	self:assertEquals('700 m/s', findItem(sec.items, 'Velocity').content)
@@ -75,13 +80,13 @@ function suite:testMissile()
 end
 
 function suite:testStructuredData()
-	local d = Magazine.getStructuredData(ballistic())
+	local d = Magazine.getStructuredData(ctx(ballistic()))
 	self:assertEquals(15, d.ammo)
 	self:assertEquals(800, d.muzzle_velocity)
 	self:assertEquals(1600, d.max_range)
 	self:assertEquals(42.5, d.damage)
 	-- Missile mag: capacity 0 gated out; detonation damage summed.
-	local m = Magazine.getStructuredData(missile())
+	local m = Magazine.getStructuredData(ctx(missile()))
 	self:assertEquals(nil, m.ammo)
 	self:assertEquals(150, m.damage)
 end

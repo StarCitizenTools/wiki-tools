@@ -14,6 +14,9 @@ local Util = require('Module:Entity/Facet/Util')
 
 local p = {}
 
+-- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
+p.contextHooks = true
+
 -- Damage types shown in the resistance row, in a stable order. Components are
 -- usually 1.0 (no resistance) for distortion / biochemical / stun, so the row
 -- only lists the types that actually resist.
@@ -54,10 +57,10 @@ local function formatResistance(resistance)
 	return table.concat(parts, ' · ')
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table[] Ordered list of section entries with key field
-function p.getSections(apiData, args)
+function p.getSections(ctx)
+	local apiData = ctx.apiData
 	local durability = apiData.durability or {}
 	local emission = apiData.emission or {}
 	local distortion = apiData.distortion or {}
@@ -82,10 +85,10 @@ end
 --- signature, and distortion resilience (scalars). Per-type resistance is left
 --- out of the query layer for now (multi-valued; a sub-table later).
 ---
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table<string, any>
-function p.getStructuredData(apiData, args)
+function p.getStructuredData(ctx)
+	local apiData = ctx.apiData
 	local durability = apiData.durability or {}
 	local emission = apiData.emission or {}
 	local distortion = apiData.distortion or {}

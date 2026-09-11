@@ -5,6 +5,11 @@ local Flashlight = require('Module:Entity/Facet/Flashlight')
 
 local suite = ScribuntoUnit:new()
 
+--- Hook context for direct hook calls (Module:Entity/Types EntityHookContext).
+local function ctx(apiData, args, resolved)
+	return { apiData = apiData, args = args or {}, resolved = resolved }
+end
+
 local function findItem(items, label)
 	for _, it in ipairs(items or {}) do
 		if it.label == label then
@@ -38,7 +43,7 @@ function suite:testMatches()
 end
 
 function suite:testModes()
-	local sections = Flashlight.getSections(brightspot(), {})
+	local sections = Flashlight.getSections(ctx(brightspot(), {}))
 	self:assertEquals('Flashlight', sections[1].label)
 	-- Ordered by port_name: Narrow (light_1) before Wide (light_2).
 	self:assertEquals('Narrow', sections[1].items[1].label)
@@ -48,7 +53,7 @@ function suite:testModes()
 end
 
 function suite:testEmpty()
-	self:assertEquals(0, #Flashlight.getSections({ flashlight = {} }, {}))
+	self:assertEquals(0, #Flashlight.getSections(ctx({ flashlight = {} }, {})))
 end
 
 return suite

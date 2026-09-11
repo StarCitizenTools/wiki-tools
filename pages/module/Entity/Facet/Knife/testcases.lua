@@ -5,6 +5,11 @@ local Knife = require('Module:Entity/Facet/Knife')
 
 local suite = ScribuntoUnit:new()
 
+--- Hook context for direct hook calls (Module:Entity/Types EntityHookContext).
+local function ctx(apiData, args, resolved)
+	return { apiData = apiData, args = args or {}, resolved = resolved }
+end
+
 local function findItem(items, label)
 	for _, it in ipairs(items or {}) do
 		if it.label == label then
@@ -37,7 +42,7 @@ function suite:testMatches()
 end
 
 function suite:testCollapsesEqualDamage()
-	local sections = Knife.getSections(knifeData(), {})
+	local sections = Knife.getSections(ctx(knifeData(), {}))
 	self:assertEquals(1, #sections)
 	self:assertEquals('melee', sections[1].key)
 	self:assertEquals('Melee', sections[1].label)
@@ -49,24 +54,24 @@ function suite:testCollapsesEqualDamage()
 end
 
 function suite:testSeparateWhenDamageDiffers()
-	local sections = Knife.getSections({
+	local sections = Knife.getSections(ctx({
 		melee_weapon = {
 			attack_modes = {
 				{ category = 'BladeSlash', damage = 25 },
 				{ category = 'BladeStab', damage = 40 },
 			},
 		},
-	}, {})
+	}, {}))
 	self:assertEquals('25', findItem(sections[1].items, 'Slash damage').content)
 	self:assertEquals('40', findItem(sections[1].items, 'Stab damage').content)
 end
 
 function suite:testEmptyWhenNoBlock()
-	self:assertEquals(0, #Knife.getSections({}, {}))
+	self:assertEquals(0, #Knife.getSections(ctx({}, {})))
 end
 
 function suite:testStructuredData()
-	local data = Knife.getStructuredData(knifeData())
+	local data = Knife.getStructuredData(ctx(knifeData()))
 	self:assertEquals(30, data.slash_damage)
 	self:assertEquals(30, data.stab_damage)
 end

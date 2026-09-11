@@ -5,6 +5,11 @@ local Inventory = require('Module:Entity/Facet/Inventory')
 
 local suite = ScribuntoUnit:new()
 
+--- Hook context for direct hook calls (Module:Entity/Types EntityHookContext).
+local function ctx(apiData, args, resolved)
+	return { apiData = apiData, args = args or {}, resolved = resolved }
+end
+
 -- A torso armor with a 10,500 µSCU pocket.
 local function torsoData()
 	return {
@@ -21,7 +26,7 @@ function suite:testMatches()
 end
 
 function suite:testRow()
-	local sections = Inventory.getSections(torsoData(), {})
+	local sections = Inventory.getSections(ctx(torsoData(), {}))
 	self:assertEquals(1, #sections)
 	self:assertEquals('inventory', sections[1].key)
 	self:assertEquals('Storage', sections[1].label)
@@ -30,13 +35,13 @@ function suite:testRow()
 end
 
 function suite:testEmptyWhenNoCapacity()
-	self:assertEquals(0, #Inventory.getSections({ inventory = { scu_converted = 0 } }, {}))
-	self:assertEquals(0, #Inventory.getSections({}, {}))
+	self:assertEquals(0, #Inventory.getSections(ctx({ inventory = { scu_converted = 0 } }, {})))
+	self:assertEquals(0, #Inventory.getSections(ctx({}, {})))
 end
 
 function suite:testStructuredData()
-	self:assertEquals(10500, Inventory.getStructuredData(torsoData()).storage_capacity)
-	self:assertEquals(nil, Inventory.getStructuredData({}).storage_capacity)
+	self:assertEquals(10500, Inventory.getStructuredData(ctx(torsoData())).storage_capacity)
+	self:assertEquals(nil, Inventory.getStructuredData(ctx({})).storage_capacity)
 end
 
 return suite

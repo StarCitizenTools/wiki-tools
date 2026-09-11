@@ -5,6 +5,11 @@ local Heal = require('Module:Entity/Facet/Heal')
 
 local suite = ScribuntoUnit:new()
 
+--- Hook context for direct hook calls (Module:Entity/Types EntityHookContext).
+local function ctx(apiData, args, resolved)
+	return { apiData = apiData, args = args or {}, resolved = resolved }
+end
+
 local function findSection(sections, key)
 	for _, s in ipairs(sections or {}) do
 		if s.key == key then
@@ -76,7 +81,7 @@ function suite:testMatches()
 end
 
 function suite:testParaMedSection()
-	local sec = findSection(Heal.getSections(paraMed(), {}), 'heal')
+	local sec = findSection(Heal.getSections(ctx(paraMed(), {})), 'heal')
 	self:assertEquals('Healing', sec.label)
 	self:assertEquals('10/s', findItem(sec.items, 'Healing rate').content)
 	self:assertEquals('1.5 m', findItem(sec.items, 'Range').content)
@@ -84,17 +89,17 @@ function suite:testParaMedSection()
 end
 
 function suite:testGadgetHealSection()
-	local sec = findSection(Heal.getSections(healGadget(), {}), 'heal')
+	local sec = findSection(Heal.getSections(ctx(healGadget(), {})), 'heal')
 	self:assertEquals('8/s', findItem(sec.items, 'Healing rate').content)
 end
 
 function suite:testNoHealMode()
-	self:assertEquals(0, #Heal.getSections({ personal_weapon = { modes = { { type = 'Salvage' } } } }, {}))
+	self:assertEquals(0, #Heal.getSections(ctx({ personal_weapon = { modes = { { type = 'Salvage' } } } }, {})))
 end
 
 -- A healing-beam mode with no stats renders nothing.
 function suite:testStatlessHeal()
-	self:assertEquals(0, #Heal.getSections({ personal_weapon = { modes = { { type = 'healingbeam' } } } }, {}))
+	self:assertEquals(0, #Heal.getSections(ctx({ personal_weapon = { modes = { { type = 'healingbeam' } } } }, {})))
 end
 
 return suite

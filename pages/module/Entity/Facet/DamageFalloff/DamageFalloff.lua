@@ -17,6 +17,9 @@ local Util = require('Module:Entity/Facet/Util')
 
 local p = {}
 
+-- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
+p.contextHooks = true
+
 local DAMAGE_TYPES = Util.damageKeys()
 
 -- Fixed per-class x-axis maxima (m), keyed by personal_weapon.type, so charts are
@@ -216,10 +219,10 @@ function p.matches(apiData)
 	return hasMeaningfulFalloff(resolveFalloff((weaponBlock(apiData))))
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return EntitySectionEntry[]
-function p.getSections(apiData, args)
+function p.getSections(ctx)
+	local apiData = ctx.apiData
 	local block, key = weaponBlock(apiData)
 	local m = resolveFalloff(block)
 	if not hasMeaningfulFalloff(m) then
@@ -300,10 +303,10 @@ function p.getSections(apiData, args)
 	}))
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table<string, any>
-function p.getStructuredData(apiData, args)
+function p.getStructuredData(ctx)
+	local apiData = ctx.apiData
 	local m = resolveFalloff((weaponBlock(apiData)))
 	if not hasMeaningfulFalloff(m) then
 		return {}

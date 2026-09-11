@@ -17,6 +17,9 @@ local Util = require('Module:Entity/Facet/Util')
 
 local p = {}
 
+-- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
+p.contextHooks = true
+
 --- Finds the first healing-beam mode in a modes array.
 ---
 --- @param modes table|nil
@@ -68,10 +71,10 @@ function p.matches(apiData)
 	return healModeOf(apiData) ~= nil
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table[] Ordered list of section entries with key field
-function p.getSections(apiData, args)
+function p.getSections(ctx)
+	local apiData = ctx.apiData
 	local heal = healModeOf(apiData)
 	if type(heal) ~= 'table' then
 		return {}

@@ -6,6 +6,11 @@ local internal = Facet._internal
 
 local suite = ScribuntoUnit:new()
 
+--- Hook context for direct hook calls (Module:Entity/Types EntityHookContext).
+local function ctx(apiData, args, resolved)
+	return { apiData = apiData, args = args or {}, resolved = resolved }
+end
+
 -- hasBox()
 
 function suite:testHasBoxValid()
@@ -58,11 +63,11 @@ end
 -- getSections() — assert on descriptor structure, not rendered markup
 
 function suite:testGetSectionsNeitherReturnsEmpty()
-	self:assertEquals(0, #Facet.getSections({ dimension = { volume_converted = 1 } }, {}))
+	self:assertEquals(0, #Facet.getSections(ctx({ dimension = { volume_converted = 1 } }, {})))
 end
 
 function suite:testGetSectionsBothReturnsTabs()
-	local sections = Facet.getSections({
+	local sections = Facet.getSections(ctx({
 		mass = 2000,
 		dimension = {
 			dimensions = { length = 2.1, width = 2.9, height = 0.9 },
@@ -70,7 +75,7 @@ function suite:testGetSectionsBothReturnsTabs()
 			volume_converted = 84000,
 			volume_converted_unit = 'µSCU',
 		},
-	}, {})
+	}, {}))
 	self:assertEquals(1, #sections)
 	self:assertEquals('dimensions', sections[1].key)
 	self:assertEquals('Dimensions', sections[1].label)
@@ -80,10 +85,10 @@ function suite:testGetSectionsBothReturnsTabs()
 end
 
 function suite:testGetSectionsPhysicalOnlyUntabbed()
-	local sections = Facet.getSections({
+	local sections = Facet.getSections(ctx({
 		mass = 5,
 		dimension = { dimensions = { length = 1, width = 1, height = 1 } },
-	}, {})
+	}, {}))
 	self:assertEquals(1, #sections)
 	self:assertEquals('Dimensions', sections[1].label)
 	self:assertEquals(nil, sections[1].sections)
@@ -91,13 +96,13 @@ function suite:testGetSectionsPhysicalOnlyUntabbed()
 end
 
 function suite:testGetSectionsCargoOnlyUntabbed()
-	local sections = Facet.getSections({
+	local sections = Facet.getSections(ctx({
 		dimension = {
 			cargo_dimension = { length = 1, width = 1, height = 1 },
 			volume_converted = 900,
 			volume_converted_unit = 'µSCU',
 		},
-	}, {})
+	}, {}))
 	self:assertEquals(1, #sections)
 	self:assertEquals('Cargo dimensions', sections[1].label)
 	self:assertEquals(nil, sections[1].sections)

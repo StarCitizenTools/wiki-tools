@@ -14,6 +14,9 @@ local Boolean = require('Module:Boolean')
 
 local p = {}
 
+-- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
+p.contextHooks = true
+
 --- Data-driven match: presence of the `food` payload. Nil-safe; never reads
 --- kind identity. Returns a strict boolean.
 ---
@@ -23,10 +26,10 @@ function p.matches(apiData)
 	return apiData ~= nil and apiData.food ~= nil
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table[] Ordered list of section entries with key field
-function p.getSections(apiData, args)
+function p.getSections(ctx)
+	local apiData = ctx.apiData
 	local food = apiData.food
 	if not food then
 		return {}
@@ -82,10 +85,10 @@ end
 --- omitted when absent so the stored set stays clean. Nil-safe even though the
 --- facet only runs when matches() is true.
 ---
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table<string, any>
-function p.getStructuredData(apiData, args)
+function p.getStructuredData(ctx)
+	local apiData = ctx.apiData
 	local food = apiData.food
 	if not food then
 		return {}
@@ -105,10 +108,10 @@ end
 --- composes this into its noun ("Stimulant food by Aopoa"). Returns nil when no
 --- effects are present so the kind's plain description stands.
 ---
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return string|nil
-function p.getShortDescriptionPrefix(apiData, args)
+function p.getShortDescriptionPrefix(ctx)
+	local apiData = ctx.apiData
 	local effects = apiData.food and apiData.food.effects
 	return effects and format.joinAnd(effects) or nil
 end

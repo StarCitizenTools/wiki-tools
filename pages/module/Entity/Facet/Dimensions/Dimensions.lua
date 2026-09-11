@@ -23,6 +23,9 @@ local lang = mw.getContentLanguage()
 
 local p = {}
 
+-- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
+p.contextHooks = true
+
 --- True when t is a {length, width, height} table whose three values are all
 --- positive numbers (a drawable box). Nil-safe.
 ---
@@ -97,10 +100,10 @@ local function physicalBox(dim, mass)
 	})
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table[] Ordered list of section entries with key field
-function p.getSections(apiData, args)
+function p.getSections(ctx)
+	local apiData = ctx.apiData
 	local dim = apiData and apiData.dimension
 	if type(dim) ~= 'table' then
 		return {}

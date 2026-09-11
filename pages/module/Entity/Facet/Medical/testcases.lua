@@ -5,6 +5,11 @@ local Medical = require('Module:Entity/Facet/Medical')
 
 local suite = ScribuntoUnit:new()
 
+--- Hook context for direct hook calls (Module:Entity/Types EntityHookContext).
+local function ctx(apiData, args, resolved)
+	return { apiData = apiData, args = args or {}, resolved = resolved }
+end
+
 local function findItem(items, label)
 	for _, it in ipairs(items or {}) do
 		if it.label == label then
@@ -61,7 +66,7 @@ function suite:testMatches()
 end
 
 function suite:testBuffsAndResistances()
-	local sections = Medical.getSections(adrenaPenData(), {})
+	local sections = Medical.getSections(ctx(adrenaPenData(), {}))
 	self:assertEquals(1, #sections)
 	self:assertEquals('medical', sections[1].key)
 	self:assertEquals('Medical', sections[1].label)
@@ -79,7 +84,7 @@ end
 
 -- The debuffs map uses magnitudes, not booleans; a key still counts as active.
 function suite:testDebuffsMagnitudeMap()
-	local sections = Medical.getSections(boostPenData(), {})
+	local sections = Medical.getSections(ctx(boostPenData(), {}))
 	self:assertEquals('Atrophy', findItem(sections[1].items, 'Debuffs').content)
 	self:assertEquals('Movement speed', findItem(sections[1].items, 'Combat buffs').content)
 	self:assertEquals(nil, findItem(sections[1].items, 'Impact resistances'))
@@ -88,37 +93,37 @@ end
 -- A medical block with nothing displayable (empty nutrition + empty effect
 -- arrays, as DetoxPen / Drema Injector carry) yields no section.
 function suite:testEmptyBlockNoSection()
-	local sections = Medical.getSections({
+	local sections = Medical.getSections(ctx({
 		medical = {
 			nutrition = {},
 			combat_buffs = {},
 			impact_resistances = {},
 			debuffs = {},
 		},
-	}, {})
+	}, {}))
 	self:assertEquals(0, #sections)
 end
 
 function suite:testEmptyWhenNoBlock()
-	self:assertEquals(0, #Medical.getSections({}, {}))
+	self:assertEquals(0, #Medical.getSections(ctx({}, {})))
 end
 
 -- blood_drug_level is fractional on some doses (SLAM = 79.5) and absent on
 -- pure nutrition pens; both must behave.
 function suite:testFractionalAndMissingBloodDrugLevel()
-	local fractional = Medical.getSections({
+	local fractional = Medical.getSections(ctx({
 		medical = { nutrition = { blood_drug_level = 79.5 }, combat_buffs = {}, impact_resistances = {} },
-	}, {})
+	}, {}))
 	self:assertEquals('79.5', findItem(fractional[1].items, 'Blood drug level').content)
 	-- No blood_drug_level, no other stat -> no section.
-	self:assertEquals(0, #Medical.getSections({
+	self:assertEquals(0, #Medical.getSections(ctx({
 		medical = { nutrition = {}, combat_buffs = {}, impact_resistances = {} },
-	}, {}))
+	}, {})))
 end
 
 function suite:testStructuredData()
-	self:assertEquals(15, Medical.getStructuredData(adrenaPenData()).blood_drug_level)
-	self:assertEquals(nil, Medical.getStructuredData({ medical = { nutrition = {} } }).blood_drug_level)
+	self:assertEquals(15, Medical.getStructuredData(ctx(adrenaPenData())).blood_drug_level)
+	self:assertEquals(nil, Medical.getStructuredData(ctx({ medical = { nutrition = {} } })).blood_drug_level)
 end
 
 -- effectList tolerates a non-table (the API hands [] when there is nothing).

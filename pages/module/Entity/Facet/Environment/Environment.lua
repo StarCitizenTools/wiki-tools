@@ -17,6 +17,9 @@ local meterBar = require('Module:MeterBar')
 
 local p = {}
 
+-- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
+p.contextHooks = true
+
 -- Ice–fire gradient: cold cyan -> near-white neutral -> hot orange-red, in domain
 -- units. Fixed hex so the palette reads identically across themes. (Axis bounds and
 -- units live in Module:Entity/StatFormat; only the palette is temperature-specific.)
@@ -102,10 +105,10 @@ function p.matches(apiData)
 	return apiData ~= nil and type(apiData.temperature_resistance) == 'table'
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table[] Ordered list of section entries with key field
-function p.getSections(apiData, args)
+function p.getSections(ctx)
+	local apiData = ctx.apiData
 	local items = {}
 
 	-- Each bar is its own full-width, label-less graph item; the section's item
@@ -161,10 +164,10 @@ end
 --- radiation only when positive; g-force only when non-zero) so the stored set —
 --- and the slot index columns — stay clean.
 ---
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table<string, any>
-function p.getStructuredData(apiData, args)
+function p.getStructuredData(ctx)
+	local apiData = ctx.apiData
 	local data = {}
 
 	local temp = apiData.temperature_resistance

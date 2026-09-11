@@ -5,6 +5,11 @@ local Mining = require('Module:Entity/Facet/Mining')
 
 local suite = ScribuntoUnit:new()
 
+--- Hook context for direct hook calls (Module:Entity/Types EntityHookContext).
+local function ctx(apiData, args, resolved)
+	return { apiData = apiData, args = args or {}, resolved = resolved }
+end
+
 local function findItem(items, label)
 	for _, it in ipairs(items or {}) do
 		if it.label == label then
@@ -62,7 +67,7 @@ function suite:testMatches()
 end
 
 function suite:testActiveRows()
-	local sections = Mining.getSections(brandtData(), {})
+	local sections = Mining.getSections(ctx(brandtData(), {}))
 	self:assertEquals(1, #sections)
 	self:assertEquals('mining', sections[1].key)
 	self:assertEquals('Mining', sections[1].label)
@@ -86,19 +91,19 @@ end
 
 -- MODIFIER_EFFECTS order, not alphabetical.
 function suite:testEffectOrder()
-	local sections = Mining.getSections(boreMaxData(), {})
+	local sections = Mining.getSections(ctx(boreMaxData(), {}))
 	self:assertEquals('Type, Instability, Resistance, Cluster factor', labels(sections[1].items))
 end
 
 -- The FLTR shape: one game value arriving twice collapses to a single negated row,
 -- reproducing the item card's "Inert Material Level: -20%" from the API's +20.
 function suite:testFilterCollapsesToOneNegatedRow()
-	local sections = Mining.getSections({
+	local sections = Mining.getSections(ctx({
 		mining_modifier = {
 			type = 'Passive',
 			modifier_map = { all_charge_rates = 20, inert_materials = 20 },
 		},
-	}, {})
+	}, {}))
 	self:assertEquals('Type, Inert material level', labels(sections[1].items))
 	local inert = findItem(sections[1].items, 'Inert material level').content
 	self:assertStringContains('−20%', inert, true)
@@ -110,19 +115,19 @@ end
 
 -- An effect the API adds later still renders, auto-titled and uncoloured.
 function suite:testUnknownEffectStillRenders()
-	local sections = Mining.getSections({
+	local sections = Mining.getSections(ctx({
 		mining_modifier = {
 			type = 'Passive',
 			modifier_map = { warp_factor = -12.5, resistance = 10 },
 		},
-	}, {})
+	}, {}))
 	self:assertEquals('Type, Resistance, Warp factor', labels(sections[1].items))
 	self:assertEquals('−12.5%', findItem(sections[1].items, 'Warp factor').content)
 end
 
 -- FPS mining gadget: passive, no charges/duration/power; only modifier effects.
 function suite:testGadgetPassive()
-	local sections = Mining.getSections(boreMaxData(), {})
+	local sections = Mining.getSections(ctx(boreMaxData(), {}))
 	self:assertEquals('Passive', findItem(sections[1].items, 'Type').content)
 	self:assertEquals(nil, findItem(sections[1].items, 'Power'))
 	self:assertEquals(nil, findItem(sections[1].items, 'Charges'))
@@ -140,11 +145,11 @@ function suite:testGadgetPassive()
 end
 
 function suite:testEmptyWhenNoBlock()
-	self:assertEquals(0, #Mining.getSections({}, {}))
+	self:assertEquals(0, #Mining.getSections(ctx({}, {})))
 end
 
 function suite:testStructuredData()
-	local data = Mining.getStructuredData(brandtData())
+	local data = Mining.getStructuredData(ctx(brandtData()))
 	self:assertEquals('Active', data.mining_type)
 	-- Stored per beam. The API's own power_modifier is NOT stored: it is whichever
 	-- beam came first, so a query on it would compare fracture against extraction.
@@ -168,24 +173,24 @@ function suite:testStringPercentValue()
 			modifier_map = { overcharge_rate = '-80%' },
 		},
 	}
-	local sections = Mining.getSections(apiData, {})
+	local sections = Mining.getSections(ctx(apiData, {}))
 	local overcharge = findItem(sections[1].items, 'Overcharge rate').content
 	self:assertStringContains('−80%', overcharge, true)
 	self:assertStringContains('--color-success', overcharge, true)
-	self:assertEquals(-80, Mining.getStructuredData(apiData).modifier_overcharge_rate)
+	self:assertEquals(-80, Mining.getStructuredData(ctx(apiData)).modifier_overcharge_rate)
 end
 
 -- Stampede: the card names both beams, and the API's single power_modifier (+0.35)
 -- can only carry one. Both rows render.
 function suite:testBothPowerBeams()
-	local sections = Mining.getSections({
+	local sections = Mining.getSections(ctx({
 		description_data = {
 			{ name = 'Mining Laser Power', value = '135%' },
 			{ name = 'Extraction Laser Power', value = '85%' },
 		},
 		weapon_modifier = { damage_multiplier = 1.35 },
 		mining_modifier = { type = 'Active', power_modifier = 0.35, modifier_map = {} },
-	}, {})
+	}, {}))
 	local mining = findItem(sections[1].items, 'Mining laser power').content
 	self:assertStringContains('+35%', mining, true)
 	self:assertStringContains('--color-success', mining, true)
@@ -198,11 +203,11 @@ end
 -- power_modifier. damage_multiplier is always the fracture beam, so it fills in the
 -- mining figure that would otherwise be lost.
 function suite:testPowerFallsBackToDamageMultiplier()
-	local sections = Mining.getSections({
+	local sections = Mining.getSections(ctx({
 		description_data = {},
 		weapon_modifier = { damage_multiplier = 1.15 },
 		mining_modifier = { type = 'Passive', power_modifier = nil, modifier_map = { resistance = -15.5 } },
-	}, {})
+	}, {}))
 	local mining = findItem(sections[1].items, 'Mining laser power').content
 	self:assertStringContains('+15%', mining, true)
 	self:assertEquals(nil, findItem(sections[1].items, 'Extraction laser power'))
@@ -211,14 +216,14 @@ end
 -- Stampede names both beams, so both are stored and a query can tell them apart —
 -- the whole reason power_modifier is not stored.
 function suite:testBothPowerBeamsStored()
-	local data = Mining.getStructuredData({
+	local data = Mining.getStructuredData(ctx({
 		description_data = {
 			{ name = 'Mining Laser Power', value = '135%' },
 			{ name = 'Extraction Laser Power', value = '85%' },
 		},
 		weapon_modifier = { damage_multiplier = 1.35 },
 		mining_modifier = { type = 'Active', power_modifier = 0.35, modifier_map = {} },
-	})
+	}))
 	self:assertEquals(35, data.modifier_mining_laser_power)
 	self:assertEquals(-15, data.modifier_extraction_laser_power)
 end
@@ -237,18 +242,18 @@ end
 
 -- A no-op multiplier is not a stat; the ROC Module's old "+0%" row goes away.
 function suite:testNoPowerRowWhenNeutral()
-	local sections = Mining.getSections({
+	local sections = Mining.getSections(ctx({
 		description_data = {},
 		weapon_modifier = { damage_multiplier = 1 },
 		mining_modifier = { type = 'Passive', power_modifier = 0, modifier_map = { resistance = 5 } },
-	}, {})
+	}, {}))
 	self:assertEquals(nil, findItem(sections[1].items, 'Mining laser power'))
 	self:assertEquals(nil, findItem(sections[1].items, 'Power'))
 end
 
 -- Charges 0 / duration null are gated out of structured data.
 function suite:testPassiveStructuredData()
-	local data = Mining.getStructuredData({
+	local data = Mining.getStructuredData(ctx({
 		mining_modifier = {
 			type = 'Passive',
 			charges = 0,
@@ -256,7 +261,7 @@ function suite:testPassiveStructuredData()
 			power_modifier = 0,
 			modifier_map = { all_charge_rates = 5, inert_materials = 5 },
 		},
-	})
+	}))
 	self:assertEquals('Passive', data.mining_type)
 	self:assertEquals(nil, data.charges)
 	self:assertEquals(nil, data.duration)

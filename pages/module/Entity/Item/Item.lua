@@ -12,7 +12,7 @@ local yesno = require('Module:Yesno')
 
 local p = {}
 
---- Canonical kind name, exposed as Data.get().result.kind (non-empty and
+--- Canonical kind name, exposed as Data.get(args).kind (non-empty and
 --- unique, enforced by the Registry conformance test).
 p.name = 'Item'
 

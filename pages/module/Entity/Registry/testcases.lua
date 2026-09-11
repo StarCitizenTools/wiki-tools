@@ -19,7 +19,7 @@ function suite:testAllKindsConform()
 end
 
 -- Every kind must declare a non-empty, unique string `name` — the canonical kind
--- name exposed as Data.get().result.kind.
+-- name exposed as Data.get(args).kind.
 -- Authoritative `name` check (non-empty + uniqueness, which KIND_FIELDS cannot
 -- express); keep it distinct from testAllKindsConformFields below.
 function suite:testAllKindsDeclareName()

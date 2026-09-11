@@ -2,68 +2,16 @@
 
 Formats an in-game money value in [United Earth Credit](https://starcitizen.tools/United_Earth_Credit) (UEC): the UEC glyph followed by the amount with thousands separators. Built on [Module:IconText](https://starcitizen.tools/Module:IconText), with the icon in mask mode so it recolors with the surrounding text.
 
-## Requirements
+Editors use this through `{{UEC}}`; see [Template:UEC](https://starcitizen.tools/Template:UEC). Required directly by [Module:Entity/Availability](https://starcitizen.tools/Module:Entity/Availability), [Module:Entity/Acquisition](https://starcitizen.tools/Module:Entity/Acquisition), and [Module:Entity/Vehicle/Cost](https://starcitizen.tools/Module:Entity/Vehicle/Cost) for formatting price values.
 
-- [Module:IconText](https://starcitizen.tools/Module:IconText) — renders the icon and amount.
-- [Module:Arguments](https://starcitizen.tools/Module:Arguments) — for the `#invoke` entry point.
+## For module editors
 
-## Usage
+### API
 
-From wikitext, via the [Template:UEC](https://starcitizen.tools/Template:UEC) wrapper:
+- `p.main(frame)`: wikitext entry point behind `{{UEC}}`; the first positional argument is the amount.
+- `p._main(uec)`: a number or numeric string, returning the rendered string (glyph plus grouped amount). Raises an error if the value isn't numeric.
+- `p._range(min, max)`: the glyph followed by "min–max" (both grouped), collapsing to a single value when `min == max`. Meant for sibling modules; [Module:Entity/Availability](https://starcitizen.tools/Module:Entity/Availability) uses it for UEX price ranges. Both bounds must be numeric, otherwise it raises an error.
 
-```wikitext
-{{UEC|15000}}
-```
+### Gotchas
 
-Or call the module directly with `#invoke`, passing the amount as the first positional argument:
-
-```wikitext
-{{#invoke:UEC|main|15000}}
-```
-
-From another Lua module via the `_main` entry point:
-
-```lua
-local uec = require( 'Module:UEC' )
-
-local html = uec._main( 15000 )
-```
-
-`_main` accepts a number or numeric string and returns the rendered string (the UEC icon followed by the formatted amount). It raises an error if the value is not numeric. The amount is formatted with the wiki content language's digit grouping, so `15000` becomes `15,000`.
-
-For a price range, the `_range` entry point renders the glyph once followed by `min–max` (or a single value when the bounds are equal):
-
-```lua
-local uec = require( 'Module:UEC' )
-
-local html = uec._range( 16160, 17010 ) -- → glyph + "16,160–17,010"
-```
-
-`_range` is meant for sibling modules — for example [Module:Entity/Availability](https://starcitizen.tools/Module:Entity/Availability) formats UEX price ranges with it. Both bounds must be numeric, otherwise it raises an error.
-
-## Data Reference
-
-| Field | Type | Required | Default | Description |
-|---|---|---|---|---|
-| `1` | `number` | Yes | | The UEC amount, as a number or numeric string. Passed as the sole argument to `_main`. Rendered with thousands separators. |
-
-## Examples
-
-### Basic amount
-
-```wikitext
-{{#invoke:UEC|main|15000}}
-```
-
-### Large amount
-
-```wikitext
-{{#invoke:UEC|main|2750000}}
-```
-
-## Architecture
-
-```
-UEC/
-└── UEC.lua    # parse + format the amount, delegating rendering to Module:IconText
-```
+- The amount is formatted with `mw.language.getContentLanguage():formatNum`, so its digit grouping follows the wiki's content language rather than a hardcoded comma.

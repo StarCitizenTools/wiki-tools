@@ -26,5 +26,5 @@ Pass the amount as the first positional argument.
 
 ## See also
 
-- [Module:UEC](https://starcitizen.tools/Module:UEC) — implementation.
-- [United Earth Credit](https://starcitizen.tools/United_Earth_Credit) — the in-universe currency.
+- [Module:UEC](https://starcitizen.tools/Module:UEC), implementation.
+- [United Earth Credit](https://starcitizen.tools/United_Earth_Credit), the in-universe currency.

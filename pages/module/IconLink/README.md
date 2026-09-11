@@ -1,77 +1,17 @@
 # Module:IconLink
 
-Renders an inline **icon link**: a small icon followed by a text label, where both the icon and the label link to the same wiki page. Suited to compact, scannable references — a ship with a thumbnail, a manufacturer with its logo, a location with a map pin — anywhere a plain wikilink reads better with a leading glyph.
+Renders an inline icon link: a small icon followed by a text label, where both the icon and the label link to the same wiki page. For an icon paired with plain, non-linking text, use [Module:IconText](https://starcitizen.tools/Module:IconText) instead.
 
-For an icon paired with plain, non-linking text, use [Module:IconText](https://starcitizen.tools/Module:IconText) instead.
+Editors use this through `{{IconLink}}`; see [Template:IconLink](https://starcitizen.tools/Template:IconLink).
 
-## Requirements
+## For module editors
 
-- [Module:Arguments](https://starcitizen.tools/Module:Arguments) — for the `#invoke` entry point.
-- [TemplateStyles](https://www.mediawiki.org/wiki/Extension:TemplateStyles) — the module emits its own `Module:IconLink/styles.css`.
+### API
 
-## Usage
+- `p.main(frame)`: wikitext entry point; reads args via [Module:Arguments](https://starcitizen.tools/Module:Arguments) and calls `_main`.
+- `p._main(args)`: pure Lua entry point, callable directly by another module. `args`: `icon` (required), `link` (required; also `args[1]`, the named form wins), `text` (defaults to `link`), `size` (default `20px`), `mask` (boolean, via [Module:Yesno](https://starcitizen.tools/Module:Yesno)), `class`. Returns a string carrying its own and [Module:Icon](https://starcitizen.tools/Module:Icon)'s `<templatestyles>` tags. Raises an error if `icon` is missing, or if no `link` (positional or named) is given.
 
-From wikitext, via the [Template:IconLink](https://starcitizen.tools/Template:IconLink) wrapper:
+### Gotchas
 
-```wikitext
-{{IconLink|Aurora MR|icon=CdxIconArticle.svg}}
-```
-
-Or call the module directly with `#invoke`:
-
-```wikitext
-{{#invoke:IconLink|main|link=Aurora MR|icon=CdxIconArticle.svg|text=Aurora}}
-```
-
-From another Lua module via the `_main` entry point:
-
-```lua
-local iconLink = require( 'Module:IconLink' )
-
-local html = iconLink._main( {
-    icon = 'CdxIconArticle.svg',
-    link = 'Aurora MR',
-    text = 'Aurora',
-} )
-```
-
-`_main` returns a string: a `<templatestyles>` tag for `Module:IconLink/styles.css` followed by the markup. It raises an error if `icon` is missing, or if no `link` (positional or named) is provided.
-
-## Data Reference
-
-| Field | Type | Required | Default | Description |
-|---|---|---|---|---|
-| `icon` | `string` | Yes | | File name of the icon (without the `File:` prefix). Rendered with `class=metadata` and linked to the target page. |
-| `link` | `string` | Yes | | Target wiki page. Also accepted as the first positional argument (`args[1]`); the named `link` wins if both are given. |
-| `text` | `string` | No | (the link) | Visible label. Defaults to the link target. |
-| `size` | `string` | No | `20px` | Icon size, as a MediaWiki image size (e.g. `16px`). |
-| `mask` | `boolean` | No | `false` | Render the icon as a recolorable CSS mask (filled with `background-color: currentColor`) instead of an `<img>`, so it matches the linked text color. The masked icon stays linked to the target page. Best with a single-color icon. |
-| `class` | `string` | No | | Extra CSS class appended to the root `<span>`. |
-
-## Examples
-
-### Icon link with default label
-
-```wikitext
-{{#invoke:IconLink|main|link=Aurora MR|icon=CdxIconArticle.svg}}
-```
-
-### Custom label and icon size
-
-```wikitext
-{{#invoke:IconLink|main|link=Stanton system|text=Stanton|icon=CdxIconMapPin.svg|size=16px}}
-```
-
-### Recolorable mask icon
-
-```wikitext
-{{#invoke:IconLink|main|link=Aurora MR|icon=CdxIconArticle.svg|mask=yes}}
-```
-
-## Architecture
-
-```
-IconLink/
-├── IconLink.lua    # main entry point (main + _main) and rendering
-└── styles.css      # inline-flex layout for the icon + text row
-```
+- The icon is delegated to Module:Icon with the slot class `t-icon-link__icon`; the label span carries `t-icon-link__text`. Neither class is targeted anywhere else in the repository, unlike the matching classes in Module:IconText.
+- `text` falls back to `link`, not to the empty string, so an icon link with no `text=` still shows the page name rather than going blank.

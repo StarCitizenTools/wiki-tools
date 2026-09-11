@@ -1,6 +1,6 @@
 # Template:Manufacturer products
 
-Renders a manufacturer's full product catalogue as an interactive, filterable browse table. A thin wrapper around [[Template:Data table]] scoped to the manufacturer's `Manufacturer` property, used on company and manufacturer pages.
+Renders a manufacturer's full product catalogue as an interactive, filterable browse table. A thin wrapper around [Template:Data table](https://starcitizen.tools/Template:Data_table) scoped to the manufacturer's `Manufacturer` property; place it on a company or manufacturer page.
 
 ## Usage
 
@@ -18,7 +18,7 @@ When the manufacturer name differs from the page title (disambiguated, abbreviat
 {{Manufacturer products | ArcCorp}}
 ```
 
-Backed by [[Template:Data table]] → [[Module:DataGrid]].
+Backed by [Template:Data table](https://starcitizen.tools/Template:Data_table), which invokes [Module:DataGrid](https://starcitizen.tools/Module:DataGrid).
 
 ## Parameters
 
@@ -26,13 +26,13 @@ Backed by [[Template:Data table]] → [[Module:DataGrid]].
 |------|------|----------|---------|-------------|---------|
 | `1` | string | No | the page title | The manufacturer whose products are listed, matched against the `Manufacturer` SMW property (the manufacturer's full name, e.g. `ArcCorp`). Override only when the manufacturer name differs from the page title. | `ArcCorp` |
 
-## Notes
+## Behavior
 
 - Queries the `Manufacturer` property (`[[Manufacturer::…]]`), not the manufacturer category. The category collects everything tagged to the company (locations, lore, people, concept art) alongside its products; the property is set only on the company's actual products, so the table lists products and nothing else.
-- Lists every product whose `Manufacturer` property matches, with the automatic page-image and page-name columns plus a filterable **Item type** column.
-- The manufacturer defaults to the page title. An empty table usually means the manufacturer name differs from the page title (use the override) — the `Manufacturer` property stores the manufacturer's full name, e.g. `Aegis Dynamics`, not its code (`AEGS`).
+- Lists every product whose `Manufacturer` property matches, with the automatic page-image and page-name columns plus a filterable Item type column.
+- The manufacturer defaults to the page title. An empty table usually means the manufacturer name differs from the page title (use the override): the `Manufacturer` property stores the manufacturer's full name, e.g. `Aegis Dynamics`, not its code (`AEGS`).
 
 ## See also
 
-- [[Template:Data table]]
-- [[Template:Company]]
+- [Template:Data table](https://starcitizen.tools/Template:Data_table), the underlying browse-table template.
+- [Template:Company](https://starcitizen.tools/Template:Company), the infobox typically paired with this on a manufacturer page.

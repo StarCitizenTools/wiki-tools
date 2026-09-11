@@ -1,6 +1,6 @@
 # Template:Company
 
-Renders a company infobox for organizations in the Star Citizen universe, including manufacturers, component makers, weapon manufacturers, and non-manufacturing companies. The infobox displays the company logo, key descriptive fields, and collapsible sections for people, history, and corporate relations. It also sets the page short description, writes structured data via SMW, and adds content categories (mainspace only).
+Renders a company infobox for organizations in the Star Citizen universe: manufacturers, component and weapon makers, and non-manufacturing companies alike. Place it at the top of a company or manufacturer page.
 
 ## Usage
 
@@ -16,35 +16,45 @@ Renders a company infobox for organizations in the Star Citizen universe, includ
 }}
 ```
 
-Backed by [[Module:Company]].
-
 ## Parameters
 
 | Name | Type | Required | Default | Description | Example |
 |------|------|----------|---------|-------------|---------|
 | `image` | wiki-file-name | No | | Infobox logo filename, without the `File:` prefix. | `Aegis-Dynamics-Logo.png` |
 | `imagebg` | string | No | | Logo background hint for transparent logos: `light` or `dark`. | `light` |
-| `name` | line | No | (falls back to the page title) | Company name shown in the infobox title. When omitted, the page title is used. | `Aegis Dynamics` |
-| `industry` | string | No | | Industry or industries. Semicolon-separated; renders as a list. Wikilinks accepted. | `[[Spacecraft]] manufacturing` |
-| `products` | string | No | | Products or product categories. Semicolon-separated; renders as a list. Wikilinks accepted. | `[[Fighter]]s; [[Capital ship]]s` |
-| `race` | string | No | `Human` | Species affiliation of the company. | `Human` |
-| `headquarters` | string | No | | Headquarters location(s). Separate multiple HQs with `;`; each as "place, …, system" (the last link of each is stored as that HQ's system). Renders as a list. | `[[Lorville]], [[Hurston]]; [[Area18]], [[ArcCorp]]` |
-| `areaserved` | string | No | | Area served. Semicolon-separated; renders as a list. Wikilinks accepted; each item's link target is stored to SMW as a Page (every served place). Fill only when narrower than the whole UEE, a bare `[[United Empire of Earth]]` carries no signal. | `[[Lorville]]; [[Hurston]]` |
-| `keypeople` | string | No | | Key people. Semicolon-separated; renders as a list. Display only; not stored to SMW. | `[[John Donahue]] (CEO)` |
-| `founder` | string | No | | Founder(s). Semicolon-separated; renders as a list. Wikilinks accepted; link targets stored to SMW. | `[[Aaron Sykes]]` |
-| `founded` | string | No | | Founding year (clean). The module renders it via `{{Start date and age}}`; SMW stores just the year. | `2755` |
-| `fate` | string | No | | Fate of the company. Display only; not stored to SMW. | `Nationalized` |
-| `defunct` | string | No | | Year or date the company became defunct. Display only; not stored to SMW. | `2792` |
-| `formerly` | string | No | | Former name(s). Display only; not stored to SMW. | `Roberts Space Industries` |
-| `predecessor` | string | No | | Predecessor company or companies (e.g. firms that merged to form it). Semicolon-separated; renders as a list; link targets stored to SMW. | `[[Aegis Macrocomputing]]; [[Dynamic Production Systems]]` |
-| `successor` | string | No | | Successor company or companies. Semicolon-separated; renders as a list; link targets stored to SMW. | `[[New Aegis]]` |
-| `parent` | string | No | | Parent company. Wikilink accepted; the link target is stored to SMW. | `[[Shubin Interstellar]]` |
-| `subsidiaries` | string | No | | Subsidiary companies. Semicolon-separated wikilinks; renders as a list. Link targets stored to SMW. | `[[Consolidated Outland]]` |
-| `allies` | string | No | | Allied organizations. Semicolon-separated; renders as a list. Display only; not stored to SMW. | `[[Hurston Dynamics]]` |
-| `rivals` | string | No | | Rival organizations. Semicolon-separated; renders as a list. Display only; not stored to SMW. | `[[Anvil Aerospace]]` |
-| `galactapediaurl` | url | No | | Full URL to the Galactapedia entry. Renders a Galactapedia button in the infobox footer. | `https://robertsspaceindustries.com/galactapedia/article/rQk5lnqbbB-aegis-dynamics` |
-| `portfoliourl` | url | No | | Full URL to the RSI portfolio page. Renders a collapsed External sites section with a Portfolio link. | `https://robertsspaceindustries.com/portfolio/aegis-dynamics` |
+| `name` | line | No | (page title) | Company name shown in the infobox title (SMW). | `Aegis Dynamics` |
+| `industry` | string | No | | Industry or industries (SMW). | `[[Spacecraft]] manufacturing` |
+| `products` | string | No | | Products or product categories (SMW). | `[[Fighter]]s; [[Capital ship]]s` |
+| `race` | string | No | `Human` | Species affiliation of the company (SMW). | `Human` |
+| `headquarters` | string | No | | Headquarters location(s), as "place, …, system" (SMW). | `[[Lorville]], [[Hurston]]; [[Area18]], [[ArcCorp]]` |
+| `areaserved` | string | No | | Area served, narrower than the whole UEE (SMW). | `[[Lorville]]; [[Hurston]]` |
+| `keypeople` | string | No | | Key people; display only. | `[[John Donahue]] (CEO)` |
+| `founder` | string | No | | Founder(s) (SMW). | `[[Aaron Sykes]]` |
+| `founded` | string | No | | Founding year (SMW). | `2755` |
+| `fate` | string | No | | Fate of the company; display only. | `Nationalized` |
+| `defunct` | string | No | | Year or date the company became defunct; display only. | `2792` |
+| `formerly` | string | No | | Former name(s); display only. | `Roberts Space Industries` |
+| `predecessor` | string | No | | Predecessor company or companies (SMW). | `[[Aegis Macrocomputing]]; [[Dynamic Production Systems]]` |
+| `successor` | string | No | | Successor company or companies (SMW). | `[[New Aegis]]` |
+| `parent` | string | No | | Parent company (SMW). | `[[Shubin Interstellar]]` |
+| `subsidiaries` | string | No | | Subsidiary companies (SMW). | `[[Consolidated Outland]]` |
+| `allies` | string | No | | Allied organizations; display only. | `[[Hurston Dynamics]]` |
+| `rivals` | string | No | | Rival organizations; display only. | `[[Anvil Aerospace]]` |
+| `galactapediaurl` | url | No | | Galactapedia entry URL; renders a footer button. | `https://robertsspaceindustries.com/galactapedia/article/rQk5lnqbbB-aegis-dynamics` |
+| `portfoliourl` | url | No | | RSI portfolio page URL; renders a collapsed External sites section. | `https://robertsspaceindustries.com/portfolio/aegis-dynamics` |
+
+## Behavior
+
+- Every list-type field above (`industry`, `products`, `headquarters`, `areaserved`, `keypeople`, `founder`, `predecessor`, `successor`, `subsidiaries`, `allies`, `rivals`) is `;`-separated; two or more items render as a bulleted list, a single item renders plain.
+- `headquarters` stores one star system per HQ to SMW: the last wikilink in each `;`-separated segment ("place, …, system"). `areaserved` stores every place's own link target instead; fill it only when narrower than the whole UEE, since a bare `[[United Empire of Earth]]` carries no signal.
+- There is no manufacturer-code parameter: the code is looked up from `name` against the manufacturer registry and shown in a collapsed Metadata section.
+- `founded` accepts a bare year, displayed through `{{Start date and age}}` while SMW stores the plain year; any other value displays as-is and isn't stored.
+- `keypeople`, `fate`, `defunct`, `formerly`, `allies`, and `rivals` are display-only and never reach SMW.
+- A wikilinked `industry`/`products` item and its plain-text equivalent normalise to the same stored value, so they don't fork the property into near-duplicates.
+- A failed SMW write adds the page to `Category:Pages with structured data errors` instead of raising an error.
+- SMW writes and content categories are gated to the main namespace, so `/doc` and sandbox pages stay clean.
 
 ## See also
 
-- [[Module:Company]]
+- [Module:Company](https://starcitizen.tools/Module:Company), implementation.
+- [Module:Manufacturers](https://starcitizen.tools/Module:Manufacturers), the manufacturer code registry.

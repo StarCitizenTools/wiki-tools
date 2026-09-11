@@ -6,7 +6,7 @@ Renders the entity infobox and owns an item, commodity, mission, vehicle, or loc
 
 Use `{{Entity}}` at the top of an item, commodity, or mission page; `{{Vehicle}}` for a ship, ground vehicle, or gravlev; `{{Location}}` for a star system or jump point. All three render through this module and write the page's SMW data, `SHORTDESC`, and categories.
 
-Sibling templates read the same fetch; place them further down the page: [Template:Entity/Description](https://starcitizen.tools/Template:Entity/Description) (in-game description prose), [Template:Entity/Availability](https://starcitizen.tools/Template:Entity/Availability) (where to buy/rent/loot/craft it), [Template:Entity/Related](https://starcitizen.tools/Template:Entity/Related) (variants or cargo sizes), [Template:Entity/UsedBy](https://starcitizen.tools/Template:Entity/UsedBy) (vehicles that equip this item), [Template:Entity/Blueprints](https://starcitizen.tools/Template:Entity/Blueprints) (crafting recipes), and [Template:Entity/Ports](https://starcitizen.tools/Template:Entity/Ports) (its hardpoint/port tree). On a Mission page, `{{Entity/Orders}}` and `{{Entity/Rewards}}` also store their own orders/rewards SMW data.
+Sibling templates read the same fetch; place them further down the page: [Template:Entity/Description](https://starcitizen.tools/Template:Entity/Description) (in-game description prose), [Template:Entity/Availability](https://starcitizen.tools/Template:Entity/Availability) (where to buy/rent/loot/craft it), [Template:Entity/Related](https://starcitizen.tools/Template:Entity/Related) (variants or cargo sizes), [Template:Entity/UsedBy](https://starcitizen.tools/Template:Entity/UsedBy) (vehicles that equip this item), [Template:Entity/Blueprints](https://starcitizen.tools/Template:Entity/Blueprints) (crafting recipes), and [Template:Entity/Ports](https://starcitizen.tools/Template:Entity/Ports) (hardpoint/port tree). On a Mission page, `{{Entity/Orders}}` and `{{Entity/Rewards}}` also store their SMW data.
 
 ## Index
 
@@ -18,6 +18,7 @@ Sibling templates read the same fetch; place them further down the page: [Templa
 - [Template:Entity/Availability](https://starcitizen.tools/Template:Entity/Availability): acquisition summary + terminal prices
 - [Template:Entity/Blueprints](https://starcitizen.tools/Template:Entity/Blueprints): crafting blueprints and dismantle returns
 - [Template:Entity/Description](https://starcitizen.tools/Template:Entity/Description): in-game description prose
+- [Template:Entity/Ports](https://starcitizen.tools/Template:Entity/Ports): hardpoint/port tree
 - [Template:Entity/Related](https://starcitizen.tools/Template:Entity/Related): variants or cargo-box sizes
 - [Template:Entity/UsedBy](https://starcitizen.tools/Template:Entity/UsedBy): vehicles that equip this item
 

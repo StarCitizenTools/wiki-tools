@@ -27,14 +27,14 @@ When `{{Entity}}` has been invoked earlier on the page, the UUID can be omitted;
 
 ## Behaviour
 
-- Works identically for items and vehicles.
+- Renders for both items and vehicles, but not identically: vehicle port trees go through an extra narrowing pass that drops child ports whose type isn't on that category's allowlist (a turret's L-tree keeps its mounted gun but drops cockpit panels and displays). Item port trees skip that pass, so the same category can show more children on an item page than on the equivalent vehicle page.
 - Cards render one per category, sorted by an ordering defined in `categories.json` (Weapons before Turrets before Coolers, and so on); primary categories open by default. A category CIG adds before the list is synced still renders as its own card, rather than being dropped.
 - Sibling ports with an identical loadout collapse into one aggregated row with a count prefix (`04×`, `13×`); mixed loadouts naturally produce multiple rows. M4A-style attachment ports (BAR, MEC, POW, VEN) stay distinct because they accept different sub-types even though the slots look interchangeable.
 - Size pills show the equipped item's size when something's installed, falling back to the port's accepted range when empty (e.g. `S1–5` for a flex fuel mount).
 - Parent ports whose category opts into expansion render an indented tree of their children below the row: turrets expose their mounted gun, missile racks their missiles, quantum drives their jump drive.
-- Engine, cockpit, and animation hardpoints (Controllers, Crew Stations, Doors & Hatches, Thrusters, Fuel, and so on) collapse into a single closed-by-default "Other" card at the bottom, sub-grouped by their original category label so the reader can still tell what's where.
+- Engine, cockpit, and animation hardpoints (Controllers, Crew Stations, Doors & Hatches, Thrusters, Fuel, and so on) collapse into a single closed-by-default "Other" card at the bottom, sub-grouped by their original category label so the reader can still tell what's where. If every top-level port on the page lands in a collapsed category, only that "Other" card renders; there is no separate empty state, since it can still be expanded.
 - Hardware-locked ports show a diagonal stripe on their size pill.
-- On a carrier ship, a docking port shows the docked vehicle's own name and size rather than the docking-tube hardware occupying that port; the docked vehicle's own internal ports (fuel, relay, screen mounts) aren't shown, since that vehicle has its own page for its loadout.
+- On a carrier ship, a docking port shows the docked vehicle's own name and size rather than the docking-tube hardware occupying that port; the docked vehicle's own internal ports (fuel, relay, screen mounts) aren't shown, since that vehicle has its own page for its loadout. Docking ports are routed to the "Docked Vehicles" category, which sorts first, so they always appear at the top of the stack.
 - An upstream fetch failure shows the muted line "Port data unavailable."; an entity with no ports at all shows "No ports." instead.
 - There is nothing here for an editor to curate beyond `uuid`.
 

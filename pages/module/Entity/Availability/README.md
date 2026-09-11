@@ -8,14 +8,14 @@ Editors use this through `{{Entity/Availability}}`; see [Template:Entity/Availab
 
 ### Hook
 
-Draws `getAcquisition`, resolved leaf-first over the chain (see the Hooks table on [Module:Entity](https://starcitizen.tools/Module:Entity)). A page no kind matched renders nothing at all, not even an empty grid; the hook is never fabricated for an unclaimed page.
+Draws `getAcquisition`, resolved leaf-first over the chain (see the Hooks table on [Module:Entity](https://starcitizen.tools/Module:Entity)). Item, Vehicle, and Commodity each define `getAcquisition` on their kind link; Mission and Location define none.
 
 Payload: `{ summary, cards }`.
 
 - `summary`: array of `{ label, icon, value }`; `value` (`true`/`false`/`nil`) drives the Yes/No/Unknown icon, the `data-state` attribute, and the BEM state modifier.
 - `cards`: array dispatched by `card.type`: `terminals` (a [Module:CollapsibleCard](https://starcitizen.tools/Module:CollapsibleCard) wrapping a UEX price table + attribution footer, via `renderTerminalTable`), `links` (a [Module:CardLua](https://starcitizen.tools/Module:CardLua) link-out), or `html` (passed through verbatim, e.g. Commodity's pre-rendered Mining card).
 
-Item, Vehicle, and Commodity each define `getAcquisition` on their kind link; Base and Mission define none, so an unmatched page or a Mission page renders nothing.
+A page no kind matched still builds its chain from the Item fallback leaf, which does define `getAcquisition`; but `acquisitionFor`'s `result.matchedKind == nil` guard returns nil before the chain is ever consulted, so an unmatched page renders nothing rather than an all-"No" block built from Item's own logic.
 
 ### Extending
 
@@ -26,3 +26,4 @@ Change what a kind's acquisition block shows by editing that kind's own `getAcqu
 - A `terminals` card with no `prices` still renders: only its `description` (the "No … data in UEX" fallback) shows; the card is never dropped.
 - UEX stores `0`, not null, for "not sold here"; `priceRange`/`inferCanAcquire` treat zero as absent, and `formatPrice` prints it as `-`.
 - `p._internal.renderCard`/`acquisitionFor` are exported only for the ScribuntoUnit suite; they are not part of the module's real API.
+- The UEX attribution footer's logo link carries `class=metadata`, which keeps PageImages from picking that logo as the page's own page image.

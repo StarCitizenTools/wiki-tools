@@ -12,7 +12,7 @@ Required by [Module:Entity/Location/StarSystem](https://starcitizen.tools/Module
 
 | Field | Type | Description |
 |---|---|---|
-| `items` | `StatTilesItem[]` | `{ value, label, title? }`. An item without a `value` or a `label` is dropped. |
+| `items` | `StatTilesItem[]` | `{ value, label, title? }`. An item without a `value` or a `label` is dropped. `title` is a hover tooltip, for when `label` is abbreviated. |
 
 ```lua
 local statTiles = require( 'Module:StatTiles' )
@@ -27,4 +27,4 @@ statTiles.render( {
 
 ### Styles
 
-[Module:StatTiles/styles.css](https://starcitizen.tools/Module:StatTiles/styles.css) binds Citizen design tokens only (`--color-surface-0`, `--border-subtle`, `--font-size-x-small` + `--line-height-x-small`, spacing scale), theme-aware for free. Value and label deliberately use a fixed `1.25` line-height rather than a paired token: labels come from a fixed catalog and never wrap, so the token line-heights (sized for running text) would leave the tile visibly slack.
+[Module:StatTiles/styles.css](https://starcitizen.tools/Module:StatTiles/styles.css) binds Citizen design tokens (`--color-surface-0`, `--border-subtle`, `--font-size-x-small`, spacing scale), theme-aware for free. Value and label deliberately use a fixed `1.25` line-height rather than a paired token: labels come from a fixed catalog and never wrap, so the token line-heights (sized for running text) would leave the tile visibly slack.

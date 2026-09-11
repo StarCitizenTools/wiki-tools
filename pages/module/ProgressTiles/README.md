@@ -15,9 +15,9 @@ Required by [Module:Entity/Facet/Armor](https://starcitizen.tools/Module:Entity/
 | `tiles` | `ProgressTile[]` | Yes | | The tiles to render, left to right. |
 | `max` | `number` | No | `100` | Fill denominator shared by every tile. |
 
-**ProgressTile**: `value` (required, drives the arc and, by default, the displayed text), `label?` (below the tile), `title?` (hover tooltip), `color?` (default `--color-progressive`; the value text stays `--color-base` regardless), `text?` (overrides the displayed text), `tooltip?` (rich HTML content; wraps the gauge with [Module:FloatingUI](https://starcitizen.tools/Module:FloatingUI) when set).
+**ProgressTile**: `value` (required, drives the arc and, by default, the displayed text), `label?` (below the tile), `title?` (hover tooltip), `color?` (default `--color-progressive`; the value text stays `--color-base` regardless), `text?` (overrides the displayed text), `tooltip?` (rich HTML content; wraps the gauge with [Module:FloatingUI](https://starcitizen.tools/Module:FloatingUI) when non-empty).
 
-`p.heatmap(value, max, thresholds?)`: maps a value to a Citizen status colour token, weak `--color-error` / mid `--color-warning` / strong `--color-success`, banded by fraction of `max` (default thirds; `thresholds = { weakMax, midMax }` as fractions retunes it).
+`p.heatmap(value, max, thresholds?)`: maps a value to a Citizen status colour token, weak `--color-error` / mid `--color-warning` / strong `--color-success`, banded by fraction of `max` (default thirds; `thresholds = { weakMax, midMax }` as fractions retunes it). `max` here is its own parameter, defaulting to `100` independently of any `render` call's `data.max`.
 
 ### Gotchas
 

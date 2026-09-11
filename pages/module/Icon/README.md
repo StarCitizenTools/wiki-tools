@@ -21,11 +21,13 @@ Required by [Module:BadgeLua](https://starcitizen.tools/Module:BadgeLua), [Modul
 
 `p.src(icon)` resolves an icon file name to its plain (entity-decoded) URL, for a caller that paints its own mask client-side, e.g. an AG Grid badge cell whose `iconSrc` is read into a CSS custom property by JavaScript rather than an HTML style attribute.
 
-`p.main(frame)` is the `#invoke` entry point: reads named arguments (and positional `1` as `icon`), emits [Module:Icon/styles.css](https://starcitizen.tools/Module:Icon/styles.css), and forwards to `render`. `mask` accepts any [Module:Yesno](https://starcitizen.tools/Module:Yesno) truthy value.
+`p.main(frame)` is the `#invoke` entry point: reads named arguments (and positional `1` as `icon`; `title` also accepts `iconTitle`), emits [Module:Icon/styles.css](https://starcitizen.tools/Module:Icon/styles.css), and forwards to `render`. `mask` accepts any [Module:Yesno](https://starcitizen.tools/Module:Yesno) truthy value.
 
 ### Gotchas
 
-A CORS-clean media host is required for mask mode: the SVG is fetched as a CSS `mask-image`. The `nowiki` `filepath` parser function HTML-entity-encodes `:` as `&#58;`; a browser decodes that inside an HTML `style` attribute (the server-rendered mask) but not when a script assigns it to a CSS custom property, which is why `p.src` decodes it back to plain text for client-side callers.
+- Mask mode's `mask-image` fetch is constrained by the wiki's enforced CSP `default-src`, not by CORS: the file URL must resolve to a host that policy allows, regardless of cross-origin headers.
+- The `nowiki` `filepath` parser function HTML-entity-encodes `:` as `&#58;`; a browser decodes that inside an HTML `style` attribute (the server-rendered mask) but not when a script assigns it to a CSS custom property, which is why `p.src` decodes it back to plain text for client-side callers.
+- Thumbnail mode always prepends `class=metadata` to the `[[File:...]]` markup, ahead of `t-icon`.
 
 ### Styles
 

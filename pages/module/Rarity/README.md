@@ -2,7 +2,7 @@
 
 Renders an item rarity tier (Common, Uncommon, Rare, Epic, or Legendary) as a coloured [Module:BadgeLua](https://starcitizen.tools/Module:BadgeLua) badge. The lookup is case-insensitive and trims whitespace; an empty or unknown rarity produces nothing (`nil` from `badge`, an empty string from `main`), so callers can pass the raw API value without guarding it.
 
-Editors use this through `{{Rarity}}` (`{{#invoke:Rarity|main}}`, not mirrored in this repository). Also required directly by [Module:Entity/Infobox](https://starcitizen.tools/Module:Entity/Infobox).
+Editors use this through [Template:Rarity](https://starcitizen.tools/Template:Rarity) (`{{#invoke:Rarity|main}}`; the template has no mirror under `pages/template/` in this repository). Also required directly by [Module:Entity/Infobox](https://starcitizen.tools/Module:Entity/Infobox).
 
 ## For module editors
 

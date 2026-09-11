@@ -16,7 +16,7 @@ Required by [Module:Entity/Facet/Environment](https://starcitizen.tools/Module:E
 | `value` | `number` | Drives the fill and, by default, the displayed text. |
 | `max` | `number` | Fill denominator. Defaults to `100`. |
 | `text` | `string` | Header value text, top-right (e.g. `52,800 REM`). Defaults to the value. |
-| `color` | `string` | CSS colour for the fill (a token string). Defaults to `--color-progressive`. |
+| `color` | `string` | A complete CSS colour value, injected raw into the fill's custom property (e.g. `'var(--color-progressive)'` or a hex string, not a bare token name). Defaults to `'var(--color-progressive)'`. |
 | `title` | `string` | Hover tooltip on the bar. Optional. |
 
 ### Gotchas

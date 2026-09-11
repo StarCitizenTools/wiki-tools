@@ -1,6 +1,6 @@
 # Module:Tiles
 
-A generic image-led grid renderer. Each tile is an image with optional primary/secondary labels overlaid at the bottom, and the whole tile is clickable via a fakelink (a transparent absolutely-positioned `[[Page|Text]]` wikilink; MediaWiki's sanitizer strips raw `<a>` tags, so anchors only exist when the parser generates them from wikitext). Pure rendering: callers pass fully resolved rows, so lookup concerns (SMW resolution, API fetching) stay in the caller.
+A generic image-led grid renderer: each tile is an image with optional primary/secondary labels overlaid at the bottom, and the whole tile is clickable via a fakelink (a transparent absolutely-positioned `[[Page|Text]]` wikilink; MediaWiki's sanitizer strips raw `<a>` tags, so anchors only exist when the parser generates them from wikitext). Pure rendering: callers pass fully resolved rows, so lookup concerns (SMW resolution, API fetching) stay in the caller.
 
 Required by [Module:Entity/Related](https://starcitizen.tools/Module:Entity/Related) and [Module:Entity/UsedBy](https://starcitizen.tools/Module:Entity/UsedBy); not invoked from templates.
 

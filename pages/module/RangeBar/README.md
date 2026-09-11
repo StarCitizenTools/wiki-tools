@@ -12,10 +12,10 @@ Required by [Module:Entity/Facet/Environment](https://starcitizen.tools/Module:E
 
 | Field | Type | Description |
 |---|---|---|
-| `label` / `value` | `string` | Header label (top-left) / value (top-right). Header omitted when both are empty. |
+| `label` / `value` | `string` | Header label (top-left) / value (top-right). Must be a string; a non-string is silently dropped, not stringified. Header omitted when both are empty. |
 | `min`, `max` | `number` | Active band bounds, domain units. Required; swapped if `min > max`. |
 | `domain` | `{ min, max }` | The fixed axis extent. Required. |
-| `stops` | `{ {at, color}, … }` | Gradient colour stops (hex), ascending by `at`. At least two. Required. |
+| `stops` | `{ {at, color}, … }` | Gradient colour stops, ascending by `at`. At least two. Required. Each `color` must be a 6-digit `#rrggbb` hex string; anything else throws a Lua error the moment two stops need interpolating. |
 | `tick` | `number` | Reference value drawn as a bare vertical line (no label). Optional. |
 | `tickColor` | `string` | Tick line colour. Defaults to a dark translucent line. |
 | `gap` | `number` | Gap (% of bar width) separating the band from the dim flanks. Defaults to `1.2`. |

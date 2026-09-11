@@ -13,8 +13,8 @@ Required by [Module:Entity/Commodity/Mining](https://starcitizen.tools/Module:En
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `caption` | `string` | Yes | | Accessible caption. |
-| `hideCaption` | `boolean` | No | `false` | Suppress the visible `<caption>`; still set for screen readers. |
-| `columns` | `TableColumn[]` | No | `{}` | `{ id, label?, textAlign? ('start'\|'center'\|'end'\|'number'), width?, minWidth?, allowSort? }`, in display order. |
+| `hideCaption` | `boolean` | No | `false` | Suppress the `<caption>` entirely; nothing is exposed to assistive tech in its place. |
+| `columns` | `TableColumn[]` | No | `{}` | `{ id, label?, textAlign? ('start'\|'center'\|'end'\|'number'), width?, minWidth?, allowSort? }`, in display order. `allowSort` only has an effect when explicitly `false` (marks the column `unsortable`); any other value is a no-op. |
 | `data` | `TableRow[]` | No | `{}` | Rows: each an array of cell values, indices aligned 1:1 with `columns`. |
 | `sort` | `table<column.id, 'asc'\|'desc'\|'none'>` | No | `{}` | Any entry adds the `sortable` class and triggers an in-Lua sort before render. |
 | `class` | `string` | No | | Extra class on the root `<table>`. |
@@ -34,6 +34,6 @@ TableLua.render( {
 
 MediaWiki's `sortable` class only sorts on user click; modules render once on the server, so a `sort` entry triggers a manual `table.sort` for readers who don't run JavaScript (mobile, exports, search):
 
-- A column's `textAlign = 'number'` only styles alignment; it plays no part in sorting. The comparator decides per cell: two Lua numbers compare numerically; two strings first try to extract a number from each (after stripping HTML tags, so `[[link]]` text is unaffected) and compare numerically if both extract, else fall back to alphanumeric order on the stripped text.
-- `nil` cells sort first.
+- A column's `textAlign = 'number'` only styles alignment; it plays no part in sorting. The comparator decides per cell: two Lua numbers compare numerically; two strings first strip HTML tags (`<...>`, not `[[...]]` wiki-link brackets) and extract the *first* number pattern each contains, comparing numerically when both extract to different values, else falling back to alphanumeric order on the stripped text. A page name with an embedded digit sorts on that digit: `'[[Behring P4-AR]]'` extracts `4`, not any numeric column value in the same row.
+- `nil` cells sort first ascending, last descending.
 - Multiple `sort` keys are honored in alphabetical order of column id, not insertion order.

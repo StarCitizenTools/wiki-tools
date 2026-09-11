@@ -26,4 +26,4 @@ Required by [Module:Mainpage/Event/Event](https://starcitizen.tools/Module:Mainp
 
 ### Styles
 
-`class = 't-countdown--flat'` is the module's own modifier for lying the clock down into a horizontal strip regardless of viewport (it also does this automatically below 639px). The gadget replaces the fallback with a live digit stack, adding `t-countdown--live` and one of three tense classes (`--upcoming`, `--running`, `--ended`) that the colour keys off.
+`class = 't-countdown--flat'` is the module's own modifier for lying the clock down into a horizontal strip regardless of viewport (it also does this automatically below 639px). The gadget replaces the fallback with a live digit stack, adding `t-countdown--live` and, for colour, one of `--upcoming` or `--running`; `--ended` carries no colour rule at all, deliberately falling back to the root's `--color-subtle`.

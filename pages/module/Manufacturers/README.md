@@ -1,6 +1,6 @@
 # Module:Manufacturers
 
-Registry of Star Citizen manufacturers: looks up a manufacturer by code (e.g. `AEGS`) or full name (e.g. `Aegis Dynamics`) and returns a canonical record, so downstream code relies on one form regardless of what an editor typed.
+Registry of Star Citizen manufacturers: looks up a manufacturer by exact code (e.g. `AEGS`) or exact full name (e.g. `Aegis Dynamics`) and returns a canonical record, so downstream code relies on one form for a value that could arrive as either.
 
 Required by [Module:Entity/Base](https://starcitizen.tools/Module:Entity/Base) and [Module:Company](https://starcitizen.tools/Module:Company); not invoked from templates.
 
@@ -8,7 +8,7 @@ Required by [Module:Entity/Base](https://starcitizen.tools/Module:Entity/Base) a
 
 ### API
 
-`p.resolve(codeOrName)` returns `{ code, name, short, page }`, or `nil` when nothing matches. `short` falls back to `name` when no short form is defined; `page` falls back to `name` when the page title matches. Lookup by code is an O(1) hash access; lookup by name is an O(n) scan of the data.
+`p.resolve(codeOrName)` returns `{ code, name, short, page }`, or `nil` when nothing matches. Link via `page`, display via `name` or `short`, store `code`: `page` is not always `name` (ArcCorp's `name` is `'ArcCorp'`, its `page` is `'ArcCorp (company)'`), so a caller that links `[[<record.name>]]` instead of `[[<record.page>|<record.name>]]` can build a red link to the wrong title. `short` falls back to `name` when no short form is defined; `page` falls back to `name` when no override is defined. Lookup by code is an O(1) hash access; lookup by name is an O(n) scan of the data. Both are exact-match, case-sensitive comparisons; there is no trimming or normalisation.
 
 ```lua
 local manufacturers = require( 'Module:Manufacturers' )

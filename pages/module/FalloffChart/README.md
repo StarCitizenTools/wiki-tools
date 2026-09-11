@@ -18,7 +18,7 @@ Required by [Module:Entity/Facet/DamageFalloff](https://starcitizen.tools/Module
 | `label` / `value` | `string` | Header label (top-left) / value (top-right). Optional. |
 | `markers` | `{ {at, label}, … }` | Vertical tick lines at `x = at`; `label` (optional) shown in the x-axis row. |
 | `floor` | `number` | Horizontal reference line at this y value. Optional. |
-| `yTicks` | `{ {at, label}, … }` | y-axis labels (left gutter) + gridlines for interior ticks. Optional. |
+| `yTicks` | `{ {at, label}, … }` | y-axis labels (left gutter) + gridlines for interior ticks. Gutter width tracks the longest label, shifting the x-axis row's left margin to match. Optional. |
 | `reach` | `{ at, label }` | Dashed reach marker: where the projectile dies before the scale ends. Optional. |
 | `scaleMax` | `string` | Scale-max label at the right end of the x-axis row; dropped when a label already sits in the end-zone beside it. Optional. |
 | `caption` | `string` | Sub-caption line below the chart. Optional. |

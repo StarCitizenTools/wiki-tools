@@ -14,10 +14,10 @@ Required by [Module:SystemMap](https://starcitizen.tools/Module:SystemMap), [Mod
 |---|---|---|---|---|
 | `title` | `string` | Yes | | Header title. Wikitext allowed. |
 | `description` | `string` | No | | Secondary line under the title. |
-| `content` | `string` | No | | Body shown when expanded. Nil/empty forces the static variant regardless of `collapsible`. |
+| `content` | `string` | No | | Body content. Nil/empty forces the static variant regardless of `collapsible`. |
 | `footer` | `string` | No | | Attribution/metadata line, always visible, outside the `<details>` body. |
 | `open` | `boolean` | No | `false` | Starts expanded. |
-| `collapsible` | `boolean` | No | `true` | `false` forces the static variant even with `content`. |
+| `collapsible` | `boolean` | No | `true` | `false` forces the static variant even with `content`: the body still renders, always visible, just without a collapse toggle; it is not dropped. |
 | `class` | `string` | No | | Extra class appended to the card root. |
 
 ### Gotchas

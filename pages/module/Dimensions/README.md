@@ -1,6 +1,6 @@
 # Module:Dimensions
 
-Renders an isometric CSS-3D diagram of an object's bounding box at honest scale: measurement lines with end ticks on each axis, an optional reference cuboid on the same ground plane, and a footer bar of caller-supplied metrics plus the reference legend. Hovering the diagram (pointer devices only) rotates it to a top-down plan view; the rotation is disabled under reduced-motion preferences.
+Renders an isometric CSS-3D diagram of an object's bounding box at honest scale: measurement lines with end ticks on each axis, an optional reference cuboid on the same ground plane, and a footer bar of caller-supplied metrics plus the reference legend. Hovering the diagram (pointer devices only) rotates it to a top-down plan view; the rotation animation is disabled under reduced-motion preferences (the rotation itself still happens, instantly, rather than being suppressed).
 
 Required by [Module:Entity/Vehicle/Dimensions](https://starcitizen.tools/Module:Entity/Vehicle/Dimensions) and [Module:Entity/Facet/Dimensions](https://starcitizen.tools/Module:Entity/Facet/Dimensions), both thin adapters; [Module:Dimensions/presets](https://starcitizen.tools/Module:Dimensions/presets) supplies reusable reference objects. Not invoked from templates.
 
@@ -14,7 +14,7 @@ Required by [Module:Entity/Vehicle/Dimensions](https://starcitizen.tools/Module:
 |---|---|---|---|
 | `length`, `width`, `height` | number (m) | Yes | Must be > 0. |
 | `lengthAlt`, `widthAlt`, `heightAlt` | number (m) | No | Shown as a subtle parenthetical; dropped when equal to the primary value. |
-| `reference` | table | No | A resolved reference cuboid: `{ length, width, height, label, color?, colorLight?, colorDark? }` (metres; colour trio falls back to the CSS default). Not a type key; the caller resolves it. |
+| `reference` | table | No | A resolved reference cuboid: `{ length, width, height, label, color?, colorLight?, colorDark? }` (metres; colour trio falls back to the CSS default). Not a type key; the caller resolves it. Silently dropped (no reference renders) unless `length`/`width`/`height` are all positive numbers. |
 | `metrics` | `{ label, value }[]` | No | Ordered footer rows, e.g. mass; `value` is a pre-formatted display string. |
 
 `p.main(frame)` is the `#invoke` entry point (reads [Module:Arguments](https://starcitizen.tools/Module:Arguments)), but renders a bare box: `reference` and `metrics` are Lua-only table arguments with no wikitext form.

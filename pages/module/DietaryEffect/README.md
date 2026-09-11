@@ -9,7 +9,7 @@ Required by [Module:Entity/Facet/Consumable](https://starcitizen.tools/Module:En
 ### API
 
 - `p.classify(name) → { polarity, page, label }|nil`: `polarity` is `'positive'`, `'negative'`, or `'neutral'`; `page` is the wiki page to link (`nil` for `None`); `label` is the canonical display spelling. `nil` when the value is unrecognised.
-- `p.renderBadge(name)`: one badge string for an effect value. Known effects link their canonical page (`None` is plain text); an unrecognised effect renders as a neutral badge linking to its own name.
+- `p.renderBadge(name)`: one badge string for an effect value. Known effects link their canonical page; `None` renders as an unlinked badge (no `page` to link to), not plain text. An unrecognised effect renders as a neutral badge linking to its own name; a redlink is the normal signal to create the page.
 - `p.renderBadges(effects)`: a wrapping row (`<div class="t-dietary-effects">`) of one badge per effect, or `nil` when the list is empty.
 - `p.gridClassify(name) → { text, variant?, icon?, href? }`: the same polarity/page/label choices as `renderBadge`, shaped for [Module:AGGridColumns](https://starcitizen.tools/Module:AGGridColumns)' `badgeList` kind (`icon` a file name, `href` a page title, both resolved by the kind itself).
 

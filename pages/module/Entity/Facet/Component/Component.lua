@@ -14,9 +14,6 @@ local Util = require('Module:Entity/Facet/Util')
 
 local p = {}
 
--- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
-p.contextHooks = true
-
 -- Damage types shown in the resistance row, in a stable order. Components are
 -- usually 1.0 (no resistance) for distortion / biochemical / stun, so the row
 -- only lists the types that actually resist.

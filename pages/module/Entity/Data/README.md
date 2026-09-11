@@ -60,6 +60,10 @@ Primary entry point for sibling renderers. Takes the `args` table returned by `p
                                    --   the module (not just its name) read this; `kind` is the string form.
     family            = string|nil, -- the leaf module's declared `family` (e.g. a Vehicle family);
                                    --   nil when the leaf declares none.
+    ctx               = table,     -- EntityHookContext: the same { apiData, args, resolved, typeInfo,
+                                   --   prefix, kind, family } table every chain/facet hook is called
+                                   --   with (Module:Entity/Assembly.callHook); sibling renderers pass
+                                   --   this straight through to resolveMostSpecific / collect.
 }
 ```
 
@@ -81,13 +85,13 @@ Primary entry point for sibling renderers. Takes the `args` table returned by `p
 
 4. **`fetchChainExtras`** iterates every module in the chain and collects `getApiConfigs()` endpoints that were *not* already fetched during probing. Calls `api.fetchAllApis` for those configs and merges the results into `apiData`.
 
-5. **`enrich`**: runs every chain link's `enrich(apiData, args)` root to leaf, each receiving the previous link's result (`enrichChain`). A leaf attaches the secondary record only it renders: the StarSystem leaf fetches the starmap star-system record by `|starmapname=`, the location record's name, `|name=`, or the page title, in that order; the JumpPoint leaf fetches the celestial object by `|starmapcode=`. The same hooks run on the editorial fork (see below), where `apiData` starts empty and `args` is the only input.
+5. **`enrich`**: runs every chain link's `enrich(ctx)` root to leaf, each receiving the previous link's result (`enrichChain`). A leaf attaches the secondary record only it renders: the StarSystem leaf fetches the starmap star-system record by `|starmapname=`, the location record's name, `|name=`, or the page title, in that order; the JumpPoint leaf fetches the celestial object by `|starmapcode=`. The same hooks run on the editorial fork (see below), where `ctx.apiData` starts empty and `ctx.args` is the only input.
 
-6. **`typeInfo` / `displayType` resolution** tries `leaf.getTypeInfo(apiData, args)` first. If that returns a result, `displayType` is set to `typeInfo.name`. If `getTypeInfo` is absent or returns `nil`, falls back to [Module:Entity/TypeResolver](https://starcitizen.tools/Module:Entity/TypeResolver)`.resolve(args.type or apiData.type, apiData.classification)`.
+6. **`typeInfo` / `displayType` resolution** tries `leaf.getTypeInfo(ctx)` first. If that returns a result, `displayType` is set to `typeInfo.name`. If `getTypeInfo` is absent or returns `nil`, falls back to [Module:Entity/TypeResolver](https://starcitizen.tools/Module:Entity/TypeResolver)`.resolve(args.type or apiData.type, apiData.classification)`.
 
 7. **editorial `resolve`**: if any chain link exposes `getEditorialManifest()`, the fragments are merged root to leaf (`Assembly.mergeEditorialManifests`, leaf keys win) and run through [Module:Entity/Editorial](https://starcitizen.tools/Module:Entity/Editorial): `editorial.resolve(apiData, args, manifest)` merges API and `args` values into `resolved`, `editorial.toStructuredData(resolved, manifest)` projects them to SMW key/value pairs (`editorialData`), and `editorial.hasManualApiData(resolved)` flags whether an editor overrode an API-overlap field (`hasManualApiData`). A chain with no link defining a manifest leaves all three at their empty defaults (`{}`, `{}`, `false`).
 
-8. **`getCategories` collect**: every chain link's `getCategories(apiData, args, resolved)` is collected root to leaf (`Assembly.collect`) and merged into `typeInfo.categories` (copying `typeInfo` first, since a `typeResolver` result may be frozen). The `resolved` argument lets a link derive categories from editorial data; a leaf reads its own `family` token directly rather than receiving it as a parameter.
+8. **`getCategories` collect**: every chain link's `getCategories(ctx)` is collected root to leaf (`Assembly.collect`) and merged into `typeInfo.categories` (copying `typeInfo` first, since a `typeResolver` result may be frozen). `ctx.resolved` lets a link derive categories from editorial data; a leaf reads its own `family` token directly rather than through `ctx`.
 
 9. **`detectFacets`** iterates `registry.facets` in registration order and appends every facet whose `facet.matches(apiData)` returns `true`. All matches are collected (no short-circuit); facets are additive. This runs last, as `p.get` builds its return table.
 

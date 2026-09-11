@@ -13,9 +13,6 @@ local p = {}
 --- @type string
 p.parent = 'Entity/Item'
 
--- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
-p.contextHooks = true
-
 --- @type table<string, { name: string, category: string }>
 local subTypeInfo = {
 	Flair_Wall_Picture = { name = 'Wall flair', category = 'Wall flair' },

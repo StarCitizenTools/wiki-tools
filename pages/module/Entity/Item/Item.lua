@@ -19,9 +19,6 @@ p.name = 'Item'
 --- @type string
 p.parent = 'Entity/Base'
 
--- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
-p.contextHooks = true
-
 --- Maps API type strings to item subtype module paths. Lives in Item
 --- (not in Data.lua) because subtype dispatch is an item-internal
 --- concern — Data.lua only needs to know "ask the kind to resolve its

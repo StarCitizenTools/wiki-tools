@@ -14,9 +14,6 @@ local Util = require('Module:Entity/Facet/Util')
 
 local p = {}
 
--- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
-p.contextHooks = true
-
 --- Coerces a modifier value to a number, tolerating the API's occasional
 --- string-with-percent form ("-80%" instead of -80). Returns nil for input that
 --- isn't numeric even after stripping a trailing percent sign.

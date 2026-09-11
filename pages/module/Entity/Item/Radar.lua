@@ -15,9 +15,6 @@ local p = {}
 --- @type string
 p.parent = 'Entity/Item'
 
--- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
-p.contextHooks = true
-
 --- Formats a 0..1 sensitivity coefficient as a percentage (0.9 -> "90%").
 ---
 --- @param value number|nil

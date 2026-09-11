@@ -71,9 +71,6 @@ end
 --- |family= on record-less pages; the kind's default leaf.
 p.family = 'starsystem'
 
--- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
-p.contextHooks = true
-
 --- @param ctx EntityHookContext
 --- @return table apiData
 function p.enrich(ctx)

@@ -15,9 +15,6 @@ local p = {}
 --- @type string
 p.parent = 'Entity/Item'
 
--- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
-p.contextHooks = true
-
 --- Quantum speed as a display string. Prefers the API's preformatted value
 --- (e.g. "231 Mm/s"); falls back to converting the raw m/s drive speed to Mm/s,
 --- the unit the game and community use.

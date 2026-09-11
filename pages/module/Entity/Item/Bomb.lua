@@ -17,9 +17,6 @@ local p = {}
 --- @type string
 p.parent = 'Entity/Item'
 
--- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
-p.contextHooks = true
-
 --- Rounds a numeric damage value to a whole number (the API reports fractional
 --- totals like 568296.99). Returns nil for non-numeric input.
 ---

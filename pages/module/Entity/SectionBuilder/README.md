@@ -7,7 +7,7 @@ Using it, a `getSections` collapses to:
 ```lua
 local sectionBuilder = require('Module:Entity/SectionBuilder')
 
-function p.getSections(apiData, args)
+function p.getSections(ctx)
     local items = {}
     sectionBuilder.push(items, 'Health', durability.health and format.formatNum(durability.health))
     sectionBuilder.push(items, 'Resistance', formatResistance(durability.resistance))
@@ -20,7 +20,7 @@ end
 ## Role in the pipeline
 
 ```
-type module / facet getSections(apiData, args, resolved)
+type module / facet getSections(ctx)
   ├─ push / pushNonNil  → accumulate { label, content } item rows
   ├─ section(cfg)       → wrap rows into one section, or nil if empty
   └─ build(...)         → collect the non-nil sections into the return list
@@ -130,11 +130,10 @@ A section uses one payload, not a mix:
 local format = require('Module:Entity/Format')
 local sectionBuilder = require('Module:Entity/SectionBuilder')
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return EntitySectionEntry[]
-function p.getSections(apiData, args)
-    local cooler = apiData.cooler or {}
+function p.getSections(ctx)
+    local cooler = ctx.apiData.cooler or {}
 
     local items = {}
     -- formatNum returns nil for nil but a (possibly '') string for a present

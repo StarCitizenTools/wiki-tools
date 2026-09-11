@@ -21,9 +21,6 @@ local p = {}
 --- @type string
 p.parent = 'Entity/Item'
 
--- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
-p.contextHooks = true
-
 --- Resolves the owning vehicle name(s) for a module. Prefers the API
 --- `vehicles` relation (the Item endpoint includes it) — each entry's `name`
 --- is the real wiki vehicle title, and a module shared across variants lists

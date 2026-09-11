@@ -14,9 +14,6 @@ local statFormat = require('Module:Entity/StatFormat')
 
 local p = {}
 
--- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
-p.contextHooks = true
-
 -- Damage types in display order. `impact` is a flat multiplier; the others are
 -- {multiplier, threshold} objects, but `damage_resistance_map` flattens them all
 -- to a bare damage-taken multiplier, which is what we read.

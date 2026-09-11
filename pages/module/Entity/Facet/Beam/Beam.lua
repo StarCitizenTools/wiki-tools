@@ -23,9 +23,6 @@ local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
 
--- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
-p.contextHooks = true
-
 --- Resolves the heavy-lift mode force + its display label. Vehicle beams only:
 --- towing beams carry a `towing` object, tractor beams a `cargo_mode_override`.
 --- Returns nil force for FPS beams (type WeaponPersonal), whose cargo_mode_override

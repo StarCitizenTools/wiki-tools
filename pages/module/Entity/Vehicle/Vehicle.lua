@@ -65,9 +65,6 @@ p.editorialMode = true
 --- @type string
 p.parent = 'Entity/Base'
 
--- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
-p.contextHooks = true
-
 --- The vehicles endpoint includes uex_prices and msrp by default, so
 --- no `include` param is required for Availability to render.
 ---

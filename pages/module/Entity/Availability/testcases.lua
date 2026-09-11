@@ -42,8 +42,8 @@ end
 
 function suite:testAcquisitionForKindHook()
 	local kind = {
-		getAcquisition = function(apiData, args)
-			return { summary = { args.tag }, cards = {} }
+		getAcquisition = function(ctx)
+			return { summary = { ctx.args.tag }, cards = {} }
 		end,
 	}
 	local a = Availability._internal.acquisitionFor(stubResult({ {}, kind }, kind, { tag = 'kind' }))

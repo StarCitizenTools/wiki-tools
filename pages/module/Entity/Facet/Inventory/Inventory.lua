@@ -11,9 +11,6 @@ local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
 
--- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
-p.contextHooks = true
-
 --- The storage capacity in microSCU. The API exposes both `scu` (SCU as a
 --- fraction) and `scu_converted` (the precision-preserving µSCU integer the
 --- display uses, e.g. 10500 for a 0.0105 SCU torso); read the latter. Returns nil

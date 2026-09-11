@@ -15,9 +15,6 @@ local p = {}
 --- @type string
 p.parent = 'Entity/Item'
 
--- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
-p.contextHooks = true
-
 -- Damage types shown in the absorption / resistance rows, in a stable order.
 local DAMAGE_ORDER = { 'physical', 'energy', 'thermal', 'distortion', 'biochemical', 'stun' }
 local DAMAGE_LABEL = {

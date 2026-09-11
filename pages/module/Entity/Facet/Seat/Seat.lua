@@ -15,9 +15,6 @@ local Boolean = require('Module:Boolean')
 
 local p = {}
 
--- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
-p.contextHooks = true
-
 --- Data-driven match: presence of the `seat` block.
 ---
 --- @param apiData table|nil

@@ -101,46 +101,13 @@ function p.buildChain(leafModule)
 	return reversed
 end
 
---- Positional argument lists of the hooks a link not yet declaring
---- `contextHooks` receives. Transitional: deleted once every link is migrated.
-local LEGACY_ARGS = {
-	enrich = { 'apiData', 'args' },
-	getTypeInfo = { 'apiData', 'args' },
-	getSections = { 'apiData', 'args', 'resolved' },
-	getStructuredData = { 'apiData', 'args', 'resolved' },
-	getShortDescription = { 'apiData', 'args', 'typeInfo', 'prefix', 'resolved' },
-	getShortDescriptionPrefix = { 'apiData', 'args' },
-	getExternalSiteItems = { 'apiData', 'args' },
-	getFooterButtons = { 'apiData', 'args' },
-	getMetadataItems = { 'apiData', 'args' },
-	getSubtitle = { 'apiData', 'args' },
-	getHeaderBadge = { 'apiData', 'args', 'resolved' },
-	getCategories = { 'apiData', 'args', 'resolved' },
-	getAcquisition = { 'apiData', 'args' },
-	getRelated = { 'apiData', 'args' },
-	getBlueprints = { 'apiData', 'args' },
-	getPorts = { 'apiData', 'args' },
-}
-
---- Calls `mod[hookName]` with the hook context. The caller checks that the
---- hook exists (a defined hook returning nil is a real answer for
---- resolveMostSpecific).
+--- Caller must check the hook exists first — a defined hook returning nil is a real answer for resolveMostSpecific.
 --- @param mod table A chain link or facet
 --- @param hookName string
 --- @param ctx EntityHookContext
 --- @return any
 function p.callHook(mod, hookName, ctx)
-	local hook = mod[hookName]
-	if mod.contextHooks then
-		return hook(ctx)
-	end
-	local names = LEGACY_ARGS[hookName]
-	assert(names, 'callHook: no LEGACY_ARGS entry for ' .. hookName)
-	local argv = {}
-	for i, name in ipairs(names) do
-		argv[i] = ctx[name]
-	end
-	return hook(unpack(argv, 1, #names))
+	return mod[hookName](ctx)
 end
 
 --- Walks `chain` leaf-first (chain[#chain]..chain[1]); returns the first link's

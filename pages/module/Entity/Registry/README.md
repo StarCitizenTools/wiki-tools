@@ -55,7 +55,7 @@ Facets are **additive**: after the primary kind is resolved, every facet whose `
 
 Registration order matters: when two facets emit sections under *different* keys, their order in `p.facets` is the order their sections appear in the merged infobox. A facet that injects into an *existing* key (e.g. DamageFalloff appending a chart item into the `personal_weapon` key) renders at the key owner's position, not its own.
 
-A facet must implement `matches(apiData)` (required) and `getSections(apiData, args)` (required), and optionally `getStructuredData`, `getShortDescriptionPrefix`. See [Module:Entity/Contract](https://starcitizen.tools/Module:Entity/Contract).
+A facet must implement `matches(apiData)` (required) and `getSections(ctx)` (required), and optionally `getStructuredData`, `getShortDescriptionPrefix`. See [Module:Entity/Contract](https://starcitizen.tools/Module:Entity/Contract).
 
 When you build a facet's rows, reach for the shared helpers in [`Module:Entity/Facet/Util`](https://starcitizen.tools/Module:Entity/Facet/Util) rather than re-implementing display logic: `withUnit(value, unit)`, `rangeStr(min, max, unit)`, `titleCase(key)`, and the canonical `DAMAGE_TYPES` order (with `damageKeys` / `damageLabels` views). These were extracted from the individual facets, so their output is byte-identical to the per-facet originals. Boolean (yes / no) fields render through [`Module:Boolean`](https://starcitizen.tools/Module:Boolean) `render()`, a tri-state yes / no / unknown icon (No is grey, not red), so a new boolean row matches the house convention used by Consumable and Seat.
 

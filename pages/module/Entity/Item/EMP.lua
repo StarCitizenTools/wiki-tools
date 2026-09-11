@@ -14,9 +14,6 @@ local p = {}
 --- @type string
 p.parent = 'Entity/Item'
 
--- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
-p.contextHooks = true
-
 --- @param ctx EntityHookContext
 --- @return table[] Ordered list of section entries with key field
 function p.getSections(ctx)

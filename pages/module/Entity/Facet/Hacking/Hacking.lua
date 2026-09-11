@@ -12,9 +12,6 @@ local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
 
--- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
-p.contextHooks = true
-
 --- 0-1 chance as a percentage ("0.9" -> "90%"); nil when absent.
 ---
 --- @param value number|string|nil

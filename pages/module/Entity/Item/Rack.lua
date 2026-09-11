@@ -18,9 +18,6 @@ local p = {}
 --- @type string
 p.parent = 'Entity/Item'
 
--- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
-p.contextHooks = true
-
 --- Resolves the rack's (ordnance count, ordnance size) from whichever shape the
 --- API uses for this launcher kind. Returns nil count when neither is present.
 ---

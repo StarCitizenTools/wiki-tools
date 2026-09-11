@@ -17,9 +17,6 @@ local p = {}
 --- @type string
 p.parent = 'Entity/Item'
 
--- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
-p.contextHooks = true
-
 -- Full type names per enforcement subdivision, used in the short description.
 local SUBTYPE_NAME = {
 	QED = 'Quantum enforcement device',

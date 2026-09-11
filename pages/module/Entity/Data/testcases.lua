@@ -288,16 +288,15 @@ end
 
 -- ctx nil rules and pipeline order (EntityHookContext's docstring contract):
 -- fields are filled in pipeline order, so a hook that runs early sees the
--- later ones as nil. A contextHooks-flagged editorial kind is registered
--- temporarily (registry.kinds has no injection seam otherwise; args.uuid is
--- absent so the probe never iterates the real registry, making the insert
--- safe) so its hooks can record the ctx they were actually called with.
+-- later ones as nil. An editorial kind is registered temporarily
+-- (registry.kinds has no injection seam otherwise; args.uuid is absent so the
+-- probe never iterates the real registry, making the insert safe) so its
+-- hooks can record the ctx they were actually called with.
 function suite:testHookContextNilRulesAndPipelineOrder()
 	local captured = {}
 	local stubKind = {
 		name = 'StubHookOrder',
 		editorialMode = true,
-		contextHooks = true,
 		family = 'stubfamily',
 		matches = function()
 			return false
@@ -345,19 +344,16 @@ function suite:testHookContextNilRulesAndPipelineOrder()
 		-- getCategories runs after resolved is set but before typeInfo is.
 		self:assertEquals('table', type(captured.getCategories.resolved))
 		self:assertEquals(nil, captured.getCategories.typeInfo)
-		-- collect's legacy 'resolved' slot (and the contextHooks ctx alike)
-		-- carries the SAME table p.get ultimately assigns to ctx.resolved.
+		-- ctx.resolved carries the SAME table p.get ultimately assigns to
+		-- result.resolved.
 		self:assertEquals(result.ctx.resolved, captured.getCategories.resolved)
 		self:assertEquals(result.resolved, captured.getCategories.resolved)
 
-		-- typeInfo/kind/family are set on the context p.get returns.
 		self:assertEquals(result.typeInfo, result.ctx.typeInfo)
 		self:assertEquals('Stub type', result.ctx.typeInfo.name)
 		self:assertEquals('StubHookOrder', result.ctx.kind)
 		self:assertEquals('stubfamily', result.ctx.family)
 
-		-- Downstream hooks (Infobox/Entity, called after Data.get returns) see
-		-- the fully populated context.
 		assembly.callHook(stubKind, 'getSections', result.ctx)
 		assembly.callHook(stubKind, 'getStructuredData', result.ctx)
 		self:assertEquals('Stub type', captured.getSections.typeInfo.name)
@@ -382,10 +378,10 @@ function suite:testRunEditorialForkCallsEnrichWithArgs()
 	local seenArgs
 	local stubKind = {
 		name = 'Stub',
-		enrich = function(apiData, args)
-			seenArgs = args
-			apiData.marked = true
-			return apiData
+		enrich = function(ctx)
+			seenArgs = ctx.args
+			ctx.apiData.marked = true
+			return ctx.apiData
 		end,
 	}
 	local args = { kind = 'Stub', name = 'Terra system' }

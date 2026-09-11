@@ -30,7 +30,7 @@ Short descriptions are manufacturer-led: `"<mfr short> <size|single-seat> <role-
 
 ## Sub-builders
 
-`getSections(apiData, args, resolved)` wraps `resolved` in an [Editorial view](#the-4-layer-field-model) **once** (`ed = Editorial.view(resolved)`), resolves the subtype to get its display type name, then composes the section list by calling each sub-builder and dropping the nils:
+`getSections(ctx)` wraps `ctx.resolved` in an [Editorial view](#the-4-layer-field-model) **once** (`ed = Editorial.view(ctx.resolved)`), resolves the subtype to get its display type name, then composes the section list by calling each sub-builder and dropping the nils:
 
 ```lua
 add(overview.build(apiData, args, ed, typeName))
@@ -118,7 +118,7 @@ The Stats section ranks a ship against its **size-class cohort** (every same-`Si
 
 ## Acquisition
 
-`getAcquisition(apiData, args)` feeds `{{Entity/Availability}}` (distinct from the Cost section's Universe tab, which is purely about price display). It returns:
+`getAcquisition(ctx)` feeds `{{Entity/Availability}}` (distinct from the Cost section's Universe tab, which is purely about price display). It returns:
 
 - **summary**: Buy / Rent / Pledge flags (Loot and Craft are omitted; neither applies to vehicles). Each flag is resolved by `Module:Entity/Acquisition.resolveFlag(override, derived)`: Buy and Rent derive from `inferCanAcquire` over the UEX `purchase` / `rental` rows; Pledge derives from the presence of `msrp`. An editor override wins over the inferred value.
 - **cards**: two `terminals` cards, **Shops** (from `uex_prices.purchase`, with a Sell column when sell prices exist) and **Rentals** (from `uex_prices.rental`), each carrying the per-terminal price rows for the Availability template's terminal table.

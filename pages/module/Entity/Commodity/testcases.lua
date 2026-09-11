@@ -347,11 +347,9 @@ function suite:testSiblingPayloadsResolveLeafFirstOverBase()
 end
 
 -- Dispatch: Commodity and Mission (which has no suite of its own) take an
--- EntityHookContext (Task 1 review requirement — a kind whose contextHooks
--- flag is set but whose hooks weren't rewritten must fail here, not render
--- wrong values silently on the wiki).
+-- EntityHookContext — a kind whose hooks aren't written for ctx must fail
+-- here, not render wrong values silently on the wiki.
 function suite:testCommodityAndMissionDispatchThroughContext()
-	self:assertEquals(true, Commodity.contextHooks)
 	local commodityInfo = assembly.callHook(
 		Commodity,
 		'getTypeInfo',
@@ -360,7 +358,6 @@ function suite:testCommodityAndMissionDispatchThroughContext()
 	self:assertEquals('Metal', commodityInfo.name)
 
 	local Mission = require('Module:Entity/Mission')
-	self:assertEquals(true, Mission.contextHooks)
 	local missionInfo =
 		assembly.callHook(Mission, 'getTypeInfo', { apiData = { mission_type = 'Delivery' }, args = {}, resolved = {} })
 	self:assertEquals('Delivery', missionInfo.name)

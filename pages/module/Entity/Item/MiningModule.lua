@@ -16,9 +16,6 @@ local p = {}
 --- @type string
 p.parent = 'Entity/Item'
 
--- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
-p.contextHooks = true
-
 --- Short description prepends the mount size — "S1 mining module by Musashi
 --- Industrial & Starflight Concern" — mirroring the other component descriptors.
 ---

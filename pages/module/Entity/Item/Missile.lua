@@ -24,9 +24,6 @@ local p = {}
 --- @type string
 p.parent = 'Entity/Item'
 
--- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
-p.contextHooks = true
-
 --- Normalizes the API's lock signal type to a readable label by splitting
 --- CamelCase: "CrossSection" -> "Cross Section". Single-word values
 --- ("Infrared", "Electromagnetic") pass through unchanged. Returns nil for a

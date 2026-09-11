@@ -45,7 +45,6 @@ local p = {}
 --- Merge policy per hook is applied by Module:Entity/Data (see Contract.CONTRIBUTOR).
 --- @field parent string|nil Module path of the parent link (e.g. 'Entity/Item')
 --- @field family string|nil Family token a subtype leaf declares; the kind's resolveSubtype maps the same token to this leaf, and a curated |family= arg names it on record-less pages
---- @field contextHooks boolean|nil Transitional: true once this link's hooks take an EntityHookContext; Module:Entity/Assembly.callHook calls unflagged links positionally. Removed when every link is migrated.
 --- @field getApiConfigs nil|fun(): EntityApiConfig[] Extra API endpoints this link needs
 --- @field enrich nil|fun(ctx: EntityHookContext): table Post-fetch mutation, run root-to-leaf after the chain's endpoints are fetched (a leaf attaches the secondary record only it renders: StarSystem the starmap system, JumpPoint the celestial object)
 --- @field getEditorialManifest nil|fun(): table Editorial-field manifest fragment (field -> { arg, smw?, apiPath?, transform?, default? }); fragments merge root-to-leaf, leaf keys win
@@ -96,7 +95,6 @@ local p = {}
 --- A cross-cutting additive aspect matched on a data field, independent of kind.
 --- Registered in Module:Entity/Registry.
 --- @field matches fun(apiData: table|nil): boolean REQUIRED. Strict, nil-safe data-presence predicate
---- @field contextHooks boolean|nil Transitional: true once this facet's hooks take an EntityHookContext; Module:Entity/Assembly.callHook calls unflagged facets positionally. Removed when every link is migrated.
 --- @field getSections fun(ctx: EntityHookContext): EntitySectionEntry[] REQUIRED. Ordered section entries
 --- @field getStructuredData nil|fun(ctx: EntityHookContext): table<string, any> Flat key-value data
 --- @field getShortDescriptionPrefix nil|fun(ctx: EntityHookContext): string|nil Adjective composed into the kind's short description

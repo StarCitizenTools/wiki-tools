@@ -13,9 +13,6 @@ local Boolean = require('Module:Boolean')
 
 local p = {}
 
--- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
-p.contextHooks = true
-
 --- The melee block, preferring `melee_weapon` and falling back to the identical
 --- `knife`. Returns nil when neither is a table.
 ---

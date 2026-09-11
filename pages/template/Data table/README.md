@@ -45,10 +45,10 @@ Each non-blank line in `columns` is one column. The first `;`-separated clause i
 
 - The page image and name form one lead card, always first and unremovable.
 - No pagination: up to 1000 rows load into one scrolling, searchable grid; `filter` columns add a checkbox filter.
-- A multi-valued SMW result auto-detects as a list (comma-separated); a single-value wikilink becomes a page link. `kind=` only forces a different rendering.
-- Duplicate `label=`s, a missing `columns`, or neither `category` nor `conditions` render an inline error; a query matching nothing renders an empty grid instead, not an error.
+- A column auto-detects as a list if any value is multi-valued, or as page links only if every value is a wikilink; `kind=` overrides.
+- Duplicate `label=`s, a missing `columns`, or neither `category` nor `conditions` render an inline error; a query matching nothing renders an empty grid, not an error.
 - The query is restricted to the main namespace, so File/Category pages never leak in.
-- Every grid gets a toolbar button that reopens it in a window-filling modal, carrying filter and sort state across.
+- Every grid gets a toolbar button that reopens it in a window-filling modal, keeping filter and sort state.
 
 ## See also
 

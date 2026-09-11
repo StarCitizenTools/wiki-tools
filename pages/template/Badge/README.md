@@ -12,7 +12,7 @@ The first positional argument is the badge text. `variant` themes the badge via 
 | <syntaxhighlight inline lang="wikitext">{{Badge\|Genesis\|variant=warning}}</syntaxhighlight> | {{Badge\|Genesis\|variant=warning}} |
 | <syntaxhighlight inline lang="wikitext">{{Badge\|Caterpillar\|variant=error}}</syntaxhighlight> | {{Badge\|Caterpillar\|variant=error}} |
 | <syntaxhighlight inline lang="wikitext">{{Badge\|Carrack\|variant=success}}</syntaxhighlight> | {{Badge\|Carrack\|variant=success}} |
-| <syntaxhighlight inline lang="wikitext">{{Badge\|30K\|icon=CdxIconError.svg\|bg=#2a6df4\|color=#fff}}</syntaxhighlight> | {{Badge\|30K\|icon=CdxIconError.svg\|bg=#2a6df4\|color=#fff}} |
+| <syntaxhighlight inline lang="wikitext">{{Badge\|30K\|icon=CdxIconError.svg\|backgroundColor=#2a6df4\|color=#fff}}</syntaxhighlight> | {{Badge\|30K\|icon=CdxIconError.svg\|backgroundColor=#2a6df4\|color=#fff}} |
 
 ## Parameters
 

@@ -1,0 +1,17 @@
+== browsing ==
+* Navigation-Popups[ResourceLoader|dependencies=mediawiki.api,mediawiki.user,mediawiki.util,user.options,mediawiki.jqueryMsg|type=general]|Navigation-Popups.js|Navigation-Popups.css
+* blame[ResourceLoader|default|package|dependencies=mediawiki.util,mediawiki.api,mediawiki.page.ready|rights=noratelimit]|blame.js|blame-text.js|blame.css
+
+== editing ==
+* instantDiffs [ResourceLoader|default|dependencies=site,mediawiki.api,mediawiki.util,mediawiki.storage,mediawiki.notification,mediawiki.Title,oojs|rights=viewmywatchlist]|instantDiffs-loader.js|instantDiffs-citizen.css
+* quantumUpload[ResourceLoader|default|dependencies=mediawiki.api,mediawiki.notification|rights=verified-edit]|quantumUpload.js|quantumUpload.css
+* Wikitext-Extension-VSCode[ResourceLoader|dependencies=mediawiki.util]|Wikitext-Extension.js|Wikitext-Extension.css
+* Wikitext-Extension-VSCodeInsiders[ResourceLoader|dependencies=mediawiki.util]|Wikitext-Extension.js|Wikitext-Extension.css
+* Wikitext-Extension-VSCodium[ResourceLoader|dependencies=mediawiki.util]|Wikitext-Extension.js|Wikitext-Extension.css
+== appearance ==
+* CommentsInLocalTime[ResourceLoader|default|dependencies=mediawiki.util,moment]|CommentsInLocalTime.js|CommentsInLocalTime.css
+* Confetti[ResourceLoader|default|dependencies=mediawiki.util|rights=edit]|Confetti.js|Lib-Canvas-Confetti.js
+== grids ==
+* aggridRenderers[ResourceLoader|default|hidden|categories=Pages using AG Grid|dependencies=mediawiki.base]|aggridRenderers.js|aggridRenderers.css
+== mainpage ==
+* mainpage[ResourceLoader|default|hidden|categories=Pages using main page gadget]|mainpage.js|mainpage.css

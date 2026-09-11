@@ -1,0 +1,251 @@
+/*
+ * Gadget: Blame — git blame for articles. Colours every word by the editor who
+ * last changed it; words a template or module produced are hatched instead.
+ *
+ * [[MediaWiki:Gadget-blame.js]]
+ * [[MediaWiki:Gadget-blame-text.js]]
+ * [[MediaWiki:Gadget-blame.css]]
+ */
+
+.gadget-blame-legend {
+	position: fixed;
+	right: 16px;
+	bottom: 16px;
+	/* Scoped to the overlay container, so this only orders the legend against
+	 * other overlays there; the popover and dialog backdrops still cover it. */
+	z-index: 1;
+	width: min( 18rem, calc( 100vw - 32px ) );
+	background-color: var( --background-color-base, #fff );
+	color: var( --color-base, #202122 );
+	border: 1px solid var( --border-color-base, #a2a9b1 );
+	border-radius: var( --border-radius-base, 2px );
+	box-shadow: var( --box-shadow-drop-xx-large, 0 20px 48px 0 rgba( 0, 0, 0, 0.2 ) );
+	font-size: var( --font-size-small, 0.875rem );
+	line-height: var( --line-height-small, 1.375rem );
+}
+
+/* Several skins put a fixed navigation bar along the bottom edge when narrow. */
+@media ( max-width: 640px ) {
+	.gadget-blame-legend {
+		bottom: 76px;
+	}
+}
+
+.gadget-blame__header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	padding: 4px 4px 4px 16px;
+	border-bottom: 1px solid var( --border-color-subtle, #c8ccd1 );
+}
+
+.gadget-blame__title {
+	font-weight: var( --font-weight-semi-bold, 600 );
+}
+
+.gadget-blame__body {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	padding: 16px;
+	max-height: min( 60vh, 32rem );
+	overflow: auto;
+}
+
+.gadget-blame__card {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.gadget-blame__date {
+	color: var( --color-subtle, #54595d );
+	font-size: var( --font-size-small, 0.875rem );
+	line-height: var( --line-height-small, 1.375rem );
+}
+
+.gadget-blame__row {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.gadget-blame__label {
+	flex-grow: 1;
+	min-width: 0;
+}
+
+.gadget-blame__meta {
+	color: var( --color-subtle, #54595d );
+}
+
+.gadget-blame__links {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	font-size: var( --font-size-small, 0.875rem );
+	line-height: var( --line-height-small, 1.375rem );
+}
+
+.gadget-blame__summary {
+	color: var( --color-subtle, #54595d );
+	overflow-wrap: break-word;
+}
+
+.gadget-blame__footer {
+	margin-top: 8px;
+	padding-top: 8px;
+	border-top: 1px solid var( --border-color-subtle, #c8ccd1 );
+	color: var( --color-subtle, #54595d );
+	font-size: var( --font-size-x-small, 0.75rem );
+	line-height: var( --line-height-x-small, 1.25rem );
+}
+
+/* No Codex, so every interactive state is spelled out. */
+.gadget-blame__button {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 32px;
+	min-height: 32px;
+	padding: 0;
+	background-color: transparent;
+	color: var( --color-subtle, #54595d );
+	border: 1px solid transparent;
+	border-radius: var( --border-radius-base, 2px );
+	cursor: pointer;
+}
+
+.gadget-blame__button:hover {
+	background-color: var( --background-color-interactive-subtle, rgba( 0, 0, 0, 0.07 ) );
+	color: var( --color-base, #202122 );
+}
+
+.gadget-blame__button:focus-visible {
+	outline: var( --outline-base--focus, 1px solid transparent );
+	box-shadow: var( --box-shadow-inset-medium, inset 0 0 0 2px ) var( --box-shadow-color-progressive--focus, #36c );
+}
+
+.gadget-blame__button svg {
+	fill: currentcolor;
+}
+
+/* Indeterminate: the revision count is unknown until the history lands. */
+.gadget-blame__bar {
+	overflow: hidden;
+	height: 2px;
+	background-color: var( --background-color-interactive, rgba( 0, 0, 0, 0.1 ) );
+	border-radius: 2px;
+}
+
+.gadget-blame__bar::after {
+	content: '';
+	display: block;
+	width: 40%;
+	height: 100%;
+	background-color: var( --color-progressive, #36c );
+	animation: gadget-blame-bar 1.6s ease-in-out infinite;
+}
+
+@keyframes gadget-blame-bar {
+	from {
+		transform: translateX( -100% );
+	}
+
+	to {
+		transform: translateX( 350% );
+	}
+}
+
+@media ( prefers-reduced-motion: reduce ) {
+	.gadget-blame__bar::after {
+		width: 100%;
+		animation: none;
+	}
+}
+
+.gadget-blame__notice {
+	color: var( --color-subtle, #54595d );
+}
+
+.gadget-blame__notice--error {
+	color: var( --color-error, #bf3c2c );
+}
+
+.gadget-blame__notice--warning {
+	color: var( --color-warning, #886425 );
+}
+
+/* Revision popover. The platform puts it in the top layer and dismisses it; the
+ * position is set from script because CSS anchor positioning is Chromium-only. */
+.gadget-blame-popover {
+	position: fixed;
+	inset: auto;
+	margin: 0;
+	max-width: min( 20rem, calc( 100vw - 32px ) );
+	padding: 12px;
+	background-color: var( --background-color-base, #fff );
+	color: var( --color-base, #202122 );
+	border: 1px solid var( --border-color-base, #a2a9b1 );
+	border-radius: var( --border-radius-base, 2px );
+	box-shadow: var( --box-shadow-drop-medium, 0 2px 8px rgba( 0, 0, 0, 0.25 ) );
+	font-size: var( --font-size-small, 0.875rem );
+	line-height: var( --line-height-small, 1.375rem );
+}
+
+/* Without native popover support it is an ordinary box this gadget shows and
+ * hides; with it, the user agent stylesheet already handles display. */
+.gadget-blame-popover:not( [ popover ] ) {
+	display: none;
+	z-index: 2;
+}
+
+.gadget-blame-popover:not( [ popover ] ).gadget-blame-popover--open {
+	display: block;
+}
+
+/* Translucent tints keep the page's own text colour, so they work on either
+ * ground. Lightness alternates so neighbouring hues stay distinguishable to a
+ * red-green colour-blind reader; the ninth-plus editor shares a neutral. */
+.gadget-blame-w {
+	border-radius: 2px;
+	/* Tint and focus ring drawn per line fragment, not once around a wrapped run. */
+	-webkit-box-decoration-break: clone;
+	box-decoration-break: clone;
+	cursor: pointer;
+}
+
+.gadget-blame-w:hover {
+	outline: 1px solid var( --color-progressive, #36c );
+}
+
+/* The open run and the keyboard tab stop share one treatment. */
+.gadget-blame-w:focus-visible,
+.gadget-blame-w--active {
+	outline: var( --outline-base--focus, 1px solid transparent );
+	box-shadow: var( --box-shadow-inset-medium, inset 0 0 0 2px ) var( --box-shadow-color-progressive--focus, #36c );
+}
+
+.gadget-blame-a0 { background-color: oklch( 0.85 0.13 25 / 0.45 ); }
+.gadget-blame-a1 { background-color: oklch( 0.72 0.13 70 / 0.45 ); }
+.gadget-blame-a2 { background-color: oklch( 0.88 0.13 120 / 0.45 ); }
+.gadget-blame-a3 { background-color: oklch( 0.75 0.13 165 / 0.45 ); }
+.gadget-blame-a4 { background-color: oklch( 0.85 0.13 210 / 0.45 ); }
+.gadget-blame-a5 { background-color: oklch( 0.7 0.13 255 / 0.45 ); }
+.gadget-blame-a6 { background-color: oklch( 0.86 0.13 300 / 0.45 ); }
+.gadget-blame-a7 { background-color: oklch( 0.74 0.13 340 / 0.45 ); }
+.gadget-blame-ax { background-color: oklch( 0.7 0 0 / 0.3 ); }
+
+/* No counterpart in the article source, so it is never tinted. */
+.gadget-blame-w--template {
+	background-image: repeating-linear-gradient( 45deg, transparent 0 3px, oklch( 0.6 0 0 / 0.35 ) 3px 4px );
+}
+
+.gadget-blame-swatch {
+	display: inline-block;
+	flex: none;
+	width: 0.9em;
+	height: 0.9em;
+	border-radius: 2px;
+}

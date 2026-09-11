@@ -1,5 +1,6 @@
 [tools]
 go = "1.23"
+node = "24"
 lefthook = "latest"
 rust = "latest"
 stylua = "latest"
@@ -65,13 +66,18 @@ run = "go run ./cmd/itemstubs -diff"
 description = "Report pending item-stub creations/conflicts (exit 1 if any). Read-only; changes go through the MediaWiki MCP server."
 
 [tasks.test]
-depends = ["test:lua", "test:go"]
+depends = ["test:lua", "test:go", "test:js"]
 description = "Run all local tests"
 
 [tasks."test:go"]
 dir = "scripts"
 run = "go test ./..."
 description = "Run the Go unit tests for scripts/ (no network access required)"
+
+[tasks."test:js"]
+# A bare directory makes node:test exit 0 without running anything, so glob the files.
+run = "node --test 'tests/js/**/*.test.js'"
+description = "Run the Node test suites for gadget JavaScript (tests/js/)"
 
 [tasks."test:lua"]
 depends = ["test:lua:manifest", "test:lua:unit", "test:lua:globals"]

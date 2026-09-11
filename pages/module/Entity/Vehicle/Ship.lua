@@ -18,30 +18,27 @@ p.parent = 'Entity/Vehicle'
 --- |family= on record-less pages.
 p.family = 'ship'
 
---- @param apiData table
---- @param args table
+-- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
+p.contextHooks = true
+
+--- @param ctx EntityHookContext
 --- @return { name: string, category: string }
-function p.getTypeInfo(apiData, args)
+function p.getTypeInfo(ctx)
 	return { name = 'Spacecraft', category = 'Ships' }
 end
 
---- @param apiData table
---- @param args table
---- @param typeInfo table
---- @param prefix string|nil
---- @param resolved table|nil
+--- @param ctx EntityHookContext
 --- @return string
-function p.getShortDescription(apiData, args, typeInfo, prefix, resolved)
-	return vehicle.formatShortDescription(apiData, args, resolved, 'ship', false)
+function p.getShortDescription(ctx)
+	return vehicle.formatShortDescription(ctx.apiData, ctx.args, ctx.resolved, 'ship', false)
 end
 
 --- Ship-only browse categories: the ship-matrix size bucket ("Large ships",
 --- the curated |size= wins over the API) and "Pledge ships".
---- @param apiData table
---- @param args table
---- @param resolved table|nil
+--- @param ctx EntityHookContext
 --- @return string[]
-function p.getCategories(apiData, args, resolved)
+function p.getCategories(ctx)
+	local apiData, args, resolved = ctx.apiData, ctx.args, ctx.resolved
 	local cats = {}
 	local size = vehicleUtil.matrixSize(apiData, args)
 	if size then

@@ -65,6 +65,9 @@ p.editorialMode = true
 --- @type string
 p.parent = 'Entity/Base'
 
+-- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
+p.contextHooks = true
+
 --- The vehicles endpoint includes uex_prices and msrp by default, so
 --- no `include` param is required for Availability to render.
 ---
@@ -230,16 +233,15 @@ local function manufacturerLink(apiData, args)
 	return '[[' .. mfr.page .. ']]'
 end
 
---- @param apiData table
---- @param args table
---- @param resolved table|nil
+--- @param ctx EntityHookContext
 --- @return table[]
-function p.getSections(apiData, args, resolved)
+function p.getSections(ctx)
+	local apiData, args, resolved = ctx.apiData, ctx.args, ctx.resolved
 	local ed = Editorial.view(resolved)
 	local subtype = p.resolveSubtype(apiData, args)
 	local typeName = nil
 	if subtype and subtype.getTypeInfo then
-		local typeInfo = subtype.getTypeInfo(apiData, args)
+		local typeInfo = subtype.getTypeInfo(ctx)
 		typeName = typeInfo and typeInfo.name
 	end
 	local sections = {}
@@ -262,10 +264,10 @@ end
 --- default type subtitle so vehicles are identified by maker (as the legacy
 --- infobox did). nil when no manufacturer resolves → the infobox falls back to
 --- the display type.
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return string|nil
-function p.getSubtitle(apiData, args)
+function p.getSubtitle(ctx)
+	local apiData, args = ctx.apiData, ctx.args
 	return manufacturerLink(apiData, args)
 end
 
@@ -274,11 +276,10 @@ end
 --- Vehicle-only: other entities are in-game by definition, so a status badge
 --- would be noise. The per-ship milestone/note now lives in the Development
 --- section (Added in version + production note), so the badge is a plain pill.
---- @param apiData table
---- @param args table
---- @param resolved table|nil
+--- @param ctx EntityHookContext
 --- @return string|nil
-function p.getHeaderBadge(apiData, args, resolved)
+function p.getHeaderBadge(ctx)
+	local apiData, resolved = ctx.apiData, ctx.resolved
 	local ed = Editorial.view(resolved)
 	return productionStatus.badge(ed:value('production_state', apiData.production_status))
 end
@@ -295,11 +296,10 @@ end
 --- editorial manifest (Career, Role, Size, agility rates). Fields owned
 --- by the editorial layer (crew/cargo/speed/mass/pledge) are intentionally
 --- absent here — the editorial resolver handles their SMW storage.
---- @param apiData table
---- @param args table
---- @param resolved table|nil
+--- @param ctx EntityHookContext
 --- @return table
-function p.getStructuredData(apiData, args, resolved)
+function p.getStructuredData(ctx)
+	local apiData, args, resolved = ctx.apiData, ctx.args, ctx.resolved
 	local agility = type(apiData.agility) == 'table' and apiData.agility or {}
 	local armor = type(apiData.armor) == 'table' and apiData.armor or {}
 	local cargoLimits = type(apiData.cargo_limits) == 'table' and apiData.cargo_limits or {}
@@ -406,10 +406,10 @@ end
 --- semicolon-separated list for multiple URLs (e.g. presentationurl = url1; url2 — the
 --- wiki multi-value convention). The footer merges the "Official sites" row with Base's
 --- same-label row.
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table[]
-function p.getExternalSiteItems(apiData, args)
+function p.getExternalSiteItems(ctx)
+	local apiData, args = ctx.apiData, ctx.args
 	local items = {}
 	local official = format.buildSiteLinks(mw.loadJsonData('Module:Entity/Vehicle/officialSites.json'), {
 		pledge_url = args.pledgeurl or apiData.pledge_url,
@@ -459,11 +459,10 @@ end
 --- family: production state, series / generation grouping, career. The family
 --- leaves (Ship / GroundVehicle / Gravlev) contribute size and pledge. These
 --- are ALSO SMW facets; the categories are additive for navigation. Pure.
---- @param apiData table
---- @param args table
---- @param resolved table|nil
+--- @param ctx EntityHookContext
 --- @return string[]
-function p.getCategories(apiData, args, resolved)
+function p.getCategories(ctx)
+	local apiData, args, resolved = ctx.apiData, ctx.args, ctx.resolved
 	local ed = Editorial.view(resolved)
 	local cats = {}
 	-- Production state category: the label ("Flight ready"), except states with a
@@ -502,10 +501,10 @@ end
 --- Acquisition data for {{Entity/Availability}}: Buy/Rent/Pledge summary flags
 --- (Loot/Craft omitted — neither applies to vehicles) and Shops + Rentals
 --- terminal cards from uex_prices.{purchase,rental}. Pledge derives from msrp.
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return { summary: table[], cards: table[] }
-function p.getAcquisition(apiData, args)
+function p.getAcquisition(ctx)
+	local apiData, args = ctx.apiData, ctx.args
 	local prices = type(apiData.uex_prices) == 'table' and apiData.uex_prices or {}
 	local purchase = type(prices.purchase) == 'table' and prices.purchase or {}
 	local rental = type(prices.rental) == 'table' and prices.rental or {}
@@ -567,9 +566,10 @@ end
 --- panels, displays and similar sub-ports that are not `collapsed` but do
 --- not belong in a component's L-tree, so the Ports pipeline narrows
 --- children by each category's expandIntoTypes allowlist.
---- @param apiData table
+--- @param ctx EntityHookContext
 --- @return EntityPortsPayload
-function p.getPorts(apiData)
+function p.getPorts(ctx)
+	local apiData = ctx.apiData
 	return { ports = apiData.ports, narrowChildren = true }
 end
 

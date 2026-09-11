@@ -33,7 +33,7 @@ Every other submodule reads settings through `Config`, never through `mw.loadJso
 - `Config.livePatch()`: the build every consumer agrees is "live" (the first `patches` entry with `channel: "LIVE"`, else the first with a `name`), resolved once so the hero's status chip and the patch card can't disagree (`Config.lua:177-193`).
 - `load()` wraps `mw.loadJsonData` in `pcall`; a moved or deleted settings page degrades to `{}` rather than raising (`Config.lua:80-90`).
 
-`toPlain` (`Config.lua:47-77`) copies the loaded page's read-only table (whose metatable breaks `#` and `next()`) into a plain one, dropping blank strings to `nil` and compacting arrays. Read a new settings field through `Config`'s existing functions rather than adding a second `mw.loadJsonData` call elsewhere.
+`toPlain` (`Config.lua:47-77`) copies the loaded page's read-only table (whose metatable breaks `#` and `next()`) into a plain one, dropping blank strings to `nil`, compacting arrays, and discarding every `_`-prefixed key as editor guidance. Read a new settings field through `Config`, never a second `mw.loadJsonData` call.
 
 ### Styles
 
@@ -71,4 +71,4 @@ The page runs full bleed: `MediaWiki:Citizen.css` drops the body container's gut
 
 Every band shares one layout contract: `.home-band` is the full-bleed ground, `.home-band__inner` the measured column inside it, and a band of cards adds `.home-grid` on that inner element, all off one shared twelve-column grid; a band with its own column ratios breaks alignment for every other band (`Mainpage.lua:11-17`).
 
-A new card is a submodule with a `render()` that returns `nil` or a string; wire its call into `Mainpage.render`'s band composition and, if it ships its own stylesheet, add that stylesheet to `STYLESHEETS` explicitly rather than relying on the call site to pull it in. It then picks one of the three span classes (`.home-card--read` spans 8, `.home-card--aside` 4, `.home-card--tall` 8 across two rows); between 640 and 899.98px every span collapses to 6, and below 640 the page is one column in DOM order, so a new span value needs checking against both breakpoints.
+A new card is a submodule with a `render()` that returns `nil` or a string; wire its call into `Mainpage.render`'s band composition and, if it ships its own stylesheet, add it to `STYLESHEETS` explicitly. It then picks one of the three span classes (`.home-card--read` spans 8, `.home-card--aside` 4, `.home-card--tall` 8 across two rows); between 640 and 899.98px every span collapses to 6, and below 640 the page is one column in DOM order, so a new span value needs checking against both breakpoints.

@@ -27,7 +27,7 @@ Everything an editor changes is in `Module:Mainpage/settings.json`, linked at th
 | `patches` | One object per build chip: `channel`, `name`, `page`, `highlights`. `channel: "LIVE"` marks the current chip; with none marked, the first chip with a `name` is used instead. |
 | `hero` | `image`, `lede`, `ledeDetail`, `searchTails`. |
 | `chips` | Link lists (`{ "page": …, "label": … }` on-wiki, `{ "url": …, "label": … }` elsewhere; `label` optional on a wiki link): the strip under the hero. |
-| `directory` | Grouped link lists, same shape as `chips`: the groups at the foot. |
+| `directory` | Groups of `{ "label": …, "links": [ … ] }`, links shaped as in `chips`: the foot groups. |
 
 The event card's picture chooses its design; set one key, not both, since with both, `banner` wins:
 

@@ -1,6 +1,6 @@
 # Template:Mainpage
 
-Renders the wiki's main page as one full-bleed layout: hero band, event and patch highlights, featured article, on this day, an editing invitation, two community cards, and the site directory. Transclude it as the page's entire content.
+Renders the wiki's main page as one full-bleed sequence of content bands, transcluded as the page's entire content.
 
 ## Usage
 
@@ -16,26 +16,29 @@ This template takes no parameters.
 
 ## Behavior
 
-Everything an editor changes is in one page, `Module:Mainpage/settings.json`, linked at the foot of the rendered page. It is not tracked in this repository: it is wiki content rather than code, so the wiki page is its source of truth and keeps its own history.
+The page runs: a hero band, event and patch highlights, the featured article, on this day, an editing invitation, two community cards, and the site directory.
+
+Everything an editor changes is in `Module:Mainpage/settings.json`, linked at the foot of the page. It is not tracked in this repository: it is wiki content, not code, so the wiki page is its own source of truth. That page carries its own guidance in a `_readme` key; any `_`-prefixed key is dropped as guidance, not data.
 
 | Section | Holds |
 | --- | --- |
-| `featured` | `page`, `text`. The picture is the article's own Page Image, so the page name is all there is to set. With no `page`, the card falls back to `Star Citizen`, deliberately not the main page itself, which would render as a self-link. |
+| `featured` | `page`, `text`. The picture is the article's own Page Image (a placeholder if absent), so the page name is all there is to set. With no `page`, the card falls back to `Star Citizen`, not the main page itself (a self-link). |
 | `event` | `name`, `page`, `text`, `starts`, `ends`, and one of `banner` or `image` (see below). Clearing `name` removes the card; clearing `ends` keeps the card and drops its countdown. |
-| `patches` | One object per build chip: `channel`, `name`, `page`, `highlights`. `channel: "LIVE"` fills the live marker and the "this patch" card. |
+| `patches` | One object per build chip: `channel`, `name`, `page`, `highlights`. `channel: "LIVE"` marks the current chip; with none marked, the first chip with a `name` is used instead. |
 | `hero` | `image`, `lede`, `ledeDetail`, `searchTails`. |
-| `chips`, `directory` | Link lists: `{ "page": …, "label": … }` for this wiki, `{ "url": …, "label": … }` elsewhere; `label` is optional on a wiki link. |
+| `chips` | Link lists (`{ "page": …, "label": … }` on-wiki, `{ "url": …, "label": … }` elsewhere; `label` optional on a wiki link): the strip under the hero. |
+| `directory` | Grouped link lists, same shape as `chips`: the groups at the foot. |
 
 The event card's picture chooses its design; set one key, not both, since with both, `banner` wins:
 
 | Key | Design |
 | --- | --- |
-| `banner` | One of the 1080×83 strips in `Category:Main page banner images`, shown at the height it was drawn: a centred slice, not a shrunken whole. Check that its logo survives a centred crop, since a narrow column shows only about a quarter of the strip. |
+| `banner` | One of the 1080×83 strips in `Category:Main page banner images`, shown at the height it was drawn as a centred slice (about a quarter of the strip in the narrowest column). Check its logo survives that crop. |
 | `image` | An ordinary screenshot: beside the text on a wide card, across the top on a narrow one. A banner strip set here crops to a smear. |
 
-Naming the asset names the layout, so a design can't be paired with a picture it cannot show; switching between them is a settings edit, not a module edit.
+Naming the asset picks the layout, so a design can't be paired with an unusable picture; switching is a settings edit, not a module edit.
 
-A malformed value never takes the page down: an event date the clock cannot read costs only the clock, and a moved or deleted settings page costs only what it fed. Dates are read as `YYYY-MM-DD`, optionally with `HH:MM` or `HH:MM:SS` and a trailing `UTC`; anything else is treated as unset.
+A malformed value never takes the page down: an unreadable event date costs only the clock, and a moved or deleted settings page costs only what it fed. Dates are read as `YYYY-MM-DD`, optionally with a space or `T` then `HH:MM`/`HH:MM:SS`, and a trailing `UTC`/`Z`; anything else is unset.
 
 ## See also
 

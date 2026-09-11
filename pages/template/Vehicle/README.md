@@ -1,6 +1,6 @@
 # Template:Vehicle
 
-Renders a vehicle's infobox through Module:Entity, the same engine that powers Template:Entity. `{{Vehicle}}` is the recommended entry point for ship and ground-vehicle pages: the invocation is identical to `{{Entity}}`, but the editing form lists only the parameters that apply to vehicles, so you are not wading through item or weapon fields that a vehicle never uses. For an in-game vehicle, supply the entity UUID and the infobox fills itself from the live API. The curated and editorial parameters below are for overriding a wrong API value or for documenting concept and unreleased ships that have no in-game record yet.
+`{{Vehicle}}` renders a ship or ground-vehicle infobox through the same `Module:Entity` engine as `{{Entity}}`, with the editing form scoped to vehicle parameters. Place it at the top of a vehicle page in place of `{{Entity}}`.
 
 ## Usage
 
@@ -52,7 +52,7 @@ Concept or unreleased ship with no in-game record. Declare the page as a planned
 
 | Name | Label | Type | Required | Default | Description | Example | Aliases |
 |------|-------|------|----------|---------|-------------|---------|---------|
-| `uuid` | UUID | string | No | (none) | In-game entity UUID. There is no fallback to a UUID stored on the page: this template declares its kind, which deliberately suppresses that lookup so a stale or placeholder stored UUID cannot resurrect itself. Required for an in-game vehicle if nothing has set the stored UUID yet. | `08a5bfdb-1972-421f-83fe-be03b7ac5222` |  |
+| `uuid` | UUID | string | No | (none) | In-game entity UUID; no fallback to a UUID stored on the page, since the declared kind suppresses that lookup. Leave blank only for a planned vehicle with no record yet. | `08a5bfdb-1972-421f-83fe-be03b7ac5222` |  |
 | `name` | Name | string | No | (API name) | Display-name override for the infobox title. | `Constellation Andromeda` |  |
 | `image` | Image | wiki-file-name | No |  | Infobox image, as a file name on the wiki (no `File:` prefix). Overrides the image otherwise resolved for the page. | `Gladius.jpg` |  |
 | `kind` | Kind | string | No |  | Declares the page as a planned/concept vehicle when there is no in-game record (no UUID). Set to `Vehicle`. Leave blank for live in-game vehicles. | `Vehicle` |  |
@@ -99,9 +99,19 @@ Concept or unreleased ship with no in-game record. Declare the page as a planned
 | `saledate` | Concept sale date | string | No |  | Date of the concept sale. Editorial only. | `2012-11-26` |  |
 | `novariant` | Suppress variant category | boolean | No |  | Suppress the variant category for vehicles with no variants (e.g. the Aegis Gladius). Legacy parameter: accepted for compatibility, but the current Entity pipeline does not emit variant categories, so it has no effect. | `yes` |  |
 
-## Behavior
+## Behaviour
 
-- `{{Vehicle}}` is a thin facade over Module:Entity that injects `|kind=Vehicle`; the TemplateData below scopes the editing form to vehicle parameters. The declared kind lets the infobox fetch the vehicles endpoint directly, so every invocation on the page shares one Apiunto cache key, and it deliberately suppresses any fallback to a UUID stored on the page: an in-game vehicle page must carry its `uuid` explicitly.
+- `{{Vehicle}}` is a thin facade over `Module:Entity` that injects `|kind=Vehicle`. The declared kind lets the infobox fetch the vehicles endpoint directly, so every invocation on the page shares one Apiunto cache key, and it deliberately suppresses any fallback to a UUID stored on the page: an in-game vehicle page must carry its `uuid` explicitly.
 - For an in-game vehicle the infobox pulls its stats from the API. The editorial/planned parameters (speeds, crew, cargo, mass, dimensions, prices, production state, dates) are primarily for concept and unreleased ships; where the same value also exists in the API, the wikitext value overrides the API value.
-- A page with no in-game record (a concept or unreleased ship) is declared planned with `kind=Vehicle`; its family then comes from `family=` (`ship`, `ground`, or `gravlev`) and every stat is supplied by hand.
+- A page with no in-game record (a concept or unreleased ship) is declared planned with `kind=Vehicle`; its family then comes from `family=` (`ship`, `ground`, or `gravlev`) and every stat is supplied by hand. A bare `{{Vehicle}}` with no other parameters still renders, titled from the page name, rather than erroring: the injected `kind=Vehicle` alone is enough to identify the page, so `name` is not actually required for a planned page.
+- A `uuid` that is supplied but doesn't resolve to a genuine vehicle record is not treated as a planned vehicle either: it adds the page to `Pages with an unresolved entity reference` instead of silently rendering one.
+- Adding `uuid=` to a page written as a planned vehicle switches it to the live API render on the next parse: `family` and `kind` become no-ops once a genuine record resolves, and any editorial overrides already on the page carry over as overrides on top of the API values.
+- `canBuy=no` / `canRent=no` affect more than the Availability summary: they also force the infobox's own Cost section Universe row to a hard No, not only the linked `{{Entity/Availability}}` card.
+- Like `{{Entity}}`, this template is what writes the page's SMW structured data, sets `SHORTDESC`, and appends categories for the whole page.
 - The multi-value URL parameters (`brochureurl`, `trailerurl`, `presentationurl`, `qaurl`, `whitleysguideurl`) each accept a `;`-separated list to register more than one link.
+
+## See also
+
+- [Template:Entity](https://starcitizen.tools/Template:Entity), the generic entry point into the same module; used directly for items, commodities, and missions.
+- [Template:Location](https://starcitizen.tools/Template:Location), the sibling kind-scoped facade for star systems and jump points.
+- [Module:Entity/Vehicle](https://starcitizen.tools/Module:Entity/Vehicle), the implementation.

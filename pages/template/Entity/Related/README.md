@@ -1,8 +1,6 @@
 # Template:Entity/Related
 
-Renders an entity's set components and cosmetic variants as a grid of image cards. Designed to sit further down an entity page as body content, separate from the [Template:Entity](https://starcitizen.tools/Template:Entity) infobox at the top. Reads the same upstream API data via Module:Entity/Data, so the cache is shared with any other Entity-family template on the page.
-
-Items only today — the related-items data comes from the items endpoint. Non-item entities, API failures, and items with no set pieces or variants all render a muted "No related items available from the API." placeholder so the page layout stays stable.
+`{{Entity/Related}}` renders an item's set components and cosmetic variants as a grid of image cards, or, for a commodity, its cargo-box packaging sizes as a table. Place it as body content further down the page, separate from the `{{Entity}}` infobox at the top.
 
 ## Usage
 
@@ -12,7 +10,7 @@ Explicit UUID:
 {{Entity/Related|uuid=80ee3b95-5665-4548-9e2d-d2067895c0ac}}
 ```
 
-When `Template:Entity` has been invoked earlier on the page, the UUID can be omitted — it falls back to the value stored in SMW on the current page:
+When `{{Entity}}` has been invoked earlier on the page, the UUID can be omitted; it falls back to the value stored in SMW on the current page:
 
 ```wikitext
 {{Entity}}
@@ -25,20 +23,20 @@ When `Template:Entity` has been invoked earlier on the page, the UUID can be omi
 
 | Name | Label | Type | Required | Default | Description | Example |
 |------|-------|------|----------|---------|-------------|---------|
-| `uuid` | UUID | string | No | (falls back to SMW UUID on the current page) | UUID of the entity to render. If omitted, defaults to the UUID stored in SMW (set by Template:Entity on a prior parse). Required if Template:Entity hasn't been invoked. | `80ee3b95-5665-4548-9e2d-d2067895c0ac` |
+| `uuid` | UUID | string | No | (falls back to SMW UUID on the current page) | UUID of the entity to render. Required if `{{Entity}}` hasn't been invoked. | `80ee3b95-5665-4548-9e2d-d2067895c0ac` |
 
-## Behavior
+## Behaviour
 
-- Renders up to two card grids in this order: **Set pieces** (other items that make up a wearable set, e.g. helmet/torso/legs) and **Variants** (cosmetic variants of the same base item, e.g. different colorways).
-- Each card shows the item's page image (resolved via the SMW `Page Image` property in a single batched query) with the item name overlaid at the bottom. Variant cards show the variant differentiator (e.g. `Black`) as the primary label, falling back to the full item name when the API doesn't expose a separate variant name; set cards add the resolved type (e.g. `Helmet`) as a small kicker above the name.
-- The whole card is clickable. MediaWiki's sanitizer strips raw `<a>` tags, so the card uses a "fakelink": a transparent absolutely-positioned `[[Page|Page]]` wikilink wrapper that stretches to fill the card.
-- The current page is filtered out of the variants list so the entity never links to itself. Set components are always distinct items, so no self-reference check is needed there.
-- Items without a `Page Image` SMW value fall back to `Placeholderv2.png` so the grid layout stays stable.
-- Empty state: when the upstream fetch fails, the entity has no `related_items`, or both buckets are empty, the template renders a single muted line: "No related items available from the API." The container always renders, so the page layout doesn't shift between entities that have related items and entities that don't.
+- **Items** render up to two tile grids in order: Set pieces (other items forming a wearable set) then Variants (cosmetic variants of the same base item). A grid is omitted when its bucket is empty; if both are empty, the template falls back to a single muted placeholder line instead.
+- **Commodities** render neither grid; instead a sortable Cargo variants table lists each SCU box size with its dimensions and mass, since cargo boxes share one image and have no wiki pages of their own.
+- **Vehicles, missions, and locations** have no related-items data, so the template falls back to the muted placeholder line.
+- The current page is filtered out of the Variants grid so an entity never links to itself; Set pieces need no such filter, since set components are always distinct items.
+- A variant's size or grade only appears as a small caption above the name when it actually differs across the family; if every variant shares the same size and grade, the caption is omitted.
+- Tile links and images resolve through the SMW `uuid` property, so a disambiguated title like `Hyperion (quantum drive)` links to the right article; an item with no resolvable page falls back to the API name for both link and image, with a placeholder image.
 
 ## See also
 
-- [Template:Entity](https://starcitizen.tools/Template:Entity) — the main entity infobox; sets the SMW UUID this template falls back to.
-- [Template:Entity/Availability](https://starcitizen.tools/Template:Entity/Availability) — sibling renderer for shop/loot/pledge availability.
-- [Template:Entity/Description](https://starcitizen.tools/Template:Entity/Description) — sibling renderer for the in-game description.
-- [Module:Entity/Related](https://starcitizen.tools/Module:Entity/Related) — implementation.
+- [Template:Entity](https://starcitizen.tools/Template:Entity), the infobox that owns the page's SMW data, SHORTDESC, and categories; sets the uuid this template falls back to.
+- [Template:Entity/Availability](https://starcitizen.tools/Template:Entity/Availability), sibling renderer for shop, loot, and pledge availability.
+- [Template:Entity/Description](https://starcitizen.tools/Template:Entity/Description), sibling renderer for the in-game description.
+- [Module:Entity/Related](https://starcitizen.tools/Module:Entity/Related), the implementation.

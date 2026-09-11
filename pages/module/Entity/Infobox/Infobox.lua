@@ -40,10 +40,10 @@ end
 --- and no API record) so the infobox doesn't render an empty collapsible shell.
 ---
 --- @param chain table[]
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table|nil section
-local function buildMetadataSection(chain, apiData, args)
+local function buildMetadataSection(chain, ctx)
+	local apiData, args = ctx.apiData, ctx.args
 	local items = {
 		{ label = 'UUID', content = args.uuid },
 		{ label = 'Class name', content = apiData.class_name },
@@ -60,7 +60,7 @@ local function buildMetadataSection(chain, apiData, args)
 	-- appended after the generic rows (StarSystem: the ARK starmap code).
 	for _, mod in ipairs(chain) do
 		if mod.getMetadataItems then
-			for _, item in ipairs(mod.getMetadataItems(apiData, args) or {}) do
+			for _, item in ipairs(assembly.callHook(mod, 'getMetadataItems', ctx) or {}) do
 				table.insert(items, item)
 			end
 		end
@@ -83,15 +83,14 @@ end
 --- every module in the chain. Returns nil when no items are available.
 ---
 --- @param chain table[]
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table|nil section
-local function buildExternalSitesSection(chain, apiData, args)
+local function buildExternalSitesSection(chain, ctx)
 	local items = {}
 	local byLabel = {}
 	for _, mod in ipairs(chain) do
 		if mod.getExternalSiteItems then
-			for _, item in ipairs(mod.getExternalSiteItems(apiData, args)) do
+			for _, item in ipairs(assembly.callHook(mod, 'getExternalSiteItems', ctx)) do
 				local existing = byLabel[item.label]
 				if existing and type(existing.content) == 'string' and type(item.content) == 'string' then
 					existing.content = existing.content .. ' \194\183 ' .. item.content
@@ -126,10 +125,10 @@ end
 --- independent, and the whole section collapses out when none is present.
 ---
 --- @param chain table[]
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table|nil section
-local function buildFooterSection(chain, apiData, args)
+local function buildFooterSection(chain, ctx)
+	local apiData, args = ctx.apiData, ctx.args
 	local buttons = {}
 
 	-- Canonical arg is `galactapediaurl` (the consistent <name>url form, also used by
@@ -153,7 +152,7 @@ local function buildFooterSection(chain, apiData, args)
 	-- the footer's normal.
 	for _, mod in ipairs(chain) do
 		if mod.getFooterButtons then
-			for _, def in ipairs(mod.getFooterButtons(apiData, args) or {}) do
+			for _, def in ipairs(assembly.callHook(mod, 'getFooterButtons', ctx) or {}) do
 				def.weight = def.weight or 'normal'
 				table.insert(buttons, button.render(def))
 			end
@@ -210,15 +209,13 @@ end
 ---
 --- @param chain table[]
 --- @param facets table[]
---- @param apiData table
---- @param args table
---- @param resolved table|nil Editorial resolved fields (optional; {} when no manifest)
+--- @param ctx EntityHookContext
 --- @return table[] sections
-local function buildSections(chain, facets, apiData, args, resolved)
+local function buildSections(chain, facets, ctx)
 	local sectionsList = {}
 	for _, mod in ipairs(chain) do
 		if mod.getSections then
-			table.insert(sectionsList, mod.getSections(apiData, args, resolved))
+			table.insert(sectionsList, assembly.callHook(mod, 'getSections', ctx))
 		end
 	end
 	-- Facet sections come after the chain so a new-key facet section (e.g.
@@ -226,7 +223,7 @@ local function buildSections(chain, facets, apiData, args, resolved)
 	-- key merges into it via mergeSections' append-items behaviour.
 	for _, facet in ipairs(facets) do
 		if facet.getSections then
-			table.insert(sectionsList, facet.getSections(apiData, args, resolved))
+			table.insert(sectionsList, assembly.callHook(facet, 'getSections', ctx))
 		end
 	end
 	local sections = assembly.mergeSections(sectionsList)
@@ -245,17 +242,17 @@ local function buildSections(chain, facets, apiData, args, resolved)
 		end
 	end
 
-	local metadata = buildMetadataSection(chain, apiData, args)
+	local metadata = buildMetadataSection(chain, ctx)
 	if metadata then
 		table.insert(sections, metadata)
 	end
 
-	local externalSites = buildExternalSitesSection(chain, apiData, args)
+	local externalSites = buildExternalSitesSection(chain, ctx)
 	if externalSites then
 		table.insert(sections, externalSites)
 	end
 
-	local footer = buildFooterSection(chain, apiData, args)
+	local footer = buildFooterSection(chain, ctx)
 	if footer then
 		table.insert(sections, footer)
 	end
@@ -294,7 +291,8 @@ end
 --- @param args table Parsed wikitext args
 --- @return string
 function p.render(result, args)
-	local sections = buildSections(result.chain, result.facets, result.apiData, args, result.resolved)
+	local ctx = result.ctx
+	local sections = buildSections(result.chain, result.facets, ctx)
 
 	local styles = mw.getCurrentFrame():extensionTag({
 		name = 'templatestyles',
@@ -303,24 +301,12 @@ function p.render(result, args)
 
 	-- Subtitle defaults to the display type; a chain link may override it
 	-- (vehicles show their manufacturer in the header). Leaf-first wins.
-	local subtitle = assembly.resolveMostSpecific(
-		result.chain,
-		'getSubtitle',
-		assembly.acceptNonEmpty,
-		result.apiData,
-		args
-	) or result.displayType
+	local subtitle = assembly.resolveMostSpecific(result.chain, 'getSubtitle', assembly.acceptNonEmpty, ctx)
+		or result.displayType
 
 	-- Header badge: a chain link (vehicles) may contribute a badge for the image
 	-- overlay (e.g. production status). Leaf-first wins.
-	local headerBadge = assembly.resolveMostSpecific(
-		result.chain,
-		'getHeaderBadge',
-		assembly.acceptNonEmpty,
-		result.apiData,
-		args,
-		result.resolved
-	)
+	local headerBadge = assembly.resolveMostSpecific(result.chain, 'getHeaderBadge', assembly.acceptNonEmpty, ctx)
 
 	local html = infobox.render({
 		-- The curated |name= wins over the API record name (which may carry an

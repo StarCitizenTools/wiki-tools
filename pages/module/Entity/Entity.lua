@@ -14,23 +14,20 @@ local p = {}
 ---
 --- @param chain table[]
 --- @param facets table[]
---- @param apiData table
---- @param args table
---- @param typeInfo table|nil
---- @param resolved table|nil Editorial resolved fields (optional; {} when no manifest)
+--- @param ctx EntityHookContext
 --- @param editorialData table|nil Pre-projected SMW key-value pairs from the editorial layer
 --- @return boolean success True if the backend accepted the data
 --- @return string[]|nil unregistered Emitter keys not registered in properties.json, or nil
-local function storeStructuredData(chain, facets, apiData, args, typeInfo, resolved, editorialData)
+local function storeStructuredData(chain, facets, ctx, editorialData)
 	local dataList = {}
 	for _, mod in ipairs(chain) do
 		if mod.getStructuredData then
-			table.insert(dataList, mod.getStructuredData(apiData, args, resolved))
+			table.insert(dataList, assembly.callHook(mod, 'getStructuredData', ctx))
 		end
 	end
 	for _, facet in ipairs(facets) do
 		if facet.getStructuredData then
-			table.insert(dataList, facet.getStructuredData(apiData, args, resolved))
+			table.insert(dataList, assembly.callHook(facet, 'getStructuredData', ctx))
 		end
 	end
 	local merged = assembly.mergeStructuredData(dataList)
@@ -42,8 +39,8 @@ local function storeStructuredData(chain, facets, apiData, args, typeInfo, resol
 	-- (Item / Vehicle / …). It is the same value that drives the structural
 	-- category, persisted as a queryable SMW property. SMW treats underscores as
 	-- spaces in property names, so `subject_type` maps to the property "Subject type".
-	if typeInfo and typeInfo.name then
-		merged.subject_type = typeInfo.name
+	if ctx.typeInfo and ctx.typeInfo.name then
+		merged.subject_type = ctx.typeInfo.name
 	end
 	local success, _err, unregistered = structuredData.store(merged)
 	return success, unregistered
@@ -56,34 +53,30 @@ end
 --- display name.
 ---
 --- @param frame table
---- @param typeInfo table|nil
 --- @param chain table[]
 --- @param facets table[]
---- @param apiData table
---- @param args table
---- @param resolved table|nil Editorial resolved fields (optional; {} when no manifest)
-local function setShortDescription(frame, typeInfo, chain, facets, apiData, args, resolved)
-	if not typeInfo then
+--- @param ctx EntityHookContext
+local function setShortDescription(frame, chain, facets, ctx)
+	if not ctx.typeInfo then
 		return
 	end
 
 	local prefix = nil
 	for _, facet in ipairs(facets) do
 		if facet.getShortDescriptionPrefix then
-			prefix = facet.getShortDescriptionPrefix(apiData, args)
+			prefix = assembly.callHook(facet, 'getShortDescriptionPrefix', ctx)
 			if prefix then
 				break
 			end
 		end
 	end
 
-	local desc =
-		assembly.resolveMostSpecific(chain, 'getShortDescription', nil, apiData, args, typeInfo, prefix, resolved)
-	-- resolveMostSpecific returns nil only when NO chain link defines
-	-- getShortDescription (no definer currently returns nil), so this coalesces
-	-- the no-definer case back to the type name.
+	-- prefix exists only for this call: set here and cleared after the resolve.
+	ctx.prefix = prefix
+	local desc = assembly.resolveMostSpecific(chain, 'getShortDescription', nil, ctx)
+	ctx.prefix = nil
 	if desc == nil then
-		desc = typeInfo.name
+		desc = ctx.typeInfo.name
 	end
 
 	frame:callParserFunction('SHORTDESC', desc)
@@ -126,17 +119,10 @@ function p.main(frame)
 	end
 
 	local html = entityInfobox.render(result, args)
-	local storeSuccess, unregistered = storeStructuredData(
-		result.chain,
-		result.facets,
-		result.apiData,
-		args,
-		result.typeInfo,
-		result.resolved,
-		result.editorialData
-	)
+	local storeSuccess, unregistered =
+		storeStructuredData(result.chain, result.facets, result.ctx, result.editorialData)
 
-	setShortDescription(frame, result.typeInfo, result.chain, result.facets, result.apiData, args, result.resolved)
+	setShortDescription(frame, result.chain, result.facets, result.ctx)
 
 	return html
 		.. categories.build(

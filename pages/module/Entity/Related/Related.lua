@@ -355,7 +355,7 @@ function p.main(frame)
 		return renderEmpty()
 	end
 
-	local payload = assembly.resolveMostSpecific(result.chain, 'getRelated', nil, result.apiData, args) or {}
+	local payload = assembly.resolveMostSpecific(result.chain, 'getRelated', nil, result.ctx) or {}
 	if type(payload.cargo) == 'table' then
 		return renderCargoVariants(payload.cargo)
 	end

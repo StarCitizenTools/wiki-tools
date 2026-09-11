@@ -12,6 +12,9 @@ local p = {}
 --- @type string|nil
 p.parent = nil
 
+-- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
+p.contextHooks = true
+
 --- Resolves the manufacturer for the current entity.
 --- Prefers the wikitext arg (which may be a code like "AEGS" or a name);
 --- falls back to API data, filtering placeholder codes.
@@ -50,10 +53,10 @@ function p.resolveManufacturer(apiData, args)
 		or { code = apiMfr.code, name = apiMfr.name, short = apiMfr.name, page = apiMfr.name }
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table<string, any>
-function p.getStructuredData(apiData, args)
+function p.getStructuredData(ctx)
+	local apiData, args = ctx.apiData, ctx.args
 	local manufacturer = p.resolveManufacturer(apiData, args)
 	return {
 		uuid = args.uuid,
@@ -62,10 +65,10 @@ function p.getStructuredData(apiData, args)
 	}
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return EntityItemData[] External site items contributed by this module
-function p.getExternalSiteItems(apiData, args)
+function p.getExternalSiteItems(ctx)
+	local apiData, args = ctx.apiData, ctx.args
 	local siteDefs = mw.loadJsonData('Module:Entity/officialSites.json')
 	local links = format.buildSiteLinks(siteDefs, {
 		name = args.name or apiData.name,
@@ -82,22 +85,22 @@ end
 -- record carries the data elsewhere or means something else by it
 -- (Commodity: cargo variants, crafting ingredient; Vehicle: narrowed ports).
 
---- @param apiData table
+--- @param ctx EntityHookContext
 --- @return EntityRelatedPayload
-function p.getRelated(apiData)
-	return { items = apiData.related_items }
+function p.getRelated(ctx)
+	return { items = ctx.apiData.related_items }
 end
 
---- @param apiData table
+--- @param ctx EntityHookContext
 --- @return EntityBlueprintsPayload
-function p.getBlueprints(apiData)
-	return { blueprints = apiData.blueprint }
+function p.getBlueprints(ctx)
+	return { blueprints = ctx.apiData.blueprint }
 end
 
---- @param apiData table
+--- @param ctx EntityHookContext
 --- @return EntityPortsPayload
-function p.getPorts(apiData)
-	return { ports = apiData.ports }
+function p.getPorts(ctx)
+	return { ports = ctx.apiData.ports }
 end
 
 return p

@@ -249,27 +249,26 @@ local function fetchChainExtras(chain, uuid, fetchedEndpoints)
 end
 
 --- Runs every chain link's enrich hook root to leaf, each receiving the
---- previous link's apiData. A leaf attaches the secondary record only it
---- renders (StarSystem the starmap system, JumpPoint the celestial object);
---- a kind's enrich (Commodity's raw/refined merge) runs first.
+--- previous link's apiData through ctx. A leaf attaches the secondary record
+--- only it renders (StarSystem the starmap system, JumpPoint the celestial
+--- object); a kind's enrich (Commodity's raw/refined merge) runs first.
 --- @param chain table[]
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table apiData
-local function enrichChain(chain, apiData, args)
+local function enrichChain(chain, ctx)
 	for _, mod in ipairs(chain) do
 		if mod.enrich then
-			apiData = mod.enrich(apiData, args)
+			ctx.apiData = assembly.callHook(mod, 'enrich', ctx)
 		end
 	end
-	return apiData
+	return ctx.apiData
 end
 
 --- Probes the kind, resolves the leaf, builds the chain, fetches the chain's
 --- extra endpoints, and runs the chain's enrich hooks.
 ---
 --- @param args table
---- @return table apiData Merged API response data
+--- @return EntityHookContext ctx apiData: merged API response data
 --- @return table[] chain Module chain (root to leaf)
 --- @return boolean hasApiError True if any fetch failed
 --- @return table|nil matchedKind The probed kind module (nil if none matched)
@@ -289,9 +288,10 @@ local function fetchApiData(args)
 		end
 	end
 
-	apiData = enrichChain(chain, apiData, args)
+	local ctx = { apiData = apiData, args = args }
+	enrichChain(chain, ctx)
 
-	return apiData, chain, hasApiError, matchedKind
+	return ctx, chain, hasApiError, matchedKind
 end
 
 --- A genuine in-game record: the API returned a record carrying a reliable
@@ -325,23 +325,24 @@ end
 --- even though no identity record exists.
 --- @param editorialKind table
 --- @param args table
---- @return table apiData
+--- @return EntityHookContext ctx
 --- @return table[] chain
 local function runEditorialFork(editorialKind, args)
 	local apiData = {}
 	local leafMod = resolveLeaf(editorialKind, apiData, false, args)
 	local chain = assembly.buildChain(leafMod)
-	apiData = enrichChain(chain, apiData, args)
-	return apiData, chain
+	local ctx = { apiData = apiData, args = args }
+	enrichChain(chain, ctx)
+	return ctx, chain
 end
 
 --- Primary entry point for sibling renderers. Fetches API data, resolves the
 --- type chain, and packages everything a renderer needs into a single table.
 ---
 --- @param args table Parsed wikitext args (use p.parseArgs to produce)
---- @return { args: table, kind: string, apiData: table, chain: table[], facets: table[], typeInfo: table|nil, displayType: string|nil, hasApiError: boolean, resolved: table, editorialData: table, hasManualApiData: boolean, unresolvedReference: boolean, matchedKind: table|nil, family: string|nil }
+--- @return { args: table, kind: string, apiData: table, chain: table[], facets: table[], typeInfo: table|nil, displayType: string|nil, hasApiError: boolean, resolved: table, editorialData: table, hasManualApiData: boolean, unresolvedReference: boolean, matchedKind: table|nil, family: string|nil, ctx: EntityHookContext }
 function p.get(args)
-	local apiData, chain, hasApiError, matchedKind = fetchApiData(args)
+	local ctx, chain, hasApiError, matchedKind = fetchApiData(args)
 
 	-- Editorial mode: with no genuine in-game record (no apiData.uuid — either no
 	-- record came back, or the API returned a stub the matched kind accepted), a
@@ -352,11 +353,11 @@ function p.get(args)
 	-- category (result.unresolvedReference) rather than silently masquerading as a
 	-- planned page.
 	local unresolvedReference = false
-	if not isGenuineRecord(apiData) then
+	if not isGenuineRecord(ctx.apiData) then
 		local editorialKind = resolveEditorialKind(args)
 		if editorialKind then
 			matchedKind = editorialKind
-			apiData, chain = runEditorialFork(editorialKind, args)
+			ctx, chain = runEditorialFork(editorialKind, args)
 			hasApiError = false
 			if args.uuid ~= nil and args.uuid ~= '' then
 				unresolvedReference = true
@@ -372,25 +373,26 @@ function p.get(args)
 	local family = leaf and leaf.family
 	local typeInfo, displayType
 	if leaf and leaf.getTypeInfo then
-		typeInfo = leaf.getTypeInfo(apiData, args)
+		typeInfo = assembly.callHook(leaf, 'getTypeInfo', ctx)
 		displayType = typeInfo and typeInfo.name
 	end
 	if not typeInfo then
-		typeInfo, displayType = typeResolver.resolve(args.type or apiData.type, apiData.classification)
+		typeInfo, displayType = typeResolver.resolve(args.type or ctx.apiData.type, ctx.apiData.classification)
 	end
 
 	local resolved, editorialData, hasManualApiData = {}, {}, false
 	local manifest = assembly.mergeEditorialManifests(chain)
 	if manifest then
-		resolved = editorial.resolve(apiData, args, manifest)
+		resolved = editorial.resolve(ctx.apiData, args, manifest)
 		editorialData = editorial.toStructuredData(resolved, manifest)
 		hasManualApiData = editorial.hasManualApiData(resolved)
 	end
+	ctx.resolved = resolved
 
 	-- Browse categories every chain link contributes (additive, root to leaf),
 	-- appended to typeInfo.categories. typeInfo may be a frozen typeResolver
 	-- result, so copy before appending.
-	local extra = assembly.collect(chain, 'getCategories', apiData, args, resolved)
+	local extra = assembly.collect(chain, 'getCategories', ctx)
 	if extra[1] ~= nil then
 		local copy = {}
 		for k, v in pairs(typeInfo or {}) do
@@ -408,12 +410,16 @@ function p.get(args)
 		displayType = displayType or copy.name
 	end
 
+	ctx.typeInfo = typeInfo
+	ctx.kind = kind
+	ctx.family = family
+
 	return {
 		args = args,
 		kind = kind,
-		apiData = apiData,
+		apiData = ctx.apiData,
 		chain = chain,
-		facets = detectFacets(apiData),
+		facets = detectFacets(ctx.apiData),
 		typeInfo = typeInfo,
 		displayType = displayType,
 		hasApiError = hasApiError,
@@ -423,6 +429,7 @@ function p.get(args)
 		unresolvedReference = unresolvedReference,
 		matchedKind = matchedKind,
 		family = family,
+		ctx = ctx,
 	}
 end
 

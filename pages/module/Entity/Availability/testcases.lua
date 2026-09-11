@@ -27,8 +27,8 @@ end
 
 -- acquisitionFor(): leaf-first over the chain, nothing for an unclaimed page
 
-local function stubResult(chain, matchedKind)
-	return { chain = chain, matchedKind = matchedKind, apiData = {} }
+local function stubResult(chain, matchedKind, args)
+	return { chain = chain, matchedKind = matchedKind, apiData = {}, ctx = { apiData = {}, args = args or {} } }
 end
 
 function suite:testAcquisitionForNilWhenNoKindClaimedThePage()
@@ -37,7 +37,7 @@ function suite:testAcquisitionForNilWhenNoKindClaimedThePage()
 			return { summary = {}, cards = {} }
 		end,
 	}
-	self:assertEquals(nil, Availability._internal.acquisitionFor(stubResult({ item }, nil), {}))
+	self:assertEquals(nil, Availability._internal.acquisitionFor(stubResult({ item }, nil)))
 end
 
 function suite:testAcquisitionForKindHook()
@@ -46,7 +46,7 @@ function suite:testAcquisitionForKindHook()
 			return { summary = { args.tag }, cards = {} }
 		end,
 	}
-	local a = Availability._internal.acquisitionFor(stubResult({ {}, kind }, kind), { tag = 'kind' })
+	local a = Availability._internal.acquisitionFor(stubResult({ {}, kind }, kind, { tag = 'kind' }))
 	self:assertEquals('kind', a.summary[1])
 end
 
@@ -61,7 +61,7 @@ function suite:testAcquisitionForLeafOverridesKind()
 			return { summary = { 'leaf' }, cards = {} }
 		end,
 	}
-	local a = Availability._internal.acquisitionFor(stubResult({ {}, kind, leaf }, kind), {})
+	local a = Availability._internal.acquisitionFor(stubResult({ {}, kind, leaf }, kind))
 	self:assertEquals('leaf', a.summary[1])
 end
 

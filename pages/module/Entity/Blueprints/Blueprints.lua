@@ -243,7 +243,7 @@ function p.main(frame)
 		args = { src = 'Module:Entity/Blueprints/styles.css' },
 	})
 
-	local payload = assembly.resolveMostSpecific(result.chain, 'getBlueprints', nil, result.apiData, args) or {}
+	local payload = assembly.resolveMostSpecific(result.chain, 'getBlueprints', nil, result.ctx) or {}
 	if type(payload.ingredient) == 'table' then
 		return styles .. renderUsedIn(payload.ingredient.name)
 	end

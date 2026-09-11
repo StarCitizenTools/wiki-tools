@@ -101,18 +101,59 @@ function p.buildChain(leafModule)
 	return reversed
 end
 
+--- Positional argument lists of the hooks a link not yet declaring
+--- `contextHooks` receives. Transitional: deleted once every link is migrated.
+local LEGACY_ARGS = {
+	enrich = { 'apiData', 'args' },
+	getTypeInfo = { 'apiData', 'args' },
+	getSections = { 'apiData', 'args', 'resolved' },
+	getStructuredData = { 'apiData', 'args', 'resolved' },
+	getShortDescription = { 'apiData', 'args', 'typeInfo', 'prefix', 'resolved' },
+	getShortDescriptionPrefix = { 'apiData', 'args' },
+	getExternalSiteItems = { 'apiData', 'args' },
+	getFooterButtons = { 'apiData', 'args' },
+	getMetadataItems = { 'apiData', 'args' },
+	getSubtitle = { 'apiData', 'args' },
+	getHeaderBadge = { 'apiData', 'args', 'resolved' },
+	getCategories = { 'apiData', 'args', 'resolved' },
+	getAcquisition = { 'apiData', 'args' },
+	getRelated = { 'apiData', 'args' },
+	getBlueprints = { 'apiData', 'args' },
+	getPorts = { 'apiData', 'args' },
+}
+
+--- Calls `mod[hookName]` with the hook context. The caller checks that the
+--- hook exists (a defined hook returning nil is a real answer for
+--- resolveMostSpecific).
+--- @param mod table A chain link or facet
+--- @param hookName string
+--- @param ctx EntityHookContext
+--- @return any
+function p.callHook(mod, hookName, ctx)
+	local hook = mod[hookName]
+	if mod.contextHooks then
+		return hook(ctx)
+	end
+	local names = LEGACY_ARGS[hookName]
+	assert(names, 'callHook: no LEGACY_ARGS entry for ' .. hookName)
+	local argv = {}
+	for i, name in ipairs(names) do
+		argv[i] = ctx[name]
+	end
+	return hook(unpack(argv, 1, #names))
+end
+
 --- Walks `chain` leaf-first (chain[#chain]..chain[1]); returns the first link's
 --- `hookName` result accepted by `accept`. nil when none qualifies. Pure.
 --- @param chain table[] Root-first chain (walked in reverse)
 --- @param hookName string
 --- @param accept nil|fun(result: any): boolean Default: any (first defining link wins, even on nil)
---- @param ... any Arguments forwarded to the hook
+--- @param ctx EntityHookContext
 --- @return any
-function p.resolveMostSpecific(chain, hookName, accept, ...)
+function p.resolveMostSpecific(chain, hookName, accept, ctx)
 	for i = #chain, 1, -1 do
-		local hook = chain[i][hookName]
-		if hook then
-			local result = hook(...)
+		if chain[i][hookName] then
+			local result = p.callHook(chain[i], hookName, ctx)
 			if accept == nil or accept(result) then
 				return result
 			end
@@ -134,14 +175,14 @@ end
 --- returning nil or a non-table, contributes nothing. Pure.
 --- @param chain table[] Root-first chain
 --- @param hookName string
---- @param ... any Arguments forwarded to the hook
+--- @param ctx EntityHookContext
 --- @return any[]
-function p.collect(chain, hookName, ...)
+function p.collect(chain, hookName, ctx)
 	local out = {}
 	for _, link in ipairs(chain) do
 		local hook = link[hookName]
 		if hook then
-			local items = hook(...)
+			local items = p.callHook(link, hookName, ctx)
 			if type(items) == 'table' then
 				for _, item in ipairs(items) do
 					out[#out + 1] = item

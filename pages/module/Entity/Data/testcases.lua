@@ -286,6 +286,96 @@ function suite:testGetExposesFamilyAndMatchedKind()
 	self:assertEquals(nil, r.matchedKind)
 end
 
+-- ctx nil rules and pipeline order (EntityHookContext's docstring contract):
+-- fields are filled in pipeline order, so a hook that runs early sees the
+-- later ones as nil. A contextHooks-flagged editorial kind is registered
+-- temporarily (registry.kinds has no injection seam otherwise; args.uuid is
+-- absent so the probe never iterates the real registry, making the insert
+-- safe) so its hooks can record the ctx they were actually called with.
+function suite:testHookContextNilRulesAndPipelineOrder()
+	local captured = {}
+	local stubKind = {
+		name = 'StubHookOrder',
+		editorialMode = true,
+		contextHooks = true,
+		family = 'stubfamily',
+		matches = function()
+			return false
+		end,
+		getApiConfigs = function()
+			return {}
+		end,
+		enrich = function(ctx)
+			captured.enrich = { resolved = ctx.resolved, typeInfo = ctx.typeInfo }
+			return ctx.apiData
+		end,
+		getTypeInfo = function(ctx)
+			captured.getTypeInfo = { resolved = ctx.resolved }
+			return { name = 'Stub type' }
+		end,
+		getCategories = function(ctx)
+			captured.getCategories = { resolved = ctx.resolved, typeInfo = ctx.typeInfo }
+			return {}
+		end,
+		-- Not called by Data.get itself (Infobox/Entity call these later,
+		-- leaf-first, through result.ctx) — invoked manually below to check the
+		-- fully-populated ctx they'd actually receive downstream.
+		getSections = function(ctx)
+			captured.getSections = { typeInfo = ctx.typeInfo, resolved = ctx.resolved }
+			return {}
+		end,
+		getStructuredData = function(ctx)
+			captured.getStructuredData = { typeInfo = ctx.typeInfo }
+			return {}
+		end,
+	}
+
+	local registry = require('Module:Entity/Registry')
+	table.insert(registry.kinds, stubKind)
+	local ok, err = pcall(function()
+		local result = Data.get({ kind = 'StubHookOrder' })
+
+		-- enrich runs before resolved/typeInfo exist on ctx at all.
+		self:assertEquals(nil, captured.enrich.resolved)
+		self:assertEquals(nil, captured.enrich.typeInfo)
+
+		-- getTypeInfo runs before the editorial-manifest resolve step.
+		self:assertEquals(nil, captured.getTypeInfo.resolved)
+
+		-- getCategories runs after resolved is set but before typeInfo is.
+		self:assertEquals('table', type(captured.getCategories.resolved))
+		self:assertEquals(nil, captured.getCategories.typeInfo)
+		-- collect's legacy 'resolved' slot (and the contextHooks ctx alike)
+		-- carries the SAME table p.get ultimately assigns to ctx.resolved.
+		self:assertEquals(result.ctx.resolved, captured.getCategories.resolved)
+		self:assertEquals(result.resolved, captured.getCategories.resolved)
+
+		-- typeInfo/kind/family are set on the context p.get returns.
+		self:assertEquals(result.typeInfo, result.ctx.typeInfo)
+		self:assertEquals('Stub type', result.ctx.typeInfo.name)
+		self:assertEquals('StubHookOrder', result.ctx.kind)
+		self:assertEquals('stubfamily', result.ctx.family)
+
+		-- Downstream hooks (Infobox/Entity, called after Data.get returns) see
+		-- the fully populated context.
+		assembly.callHook(stubKind, 'getSections', result.ctx)
+		assembly.callHook(stubKind, 'getStructuredData', result.ctx)
+		self:assertEquals('Stub type', captured.getSections.typeInfo.name)
+		self:assertEquals(result.ctx.resolved, captured.getSections.resolved)
+		self:assertEquals('Stub type', captured.getStructuredData.typeInfo.name)
+	end)
+
+	for i, mod in ipairs(registry.kinds) do
+		if mod == stubKind then
+			table.remove(registry.kinds, i)
+			break
+		end
+	end
+	if not ok then
+		error(err, 0)
+	end
+end
+
 -- runEditorialFork (the fork runs the rebuilt chain's enrich hooks)
 
 function suite:testRunEditorialForkCallsEnrichWithArgs()
@@ -299,16 +389,16 @@ function suite:testRunEditorialForkCallsEnrichWithArgs()
 		end,
 	}
 	local args = { kind = 'Stub', name = 'Terra system' }
-	local apiData, chain = helpers.runEditorialFork(stubKind, args)
-	self:assertEquals(true, apiData.marked)
+	local ctx, chain = helpers.runEditorialFork(stubKind, args)
+	self:assertEquals(true, ctx.apiData.marked)
 	self:assertEquals('Terra system', seenArgs.name)
 	self:assertEquals(stubKind, chain[#chain])
 end
 
 function suite:testRunEditorialForkWithoutEnrich()
 	local stubKind = { name = 'Stub' }
-	local apiData, chain = helpers.runEditorialFork(stubKind, { kind = 'Stub' })
-	self:assertEquals(nil, next(apiData))
+	local ctx, chain = helpers.runEditorialFork(stubKind, { kind = 'Stub' })
+	self:assertEquals(nil, next(ctx.apiData))
 	self:assertEquals(stubKind, chain[#chain])
 end
 
@@ -513,13 +603,14 @@ function suite:testBaseSuppliesSiblingPayloadDefaults()
 	local chain = assembly.buildChain(require('Module:Entity/Item'))
 	local apiData =
 		{ related_items = { set_items = {} }, blueprint = { { key = 'bp' } }, ports = { { name = 'hardpoint' } } }
-	local related = assembly.resolveMostSpecific(chain, 'getRelated', nil, apiData, {})
+	local ctx = { apiData = apiData, args = {} }
+	local related = assembly.resolveMostSpecific(chain, 'getRelated', nil, ctx)
 	self:assertEquals(apiData.related_items, related.items)
 	self:assertEquals(nil, related.cargo)
-	local blueprints = assembly.resolveMostSpecific(chain, 'getBlueprints', nil, apiData, {})
+	local blueprints = assembly.resolveMostSpecific(chain, 'getBlueprints', nil, ctx)
 	self:assertEquals(apiData.blueprint, blueprints.blueprints)
 	self:assertEquals(nil, blueprints.ingredient)
-	local ports = assembly.resolveMostSpecific(chain, 'getPorts', nil, apiData, {})
+	local ports = assembly.resolveMostSpecific(chain, 'getPorts', nil, ctx)
 	self:assertEquals(apiData.ports, ports.ports)
 	self:assertEquals(nil, ports.narrowChildren)
 end

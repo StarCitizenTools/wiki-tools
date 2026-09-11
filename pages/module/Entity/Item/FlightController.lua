@@ -16,6 +16,9 @@ local p = {}
 --- @type string
 p.parent = 'Entity/Item'
 
+-- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
+p.contextHooks = true
+
 --- Formats a base value with its boosted counterpart appended in parentheses:
 --- "226 (520) m/s". Drops the parenthetical when there is no boosted value, and
 --- returns nil when there is no base value so the row collapses.
@@ -37,10 +40,10 @@ local function baseBoost(base, boosted, unit)
 	return out .. ' ' .. unit
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table[] Ordered list of section entries with key field
-function p.getSections(apiData, args)
+function p.getSections(ctx)
+	local apiData = ctx.apiData
 	local fc = apiData.flight_controller
 	if type(fc) ~= 'table' then
 		return {}
@@ -63,10 +66,10 @@ function p.getSections(apiData, args)
 	}))
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table<string, any>
-function p.getStructuredData(apiData, args)
+function p.getStructuredData(ctx)
+	local apiData = ctx.apiData
 	local fc = apiData.flight_controller
 	if type(fc) ~= 'table' then
 		return {}

@@ -11,11 +11,11 @@ local suite = ScribuntoUnit:new()
 -- size-prefixed short description and its type resolution.
 
 function suite:testShortDescription()
-	local desc = MiningModule.getShortDescription(
-		{ size = 1 },
-		{ manufacturer = 'Musashi Industrial and Starflight Concern' },
-		{ name = 'Mining module' }
-	)
+	local desc = MiningModule.getShortDescription({
+		apiData = { size = 1 },
+		args = { manufacturer = 'Musashi Industrial and Starflight Concern' },
+		typeInfo = { name = 'Mining module' },
+	})
 	-- formatShortDescription uses the manufacturer's short form (MISC for Musashi).
 	self:assertEquals('S1 mining module by MISC', desc)
 end

@@ -6,8 +6,13 @@ local Item = require('Module:Entity/Item')
 
 local suite = ScribuntoUnit:new()
 
+--- Hook context for direct hook calls (Module:Entity/Types EntityHookContext).
+local function ctx(apiData, args, resolved)
+	return { apiData = apiData, args = args or {}, resolved = resolved }
+end
+
 local function info(sub)
-	return WeaponAttachment.getTypeInfo({ sub_type = sub }, {})
+	return WeaponAttachment.getTypeInfo(ctx({ sub_type = sub }, {}))
 end
 
 function suite:testGetTypeInfo()
@@ -22,7 +27,7 @@ end
 -- An unrecognized sub_type falls back to the generic types.json mapping.
 function suite:testUnknownSubType()
 	self:assertEquals(nil, info('Sparkle'))
-	self:assertEquals(nil, WeaponAttachment.getTypeInfo({}, {}))
+	self:assertEquals(nil, WeaponAttachment.getTypeInfo(ctx({}, {})))
 end
 
 function suite:testResolveSubtype()

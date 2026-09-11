@@ -18,6 +18,9 @@ local p = {}
 --- @type string
 p.parent = 'Entity/Item'
 
+-- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
+p.contextHooks = true
+
 --- Coerces a value to a number, tolerating the API's occasional string forms
 --- (e.g. "1850", or a percent like "-80%"). Returns nil for non-numeric input.
 ---
@@ -44,10 +47,10 @@ local function formatStat(value, suffix)
 	return format.formatNum(n) .. (suffix or '')
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table[] Ordered list of section entries with key field
-function p.getSections(apiData, args)
+function p.getSections(ctx)
+	local apiData = ctx.apiData
 	local ml = apiData.mining_laser
 	if type(ml) ~= 'table' then
 		return {}
@@ -82,12 +85,10 @@ end
 --- Short description prepends the mount size — "S1 mining laser head by Greycat
 --- Industrial" — mirroring the other component descriptors.
 ---
---- @param apiData table
---- @param args table
---- @param typeInfo table
---- @param prefix string|nil
+--- @param ctx EntityHookContext
 --- @return string
-function p.getShortDescription(apiData, args, typeInfo, prefix)
+function p.getShortDescription(ctx)
+	local apiData, args, typeInfo, prefix = ctx.apiData, ctx.args, ctx.typeInfo, ctx.prefix
 	local typeName = typeInfo.name
 	if apiData.size then
 		typeName = 'S' .. tostring(apiData.size) .. ' ' .. typeName:lower()
@@ -100,10 +101,10 @@ end
 --- built-in `modifier_map` effect as a numeric `Modifier <effect>` property (the
 --- same naming the modules use, so heads and modules compare on equal terms).
 ---
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table<string, any>
-function p.getStructuredData(apiData, args)
+function p.getStructuredData(ctx)
+	local apiData = ctx.apiData
 	local ml = apiData.mining_laser
 	if type(ml) ~= 'table' then
 		return {}

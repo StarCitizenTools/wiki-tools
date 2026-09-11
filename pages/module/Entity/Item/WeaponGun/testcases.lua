@@ -6,6 +6,11 @@ local Item = require('Module:Entity/Item')
 
 local suite = ScribuntoUnit:new()
 
+--- Hook context for direct hook calls (Module:Entity/Types EntityHookContext).
+local function ctx(apiData, args, resolved)
+	return { apiData = apiData, args = args or {}, resolved = resolved }
+end
+
 -- Attrition-3 Repeater shape (energy weapon, capacity 0, one mode).
 local function fixture()
 	return {
@@ -115,14 +120,14 @@ function suite:testFormatsLargeNumbersWithSeparator()
 end
 
 function suite:testGetSectionsForwardsToVehicleWeapon()
-	local result = WeaponGun.getSections({ vehicle_weapon = fixture() }, {})
+	local result = WeaponGun.getSections(ctx({ vehicle_weapon = fixture() }, {}))
 	self:assertNotEquals(nil, findSection(result, 'vehicle_weapon'))
 end
 
 -- getStructuredData()
 
 function suite:testStructuredData()
-	local result = WeaponGun.getStructuredData({ vehicle_weapon = fixture() })
+	local result = WeaponGun.getStructuredData(ctx({ vehicle_weapon = fixture() }))
 	self:assertEquals(501.7, result.dps)
 	self:assertEquals(86, result.alpha_damage)
 	self:assertEquals(1924, result.max_range)
@@ -131,36 +136,36 @@ function suite:testStructuredData()
 end
 
 function suite:testStructuredDataNilSafe()
-	self:assertEquals('table', type(WeaponGun.getStructuredData({})))
+	self:assertEquals('table', type(WeaponGun.getStructuredData(ctx({}))))
 end
 
 function suite:testStructuredDataIncludesWeaponClass()
-	local result = WeaponGun.getStructuredData({
+	local result = WeaponGun.getStructuredData(ctx({
 		class_name = 'KBAR_BallisticCannon_S2',
 		vehicle_weapon = { type = 'Ballistic Cannon', damage = {}, ammunition = {} },
-	})
+	}))
 	self:assertEquals('Ballistic', result.damage_type)
 	self:assertEquals('Cannon', result.firing_type)
 end
 
 function suite:testStructuredDataAmmoWhenPositive()
-	local result = WeaponGun.getStructuredData({
+	local result = WeaponGun.getStructuredData(ctx({
 		vehicle_weapon = { capacity = 492, damage = {}, ammunition = {} },
-	})
+	}))
 	self:assertEquals(492, result.ammo)
 end
 
 function suite:testStructuredDataNoAmmoWhenZero()
-	local result = WeaponGun.getStructuredData({
+	local result = WeaponGun.getStructuredData(ctx({
 		vehicle_weapon = { capacity = 0, damage = {}, ammunition = {} },
-	})
+	}))
 	self:assertEquals(nil, result.ammo)
 end
 
 function suite:testStructuredDataAmmoStringCapacity()
-	local result = WeaponGun.getStructuredData({
+	local result = WeaponGun.getStructuredData(ctx({
 		vehicle_weapon = { capacity = '492', damage = {}, ammunition = {} },
-	})
+	}))
 	self:assertEquals(492, result.ammo)
 end
 
@@ -241,43 +246,39 @@ end
 -- getShortDescription()
 
 function suite:testShortDescriptionUsesSizeAndClass()
-	local desc = WeaponGun.getShortDescription(
-		{ class_name = 'KBAR_BallisticCannon_S2', size = 2, vehicle_weapon = { type = 'Ballistic Cannon' } },
-		{},
-		{ name = 'Gun' },
-		nil
-	)
+	local desc = WeaponGun.getShortDescription({
+		apiData = { class_name = 'KBAR_BallisticCannon_S2', size = 2, vehicle_weapon = { type = 'Ballistic Cannon' } },
+		args = {},
+		typeInfo = { name = 'Gun' },
+	})
 	self:assertEquals('S2 Ballistic cannon', desc)
 end
 
 function suite:testShortDescriptionLaserRepeater()
-	local desc = WeaponGun.getShortDescription(
-		{ class_name = 'VNCL_LaserCannon_S1', size = 1, vehicle_weapon = { type = 'Laser Repeater' } },
-		{},
-		{ name = 'Gun' },
-		nil
-	)
+	local desc = WeaponGun.getShortDescription({
+		apiData = { class_name = 'VNCL_LaserCannon_S1', size = 1, vehicle_weapon = { type = 'Laser Repeater' } },
+		args = {},
+		typeInfo = { name = 'Gun' },
+	})
 	self:assertEquals('S1 Laser repeater', desc)
 end
 
 function suite:testShortDescriptionFallsBackWhenUnparsed()
 	-- rocket pod: no parsed class -> family type name, still size-prefixed
-	local desc = WeaponGun.getShortDescription(
-		{ class_name = 'APAR_RocketPod_S3', size = 3, vehicle_weapon = { type = 'Rocket Pod' } },
-		{},
-		{ name = 'Rocket pod' },
-		nil
-	)
+	local desc = WeaponGun.getShortDescription({
+		apiData = { class_name = 'APAR_RocketPod_S3', size = 3, vehicle_weapon = { type = 'Rocket Pod' } },
+		args = {},
+		typeInfo = { name = 'Rocket pod' },
+	})
 	self:assertEquals('S3 Rocket pod', desc)
 end
 
 function suite:testShortDescriptionNoSizeOmitsPrefix()
-	local desc = WeaponGun.getShortDescription(
-		{ class_name = 'APAR_RocketPod', vehicle_weapon = { type = 'Rocket Pod' } },
-		{},
-		{ name = 'Rocket pod' },
-		nil
-	)
+	local desc = WeaponGun.getShortDescription({
+		apiData = { class_name = 'APAR_RocketPod', vehicle_weapon = { type = 'Rocket Pod' } },
+		args = {},
+		typeInfo = { name = 'Rocket pod' },
+	})
 	self:assertEquals('Rocket pod', desc)
 end
 

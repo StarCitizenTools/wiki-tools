@@ -15,6 +15,9 @@ local p = {}
 --- @type string
 p.parent = 'Entity/Item'
 
+-- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
+p.contextHooks = true
+
 --- Builds the Turret stats section from `apiData.turret`: mount count and
 --- yaw/pitch traverse speeds (when the API reports them; many turrets leave
 --- the axis speeds null). Returns nil when no row has a value so the section
@@ -71,10 +74,10 @@ end
 --- the Weapon section (rendered by the shared WeaponGun builder). The
 --- Entity chain appends these after Item's General section.
 ---
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return EntitySectionEntry[]
-function p.getSections(apiData, args)
+function p.getSections(ctx)
+	local apiData = ctx.apiData
 	local sections = {}
 	local turretSection = buildTurretSection(apiData.turret)
 	if turretSection then
@@ -98,10 +101,10 @@ end
 --- coverage is more honest. Standalone gimbal mounts (VariPuck etc.) populate
 --- these directly.
 ---
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table<string, any>
-function p.getStructuredData(apiData, args)
+function p.getStructuredData(ctx)
+	local apiData = ctx.apiData
 	local turret = apiData.turret
 	local yawAxis = type(turret) == 'table' and turret.yaw_axis or nil
 	local pitchAxis = type(turret) == 'table' and turret.pitch_axis or nil

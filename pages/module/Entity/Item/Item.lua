@@ -19,6 +19,9 @@ p.name = 'Item'
 --- @type string
 p.parent = 'Entity/Base'
 
+-- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
+p.contextHooks = true
+
 --- Maps API type strings to item subtype module paths. Lives in Item
 --- (not in Data.lua) because subtype dispatch is an item-internal
 --- concern — Data.lua only needs to know "ask the kind to resolve its
@@ -210,10 +213,10 @@ local function getVolume(apiData)
 	return nil
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table[] Ordered list of section entries with key field
-function p.getSections(apiData, args)
+function p.getSections(ctx)
+	local apiData, args = ctx.apiData, ctx.args
 	local manufacturer = base.resolveManufacturer(apiData, args)
 	local manufacturerLink = nil
 	if manufacturer then
@@ -270,12 +273,10 @@ end
 --- a matching facet (e.g. the consumable facet's effects adjective) and composed
 --- by formatShortDescription.
 ---
---- @param apiData table
---- @param args table
---- @param typeInfo table
---- @param prefix string|nil
+--- @param ctx EntityHookContext
 --- @return string
-function p.getShortDescription(apiData, args, typeInfo, prefix)
+function p.getShortDescription(ctx)
+	local apiData, args, typeInfo, prefix = ctx.apiData, ctx.args, ctx.typeInfo, ctx.prefix
 	return p.formatGradedShortDescription(typeInfo, apiData, args)
 		or p.formatShortDescription(typeInfo, apiData, args, prefix)
 end
@@ -302,10 +303,10 @@ end
 --- category is classification-driven (Module:Entity/Data.resolveClassification →
 --- classifications.json).
 ---
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table<string, any>
-function p.getStructuredData(apiData, args)
+function p.getStructuredData(ctx)
+	local apiData = ctx.apiData
 	return {
 		size = apiData.size,
 		grade = apiData.grade,
@@ -317,10 +318,10 @@ function p.getStructuredData(apiData, args)
 	}
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return EntityItemData[] External site items contributed by this module
-function p.getExternalSiteItems(apiData, args)
+function p.getExternalSiteItems(ctx)
+	local apiData, args = ctx.apiData, ctx.args
 	local siteDefs = mw.loadJsonData('Module:Entity/Item/communitySites.json')
 	local links = format.buildSiteLinks(siteDefs, {
 		uuid = args.uuid,
@@ -335,10 +336,10 @@ end
 --- Acquisition data for {{Entity/Availability}}: Buy/Loot/Craft/Pledge summary
 --- flags (+ Rent only when the editor sets it — items aren't structurally
 --- rentable) and a single Shops terminal card from uex_prices.purchase.
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return { summary: table[], cards: table[] }
-function p.getAcquisition(apiData, args)
+function p.getAcquisition(ctx)
+	local apiData, args = ctx.apiData, ctx.args
 	local prices = type(apiData.uex_prices) == 'table' and apiData.uex_prices or {}
 	local purchase = type(prices.purchase) == 'table' and prices.purchase or {}
 

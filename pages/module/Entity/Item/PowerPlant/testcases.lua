@@ -6,6 +6,11 @@ local Item = require('Module:Entity/Item')
 
 local suite = ScribuntoUnit:new()
 
+--- Hook context for direct hook calls (Module:Entity/Types EntityHookContext).
+local function ctx(apiData, args, resolved)
+	return { apiData = apiData, args = args or {}, resolved = resolved }
+end
+
 local function findItem(items, label)
 	for _, it in ipairs(items or {}) do
 		if it.label == label then
@@ -16,7 +21,7 @@ local function findItem(items, label)
 end
 
 function suite:testPowerGenerationRow()
-	local sections = PowerPlant.getSections({ power_plant = { power_segment_generation = 20 } }, {})
+	local sections = PowerPlant.getSections(ctx({ power_plant = { power_segment_generation = 20 } }, {}))
 	self:assertEquals(1, #sections)
 	self:assertEquals('power_plant', sections[1].key)
 	self:assertEquals('20', findItem(sections[1].items, 'Power').content)
@@ -24,19 +29,17 @@ function suite:testPowerGenerationRow()
 end
 
 function suite:testPowerOutputShownWhenPresent()
-	local sections = PowerPlant.getSections(
-		{ power_plant = { power_output = 1500, power_segment_generation = 20 } },
-		{}
-	)
+	local sections =
+		PowerPlant.getSections(ctx({ power_plant = { power_output = 1500, power_segment_generation = 20 } }, {}))
 	self:assertEquals('1,500', findItem(sections[1].items, 'Power output').content)
 end
 
 function suite:testEmptyWhenNoBlock()
-	self:assertEquals(0, #PowerPlant.getSections({}, {}))
+	self:assertEquals(0, #PowerPlant.getSections(ctx({}, {})))
 end
 
 function suite:testStructuredData()
-	local data = PowerPlant.getStructuredData({ power_plant = { power_segment_generation = 20 } })
+	local data = PowerPlant.getStructuredData(ctx({ power_plant = { power_segment_generation = 20 } }))
 	self:assertEquals(20, data.power_generation)
 end
 

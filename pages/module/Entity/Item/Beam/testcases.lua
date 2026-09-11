@@ -22,11 +22,11 @@ local function tractorData()
 end
 
 function suite:testShortDescription()
-	local desc = Beam.getShortDescription(
-		tractorData(),
-		{ manufacturer = 'Greycat Industrial' },
-		{ name = 'Tractor beam' }
-	)
+	local desc = Beam.getShortDescription({
+		apiData = tractorData(),
+		args = { manufacturer = 'Greycat Industrial' },
+		typeInfo = { name = 'Tractor beam' },
+	})
 	-- formatShortDescription uses the manufacturer's short form (Greycat for GRIN).
 	self:assertEquals('S1 tractor beam by Greycat', desc)
 end

@@ -15,6 +15,9 @@ local p = {}
 --- @type string
 p.parent = 'Entity/Item'
 
+-- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
+p.contextHooks = true
+
 --- Quantum speed as a display string. Prefers the API's preformatted value
 --- (e.g. "231 Mm/s"); falls back to converting the raw m/s drive speed to Mm/s,
 --- the unit the game and community use.
@@ -32,10 +35,10 @@ local function speedDisplay(jump)
 	return nil
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table[] Ordered list of section entries with key field
-function p.getSections(apiData, args)
+function p.getSections(ctx)
+	local apiData = ctx.apiData
 	local qd = apiData.quantum_drive
 	if type(qd) ~= 'table' then
 		return {}
@@ -62,10 +65,10 @@ function p.getSections(apiData, args)
 	}))
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table<string, any>
-function p.getStructuredData(apiData, args)
+function p.getStructuredData(ctx)
+	local apiData = ctx.apiData
 	local qd = apiData.quantum_drive
 	if type(qd) ~= 'table' then
 		return {}

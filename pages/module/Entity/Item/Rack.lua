@@ -18,6 +18,9 @@ local p = {}
 --- @type string
 p.parent = 'Entity/Item'
 
+-- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
+p.contextHooks = true
+
 --- Resolves the rack's (ordnance count, ordnance size) from whichever shape the
 --- API uses for this launcher kind. Returns nil count when neither is present.
 ---
@@ -34,10 +37,10 @@ local function capacity(apiData)
 	return nil, nil
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table[] Ordered list of section entries with key field
-function p.getSections(apiData, args)
+function p.getSections(ctx)
+	local apiData = ctx.apiData
 	local count, size = capacity(apiData)
 	if count == nil then
 		return {}
@@ -59,12 +62,10 @@ end
 --- Short description prepends the mount size — "S1 missile rack by Behring" —
 --- mirroring the other ordnance descriptors. Size is omitted only when absent.
 ---
---- @param apiData table
---- @param args table
---- @param typeInfo table
---- @param prefix string|nil
+--- @param ctx EntityHookContext
 --- @return string
-function p.getShortDescription(apiData, args, typeInfo, prefix)
+function p.getShortDescription(ctx)
+	local apiData, args, typeInfo, prefix = ctx.apiData, ctx.args, ctx.typeInfo, ctx.prefix
 	local typeName = typeInfo.name
 	if apiData.size then
 		typeName = 'S' .. tostring(apiData.size) .. ' ' .. typeName:lower()
@@ -72,10 +73,10 @@ function p.getShortDescription(apiData, args, typeInfo, prefix)
 	return item.formatShortDescription({ name = typeName }, apiData, args, prefix)
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table<string, any>
-function p.getStructuredData(apiData, args)
+function p.getStructuredData(ctx)
+	local apiData = ctx.apiData
 	local count, size = capacity(apiData)
 	if count == nil then
 		return {}

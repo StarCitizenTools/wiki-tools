@@ -6,6 +6,11 @@ local Item = require('Module:Entity/Item')
 
 local suite = ScribuntoUnit:new()
 
+--- Hook context for direct hook calls (Module:Entity/Types EntityHookContext).
+local function ctx(apiData, args, resolved)
+	return { apiData = apiData, args = args or {}, resolved = resolved }
+end
+
 local function findItem(items, label)
 	for _, it in ipairs(items or {}) do
 		if it.label == label then
@@ -35,7 +40,7 @@ local function sampleData()
 end
 
 function suite:testMissileRows()
-	local sections = Missile.getSections(sampleData(), {})
+	local sections = Missile.getSections(ctx(sampleData(), {}))
 	self:assertEquals(1, #sections)
 	self:assertEquals('missile', sections[1].key)
 	self:assertEquals('Infrared', findItem(sections[1].items, 'Signal type').content)
@@ -50,9 +55,9 @@ end
 
 -- Equal explosion bounds collapse to a single value, not a "5–5 m" range.
 function suite:testEqualRangeCollapses()
-	local sections = Missile.getSections({
+	local sections = Missile.getSections(ctx({
 		missile = { signal_type = 'Cross Section', explosion_radius_min = 5, explosion_radius_max = 5 },
-	}, {})
+	}, {}))
 	self:assertEquals('5 m', findItem(sections[1].items, 'Explosion radius').content)
 end
 
@@ -60,44 +65,52 @@ end
 -- display, the facet, and the short description.
 function suite:testCrossSectionNormalized()
 	local api = { size = 3, missile = { signal_type = 'CrossSection', damage_total = 3200 } }
-	local sections = Missile.getSections(api, {})
+	local sections = Missile.getSections(ctx(api, {}))
 	self:assertEquals('Cross Section', findItem(sections[1].items, 'Signal type').content)
-	self:assertEquals('Cross Section', Missile.getStructuredData(api).signal_type)
+	self:assertEquals('Cross Section', Missile.getStructuredData(ctx(api)).signal_type)
 	self:assertEquals(
 		'S3 cross section missile by Firestorm Kinetics',
-		Missile.getShortDescription(api, { manufacturer = 'Firestorm Kinetics' }, { name = 'Missile' })
+		Missile.getShortDescription({
+			apiData = api,
+			args = { manufacturer = 'Firestorm Kinetics' },
+			typeInfo = { name = 'Missile' },
+		})
 	)
 end
 
 function suite:testEmptyWhenNoBlock()
-	self:assertEquals(0, #Missile.getSections({}, {}))
+	self:assertEquals(0, #Missile.getSections(ctx({}, {})))
 end
 
 -- Torpedoes share the missile block (sub_type "Torpedo") and relabel the section.
 function suite:testTorpedoSectionLabel()
 	local missile = sampleData().missile
-	self:assertEquals('Torpedo', Missile.getSections({ sub_type = 'Torpedo', missile = missile }, {})[1].label)
-	self:assertEquals('Missile', Missile.getSections({ missile = missile }, {})[1].label)
+	self:assertEquals('Torpedo', Missile.getSections(ctx({ sub_type = 'Torpedo', missile = missile }, {}))[1].label)
+	self:assertEquals('Missile', Missile.getSections(ctx({ missile = missile }, {}))[1].label)
 end
 
 -- Short description surfaces the signal type gun-style: "S1 infrared missile by X".
 function suite:testShortDescriptionUsesSignalType()
-	local desc = Missile.getShortDescription(sampleData(), { manufacturer = 'Behring' }, { name = 'Missile' })
+	local desc = Missile.getShortDescription({
+		apiData = sampleData(),
+		args = { manufacturer = 'Behring' },
+		typeInfo = { name = 'Missile' },
+	})
 	self:assertEquals('S1 infrared missile by Behring', desc)
 end
 
 -- No signal type (dumbfire / unknown) falls back to the plain type name.
 function suite:testShortDescriptionFallsBack()
-	local desc = Missile.getShortDescription(
-		{ size = 2, missile = {} },
-		{ manufacturer = 'Behring' },
-		{ name = 'Missile' }
-	)
+	local desc = Missile.getShortDescription({
+		apiData = { size = 2, missile = {} },
+		args = { manufacturer = 'Behring' },
+		typeInfo = { name = 'Missile' },
+	})
 	self:assertEquals('S2 missile by Behring', desc)
 end
 
 function suite:testStructuredData()
-	local data = Missile.getStructuredData(sampleData())
+	local data = Missile.getStructuredData(ctx(sampleData()))
 	self:assertEquals('Infrared', data.signal_type)
 	self:assertEquals(650, data.warhead_damage)
 	self:assertEquals(5, data.explosion_radius)

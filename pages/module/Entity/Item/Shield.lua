@@ -15,6 +15,9 @@ local p = {}
 --- @type string
 p.parent = 'Entity/Item'
 
+-- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
+p.contextHooks = true
+
 -- Damage types shown in the absorption / resistance rows, in a stable order.
 local DAMAGE_ORDER = { 'physical', 'energy', 'thermal', 'distortion', 'biochemical', 'stun' }
 local DAMAGE_LABEL = {
@@ -58,10 +61,10 @@ local function formatDamageMap(map, keep)
 	return table.concat(parts, ' · ')
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table[] Ordered list of section entries with key field
-function p.getSections(apiData, args)
+function p.getSections(ctx)
+	local apiData = ctx.apiData
 	local shield = apiData.shield
 	if type(shield) ~= 'table' then
 		return {}
@@ -104,10 +107,10 @@ function p.getSections(apiData, args)
 	}))
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table<string, any>
-function p.getStructuredData(apiData, args)
+function p.getStructuredData(ctx)
+	local apiData = ctx.apiData
 	local shield = apiData.shield
 	if type(shield) ~= 'table' then
 		return {}

@@ -6,6 +6,11 @@ local Item = require('Module:Entity/Item')
 
 local suite = ScribuntoUnit:new()
 
+--- Hook context for direct hook calls (Module:Entity/Types EntityHookContext).
+local function ctx(apiData, args, resolved)
+	return { apiData = apiData, args = args or {}, resolved = resolved }
+end
+
 local function findItem(items, label)
 	for _, it in ipairs(items or {}) do
 		if it.label == label then
@@ -17,12 +22,12 @@ end
 
 -- A QED: snare (radius > 1) + dampener (jamming range).
 function suite:testQedRows()
-	local sections = QIG.getSections({
+	local sections = QIG.getSections(ctx({
 		quantum_interdiction_generator = {
 			jamming = { range = 12000 },
 			pulse = { radius = 20000, charge_time = 90, discharge_time = 30, cooldown_time = 1 },
 		},
-	}, {})
+	}, {}))
 	self:assertEquals(1, #sections)
 	self:assertEquals('quantum_interdiction_generator', sections[1].key)
 	self:assertEquals('Snare + dampener', findItem(sections[1].items, 'Mode').content)
@@ -35,12 +40,12 @@ end
 
 -- A QDMP: dampener only (snare radius is the placeholder 1).
 function suite:testQdmpHasNoSnareRange()
-	local sections = QIG.getSections({
+	local sections = QIG.getSections(ctx({
 		quantum_interdiction_generator = {
 			jamming = { range = 4000 },
 			pulse = { radius = 1, charge_time = 90, discharge_time = 30, cooldown_time = 1 },
 		},
-	}, {})
+	}, {}))
 	self:assertEquals('Dampener', findItem(sections[1].items, 'Mode').content)
 	self:assertEquals(nil, findItem(sections[1].items, 'Snare range'))
 	self:assertEquals('4,000 m', findItem(sections[1].items, 'Dampener range').content)
@@ -54,16 +59,16 @@ function suite:testDeviceClass()
 end
 
 function suite:testEmptyWhenNoBlock()
-	self:assertEquals(0, #QIG.getSections({}, {}))
+	self:assertEquals(0, #QIG.getSections(ctx({}, {})))
 end
 
 function suite:testStructuredData()
-	local data = QIG.getStructuredData({
+	local data = QIG.getStructuredData(ctx({
 		quantum_interdiction_generator = {
 			jamming = { range = 12000 },
 			pulse = { radius = 20000, charge_time = 90, discharge_time = 30, cooldown_time = 1 },
 		},
-	})
+	}))
 	self:assertEquals('QED', data.qig_mode)
 	self:assertEquals(20000, data.qig_snare_range)
 	self:assertEquals(12000, data.qig_dampener_range)
@@ -78,21 +83,29 @@ end
 -- specific weapon type, not the umbrella "quantum interdiction generator".
 function suite:testShortDescriptionQdmp()
 	local desc = QIG.getShortDescription({
-		size = 3,
-		class = 'Military',
-		grade = 'A',
-		quantum_interdiction_generator = { jamming = { range = 4500 }, pulse = { radius = 1 } },
-	}, { manufacturer = 'Wei-Tek' }, { name = 'Quantum interdiction generator' })
+		apiData = {
+			size = 3,
+			class = 'Military',
+			grade = 'A',
+			quantum_interdiction_generator = { jamming = { range = 4500 }, pulse = { radius = 1 } },
+		},
+		args = { manufacturer = 'Wei-Tek' },
+		typeInfo = { name = 'Quantum interdiction generator' },
+	})
 	self:assertEquals('S3 Gr. A military quantum dampener by Wei-Tek', desc)
 end
 
 function suite:testShortDescriptionQed()
 	local desc = QIG.getShortDescription({
-		size = 1,
-		class = 'Military',
-		grade = 'A',
-		quantum_interdiction_generator = { jamming = { range = 12000 }, pulse = { radius = 20000 } },
-	}, { manufacturer = 'Wei-Tek' }, { name = 'Quantum interdiction generator' })
+		apiData = {
+			size = 1,
+			class = 'Military',
+			grade = 'A',
+			quantum_interdiction_generator = { jamming = { range = 12000 }, pulse = { radius = 20000 } },
+		},
+		args = { manufacturer = 'Wei-Tek' },
+		typeInfo = { name = 'Quantum interdiction generator' },
+	})
 	self:assertEquals('S1 Gr. A military quantum enforcement device by Wei-Tek', desc)
 end
 

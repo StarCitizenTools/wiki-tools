@@ -13,6 +13,9 @@ local p = {}
 --- @type string
 p.parent = 'Entity/Item'
 
+-- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
+p.contextHooks = true
+
 --- @type table<string, { name: string, category: string }>
 local subTypeInfo = {
 	Medical = { name = 'Medical consumable', category = 'Medical consumables' },
@@ -24,10 +27,10 @@ local subTypeInfo = {
 --- Routes each FPS_Consumable sub_type to its display name + browse category.
 --- Returns nil for an unknown sub_type so the generic types.json mapping applies.
 ---
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return { name: string, category: string }|nil
-function p.getTypeInfo(apiData, args)
+function p.getTypeInfo(ctx)
+	local apiData = ctx.apiData
 	local sub = apiData and apiData.sub_type
 	return sub and subTypeInfo[sub] or nil
 end

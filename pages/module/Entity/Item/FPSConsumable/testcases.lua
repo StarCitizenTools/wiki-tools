@@ -6,8 +6,13 @@ local Item = require('Module:Entity/Item')
 
 local suite = ScribuntoUnit:new()
 
+--- Hook context for direct hook calls (Module:Entity/Types EntityHookContext).
+local function ctx(apiData, args, resolved)
+	return { apiData = apiData, args = args or {}, resolved = resolved }
+end
+
 local function info(sub)
-	return FPSConsumable.getTypeInfo({ sub_type = sub }, {})
+	return FPSConsumable.getTypeInfo(ctx({ sub_type = sub }, {}))
 end
 
 function suite:testMedicalSubTypes()
@@ -26,7 +31,7 @@ end
 -- An unrecognized sub_type falls back to the generic types.json mapping.
 function suite:testUnknownSubType()
 	self:assertEquals(nil, info('Sparkle'))
-	self:assertEquals(nil, FPSConsumable.getTypeInfo({}, {}))
+	self:assertEquals(nil, FPSConsumable.getTypeInfo(ctx({}, {})))
 end
 
 function suite:testResolveSubtype()

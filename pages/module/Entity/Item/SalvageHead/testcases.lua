@@ -6,6 +6,11 @@ local Item = require('Module:Entity/Item')
 
 local suite = ScribuntoUnit:new()
 
+--- Hook context for direct hook calls (Module:Entity/Types EntityHookContext).
+local function ctx(apiData, args, resolved)
+	return { apiData = apiData, args = args or {}, resolved = resolved }
+end
+
 local function findItem(items, label)
 	for _, it in ipairs(items or {}) do
 		if it.label == label then
@@ -45,7 +50,7 @@ end
 -- Module:Entity/Facet/Salvage data-driven facet, which renders below via the
 -- section-merge chain. Both share the 'salvage' section key.
 function suite:testRows()
-	local sections = SalvageHead.getSections(balerData(), {})
+	local sections = SalvageHead.getSections(ctx(balerData(), {}))
 	self:assertEquals(1, #sections)
 	self:assertEquals('salvage', sections[1].key)
 	self:assertEquals('Salvage', sections[1].label)
@@ -58,31 +63,31 @@ end
 -- The FPS salvage tool shares the mode shape under personal_weapon; the head
 -- only reads vehicle_weapon, so a record with no vehicle_weapon yields nothing.
 function suite:testEmptyWhenNoWeapon()
-	self:assertEquals(0, #SalvageHead.getSections({}, {}))
+	self:assertEquals(0, #SalvageHead.getSections(ctx({}, {})))
 end
 
 -- A head whose modes lack a Salvage mode still shows range, no mode rows.
 function suite:testRangeOnly()
-	local sections = SalvageHead.getSections({
+	local sections = SalvageHead.getSections(ctx({
 		vehicle_weapon = { range = 120, modes = { { mode = 'TractorBeam', type = 'tractorbeam' } } },
-	}, {})
+	}, {}))
 	self:assertEquals('120 m', findItem(sections[1].items, 'Range').content)
 	self:assertEquals(nil, findItem(sections[1].items, 'Material efficiency'))
 end
 
 function suite:testShortDescription()
-	local desc = SalvageHead.getShortDescription(
-		balerData(),
-		{ manufacturer = 'Greycat Industrial' },
-		{ name = 'Salvage head' }
-	)
+	local desc = SalvageHead.getShortDescription({
+		apiData = balerData(),
+		args = { manufacturer = 'Greycat Industrial' },
+		typeInfo = { name = 'Salvage head' },
+	})
 	self:assertEquals('S2 salvage head by Greycat', desc)
 end
 
 -- getStructuredData emits only beam_range from the subtype; the Salvage facet
 -- stores material_efficiency, repair rates, and ramp times.
 function suite:testStructuredData()
-	local data = SalvageHead.getStructuredData(balerData())
+	local data = SalvageHead.getStructuredData(ctx(balerData()))
 	self:assertEquals(150, data.beam_range)
 	-- Facet-owned fields are not present on the subtype's structured data.
 	self:assertEquals(nil, data.material_efficiency)

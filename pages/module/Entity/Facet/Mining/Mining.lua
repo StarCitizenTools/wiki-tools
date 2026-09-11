@@ -14,6 +14,9 @@ local Util = require('Module:Entity/Facet/Util')
 
 local p = {}
 
+-- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
+p.contextHooks = true
+
 --- Coerces a modifier value to a number, tolerating the API's occasional
 --- string-with-percent form ("-80%" instead of -80). Returns nil for input that
 --- isn't numeric even after stripping a trailing percent sign.
@@ -245,10 +248,10 @@ function p.matches(apiData)
 	return apiData ~= nil and type(apiData.mining_modifier) == 'table'
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table[] Ordered list of section entries with key field
-function p.getSections(apiData, args)
+function p.getSections(ctx)
+	local apiData = ctx.apiData
 	local m = apiData.mining_modifier
 	if type(m) ~= 'table' then
 		return {}
@@ -283,10 +286,10 @@ end
 --- queryable without code changes, and the `Modifier <effect>` naming reuses the
 --- legacy index's property names.
 ---
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table<string, any>
-function p.getStructuredData(apiData, args)
+function p.getStructuredData(ctx)
+	local apiData = ctx.apiData
 	local m = apiData.mining_modifier
 	if type(m) ~= 'table' then
 		return {}

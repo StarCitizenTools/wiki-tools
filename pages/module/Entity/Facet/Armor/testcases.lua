@@ -5,6 +5,11 @@ local Armor = require('Module:Entity/Facet/Armor')
 
 local suite = ScribuntoUnit:new()
 
+--- Hook context for direct hook calls (Module:Entity/Types EntityHookContext).
+local function ctx(apiData, args, resolved)
+	return { apiData = apiData, args = args or {}, resolved = resolved }
+end
+
 local function tileByTitle(tiles, title)
 	for _, t in ipairs(tiles or {}) do
 		if t.title == title then
@@ -114,7 +119,7 @@ function suite:testTiles()
 end
 
 function suite:testSection()
-	local sections = Armor.getSections(heavyTorso(), {})
+	local sections = Armor.getSections(ctx(heavyTorso(), {}))
 	self:assertEquals(1, #sections)
 	self:assertEquals('armor', sections[1].key)
 	self:assertEquals('Damage resistance', sections[1].label)
@@ -125,16 +130,16 @@ function suite:testSection()
 end
 
 function suite:testShortDescriptionPrefix()
-	self:assertEquals('Heavy', Armor.getShortDescriptionPrefix(heavyTorso(), {}))
+	self:assertEquals('Heavy', Armor.getShortDescriptionPrefix(ctx(heavyTorso(), {})))
 	-- Flight helmet -> "Flight helmet" (not "Helmet helmet").
-	self:assertEquals('Flight', Armor.getShortDescriptionPrefix(flightHelmet(), {}))
+	self:assertEquals('Flight', Armor.getShortDescriptionPrefix(ctx(flightHelmet(), {})))
 	-- Undersuit: suit_armor present but no weight class / not flight -> no prefix.
-	self:assertEquals(nil, Armor.getShortDescriptionPrefix({ sub_type = 'UNDEFINED', suit_armor = {} }, {}))
-	self:assertEquals(nil, Armor.getShortDescriptionPrefix({}, {}))
+	self:assertEquals(nil, Armor.getShortDescriptionPrefix(ctx({ sub_type = 'UNDEFINED', suit_armor = {} }, {})))
+	self:assertEquals(nil, Armor.getShortDescriptionPrefix(ctx({}, {})))
 end
 
 function suite:testStructuredData()
-	local data = Armor.getStructuredData(heavyTorso())
+	local data = Armor.getStructuredData(ctx(heavyTorso()))
 	self:assertEquals('Heavy', data.weight_class)
 	self:assertEquals(40, data.physical_resistance)
 	self:assertEquals(40, data.energy_resistance)
@@ -143,8 +148,8 @@ function suite:testStructuredData()
 end
 
 function suite:testEmptyWhenNoBlock()
-	self:assertEquals(0, #Armor.getSections({}, {}))
-	self:assertEquals(nil, next(Armor.getStructuredData({})))
+	self:assertEquals(0, #Armor.getSections(ctx({}, {})))
+	self:assertEquals(nil, next(Armor.getStructuredData(ctx({}))))
 end
 
 return suite

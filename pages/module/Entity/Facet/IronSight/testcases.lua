@@ -5,6 +5,11 @@ local IronSight = require('Module:Entity/Facet/IronSight')
 
 local suite = ScribuntoUnit:new()
 
+--- Hook context for direct hook calls (Module:Entity/Types EntityHookContext).
+local function ctx(apiData, args, resolved)
+	return { apiData = apiData, args = args or {}, resolved = resolved }
+end
+
 local function findSection(sections, key)
 	for _, s in ipairs(sections or {}) do
 		if s.key == key then
@@ -59,7 +64,7 @@ function suite:testMatches()
 end
 
 function suite:testTelescopicRanging()
-	local sec = findSection(IronSight.getSections(telescopic(), {}), 'iron_sight')
+	local sec = findSection(IronSight.getSections(ctx(telescopic(), {})), 'iron_sight')
 	self:assertEquals('Sight', sec.label)
 	self:assertEquals('1,000 m', findItem(sec.items, 'Max range').content)
 	self:assertEquals('100 m', findItem(sec.items, 'Range increment').content)
@@ -70,11 +75,11 @@ end
 
 -- A reflex sight has no ranging data -> no section.
 function suite:testReflexNoSection()
-	self:assertEquals(0, #IronSight.getSections(reflex(), {}))
+	self:assertEquals(0, #IronSight.getSections(ctx(reflex(), {})))
 end
 
 function suite:testStructuredData()
-	local d = IronSight.getStructuredData(telescopic())
+	local d = IronSight.getStructuredData(ctx(telescopic()))
 	self:assertEquals(1000, d.max_range)
 	self:assertEquals(100, d.range_increment)
 end

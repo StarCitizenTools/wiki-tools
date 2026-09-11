@@ -5,6 +5,11 @@ local Beam = require('Module:Entity/Facet/Beam')
 
 local suite = ScribuntoUnit:new()
 
+--- Hook context for direct hook calls (Module:Entity/Types EntityHookContext).
+local function ctx(apiData, args, resolved)
+	return { apiData = apiData, args = args or {}, resolved = resolved }
+end
+
 local function findItem(items, label)
 	for _, it in ipairs(items or {}) do
 		if it.label == label then
@@ -52,7 +57,7 @@ function suite:testMatches()
 end
 
 function suite:testTractorRows()
-	local sections = Beam.getSections(tractorData(), {})
+	local sections = Beam.getSections(ctx(tractorData(), {}))
 	self:assertEquals(1, #sections)
 	self:assertEquals('tractor_beam', sections[1].key)
 	self:assertEquals('Tractor beam', sections[1].label)
@@ -64,7 +69,7 @@ function suite:testTractorRows()
 end
 
 function suite:testTowingRows()
-	local sections = Beam.getSections({
+	local sections = Beam.getSections(ctx({
 		type = 'TowingBeam',
 		size = 3,
 		tractor_beam = {
@@ -74,7 +79,7 @@ function suite:testTowingRows()
 			towing = { force = 120000000 },
 			cargo_mode_override = { max_force = 9500001 },
 		},
-	}, {})
+	}, {}))
 	self:assertEquals('Towing beam', sections[1].label)
 	-- Tow force wins over cargo_mode_override for a towing beam.
 	self:assertEquals('120,000,000', findItem(sections[1].items, 'Tow force').content)
@@ -82,7 +87,7 @@ function suite:testTowingRows()
 end
 
 function suite:testFpsSuppressesHeavyLift()
-	local sections = Beam.getSections(fpsData(), {})
+	local sections = Beam.getSections(ctx(fpsData(), {}))
 	self:assertEquals(1, #sections)
 	self:assertEquals('Tractor beam', sections[1].label)
 	self:assertEquals('440,000', findItem(sections[1].items, 'Force').content)
@@ -94,18 +99,18 @@ function suite:testFpsSuppressesHeavyLift()
 end
 
 function suite:testEmptyWhenNoBlock()
-	self:assertEquals(0, #Beam.getSections({ type = 'TractorBeam' }, {}))
+	self:assertEquals(0, #Beam.getSections(ctx({ type = 'TractorBeam' }, {})))
 end
 
 function suite:testStructuredData()
-	local data = Beam.getStructuredData(tractorData())
+	local data = Beam.getStructuredData(ctx(tractorData()))
 	self:assertEquals(500000, data.beam_force)
 	self:assertEquals(9500000, data.beam_mode_force)
 	self:assertEquals(75, data.beam_range)
 	self:assertEquals(60, data.beam_max_angle)
 	self:assertEquals(1.5, data.beam_tether_break)
 	-- FPS: heavy-lift force not stored.
-	self:assertEquals(nil, Beam.getStructuredData(fpsData()).beam_mode_force)
+	self:assertEquals(nil, Beam.getStructuredData(ctx(fpsData())).beam_mode_force)
 end
 
 return suite

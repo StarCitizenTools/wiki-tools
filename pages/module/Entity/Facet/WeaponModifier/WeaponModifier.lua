@@ -17,6 +17,9 @@ local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
 
+-- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
+p.contextHooks = true
+
 --- Mining modules are excluded: they carry a `weapon_modifier` block whose only
 --- non-neutral field is `damage_multiplier`, which is the mining laser's power and
 --- is rendered by Entity/Facet/Mining under CIG's own name for it. Matching here too
@@ -129,10 +132,10 @@ local function coloredSpread(spread)
 	return text
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return EntitySectionEntry[]
-function p.getSections(apiData, args)
+function p.getSections(ctx)
+	local apiData = ctx.apiData
 	local wm = apiData.weapon_modifier
 	if type(wm) ~= 'table' then
 		return {}
@@ -175,10 +178,10 @@ function p.getSections(apiData, args)
 	)
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table<string, any>
-function p.getStructuredData(apiData, args)
+function p.getStructuredData(ctx)
+	local apiData = ctx.apiData
 	local wm = apiData.weapon_modifier
 	if type(wm) ~= 'table' then
 		return {}

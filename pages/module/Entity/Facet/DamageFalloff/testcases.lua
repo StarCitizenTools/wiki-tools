@@ -4,6 +4,11 @@ local ScribuntoUnit = require('Module:ScribuntoUnit')
 local DamageFalloff = require('Module:Entity/Facet/DamageFalloff')
 
 local suite = ScribuntoUnit:new()
+
+--- Hook context for direct hook calls (Module:Entity/Types EntityHookContext).
+local function ctx(apiData, args, resolved)
+	return { apiData = apiData, args = args or {}, resolved = resolved }
+end
 local I = DamageFalloff._internal
 
 -- P4-AR: ballistic, object form WITH total.
@@ -150,7 +155,7 @@ function suite:testMatches()
 end
 
 function suite:testGetSectionsInlinesIntoWeapon()
-	local sections = DamageFalloff.getSections(p4ar(), {})
+	local sections = DamageFalloff.getSections(ctx(p4ar(), {}))
 	self:assertEquals(1, #sections)
 	self:assertEquals('personal_weapon', sections[1].key)
 	self:assertEquals('t-infobox-item--block', sections[1].items[1].class)
@@ -158,14 +163,14 @@ function suite:testGetSectionsInlinesIntoWeapon()
 end
 
 function suite:testGetSectionsEmptyWhenFlat()
-	self:assertEquals(0, #DamageFalloff.getSections(arrowhead(), {}))
+	self:assertEquals(0, #DamageFalloff.getSections(ctx(arrowhead(), {})))
 end
 
 function suite:testStructuredData()
-	local data = DamageFalloff.getStructuredData(p4ar())
+	local data = DamageFalloff.getStructuredData(ctx(p4ar()))
 	self:assertEquals(40, data.full_damage_range)
 	self:assertEquals(10, data.min_damage)
-	self:assertEquals(nil, DamageFalloff.getStructuredData(arrowhead()).full_damage_range)
+	self:assertEquals(nil, DamageFalloff.getStructuredData(ctx(arrowhead())).full_damage_range)
 end
 
 return suite

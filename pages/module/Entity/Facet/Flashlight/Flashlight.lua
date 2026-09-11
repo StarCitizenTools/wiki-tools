@@ -11,16 +11,19 @@ local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
 
+-- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
+p.contextHooks = true
+
 --- @param apiData table|nil
 --- @return boolean
 function p.matches(apiData)
 	return apiData ~= nil and type(apiData.flashlight) == 'table'
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table[] Ordered list of section entries with key field
-function p.getSections(apiData, args)
+function p.getSections(ctx)
+	local apiData = ctx.apiData
 	local fl = apiData.flashlight
 	if type(fl) ~= 'table' then
 		return {}

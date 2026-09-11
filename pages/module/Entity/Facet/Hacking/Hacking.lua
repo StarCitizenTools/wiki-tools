@@ -12,6 +12,9 @@ local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
 
+-- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
+p.contextHooks = true
+
 --- 0-1 chance as a percentage ("0.9" -> "90%"); nil when absent.
 ---
 --- @param value number|string|nil
@@ -30,10 +33,10 @@ function p.matches(apiData)
 	return apiData ~= nil and type(apiData.hacking_chip) == 'table'
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table[] Ordered list of section entries with key field
-function p.getSections(apiData, args)
+function p.getSections(ctx)
+	local apiData = ctx.apiData
 	local h = apiData.hacking_chip
 	if type(h) ~= 'table' then
 		return {}
@@ -60,10 +63,10 @@ function p.getSections(apiData, args)
 	}))
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table<string, any>
-function p.getStructuredData(apiData, args)
+function p.getStructuredData(ctx)
+	local apiData = ctx.apiData
 	local h = apiData.hacking_chip
 	if type(h) ~= 'table' then
 		return {}

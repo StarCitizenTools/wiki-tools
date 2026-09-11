@@ -5,6 +5,11 @@ local Component = require('Module:Entity/Facet/Component')
 
 local suite = ScribuntoUnit:new()
 
+--- Hook context for direct hook calls (Module:Entity/Types EntityHookContext).
+local function ctx(apiData, args, resolved)
+	return { apiData = apiData, args = args or {}, resolved = resolved }
+end
+
 local function fixture()
 	return {
 		durability = {
@@ -60,7 +65,7 @@ end
 -- getSections()
 
 function suite:testSectionRows()
-	local sections = Component.getSections(fixture(), {})
+	local sections = Component.getSections(ctx(fixture(), {}))
 	self:assertEquals(1, #sections)
 	local s = sections[1]
 	self:assertEquals('component', s.key)
@@ -72,13 +77,13 @@ function suite:testSectionRows()
 end
 
 function suite:testSectionEmptyWhenNoStats()
-	self:assertEquals(0, #Component.getSections({ durability = {} }, {}))
+	self:assertEquals(0, #Component.getSections(ctx({ durability = {} }, {})))
 end
 
 -- getStructuredData()
 
 function suite:testStructuredData()
-	local data = Component.getStructuredData(fixture(), {})
+	local data = Component.getStructuredData(ctx(fixture(), {}))
 	self:assertEquals(860, data.health)
 	self:assertEquals(9900, data.em_signature)
 	self:assertEquals(0, data.ir_signature)

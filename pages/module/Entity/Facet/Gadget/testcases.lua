@@ -5,6 +5,11 @@ local Gadget = require('Module:Entity/Facet/Gadget')
 
 local suite = ScribuntoUnit:new()
 
+--- Hook context for direct hook calls (Module:Entity/Types EntityHookContext).
+local function ctx(apiData, args, resolved)
+	return { apiData = apiData, args = args or {}, resolved = resolved }
+end
+
 local function findSection(sections, key)
 	for _, s in ipairs(sections or {}) do
 		if s.key == key then
@@ -48,7 +53,7 @@ function suite:testMatches()
 end
 
 function suite:testOverviewOnly()
-	local s = Gadget.getSections(multiTool(), {})
+	local s = Gadget.getSections(ctx(multiTool(), {}))
 	-- Just the overview — no salvage / heal sections from this facet.
 	self:assertEquals(1, #s)
 	local overview = findSection(s, 'gadget')
@@ -59,7 +64,7 @@ end
 
 -- MaxLift: type + range; tractor mode is stat-less -> still just the overview.
 function suite:testTractorOnlyOverview()
-	local s = Gadget.getSections({
+	local s = Gadget.getSections(ctx({
 		sub_type = 'Gadget',
 		personal_weapon = {
 			type = 'Tractor Beam',
@@ -67,7 +72,7 @@ function suite:testTractorOnlyOverview()
 			ammunition = { capacity = 50 },
 			modes = { { type = 'tractorbeam', toggle_mode = 'IsToggle' } },
 		},
-	}, {})
+	}, {}))
 	self:assertEquals(1, #s)
 	self:assertEquals('gadget', s[1].key)
 	self:assertEquals('Tractor Beam', findItem(s[1].items, 'Type').content)
@@ -75,17 +80,17 @@ end
 
 -- XDL: all-null personal_weapon -> no gadget sections (zoom is WeaponModifier's job).
 function suite:testEmptyWhenNoStats()
-	self:assertEquals(0, #Gadget.getSections({ sub_type = 'Gadget', personal_weapon = { ammunition = {} } }, {}))
+	self:assertEquals(0, #Gadget.getSections(ctx({ sub_type = 'Gadget', personal_weapon = { ammunition = {} } }, {})))
 end
 
 function suite:testStructuredData()
-	self:assertEquals(5, Gadget.getStructuredData(multiTool(), {}).max_range)
+	self:assertEquals(5, Gadget.getStructuredData(ctx(multiTool(), {})).max_range)
 end
 
 -- An FPS tractor-beam gadget with a tractor_beam block: the Beam facet renders the
 -- authoritative beam range, so the gadget overview suppresses its duplicate Range.
 function suite:testRangeSuppressedWithBeamBlock()
-	local s = Gadget.getSections({
+	local s = Gadget.getSections(ctx({
 		sub_type = 'Gadget',
 		tractor_beam = { range = { max = 100 } },
 		personal_weapon = {
@@ -93,7 +98,7 @@ function suite:testRangeSuppressedWithBeamBlock()
 			range = 100,
 			ammunition = { capacity = 50 },
 		},
-	}, {})
+	}, {}))
 	self:assertEquals(1, #s)
 	self:assertEquals('Tractor Beam', findItem(s[1].items, 'Type').content)
 	self:assertEquals('50', findItem(s[1].items, 'Capacity').content)

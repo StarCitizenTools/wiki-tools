@@ -5,6 +5,11 @@ local LaserPointer = require('Module:Entity/Facet/LaserPointer')
 
 local suite = ScribuntoUnit:new()
 
+--- Hook context for direct hook calls (Module:Entity/Types EntityHookContext).
+local function ctx(apiData, args, resolved)
+	return { apiData = apiData, args = args or {}, resolved = resolved }
+end
+
 local function findItem(items, label)
 	for _, it in ipairs(items or {}) do
 		if it.label == label then
@@ -21,17 +26,17 @@ function suite:testMatches()
 end
 
 function suite:testRange()
-	local sections = LaserPointer.getSections({ laser_pointer = { range = 20, color = nil, color_css = nil } }, {})
+	local sections = LaserPointer.getSections(ctx({ laser_pointer = { range = 20, color = nil, color_css = nil } }, {}))
 	self:assertEquals('Laser pointer', sections[1].label)
 	self:assertEquals('20 m', findItem(sections[1].items, 'Range').content)
 end
 
 function suite:testNoRange()
-	self:assertEquals(0, #LaserPointer.getSections({ laser_pointer = {} }, {}))
+	self:assertEquals(0, #LaserPointer.getSections(ctx({ laser_pointer = {} }, {})))
 end
 
 function suite:testStructuredData()
-	self:assertEquals(20, LaserPointer.getStructuredData({ laser_pointer = { range = 20 } }).laser_range)
+	self:assertEquals(20, LaserPointer.getStructuredData(ctx({ laser_pointer = { range = 20 } })).laser_range)
 end
 
 return suite

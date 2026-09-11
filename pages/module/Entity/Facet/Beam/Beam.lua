@@ -23,6 +23,9 @@ local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
 
+-- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
+p.contextHooks = true
+
 --- Resolves the heavy-lift mode force + its display label. Vehicle beams only:
 --- towing beams carry a `towing` object, tractor beams a `cargo_mode_override`.
 --- Returns nil force for FPS beams (type WeaponPersonal), whose cargo_mode_override
@@ -56,10 +59,10 @@ function p.matches(apiData)
 	return type(apiData.tractor_beam) == 'table'
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return EntitySectionEntry[]
-function p.getSections(apiData, args)
+function p.getSections(ctx)
+	local apiData = ctx.apiData
 	local beam = apiData.tractor_beam
 	if type(beam) ~= 'table' then
 		return {}
@@ -88,10 +91,10 @@ function p.getSections(apiData, args)
 	}))
 end
 
---- @param apiData table
---- @param args table
+--- @param ctx EntityHookContext
 --- @return table<string, any>
-function p.getStructuredData(apiData, args)
+function p.getStructuredData(ctx)
+	local apiData = ctx.apiData
 	local beam = apiData.tractor_beam
 	if type(beam) ~= 'table' then
 		return {}

@@ -5,6 +5,11 @@ local WM = require('Module:Entity/Facet/WeaponModifier')
 
 local suite = ScribuntoUnit:new()
 
+--- Hook context for direct hook calls (Module:Entity/Types EntityHookContext).
+local function ctx(apiData, args, resolved)
+	return { apiData = apiData, args = args or {}, resolved = resolved }
+end
+
 local function findItem(items, label)
 	for _, it in ipairs(items or {}) do
 		if it.label == label then
@@ -31,13 +36,13 @@ end
 
 -- XDL-style: two-stage zoom, all multipliers default (1) -> only Magnification.
 function suite:testMagnificationOnly()
-	local sections = WM.getSections({
+	local sections = WM.getSections(ctx({
 		weapon_modifier = {
 			aim = { zoom_scale = 8, second_zoom_scale = 16 },
 			fire_rate_multiplier = 1,
 			damage_multiplier = 1,
 		},
-	}, {})
+	}, {}))
 	self:assertEquals(1, #sections)
 	self:assertEquals('Modifier', sections[1].label)
 	-- Magnification is a spec figure, left uncoloured.
@@ -48,13 +53,13 @@ end
 
 -- A non-default multiplier shows; equal zoom collapses to one stage.
 function suite:testMultipliers()
-	local sections = WM.getSections({
+	local sections = WM.getSections(ctx({
 		weapon_modifier = {
 			aim = { zoom_scale = 4, second_zoom_scale = 4 },
 			damage_multiplier = 1.5,
 			sound_radius_multiplier = 0.5,
 		},
-	}, {})
+	}, {}))
 	self:assertEquals('4×', findItem(sections[1].items, 'Magnification').content)
 	-- Damage ×1.5: higher is better -> green buff.
 	assertColored(self, findItem(sections[1].items, 'Damage').content, '×1.5', 'color-success')
@@ -64,7 +69,7 @@ end
 
 -- Barrel/compensator: nested recoil + spread + ADS-time penalty.
 function suite:testRecoilSpread()
-	local sections = WM.getSections({
+	local sections = WM.getSections(ctx({
 		weapon_modifier = {
 			sound_radius_multiplier = 1.2,
 			recoil = { multiplier = 0.7, decay_multiplier = 0.7 },
@@ -77,7 +82,7 @@ function suite:testRecoilSpread()
 			},
 			aim = { zoom_scale = 1, second_zoom_scale = 1, zoom_time_scale = 1.15 },
 		},
-	}, {})
+	}, {}))
 	local items = sections[1].items
 	-- Sound radius ×1.2: lower is better -> red nerf (louder).
 	assertColored(self, findItem(items, 'Sound radius').content, '×1.2', 'color-destructive')
@@ -97,7 +102,7 @@ end
 
 -- Differing spread multipliers are shown distinctly, not silently collapsed.
 function suite:testSpreadDiffers()
-	local sections = WM.getSections({
+	local sections = WM.getSections(ctx({
 		weapon_modifier = {
 			spread = {
 				min_multiplier = 0.8,
@@ -106,27 +111,27 @@ function suite:testSpreadDiffers()
 				per_attack_multiplier = 0.8,
 			},
 		},
-	}, {})
+	}, {}))
 	-- Both <1 (less spread) -> green; coloured by the first non-1 (max 0.9).
 	assertColored(self, findItem(sections[1].items, 'Spread').content, '×0.8 / ×0.9', 'color-success')
 end
 
 -- 1× zoom + all-default multipliers/handling -> nothing renders.
 function suite:testNoOpCollapses()
-	local sections = WM.getSections({
+	local sections = WM.getSections(ctx({
 		weapon_modifier = {
 			aim = { zoom_scale = 1, second_zoom_scale = 1, zoom_time_scale = 1 },
 			fire_rate_multiplier = 1,
 			recoil = { multiplier = 1 },
 			spread = { min_multiplier = 1, max_multiplier = 1 },
 		},
-	}, {})
+	}, {}))
 	self:assertEquals(0, #sections)
 end
 
 function suite:testStructuredData()
-	self:assertEquals(8, WM.getStructuredData({ weapon_modifier = { aim = { zoom_scale = 8 } } }).magnification)
-	self:assertEquals(nil, WM.getStructuredData({ weapon_modifier = { aim = { zoom_scale = 1 } } }).magnification)
+	self:assertEquals(8, WM.getStructuredData(ctx({ weapon_modifier = { aim = { zoom_scale = 8 } } })).magnification)
+	self:assertEquals(nil, WM.getStructuredData(ctx({ weapon_modifier = { aim = { zoom_scale = 1 } } })).magnification)
 end
 
 return suite

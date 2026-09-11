@@ -334,15 +334,19 @@ function WearableSet.main(frame)
 	end
 
 	local environment = Environment.getSections({
-		temperature_resistance = { min = processed.tempMin, max = processed.tempMax },
-		radiation_resistance = {
-			maximum_radiation_capacity = processed.radiation,
-			radiation_dissipation_rate = processed.radiationScrub,
+		apiData = {
+			temperature_resistance = { min = processed.tempMin, max = processed.tempMax },
+			radiation_resistance = {
+				maximum_radiation_capacity = processed.radiation,
+				radiation_dissipation_rate = processed.radiationScrub,
+			},
+			gforce_resistance = values.gResistance,
 		},
-		gforce_resistance = values.gResistance,
+		args = {},
 	})
 
-	local damage = Damage.getSections({ suit_armor = { damage_resistance_map = processed.resistance } })
+	local damage =
+		Damage.getSections({ apiData = { suit_armor = { damage_resistance_map = processed.resistance } }, args = {} })
 
 	if #environment > 0 then
 		environment = environment[1]

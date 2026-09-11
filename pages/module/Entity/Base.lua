@@ -12,9 +12,6 @@ local p = {}
 --- @type string|nil
 p.parent = nil
 
--- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
-p.contextHooks = true
-
 --- Resolves the manufacturer for the current entity.
 --- Prefers the wikitext arg (which may be a code like "AEGS" or a name);
 --- falls back to API data, filtering placeholder codes.

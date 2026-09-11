@@ -9,7 +9,7 @@ Resolves an entity's display metadata (`typeInfo` and `displayType`) from the AP
 ```
 Data.get(args)
   │
-  ├─ leaf.getTypeInfo(apiData, args)   ← tried first (kind-specific override)
+  ├─ leaf.getTypeInfo(ctx)   ← tried first (kind-specific override)
   │
   └─ TypeResolver.resolve(type, classification)   ← consulted only when leaf fails
        │

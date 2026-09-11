@@ -24,9 +24,6 @@ local p = {}
 --- @type string
 p.parent = 'Entity/Item'
 
--- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
-p.contextHooks = true
-
 --- Appends a label/content item to a list only when content is non-nil — the
 --- nil-collapsing every subtype relies on so absent stats drop their row.
 ---

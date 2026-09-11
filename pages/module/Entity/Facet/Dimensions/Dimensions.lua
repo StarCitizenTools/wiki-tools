@@ -23,9 +23,6 @@ local lang = mw.getContentLanguage()
 
 local p = {}
 
--- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
-p.contextHooks = true
-
 --- True when t is a {length, width, height} table whose three values are all
 --- positive numbers (a drawable box). Nil-safe.
 ---

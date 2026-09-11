@@ -1268,16 +1268,12 @@ function suite:testShortDescriptionNoTypeKeepsLegacyShape()
 	)
 end
 
--- Dispatch: every Location leaf takes an EntityHookContext (Task 1 review
--- requirement — a leaf whose contextHooks flag is set but whose hooks weren't
--- rewritten must fail here, not render wrong values silently on the wiki).
--- StarSystem's getTypeInfo and JumpPoint's getShortDescription are each
--- ctx-dependent (unlike JumpPoint's own getTypeInfo, which is static), so a
--- leaf still reading its old positional (apiData, args, ...) parameters sees
--- the whole ctx table where it expects the domain apiData and produces the
--- fallback value the assertions below reject.
+-- Dispatch: every Location leaf takes an EntityHookContext — a leaf whose
+-- hooks aren't written for ctx must fail here, not render wrong values
+-- silently on the wiki. StarSystem's getTypeInfo and JumpPoint's
+-- getShortDescription are each ctx-dependent (unlike JumpPoint's own
+-- getTypeInfo, which is static).
 function suite:testLeavesDispatchThroughContext()
-	self:assertEquals(true, StarSystem.contextHooks)
 	local typeInfo = assembly.callHook(
 		StarSystem,
 		'getTypeInfo',
@@ -1285,7 +1281,6 @@ function suite:testLeavesDispatchThroughContext()
 	)
 	self:assertEquals('Single star system', typeInfo.name)
 
-	self:assertEquals(true, JumpPoint.contextHooks)
 	self:assertEquals(
 		'Medium jump point from Pyro to Nyx',
 		assembly.callHook(JumpPoint, 'getShortDescription', { apiData = jumpPointApiData(), args = {}, resolved = {} })

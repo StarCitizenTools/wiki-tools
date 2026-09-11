@@ -14,9 +14,6 @@ local Util = require('Module:Entity/Facet/Util')
 
 local p = {}
 
--- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
-p.contextHooks = true
-
 -- Friendlier labels for the effect keys; falls back to title-case.
 local EFFECT_LABELS = {
 	a_d_s_enter = 'Aim-down-sights',

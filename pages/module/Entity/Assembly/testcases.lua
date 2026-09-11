@@ -158,13 +158,11 @@ end
 function suite:testResolveMostSpecificLeafWins()
 	local chain = {
 		{
-			contextHooks = true,
 			getX = function()
 				return 'root'
 			end,
 		},
 		{
-			contextHooks = true,
 			getX = function()
 				return 'leaf'
 			end,
@@ -176,13 +174,11 @@ end
 function suite:testResolveMostSpecificDefaultTakesNil()
 	local chain = {
 		{
-			contextHooks = true,
 			getX = function()
 				return 'root'
 			end,
 		},
 		{
-			contextHooks = true,
 			getX = function()
 				return nil
 			end,
@@ -194,13 +190,11 @@ end
 function suite:testResolveMostSpecificAcceptNonEmptySkips()
 	local chain = {
 		{
-			contextHooks = true,
 			getX = function()
 				return 'root'
 			end,
 		},
 		{
-			contextHooks = true,
 			getX = function()
 				return ''
 			end,
@@ -212,7 +206,6 @@ end
 function suite:testResolveMostSpecificForwardsContext()
 	local ctx = { a = 'x', b = 'y' }
 	local chain = { {
-		contextHooks = true,
 		getX = function(c)
 			return c
 		end,
@@ -220,58 +213,18 @@ function suite:testResolveMostSpecificForwardsContext()
 	self:assertEquals(ctx, assembly.resolveMostSpecific(chain, 'getX', nil, ctx))
 end
 
--- An unflagged link keeps getting its LEGACY_ARGS positional list (real hook
--- name, since an unflagged link goes through the LEGACY_ARGS lookup).
-function suite:testResolveMostSpecificForwardsLegacyArgsPositionally()
-	local ctx = { apiData = { a = 1 }, args = { b = 2 } }
-	local chain = { {
-		getSubtitle = function(apiData, args)
-			return { apiData, args }
-		end,
-	} }
-	local got = assembly.resolveMostSpecific(chain, 'getSubtitle', nil, ctx)
-	self:assertEquals(ctx.apiData, got[1])
-	self:assertEquals(ctx.args, got[2])
-end
-
 function suite:testResolveMostSpecificNoneDefined()
 	self:assertEquals(nil, assembly.resolveMostSpecific({ {}, {} }, 'getX'))
 end
 
--- callHook: an unflagged link is called positionally in LEGACY_ARGS order, a
--- contextHooks link receives the context table itself.
-function suite:testCallHookLegacyAndContextShapes()
-	local ctx = { apiData = { a = 1 }, args = { b = 2 }, resolved = { c = 3 }, typeInfo = { name = 'T' }, prefix = 'P' }
-	local legacy = {
-		getShortDescription = function(apiData, args, typeInfo, prefix, resolved)
-			return { apiData, args, typeInfo, prefix, resolved }
-		end,
-	}
-	local got = assembly.callHook(legacy, 'getShortDescription', ctx)
-	self:assertEquals(ctx.apiData, got[1])
-	self:assertEquals(ctx.args, got[2])
-	self:assertEquals(ctx.typeInfo, got[3])
-	self:assertEquals('P', got[4])
-	self:assertEquals(ctx.resolved, got[5])
-	local modern = {
-		contextHooks = true,
-		getShortDescription = function(c)
+function suite:testCallHookPassesTheContext()
+	local ctx = { apiData = {}, args = {} }
+	local link = {
+		getSections = function(c)
 			return c
 		end,
 	}
-	self:assertEquals(ctx, assembly.callHook(modern, 'getShortDescription', ctx))
-end
-
-function suite:testCallHookLegacyNilInTheMiddle()
-	local legacy = {
-		getShortDescription = function(apiData, args, typeInfo, prefix, resolved)
-			return select('#', apiData, args, typeInfo, prefix, resolved), resolved
-		end,
-	}
-	local n, resolved =
-		assembly.callHook(legacy, 'getShortDescription', { apiData = {}, args = {}, resolved = { r = true } })
-	self:assertEquals(5, n)
-	self:assertTrue(resolved.r)
+	self:assertEquals(ctx, assembly.callHook(link, 'getSections', ctx))
 end
 
 -- collect (additive policy: every link's list, root-to-leaf)
@@ -285,8 +238,8 @@ function suite:testCollectConcatenatesRootToLeaf()
 		},
 		{},
 		{
-			getCategories = function(apiData, args)
-				return { 'Leaf ' .. apiData .. args }
+			getCategories = function(ctx)
+				return { 'Leaf ' .. ctx.apiData .. ctx.args }
 			end,
 		},
 	}

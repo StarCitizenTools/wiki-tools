@@ -15,9 +15,6 @@ local p = {}
 --- @type string
 p.parent = 'Entity/Item'
 
--- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
-p.contextHooks = true
-
 --- Builds the Turret stats section from `apiData.turret`: mount count and
 --- yaw/pitch traverse speeds (when the API reports them; many turrets leave
 --- the axis speeds null). Returns nil when no row has a value so the section

@@ -5,7 +5,7 @@ The pure composition primitives that turn a type chain into render-ready output.
 - **Additive merge** collapses every link's contributions into one section list (`mergeSections`) or one flat structured-data table (`mergeStructuredData`). Used for the infobox body and the SMW write, where every link gets to contribute.
 - **Most-specific resolution** walks the chain leaf-first and takes the first link's single value that qualifies (`resolveMostSpecific`, with `acceptNonEmpty` as the standard skip-the-empties predicate). Used for one-value page metadata: short description, subtitle, header badge.
 
-All five functions are stateless and have no `mw` dependencies.
+All seven functions are stateless and have no `mw` dependencies.
 
 ## Role in the pipeline
 
@@ -21,7 +21,7 @@ Data.get
   Module:Entity collects getStructuredData from each link + facet
   → assembly.mergeStructuredData(dataList)       ← one flat table
   single-value hooks (getShortDescription / getSubtitle / getHeaderBadge)
-  → assembly.resolveMostSpecific(chain, hook, …) ← one value
+  → assembly.resolveMostSpecific(chain, hook, ctx) ← one value
             ↓
   Infobox render + SMW structured-data write
 ```
@@ -60,18 +60,30 @@ function p.mergeStructuredData(dataList)
 
 Merges an ordered list of flat key-value tables into one. On key collision, the last table to set a key wins.
 
-### `p.resolveMostSpecific(chain, hookName, accept, ...) → any`
+### `p.callHook(mod, hookName, ctx) → any`
+
+```lua
+--- @param mod table A chain link or facet
+--- @param hookName string
+--- @param ctx EntityHookContext
+--- @return any
+function p.callHook(mod, hookName, ctx)
+```
+
+Calls `mod[hookName](ctx)`. It does not check that `mod[hookName]` is defined first; the caller does, because a defined hook returning `nil` is a real answer for `resolveMostSpecific` (see the default `accept` mode below), and `callHook` cannot distinguish "not defined" from "returned nil" on its own. `ctx` is the `EntityHookContext` typed in [Module:Entity/Types](https://starcitizen.tools/Module:Entity/Types): built once per [Module:Entity/Data](https://starcitizen.tools/Module:Entity/Data)`.get` call and exposed as `result.ctx`, then passed straight through by every sibling renderer.
+
+### `p.resolveMostSpecific(chain, hookName, accept, ctx) → any`
 
 ```lua
 --- @param chain table[] Root-first chain (walked in reverse, i.e. leaf-first)
 --- @param hookName string Hook looked up on each link
 --- @param accept nil|fun(result: any): boolean Default: accept any (first defining link wins, even on nil)
---- @param ... any Arguments forwarded to the hook
+--- @param ctx EntityHookContext
 --- @return any
-function p.resolveMostSpecific(chain, hookName, accept, ...)
+function p.resolveMostSpecific(chain, hookName, accept, ctx)
 ```
 
-The complement to the merge functions: instead of collapsing every link's contribution, walk the chain leaf-first and return the **first** link's `hookName(...)` result that the `accept` predicate admits. Links that don't define `hookName` are skipped. Returns `nil` when no link qualifies. This is how single-value page metadata is composed: `getShortDescription` ([Module:Entity](https://starcitizen.tools/Module:Entity)), `getSubtitle` and `getHeaderBadge` ([Module:Entity/Infobox](https://starcitizen.tools/Module:Entity/Infobox)). See **Data** for the two accept modes.
+The complement to the merge functions: instead of collapsing every link's contribution, walk the chain leaf-first and return the **first** link's `callHook(link, hookName, ctx)` result that the `accept` predicate admits. Links that don't define `hookName` are skipped. Returns `nil` when no link qualifies. This is how single-value page metadata is composed: `getShortDescription` ([Module:Entity](https://starcitizen.tools/Module:Entity)), `getSubtitle` and `getHeaderBadge` ([Module:Entity/Infobox](https://starcitizen.tools/Module:Entity/Infobox)). See **Data** for the two accept modes.
 
 ### `p.acceptNonEmpty(result) → boolean`
 
@@ -82,6 +94,18 @@ function p.acceptNonEmpty(result)
 ```
 
 The standard `accept` predicate: returns `false` for `nil` or `''`, so a link that contributes nothing is skipped and the walk continues to a less-specific link. Pass it to `resolveMostSpecific` for optional, override-style hooks (subtitle, header badge).
+
+### `p.collect(chain, hookName, ctx) → any[]`
+
+```lua
+--- @param chain table[] Root-first chain
+--- @param hookName string
+--- @param ctx EntityHookContext
+--- @return any[]
+function p.collect(chain, hookName, ctx)
+```
+
+The additive counterpart to `resolveMostSpecific`: walks the chain root to leaf and, for every link that defines `hookName`, calls it via `callHook` and appends each item of its table result onto one flat output list. A link without the hook contributes nothing; a link whose result is `nil` or not a table also contributes nothing rather than raising an error. [Module:Entity/Data](https://starcitizen.tools/Module:Entity/Data) uses it to compose `getCategories`: every chain link's categories are appended onto `typeInfo.categories`, instead of the most-specific link winning alone.
 
 ## Data
 
@@ -136,12 +160,14 @@ Any custom predicate works; `resolveMostSpecific` only requires it return a bool
 
 ## Tests
 
-`Assembly/testcases.lua` is a ScribuntoUnit suite covering all five exported functions. Because all five are pure (no `mw` calls, no global reads, no side effects), coverage is thorough:
+`Assembly/testcases.lua` is a ScribuntoUnit suite covering all seven exported functions. Because all seven are pure (no `mw` calls, no global reads, no side effects), coverage is thorough:
 
 - **`mergeSections`**: empty input; single module with one section; two modules merging onto the same key (items appended, first-metadata-wins confirmed); insertion order preserved across three modules with distinct keys; one module contributing multiple keys; a `content`-only section (no `items` key); a section whose `items` is an empty table (dropped entirely); a section kept when only `content` is present.
 - **`mergeStructuredData`**: empty input; two tables combining disjoint keys; key collision where the later table overrides.
 - **`buildChain`**: a single module with `parent = nil` returns a one-element chain.
-- **`resolveMostSpecific` / `acceptNonEmpty`**: leaf link wins over root; the default (no predicate) takes a `nil` leaf result and stops; `acceptNonEmpty` skips an empty leaf and falls through to the root; trailing args are forwarded to the hook; returns `nil` when no link defines the hook.
+- **`callHook`**: passes the context table straight through to the hook.
+- **`resolveMostSpecific` / `acceptNonEmpty`**: leaf link wins over root; the default (no predicate) takes a `nil` leaf result and stops; `acceptNonEmpty` skips an empty leaf and falls through to the root; the context table is forwarded to the hook; returns `nil` when no link defines the hook.
+- **`collect`**: concatenates every link's list result root to leaf, skipping a link without the hook; a link returning `nil` contributes nothing.
 
 Note that `buildChain` with a multi-hop parent chain cannot be tested in isolation without real on-wiki module paths, so the test suite covers only the base case. Multi-hop behavior is exercised implicitly via the full Entity integration on live pages.
 
@@ -151,7 +177,7 @@ The suite runs headless in local CI: `mise run test` (or `mise run test:lua:unit
 
 ```
 Entity/Assembly/
-├── Assembly.lua      # buildChain, mergeSections, mergeStructuredData, resolveMostSpecific, acceptNonEmpty
+├── Assembly.lua      # buildChain, mergeSections, mergeStructuredData, callHook, resolveMostSpecific, acceptNonEmpty, collect
 └── testcases.lua     # ScribuntoUnit suite (pure-function coverage)
 ```
 

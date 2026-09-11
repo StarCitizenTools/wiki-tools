@@ -15,9 +15,6 @@ local p = {}
 --- @type string
 p.parent = 'Entity/Item'
 
--- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
-p.contextHooks = true
-
 --- Short description prepends the mount size — "S1 tractor beam by Greycat
 --- Industrial" — mirroring the other vehicle-component descriptors.
 ---

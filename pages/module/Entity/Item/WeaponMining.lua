@@ -18,9 +18,6 @@ local p = {}
 --- @type string
 p.parent = 'Entity/Item'
 
--- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
-p.contextHooks = true
-
 --- Coerces a value to a number, tolerating the API's occasional string forms
 --- (e.g. "1850", or a percent like "-80%"). Returns nil for non-numeric input.
 ---

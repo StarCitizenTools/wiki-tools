@@ -1148,15 +1148,11 @@ function suite:testGetPortsNarrowsChildrenForEveryVehicleLeaf()
 end
 
 -- Exercises the real dispatch (assembly.callHook), not a direct call, so a
--- flagged module with an un-rewritten hook head fails here. getTypeInfo's
--- body ignores its params (routing check only); getCategories reads
--- apiData/args/resolved off ctx, so a positional head left under
--- contextHooks = true (ctx misrouted into its first positional param) fails
--- those assertions instead of silently passing.
+-- module with an un-rewritten hook head fails here. getTypeInfo's body
+-- ignores its params (routing check only); getCategories reads
+-- apiData/args/resolved off ctx, so a positional head (ctx misrouted into its
+-- first positional param) fails those assertions instead of silently passing.
 function suite:testContextHooksDispatchViaAssemblyCallHook()
-	for _, mod in ipairs({ Vehicle, Ship, GroundVehicle, Gravlev }) do
-		self:assertEquals(true, mod.contextHooks)
-	end
 	local shipInfo = assembly.callHook(Ship, 'getTypeInfo', ctx({}))
 	self:assertEquals('Spacecraft', shipInfo.name)
 	local groundInfo = assembly.callHook(GroundVehicle, 'getTypeInfo', ctx({}))

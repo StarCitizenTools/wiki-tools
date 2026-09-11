@@ -11,9 +11,6 @@ local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
 
--- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
-p.contextHooks = true
-
 --- @param apiData table|nil
 --- @return boolean
 function p.matches(apiData)

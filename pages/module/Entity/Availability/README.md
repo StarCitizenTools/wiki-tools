@@ -40,8 +40,12 @@ The same invocation works for every kind that defines acquisition, because dispa
 This is the extension point. A kind module exposes:
 
 ```lua
+--- @param ctx EntityHookContext
 --- @return { summary: table[], cards: table[] } | nil
-function p.getAcquisition(apiData, args)
+function p.getAcquisition(ctx)
+	local apiData, args = ctx.apiData, ctx.args
+	-- …
+end
 ```
 
 (typed at `Module:Entity/Types`, `--- @field getAcquisition`). Return `nil`/`false` to render nothing; otherwise return a table with two keys.

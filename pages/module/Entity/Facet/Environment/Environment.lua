@@ -17,9 +17,6 @@ local meterBar = require('Module:MeterBar')
 
 local p = {}
 
--- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
-p.contextHooks = true
-
 -- Ice–fire gradient: cold cyan -> near-white neutral -> hot orange-red, in domain
 -- units. Fixed hex so the palette reads identically across themes. (Axis bounds and
 -- units live in Module:Entity/StatFormat; only the palette is temperature-specific.)

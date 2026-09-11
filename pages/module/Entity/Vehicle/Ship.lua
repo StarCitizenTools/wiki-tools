@@ -18,9 +18,6 @@ p.parent = 'Entity/Vehicle'
 --- |family= on record-less pages.
 p.family = 'ship'
 
--- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
-p.contextHooks = true
-
 --- @param ctx EntityHookContext
 --- @return { name: string, category: string }
 function p.getTypeInfo(ctx)

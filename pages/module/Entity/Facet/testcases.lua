@@ -15,17 +15,13 @@ local function findItem(items, label)
 	return nil
 end
 
--- Dispatch: every registered facet takes an EntityHookContext (Task 1 review
--- requirement — a facet whose contextHooks flag is set but whose hooks weren't
--- rewritten must fail here, not render wrong values silently on the wiki). One
--- case per Module:Entity/Registry facet, keyed by the require path so it is
--- matched to the module instance the registry itself holds (require() caches
--- modules, so the two are the same table). Each fixture supplies exactly the one
--- field its hook needs to produce a value distinguishable from the hook's own
--- nil-guarded default — a facet still reading its old positional (apiData, args)
--- parameters sees the whole ctx table where it expects the domain apiData, finds
--- none of these fields at that top level, and so returns the empty/default
--- result the `expect` assertion below rejects.
+-- Dispatch: every registered facet takes an EntityHookContext — a facet whose
+-- hooks aren't written for ctx must fail here, not render wrong values
+-- silently on the wiki. One case per Module:Entity/Registry facet, keyed by
+-- the require path so it is matched to the module instance the registry
+-- itself holds (require() caches modules, so the two are the same table).
+-- Each fixture supplies exactly the one field its hook needs to produce a
+-- value distinguishable from the hook's own nil-guarded default.
 local FACET_DISPATCH_CASES = {
 	{
 		path = 'Entity/Facet/Consumable',
@@ -252,7 +248,6 @@ function suite:testEveryFacetDispatchesThroughContext()
 	for _, facet in ipairs(registry.facets) do
 		local case = byModule[facet]
 		self:assertTrue(case ~= nil, 'no FACET_DISPATCH_CASES entry for a registered facet')
-		self:assertEquals(true, facet.contextHooks)
 		local result = assembly.callHook(facet, case.hook, case.ctx)
 		case.expect(self, result)
 		exercised = exercised + 1

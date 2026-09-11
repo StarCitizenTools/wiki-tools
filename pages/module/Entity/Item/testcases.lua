@@ -250,18 +250,15 @@ function suite:testGetAcquisitionItem()
 	self:assertEquals('Shop terminals', a.cards[1].caption)
 end
 
--- Dispatch: every Item subtype leaf takes an EntityHookContext (Task 1 review
--- requirement — a leaf whose contextHooks flag is set but whose hooks weren't
--- rewritten must fail here, not render wrong values silently on the wiki).
+-- Dispatch: every Item subtype leaf takes an EntityHookContext — a leaf whose
+-- hooks aren't written for ctx must fail here, not render wrong values
+-- silently on the wiki.
 
 --- One dispatch case per subtype leaf Item.resolveSubtype can reach (every target
 --- in Module:Entity/Item's itemSubtypeMapping, de-duplicated). Each fixture supplies
 --- exactly the one field its hook needs to produce a value distinguishable from the
---- hook's own nil-guarded default — a leaf still reading its old positional
---- (apiData, args, ...) parameters sees the whole ctx table where it expects the
---- domain apiData, finds none of these fields at that top level, and so returns the
---- empty/default result the `expect` assertion below rejects (or, for the two
---- getShortDescription-only leaves, errors outright on a nil typeInfo).
+--- hook's own nil-guarded default (the two getShortDescription-only leaves error
+--- outright on a nil typeInfo instead).
 local LEAF_DISPATCH_CASES = {
 	{
 		path = 'Entity/Item/Beam',
@@ -477,7 +474,6 @@ local LEAF_DISPATCH_CASES = {
 function suite:testEveryItemSubtypeLeafDispatchesThroughContext()
 	for _, case in ipairs(LEAF_DISPATCH_CASES) do
 		local mod = require('Module:' .. case.path)
-		self:assertEquals(true, mod.contextHooks)
 		local result = assembly.callHook(mod, case.hook, case.ctx)
 		case.expect(self, result)
 	end

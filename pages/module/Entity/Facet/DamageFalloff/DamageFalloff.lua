@@ -17,9 +17,6 @@ local Util = require('Module:Entity/Facet/Util')
 
 local p = {}
 
--- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
-p.contextHooks = true
-
 local DAMAGE_TYPES = Util.damageKeys()
 
 -- Fixed per-class x-axis maxima (m), keyed by personal_weapon.type, so charts are

@@ -55,15 +55,15 @@ end
 
 Item supplies the dispatch token (`apiData.type`) and the `itemSubtypeMapping`; the mechanical exact-match lookup and `require` of the resolved path live in the shared [Module:Entity/SubtypeResolver](https://starcitizen.tools/Module:Entity/SubtypeResolver) (`subtypeResolver.resolve(token, map)`), which both Item and Vehicle's family dispatch use. Returns the required module table, or nil when the type is absent or unrecognised (meaning Item itself acts as the leaf). See [Subtype dispatch](#subtype-dispatch) and [Gotchas](#gotchas).
 
-### `p.getSections(apiData, args) → table[]`
+### `p.getSections(ctx) → table[]`
 
 Contributes one section (`key = 'general'`) with four items: Manufacturer (wikilinked), Size, Class, and Grade. Class and Grade are gated: Class is nil when `apiData.class` is absent or blank; Grade is nil when Class is nil (suppresses the constant grade 'A' that vehicle weapons carry but no class). Volume and the dimension diagram have moved to `Module:Entity/Facet/Dimensions`.
 
-### `p.getStructuredData(apiData, args) → table`
+### `p.getStructuredData(ctx) → table`
 
 Emits seven flat facet keys for the structured-data backend: `size`, `grade`, `class`, `item_type` (from `description_data`, the in-game "Item Type" label), `volume` (in µSCU: reads `dimension.volume_converted` + `volume_converted_unit`, converting SCU to µSCU; returns nil for unrecognised units rather than guessing), `base_variant` (the `is_base_variant` boolean when present), and `rarity`.
 
-### `p.getShortDescription(apiData, args, typeInfo, prefix) → string`
+### `p.getShortDescription(ctx) → string`
 
 Entry point for Item-level short descriptions. Tries `formatGradedShortDescription` first; falls back to `formatShortDescription`.
 
@@ -84,11 +84,11 @@ Produces the spec-style descriptor for graded vehicle components: those the API 
 
 Generic item descriptor: `[<prefix> ]<type> [by <manufacturer>]`. Subtypes call this to produce a size-prefixed or signal-typed descriptor rather than returning `typeInfo.name` verbatim.
 
-### `p.getExternalSiteItems(apiData, args) → EntityItemData[]`
+### `p.getExternalSiteItems(ctx) → EntityItemData[]`
 
 Reads `Module:Entity/Item/communitySites.json` and returns a "Community sites" external-link block when any configured site has a URL pattern that resolves for the current item's uuid / name. Returns `{}` when no links resolve.
 
-### `p.getAcquisition(apiData, args) → { summary, cards }`
+### `p.getAcquisition(ctx) → { summary, cards }`
 
 The chain-link lifecycle hook (declared as part of `Module:Entity/Contract`'s `CONTRIBUTOR` set) that supplies the data behind the [{{Entity/Availability}}](https://starcitizen.tools/Template:Entity/Availability) block. `Module:Entity/Availability` resolves it leaf-first over `result.chain` (`Assembly.resolveMostSpecific`); no Item subtype defines its own `getAcquisition`, so it is always Item's implementation that runs. It returns two parts:
 

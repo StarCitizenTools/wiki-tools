@@ -5,8 +5,8 @@ short description, and categories) from a single `{{Entity}}` invocation. Siblin
 renderers (Availability, Related, Ports, UsedBy, Description, Blueprints, and the
 Mission-only Orders / Rewards) consume `Module:Entity/Data` and render their own
 page sections off the same fetch. Each sibling renderer resolves its own payload
-hook leaf-first over result.chain (getAcquisition, getRelated, getBlueprints,
-getPorts) and never branches on result.kind.
+hook leaf-first over `result.chain` with `result.ctx` (getAcquisition, getRelated,
+getBlueprints, getPorts) and never branches on result.kind.
 
 ## Pipeline walkthrough
 
@@ -60,7 +60,7 @@ feeds the next:
    [Module:Entity/Api](https://starcitizen.tools/Module:Entity/Api).fetchAllApis;
    results are merged into `apiData`.
 
-6. **Enrich**: every chain link's `enrich(apiData, args)` hook, where present, runs
+6. **Enrich**: every chain link's `enrich(ctx)` hook, where present, runs
    now root to leaf, each link receiving the previous link's result — post-processing
    or normalising the merged data, or attaching a secondary record the primary
    endpoint does not carry (Commodity's kind-level `enrich` attaches raw/refined
@@ -70,7 +70,7 @@ feeds the next:
    starts empty and `args` is the only input — that is how a kind-declared lore page
    with no uuid still fills its infobox.
 
-7. **Resolve typeInfo / displayType**: the leaf's `getTypeInfo(apiData, args)` is
+7. **Resolve typeInfo / displayType**: the leaf's `getTypeInfo(ctx)` is
    tried first. On nil, [Module:Entity/TypeResolver](https://starcitizen.tools/Module:Entity/TypeResolver).resolve
    walks `classifications.json` (Ship.* prefix ladder) then `types.json` (raw `type`
    key) to produce the `{ name, category }` pair that becomes the infobox header
@@ -88,7 +88,7 @@ feeds the next:
    read by section builders through `Editorial.view(resolved):value(field, fallback)`),
    the SMW projection `editorialData`, and `hasManualApiData`.
 
-9. **Append categories**: every chain link's `getCategories(apiData, args, resolved)`,
+9. **Append categories**: every chain link's `getCategories(ctx)`,
    where present, is collected root to leaf (`Assembly.collect`) and the results are
    appended to the structural + manufacturer categories. A leaf reads its own
    `family` token directly rather than receiving it as a parameter.
@@ -103,7 +103,7 @@ single result table to the caller, exposing (among others) `args`, `kind`, `apiD
 `chain`, `facets`, `typeInfo`, `displayType`, `matchedKind`, `family`, `resolved`,
 `editorialData`, `hasManualApiData`, `hasApiError`, and `unresolvedReference`.
 `Module:Entity` (the infobox renderer) iterates the chain and facet lists, calling
-`getSections` and `getStructuredData` on each (both receiving `resolved`), and passes
+`getSections` and `getStructuredData` on each with `result.ctx`, and passes
 the merged lists to
 [Module:Entity/Assembly](https://starcitizen.tools/Module:Entity/Assembly).mergeSections
 and `.mergeStructuredData`. It then hands off to `Module:Entity/Infobox`,
@@ -119,7 +119,7 @@ a kind which opted into editorial mode (`p.editorialMode == true`) renders **wit
 an identity record**. After step 6, `Data.get` resets `apiData = {}`, re-resolves the
 leaf from args (Vehicle reads the curated `|family=`; Location defaults to its
 StarSystem leaf), rebuilds the chain, and then runs the rebuilt chain's
-`enrich(apiData, args)` hooks on that empty payload. The rest of the pipeline runs
+`enrich(ctx)` hooks on that empty payload. The rest of the pipeline runs
 unchanged, so such a page is a clean data-gated subset.
 
 What fills it depends on the chain. No Vehicle chain link implements `enrich`, so a
@@ -190,25 +190,40 @@ kind **fields** `name` / `editorialMode` (validated by `Contract.validateFields`
 | `getApiConfigs` | `() → EntityApiConfig[]` | kind (also any link) | yes (kind) | `[1]` is the kind's identity endpoint; extra configs fetched for the chain. |
 | `resolveSubtype` | `(apiData, args) → module\|nil` | kind | no | Refine to a subtype leaf: the record's family token first (Item: `apiData.type`; Vehicle: the `is_*` flags; Location: SolarSystem / jump-point gate), else the curated `\|family=` (`SubtypeResolver.familyArg`), else the kind's `defaultFamily` on a kind-declared record-less page. |
 | `family` / `defaultFamily` | `string\|nil` | leaf / kind | no | A leaf's family token (`ship`, `jumppoint`, …), the same string its kind's map dispatches on and a page's `\|family=` may name. `defaultFamily` on a kind names the leaf a kind-declared page with no record resolves to (Location: `starsystem`). |
-| `enrich` | `(apiData, args) → apiData` | chain link | no | Post-fetch mutation, run on every link **root to leaf** after the chain's endpoints are fetched (Commodity merges raw/refined; the StarSystem leaf attaches the starmap system by name, the JumpPoint leaf the celestial object by `\|starmapcode=`). Also runs on the editorial fork with an empty `apiData`. |
+| `enrich` | `(ctx) → apiData` | chain link | no | Post-fetch mutation, run on every link **root to leaf** after the chain's endpoints are fetched (Commodity merges raw/refined; the StarSystem leaf attaches the starmap system by name, the JumpPoint leaf the celestial object by `\|starmapcode=`). Also runs on the editorial fork with an empty `apiData`. |
 | `getEditorialManifest` | `() → table` | chain link | no | Manifest fragment; fragments **merge root to leaf, leaf keys win**. Any link defining one opts the page into the editorial layer. |
 | `editorialMode` | `boolean\|nil` | kind | no | Opt-in: when true the kind renders from editorial args alone (`apiData = {}`) for planned / not-yet-in-game pages. |
-| `getAcquisition` | `(apiData, args) → { summary, cards }\|nil` | chain link | no | Acquisition payload for `{{Entity/Availability}}`, **leaf-first wins**. Absent on every link → no acquisition block. |
-| `getRelated` | `(apiData, args) → { items }\|{ cargo }\|nil` | chain link | no | Payload for `{{Entity/Related}}`, **leaf-first wins**. Base returns the record's `related_items` (tiles); Commodity returns cargo-box rows (table). |
-| `getBlueprints` | `(apiData, args) → { blueprints }\|{ ingredient }\|nil` | chain link | no | Payload for `{{Entity/Blueprints}}`, **leaf-first wins**. Base returns the record's `blueprint` list; Commodity returns `{ ingredient = { name } }` (used-in card). |
-| `getPorts` | `(apiData, args) → { ports, narrowChildren? }\|nil` | chain link | no | Payload for `{{Entity/Ports}}`, **leaf-first wins**. Base returns the record's `ports` tree; Vehicle adds `narrowChildren = true`. |
-| `getTypeInfo` | `(apiData, args) → {name, category}\|nil` | chain link | no | Display subtitle + browse category, preferred over the type map. |
-| `getSections` | `(apiData, args, resolved) → EntitySectionEntry[]` | chain link, facet | yes (facet) | Infobox sections, merged by `key`. `resolved` is the editorial view (nil-safe). |
-| `getStructuredData` | `(apiData, args, resolved) → table` | chain link, facet | no | Flat key/value data persisted to SMW. |
-| `getShortDescription` | `(apiData, args, typeInfo, prefix, resolved) → string` | chain link | no | Page short description (leaf-first wins). |
-| `getShortDescriptionPrefix` | `(apiData, args) → string\|nil` | facet | no | Adjective composed into the kind's short description. |
-| `getExternalSiteItems` | `(apiData, args) → EntityItemData[]` | chain link | no | External-site links in the infobox. |
-| `getFooterButtons` | `(apiData, args) → table[]` | chain link | no | Footer action-button defs (`{ label, url, icon, class }`), rendered between the Galactapedia button and the page-supplied VerseGuide / Wiki API buttons (StarSystem: the RSI Starmap button). |
-| `getMetadataItems` | `(apiData, args) → EntityItemData[]` | chain link | no | Extra rows appended to the Metadata section (StarSystem: the ARK starmap code). |
-| `getSubtitle` | `(apiData, args) → string\|nil` | chain link | no | Header subtitle override (else the display type). |
-| `getHeaderBadge` | `(apiData, args, resolved) → string\|nil` | chain link | no | Badge HTML composed into the image overlay (Vehicle: production-state badge). |
-| `getCategories` | `(apiData, args, resolved) → string[]` | chain link | no | Extra browse categories, **collected from every link** and appended after the structural + manufacturer categories (Vehicle: state / series / career; Ship: size + `Pledge ships`). |
+| `getAcquisition` | `(ctx) → { summary, cards }\|nil` | chain link | no | Acquisition payload for `{{Entity/Availability}}`, **leaf-first wins**. Absent on every link → no acquisition block. |
+| `getRelated` | `(ctx) → { items }\|{ cargo }\|nil` | chain link | no | Payload for `{{Entity/Related}}`, **leaf-first wins**. Base returns the record's `related_items` (tiles); Commodity returns cargo-box rows (table). |
+| `getBlueprints` | `(ctx) → { blueprints }\|{ ingredient }\|nil` | chain link | no | Payload for `{{Entity/Blueprints}}`, **leaf-first wins**. Base returns the record's `blueprint` list; Commodity returns `{ ingredient = { name } }` (used-in card). |
+| `getPorts` | `(ctx) → { ports, narrowChildren? }\|nil` | chain link | no | Payload for `{{Entity/Ports}}`, **leaf-first wins**. Base returns the record's `ports` tree; Vehicle adds `narrowChildren = true`. |
+| `getTypeInfo` | `(ctx) → {name, category}\|nil` | chain link | no | Display subtitle + browse category, preferred over the type map. |
+| `getSections` | `(ctx) → EntitySectionEntry[]` | chain link, facet | yes (facet) | Infobox sections, merged by `key`. `ctx.resolved` is the editorial view (nil-safe). |
+| `getStructuredData` | `(ctx) → table` | chain link, facet | no | Flat key/value data persisted to SMW. |
+| `getShortDescription` | `(ctx) → string` | chain link | no | Page short description (leaf-first wins). |
+| `getShortDescriptionPrefix` | `(ctx) → string\|nil` | facet | no | Adjective composed into the kind's short description. |
+| `getExternalSiteItems` | `(ctx) → EntityItemData[]` | chain link | no | External-site links in the infobox. |
+| `getFooterButtons` | `(ctx) → table[]` | chain link | no | Footer action-button defs (`{ label, url, icon, class }`), rendered between the Galactapedia button and the page-supplied VerseGuide / Wiki API buttons (StarSystem: the RSI Starmap button). |
+| `getMetadataItems` | `(ctx) → EntityItemData[]` | chain link | no | Extra rows appended to the Metadata section (StarSystem: the ARK starmap code). |
+| `getSubtitle` | `(ctx) → string\|nil` | chain link | no | Header subtitle override (else the display type). |
+| `getHeaderBadge` | `(ctx) → string\|nil` | chain link | no | Badge HTML composed into the image overlay (Vehicle: production-state badge). |
+| `getCategories` | `(ctx) → string[]` | chain link | no | Extra browse categories, **collected from every link** and appended after the structural + manufacturer categories (Vehicle: state / series / career; Ship: size + `Pledge ships`). |
 | `parent` | `string\|nil` | chain link | no | Module path of the parent link. |
+
+### Hook context
+
+Every contributor and facet hook receives one table, `EntityHookContext` (typed in `Module:Entity/Types`), built once by `Module:Entity/Data.get` and exposed to sibling renderers as `result.ctx`:
+
+| Field | Value | nil when |
+| --- | --- | --- |
+| `apiData` | the merged API record (`{}` on the editorial fork) | never |
+| `args` | parsed template args | never |
+| `resolved` | editorial resolved fields (`{}` when the chain declares no manifest) | `enrich`, `getTypeInfo` (they run before resolution) |
+| `typeInfo` | `{ name, category, categories }` | `enrich`, `getTypeInfo`, `getCategories` |
+| `prefix` | facet adjective for the short description | every hook except `getShortDescription` |
+| `kind`, `family` | canonical kind name, leaf family token | `enrich`, `getTypeInfo`, `getCategories` |
+
+Identity hooks keep their own signatures: `matches(apiData)`, `resolveSubtype(apiData, args)`, `getApiConfigs()`, `getEditorialManifest()`. Public helpers that are not hooks (`Base.resolveManufacturer(apiData, args)`, `Item.formatShortDescription`, `Vehicle.formatShortDescription`, the Vehicle sub-builders' `build`) are called with values unpacked from `ctx`.
 
 See `Module:Entity/Types` for the full LuaCATS interfaces and
 `Module:Entity/Contract` for the validator the conformance test uses

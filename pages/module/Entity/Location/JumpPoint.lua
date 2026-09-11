@@ -25,9 +25,6 @@ p.parent = 'Entity/Location'
 --- |family=jumppoint on the starmap-only tunnels that have no location record.
 p.family = 'jumppoint'
 
--- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
-p.contextHooks = true
-
 --- @param ctx EntityHookContext
 --- @return table apiData
 function p.enrich(ctx)

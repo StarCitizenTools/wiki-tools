@@ -17,9 +17,6 @@ local Util = require('Module:Entity/Facet/Util')
 
 local p = {}
 
--- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
-p.contextHooks = true
-
 --- Finds the first healing-beam mode in a modes array.
 ---
 --- @param modes table|nil

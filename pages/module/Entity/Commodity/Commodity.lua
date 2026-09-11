@@ -78,9 +78,6 @@ p.name = 'Commodity'
 --- @type string
 p.parent = 'Entity/Base'
 
--- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
-p.contextHooks = true
-
 --- @return EntityApiConfig[]
 function p.getApiConfigs()
 	return {

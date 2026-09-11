@@ -16,9 +16,6 @@ local p = {}
 --- @type string
 p.parent = 'Entity/Item'
 
--- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
-p.contextHooks = true
-
 --- The type segment of an RSI class_name, lowercased: the underscore-part after
 --- the manufacturer prefix. "KBAR_BallisticCannon_S2" -> "ballisticcannon",
 --- "BEHR_DistortionRepeater_VNG_S2" -> "distortionrepeater". nil when absent.

@@ -19,9 +19,6 @@ local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
 
--- Transitional (see Module:Entity/Assembly.callHook): hooks take an EntityHookContext.
-p.contextHooks = true
-
 --- Formats a plain numeric stat, returning nil when absent so the row collapses.
 ---
 --- @param value number|string|nil

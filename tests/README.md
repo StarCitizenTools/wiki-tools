@@ -5,7 +5,7 @@ Local test layers. Run everything with `mise run test` (manifest + unit).
 ## Off-wiki ScribuntoUnit suites
 
 The actual test cases live next to their modules at `pages/module/**/testcases.lua`
-(the on-wiki ScribuntoUnit convention). They are run headless in CI by the
+(the ScribuntoUnit convention; they are not deployed to the wiki). They are run headless in CI by the
 [`mediawiki-scribuntounit`](https://github.com/StarCitizenTools/mediawiki-scribuntounit)
 runner, consumed via mise (`[tools]` in `.mise.toml`, which provides the
 `scribuntounit` command). Wiki-specific configuration — where modules live, which

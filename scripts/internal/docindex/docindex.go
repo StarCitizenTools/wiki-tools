@@ -160,8 +160,10 @@ func Render(entries []Entry) string {
 		fmt.Fprintf(&b, "\n### %s pages\n\n", strings.TrimSuffix(ns.Prefix, ":"))
 		b.WriteString("| Page | Summary |\n|---|---|\n")
 		for _, e := range rows {
+			// A Markdown link target cannot contain a bare space; the wiki accepts
+			// underscores, GitHub needs the space percent-encoded.
 			fmt.Fprintf(&b, "| [%s](%s) ([doc](%s%s/doc)) | %s |\n",
-				e.Title, e.Dir, wikiBase, strings.ReplaceAll(e.Title, " ", "_"), strings.ReplaceAll(e.Summary, "|", `\|`))
+				e.Title, strings.ReplaceAll(e.Dir, " ", "%20"), wikiBase, strings.ReplaceAll(e.Title, " ", "_"), strings.ReplaceAll(e.Summary, "|", `\|`))
 		}
 	}
 	b.WriteString("\n" + EndMarker)

@@ -92,7 +92,7 @@ func TestRenderAndSplice(t *testing.T) {
 		"### Module pages",
 		"### Template pages",
 		"| [Module:Entity](module/Entity) ([doc](https://starcitizen.tools/Module:Entity/doc)) | Renders the SMW infobox. |",
-		"([doc](https://starcitizen.tools/Template:Data_table/doc))",
+		"| [Template:Data table](template/Data%20table) ([doc](https://starcitizen.tools/Template:Data_table/doc)) |",
 		"with a `\\|` pipe.",
 	} {
 		if !strings.Contains(catalog, want) {

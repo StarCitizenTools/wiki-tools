@@ -7,7 +7,7 @@ Wiki pages, Scribunto modules, templates, gadgets, and automation for the [Star 
 | Path | Contents |
 |---|---|
 | `pages/` | Mirror of the wiki, one directory per namespace. See [`pages/README.md`](pages/README.md) for the path rules and the catalog of every module and template. |
-| `scripts/` | Go generators that build wiki content from upstream data (starmap, system map, uuid index, item stubs) and report drift against the live wiki. See [`scripts/README.md`](scripts/README.md). |
+| `scripts/` | Go programs that generate wiki content from data the wiki does not maintain by hand, and report how it differs from the live wiki. See [`scripts/README.md`](scripts/README.md). |
 | `tests/` | The local test layers: off-wiki ScribuntoUnit runner config, JSON manifest checks, Node tests for gadgets. See [`tests/README.md`](tests/README.md). |
 | `tools/` | Audit and migration helpers kept from past content migrations. See [`tools/README.md`](tools/README.md). |
 | `types/mw/` | LuaCATS stubs for the Scribunto `mw` API, mirrored from upstream `REL1_43`. |

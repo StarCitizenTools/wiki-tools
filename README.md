@@ -13,7 +13,7 @@ Wiki pages, Scribunto modules, templates, gadgets, and automation for the [Star 
 | `types/mw/` | LuaCATS stubs for the Scribunto `mw` API, mirrored from upstream `REL1_43`. |
 | `design/` | Design references for first-party surfaces such as the main page. |
 | `.agents/skills/` | Agent skills for the wiki workflows below. |
-| `AGENTS.md` | Conventions for contributors and agents: filesystem mirror rules, code style, documentation rules, Scribunto and TemplateStyles gotchas, testing. Read it before changing a module. |
+| `AGENTS.md` | Conventions for contributors and agents. Read it before changing anything under `pages/`. |
 
 ## Development
 
@@ -28,8 +28,6 @@ mise run test       # Lua (manifests, ScribuntoUnit suites, undeclared globals),
 ```
 
 The Lua suites run off-wiki through the [`mediawiki-scribuntounit`](https://github.com/StarCitizenTools/mediawiki-scribuntounit) runner and are a merge-blocking gate in CI, together with lint; both workflows live in `.github/workflows/`. The runner needs a system `lua5.1`. Anything that depends on the live wiki (rendering, parser behaviour, extension APIs) is checked on a sandbox page instead; `AGENTS.md` describes that flow.
-
-Modules require `strict`, carry LuaCATS annotations, and import each other by wiki title (`require('Module:InfoboxLua/Util')`). Comments carry durable facts only; the story of a change belongs in its commit message.
 
 ## Agent skills
 

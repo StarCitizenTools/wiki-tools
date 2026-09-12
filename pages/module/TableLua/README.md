@@ -1,86 +1,39 @@
 # Module:TableLua
 
-Lua interface for building a sortable wiki table without writing wikitext table syntax. Modeled after the [Codex Table component](https://doc.wikimedia.org/codex/latest/components/demos/table.html): the caller passes a `props` table describing columns and rows, and the module returns a `<table class="t-table wikitable">` with bundled TemplateStyles.
+A Lua interface for building a sortable wiki table without writing wikitext table syntax, modeled after the Codex Table component: the caller passes a `props` table describing columns and rows, and gets back a `<table class="t-table wikitable">` with bundled [TemplateStyles](https://www.mediawiki.org/wiki/Extension:TemplateStyles).
 
-Use this when a module needs to emit a table from structured data (rows of mixed types, optional sort, optional column-level alignment) and you'd rather not concatenate `{| ... |}` strings by hand.
+Required by [Module:Entity/Commodity/Mining](https://starcitizen.tools/Module:Entity/Commodity/Mining), [Module:Entity/Availability](https://starcitizen.tools/Module:Entity/Availability), [Module:Entity/Blueprints](https://starcitizen.tools/Module:Entity/Blueprints), [Module:Entity/Orders](https://starcitizen.tools/Module:Entity/Orders), [Module:Entity/Rewards](https://starcitizen.tools/Module:Entity/Rewards), and [Module:Entity/Related](https://starcitizen.tools/Module:Entity/Related); not invoked from templates.
 
-## Usage
+## For module editors
+
+### API
+
+`p.render(props)` returns `<templatestyles>` + the rendered `<table>`.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `caption` | `string` | Yes | | Accessible caption. |
+| `hideCaption` | `boolean` | No | `false` | Suppress the `<caption>` entirely; nothing is exposed to assistive tech in its place. |
+| `columns` | `TableColumn[]` | No | `{}` | `{ id, label?, textAlign? ('start'\|'center'\|'end'\|'number'), width?, minWidth?, allowSort? }`, in display order. `allowSort` only has an effect when explicitly `false` (marks the column `unsortable`); any other value is a no-op. |
+| `data` | `TableRow[]` | No | `{}` | Rows: each an array of cell values, indices aligned 1:1 with `columns`. |
+| `sort` | `table<column.id, 'asc'\|'desc'\|'none'>` | No | `{}` | Any entry adds the `sortable` class and triggers an in-Lua sort before render. |
+| `class` | `string` | No | | Extra class on the root `<table>`. |
+| `emptyState` | `string` | No | `'There is no data available'` | Single-cell row shown when `data` is empty. |
 
 ```lua
 local TableLua = require( 'Module:TableLua' )
-
-local html = TableLua.render( {
-    caption = 'Magazine capacities',
-    columns = {
-        { id = 'name',  label = 'Magazine',     allowSort = true },
-        { id = 'rounds', label = 'Rounds',     textAlign = 'number', allowSort = true },
-        { id = 'cost',   label = 'Cost (aUEC)', textAlign = 'number' },
-    },
-    data = {
-        { '[[Behring P4-AR]]', 30, 1200 },
-        { '[[Klaus & Werner Demeco]]', 80, 4500 },
-        { '[[Apocalypse Arms Scourge]]', 1, 50000 },
-    },
-    sort = { rounds = 'desc' },
+TableLua.render( {
+	caption = 'Magazine capacities',
+	columns = { { id = 'name', label = 'Magazine' }, { id = 'rounds', label = 'Rounds', textAlign = 'number' } },
+	data = { { '[[Behring P4-AR]]', 30 }, { '[[Klaus & Werner Demeco]]', 80 } },
+	sort = { rounds = 'desc' },
 } )
 ```
 
-`render` returns a string: a `<templatestyles>` tag for `Module:TableLua/styles.css` followed by the rendered `<table>`. Concatenate it directly into your module's output.
+### Gotchas
 
-## API
+MediaWiki's `sortable` class only sorts on user click; modules render once on the server, so a `sort` entry triggers a manual `table.sort` for readers who don't run JavaScript (mobile, exports, search):
 
-### `p.render( props )`
-
-Builds and returns the table.
-
-| Parameter | Type | Description |
-|---|---|---|
-| `props` | `TableProps` | Table configuration. See fields below. |
-
-#### `TableProps`
-
-| Field | Type | Required | Default | Description |
-|---|---|---|---|---|
-| `caption` | `string` | Yes | | Accessible caption shown above the table. |
-| `hideCaption` | `boolean` | No | `false` | Suppress rendering of the `<caption>` element. The caption is still set for screen readers when supported. |
-| `columns` | `TableColumn[]` | No | `{}` | Column definitions in display order. |
-| `data` | `TableRow[]` | No | `{}` | Row data. Each row is an array whose indices align 1:1 with `columns`. |
-| `sort` | `table<string, 'asc'\|'desc'\|'none'>` | No | `{}` | Map of `column.id` to sort direction. Presence of any entry adds the `sortable` class and triggers an in-Lua sort. |
-| `class` | `string` | No | | Extra class appended to the root `<table>`. |
-| `emptyState` | `string` | No | `'There is no data available'` | Message rendered as a single-cell row when `data` is empty. |
-
-#### `TableColumn`
-
-| Field | Type | Required | Default | Description |
-|---|---|---|---|---|
-| `id` | `string` | Yes | | Stable identifier used by `sort`. |
-| `label` | `string` | No | `''` | Header cell content. Wikitext is allowed. |
-| `textAlign` | `'start'\|'center'\|'end'\|'number'` | No | `'start'` | Alignment class applied to the column's `<th>` and every `<td>` in the column. `'number'` aligns right and is intended for numeric columns. |
-| `width` | `string` | No | | CSS `width` for the column header. Any valid CSS length. |
-| `minWidth` | `string` | No | | CSS `min-width` for the column header. |
-| `allowSort` | `boolean` | No | `true` | When `false`, marks the column as non-sortable (`unsortable` class). Has no effect unless the table is sortable. |
-
-#### `TableRow`
-
-A `TableRow` is an array of cell values. Strings are passed through as wikitext; numbers are rendered as-is. The array length should match `columns`; extra cells are still rendered but won't pick up column-level alignment.
-
-## Sorting
-
-MediaWiki's `sortable` class only sorts on user click — modules render once on the server, so server-side sort order matters when the page is read by anything that doesn't run JavaScript (mobile, exports, search). Setting any entry in `sort` triggers a manual `table.sort` over `data` before render:
-
-- Numeric columns sort numerically. Strings that contain a number (even when wrapped in `[[link]]` or other HTML) are parsed for sorting; if both sides parse, numeric order wins.
-- String columns fall back to alphanumeric order on the HTML-stripped text.
-- `nil` cells sort first.
-- Multiple sort keys are honored in alphabetical order of column id.
-
-## Styles
-
-CSS lives in [Module:TableLua/styles.css](https://starcitizen.tools/Module:TableLua/styles.css) and is bundled automatically. Only column alignment is themed; the base table appearance comes from `wikitable`.
-
-## Architecture
-
-```
-TableLua/
-├── TableLua.lua    # Render function, sort comparator
-└── styles.css      # Column alignment classes
-```
+- A column's `textAlign = 'number'` only styles alignment; it plays no part in sorting. The comparator decides per cell: two Lua numbers compare numerically; two strings first strip HTML tags (`<...>`, not `[[...]]` wiki-link brackets) and extract the *first* number pattern each contains, comparing numerically when both extract to different values, else falling back to alphanumeric order on the stripped text. A page name with an embedded digit sorts on that digit: `'[[Behring P4-AR]]'` extracts `4`.
+- `nil` cells sort first ascending, last descending.
+- Multiple `sort` keys are honored in alphabetical order of column id, not insertion order.

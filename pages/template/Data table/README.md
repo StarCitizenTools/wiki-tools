@@ -1,10 +1,10 @@
 # Template:Data table
 
-Renders an interactive, filterable browse table for every page in a category. Wraps [Module:DataTableLua](https://starcitizen.tools/Module:DataTableLua); see the module page for query and rendering details.
-
-Use it on overview pages (e.g. Personal weapon) to list every member of a category with a sortable, searchable, paginated table backed by [Semantic MediaWiki](https://www.semantic-mediawiki.org/) data. A page image and the page name are added automatically as the first two columns; you only declare the data columns.
+Renders an interactive, filterable browse table for every page in a category or [SMW](https://www.mediawiki.org/wiki/Extension:Semantic_MediaWiki) condition. Wraps [Module:DataGrid](https://starcitizen.tools/Module:DataGrid); see the module page for details.
 
 ## Usage
+
+Use it on an overview page (e.g. Personal weapon) to list a category's members; declare only the data columns, since the lead card (image + name) is automatic.
 
 ```wikitext
 {{Data table
@@ -12,26 +12,23 @@ Use it on overview pages (e.g. Personal weapon) to list every member of a catego
 | columns =
     Size ; filter
     Subtype ; label=Type ; filter
-    Class ; filter
-    Ammo ; filter
-    Effective range
-    Maximum range ; label=Max range
-    Muzzle velocity
-    Damage
     Manufacturer ; filter
-    Is item base variant ; label=Base variant ; filter
+    Damage
 }}
 ```
 
-Each non-blank line in `columns` is one column. The first `;`-separated clause is the [SMW property](https://starcitizen.tools/Special:Properties) to show; the remaining clauses are modifiers:
+Each non-blank line in `columns` is one column. The first `;`-separated clause is the [SMW property](https://starcitizen.tools/Special:Properties) to show; the rest are modifiers:
 
 | Modifier | Effect |
 |---|---|
-| `label=X` | Override the column header (default: the property name). |
-| `filter` | Give the column a search-pane filter. |
-| `size=100px` | Format hint for image-valued properties. |
+| `label=X` | Column header and result-row key (default: the property name). |
+| `filter` | Checkbox set filter for the column. |
+| `eyebrow` | Show the value as a secondary label on the lead card instead of its own column; several compose into one `·`-joined line, in order. |
+| `kind=effect\|bar\|boolean` | Force a rendering: [Module:DietaryEffect](https://starcitizen.tools/Module:DietaryEffect) badges, a magnitude bar, or a [Module:Boolean](https://starcitizen.tools/Module:Boolean) icon; other values ignored. `good=higher\|lower` sets a bar's better direction. |
+| `group=X` | Header this column nests under; only consecutive same-group columns nest together. |
+| `prefix=X` / `suffix=X` / `suffix1=X` | For `eyebrow`: prefix text (`S1`), suffix unit (`5 charges`), singular suffix for `1` (`1 charge`). |
 
-Spacing around `;` is optional: `Size ; filter`, `Size; filter`, and `Size;filter` are equivalent.
+`size=X` is accepted but unused. Spacing around `;` is optional.
 
 ## Parameters
 
@@ -39,20 +36,21 @@ Spacing around `;` is optional: `Size ; filter`, `Size; filter`, and `Size;filte
 
 | Name | Label | Type | Required | Default | Description | Example |
 |------|-------|------|----------|---------|-------------|---------|
-| `category` | Category | string | No |  | Category whose member pages are listed. Do not include the `Category:` prefix. Provide this, `conditions`, or both. | `Personal weapons` |
-| `columns` | Columns | content | Yes |  | One column per line. First clause is the SMW property; add `; label=X`, `; filter`, or `; size=X` modifiers. | `Size ; filter` |
-| `conditions` | Conditions | string | No |  | Extra raw SMW query conditions, appended to the category condition (or used alone when no `category` is given). Advanced: use to filter by an SMW property rather than category membership. | `[[Manufacturer::ArcCorp]]` |
-
-At least one of `category` or `conditions` must be given. The query is always restricted to the main namespace.
+| `category` | Category | string | No |  | Category whose member pages are listed, without the `Category:` prefix; provide this, `conditions`, or both. | `Personal weapons` |
+| `columns` | Columns | content | Yes |  | One column per line: the property, then `;`-separated modifiers (see Usage). | `Size ; filter` |
+| `conditions` | Conditions | string | No |  | Extra raw SMW conditions, appended to `category` or used alone. | `[[Manufacturer::ArcCorp]]` |
+| `pinlead` | Pin lead | boolean | No | `false` | Pin the lead card (page image and name) left while data columns scroll. | `yes` |
 
 ## Behavior
 
-- The page image (100px) and page name are always the first two columns and cannot be removed; you do not list them in `columns`.
-- All DataTables options (pagination at 10 rows, search panes, deferred render, horizontal scroll, highlight) are fixed by the module, so every browse table behaves identically.
-- Search-pane column indices are computed automatically from which columns carry `filter`. Reordering, adding, or removing columns never breaks the filters.
-- A query that matches nothing shows DataTables' built-in "No data available in table" message.
+- The page image and name form one lead card, always first and unremovable.
+- No pagination: up to 1000 rows load into one scrolling, searchable grid; `filter` columns add a checkbox filter.
+- A column auto-detects as a list if any value is multi-valued, or as page links only if every value is a wikilink; `kind=` overrides.
+- Duplicate `label=`s, a missing `columns`, or neither `category` nor `conditions` render an inline error; a query matching nothing renders an empty grid, not an error.
+- The query is restricted to the main namespace, so File/Category pages never leak in.
+- Every grid gets a toolbar button that reopens it in a window-filling modal, keeping filter and sort state.
 
 ## See also
 
-- [Module:DataTableLua](https://starcitizen.tools/Module:DataTableLua) — implementation.
-- [Module:TableLua](https://starcitizen.tools/Module:TableLua) — a different layer: renders a static table from data already in a module, with no query or client-side interactivity.
+- [Module:DataGrid](https://starcitizen.tools/Module:DataGrid), implementation.
+- [Module:TableLua](https://starcitizen.tools/Module:TableLua): a static table from module data, no query or interactivity.

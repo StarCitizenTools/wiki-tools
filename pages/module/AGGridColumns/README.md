@@ -1,48 +1,41 @@
 # Module:AGGridColumns
 
-A shared, registry-based column-type library for [AG Grid](https://www.ag-grid.com/) grids on the Star Citizen Wiki (via [Extension:AGGrid](https://www.mediawiki.org/wiki/Extension:AGGrid)). It turns a list of declarative **column specs** into AG Grid `columnDefs` + `rowData`, dispatching per-column to a registry of **kinds**.
+A shared, registry-based column-type library for [AG Grid](https://www.ag-grid.com/) (via [Extension:AGGrid](https://www.mediawiki.org/wiki/Extension:AGGrid)). Turns declarative column specs into AG Grid `columnDefs` + `rowData`, dispatching per column to a kind; the consumer owns the fetch, query, `gridOptions`, and render.
 
-Consumers (Module:DataGrid for `{{Data table}}`, Module:PledgeVehicleGrid) build their own column specs, fetch via `mw.smw.ask`, assemble `gridOptions`, and call `render` — this library owns only the column building.
+Required by [Module:DataGrid](https://starcitizen.tools/Module:DataGrid) and [Module:PledgeVehicleGrid](https://starcitizen.tools/Module:PledgeVehicleGrid); not invoked from templates.
 
-## Kinds
+## For module editors
+
+### API
+
+- `buildColumnDefs(specs)` → AG Grid `columnDefs`, one per spec.
+- `buildRowData(results, specs)` → AG Grid `rowData`, one row per `mw.smw.ask` result.
+- Each kind (`Module:AGGridColumns/Kind/<Name>`) exposes `p.type` (the JS colDef `type` string, or `false` for a type-less column), `p.buildColDef(spec)`, and `p.buildCellValue(spec, result)`, registered by name in [Module:AGGridColumns/Registry](https://starcitizen.tools/Module:AGGridColumns/Registry). [Module:AGGridColumns/Contract](https://starcitizen.tools/Module:AGGridColumns/Contract) validates the shape; `testcases` loops every kind through it, so a kind missing a piece fails a unit test, not a render.
+
+Kinds, per [Module:AGGridColumns/Registry](https://starcitizen.tools/Module:AGGridColumns/Registry):
 
 | kind | JS type | cell value | used by |
 |---|---|---|---|
-| `image` | `aggridImage` | linked thumbnail | *(spare — generic thumbnail column)* |
-| `link` | `aggridLink` | linked page | DataGrid page-link columns |
-| `linkList` | `aggridLinkList` | list of links | pledge loaner |
-| `valueList` | `aggridLinkList` | list of plain-text tags and/or links (set filter splits per value) | DataGrid multi-valued columns |
-| `text` | *(none)* | plain text | pledge text columns |
-| `date` | *(none)* | ISO date string (`cellDataType: 'dateString'`) | pledge concept date |
-| `smart` | `scwSmart` | numeric-aware text | DataGrid plain columns |
-| `number` | `numericColumn` | real number + Intl format | pledge stats |
-| `card` | `scwEntityCard` | thumb + eyebrow + title | pledge vehicle, DataGrid lead |
-| `stackedValue` | `scwStackedValue` | primary over muted secondary | pledge prices |
-| `badge` | `scwBadge` | BadgeLua-style pill | pledge production state |
-| `boolean` | `scwBoolean` | icon-only tri-state yes/no/unknown | DataGrid `kind=boolean` columns |
+| `image` | `aggridImage` | linked thumbnail | none currently (spare) |
+| `link` | `aggridLink` | linked page | DataGrid, auto-classified page-link columns |
+| `linkList` | `aggridLinkList` | list of links | PledgeVehicleGrid loaner |
+| `valueList` | `aggridLinkList` | list of plain-text tags and/or links (set filter splits per value) | DataGrid, auto-classified multi-valued columns |
+| `text` | *(none)* | plain text | PledgeVehicleGrid text columns |
+| `date` | *(none)* | ISO date string (`cellDataType: 'dateString'`) | PledgeVehicleGrid concept date |
+| `smart` | `scwSmart` | numeric-aware text | DataGrid, auto-classified plain columns |
+| `number` | `numericColumn` | real number + Intl format | PledgeVehicleGrid stats |
+| `card` | `scwEntityCard` | thumb + eyebrow + title | PledgeVehicleGrid vehicle card, DataGrid lead |
+| `stackedValue` | `scwStackedValue` | primary over muted secondary | PledgeVehicleGrid prices |
+| `badge` | `scwBadge` | BadgeLua-style pill | PledgeVehicleGrid production state |
+| `badgeList` | `scwBadgeList` | multi-value badge list, via a consumer-supplied `classify` function | DataGrid `kind=effect` ([Module:DietaryEffect](https://starcitizen.tools/Module:DietaryEffect)'s `gridClassify`) |
+| `boolean` | `scwBoolean` | icon-only tri-state yes/no/unknown, via a hardcoded (not consumer-supplied) [Module:Boolean](https://starcitizen.tools/Module:Boolean)`.gridClassify` call | DataGrid `kind=boolean` |
+| `signedBar` | `scwSignedBar` | signed value drawn as a bar from a centre line, scaled to a column-wide `max` | DataGrid `kind=bar` |
 
-## API
+Adding a kind: author `Kind/<Name>` satisfying the contract, add one line to `Registry`, and for an `scw*` type register the paired renderer in `MediaWiki:Gadget-aggridRenderers.js` via `ext.aggrid.register`.
 
-- `buildColumnDefs(specs)` → AG Grid `columnDefs` (one per spec).
-- `buildRowData(results, specs)` → AG Grid `rowData` (one row per `mw.smw.ask` result).
+### Gotchas
 
-Each kind module (`Kind/X`) exposes `p.type` (the JS column type string, or `false`), `p.buildColDef(spec)`, and `p.buildCellValue(spec, result)`.
-
-## Adding a kind
-
-1. Author `Module:AGGridColumns/Kind/<Name>` with `type` + `buildColDef` + `buildCellValue` (satisfying `Module:AGGridColumns/Contract`).
-2. Add one line to `Module:AGGridColumns/Registry`.
-3. For an `scw*` type, register the paired renderer in `MediaWiki:Gadget-aggridRenderers.js` via `ext.aggrid.register`.
-
-`Module:AGGridColumns/testcases` loops the registry through the contract, so a kind missing a half fails a unit test.
-
-## Architecture
-
-```
-AGGridColumns.lua   buildColumnDefs / buildRowData (generic loops)
-Registry.lua        kind name -> module
-Contract.lua        COLUMN_KIND + validate
-Util/Util.lua       SMW decoders (decodeScalar/toText/toNumber/parseLink/buildThumb/
-                    buildLinkList/buildValueList/classifyColumn/cloneFormat)
-Kind/*.lua          one module per kind
-```
+- `buildColumnDefs`/`buildRowData` raise a hard Lua error for a `kind` not in the registry; there is no silent fallback column.
+- [SMW](https://www.mediawiki.org/wiki/Extension:Semantic_MediaWiki)-value decoding (`decodeScalar`, `toText`, `toNumber`, `parseLink`, `buildThumb`, `buildLinkList`, `buildValueList`, `classifyColumn`, `cloneFormat`, `looksNumeric`) lives in [Module:AGGridColumns/Util](https://starcitizen.tools/Module:AGGridColumns/Util), shared by every kind and by consumers directly.
+- `Kind/Date`'s `cellDataType` is declared, not inferred: AG Grid reads `rowData[0][field]` alone to infer a column's data type, so a first row with a missing or non-ISO value would otherwise silently drop the date filter's comparator.
+- `Kind/SignedBar`'s `good` is read against the value's sign, not a fixed polarity: 0 or a spec with no `good` leaves the cell's `good` field absent (neutral), distinct from `false` (leans the wrong way).

@@ -1,89 +1,23 @@
 # Module:BadgeLua
 
-Lua interface for rendering an inline badge — a small pill-shaped label with optional icon, custom color, and custom background. Suited for status tags, version markers, faction labels, or any short metadata that should read as a distinct chip rather than plain text.
+Lua interface for an inline pill-shaped badge, with an optional icon, custom text color, and custom background. Suited to status tags, version markers, or any short metadata that should read as a distinct chip rather than plain text.
 
-The module emits a `<span class="t-badge">` with bundled TemplateStyles. The icon (when supplied) is rendered through [Module:Icon](https://starcitizen.tools/Module:Icon) at `16px` — a `metadata` thumbnail by default, or a `currentColor` mask when `mask` is set (so it recolours with the badge). When `link` is set the whole pill is wrapped in a single anchor, so the entire badge is the link rather than just its text.
+Editors use this through `{{Badge}}`; see [Template:Badge](https://starcitizen.tools/Template:Badge). Required directly by several rendering modules, including [Module:Rarity](https://starcitizen.tools/Module:Rarity), [Module:DietaryEffect](https://starcitizen.tools/Module:DietaryEffect), and [Module:Entity/ProductionStatus](https://starcitizen.tools/Module:Entity/ProductionStatus).
 
-## Usage
+## For module editors
 
-```lua
-local Badge = require( 'Module:BadgeLua' )
+### API
 
-local html = Badge.render( {
-    text = 'Deprecated',
-    variant = 'warning',
-} )
-```
+- `p.render(props)`: builds and returns the badge markup plus its bundled `<templatestyles>` tags. `props`: `text` (required), `variant` (`error`/`success`/`warning`), `icon` (file name, rendered via [Module:Icon](https://starcitizen.tools/Module:Icon) at 16px), `mask` (render the icon as a `currentColor` mask instead of a thumbnail), `link` (wrap the whole pill in one anchor), `color`/`backgroundColor` (inline CSS overrides), `class`.
+- `p.main(frame)`: wikitext entry point behind `{{Badge}}`. Reads args via [Module:Arguments](https://starcitizen.tools/Module:Arguments); the first positional argument becomes `text`, and `bg` is a shorthand for `backgroundColor` (an explicit `backgroundColor=` wins). `mask` is normalised through [Module:Yesno](https://starcitizen.tools/Module:Yesno).
 
-For one-off colors that don't fit a semantic variant, fall back to the raw color props:
+### Gotchas
 
-```lua
-local html = Badge.render( {
-    text = 'New',
-    icon = 'Sparkle.svg',
-    color = '#fff',
-    backgroundColor = '#2a6df4',
-} )
-```
+- An unrecognised `variant` is silently ignored, so a typo never emits a broken half-styled class.
+- `color`/`backgroundColor` render as inline styles, so they win over the `variant` class for text and background color, but a variant's border color has no inline counterpart and stays whatever the class set.
+- Icon's own `<templatestyles>` tag is appended only when `icon` is set, so a plain text badge doesn't load it unconditionally.
+- `link` wraps the already-rendered pill string in `[[Target|…]]`; the `<templatestyles>` tags stay outside the link label.
 
-From wikitext, invoke `main` directly:
+### Styles
 
-```wikitext
-{{#invoke:BadgeLua|main|text=New|icon=Sparkle.svg|backgroundColor=#2a6df4|color=#fff}}
-```
-
-`render` returns a string: a `<templatestyles>` tag for `Module:BadgeLua/styles.css` followed by the badge markup. Concatenate it directly into your module's output.
-
-## API
-
-### `p.render( props )`
-
-Builds and returns the badge.
-
-| Parameter | Type | Description |
-|---|---|---|
-| `props` | `BadgeProps` | Badge configuration. See fields below. |
-
-#### `BadgeProps`
-
-| Field | Type | Required | Default | Description |
-|---|---|---|---|---|
-| `text` | `string` | Yes | | Badge label. Wikitext allowed. |
-| `variant` | `'error'\|'success'\|'warning'` | No | | Semantic preset that themes the badge via Citizen design tokens. Unknown values are ignored. |
-| `icon` | `string` | No | | File name (without the `File:` prefix) of an icon to render before the text at 16px (via Module:Icon). |
-| `mask` | `boolean` | No | `false` | Render the icon as a `currentColor` mask instead of a thumbnail, so it matches the badge colour. |
-| `link` | `string` | No | | Wrap the whole badge in a single anchor to this page, so the entire pill is the link. |
-| `color` | `string` | No | | CSS color applied to the badge text. Any valid CSS color value. Overrides `variant` (rendered as inline style). |
-| `backgroundColor` | `string` | No | | CSS background color applied to the badge. Any valid CSS color value. Overrides `variant` (rendered as inline style). |
-| `class` | `string` | No | | Extra class appended to the badge root. |
-
-### `p.main( frame )`
-
-Wikitext entry point. Reads named arguments via [Module:Arguments](https://starcitizen.tools/Module:Arguments) and forwards them to `render`. The argument names match the `BadgeProps` fields above.
-
-Two shorthand argument names are accepted for the most common props, so common cases stay terse in wikitext:
-
-| Shorthand | Resolves to | Notes |
-|---|---|---|
-| `1` (positional) | `text` | First positional argument is treated as the badge label when `text=` is omitted. |
-| `bg` | `backgroundColor` | Used when `backgroundColor=` is omitted. |
-
-```wikitext
-{{#invoke:BadgeLua|main|New|bg=#2a6df4|color=#fff}}
-```
-
-Explicit named arguments always win over their shorthands.
-
-## Styles
-
-CSS lives in [Module:BadgeLua/styles.css](https://starcitizen.tools/Module:BadgeLua/styles.css) and is bundled automatically. The badge uses Citizen skin design tokens (`--space-*`, `--color-surface-*`, `--color-emphasized`, `--border-*`, `--font-size-*`, `--font-weight-*`) so it inherits the site theme.
-
-`color` and `backgroundColor` props override the token-derived defaults via inline styles, so they win against any class-based theming.
-
-## Architecture
-
-```
-BadgeLua/
-├── BadgeLua.lua    # Render function (icon delegated to Module:Icon)
-└── styles.css      # Badge layout + variants
-```
+`.t-badge`, `.t-badge__icon`, and `.t-badge__text` are a contract other code targets directly rather than through `props`: [Module:Rarity](https://starcitizen.tools/Module:Rarity) and [Module:Entity/ProductionStatus](https://starcitizen.tools/Module:Entity/ProductionStatus) override the base look with higher-specificity selectors (`.t-badge.rarity-badge--*`), and the `aggridRenderers` gadget (`MediaWiki:Gadget-aggridRenderers.js`/`.css`) reconstructs the same class names in JS so an [AG Grid](https://www.mediawiki.org/wiki/Extension:AGGrid) badge cell matches a wikitext one. Renaming a class here breaks all of them silently.

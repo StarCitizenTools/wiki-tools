@@ -1,42 +1,25 @@
 # Module:DataGrid
 
-Builds an interactive, filterable browse table on [AG Grid](https://www.ag-grid.com/) via [Extension:AGGrid](https://www.mediawiki.org/wiki/Extension:AGGrid) for a category, a raw SMW condition, or both. The successor to [Module:DataTableLua](https://starcitizen.tools/Module:DataTableLua): the same [Template:Data table](https://starcitizen.tools/Template:Data_table) contract, but virtualised rows, rich cells (linked thumbnails and names), and REST-served data on saved pages.
+Builds an interactive, filterable browse table on [AG Grid](https://www.ag-grid.com/) (via [Extension:AGGrid](https://www.mediawiki.org/wiki/Extension:AGGrid)) for a category, a raw [SMW](https://www.mediawiki.org/wiki/Extension:Semantic_MediaWiki) condition, or both: virtualised rows, rich cells, and one `mw.smw.ask` query.
 
-## Usage
+Editors use this through `{{Data table}}`; see [Template:Data table](https://starcitizen.tools/Template:Data_table).
 
-Invoked through `{{Data table}}`, a bare `{{#invoke:DataGrid|main}}`. The module reads `category`, `columns`, and `conditions` off the parent (template) frame via `Module:Arguments`.
+## For module editors
 
-- `category` — the category to browse. Optional when `conditions` is given; provide at least one of the two.
-- `columns` — one column per line, `property; label=X; size=X; filter; eyebrow`. The first clause is the SMW property; the rest are modifiers. `label=` overrides the header (and the result-row key). The bare `filter` flag gives the column a checkbox set filter. The bare `eyebrow` flag promotes the column into the lead card as a secondary label above the name (at most one per table), instead of rendering it as its own column. `size=` is parsed for backward-compatibility but is **unused**.
-- `conditions` — extra raw SMW query conditions (e.g. `[[Item type::Gun]]` or `[[Manufacturer::ArcCorp]]`). Appended to the category condition when both are given, or used on its own when no category is supplied ([[Template:Manufacturer products]] queries `[[Manufacturer::…]]` with no category). The query is always restricted to the main namespace with `[[:+]]`.
+### API
 
-## Behaviour
+- `p.parseColumns(raw)`: the multi-line `columns` argument into `DataGridColumn[]` (`property`, `label`, `filter`, `eyebrow`, `kind`, `good`, `group`, `prefix`, `suffix`, `suffix1`).
+- `p.columnAlias(column)`: a column's SMW alias / result-row key: `label`, else the property name.
+- `p.duplicateAlias(columns)`: the first alias colliding with another column or a lead key (`Image`/`Name`), or `nil`.
+- `p.buildQuery(category, columns, conditions)`: the `mw.smw.ask` query array: `[[:+]]` plus an optional category condition and the raw `conditions`, then one aliased printout per column.
+- `p.main(frame)`: wikitext entry point; reads `category`/`columns`/`conditions`/`pinlead`, runs the query, and returns the rendered grid.
 
-- **Data source** — one `mw.smw.ask` query: a fixed `Page Image` + page-name lead, then one aliased printout per column. Every column is emitted with an explicit `=alias` (the `label`, else the property verbatim) so result rows key deterministically. Two columns resolving to the same alias — or one colliding with the reserved `Image`/`Name` lead keys — are rejected with an inline error.
-- **Lead** — a single card cell (the shared `card` kind, the gadget's `scwEntityCard` type): a square thumbnail sized to the row plus the linked page name, both linking to the row's own page. A column flagged `eyebrow` adds its value as a secondary label above the name (linked when it is a page), and the rows grow taller to fit. The lead is text-filtered by name; to filter by a property such as manufacturer, add it as a normal `filter` column.
-- **Column classification** — each editor column is classified from its values: a **multi-value list** column (any row holds several values → `aggridLinkList` via `aggrid.list`), a **page-link** column (`[[:Target|Display]]` values → `aggridLink`), or a **plain** column. This keeps page-valued columns such as Manufacturer rendering as links and renders a multi-valued property (e.g. Company Industry/Products) as a comma list. Number-vs-text is deliberately not decided in Lua.
-- **Numeric sort** — plain columns use the gadget's `scwSmart` type: numeric-looking values sort numerically and right-align per cell; text sorts alphabetically. No column-level numeric typing, so a stray text value never flips a column and a code like `S2` never mis-sorts.
-- **Filtering** — `filter`-flagged columns get the checkbox set filter (`aggridSet`); other columns get a text filter. On a **multi-value list** column the set filter splits each cell into one option per value, so a company in both `mining` and `salvage` appears under both checkboxes and either one matches it. A global `quickSearch` box sits above the grid.
-- **No pagination** — all rows load into one virtualised, internally-scrolling grid (70vh).
-- **Full-window view** — `expand = true` adds a toolbar button that reopens the grid in a modal filling the browser window, for wide column sets that outgrow the article column. Filter and sort state carries across.
-- **Empty category** — renders an empty grid (AG Grid's "no rows" overlay), not an error, so a new type with no pages yet still works.
+Column classification is data-driven, not user-set: a column whose rows hold several values becomes a multi-value list (`aggridLinkList`); one whose values are `[[:Target|Display]]` wikilinks becomes a page link (`aggridLink`); everything else is plain (the gadget's numeric-aware `scwSmart` type). `kind=effect`/`bar`/`boolean` overrides this with a [Module:DietaryEffect](https://starcitizen.tools/Module:DietaryEffect) badge list, a signed bar, or a [Module:Boolean](https://starcitizen.tools/Module:Boolean) icon; any other `kind` value is silently ignored.
 
-## Requirements
+### Gotchas
 
-- [Extension:AGGrid](https://www.mediawiki.org/wiki/Extension:AGGrid) — `mw.ext.aggrid`, the `aggridLink`/`aggridLinkList` column types (the latter via `aggrid.list`), the `aggridSet` filter (which splits a multi-value cell into one option per value), `quickSearch`, `expand`, and the `Pages using AG Grid` tracking category.
-- [Extension:SemanticScribunto](https://www.mediawiki.org/wiki/Extension:SemanticScribunto) — `mw.smw.ask`.
-- **aggridRenderers gadget** (`MediaWiki:Gadget-aggridRenderers.js`) — registers the `scwSmart` (plain columns) and `scwEntityCard` (lead card) column types. Gated in `MediaWiki:Gadgets-definition` by `categories=Pages using AG Grid`, so it loads on grid pages. Without it, the lead card and plain-column sort/align fall back to AG Grid defaults.
-
-## Architecture
-
-```
-DataGrid/
-├── DataGrid.lua        parseColumns, columnAlias, duplicateAlias, buildQuery, render (main)
-├── Util/
-│   ├── Util.lua        decodeScalar, toText, parseLink, buildThumb, classifyColumn
-│   └── testcases.lua   ScribuntoUnit tests
-├── styles.css          grid styles, scoped to .t-datagrid
-└── testcases.lua       ScribuntoUnit tests (parseColumns, columnAlias, duplicateAlias, buildQuery)
-```
-
-The SMW-value helpers in `Util` decode the formatted strings and wikilink markup `mw.smw.ask` returns. Per project convention the rendering paths (`buildRowData`, `buildColumnDefs`, `main`) are not unit-tested.
+- `size=` is parsed for backward compatibility only; it has no effect on rendering.
+- `kind=bar` scales every cell against its column's largest absolute value across all matching rows, not per cell, so two rows stay visually comparable.
+- An `eyebrow` column's set filter (when also `filter`-flagged) keys on that one column's decorated text, not the composed multi-part line; otherwise every row would be its own filter option.
+- Full rendering (the lead card, `scwSmart` sort/alignment) depends on the `aggridRenderers` gadget (`MediaWiki:Gadget-aggridRenderers.js`), gated to load on `Category:Pages using AG Grid`; without it AG Grid falls back to its own column defaults.
+- The SMW-value decoding helpers (`decodeScalar`, `toText`, `parseLink`, `classifyColumn`) live in [Module:AGGridColumns/Util](https://starcitizen.tools/Module:AGGridColumns/Util), shared with other AG Grid renderers, not in a DataGrid-owned submodule; `buildRowData` and `buildColumnDefs` likewise belong to [Module:AGGridColumns](https://starcitizen.tools/Module:AGGridColumns) itself, not to this module. `testcases.lua` covers DataGrid's own pure column logic; its one untested, frame-dependent path is `main`, verified by browser QA instead, per project convention.

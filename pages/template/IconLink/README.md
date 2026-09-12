@@ -1,10 +1,10 @@
 # Template:IconLink
 
-Renders an inline icon link: a small icon followed by a text label, where both the icon and the label link to the same wiki page. Suited to compact, scannable references such as a ship with a thumbnail, a manufacturer with its logo, or a location with a map pin. Wraps [Module:IconLink](https://starcitizen.tools/Module:IconLink); see the module page for rendering details. For an icon beside plain, non-linking text, use [Template:IconText](https://starcitizen.tools/Template:IconText).
+Renders an inline icon link: a small icon followed by a text label, where both the icon and the label link to the same wiki page. Wraps [Module:IconLink](https://starcitizen.tools/Module:IconLink); for an icon beside plain, non-linking text, use [Template:IconText](https://starcitizen.tools/Template:IconText) instead.
 
 ## Usage
 
-The first positional argument is the target page; `icon` is the file name of the leading glyph. `text` overrides the visible label (which defaults to the page name); `size` sets the icon size; `class` appends a CSS class to the root span.
+Suited to compact, scannable references such as a ship with a thumbnail, a manufacturer with its logo, or a location with a map pin. The first positional argument is the target page; `icon` is the file name of the leading glyph. `text` overrides the visible label (which defaults to the page name); `size` sets the icon size; `class` appends a CSS class to the root span.
 
 | Wikitext | Result |
 |---|---|
@@ -15,14 +15,14 @@ The first positional argument is the target page; `icon` is the file name of the
 
 ## Parameters
 
-| Name | Label | Type | Required | Default | Description | Example |
-|------|-------|------|----------|---------|-------------|---------|
-| `1` | Link | wiki-page-name | Yes |  | Target wiki page. Both the icon and the label link here. Alias: `link` (takes precedence over the positional argument). | `Aurora MR` |
-| `icon` | Icon | wiki-file-name | Yes |  | File name (without the `File:` prefix) of the leading icon. | `CdxIconArticle.svg` |
-| `text` | Text | string | No | (the link target) | Visible label. Defaults to the page name. | `Aurora` |
-| `size` | Icon size | string | No | `20px` | Icon size, as a MediaWiki image size. | `16px` |
-| `mask` | Mask icon | boolean | No | `false` | Render the icon as a recolorable CSS mask filled with the linked text color, instead of an image. | `yes` |
-| `class` | CSS class | string | No |  | Extra class appended to the root span. | `my-icon-link` |
+| Name | Label | Type | Required | Default | Description | Example | Aliases |
+|------|-------|------|----------|---------|-------------|---------|---------|
+| `1` | Link | wiki-page-name | Yes |  | Target wiki page; both the icon and the label link here. | `Aurora MR` | `link` |
+| `icon` | Icon | wiki-file-name | Yes |  | File name (without the `File:` prefix) of the leading icon. | `CdxIconArticle.svg` |  |
+| `text` | Text | string | No | (the link target) | Visible label. Defaults to the page name. | `Aurora` |  |
+| `size` | Icon size | string | No | `20px` | Icon size: a MediaWiki image size, or a CSS length when `mask` is set. | `16px` |  |
+| `mask` | Mask icon | boolean | No | `false` | Render the icon as a recolorable CSS mask filled with the linked text color, instead of an image. | `yes` |  |
+| `class` | CSS class | string | No |  | Extra class appended to the root span. | `my-icon-link` |  |
 
 ## Behavior
 
@@ -34,5 +34,5 @@ The first positional argument is the target page; `icon` is the file name of the
 
 ## See also
 
-- [Module:IconLink](https://starcitizen.tools/Module:IconLink) — implementation.
-- [Template:IconText](https://starcitizen.tools/Template:IconText) — an icon beside non-linking text.
+- [Module:IconLink](https://starcitizen.tools/Module:IconLink), implementation.
+- [Template:IconText](https://starcitizen.tools/Template:IconText), an icon beside non-linking text.

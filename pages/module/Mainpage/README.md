@@ -1,100 +1,74 @@
 # Module:Mainpage
 
-Renders the main page: hero, highlights, featured article, on this day, the editing invitation, the two community cards, the directory at the foot, and a foot row linking the page an editor changes.
+Renders the main page: hero, highlights, featured article, on this day, the editing invitation, two community cards, and the directory.
 
-Reached through `Template:Mainpage`, which is one line and takes no parameters:
+Editors use this through `{{Mainpage}}`; see [Template:Mainpage](https://starcitizen.tools/Template:Mainpage) for what an editor can change and where.
 
-```wikitext
-{{Mainpage}}
-```
+## For module editors
 
-The page needs nothing else: the module emits its own TemplateStyles and the tracking category that loads the gadget. One dependency lives outside it — `MediaWiki:Citizen.css` drops the body container's gutter for the main page, which is what lets the bands paint full bleed. Anywhere else the bands sit inside the skin's normal gutter.
-
-## Changing what the page shows
-
-Everything an editor changes is in one file, [[Module:Mainpage/settings.json]], linked from the foot of the rendered page. It carries its own guidance in a `_readme` at the top; what follows is the reference.
-
-**That page is not in this repository, deliberately.** It is content rather than code — changed on the wiki by whoever is updating the featured article or the running event — so the wiki is its source of truth and keeps its own history. A copy here would be stale the moment somebody edited it, and a stale tracked copy is worse than none: deploying the module would quietly revert them. It is gitignored, and `deploy-to-wiki` skips it even if an old copy is still sitting on disk. Read the live page to see what it currently holds; the table below is what it may hold.
-
-| Section | Holds |
-| --- | --- |
-| `featured` | `page` and `text` — the article in the featured card and the line beside its title. The picture is the article's own **Page Image**, so the page name is all there is to set; without one it falls back to a placeholder. With no `page` at all the card falls back to [Star Citizen](https://starcitizen.tools/Star_Citizen) — deliberately not the main page itself, which would render as a self-link and silently kill the whole-card link. |
-| `event` | `name`, `page`, `text`, `starts`, `ends`, and **one of** `banner` or `image` — see below. Clearing `name` removes the whole card; clearing `ends` keeps the card and drops its countdown. |
-| `patches` | One object per build chip: `channel`, `name`, `page`, `highlights`. `channel: "LIVE"` takes the filled marker and also fills the "this patch" card. Adding a chip is adding an object. |
-| `hero` | `image`, `lede`, `ledeDetail`, `searchTails`. |
-| `chips` | The row of links under the hero. |
-| `directory` | The groups of links at the foot. |
-
-A link entry is `{ "page": …, "label": … }` for somewhere on this wiki or `{ "url": …, "label": … }` for somewhere else; `label` is optional on a wiki link. How many columns the directory shows is not configured anywhere: it reflows to fit.
-
-### The event card's two designs
-
-The picture chooses the design, because the picture is the thing that actually differs. Set one key, not both; with both, `banner` wins.
-
-| Key | Design |
-| --- | --- |
-| `banner` | One of the 1080×83 strips in [[:Category:Main page banner images]]. It runs across the top of the card **at the height it was drawn**, so the card shows a centred slice of it rather than a shrunken whole — about two thirds at the full measure, about a quarter in the narrowest column. What to check before setting one is not its height, which is fixed, but whether its logo survives a centre crop; a banner with its mark out at an edge loses it on a phone. |
-| `image` | An ordinary screenshot. It stands in a column beside the text on a wide card and across the top on a narrow one, so its subject wants to be near the middle. A banner strip set here comes out a smear — a portrait column is the one shape a 13:1 frieze cannot be cropped to. |
-
-Naming the asset names the layout, so no editor can pair a design with a picture it cannot show. Switching between them is a settings edit, never a module edit.
-
-**Why JSON and not a `#switch` template.** Three things that matter to the people editing it: MediaWiki refuses to *save* invalid JSON, so the page cannot be left broken; a list is a real array, so nothing has to be escaped or separated; and the build chips are a list of objects rather than `patch1type` / `patch2type` / `patch3type` flattened into numbered keys. The cost, paid deliberately, is that JSON has no comments — so the guidance that used to sit inline lives in the file's own `_readme` and here.
-
-**A malformed value never takes the page down.** An event date the clock cannot read costs the clock and nothing else; a settings page that has been moved or deleted costs only what it feeds. Dates are accepted as `YYYY-MM-DD`, optionally with `HH:MM` or `HH:MM:SS`, and a trailing `UTC` is tolerated; anything else is treated as unset.
-
-## Structure
+### Submodules
 
 | Submodule | Renders |
 | --- | --- |
-| `Mainpage/Config` | Loads `settings.json`; normalises it into plain Lua and resolves which build is live |
-| `Mainpage/Nav` | Turns a link entry into wikitext |
-| `Mainpage/Event` | The event card built on a banner strip |
-| `Mainpage/Event/Legacy` | The event card built on an ordinary photograph |
-| `Mainpage/Hero` | The hero band |
-| `Mainpage/Highlights` | The event and patch cards |
-| `Mainpage/Featured` | The featured card |
-| `Mainpage/OnThisDay` | Today's date page, as a tabber |
-| `Mainpage/Editing` | The editing invitation and recent-changes list |
-| `Mainpage/Community` | The funding and Discord cards |
-| `Mainpage/Directory` | The directory at the foot |
+| `Mainpage/Config` | Loads `settings.json`; normalises it to plain Lua and resolves which build is live. |
+| `Mainpage/Nav` | Turns a settings link entry into wikitext; the hero chips and the directory both read it. |
+| `Mainpage/Hero` | The full-bleed hero band: patch status, wiki statline, lede, search trigger, chip strip. |
+| `Mainpage/Highlights` | The band under the hero: the event card (whichever design applies) and the current-patch card. |
+| `Mainpage/Event` | The event card built on a 1080×83 banner strip. |
+| `Mainpage/Event/Legacy` | The event card built on an ordinary photograph. |
+| `Mainpage/Featured` | The featured card: a whole-card link over the featured page's own artwork. |
+| `Mainpage/OnThisDay` | Today's date page, transcluded as a two-panel tabber. |
+| `Mainpage/Editing` | The editing invitation plus a [DPL](https://www.mediawiki.org/wiki/Extension:DynamicPageList4)-backed recent-changes list. |
+| `Mainpage/Community` | The funding card and the Discord/follow card. |
+| `Mainpage/Directory` | The grouped text directory at the foot. |
 
-The foot row is small enough to live in `Mainpage` itself rather than take a submodule of its own.
+`Mainpage.lua` composes these into the page and renders the foot row itself; that row is small enough to not need a submodule of its own. Buttons come from [Module:ButtonLua](https://starcitizen.tools/Module:ButtonLua), the badge from [Module:BadgeLua](https://starcitizen.tools/Module:BadgeLua), and the clock from [Module:Countdown](https://starcitizen.tools/Module:Countdown): each keeps its own look, and this module supplies only content and placement.
 
-`Config` is the only thing that touches `mw.loadJsonData`. It copies the result into a plain table on the way through, which confines the read-only metatable — the one that breaks `#` and `next()` — to a single function, and drops blank strings so clearing a value behaves the same as deleting its line.
+### Settings contract
 
-Buttons come from `Module:ButtonLua`, the badge from `Module:BadgeLua` and the clock from `Module:Countdown`, so each keeps its own look and this module supplies only content and placement.
+Every other submodule reads settings through `Config`, never through `mw.loadJsonData` directly:
 
-The clock is the one worth spelling out, because it is arranged two ways and neither is this module's to decide. `Module:Countdown` stands its units in a column for a card that gives it a slot down one side, and lies them flat otherwise. The banner card asks for flat by passing `t-countdown--flat`, since it is a single column at every width. The split card cannot: it is stacked between 640 and 900 and side by side above it, and a class cannot be conditional on the viewport — so that one range is a media query in `Mainpage/styles.css` holding a copy of the clock's own declarations. **A copy that has to be kept in step**; it is the only place on this page that restyles another component's internals.
+- `Config.section(name)` / `Config.list(name)`: one top-level object or array, `{}`/empty when the section is missing or blank, so a caller never has to nil-check first (`Config.lua:101-116`).
+- `Config.toIso(value)`: a settings date to ISO 8601 UTC, or `nil` for anything it can't read; it never raises (`Config.lua:134-163`).
+- `Config.livePatch()`: the build every consumer agrees is "live" (the first `patches` entry with `channel: "LIVE"`, else the first with a `name`), resolved once so the hero's status chip and the patch card can't disagree (`Config.lua:177-193`).
+- `load()` wraps `mw.loadJsonData` in `pcall`; a moved or deleted settings page degrades to `{}` rather than raising (`Config.lua:80-90`).
 
-`Mainpage/Highlights` renders the band and the patch card, and hands the event card to whichever of the two event modules the settings call for. Both return nil when the settings do not carry what they need, so an unset event still costs only its own card.
+`toPlain` (`Config.lua:47-77`) copies the loaded page's read-only table (whose metatable breaks `#` and `next()`) into a plain one, dropping blank strings to `nil`, compacting arrays, and discarding every `_`-prefixed key as editor guidance. Read a new settings field through `Config`, never a second `mw.loadJsonData` call.
 
-The event card is a `Module:CardLua` media card. The other six are built here with `.t-card` on a plain div, because they are not media cards — the featured card puts its body *over* the picture under a scrim, and the rest carry no picture at all. `Module:CardLua/styles.css` is therefore listed explicitly in `STYLESHEETS`; leaving it to arrive with a CardLua call would strip the card chrome off the page whenever the settings carry no event.
-
-### The grid
-
-Every band is `.home-band` (full-bleed ground) wrapping `.home-band__inner` (the measured column). A band of cards puts `.home-grid` on the inner element. All bands share one twelve-column grid so a card edge in one lands on the same line as a card edge in the next — a band that sets its own column ratios breaks that alignment for the whole page.
-
-Spans go on the card itself: `.home-card--read` (8), `.home-card--aside` (4), `.home-card--tall` (8, two rows). They are placement properties, so unlike a class that sets `display` they cannot collide with CardLua's own `.t-card`. **Never put a class that sets `display` on the same element as `t-card`.**
-
-Between 640 and 900 every card becomes `span 6`, which keeps two columns without changing the arrangement. Below 640 the page is a single column in DOM order.
-
-## Styles
+### Styles
 
 | Page | Holds |
 | --- | --- |
-| `Mainpage/styles.css` | The hero, the bands, the grid, and the responsive stages |
-| `Mainpage/cards.css` | The individual cards, the directory, and the foot |
-| `Mainpage/ground.css` | The graduation tapes and the dot lattice behind the page |
+| `Mainpage/styles.css` | The hero, the bands, the grid, and the responsive stages. |
+| `Mainpage/cards.css` | The individual cards, the directory, and the foot. |
+| `Mainpage/ground.css` | The graduation tapes and the dot lattice behind the page. |
 
-## The gadget
+The page runs full bleed: `MediaWiki:Citizen.css` drops the body container's gutter for this page, letting the bands paint edge to edge; that rule lives outside this module and this repository (`Mainpage/styles.css:11-12`).
 
-`MediaWiki:Gadget-mainpage.js` enhances the rendered page: it loads the hero artwork after page load, rolls the stat digits and the search label's tail, drives the clock, tells the two scrolling cards' fades when there is more above or below them, and refreshes the activity list — which matters because DPL forces a one-hour parser cache on any page that calls it.
+### Gadget
 
-It reads its context from `data-gadget-mainpage-*` attributes on the elements it enhances, so `grep gadget-mainpage-` finds every emitter and the gadget that consumes them. The page renders and reads correctly with the gadget absent.
+`MediaWiki:Gadget-mainpage.js` enhances the rendered page: it loads the hero artwork after page load, rolls the stat digits and search-label tail, drives the clock, manages the two scrolling cards' fade cues, and refreshes the activity list, reading its context from `data-gadget-mainpage-*` attributes (so `grep gadget-mainpage-` finds every emitter). The page renders and reads correctly with the gadget absent.
 
-## Previewing
+### Previewing
 
 ```wikitext
-{{#invoke:Mainpage|hero}}              <!-- the hero on its own -->
-{{#invoke:Mainpage|hero|noscript=yes}} <!-- as a reader with no JavaScript sees it -->
+{{#invoke:Mainpage|hero}}              <!-- hero only -->
+{{#invoke:Mainpage|hero|noscript=yes}} <!-- no-JS view -->
 ```
+
+### Gotchas
+
+- `Module:Mainpage/settings.json` is editor-owned content, not tracked in this repository (gitignored: `.gitignore:20`); `deploy-to-wiki` skips it even if a stale copy is sitting on disk, since deploying it would silently revert an editor's changes.
+- `STYLESHEETS` lists [Module:CardLua](https://starcitizen.tools/Module:CardLua)'s `styles.css` explicitly: six of the seven cards use plain `.t-card` divs, so their surface, border, and radius would otherwise depend on the event card (the only CardLua consumer) rendering (`Mainpage.lua:41-54`).
+- Card spans (`.home-card--read`, `--aside`, `--tall`) are placement properties, not display ones: a class that sets `display` must never share an element with `t-card`, since CardLua's own `display` would collide (`Mainpage.lua:18-21`).
+- The split event card's clock is restyled from the page for one viewport range (640-899.98px, `Mainpage/styles.css:541-603`), duplicating [Module:Countdown](https://starcitizen.tools/Module:Countdown)'s stacked/flat declarations by hand, since a CSS class can't be conditional on viewport width. The banner card avoids this by asking Countdown for `t-countdown--flat` at every width instead.
+- `band()` takes varargs, not a table, since `ipairs` stops at the first `nil` and would let one declined card drop every card listed after it (`Mainpage.lua:87-105`).
+- The foot row's edit link and `Mainpage/OnThisDay`'s "Add an event" link both use `mw.uri.fullUrl`, not `callParserFunction`: `fullurl` is a colon magic word (`fullurl:`) that `callParserFunction` cannot resolve (`Mainpage.lua:107-130`, `OnThisDay.lua:94-104`).
+- `Mainpage/Editing`'s recent-changes list is built from DPL, which forces a one-hour parser cache on any page that calls it: those rows are first paint and the no-JS reading, never the freshness mechanism; `MediaWiki:Gadget-mainpage.js` polls the API to keep the list live (`Editing.lua:10-19`).
+- The directory's column count isn't set in Lua: `.home-dir` is `repeat(auto-fit, minmax(125px, 1fr))`, so the groups reflow on their own and `Mainpage/Directory` just emits them (`Directory.lua:10-13`).
+
+### Extending
+
+Every band shares one layout contract: `.home-band` is the full-bleed ground, `.home-band__inner` the measured column inside it, and a band of cards adds `.home-grid` on that inner element, all off one shared twelve-column grid; a band with its own column ratios breaks alignment for every other band (`Mainpage.lua:11-17`).
+
+A new card is a submodule with a `render()` that returns `nil` or a string; wire its call into `Mainpage.render`'s band composition and, if it ships its own stylesheet, add it to `STYLESHEETS` explicitly. It then picks one of the three span classes (`.home-card--read` spans 8, `.home-card--aside` 4, `.home-card--tall` 8 across two rows); between 640 and 899.98px every span collapses to 6, and below 640 the page is one column in DOM order, so a new span value needs checking against both breakpoints.

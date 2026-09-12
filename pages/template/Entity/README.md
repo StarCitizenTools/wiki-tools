@@ -1,6 +1,6 @@
 # Template:Entity
 
-Renders the infobox for an item, commodity, or mission, and writes the page's SMW data, short description, and categories. Place it at the top of the page, before any Entity-family body template.
+Renders the infobox for an item, commodity, or mission, and writes the page's [SMW](https://www.mediawiki.org/wiki/Extension:Semantic_MediaWiki) data, short description, and categories. Place it at the top of the page, before any Entity-family body template.
 
 ## Usage
 

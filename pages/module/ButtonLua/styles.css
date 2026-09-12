@@ -7,12 +7,11 @@
 	 * HACK: stash the image-set in a custom property and consume it bare — the
 	 * sanitizer rejects url(var()) inline but allows image-set() and bare var().
 	 *
-	 * COUPLING: image-set(var()) requires TemplateStylesExtender at a revision
-	 * BEFORE a9043c4 (custom-property external-resource ban). The wiki must
-	 * carry that pin in sct-docker-images (composer 'dev-master' with no sha
-	 * WILL pull the ban back on the next image rebuild and blank every mask
-	 * icon). Safe with the pin because the wiki's enforced CSP default-src
-	 * restricts image fetches. Upstream opt-in proposal:
+	 * This no longer needs a version pin. TemplateStylesExtender 3.0.0
+	 * (3fe4835, 2026-08-24) lifted the a9043c4 custom-property
+	 * external-resource ban, so image-set(var()) is supported rather than
+	 * tolerated. The wiki's enforced CSP default-src remains the guard on what
+	 * those URLs may fetch. History:
 	 * https://github.com/octfx/mediawiki-extensions-TemplateStylesExtender/issues/45
 	 */
 	--t-button-icon-mask: image-set(var(--t-button-icon-url) 1x);
@@ -60,10 +59,11 @@
  *
  * The sanitizer rejects color-mix() as a direct property value; the
  * derivations ride custom properties, which TemplateStylesExtender passes
- * through (it bans only image/url functions there — the same pin the icon
- * mask HACK above depends on) and the browser resolves. Upstream support
- * proposal (drop the detour when it lands):
- * https://github.com/octfx/mediawiki-extensions-TemplateStylesExtender/issues/46
+ * through and the browser resolves.
+ *
+ * A brand ground is a fixed color in both themes, so it is declared as a
+ * literal rather than a light-dark() token — the content color beside it is
+ * chosen to clear WCAG AA against that one ground.
  */
 .t-button--branded.cdx-button {
 	--t-button-ground-hover: color-mix(in oklch, var(--t-button-ground) 88%, #000);
@@ -96,5 +96,25 @@
 /* VerseGuide. */
 .t-button--verseguide.cdx-button {
 	--t-button-ground: #206484;
+	color: #fff;
+}
+
+/* Patreon. */
+.t-button--patreon.cdx-button {
+	--t-button-ground: #ff424d;
+	color: #fff;
+}
+
+/* Ko-fi. Their blue rather than their coral: the wiki's own asset is
+ * File:Kofi Logo Blue.png, and the coral would sit a hair from Patreon's red
+ * on a page that offers both side by side. */
+.t-button--kofi.cdx-button {
+	--t-button-ground: #29abe0;
+	color: #fff;
+}
+
+/* Discord. */
+.t-button--discord.cdx-button {
+	--t-button-ground: #5865f2;
 	color: #fff;
 }

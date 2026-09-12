@@ -1,55 +1,24 @@
 # Module:SystemMap
 
-Backs <code><nowiki>{{System map}}</nowiki></code>, which draws one star system
-as a horizontal orbit rail: the star or stars, where there are any, the planets
-and belts orbiting them, and the moons and rings orbiting those.
-[[Template:System map]] covers the parameters, the tracking categories and what
-the rail draws.
+Backs `{{System map}}`, which draws one star system as a horizontal orbit rail: the star or stars, the planets and belts orbiting them, and the moons and rings orbiting those. Split across subpages: [Module:SystemMap/Data](https://starcitizen.tools/Module:SystemMap/Data) resolves the system and builds the model, [Module:SystemMap/Renderer](https://starcitizen.tools/Module:SystemMap/Renderer) turns it into the rail, and [Module:SystemMap/systems.json](https://starcitizen.tools/Module:SystemMap/systems.json) holds every system's bodies in orbital order.
 
-The work is split across subpages. [[Module:SystemMap/Data]] resolves the system
-name, classifies each body and builds the model;
-[[Module:SystemMap/Renderer]] turns that model into the rail;
-[[Module:SystemMap/styles.css]] styles it; and
-[[Module:SystemMap/systems.json]] holds the bodies of every system in orbital
-order.
+Editors use this through `{{System map}}`; see [Template:System map](https://starcitizen.tools/Template:System_map) for the parameters, tracking categories, and what the rail draws.
 
-## Reading the map
+## For module editors
 
-Left to right is **orbital order, not distance**. The space between two bodies
-says nothing about how far apart they are; only the sequence is meaningful.
+### API
 
-**Disc size is a three-tier convention and carries no measurement**, so please
-do not "correct" it. Within each tier (star, planet, moon) sizes are mapped
-logarithmically between the smallest and largest body of that tier in the whole
-starmap, not just the ones on the map you are looking at, so a body is drawn the
-same size on every page. The mapping preserves rank without being proportional:
-Pyro V is 6.6 times Hurston's diameter and renders about 1.3 times its width. A
-proportional rail is not an option, since it would put the smallest planet at
-well under a tenth of a pixel.
+- `Data.resolveKey(input)` / `Data.buildModel(input, currentTitle)`: resolve the system name and build the `SystemMapModel` (bodies, tiers, current-page flag).
+- `Data.discSize(tier, km)`: a body's diameter mapped to a rendered disc size, logarithmic within its tier.
+- `Data.summarise(model)`: the header's body-count string.
+- `Renderer.renderRail(model)`: the model turned into rail markup.
+- `p.render(input, currentTitle, exists, collapsed, track)`: the testable core: everything parser-dependent (title, page existence, tracking) arrives as an argument.
+- `p.main(frame)`: wikitext entry point; wires the real title, an `mw.title` existence probe, and [Module:CollapsibleCard](https://starcitizen.tools/Module:CollapsibleCard) for the card shell.
 
-What a body is comes from the colour of its disc instead, and is never printed
-as text: a gas giant reads as a banded amber disc and an ice giant as a banded
-cyan one, so the two are told apart by colour rather than by size. A body whose
-type the module does not recognise falls back to a plain grey disc.
+### Gotchas
 
-Belts and rings sit outside the scale entirely and are drawn at a fixed size.
-Each is a region rather than a body, and has no diameter to draw.
-
-## Adding a system, or fixing a body
-
-**Do not edit [[Module:SystemMap/systems.json]] on the wiki.** It is generated
-from the ARK Starmap plus a set of hand-written corrections, and an edit made
-here is lost the next time anybody rebuilds it.
-
-Everything that feeds it lives in the
-[wiki-tools repository](https://github.com/StarCitizenTools/wiki-tools). A
-system that is missing, a body linking to the wrong article, a moon filed under
-the wrong planet, a belt sitting in the wrong orbit: all of it is fixed there,
-rebuilt, and deployed.
-
-Page titles are stored in the file rather than looked up, so a page move does
-not self-heal. The map keeps pointing at the old title and printing the old
-label until someone rebuilds; the link itself survives on the redirect the move
-leaves behind, and goes red only once that redirect is deleted or suppressed.
-Red links collect in `Category:Pages with a broken system map link`, which is
-mostly a backlog of bodies nobody has written up yet.
+- Disc size is logarithmic and rank-preserving only, not proportional: Pyro V's diameter is 6.6× Hurston's but renders about 1.3× its width. An unsized body, or one whose tier has no valid extents, draws at its tier's floor; a body whose diameter *exceeds* the tier's recorded maximum clamps to the tier's cap instead, so it reads as "at least as big as anything here" rather than overstating or erroring.
+- `p.annotateExistence` calls `mw.title.new(page).exists` once per body, an expensive parser function capped at 100 calls on this wiki; Sol (36 probes) is the worst case among the 75 systems in `systems.json`. A larger rollout to location pages is not covered by that budget and needs a different approach.
+- A companion star is measured at the star tier regardless of which column it renders in: its own diameter, not the column, determines its size.
+- Exceeding the expensive-parser-function budget raises a `LuaError`; `p.main` wraps the existence probe in `pcall` and degrades to no tracking category rather than a script error, since a false "missing" flag would be worse than a missing category.
+- `systems.json` is generated, not hand-maintained: the `scripts/cmd/systemmap` Go tool in this repository rebuilds it from the upstream ARK Starmap plus `pages/module/SystemMap/overlay.json`'s hand-written corrections. An edit to the deployed page is overwritten by the next regeneration; a wrong body, link, or placement is corrected in the overlay and redeployed through the tool. Titles are stored rather than looked up, so a page move needs an overlay correction and a rebuild rather than self-healing.

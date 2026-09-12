@@ -62,7 +62,7 @@ function p.renderSupport()
 
 	local box = card:tag('div'):addClass('home-give')
 
-	box:tag('div'):addClass('home-kicker'):wikitext('Independent &middot; Ad-free')
+	box:tag('div'):addClass('home-kicker'):wikitext('Fast &middot; Ad-free &middot; Independent')
 	box:tag('div'):addClass('home-title'):wikitext('Keep the wiki running')
 	box:tag('div'):addClass('home-body'):wikitext('The wiki is entirely funded by the community.')
 

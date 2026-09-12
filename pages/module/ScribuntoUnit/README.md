@@ -1,50 +1,8 @@
 # Module:ScribuntoUnit
 
-Unit testing framework for Scribunto modules. Write test functions with assertions, run them from wiki pages or the Lua console, and get a pass/fail report.
+Unit testing framework for [Scribunto](https://www.mediawiki.org/wiki/Extension:Scribunto) modules: write test functions with assertions, run them from a wiki page or the Lua console, and get a pass/fail report. This copy is the wiki-mirrored source for the standalone [mediawiki-scribuntounit](https://github.com/StarCitizenTools/mediawiki-scribuntounit) project, which also provides the headless runner `mise run test` uses off-wiki (see `tests/README.md`).
 
-## Usage
-
-### Writing tests
-
-Create a test module (e.g. `Module:MyModule/testcases`):
-
-```lua
-local myModule = require( 'Module:MyModule' )
-local ScribuntoUnit = require( 'Module:ScribuntoUnit' )
-local suite = ScribuntoUnit:new()
-
-function suite:testAddition()
-    self:assertEquals( 4, myModule.add( 2, 2 ) )
-end
-
-function suite:testName()
-    self:assertStringContains( 'hello', myModule.greet( 'hello world' ), true )
-end
-
-return suite
-```
-
-Any function prefixed with `test` is treated as a test case. Other functions are ignored.
-
-### Running tests
-
-From a wiki page:
-
-```
-{{#invoke:MyModule/testcases|run}}
-```
-
-Compact output:
-
-```
-{{#invoke:MyModule/testcases|run|displayMode=short}}
-```
-
-From the Lua console:
-
-```lua
-require( 'Module:MyModule/testcases' ).run()
-```
+Required by every `Module:X/testcases` suite in this repository; not invoked from templates.
 
 ## Assertions
 

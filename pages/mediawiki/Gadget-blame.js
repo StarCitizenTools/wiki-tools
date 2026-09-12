@@ -158,7 +158,10 @@
 
 	function fetchExport() {
 		const url = mw.util.getUrl( 'Special:Export/' + config.wgPageName, { history: 1 } );
-		return fetch( url, { credentials: 'same-origin' } ).then( ( r ) => {
+		// Anonymous: the export body never varies by user, since XmlDumpWriter
+		// redacts on the rev_deleted bits alone with no audience check, so the
+		// session is dead weight on the request.
+		return fetch( url, { credentials: 'omit' } ).then( ( r ) => {
 			if ( !r.ok ) {
 				throw new Error( 'blame-export-http-' + r.status );
 			}

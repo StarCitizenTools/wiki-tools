@@ -2,8 +2,6 @@
 
 Wiki pages, Scribunto modules, templates, gadgets, and automation for the [Star Citizen Wiki](https://starcitizen.tools).
 
-`pages/` is a mirror of the wiki, organised by namespace: `pages/module/Entity/Entity.lua` is `Module:Entity`, `pages/template/Badge/Badge.wikitext` is `Template:Badge`, and each `README.md` beside a page is the source of its live `/doc` page. The wiki is the system of record. Changes land here as commits and are published by an agent through the MediaWiki MCP server, which byte-verifies every write; the wiki can also be edited directly and synced back. Nothing in this repository writes to the wiki on its own.
-
 ## Repository layout
 
 | Path | Contents |

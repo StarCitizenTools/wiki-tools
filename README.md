@@ -6,7 +6,7 @@ Wiki pages, Scribunto modules, templates, gadgets, and automation for the [Star 
 
 | Path | Contents |
 |---|---|
-| `pages/module/`, `pages/template/` | Scribunto modules and templates with their TemplateStyles, JSON data, tests, and READMEs. Every top-level directory has a README, and the catalog below is generated from them. |
+| `pages/` | Mirror of the wiki, one directory per namespace: `pages/module/Entity/Entity.lua` is `Module:Entity`, `pages/template/Badge/Badge.wikitext` is `Template:Badge`. Each `README.md` beside a page is the source of its live `/doc` page; every top-level module and template directory has one, and the catalog below is generated from them. |
 | `pages/mediawiki/` | Gadgets and the gadget registry. See [`pages/mediawiki/README.md`](pages/mediawiki/README.md). |
 | `scripts/` | Go generators that build wiki content from upstream data (starmap, system map, uuid index, item stubs) and report drift against the live wiki. See [`scripts/README.md`](scripts/README.md). |
 | `tests/` | The local test layers: off-wiki ScribuntoUnit runner config, JSON manifest checks, Node tests for gadgets. See [`tests/README.md`](tests/README.md). |

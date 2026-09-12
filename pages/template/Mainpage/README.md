@@ -8,7 +8,7 @@ Renders the wiki's main page as one full-bleed sequence of content bands, transc
 {{Mainpage}}
 ```
 
-The template emits its own TemplateStyles and the tracking category that loads the enhancement gadget.
+The template emits its own [TemplateStyles](https://www.mediawiki.org/wiki/Extension:TemplateStyles) and the tracking category that loads the enhancement gadget.
 
 ## Parameters
 

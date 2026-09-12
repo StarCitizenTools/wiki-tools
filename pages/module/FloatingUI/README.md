@@ -1,6 +1,6 @@
 # Module:FloatingUI
 
-A Lua interface to `Extension:FloatingUI`'s `{{#floatingui:}}` parser function: wraps a reference element so hovering or focusing it opens a floating content panel beside it. The extension is explicitly experimental (per the module's own source comment) and not considered production-ready.
+A Lua interface to [Extension:FloatingUI](https://www.mediawiki.org/wiki/Extension:FloatingUI)'s `{{#floatingui:}}` parser function: wraps a reference element so hovering or focusing it opens a floating content panel beside it. The extension is explicitly experimental (per the module's own source comment) and not considered production-ready.
 
 Required by [Module:ProgressTiles](https://starcitizen.tools/Module:ProgressTiles); not invoked from templates.
 

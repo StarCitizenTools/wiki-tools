@@ -8,7 +8,7 @@ Editors never invoke this module directly; it runs inside [Template:Location](ht
 
 ### API
 
-- `p.AFFILIATIONS`: starmap affiliation code (lowercased) → `{ label, short }`. `short` (falling back to `label`) is the compact form stored as the SMW `Affiliation` value, matching the vocabulary the pre-Entity pages already store (`UEE`, `Unclaimed`).
+- `p.AFFILIATIONS`: starmap affiliation code (lowercased) → `{ label, short }`. `short` (falling back to `label`) is the compact form stored as the [SMW](https://www.mediawiki.org/wiki/Extension:Semantic_MediaWiki) `Affiliation` value, matching the vocabulary the pre-Entity pages already store (`UEE`, `Unclaimed`).
 - `p.affiliationEntry(starsystem) → { label, short }|nil`: the starmap record's first affiliation entry.
 - `p.affiliationFromText(text) → { label, short?, display? }|nil`: editorial affiliation text matched against `AFFILIATIONS` on code, label or short after normalising case and punctuation; anything unmatched passes through as free text (`label` delinked for storage/categories, `display` keeps the editor's markup so they choose whether it links).
 - `p.SYSTEM_TYPES`: starmap system-type code → `{ label, category }`.
@@ -23,7 +23,7 @@ Editors never invoke this module directly; it runs inside [Template:Location](ht
 
 ### Gotchas
 
-- `attachStarsystem`'s `locale` rides the endpoint string (`...&locale=en_EN`), not `params`: Apiunto appends `params` as a second `?query`, which would corrupt the `?filter[...]` the endpoint already carries. `attachCelestialObject`'s endpoint carries no query string of its own, so its `locale` rides `params` safely.
+- `attachStarsystem`'s `locale` rides the endpoint string (`...&locale=en_EN`), not `params`: [Apiunto](https://www.mediawiki.org/wiki/Extension:Apiunto) appends `params` as a second `?query`, which would corrupt the `?filter[...]` the endpoint already carries. `attachCelestialObject`'s endpoint carries no query string of its own, so its `locale` rides `params` safely.
 - `normalizeAggregates` drops the ARK's withheld-survey stub (the Vanduul systems' identical population/economy/size block, and the incomplete-probe systems' zero block) whenever a record has no catalogued bodies and an unpublished status (`M`/`N`); neither test alone is safe, since `size <= 0` misses stubs reporting 1 or 7 AU and "no bodies" alone would strip the genuinely-published Gurzil. A zero size is dropped regardless of status.
 - `pickStarsystem` resolves a `filter[name]` substring-match result list by precedence: an exact name match, then the Xi'an `<name> (<alias>)` form, then the first row.
 - `systemShortName` strips decorations in a fixed order: the Vanduul catalogue form (`VS-9 "Vulture"` becomes `Vulture`) first, then the trailing ` System`/`system` suffix, and only then the alias parenthetical (`Yā'mon (Hadur) System` becomes `Yā'mon`). The suffix must strip before the parenthetical: the parenthetical match anchors on the end of the string (`%b()$`), so while the suffix still trails it can't match. Neither decoration is a wiki page name, so leaving one in would render a red link and file a bogus category.

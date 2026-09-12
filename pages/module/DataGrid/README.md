@@ -1,6 +1,6 @@
 # Module:DataGrid
 
-Builds an interactive, filterable browse table on [AG Grid](https://www.ag-grid.com/) (via [Extension:AGGrid](https://www.mediawiki.org/wiki/Extension:AGGrid)) for a category, a raw SMW condition, or both: virtualised rows, rich cells, and one `mw.smw.ask` query.
+Builds an interactive, filterable browse table on [AG Grid](https://www.ag-grid.com/) (via [Extension:AGGrid](https://www.mediawiki.org/wiki/Extension:AGGrid)) for a category, a raw [SMW](https://www.mediawiki.org/wiki/Extension:Semantic_MediaWiki) condition, or both: virtualised rows, rich cells, and one `mw.smw.ask` query.
 
 Editors use this through `{{Data table}}`; see [Template:Data table](https://starcitizen.tools/Template:Data_table).
 

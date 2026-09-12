@@ -1,6 +1,6 @@
 # Module:ScribuntoUnit
 
-Unit testing framework for Scribunto modules: write test functions with assertions, run them from a wiki page or the Lua console, and get a pass/fail report. This copy is the wiki-mirrored source for the standalone [mediawiki-scribuntounit](https://github.com/StarCitizenTools/mediawiki-scribuntounit) project, which also provides the headless runner `mise run test` uses off-wiki (see `tests/README.md`).
+Unit testing framework for [Scribunto](https://www.mediawiki.org/wiki/Extension:Scribunto) modules: write test functions with assertions, run them from a wiki page or the Lua console, and get a pass/fail report. This copy is the wiki-mirrored source for the standalone [mediawiki-scribuntounit](https://github.com/StarCitizenTools/mediawiki-scribuntounit) project, which also provides the headless runner `mise run test` uses off-wiki (see `tests/README.md`).
 
 Required by every `Module:X/testcases` suite in this repository; not invoked from templates.
 

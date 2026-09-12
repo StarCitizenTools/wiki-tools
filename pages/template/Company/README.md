@@ -46,7 +46,7 @@ Renders a company infobox for organizations in the Star Citizen universe: manufa
 ## Behavior
 
 - Every list-type field above (`industry`, `products`, `headquarters`, `areaserved`, `keypeople`, `founder`, `predecessor`, `successor`, `subsidiaries`, `allies`, `rivals`) is `;`-separated; two or more items render as an unbulleted list with a hanging indent, a single item renders plain.
-- `headquarters` stores one star system per HQ to SMW: the last wikilink in each `;`-separated segment ("place, …, system"). `areaserved` stores every place's own link target instead; fill it only when narrower than the whole UEE (a bare `[[United Empire of Earth]]` carries no signal).
+- `headquarters` stores one star system per HQ to [SMW](https://www.mediawiki.org/wiki/Extension:Semantic_MediaWiki): the last wikilink in each `;`-separated segment ("place, …, system"). `areaserved` stores every place's own link target instead; fill it only when narrower than the whole UEE (a bare `[[United Empire of Earth]]` carries no signal).
 - There is no manufacturer-code parameter: the code is looked up from `name` against the manufacturer registry and shown in a collapsed Metadata section.
 - `founded` is stored to SMW exactly as typed; only the infobox display branches, rendering a bare year through `{{Start date and age}}`, else showing it as-is.
 - `keypeople`, `fate`, `defunct`, `formerly`, `allies`, and `rivals` are display-only and never reach SMW.

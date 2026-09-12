@@ -1,6 +1,6 @@
 # Module:Entity
 
-Renders the entity infobox and owns an item, commodity, mission, vehicle, or location page's SMW data, short description, and categories from a single template invocation. Editors reach it through `{{Entity}}` and its `{{Vehicle}}`/`{{Location}}` facades; sibling templates share Apiunto's cached data to render the rest of the page.
+Renders the entity infobox and owns an item, commodity, mission, vehicle, or location page's [SMW](https://www.mediawiki.org/wiki/Extension:Semantic_MediaWiki) data, short description, and categories from a single template invocation. Editors reach it through `{{Entity}}` and its `{{Vehicle}}`/`{{Location}}` facades; sibling templates share [Apiunto](https://www.mediawiki.org/wiki/Extension:Apiunto)'s cached data to render the rest of the page.
 
 ## For editors
 

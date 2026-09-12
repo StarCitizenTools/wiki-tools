@@ -26,4 +26,4 @@ Change what a kind's acquisition block shows by editing that kind's own `getAcqu
 - A `terminals` card with no `prices` still renders: only its `description` (the "No … data in UEX" fallback) shows; the card is never dropped.
 - UEX stores `0`, not null, for "not sold here"; `priceRange`/`inferCanAcquire` treat zero as absent, and `formatPrice` prints it as `-`.
 - `p._internal.renderCard`/`acquisitionFor` are exported only for the ScribuntoUnit suite; they are not part of the module's real API.
-- The UEX attribution footer's logo link carries `class=metadata`, which keeps PageImages from picking that logo as the page's own page image.
+- The UEX attribution footer's logo link carries `class=metadata`, which keeps [PageImages](https://www.mediawiki.org/wiki/Extension:PageImages) from picking that logo as the page's own page image.

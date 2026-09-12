@@ -10,7 +10,7 @@ Explicit UUID:
 {{Entity/UsedBy|uuid=08a5bfdb-1972-421f-83fe-be03b7ac5222}}
 ```
 
-When `{{Entity}}` has been invoked earlier on the page, the UUID can be omitted; it falls back to the value a previous parse stored in SMW on the current page, so on a brand-new page it resolves only after the page has been saved and re-parsed (purged or re-saved):
+When `{{Entity}}` has been invoked earlier on the page, the UUID can be omitted; it falls back to the value a previous parse stored in [SMW](https://www.mediawiki.org/wiki/Extension:Semantic_MediaWiki) on the current page, so on a brand-new page it resolves only after the page has been saved and re-parsed (purged or re-saved):
 
 ```wikitext
 {{Entity}}

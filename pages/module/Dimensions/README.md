@@ -27,6 +27,6 @@ Required by [Module:Entity/Vehicle/Dimensions](https://starcitizen.tools/Module:
 
 ### Gotchas
 
-- `transform-style: preserve-3d` is set inline from Lua on several elements because the TemplateStyles sanitizer rejects it as a stylesheet property.
+- `transform-style: preserve-3d` is set inline from Lua on several elements because the [TemplateStyles](https://www.mediawiki.org/wiki/Extension:TemplateStyles) sanitizer rejects it as a stylesheet property.
 - The root carries `data-length`/`data-width`/`data-height` (+ `-alt` variants when they render) for machine reading; a reference's identity is not exposed as a data attribute, only its geometry via CSS custom properties. A visually-hidden text summary covers all values for screen readers; the visual scene itself is `aria-hidden`.
 - Composite CSS transforms are stashed in custom properties and consumed bare: the sanitizer rejects `var()` nested inside a `transform` function argument, but not inside a custom-property declaration.

@@ -10,7 +10,7 @@ Editors use this through `{{Boolean}}`; see [Template:Boolean](https://starcitiz
 
 - `p.classify(value)`: pure. Returns `{ state, icon, label }` for any value (never `nil`; unrecognised input resolves to the `unknown` state). `state` is `'yes'`, `'no'`, or `'unknown'`.
 - `p.render(value)`: the icon-only inline markup (the infobox/wikitext face): a coloured `currentColor` mask via [Module:Icon](https://starcitizen.tools/Module:Icon), plus the `title`/`data-state`/hidden-text hooks. Returns a string carrying its own and Module:Icon's `<templatestyles>`.
-- `p.gridClassify(value)`: `{ text, state, icon }` for the AG Grid path (`text` is the sort/set-filter key). Consumed by Module:AGGridColumns's `boolean` kind; mirrors `DietaryEffect.gridClassify`.
+- `p.gridClassify(value)`: `{ text, state, icon }` for the [AG Grid](https://www.mediawiki.org/wiki/Extension:AGGrid) path (`text` is the sort/set-filter key). Consumed by Module:AGGridColumns's `boolean` kind; mirrors `DietaryEffect.gridClassify`.
 - `p.main(frame)`: wikitext entry point behind `{{Boolean}}`; the first positional argument is the value.
 
 ### Gotchas

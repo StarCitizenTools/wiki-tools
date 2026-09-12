@@ -8,7 +8,7 @@ Editors never invoke this module directly; it runs inside [Template:Entity](http
 
 ### API
 
-- `p.parseArgs(frame) → args`: merges direct `#invoke` args over parent-frame (template call-site) args; empty strings become `nil`. Falls back to the page's SMW-stored `uuid` (namespace-prefixed off mainspace, e.g. `user_uuid` on `User:` pages) only when both `uuid` and `kind` are absent from the merged args, so a `|kind=`-declared page never resurrects a stale stored uuid.
+- `p.parseArgs(frame) → args`: merges direct `#invoke` args over parent-frame (template call-site) args; empty strings become `nil`. Falls back to the page's [SMW](https://www.mediawiki.org/wiki/Extension:Semantic_MediaWiki)-stored `uuid` (namespace-prefixed off mainspace, e.g. `user_uuid` on `User:` pages) only when both `uuid` and `kind` are absent from the merged args, so a `|kind=`-declared page never resurrects a stale stored uuid.
 - `p.get(args) → result`: the primary entry point; every sibling renderer calls it independently. See Extending for the pipeline and the result shape.
 
 ### Extending
@@ -33,7 +33,7 @@ Editors never invoke this module directly; it runs inside [Template:Entity](http
 ### Gotchas
 
 - `ctx` fields fill in pipeline order, so a hook that runs early (`enrich`, `getTypeInfo`) sees later fields as `nil`; see the Hook context table on [Module:Entity](https://starcitizen.tools/Module:Entity).
-- The kind probe depends on the configured Apiunto source keeping redirect-following off: a foreign uuid that would redirect (a vehicle uuid fetched on the items endpoint) must fail the fetch rather than get cached under the wrong key.
+- The kind probe depends on the configured [Apiunto](https://www.mediawiki.org/wiki/Extension:Apiunto) source keeping redirect-following off: a foreign uuid that would redirect (a vehicle uuid fetched on the items endpoint) must fail the fetch rather than get cached under the wrong key.
 - A kind's own probe failure only counts toward `hasApiError` when that kind is the one that ultimately matches; a non-matching kind's fetch error during the walk (e.g. the items endpoint rejecting a vehicle uuid) is discarded.
 - A given uuid that matches no kind still resolves to `Module:Entity/Item` as the leaf, but sets `hasApiError = true`; a page without a uuid never triggers this.
 - `resolveSubtype` returning `nil` silently falls back to the kind itself; a subtype the kind doesn't recognise renders as the base kind with no error.

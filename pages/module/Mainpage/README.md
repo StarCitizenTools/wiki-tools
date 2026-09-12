@@ -18,7 +18,7 @@ Editors use this through `{{Mainpage}}`; see [Template:Mainpage](https://starcit
 | `Mainpage/Event/Legacy` | The event card built on an ordinary photograph. |
 | `Mainpage/Featured` | The featured card: a whole-card link over the featured page's own artwork. |
 | `Mainpage/OnThisDay` | Today's date page, transcluded as a two-panel tabber. |
-| `Mainpage/Editing` | The editing invitation plus a DPL-backed recent-changes list. |
+| `Mainpage/Editing` | The editing invitation plus a [DPL](https://www.mediawiki.org/wiki/Extension:DynamicPageList4)-backed recent-changes list. |
 | `Mainpage/Community` | The funding card and the Discord/follow card. |
 | `Mainpage/Directory` | The grouped text directory at the foot. |
 

@@ -19,7 +19,7 @@ Required by [Module:BadgeLua](https://starcitizen.tools/Module:BadgeLua), [Modul
 | `title` | `string` | No | | Tooltip / caption. |
 | `class` | `string` | No | | Extra class(es), appended after the base `t-icon` (+ `t-icon--mask` in mask mode). |
 
-`p.src(icon)` resolves an icon file name to its plain (entity-decoded) URL, for a caller that paints its own mask client-side, e.g. an AG Grid badge cell whose `iconSrc` is read into a CSS custom property by JavaScript rather than an HTML style attribute.
+`p.src(icon)` resolves an icon file name to its plain (entity-decoded) URL, for a caller that paints its own mask client-side, e.g. an [AG Grid](https://www.mediawiki.org/wiki/Extension:AGGrid) badge cell whose `iconSrc` is read into a CSS custom property by JavaScript rather than an HTML style attribute.
 
 `p.main(frame)` is the `#invoke` entry point: reads named arguments (and positional `1` as `icon`; `title` also accepts `iconTitle`), emits [Module:Icon/styles.css](https://starcitizen.tools/Module:Icon/styles.css), and forwards to `render`. `mask` accepts any [Module:Yesno](https://starcitizen.tools/Module:Yesno) truthy value.
 

@@ -1,6 +1,6 @@
 # Template:Data table
 
-Renders an interactive, filterable browse table for every page in a category or SMW condition. Wraps [Module:DataGrid](https://starcitizen.tools/Module:DataGrid); see the module page for details.
+Renders an interactive, filterable browse table for every page in a category or [SMW](https://www.mediawiki.org/wiki/Extension:Semantic_MediaWiki) condition. Wraps [Module:DataGrid](https://starcitizen.tools/Module:DataGrid); see the module page for details.
 
 ## Usage
 

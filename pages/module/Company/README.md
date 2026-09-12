@@ -17,7 +17,7 @@ Builder functions, all pure except `p.main`:
 - `p.getContentSections(args)`: the unlabelled top group plus collapsible People/History/Relations sections; empty groups self-drop.
 - `p.getMetadataSection`, `p.getExternalSitesSection`, `p.getFooterSection`: the collapsed Metadata (manufacturer code), External sites (portfolio link), and footer (Galactapedia button) sections; each `nil` when its source value is absent.
 - `p.getSections(args)`: all sections, in render order.
-- `p.getStructuredData(args)`: the SMW property table, built from `properties.json`.
+- `p.getStructuredData(args)`: the [SMW](https://www.mediawiki.org/wiki/Extension:Semantic_MediaWiki) property table, built from `properties.json`.
 - `p.getShortDescription(args)`, `p.getCategories(args)`: the short description and content category names.
 - `p.main(frame)`: wikitext entry point.
 

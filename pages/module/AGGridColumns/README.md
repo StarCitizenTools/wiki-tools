@@ -36,6 +36,6 @@ Adding a kind: author `Kind/<Name>` satisfying the contract, add one line to `Re
 ### Gotchas
 
 - `buildColumnDefs`/`buildRowData` raise a hard Lua error for a `kind` not in the registry; there is no silent fallback column.
-- SMW-value decoding (`decodeScalar`, `toText`, `toNumber`, `parseLink`, `buildThumb`, `buildLinkList`, `buildValueList`, `classifyColumn`, `cloneFormat`, `looksNumeric`) lives in [Module:AGGridColumns/Util](https://starcitizen.tools/Module:AGGridColumns/Util), shared by every kind and by consumers directly.
+- [SMW](https://www.mediawiki.org/wiki/Extension:Semantic_MediaWiki)-value decoding (`decodeScalar`, `toText`, `toNumber`, `parseLink`, `buildThumb`, `buildLinkList`, `buildValueList`, `classifyColumn`, `cloneFormat`, `looksNumeric`) lives in [Module:AGGridColumns/Util](https://starcitizen.tools/Module:AGGridColumns/Util), shared by every kind and by consumers directly.
 - `Kind/Date`'s `cellDataType` is declared, not inferred: AG Grid reads `rowData[0][field]` alone to infer a column's data type, so a first row with a missing or non-ISO value would otherwise silently drop the date filter's comparator.
 - `Kind/SignedBar`'s `good` is read against the value's sign, not a fixed polarity: 0 or a spec with no `good` leaves the cell's `good` field absent (neutral), distinct from `false` (leans the wrong way).

@@ -22,9 +22,9 @@ Backed by [Template:Data table](https://starcitizen.tools/Template:Data_table), 
 
 ## Parameters
 
-| Name | Type | Required | Default | Description | Example |
-|------|------|----------|---------|-------------|---------|
-| `1` | string | No | (the page title) | The manufacturer whose products are listed, matched against the `Manufacturer` SMW property (the manufacturer's full name, e.g. `ArcCorp`). Override only when the manufacturer name differs from the page title. | `ArcCorp` |
+| Name | Label | Type | Required | Default | Description | Example |
+|------|-------|------|----------|---------|-------------|---------|
+| `1` | Manufacturer | string | No | (the page title) | The manufacturer whose products are listed, matched against the `Manufacturer` SMW property (the manufacturer's full name, e.g. `ArcCorp`). Override only when the manufacturer name differs from the page title. | `ArcCorp` |
 
 ## Behavior
 

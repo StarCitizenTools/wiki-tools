@@ -20,14 +20,14 @@ Wiki pages, Scribunto modules, templates, gadgets, and automation for the [Star 
 Install [mise](https://mise.jdx.dev), then:
 
 ```sh
-mise install        # Go, Node, stylua, gale, lefthook, the ScribuntoUnit runner
+mise install        # Toolchain, pinned in .mise.toml
 lefthook install    # Pre-commit hooks: the same checks as `mise run lint`
-mise run lint       # Formatting, go vet, freshness of the page catalog in pages/README.md
+mise run lint       # Formatting and consistency checks
 mise run fix        # Auto-fix formatting
-mise run test       # Lua (manifests, ScribuntoUnit suites, undeclared globals), Go, and Node tests
+mise run test       # Every local test layer; `mise tasks` lists them individually
 ```
 
-The Lua suites run off-wiki through the [`mediawiki-scribuntounit`](https://github.com/StarCitizenTools/mediawiki-scribuntounit) runner and are a merge-blocking gate in CI, together with lint; both workflows live in `.github/workflows/`. The runner needs a system `lua5.1`. Anything that depends on the live wiki (rendering, parser behaviour, extension APIs) is checked on a sandbox page instead; `AGENTS.md` describes that flow.
+Lint and tests are merge-blocking in CI (`.github/workflows/`). The Lua suites run off-wiki and need a system `lua5.1`; see [`tests/README.md`](tests/README.md). Anything that depends on the live wiki is checked on a sandbox page instead, as described in `AGENTS.md`.
 
 ## Agent skills
 

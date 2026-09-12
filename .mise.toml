@@ -18,6 +18,7 @@ run = [
   # gofmt -l only *lists* offenders and still exits 0, so test the output.
   'cd scripts && if [ -n "$(gofmt -l .)" ]; then echo "gofmt: needs formatting:"; gofmt -l .; exit 1; fi',
   "cd scripts && go vet ./...",
+  "cd scripts && go run ./cmd/docindex -check",
 ]
 description = "Check formatting"
 
@@ -68,6 +69,11 @@ description = "Report pending item-stub creations/conflicts (exit 1 if any). Rea
 [tasks.test]
 depends = ["test:lua", "test:go", "test:js"]
 description = "Run all local tests"
+
+[tasks.docindex]
+dir = "scripts"
+run = "go run ./cmd/docindex"
+description = "Regenerate the page catalog in pages/README.md from the README.md beside every module and template; lint fails while it is stale"
 
 [tasks."test:go"]
 dir = "scripts"

@@ -2,7 +2,7 @@
 
 Unit testing framework for [Scribunto](https://www.mediawiki.org/wiki/Extension:Scribunto) modules: write test functions with assertions, run them from a wiki page or the Lua console, and get a pass/fail report. This copy is the wiki-mirrored source for the standalone [mediawiki-scribuntounit](https://github.com/StarCitizenTools/mediawiki-scribuntounit) project, which also provides the headless runner `mise run test` uses off-wiki (see `tests/README.md`).
 
-Required by every `Module:X/testcases` suite in this repository; not invoked from templates.
+Required by the `testcases.lua` suites in this repository, which run locally only and are not mirrored to the wiki; the on-wiki module stays for suites other editors keep as `Module:X/testcases` pages. Not invoked from templates.
 
 ## Assertions
 

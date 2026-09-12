@@ -1,6 +1,6 @@
 == browsing ==
 * Navigation-Popups[ResourceLoader|dependencies=mediawiki.api,mediawiki.user,mediawiki.util,user.options,mediawiki.jqueryMsg|type=general]|Navigation-Popups.js|Navigation-Popups.css
-* blame[ResourceLoader|default|package|dependencies=mediawiki.util,mediawiki.api,mediawiki.page.ready|rights=noratelimit]|blame.js|blame-text.js|blame.css
+* blame[ResourceLoader|default|package|dependencies=mediawiki.util,mediawiki.api,mediawiki.page.ready|rights=verified-edit]|blame.js|blame-text.js|blame.css
 
 == editing ==
 * instantDiffs [ResourceLoader|default|dependencies=site,mediawiki.api,mediawiki.util,mediawiki.storage,mediawiki.notification,mediawiki.Title,oojs|rights=viewmywatchlist]|instantDiffs-loader.js|instantDiffs-citizen.css

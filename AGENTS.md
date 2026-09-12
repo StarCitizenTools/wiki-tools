@@ -30,6 +30,15 @@ Wiki pages, modules, and automation for [Star Citizen Wiki](https://starcitizen.
 - CSS uses design tokens from the Citizen skin (`--space-md`, `--color-surface-1`, etc.).
 - Gadgets that enhance server-rendered HTML read their context from `data-gadget-<gadgetname>-<key>` attributes on the target element (e.g. a `quantumUpload` placeholder carries `data-gadget-quantumupload-name`). Prefixing by gadget name keeps the contract traceable — `grep gadget-<name>-` finds every emitter and the owning gadget. HTML lowercases attribute names, so keep each segment lowercase in markup and read them via `el.dataset.gadget<Name><Key>`.
 
+## Documentation
+
+The `README.md` beside a module or template is the source of its on-wiki `/doc` page (`Module:X/doc`, `Template:X/doc`), converted by the `doc-page-from-readme` and `templatedata-from-readme` skills and pushed by `deploy-to-wiki`. The README's first paragraph becomes the TemplateData description VisualEditor shows, so keep it to what the template is and where to use it, two sentences at most.
+
+- **Two audiences, never in one section.** Wiki editors read the template doc page: lead, `## Usage`, `## Parameters` (the table the converter turns into TemplateData), `## Behavior`, `## See also`. Module maintainers read `## For module editors` (`### API`, `### Extending`, `### Gotchas`, `### Styles` only for a real contract) on the module page, whose editor-facing content is one pointer sentence naming exactly the templates or pages that reach it. A Lua-only library names its `require` callers instead.
+- **Only what is unexpected or not obvious, and durable.** Cut anything derivable from the invocation, the parameter table, or the code; no history ("previously", "now"), no evidence counts, no task or PR references. No em dashes in wiki prose. The first mention of a MediaWiki extension on a page links to `https://www.mediawiki.org/wiki/Extension:<Name>`; later mentions stay plain.
+- **Verify every behavioural sentence against the current code before keeping it.** Inherited README text is the main source of untrue docs: a value described as not stored that is, a clamp in the wrong direction, a limit that does not exist. Read the code, not the old README, and cite the line in the commit or report.
+- **The repo is a partial mirror of the wiki.** A page can exist on the wiki with no mirror here (`Module:Manufacturer` does), and a mirror can lag the wiki. Before documenting a file or calling a missing `require` target a defect, diff the local copy against `https://starcitizen.tools/<Title>?action=raw` and sync it first if it drifted.
+
 ## Wiki URL paths
 
 Star Citizen Wiki runs with `$wgArticlePath = "/$1"` — articles live at the **root**, not under `/wiki/`. How you reference a file depends on the context:

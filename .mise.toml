@@ -73,7 +73,7 @@ description = "Run all local tests"
 [tasks.docindex]
 dir = "scripts"
 run = "go run ./cmd/docindex"
-description = "Regenerate the page catalog in README.md from the README.md beside every module and template; lint fails while it is stale"
+description = "Regenerate the page catalog in pages/README.md from the README.md beside every module and template; lint fails while it is stale"
 
 [tasks."test:go"]
 dir = "scripts"

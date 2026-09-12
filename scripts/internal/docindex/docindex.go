@@ -1,4 +1,4 @@
-// Package docindex builds the page catalog in the repository README from the
+// Package docindex builds the page catalog in pages/README.md from the
 // README.md beside every module and template. Each of those files is the source
 // of a live /doc page, so its H1 is the page title and its first sentence is a
 // reviewed one-line summary; the catalog is derived rather than hand-kept so it
@@ -32,7 +32,7 @@ var Namespaces = []struct{ Dir, Prefix string }{
 // Entry is one catalog row.
 type Entry struct {
 	Title   string // wiki title, e.g. Module:Entity/Location
-	Dir     string // path relative to the repository root, e.g. pages/module/Entity/Location
+	Dir     string // path relative to pages/, where the catalog lives, e.g. module/Entity/Location
 	Summary string // first sentence of the README's lead paragraph
 }
 
@@ -60,7 +60,7 @@ func Scan(pagesDir string) ([]Entry, error) {
 		for _, top := range tops {
 			if top.IsDir() {
 				if _, err := os.Stat(filepath.Join(root, top.Name(), "README.md")); err != nil {
-					missing = append(missing, filepath.ToSlash(filepath.Join("pages", ns.Dir, top.Name())))
+					missing = append(missing, filepath.ToSlash(filepath.Join(ns.Dir, top.Name())))
 				}
 			}
 		}
@@ -75,7 +75,7 @@ func Scan(pagesDir string) ([]Entry, error) {
 			if err != nil {
 				return err
 			}
-			e.Dir = filepath.ToSlash(filepath.Join("pages", ns.Dir, rel))
+			e.Dir = filepath.ToSlash(filepath.Join(ns.Dir, rel))
 			nsEntries = append(nsEntries, e)
 			return nil
 		})
@@ -86,7 +86,7 @@ func Scan(pagesDir string) ([]Entry, error) {
 		entries = append(entries, nsEntries...)
 	}
 	if len(missing) > 0 {
-		return nil, fmt.Errorf("every top-level module and template directory needs a README.md (it becomes the page's /doc); missing in:\n  %s", strings.Join(missing, "\n  "))
+		return nil, fmt.Errorf("every top-level module and template directory needs a README.md (it becomes the page's /doc); missing under pages/ in:\n  %s", strings.Join(missing, "\n  "))
 	}
 	return entries, nil
 }

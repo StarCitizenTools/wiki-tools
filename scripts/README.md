@@ -23,7 +23,7 @@ Go 1.23+, provided by `mise install`. There are no other dependencies.
 | `systemmap` | `Module:SystemMap/systems.json` | the starmap mirror + `pages/module/SystemMap/overlay.json` |
 | `uuidindex` | reconciliation plan for the `UUID:` redirect namespace | the wiki itself (SMW `Uuid` annotations vs `UUID:` pages) |
 | `itemstubs` | stub-page creation plan for datamined items missing from the wiki | [scunpacked-data](https://github.com/StarCitizenWiki/scunpacked-data) `items.json` vs SMW `Uuid` annotations |
-| `docindex` | the page catalog in the repository `README.md` (not wiki content; `mise run lint` fails while it is stale) | the `README.md` beside every module and template |
+| `docindex` | the page catalog in `pages/README.md` (not wiki content; `mise run lint` fails while it is stale) | the `README.md` beside every module and template |
 
 ## Usage
 

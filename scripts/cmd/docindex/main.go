@@ -1,11 +1,11 @@
-// Command docindex regenerates the page catalog in the repository README from
-// the README.md beside every module and template.
+// Command docindex regenerates the page catalog in pages/README.md from the
+// README.md beside every module and template.
 //
-//	docindex          # rewrite the block between the docindex markers in ../README.md
+//	docindex          # rewrite the block between the docindex markers in ../pages/README.md
 //	docindex -check   # exit 1 if that block is stale or a top-level page has no README
 //
 // Unlike the other tools here it neither reads the wiki nor produces wiki
-// content: its input is the repository and its output is the repository README.
+// content: its input is the repository and its output is a repository README.
 package main
 
 import (
@@ -19,7 +19,7 @@ import (
 
 func main() {
 	pages := flag.String("pages", "../pages", "pages/ directory to scan")
-	readme := flag.String("readme", "../README.md", "README to rewrite")
+	readme := flag.String("readme", "../pages/README.md", "README to rewrite")
 	check := flag.Bool("check", false, "report drift instead of writing; exit 1 when the catalog is stale")
 	flag.Parse()
 

@@ -40,9 +40,9 @@ func TestScanCollectsSortedEntries(t *testing.T) {
 		got = append(got, e.Title+" | "+e.Dir+" | "+e.Summary)
 	}
 	want := []string{
-		"Module:Entity | pages/module/Entity | Renders the SMW infobox.",
-		"Module:Entity/Location | pages/module/Entity/Location | Kind for systems, e.g. Stanton, with a `|` pipe.",
-		"Template:Data table | pages/template/Data table | Browse table for a category.",
+		"Module:Entity | module/Entity | Renders the SMW infobox.",
+		"Module:Entity/Location | module/Entity/Location | Kind for systems, e.g. Stanton, with a `|` pipe.",
+		"Template:Data table | template/Data table | Browse table for a category.",
 	}
 	if strings.Join(got, "\n") != strings.Join(want, "\n") {
 		t.Errorf("entries:\n%s\nwant:\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
@@ -53,7 +53,7 @@ func TestScanRequiresTopLevelReadme(t *testing.T) {
 	root := fixture(t)
 	writeFile(t, filepath.Join(root, "module", "Orphan", "Orphan.lua"), "return {}\n")
 	_, err := Scan(root)
-	if err == nil || !strings.Contains(err.Error(), "pages/module/Orphan") {
+	if err == nil || !strings.Contains(err.Error(), "module/Orphan") {
 		t.Fatalf("expected a missing-README error naming pages/module/Orphan, got %v", err)
 	}
 }
@@ -91,7 +91,7 @@ func TestRenderAndSplice(t *testing.T) {
 	for _, want := range []string{
 		"### Module pages",
 		"### Template pages",
-		"| [Module:Entity](pages/module/Entity) ([doc](https://starcitizen.tools/Module:Entity/doc)) | Renders the SMW infobox. |",
+		"| [Module:Entity](module/Entity) ([doc](https://starcitizen.tools/Module:Entity/doc)) | Renders the SMW infobox. |",
 		"([doc](https://starcitizen.tools/Template:Data_table/doc))",
 		"with a `\\|` pipe.",
 	} {

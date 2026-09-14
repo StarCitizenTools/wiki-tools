@@ -194,7 +194,7 @@ func run() error {
 	}
 	if len(wiki) < *minUUIDs {
 		return fmt.Errorf("refusing to plan: only %d annotated uuids, expected at least %d "+
-			"(SMW may be degraded; override with -min-uuids)", len(wiki), *minUUIDs)
+			"(the store may be degraded; override with -min-uuids)", len(wiki), *minUUIDs)
 	}
 
 	// --- build the plan -----------------------------------------------------

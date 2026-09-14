@@ -62,31 +62,54 @@ func (s *stubAPI) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // namespaceOK is the siteinfo response every scan begins with.
 const namespaceOK = `{"query":{"namespaces":{"69420":{"id":69420,"case":"first-letter"}}}}`
 
-const emptyAsk = `{"query":{"results":[]}}`
+// emptyBucket is a served answer with no rows, not the rate limiter's `{}`.
+const emptyBucket = `{"bucketQuery":"q","bucket":[]}`
 
 func emptyAllPages() string { return `{"query":{"allpages":[]}}` }
 
-// route dispatches on the parameters that distinguish the scan's four calls.
-func route(t *testing.T, ask func(prop string, offset string) string, allpages func(filter, cont string) string, resolve func(titles string) string) func(map[string]string) string {
+// routes are the canned answers for the calls a scan makes. A nil member
+// answers empty, so a test only describes the shapes it cares about.
+type routes struct {
+	bucket   func(query string) string
+	allpages func(filter, cont string) string
+	resolve  func(titles string) string
+}
+
+// route dispatches on the parameters that distinguish the scan's calls.
+func route(t *testing.T, r routes) func(map[string]string) string {
 	t.Helper()
 	return func(form map[string]string) string {
 		switch {
 		case form["meta"] == "siteinfo":
 			return namespaceOK
-		case form["action"] == "ask":
-			prop := "Uuid"
-			if strings.Contains(form["query"], "[[UUID::") {
-				prop = "UUID"
+		case form["action"] == "bucket":
+			if r.bucket == nil {
+				return emptyBucket
 			}
-			return ask(prop, form["query"])
+			return r.bucket(form["query"])
 		case form["list"] == "allpages":
-			return allpages(form["apfilterredir"], form["apcontinue"])
+			if r.allpages == nil {
+				return emptyAllPages()
+			}
+			return r.allpages(form["apfilterredir"], form["apcontinue"])
 		case form["titles"] != "":
-			return resolve(form["titles"])
+			if r.resolve == nil {
+				return `{"query":{}}`
+			}
+			return r.resolve(form["titles"])
 		}
 		t.Errorf("unexpected request: %v", form)
 		return `{}`
 	}
+}
+
+// bucketRows renders one served page of entity rows.
+func bucketRows(rows ...string) string {
+	return `{"bucketQuery":"q","bucket":[` + strings.Join(rows, ",") + `]}`
+}
+
+func bucketRow(page, uuid string) string {
+	return `{"page_name":"` + page + `","uuid":"` + uuid + `"}`
 }
 
 func TestScanRejectsCaseSensitiveNamespace(t *testing.T) {
@@ -102,37 +125,34 @@ func TestScanRejectsCaseSensitiveNamespace(t *testing.T) {
 }
 
 func TestScanCollectsAnnotationsAndRedirectTargets(t *testing.T) {
-	stub, client := newStub(t, route(t,
-		func(prop, _ string) string {
-			if prop != "Uuid" {
-				return emptyAsk
-			}
-			return `{"query":{"results":{
-				"Page A":{"fulltext":"Page A","namespace":0,"printouts":{"Uuid":["` + uuidA + `"]}},
-				"Page B#_abc":{"fulltext":"Page B#_abc","namespace":0,"printouts":{"Uuid":["` + uuidB + `"]}}
-			}}}`
+	stub, client := newStub(t, route(t, routes{
+		bucket: func(string) string {
+			return bucketRows(bucketRow("Page A", uuidA), `{"page_name":"Page C"}`, bucketRow("Page B", uuidB))
 		},
-		func(filter, _ string) string {
+		allpages: func(filter, _ string) string {
 			if filter == "redirects" {
 				return `{"query":{"allpages":[{"title":"` + TitleFor(uuidA) + `"}]}}`
 			}
 			return `{"query":{"allpages":[{"title":"UUID:` + PlaceholderUUID + `"}]}}`
 		},
-		func(string) string {
+		resolve: func(string) string {
 			return `{"query":{"redirects":[{"from":"` + TitleFor(uuidA) + `","to":"Page A"}]}}`
 		},
-	))
+	}))
 
 	scan, err := Scan(context.Background(), ScanOptions{Client: client})
 	if err != nil {
 		t.Fatalf("Scan: %v", err)
 	}
-	if got := scan.Properties.Holders[uuidA]; len(got) != 1 || got[0].Page != "Page A" {
+	if got := scan.Properties.Holders[uuidA]; len(got) != 1 || got[0].Page != "Page A" || got[0].Property != EntityProperty {
 		t.Errorf("holders[uuidA] = %v", got)
 	}
-	// A subobject subject folds onto its page.
+	// A row with no uuid column holds no annotation.
+	if len(scan.Properties.Holders) != 2 {
+		t.Errorf("holders = %v, want only the two rows carrying a uuid", scan.Properties.Holders)
+	}
 	if got := scan.Properties.Holders[uuidB]; len(got) != 1 || got[0].Page != "Page B" {
-		t.Errorf("holders[uuidB] = %v, want the fragment stripped", got)
+		t.Errorf("holders[uuidB] = %v", got)
 	}
 	if len(scan.Pages) != 2 {
 		t.Fatalf("pages = %v, want the redirect and the non-redirect", scan.Pages)
@@ -149,79 +169,13 @@ func TestScanCollectsAnnotationsAndRedirectTargets(t *testing.T) {
 	}
 }
 
-func TestScanErrorsOnNonAdvancingAskContinuation(t *testing.T) {
-	// SMW silently resets an offset past $smwgQMaxOffset to zero. Following
-	// that continuation loops forever, so it has to be an error.
-	_, client := newStub(t, route(t,
-		func(prop, _ string) string {
-			if prop != "Uuid" {
-				return emptyAsk
-			}
-			return `{"query-continue-offset":0,"query":{"results":{
-				"Page A":{"fulltext":"Page A","namespace":0,"printouts":{"Uuid":["` + uuidA + `"]}}
-			}}}`
-		},
-		func(string, string) string { return emptyAllPages() },
-		func(string) string { return `{"query":{}}` },
-	))
-
-	_, err := Scan(context.Background(), ScanOptions{Client: client})
-	if err == nil || !strings.Contains(err.Error(), "did not advance") {
-		t.Fatalf("err = %v, want a non-advancing-continuation error", err)
-	}
-}
-
-func TestScanFollowsAskContinuation(t *testing.T) {
-	_, client := newStub(t, route(t,
-		func(prop, query string) string {
-			if prop != "Uuid" {
-				return emptyAsk
-			}
-			if strings.Contains(query, "offset=0") {
-				return `{"query-continue-offset":1,"query":{"results":{
-					"Page A":{"fulltext":"Page A","namespace":0,"printouts":{"Uuid":["` + uuidA + `"]}}
-				}}}`
-			}
-			return `{"query":{"results":{
-				"Page B":{"fulltext":"Page B","namespace":0,"printouts":{"Uuid":["` + uuidB + `"]}}
-			}}}`
-		},
-		func(string, string) string { return emptyAllPages() },
-		func(string) string { return `{"query":{}}` },
-	))
-
-	scan, err := Scan(context.Background(), ScanOptions{Client: client})
-	if err != nil {
-		t.Fatalf("Scan: %v", err)
-	}
-	if len(scan.Properties.Holders) != 2 {
-		t.Errorf("holders = %v, want both pages across the continuation", scan.Properties.Holders)
-	}
-}
-
-func TestScanErrorsOnUnexpectedAskShape(t *testing.T) {
-	// An unparsable body must not read as "nothing is annotated" — that is the
-	// input that makes the reconciler plan a mass deletion.
-	_, client := newStub(t, route(t,
-		func(string, string) string { return `{"query":{"warnings":"something else"}}` },
-		func(string, string) string { return emptyAllPages() },
-		func(string) string { return `{"query":{}}` },
-	))
-
-	_, err := Scan(context.Background(), ScanOptions{Client: client})
-	if err == nil || !strings.Contains(err.Error(), "unexpected ask results") {
-		t.Fatalf("err = %v, want a refusal to treat an unknown shape as empty", err)
-	}
-}
-
 func TestScanSurfacesAPIError(t *testing.T) {
 	// Action-API errors arrive with HTTP 200.
-	_, client := newStub(t, func(form map[string]string) string {
-		if form["meta"] == "siteinfo" {
-			return namespaceOK
-		}
-		return `{"error":{"code":"readapidenied","info":"You need read permission"}}`
-	})
+	_, client := newStub(t, route(t, routes{
+		allpages: func(string, string) string {
+			return `{"error":{"code":"readapidenied","info":"You need read permission"}}`
+		},
+	}))
 
 	_, err := Scan(context.Background(), ScanOptions{Client: client})
 	if err == nil || !strings.Contains(err.Error(), "readapidenied") {
@@ -230,9 +184,8 @@ func TestScanSurfacesAPIError(t *testing.T) {
 }
 
 func TestScanFollowsAllPagesContinuation(t *testing.T) {
-	_, client := newStub(t, route(t,
-		func(string, string) string { return emptyAsk },
-		func(filter, cont string) string {
+	_, client := newStub(t, route(t, routes{
+		allpages: func(filter, cont string) string {
 			if filter != "redirects" {
 				return emptyAllPages()
 			}
@@ -241,8 +194,7 @@ func TestScanFollowsAllPagesContinuation(t *testing.T) {
 			}
 			return `{"query":{"allpages":[{"title":"UUID:B"}]}}`
 		},
-		func(string) string { return `{"query":{}}` },
-	))
+	}))
 
 	scan, err := Scan(context.Background(), ScanOptions{Client: client})
 	if err != nil {
@@ -254,16 +206,14 @@ func TestScanFollowsAllPagesContinuation(t *testing.T) {
 }
 
 func TestScanErrorsOnNonAdvancingAllPagesContinuation(t *testing.T) {
-	_, client := newStub(t, route(t,
-		func(string, string) string { return emptyAsk },
-		func(filter, _ string) string {
+	_, client := newStub(t, route(t, routes{
+		allpages: func(filter, _ string) string {
 			if filter != "redirects" {
 				return emptyAllPages()
 			}
 			return `{"continue":{"apcontinue":"UUID:A"},"query":{"allpages":[{"title":"UUID:A"}]}}`
 		},
-		func(string) string { return `{"query":{}}` },
-	))
+	}))
 
 	_, err := Scan(context.Background(), ScanOptions{Client: client})
 	if err == nil || !strings.Contains(err.Error(), "did not advance") {
@@ -279,9 +229,8 @@ func TestResolveBatchesEveryTitleExactlyOnce(t *testing.T) {
 		titles[i] = "UUID:" + string(rune('a'+i%26)) + strings.Repeat("0", i/26+1)
 	}
 
-	stub, client := newStub(t, route(t,
-		func(string, string) string { return emptyAsk },
-		func(filter, _ string) string {
+	stub, client := newStub(t, route(t, routes{
+		allpages: func(filter, _ string) string {
 			if filter != "redirects" {
 				return emptyAllPages()
 			}
@@ -296,7 +245,7 @@ func TestResolveBatchesEveryTitleExactlyOnce(t *testing.T) {
 			b.WriteString(`]}}`)
 			return b.String()
 		},
-		func(batch string) string {
+		resolve: func(batch string) string {
 			var b strings.Builder
 			b.WriteString(`{"query":{"redirects":[`)
 			for i, tl := range strings.Split(batch, "|") {
@@ -308,7 +257,7 @@ func TestResolveBatchesEveryTitleExactlyOnce(t *testing.T) {
 			b.WriteString(`]}}`)
 			return b.String()
 		},
-	))
+	}))
 
 	scan, err := Scan(context.Background(), ScanOptions{Client: client})
 	if err != nil {
@@ -329,9 +278,9 @@ func TestResolveBatchesEveryTitleExactlyOnce(t *testing.T) {
 			t.Errorf("%s appeared %d times, want exactly once", tl, seen[tl])
 		}
 	}
-	// 1 siteinfo + 2 ask (one per property) + 2 allpages (one per filter) +
-	// 2 resolve batches (50 then 1).
-	if want := 7; stub.requests != want {
+	// 1 siteinfo + 1 bucket + 2 allpages (one per filter) + 2 resolve batches
+	// (50 then 1).
+	if want := 6; stub.requests != want {
 		t.Errorf("requests = %d, want %d", stub.requests, want)
 	}
 }
@@ -341,21 +290,20 @@ func TestResolveTakesOnlyTheFirstHopOfAChain(t *testing.T) {
 	// should see UUID:A pointing at UUID:B and retarget it, not quietly
 	// resolve through to the far end.
 	first, second := TitleFor(uuidA), TitleFor(uuidB)
-	_, client := newStub(t, route(t,
-		func(string, string) string { return emptyAsk },
-		func(filter, _ string) string {
+	_, client := newStub(t, route(t, routes{
+		allpages: func(filter, _ string) string {
 			if filter != "redirects" {
 				return emptyAllPages()
 			}
 			return `{"query":{"allpages":[{"title":"` + first + `"},{"title":"` + second + `"}]}}`
 		},
-		func(string) string {
+		resolve: func(string) string {
 			return `{"query":{"redirects":[
 				{"from":"` + first + `","to":"` + second + `"},
 				{"from":"` + second + `","to":"Real Page"}
 			]}}`
 		},
-	))
+	}))
 
 	scan, err := Scan(context.Background(), ScanOptions{Client: client})
 	if err != nil {
@@ -374,14 +322,14 @@ func TestResolveTakesOnlyTheFirstHopOfAChain(t *testing.T) {
 }
 
 func TestScanPropertiesOnly(t *testing.T) {
+	var queries []string
 	_, client := newStub(t, func(form map[string]string) string {
-		if form["action"] != "ask" {
-			t.Fatalf("unexpected action %q — ScanProperties must not list namespace pages", form["action"])
+		queries = append(queries, form["query"])
+		if form["action"] == "bucket" {
+			return bucketRows(bucketRow("Page A", uuidA))
 		}
-		if strings.Contains(form["query"], "[[Uuid::+]]") {
-			return `{"query":{"results":{"Page A":{"fulltext":"Page A","namespace":0,"printouts":{"Uuid":["aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"]}}}}}`
-		}
-		return `{"query":{"results":[]}}` // legacy UUID property: empty
+		t.Fatalf("unexpected action %q — ScanProperties must not list namespace pages", form["action"])
+		return `{}`
 	})
 
 	props, requests, err := ScanProperties(context.Background(), client, nil)
@@ -391,7 +339,12 @@ func TestScanPropertiesOnly(t *testing.T) {
 	if got := len(props.Holders); got != 1 {
 		t.Fatalf("holders = %d, want 1", got)
 	}
-	if requests != 2 {
-		t.Fatalf("requests = %d, want 2 (one per property)", requests)
+	if requests != 1 {
+		t.Fatalf("requests = %d, want 1 (the single bucket page)", requests)
+	}
+	for _, want := range []string{`bucket("entity")`, `"page_name","uuid"`} {
+		if !strings.Contains(queries[0], want) {
+			t.Errorf("bucket query %q must contain %q", queries[0], want)
+		}
 	}
 }

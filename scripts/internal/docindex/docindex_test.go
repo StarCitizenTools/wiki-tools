@@ -21,7 +21,7 @@ func fixture(t *testing.T) string {
 	t.Helper()
 	root := t.TempDir()
 	writeFile(t, filepath.Join(root, "module", "Entity", "README.md"),
-		"# Module:Entity\n\nRenders the [SMW](https://example.org/x) infobox. Second sentence.\n")
+		"# Module:Entity\n\nRenders the [entity](https://example.org/x) infobox. Second sentence.\n")
 	writeFile(t, filepath.Join(root, "module", "Entity", "Location", "README.md"),
 		"# Module:Entity/Location\n\n**Kind** for systems, e.g. Stanton, with a `|` pipe. More.\n")
 	writeFile(t, filepath.Join(root, "module", "Entity", "Facet", "Armor.lua"), "return {}\n")
@@ -40,7 +40,7 @@ func TestScanCollectsSortedEntries(t *testing.T) {
 		got = append(got, e.Title+" | "+e.Dir+" | "+e.Summary)
 	}
 	want := []string{
-		"Module:Entity | module/Entity | Renders the SMW infobox.",
+		"Module:Entity | module/Entity | Renders the entity infobox.",
 		"Module:Entity/Location | module/Entity/Location | Kind for systems, e.g. Stanton, with a `|` pipe.",
 		"Template:Data table | template/Data table | Browse table for a category.",
 	}
@@ -91,7 +91,7 @@ func TestRenderAndSplice(t *testing.T) {
 	for _, want := range []string{
 		"### Module pages",
 		"### Template pages",
-		"| [Module:Entity](module/Entity) ([doc](https://starcitizen.tools/Module:Entity/doc)) | Renders the SMW infobox. |",
+		"| [Module:Entity](module/Entity) ([doc](https://starcitizen.tools/Module:Entity/doc)) | Renders the entity infobox. |",
 		"| [Template:Data table](template/Data%20table) ([doc](https://starcitizen.tools/Template:Data_table/doc)) |",
 		"with a `\\|` pipe.",
 	} {

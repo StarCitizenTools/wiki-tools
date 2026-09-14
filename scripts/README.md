@@ -21,9 +21,11 @@ Go 1.23+, provided by `mise install`. There are no other dependencies.
 |---|---|---|
 | `starmap` | `Module:Starmap/starmap.json` | [ARK Starmap API](https://robertsspaceindustries.com/starmap) |
 | `systemmap` | `Module:SystemMap/systems.json` | the starmap mirror + `pages/module/SystemMap/overlay.json` |
-| `uuidindex` | reconciliation plan for the `UUID:` redirect namespace | the wiki itself (SMW `Uuid` annotations vs `UUID:` pages) |
-| `itemstubs` | stub-page creation plan for datamined items missing from the wiki | [scunpacked-data](https://github.com/StarCitizenWiki/scunpacked-data) `items.json` vs SMW `Uuid` annotations |
+| `uuidindex` | reconciliation plan for the `UUID:` redirect namespace | the wiki itself (Bucket `entity.uuid` vs `UUID:` pages) |
+| `itemstubs` | stub-page creation plan for datamined items missing from the wiki | [scunpacked-data](https://github.com/StarCitizenWiki/scunpacked-data) `items.json` vs Bucket `entity.uuid` |
 | `docindex` | the page catalog in `pages/README.md` (not wiki content; `mise run lint` fails while it is stale) | the `README.md` beside every module and template |
+| `bucketschemas` | `pages/bucket/*.json`, the Bucket schema pages (`mise run lint` fails while they are stale) | `Module:Entity/properties.json`, `Module:Company/properties.json` and `Module:WearableSet/properties.json` |
+| `datatablerows` | a row count per live `{{Data table}}` grid (no file; `-out` also writes it) | the wiki itself (rendered HTML + the AGGrid REST endpoint) |
 
 ## Usage
 
@@ -103,6 +105,8 @@ re-solving their problems:
 
 - `internal/httpx` — rate-limited HTTP with bounded retry and backoff.
 - `internal/mediawiki` — read-only page fetch, for diffing against what is live.
+- `internal/bucket` — paged reads of a Bucket table, retrying the rate
+  limiter's empty answer instead of reading it as the end of the table.
 
 Then add `<name>` and `<name>:diff` tasks to `.mise.toml`, and a row to the table
 above. Keep the tool read-only: generating and publishing are separate steps on

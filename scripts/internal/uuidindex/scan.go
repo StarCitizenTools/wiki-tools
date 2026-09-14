@@ -2,13 +2,13 @@ package uuidindex
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/url"
 	"sort"
 	"strconv"
 	"strings"
 
+	"github.com/StarCitizenTools/wiki-tools/scripts/internal/bucket"
 	"github.com/StarCitizenTools/wiki-tools/scripts/internal/mediawiki"
 )
 
@@ -20,24 +20,22 @@ type ScanOptions struct {
 	Progress func(string)
 }
 
-// ScanProperties reads every uuid annotation via SMW — the property half of
-// Scan, exported for tools that need the annotated-uuid set without the
-// UUID: namespace listing. Progress may be nil. The int is API requests made.
+// ScanProperties reads every uuid annotation — the property half of Scan,
+// exported for tools that need the annotated-uuid set without the UUID:
+// namespace listing. Progress may be nil. The int is API requests made.
 func ScanProperties(ctx context.Context, client *mediawiki.Client, progress func(string)) (*PropertyScan, int, error) {
 	s := &scanner{opts: ScanOptions{Client: client, Progress: progress}}
 	props := NewPropertyScan()
-	for _, prop := range Properties {
-		if err := s.askProperty(ctx, prop, props); err != nil {
-			return nil, s.requests, fmt.Errorf("scanning property %s: %w", prop, err)
-		}
+	if err := s.bucketUUIDs(ctx, props); err != nil {
+		return nil, s.requests, fmt.Errorf("scanning the %s bucket: %w", EntityBucket, err)
 	}
 	s.logf("scanned %d uuids (%d invalid, %d ignored)", len(props.Holders), len(props.Invalid), len(props.Ignored))
 	return props, s.requests, nil
 }
 
 // Scan reads both sides of the reconciliation from the wiki: every uuid
-// annotation via SMW, and every page of the UUID: namespace with its redirect
-// target. Anonymous and read-only throughout.
+// annotation, and every page of the UUID: namespace with its redirect target.
+// Anonymous and read-only throughout.
 func Scan(ctx context.Context, opts ScanOptions) (*ScanResult, error) {
 	s := &scanner{opts: opts}
 
@@ -98,69 +96,28 @@ func (s *scanner) logf(format string, args ...any) {
 	}
 }
 
-// askProperty pages through [[<prop>::+]] and feeds every value into the scan.
-//
-// The limit is deliberately large: SMW's $smwgQMaxOffset (default 5000)
-// silently resets any larger offset to zero, so offset pagination cannot walk
-// a big result set — it cycles. One request under the server's max limit
-// avoids the wall entirely; the non-advancing-continuation check below turns
-// the wall into a loud error instead of an infinite loop if the annotation
-// count ever outgrows it.
-func (s *scanner) askProperty(ctx context.Context, prop string, into *PropertyScan) error {
-	const limit = 10000
-	for offset := 0; ; {
-		var res struct {
-			mediawiki.Response
-			Continue *int `json:"query-continue-offset"`
-			Query    struct {
-				Results json.RawMessage `json:"results"`
-			} `json:"query"`
-		}
-		form := url.Values{
-			"action": {"ask"},
-			"query":  {fmt.Sprintf("[[%s::+]]|?%s|limit=%d|offset=%d", prop, prop, limit, offset)},
-			"format": {"json"},
-		}
-		s.requests++
-		if err := s.opts.Client.Request(ctx, form, &res); err != nil {
-			return err
-		}
-
-		// SMW serialises results as an object, except that an empty result set
-		// comes back as an array. Anything else means the response was not
-		// what we think it is, and treating that as "no annotations" would
-		// hand the reconciler an empty side — so it is an error, not a return.
-		switch head := firstRune(res.Query.Results); head {
-		case '{':
-			var subjects map[string]struct {
-				Fulltext  string              `json:"fulltext"`
-				Namespace int                 `json:"namespace"`
-				Printouts map[string][]string `json:"printouts"`
-			}
-			if err := json.Unmarshal(res.Query.Results, &subjects); err != nil {
-				return fmt.Errorf("decoding subjects at offset %d: %w", offset, err)
-			}
-			for _, subject := range subjects {
-				for _, value := range subject.Printouts[prop] {
-					into.Add(subject.Fulltext, subject.Namespace, prop, value)
-				}
-			}
-		case '[':
-			return nil // empty result set
-		default:
-			return fmt.Errorf("unexpected ask results at offset %d: wanted an object or an empty "+
-				"array, got %s", offset, snippet(res.Query.Results))
-		}
-
-		if res.Continue == nil {
-			return nil
-		}
-		if *res.Continue <= offset {
-			return fmt.Errorf("continuation did not advance (offset %d -> %d): the result set has "+
-				"outgrown offset pagination (SMW max offset); shard the scan by uuid prefix", offset, *res.Continue)
-		}
-		offset = *res.Continue
+// bucketUUIDs reads every entity row carrying a uuid. Module:Entity/StructuredData
+// writes rows only from the main namespace, so every row belongs to a main-namespace
+// page. A field with no value is absent from the row rather than null, so the query
+// filter and the empty-value skip below reach the same set.
+func (s *scanner) bucketUUIDs(ctx context.Context, into *PropertyScan) error {
+	rows, requests, err := bucket.Rows(ctx, s.opts.Client, EntityBucket, func(offset int) string {
+		return fmt.Sprintf(`bucket("%s").select("page_name","uuid").where(bucket.Not({"uuid", bucket.Null()})).limit(%d).offset(%d).run()`,
+			EntityBucket, bucket.PageSize, offset)
+	})
+	s.requests += requests
+	if err != nil {
+		return err
 	}
+	for _, row := range rows {
+		page, _ := row["page_name"].(string)
+		uuid, _ := row["uuid"].(string)
+		if page == "" || uuid == "" {
+			continue
+		}
+		into.Add(page, 0, EntityProperty, uuid)
+	}
+	return nil
 }
 
 // allPages lists the titles of the UUID: namespace, filtered to redirects or
@@ -207,8 +164,8 @@ func (s *scanner) allPages(ctx context.Context, filter string) ([]string, error)
 		if res.Continue == nil {
 			return titles, nil
 		}
-		// Same reasoning as askProperty: a continuation that does not move
-		// forward is an infinite loop, so fail rather than spin.
+		// A continuation that does not move forward is an infinite loop, so
+		// fail rather than spin.
 		if res.Continue.Apcontinue <= continueFrom {
 			return nil, fmt.Errorf("allpages continuation did not advance (%q -> %q)",
 				continueFrom, res.Continue.Apcontinue)
@@ -272,26 +229,4 @@ func (s *scanner) resolve(ctx context.Context, titles []string) ([]NSPage, error
 		}
 	}
 	return pages, nil
-}
-
-// firstRune returns the first non-space byte of raw JSON, or 0 if it is empty.
-func firstRune(raw json.RawMessage) byte {
-	trimmed := strings.TrimSpace(string(raw))
-	if trimmed == "" {
-		return 0
-	}
-	return trimmed[0]
-}
-
-// snippet trims a JSON fragment for inclusion in an error message.
-func snippet(raw json.RawMessage) string {
-	const max = 120
-	s := strings.TrimSpace(string(raw))
-	if s == "" {
-		return "nothing"
-	}
-	if len(s) > max {
-		return s[:max] + "…"
-	}
-	return s
 }

@@ -86,13 +86,13 @@ func run() error {
 	}
 	progress(fmt.Sprintf("scan finished in %s (%d requests)", time.Since(started).Round(time.Second), scan.Requests))
 
-	// A half-empty scan is a degraded API (an SMW rebuild, a truncated list),
+	// A half-empty scan is a degraded API (a store rebuild, a truncated list),
 	// not a real change; planning from it would schedule a mass deletion.
 	// These are checked before the plan exists because a plan built on them
 	// would be actively misleading to have on disk.
 	if got := len(scan.Properties.Holders); got < *minUUIDs {
 		return fmt.Errorf("refusing to plan: only %d annotated uuids, expected at least %d "+
-			"(SMW may be degraded; override with -min-uuids)", got, *minUUIDs)
+			"(the store may be degraded; override with -min-uuids)", got, *minUUIDs)
 	}
 	if got := len(scan.Pages); got < *minPages {
 		return fmt.Errorf("refusing to plan: only %d namespace pages, expected at least %d "+

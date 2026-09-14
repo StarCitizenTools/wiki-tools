@@ -8,9 +8,9 @@ covers the filter chain, the config it's driven by, and the plan it writes.
 
 The source of "missing" is a comparison between two sets of uuids: every item
 in the [scunpacked-data](https://github.com/StarCitizenWiki/scunpacked-data)
-`items.json` dump, and every uuid the wiki has annotated via SMW's `Uuid` /
-`UUID` properties (the same scan `uuidindex` uses, via
-`uuidindex.ScanProperties`). An item whose uuid the wiki doesn't know about is
+`items.json` dump, and every uuid the wiki holds in the `entity` bucket (the
+same scan `uuidindex` uses, via `uuidindex.ScanProperties`). An item whose uuid
+the wiki doesn't know about is
 a candidate; everything else in this tool is deciding which candidates are
 real and rendering the ones that are.
 
@@ -270,7 +270,7 @@ the same split as `cmd/uuidindex`, where `-min-uuids`/`-min-pages` exit via
 the ordinary error path and only `-max-delete` gets its own exit 2.
 
 The two floors are checked before a plan is built: a truncated dump download
-or a degraded SMW (mid-rebuild, API hiccup) would otherwise be read as "these
+or a degraded store (mid-rebuild, API hiccup) would otherwise be read as "these
 items are all missing," which is a false mass-creation signal, not a real
 one. Override only after confirming the shortfall is expected (e.g. a
 deliberately small `-in` fixture).

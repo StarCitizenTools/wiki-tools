@@ -4,6 +4,8 @@ require('strict')
 
 local format = require('Module:Entity/Format')
 local Boolean = require('Module:Boolean')
+local orderLines = require('Module:Entity/Orders/Lines').orderLines
+local rewardLines = require('Module:Entity/Rewards/Lines').rewardLines
 
 local CATEGORIES = {
 	['Bounty Hunter'] = 'Bounty hunter contracts',
@@ -311,6 +313,9 @@ function p.getStructuredData(ctx)
 		end
 	end
 
+	local orders = orderLines(apiData.hauling_orders)
+	local rewards = rewardLines(apiData.reward_groups, apiData.blueprints)
+
 	return {
 		legality = apiData.illegal and 'unverified' or 'verified',
 		type = typeInfo.name,
@@ -325,6 +330,8 @@ function p.getStructuredData(ctx)
 			or (apiData.reputation_prerequisite and apiData.reputation_prerequisite.max_standing.name)
 			or 'None',
 		available = available,
+		orders = #orders > 0 and orders or nil,
+		rewards = #rewards > 0 and rewards or nil,
 	}
 end
 

@@ -3,7 +3,7 @@ require('strict')
 --- Shared column-type core for AG Grid grids. Given a list of column specs (each
 --- carrying a `kind` from the Registry), builds AG Grid columnDefs and rowData by
 --- dispatching to the per-kind builders -- two generic loops, no branching. The
---- consumer owns the SMW fetch, query, gridOptions, render, and styles.
+--- consumer owns the fetch, query, gridOptions, render, and styles.
 
 local Registry = require('Module:AGGridColumns/Registry')
 
@@ -30,7 +30,7 @@ function p.buildColumnDefs(specs)
 	return defs
 end
 
---- Build AG Grid rowData from SMW results and the same column specs.
+--- Build AG Grid rowData from fetched result rows and the same column specs.
 --- @param results table[]
 --- @param specs table[]
 --- @return table[]

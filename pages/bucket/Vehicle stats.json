@@ -1,0 +1,192 @@
+{
+	"armor_deflection": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"armor_resistance": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"biochemical_damage_modifier": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"cross_section": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"cross_section_height": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"cross_section_length": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"cross_section_width": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"cs_signature_modifier": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"distortion_damage_modifier": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"em_emission": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"em_signature_modifier": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"energy_damage_modifier": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"energy_deflection": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"health_point": {
+		"type": "INTEGER",
+		"index": false,
+		"repeated": false
+	},
+	"hydrogen_fuel_capacity": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"hydrogen_fuel_intake_rate": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"ir_emission": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"ir_signature_modifier": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"max_speed": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"missile_damage": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"physical_damage_modifier": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"physical_deflection": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"pilot_dps": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"pilot_sustained_dps": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"pitch_rate": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"quantum_fuel_capacity": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"quantum_range": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"quantum_speed": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"quantum_spool_time": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"roll_rate": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"scm_speed": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"shield_health_point": {
+		"type": "INTEGER",
+		"index": false,
+		"repeated": false
+	},
+	"stun_damage_modifier": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"thermal_damage_modifier": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"turret_dps": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"turret_sustained_dps": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"yaw_rate": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"zero_to_maximum_speed_time": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	}
+}

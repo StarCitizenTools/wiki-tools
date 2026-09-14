@@ -10,23 +10,28 @@ require('strict')
 --- Tile rendering is delegated to Module:Tiles (image + label + fakelink
 --- wikilink). This module's job is to:
 ---  1. Pull related_items off the merged API response.
----  2. Resolve each item's wiki page + image via the SMW `uuid` property
----     so disambiguated titles (e.g. `Hyperion (quantum drive)`) link
----     correctly.
+---  2. Resolve each item's wiki page + image from its uuid through
+---     Module:Entity/PageResolver, so disambiguated titles (e.g.
+---     `Hyperion (quantum drive)`) link correctly.
 ---  3. Shape rows into the Tiles row schema and call Tiles.render.
 ---
---- The chain decides what "related" means: getRelated resolves leaf-first
---- (Module:Entity/Assembly.resolveMostSpecific) and this module draws the
---- payload it gets. `items` (Base: the record's related_items block — set
---- pieces + cosmetic variants) renders as tiles; `cargo` (Commodity: the
---- cargo-box packaging ladder, which shares one image and has no own pages)
---- renders as a table. The container always renders so the layout is
---- stable — falls back to a muted empty-state placeholder when the payload
---- has nothing to show or the upstream fetch failed.
+--- The chain decides what "related" means: getRelated resolves leaf-first,
+--- skipping a nil answer (Module:Entity/Assembly.resolveMostSpecific with
+--- acceptNonEmpty) so a kind's "no data" case falls through to Base rather
+--- than standing as the final word, and this module draws the payload it
+--- gets. `items` (Base: the record's related_items block — set pieces +
+--- cosmetic variants) renders as tiles; `cargo` (Commodity: the cargo-box
+--- packaging ladder, which shares one image and has no own pages) renders
+--- as a table; `vehicleSeries` (Vehicle: the editorial series name) queries
+--- Module:Entity/Store for the rest of the series and renders as wider
+--- tiles with the current page highlighted. The container always renders
+--- so the layout is stable — falls back to a muted empty-state placeholder
+--- when the payload has nothing to show or the upstream fetch failed.
 
 local data = require('Module:Entity/Data')
 local assembly = require('Module:Entity/Assembly')
 local PageResolver = require('Module:Entity/PageResolver')
+local Store = require('Module:Entity/Store')
 local Tiles = require('Module:Tiles')
 local tableLua = require('Module:TableLua')
 local format = require('Module:Entity/Format')
@@ -38,6 +43,12 @@ local EMPTY_STATE_MESSAGE = 'No related items available from the API.'
 -- Star Citizen item renders are usually portrait 3D product shots;
 -- 3:4 keeps them roughly proportional across all column widths.
 local TILE_ASPECT_RATIO = '3 / 4'
+-- Vehicle tiles are their own shape: promo shots are landscape, so they take
+-- a 16:9 image the grid does not crop to portrait, and a wider column, since
+-- vehicle names are long enough to ellipsize inside an item-sized tile.
+local VEHICLE_TILE_ASPECT_RATIO = '16 / 9'
+local VEHICLE_TILE_MIN_WIDTH = '240px'
+local VEHICLE_TILE_IMAGE_WIDTH = '480px'
 
 --- Maps an API type string (e.g. `Char_Armor_Helmet`) to its display
 --- name via Module:Entity/Item/types.json. Falls back to the raw type
@@ -110,7 +121,7 @@ end
 --- omitted; for a gimbal family that's all grade A but spans sizes,
 --- it reads `S1` / `S2` / …. When nothing varies, secondary stays
 --- empty and the image + primary label do the differentiating. The
---- uuid is the join key for resolving the wiki page through SMW (see
+--- uuid is the join key for resolving the wiki page (see
 --- PageResolver.resolve).
 ---
 --- @param relatedItems table
@@ -188,8 +199,8 @@ local function buildSetRows(relatedItems)
 end
 
 --- Collects unique uuids across any number of row lists, preserving
---- first-seen order. Used to build a single deduplicated SMW query for
---- both the wiki page and page image. Rows without a uuid (defensive
+--- first-seen order. Used to build a single deduplicated page-resolution
+--- query for both the wiki page and page image. Rows without a uuid (defensive
 --- against malformed API responses) are skipped.
 ---
 --- @vararg { uuid: string|nil }[]
@@ -208,11 +219,10 @@ local function collectUuids(...)
 	return out
 end
 
---- Shapes internal rows into the Tiles row schema. When the SMW lookup
+--- Shapes internal rows into the Tiles row schema. When PageResolver
 --- resolved a row's uuid, the wikilink target is the canonical page and
---- the image is the SMW Page Image. When it didn't resolve, both fall
---- back to the API name (same possibly-wrong link as the
---- pre-resolution code) and Tiles applies its placeholder image.
+--- the image is that page's stored infobox image. When it didn't resolve,
+--- both fall back to the API name and Tiles applies its placeholder image.
 ---
 --- @param rows { name: string, uuid: string|nil, primary: string, secondary: string }[]
 --- @param pageMap table<string, { page: string, image: string|nil }>
@@ -249,14 +259,96 @@ end
 --- Renders one labeled section: a raw `<h3>` subheading followed by a
 --- Tiles grid. Uses mw.html for the heading rather than wikitext
 --- `=== … ===` so the subheading stays out of the page TOC — they're
---- intra-section labels, not navigable sections.
+--- intra-section labels, not navigable sections. The `t-tiles__tile--selected`
+--- modifier rule lives in Tiles/styles.css (the class' own primitive),
+--- already loaded by Tiles.render, so this module needs no styles of its
+--- own here.
 ---
 --- @param heading string
 --- @param tilesRows TilesRow[]
+--- @param options { aspectRatio: string|nil, tileMinWidth: string|nil, imageWidth: string|nil }|nil
 --- @return string
-local function renderSection(heading, tilesRows)
+local function renderSection(heading, tilesRows, options)
+	options = options or {}
 	local h3 = tostring(mw.html.create('h3'):wikitext(heading))
-	return h3 .. Tiles.render({ rows = tilesRows, aspectRatio = TILE_ASPECT_RATIO })
+	return h3
+		.. Tiles.render({
+			rows = tilesRows,
+			aspectRatio = options.aspectRatio or TILE_ASPECT_RATIO,
+			tileMinWidth = options.tileMinWidth,
+			imageWidth = options.imageWidth,
+		})
+end
+
+--- Queries Bucket for the other vehicles sharing `series`, sorted by name.
+--- Series lives in the `vehicle` table, so the filter alone restricts the
+--- rows to vehicle pages; a category filter on top would drop gravlevs,
+--- which sit in no vehicle browse category.
+--- A Store failure (rate limit, bad manifest) yields no rows rather than
+--- erroring the page, same containment as the rest of this module's
+--- API-shaped failure modes.
+--- @param series string
+--- @return table[] rows: { page, name, role, image }
+local function queryVehicleVariants(series)
+	local ok, rows = pcall(Store.query, {
+		kind = 'Vehicle',
+		filters = { { 'Series', series } },
+		columns = {
+			{ builtin = 'page_name', as = 'page' },
+			{ property = 'Name', as = 'name' },
+			{ property = 'Role', as = 'role' },
+			{ property = 'Image', as = 'image' },
+		},
+		limit = 100,
+	})
+	if not ok or type(rows) ~= 'table' then
+		return {}
+	end
+	table.sort(rows, function(a, b)
+		return (a.name or '') < (b.name or '')
+	end)
+	return rows
+end
+
+--- Shapes Store rows into Tiles rows, flagging the queried page's own tile
+--- as `selected` (Module:Tiles' `t-tiles__tile--selected` modifier) so a
+--- reader can see which of the series tiles is the current page.
+--- @param rows table[] { page, name, role, image }
+--- @param currentPage string mw.title.getCurrentTitle().prefixedText
+--- @return TilesRow[]
+local function toVehicleTilesRows(rows, currentPage)
+	local tilesRows = {}
+	for _, row in ipairs(rows) do
+		table.insert(tilesRows, {
+			page = row.page,
+			linkLabel = row.name or row.page,
+			image = row.image,
+			primary = row.name,
+			secondary = row.role,
+			selected = row.page == currentPage,
+		})
+	end
+	return tilesRows
+end
+
+--- Renders the vehicle-series branch of getRelated (Vehicle.getRelated's
+--- `vehicleSeries` payload): every other vehicle sharing the series, wider
+--- tiles than the item-variant grid, current page highlighted. A series of
+--- one (nothing else to compare against) falls back to the empty state,
+--- same as an entity with no related items.
+--- @param series string
+--- @param currentPage string
+--- @return string
+local function renderVehicleVariants(series, currentPage)
+	local rows = queryVehicleVariants(series)
+	if #rows < 2 then
+		return renderEmpty()
+	end
+	return renderSection('Variants', toVehicleTilesRows(rows, currentPage), {
+		aspectRatio = VEHICLE_TILE_ASPECT_RATIO,
+		tileMinWidth = VEHICLE_TILE_MIN_WIDTH,
+		imageWidth = VEHICLE_TILE_IMAGE_WIDTH,
+	})
 end
 
 -- Standard CIG cargo-container external dimensions { length, width, height }
@@ -342,8 +434,11 @@ local function renderCargoVariants(rows)
 end
 
 --- Main entry point. Draws the chain's getRelated payload: the cargo table
---- for `cargo`, up to two tile grids (set components + variants) for
---- `items`, otherwise the empty-state placeholder.
+--- for `cargo`, the vehicle-series tile grid for `vehicleSeries`, up to two
+--- tile grids (set components + variants) for `items`, otherwise the
+--- empty-state placeholder. Resolved with acceptNonEmpty (not the default
+--- leaf-wins-even-nil) so Vehicle's nil (no series) falls through to Base's
+--- `items` instead of standing as the final answer.
 ---
 --- @param frame table
 --- @return string
@@ -355,9 +450,12 @@ function p.main(frame)
 		return renderEmpty()
 	end
 
-	local payload = assembly.resolveMostSpecific(result.chain, 'getRelated', nil, result.ctx) or {}
+	local payload = assembly.resolveMostSpecific(result.chain, 'getRelated', assembly.acceptNonEmpty, result.ctx) or {}
 	if type(payload.cargo) == 'table' then
 		return renderCargoVariants(payload.cargo)
+	end
+	if type(payload.vehicleSeries) == 'string' and payload.vehicleSeries ~= '' then
+		return renderVehicleVariants(payload.vehicleSeries, mw.title.getCurrentTitle().prefixedText)
 	end
 
 	local relatedItems = payload.items
@@ -387,6 +485,9 @@ end
 -- Test-only exports. Not part of the public API.
 p._internal = {
 	boxDimensions = boxDimensions,
+	queryVehicleVariants = queryVehicleVariants,
+	toVehicleTilesRows = toVehicleTilesRows,
+	renderVehicleVariants = renderVehicleVariants,
 }
 
 return p

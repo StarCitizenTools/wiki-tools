@@ -3,10 +3,10 @@
 //
 // The namespace is a lookup index: UUID:<uuid> is a redirect to the page that
 // holds that uuid, so tools can resolve a game uuid to a wiki page with one
-// request. This package scans both sides — the Uuid property values in
-// Semantic MediaWiki and the pages of the UUID: namespace — and computes the
-// plan that brings the namespace back in step: redirects to create, redirects
-// whose target moved, and redirects whose uuid no longer exists anywhere.
+// request. This package scans both sides — the uuids annotated on wiki pages
+// and the pages of the UUID: namespace — and computes the plan that brings the
+// namespace back in step: redirects to create, redirects whose target moved,
+// and redirects whose uuid no longer exists anywhere.
 //
 // It is read-only. Applying the plan goes through the MediaWiki MCP server,
 // where an agent can resolve conflicts and make editorial judgements.
@@ -28,15 +28,14 @@ const Namespace = 69420
 // hand-written note page at this title instead.
 const PlaceholderUUID = "00000000-0000-0000-0000-000000000000"
 
-// Properties are the SMW properties that carry uuid annotations. "Uuid" is
-// what {{Entity}} stores; "UUID" is its predecessor, still emitted by a
-// handful of unmigrated infobox pages. Both feed the index so those pages
-// stay resolvable until they are migrated.
-var Properties = []string{"Uuid", "UUID"}
+// EntityBucket is the Bucket table {{Entity}} stores a page's structured data
+// in; its uuid column carries effectively every annotation in the index.
+const EntityBucket = "entity"
 
-// LegacyProperty is the deprecated member of Properties, worth calling out in
-// reports because every page still using it is migration debt.
-const LegacyProperty = "UUID"
+// EntityProperty labels a uuid read from EntityBucket. It is the name of the
+// bucket column, and was also the SMW property {{Entity}} stored before the
+// Bucket migration, so holder labels stay comparable across older plans.
+const EntityProperty = "Uuid"
 
 var uuidRe = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
 
@@ -64,12 +63,12 @@ func UUIDFromTitle(title string) (string, bool) {
 // Holder is a page annotating a uuid value.
 type Holder struct {
 	Page string `json:"page"`
-	// Property that carried the annotation; LegacyProperty means the page
-	// has not been migrated to {{Entity}} yet.
+	// Property the annotation came from. EntityBucket's uuid column is the
+	// only source today, so this is always EntityProperty.
 	Property string `json:"property"`
 }
 
-// InvalidValue is a property value that is not a well-formed uuid. The fix
+// InvalidValue is an annotated value that is not a well-formed uuid. The fix
 // belongs on the holding page, not in the UUID namespace.
 type InvalidValue struct {
 	Page     string `json:"page"`
@@ -79,7 +78,7 @@ type InvalidValue struct {
 	Value string `json:"value"`
 }
 
-// IgnoredValue is a property value deliberately left out of the index.
+// IgnoredValue is an annotated value deliberately left out of the index.
 type IgnoredValue struct {
 	Page     string `json:"page"`
 	Property string `json:"property"`
@@ -87,7 +86,7 @@ type IgnoredValue struct {
 	Reason   string `json:"reason"`
 }
 
-// PropertyScan accumulates the SMW side of the reconciliation.
+// PropertyScan accumulates the annotation side of the reconciliation.
 type PropertyScan struct {
 	// Holders maps each lowercase uuid to the pages annotating it. One entry
 	// per page: a uuid held by more than one page is a conflict.
@@ -101,12 +100,12 @@ func NewPropertyScan() *PropertyScan {
 	return &PropertyScan{Holders: map[string][]Holder{}}
 }
 
-// Add records one property value from a subject page. Values outside the main
+// Add records one annotated value from a subject page. Values outside the main
 // namespace are ignored (sandboxes and drafts must not own index entries), as
 // is the placeholder uuid.
 func (s *PropertyScan) Add(page string, namespace int, property, value string) {
-	// Subobject subjects arrive as "Page#fragment", and the page owns the
-	// value. This holds while only page-level templates annotate Uuid; a
+	// An SMW subobject subject arrives as "Page#fragment", and the page owns
+	// the value. This holds while only page-level templates annotate a uuid; a
 	// module that emitted per-row subobject uuids would make its list page a
 	// co-holder of every uuid on it, and the plan would fill with conflicts.
 	if i := strings.IndexByte(page, '#'); i >= 0 {
@@ -121,12 +120,8 @@ func (s *PropertyScan) Add(page string, namespace int, property, value string) {
 	case !Valid(uuid):
 		s.Invalid = append(s.Invalid, InvalidValue{page, property, value})
 	default:
-		for i, h := range s.Holders[uuid] {
+		for _, h := range s.Holders[uuid] {
 			if h.Page == page {
-				// Same page via both properties: keep the modern label.
-				if h.Property == LegacyProperty {
-					s.Holders[uuid][i].Property = property
-				}
 				return
 			}
 		}
@@ -207,9 +202,6 @@ type Plan struct {
 	Invalid   []InvalidValue `json:"invalid_values"`
 	Ignored   []IgnoredValue `json:"ignored_values"`
 	Review    []Review       `json:"review"`
-
-	// LegacyPages annotate uuids via the deprecated property — migration debt.
-	LegacyPages []string `json:"legacy_property_pages"`
 }
 
 // Drift reports whether the namespace needs mechanical changes. Conflicts and
@@ -219,8 +211,8 @@ func (p *Plan) Drift() bool {
 	return len(p.Create)+len(p.Retarget)+len(p.Delete) > 0
 }
 
-// Reconcile computes the plan that brings the namespace in step with the
-// property annotations. It is pure: both sides come from the scan.
+// Reconcile computes the plan that brings the namespace in step with the uuid
+// annotations. It is pure: both sides come from the scan.
 func Reconcile(scan *ScanResult, endpoint string, at time.Time) *Plan {
 	plan := &Plan{
 		Endpoint:    endpoint,
@@ -243,14 +235,8 @@ func Reconcile(scan *ScanResult, endpoint string, at time.Time) *Plan {
 		}
 	}
 
-	legacy := map[string]struct{}{}
 	for _, uuid := range sortedKeys(scan.Properties.Holders) {
 		holders := scan.Properties.Holders[uuid]
-		for _, h := range holders {
-			if h.Property == LegacyProperty {
-				legacy[h.Page] = struct{}{}
-			}
-		}
 		if len(holders) > 1 {
 			pages := make([]string, len(holders))
 			for i, h := range holders {
@@ -320,7 +306,6 @@ func Reconcile(scan *ScanResult, endpoint string, at time.Time) *Plan {
 		plan.Review = append(plan.Review, Review{p.Title, "title is not a well-formed uuid; left alone"})
 	}
 
-	plan.LegacyPages = sortedKeys(legacy)
 	sort.Slice(plan.Review, func(i, j int) bool { return plan.Review[i].Title < plan.Review[j].Title })
 	return plan
 }
@@ -338,7 +323,7 @@ func sortedKeys[V any](m map[string]V) []string {
 // sample of each pending category.
 func Report(p *Plan) []string {
 	lines := []string{
-		fmt.Sprintf("uuids      %d annotated (%d via the legacy %s property)", p.UUIDs, len(p.LegacyPages), LegacyProperty),
+		fmt.Sprintf("uuids      %d annotated", p.UUIDs),
 		fmt.Sprintf("uuid pages %d", p.Pages),
 		fmt.Sprintf("in sync    %d", p.InSync),
 	}
@@ -371,7 +356,7 @@ func Report(p *Plan) []string {
 		c := p.Conflicts[i]
 		return fmt.Sprintf("%s: %s", c.UUID, strings.Join(c.Pages, ", "))
 	})
-	sample(len(p.Invalid), "invalid    %d property values that are not uuids", func(i int) string {
+	sample(len(p.Invalid), "invalid    %d annotated values that are not uuids", func(i int) string {
 		v := p.Invalid[i]
 		return fmt.Sprintf("%s = %q on %s", v.Property, v.Value, v.Page)
 	})

@@ -1,31 +1,45 @@
 local ScribuntoUnit = require('Module:ScribuntoUnit')
 local Profile = require('Module:Entity/Vehicle/Stats/Profile')
+local ClassStats = require('Module:Entity/Vehicle/ClassStats')
+local store = require('Module:Entity/Store')
+local bucketLib = require('mw.ext.bucket')
 local suite = ScribuntoUnit:new()
 
-local function stub(rows)
-	local r = mw.smw
-	mw.smw = {
-		ask = function()
-			return rows
-		end,
-	}
+-- Bucket selector for a cohort stat key, resolved through the real manifest
+-- (Module:Entity/Store) rather than a hardcoded field-naming rule.
+local function selectorFor(key)
+	local entry = store.resolve(ClassStats._internal.cohortProps[key], 'Vehicle')
+	if entry.bucket == 'entity' then
+		return entry.field
+	end
+	return entry.bucket .. '.' .. entry.field
+end
+
+-- Rows as the real extension returns them for a joined query: keyed by the
+-- qualified selector; Store maps them to the stat keys.
+local function row(fields)
+	local r = {}
+	for k, v in pairs(fields) do
+		r[selectorFor(k)] = v
+	end
 	return r
 end
 
 function suite:testFirepowerAndStealth()
-	local real = stub({
-		{ pilot_sustained_dps = '1000', ir_emission = '9000' },
-		{ pilot_sustained_dps = '2000', ir_emission = '8000' },
-		{ pilot_sustained_dps = '3000', ir_emission = '7000' },
-		{ pilot_sustained_dps = '4000', ir_emission = '6000' },
-		{ pilot_sustained_dps = '5000', ir_emission = '1000' },
+	bucketLib._reset()
+	ClassStats._internal.clearCache()
+	bucketLib._setRows('entity', {
+		row({ pilot_sustained_dps = 1000, ir_emission = 9000 }),
+		row({ pilot_sustained_dps = 2000, ir_emission = 8000 }),
+		row({ pilot_sustained_dps = 3000, ir_emission = 7000 }),
+		row({ pilot_sustained_dps = 4000, ir_emission = 6000 }),
+		row({ pilot_sustained_dps = 5000, ir_emission = 1000 }),
 	})
 	local axes = Profile.axisScores(
 		{ is_spaceship = true, weaponry = { pilot_sustained_dps = 5000 }, emission = { ir = 1000 } },
 		'ship',
 		993
 	)
-	mw.smw = real
 	local byKey = {}
 	for _, a in ipairs(axes) do
 		byKey[a.key] = a.score
@@ -35,15 +49,17 @@ function suite:testFirepowerAndStealth()
 end
 
 function suite:testStealthAppliesArmorModifier()
+	bucketLib._reset()
+	ClassStats._internal.clearCache()
 	-- Ship has a loud raw IR (10000) but stealth-coating armor (×0.5) → effective 5000.
 	-- The cohort folds each member's own multiplier, so ranking is effective-vs-effective:
 	-- the modifier lifts the ship from near-worst (raw) to upper-mid (effective).
-	local real = stub({
-		{ ir_emission = '10000', ir_modifier = '1' }, -- effective 10000
-		{ ir_emission = '8000', ir_modifier = '1' }, -- 8000
-		{ ir_emission = '6000', ir_modifier = '1' }, -- 6000
-		{ ir_emission = '4000', ir_modifier = '1' }, -- 4000
-		{ ir_emission = '10000', ir_modifier = '0.5' }, -- 5000
+	bucketLib._setRows('entity', {
+		row({ ir_emission = 10000, ir_modifier = 1 }), -- effective 10000
+		row({ ir_emission = 8000, ir_modifier = 1 }), -- 8000
+		row({ ir_emission = 6000, ir_modifier = 1 }), -- 6000
+		row({ ir_emission = 4000, ir_modifier = 1 }), -- 4000
+		row({ ir_emission = 10000, ir_modifier = 0.5 }), -- 5000
 	})
 	-- size 984: unique across the vehicle suites (rowCache is shared per family|size).
 	local axes = Profile.axisScores(
@@ -51,7 +67,6 @@ function suite:testStealthAppliesArmorModifier()
 		'ship',
 		984
 	)
-	mw.smw = real
 	local byKey = {}
 	for _, a in ipairs(axes) do
 		byKey[a.key] = a.score
@@ -61,19 +76,26 @@ function suite:testStealthAppliesArmorModifier()
 	self:assertEquals(70, byKey.stealth)
 end
 
+-- No rows installed: Bucket returns none for size 4, so cohortRows is nil.
 function suite:testNoCohortNoScores()
-	local real = mw.smw
-	mw.smw = nil
+	bucketLib._reset()
+	ClassStats._internal.clearCache()
 	local axes = Profile.axisScores({ is_spaceship = true, weaponry = { pilot_dps = 5000 } }, 'ship', 4)
-	mw.smw = real
 	self:assertEquals(0, #axes)
 end
 
 function suite:testAxisOmittedWhenNoData()
-	local real = stub({ { health = '1' }, { health = '2' }, { health = '3' }, { health = '4' }, { health = '5' } })
+	bucketLib._reset()
+	ClassStats._internal.clearCache()
+	bucketLib._setRows('entity', {
+		row({ health = 1 }),
+		row({ health = 2 }),
+		row({ health = 3 }),
+		row({ health = 4 }),
+		row({ health = 5 }),
+	})
 	-- ship with only health: Survivability present, Stealth/Travel/etc omitted
 	local axes = Profile.axisScores({ is_spaceship = true, health = 3 }, 'ship', 992)
-	mw.smw = real
 	local keys = {}
 	for _, a in ipairs(axes) do
 		keys[a.key] = true
@@ -83,20 +105,16 @@ function suite:testAxisOmittedWhenNoData()
 end
 
 function suite:testTravelAxisQuantumRangeUnits()
-	local real = mw.smw
-	mw.smw = {
-		ask = function()
-			return {
-				{ quantum_range = '100' },
-				{ quantum_range = '200' },
-				{ quantum_range = '300' },
-				{ quantum_range = '400' },
-				{ quantum_range = '500' },
-			}
-		end,
-	}
+	bucketLib._reset()
+	ClassStats._internal.clearCache()
+	bucketLib._setRows('entity', {
+		row({ quantum_range = 100 }),
+		row({ quantum_range = 200 }),
+		row({ quantum_range = 300 }),
+		row({ quantum_range = 400 }),
+		row({ quantum_range = 500 }),
+	})
 	local axes = Profile.axisScores({ is_spaceship = true, quantum = { quantum_range = 300000000000 } }, 'ship', 995)
-	mw.smw = real
 	local byKey = {}
 	for _, a in ipairs(axes) do
 		byKey[a.key] = a.score
@@ -105,15 +123,16 @@ function suite:testTravelAxisQuantumRangeUnits()
 end
 
 function suite:testAxisBreakdownExposed()
-	local real = stub({
-		{ pilot_sustained_dps = '1000' },
-		{ pilot_sustained_dps = '2000' },
-		{ pilot_sustained_dps = '3000' },
-		{ pilot_sustained_dps = '4000' },
-		{ pilot_sustained_dps = '5000' },
+	bucketLib._reset()
+	ClassStats._internal.clearCache()
+	bucketLib._setRows('entity', {
+		row({ pilot_sustained_dps = 1000 }),
+		row({ pilot_sustained_dps = 2000 }),
+		row({ pilot_sustained_dps = 3000 }),
+		row({ pilot_sustained_dps = 4000 }),
+		row({ pilot_sustained_dps = 5000 }),
 	})
 	local axes = Profile.axisScores({ is_spaceship = true, weaponry = { pilot_sustained_dps = 5000 } }, 'ship', 996)
-	mw.smw = real
 	local fire
 	for _, a in ipairs(axes) do
 		if a.key == 'offense' then
@@ -127,19 +146,20 @@ function suite:testAxisBreakdownExposed()
 end
 
 function suite:testMobilityIncludesRoll()
-	local real = stub({
-		{ scm_speed = '100', pitch_rate = '10', yaw_rate = '10', roll_rate = '50' },
-		{ scm_speed = '200', pitch_rate = '20', yaw_rate = '20', roll_rate = '100' },
-		{ scm_speed = '300', pitch_rate = '30', yaw_rate = '30', roll_rate = '150' },
-		{ scm_speed = '400', pitch_rate = '40', yaw_rate = '40', roll_rate = '200' },
-		{ scm_speed = '500', pitch_rate = '50', yaw_rate = '50', roll_rate = '250' },
+	bucketLib._reset()
+	ClassStats._internal.clearCache()
+	bucketLib._setRows('entity', {
+		row({ scm_speed = 100, pitch_rate = 10, yaw_rate = 10, roll_rate = 50 }),
+		row({ scm_speed = 200, pitch_rate = 20, yaw_rate = 20, roll_rate = 100 }),
+		row({ scm_speed = 300, pitch_rate = 30, yaw_rate = 30, roll_rate = 150 }),
+		row({ scm_speed = 400, pitch_rate = 40, yaw_rate = 40, roll_rate = 200 }),
+		row({ scm_speed = 500, pitch_rate = 50, yaw_rate = 50, roll_rate = 250 }),
 	})
 	local axes = Profile.axisScores(
 		{ is_spaceship = true, speed = { scm = 300 }, agility = { pitch = 30, yaw = 30, roll = 250 } },
 		'ship',
 		997
 	)
-	mw.smw = real
 	local mob
 	for _, a in ipairs(axes) do
 		if a.key == 'mobility' then
@@ -158,12 +178,14 @@ function suite:testMobilityIncludesRoll()
 end
 
 function suite:testDefenseSplitShieldHullArmor()
-	local real = stub({
-		{ health = '1000', shield_hp = '1000', armor_deflection = '10' },
-		{ health = '2000', shield_hp = '2000', armor_deflection = '20' },
-		{ health = '3000', shield_hp = '3000', armor_deflection = '30' },
-		{ health = '4000', shield_hp = '4000', armor_deflection = '40' },
-		{ health = '5000', shield_hp = '5000', armor_deflection = '50' },
+	bucketLib._reset()
+	ClassStats._internal.clearCache()
+	bucketLib._setRows('entity', {
+		row({ health = 1000, shield_hp = 1000, armor_deflection = 10 }),
+		row({ health = 2000, shield_hp = 2000, armor_deflection = 20 }),
+		row({ health = 3000, shield_hp = 3000, armor_deflection = 30 }),
+		row({ health = 4000, shield_hp = 4000, armor_deflection = 40 }),
+		row({ health = 5000, shield_hp = 5000, armor_deflection = 50 }),
 	})
 	local axes = Profile.axisScores({
 		is_spaceship = true,
@@ -171,7 +193,6 @@ function suite:testDefenseSplitShieldHullArmor()
 		shield_hp = 3000,
 		armor = { deflection = { physical = 30, energy = 30 } },
 	}, 'ship', 998)
-	mw.smw = real
 	local def
 	for _, a in ipairs(axes) do
 		if a.key == 'defense' then
@@ -191,18 +212,19 @@ function suite:testDefenseSplitShieldHullArmor()
 end
 
 function suite:testFirepowerAlphaAnnotation()
-	local real = stub({
-		{ pilot_sustained_dps = '1000' },
-		{ pilot_sustained_dps = '2000' },
-		{ pilot_sustained_dps = '3000' },
-		{ pilot_sustained_dps = '4000' },
-		{ pilot_sustained_dps = '5000' },
+	bucketLib._reset()
+	ClassStats._internal.clearCache()
+	bucketLib._setRows('entity', {
+		row({ pilot_sustained_dps = 1000 }),
+		row({ pilot_sustained_dps = 2000 }),
+		row({ pilot_sustained_dps = 3000 }),
+		row({ pilot_sustained_dps = 4000 }),
+		row({ pilot_sustained_dps = 5000 }),
 	})
 	local axes = Profile.axisScores({
 		is_spaceship = true,
 		weaponry = { pilot_sustained_dps = 2000, missiles = { count = 3, damage = { total = 1200000 } } },
 	}, 'ship', 999)
-	mw.smw = real
 	local fire
 	for _, a in ipairs(axes) do
 		if a.key == 'offense' then
@@ -221,16 +243,17 @@ function suite:testFirepowerAlphaAnnotation()
 end
 
 function suite:testSustainedDpsDropsZeroMembers()
-	local real = stub({
-		{ pilot_sustained_dps = '0' }, -- unarmed member: dropped, must not deflate the floor
-		{ pilot_sustained_dps = '1000' },
-		{ pilot_sustained_dps = '2000' },
-		{ pilot_sustained_dps = '3000' },
-		{ pilot_sustained_dps = '4000' },
-		{ pilot_sustained_dps = '5000' },
+	bucketLib._reset()
+	ClassStats._internal.clearCache()
+	bucketLib._setRows('entity', {
+		row({ pilot_sustained_dps = 0 }), -- unarmed member: dropped, must not deflate the floor
+		row({ pilot_sustained_dps = 1000 }),
+		row({ pilot_sustained_dps = 2000 }),
+		row({ pilot_sustained_dps = 3000 }),
+		row({ pilot_sustained_dps = 4000 }),
+		row({ pilot_sustained_dps = 5000 }),
 	})
 	local axes = Profile.axisScores({ is_spaceship = true, weaponry = { pilot_sustained_dps = 1000 } }, 'ship', 990)
-	mw.smw = real
 	local fire
 	for _, a in ipairs(axes) do
 		if a.key == 'offense' then
@@ -241,18 +264,19 @@ function suite:testSustainedDpsDropsZeroMembers()
 end
 
 function suite:testFirepowerOmittedWhenNoSustainedGuns()
-	local real = stub({
-		{ pilot_sustained_dps = '1000' },
-		{ pilot_sustained_dps = '2000' },
-		{ pilot_sustained_dps = '3000' },
-		{ pilot_sustained_dps = '4000' },
-		{ pilot_sustained_dps = '5000' },
+	bucketLib._reset()
+	ClassStats._internal.clearCache()
+	bucketLib._setRows('entity', {
+		row({ pilot_sustained_dps = 1000 }),
+		row({ pilot_sustained_dps = 2000 }),
+		row({ pilot_sustained_dps = 3000 }),
+		row({ pilot_sustained_dps = 4000 }),
+		row({ pilot_sustained_dps = 5000 }),
 	})
 	local axes = Profile.axisScores({
 		is_spaceship = true,
 		weaponry = { missiles = { count = 2, damage = { total = 500000 } } },
 	}, 'ship', 989)
-	mw.smw = real
 	local hasFirepower = false
 	for _, a in ipairs(axes) do
 		if a.key == 'offense' then
@@ -263,18 +287,19 @@ function suite:testFirepowerOmittedWhenNoSustainedGuns()
 end
 
 function suite:testFirepowerAlphaSingularShot()
-	local real = stub({
-		{ pilot_sustained_dps = '1000' },
-		{ pilot_sustained_dps = '2000' },
-		{ pilot_sustained_dps = '3000' },
-		{ pilot_sustained_dps = '4000' },
-		{ pilot_sustained_dps = '5000' },
+	bucketLib._reset()
+	ClassStats._internal.clearCache()
+	bucketLib._setRows('entity', {
+		row({ pilot_sustained_dps = 1000 }),
+		row({ pilot_sustained_dps = 2000 }),
+		row({ pilot_sustained_dps = 3000 }),
+		row({ pilot_sustained_dps = 4000 }),
+		row({ pilot_sustained_dps = 5000 }),
 	})
 	local axes = Profile.axisScores({
 		is_spaceship = true,
 		weaponry = { pilot_sustained_dps = 3000, missiles = { count = 1, damage = { total = 300000 } } },
 	}, 'ship', 988)
-	mw.smw = real
 	local fire
 	for _, a in ipairs(axes) do
 		if a.key == 'offense' then

@@ -17,7 +17,7 @@ local Boolean = require('Module:Boolean')
 
 -- API commodity_groups token → singular display label. Drives the infobox Type
 -- row, the short description, and the stored Commodity group / Commodity type
--- SMW values (so the Data table facets read in plain English).
+-- values (so the Data table facets read in plain English).
 local LABELS = {
 	ProcessedGoods = 'Processed goods',
 	Vice = 'Vice',

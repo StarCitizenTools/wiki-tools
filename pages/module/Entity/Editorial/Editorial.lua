@@ -21,7 +21,7 @@ local function delink(text)
 	return text
 end
 
---- Extract the link TARGET (page title) for SMW Page properties.
+--- Extract the link TARGET (page title) for PAGE-typed properties.
 --- @param text string|nil
 --- @return string|nil
 local function pageTitle(text)
@@ -31,20 +31,6 @@ local function pageTitle(text)
 	text = text:gsub('%[%[([^%]|]*)|[^%]]-%]%]', '%1')
 	text = text:gsub('%[%[([^%]]-)%]%]', '%1')
 	return text
-end
-
---- Split a semicolon-separated list into trimmed, non-empty parts.
---- @param text string
---- @return string[]
-local function splitSemi(text)
-	local parts = {}
-	for part in (text .. ';'):gmatch('([^;]*);') do
-		part = mw.text.trim(part)
-		if part ~= '' then
-			parts[#parts + 1] = part
-		end
-	end
-	return parts
 end
 
 --- Parse editor numeric input into a bare number. Strips thousands separators,
@@ -72,18 +58,8 @@ end
 
 local TRANSFORMS = {
 	number = parseNumber,
-	text = function(v)
-		return mw.text.trim(tostring(v))
-	end,
 	page = function(v)
 		return pageTitle(v)
-	end,
-	pageList = function(v)
-		local out = {}
-		for _, item in ipairs(splitSemi(v)) do
-			out[#out + 1] = pageTitle(item)
-		end
-		return out
 	end,
 	-- Star-Citizen-specific: normalize a patch reference to its canonical Update
 	-- page. "Alpha 4.8.0" -> "Update:Star Citizen Alpha 4.8.0"; a [[link]] yields
@@ -163,7 +139,7 @@ end
 
 --- @param apiData table|nil
 --- @param args table
---- @param manifest table  field -> { arg, smw, apiPath?, transform?, default? }
+--- @param manifest table  field -> { arg, property, apiPath?, transform?, default? }
 --- @return table resolved  field -> { value, source, apiValue }
 function p.resolve(apiData, args, manifest)
 	local resolved = {}
@@ -180,7 +156,7 @@ function p.resolve(apiData, args, manifest)
 			-- became the STRING "Unknown" in the entry. For an apiPath-less field the
 			-- entry is created unconditionally as `editorial`, so that string displaced
 			-- the API value and every consumer's bare tonumber() then yielded nil: the
-			-- infobox tile, the SMW property and the short-description clause all
+			-- infobox tile, the stored property and the short-description clause all
 			-- vanished at once, with no error and no tracking category. Treating an
 			-- unparseable editor value as ABSENT keeps the API value in play.
 			local editorVal = nil
@@ -220,7 +196,7 @@ function p.resolve(apiData, args, manifest)
 	return resolved
 end
 
---- SMW values are queried, not rendered: strip parser strip-markers (a ref
+--- Stored values are queried, not rendered: strip parser strip-markers (a ref
 --- inside an editor arg has become a UNIQ…QINU token by the time Lua sees it),
 --- rendered HTML (an arg holding a template — `{{SDA|2578}}` — arrives expanded,
 --- so `<span>`s and `&nbsp;` would otherwise be stored verbatim) and wiki-link
@@ -230,12 +206,12 @@ end
 --- pattern is Parser::MARKER_PREFIX/SUFFIX inlined rather than
 --- mw.text.killMarkers, which delegates to a PHP callback the offline test
 --- runner cannot provide. Public because leaves that store a field themselves
---- (no `smw` manifest key, so display and storage cannot disagree) need the
+--- (no `property` manifest key, so display and storage cannot disagree) need the
 --- same projection for the stored copy — StarSystem's affiliation is the
 --- first: the editor may write `[[Kr'Thak]]`, the store keeps `Kr'Thak`.
 --- @param value any
 --- @return any
-function p.toSmwValue(value)
+function p.toStoredValue(value)
 	if type(value) ~= 'string' then
 		return value
 	end
@@ -248,7 +224,7 @@ function p.toSmwValue(value)
 	return mw.text.trim(delink(value))
 end
 
---- Project resolved fields onto their SMW property names, and append the
+--- Project resolved fields onto their manifest property names, and append the
 --- `Manual API field` provenance list (fields the API should own but a human
 --- supplied). Pure; the caller merges this into the structured-data write.
 --- @param resolved table
@@ -259,8 +235,8 @@ function p.toStructuredData(resolved, manifest)
 	local manual = {}
 	for field, entry in pairs(resolved) do
 		local def = manifest[field]
-		if def and def.smw then
-			data[def.smw] = p.toSmwValue(entry.value)
+		if def and def.property then
+			data[def.property] = p.toStoredValue(entry.value)
 		end
 		if entry.source == 'fill' or entry.source == 'override' then
 			manual[#manual + 1] = field

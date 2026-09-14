@@ -20,6 +20,7 @@ local lore = require('Module:Entity/Vehicle/Lore')
 local overview = require('Module:Entity/Vehicle/Overview')
 local productionStatus = require('Module:Entity/ProductionStatus')
 local stats = require('Module:Entity/Vehicle/Stats')
+local store = require('Module:Entity/Store')
 local vehicleUtil = require('Module:Entity/Vehicle/Util')
 local lang = mw.language.getContentLanguage()
 
@@ -283,7 +284,7 @@ end
 
 --- Return the Vehicle editorial manifest. Used by Module:Entity/Editorial to
 --- resolve hybrid API/wikitext fields (crew, cargo, speed, mass, pledge price)
---- and to drive SMW storage for those fields.
+--- and to drive structured-data storage for those fields.
 --- @return table
 function p.getEditorialManifest()
 	return mw.loadJsonData('Module:Entity/Vehicle/editorial.json')
@@ -292,7 +293,7 @@ end
 --- Return structured data for the pure-API vehicle fields not covered by the
 --- editorial manifest (Career, Role, Size, agility rates). Fields owned
 --- by the editorial layer (crew/cargo/speed/mass/pledge) are intentionally
---- absent here — the editorial resolver handles their SMW storage.
+--- absent here — the editorial resolver stores those.
 --- @param ctx EntityHookContext
 --- @return table
 function p.getStructuredData(ctx)
@@ -455,7 +456,7 @@ end
 --- Legacy {{Vehicle}}-parity browse categories that do not depend on the
 --- family: production state, series / generation grouping, career. The family
 --- leaves (Ship / GroundVehicle / Gravlev) contribute size and pledge. These
---- are ALSO SMW facets; the categories are additive for navigation. Pure.
+--- are ALSO stored properties; the categories are additive for navigation. Pure.
 --- @param ctx EntityHookContext
 --- @return string[]
 function p.getCategories(ctx)
@@ -568,6 +569,26 @@ end
 function p.getPorts(ctx)
 	local apiData = ctx.apiData
 	return { ports = apiData.ports, narrowChildren = true }
+end
+
+--- Vehicle series variants for {{Entity/Related}} (Entity/Related.renderVehicleVariants
+--- queries Bucket for the rest of the series). A sibling {{Entity/Related}} invocation
+--- carries no {{Entity}} arguments, so with no editorial series this reads it back from
+--- Bucket instead (Store.selfValue, written on the page's last link update). nil when
+--- neither resolves: Entity/Related resolves getRelated with acceptNonEmpty, so a nil
+--- answer here falls through to Base's own related_items payload rather than showing
+--- nothing.
+--- @param ctx EntityHookContext
+--- @return EntityRelatedPayload|nil
+function p.getRelated(ctx)
+	local series = Editorial.view(ctx.resolved):value('series')
+	if series == nil or series == '' then
+		series = store.selfValue('Series', 'Vehicle')
+	end
+	if series == nil or series == '' then
+		return nil
+	end
+	return { vehicleSeries = series }
 end
 
 return p

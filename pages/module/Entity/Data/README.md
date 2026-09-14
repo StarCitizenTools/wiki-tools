@@ -8,7 +8,7 @@ Editors never invoke this module directly; it runs inside [Template:Entity](http
 
 ### API
 
-- `p.parseArgs(frame) → args`: merges direct `#invoke` args over parent-frame (template call-site) args; empty strings become `nil`. Falls back to the page's [SMW](https://www.mediawiki.org/wiki/Extension:Semantic_MediaWiki)-stored `uuid` (namespace-prefixed off mainspace, e.g. `user_uuid` on `User:` pages) only when both `uuid` and `kind` are absent from the merged args, so a `|kind=`-declared page never resurrects a stale stored uuid.
+- `p.parseArgs(frame) → args`: merges direct `#invoke` args over parent-frame (template call-site) args; empty strings become `nil`. Falls back to the `uuid` the page stored on a previous link update (rows exist for main-namespace pages only, so off mainspace there is nothing to fall back to) only when both `uuid` and `kind` are absent from the merged args, so a `|kind=`-declared page never resurrects a stale stored uuid.
 - `p.get(args) → result`: the primary entry point; every sibling renderer calls it independently. See Extending for the pipeline and the result shape.
 
 ### Extending
@@ -23,8 +23,8 @@ Editors never invoke this module directly; it runs inside [Template:Entity](http
 | `apiData` | table | merged API record (`{}` on the editorial fork); read by every hook |
 | `chain` | table[] | root-to-leaf module list; walked by `Assembly`'s merge/resolve primitives |
 | `facets` | table[] | matched facet modules; additive `getSections`/`getStructuredData` |
-| `typeInfo` / `displayType` | table\|nil / string\|nil | leaf `getTypeInfo` else `TypeResolver`; infobox header, SMW `subject_type` |
-| `resolved` / `editorialData` / `hasManualApiData` | table / table / boolean | `Editorial.resolve` output; render display, SMW write, maintenance category |
+| `typeInfo` / `displayType` | table\|nil / string\|nil | leaf `getTypeInfo` else `TypeResolver`; infobox header, stored `subject_type` |
+| `resolved` / `editorialData` / `hasManualApiData` | table / table / boolean | `Editorial.resolve` output; render display, structured-data write, maintenance category |
 | `hasApiError` | boolean | drives the `Pages with API errors` tracking category; the infobox never reads it, but Ports and Blueprints show an "unavailable" notice while Related falls back to its generic empty state |
 | `unresolvedReference` | boolean | a `\|uuid=` given on an editorial-mode page failed to resolve; tracking category |
 | `matchedKind` / `kind` / `family` | table\|nil / string / string\|nil | the resolved kind module, its canonical name, the leaf's family token |

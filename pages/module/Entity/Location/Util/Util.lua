@@ -27,7 +27,7 @@ local p = {}
 --- display/link name, ported from the legacy Module:System/i18n.json
 --- (val_affiliation_*); every label is an existing wiki page, so callers may
 --- link them as [[label]]. `short` (falling back to label) is the compact
---- form used in short descriptions AND stored as the SMW `Affiliation` value —
+--- form used in short descriptions AND stored as the `Affiliation` value —
 --- it matches the vocabulary the ~266 pre-Entity pages already store
 --- ('UEE', 'Unclaimed'), so queries keep one bucket.
 p.AFFILIATIONS = {
@@ -40,7 +40,7 @@ p.AFFILIATIONS = {
 }
 
 --- First affiliation entry for a starmap record, or nil. The single accessor
---- every consumer (link row, categories, SMW, short description) goes
+--- every consumer (link row, categories, structured data, short description) goes
 --- through.
 --- @param starsystem table|nil
 --- @return { label: string, short: string|nil }|nil
@@ -70,7 +70,7 @@ function p.affiliationFromText(text)
 		return nil
 	end
 	text = mw.text.trim(text)
-	local plain = editorial.toSmwValue(text)
+	local plain = editorial.toStoredValue(text)
 	local key = plain:lower():gsub('[^%w]', '')
 	for code, entry in pairs(p.AFFILIATIONS) do
 		local label = entry.label:lower():gsub('[^%w]', '')
@@ -98,7 +98,7 @@ p.SYSTEM_TYPES = {
 --- The legacy {{System}} pages hand-set the raw codes with case drift
 --- ('SINGLE_STAR', 'TRINARY', 'Trinary'), so normalize case and separators
 --- before the lookup. Unrecognized text resolves to nothing: a typo'd code
---- must not invent a type row, a category, or an SMW value.
+--- must not invent a type row, a category, or a stored value.
 --- @param text any
 --- @return string|nil code normalized starmap code ('TRINARY')
 --- @return { label: string, category: string }|nil entry
@@ -184,7 +184,7 @@ end
 
 --- The system-type entry for a page: the editorial value when one resolved
 --- (hand value beats starmap, the house rule), else the starmap record's.
---- Single accessor so the type row, categories, SMW and short description
+--- Single accessor so the type row, categories, structured data and short description
 --- cannot disagree.
 --- @param starsystem table|nil
 --- @param resolved table|nil
@@ -197,7 +197,7 @@ function p.resolveSystemType(starsystem, resolved)
 	end
 	-- The record's raw code is returned even when SYSTEM_TYPES has no entry
 	-- for it: an unmapped code still stores faithfully (a future ARK type
-	-- should degrade to no label/category, not vanish from SMW).
+	-- should degrade to no label/category, not vanish from the store).
 	local recordType = type(starsystem) == 'table' and starsystem.type or nil
 	return recordType, recordType and p.SYSTEM_TYPES[recordType] or nil
 end
@@ -271,7 +271,7 @@ local UNPUBLISHED_SURVEY = { M = true, N = true }
 --- the *same* block — the twelve Vanduul systems all report population 1.08 and
 --- economy 0.12 with a size of 0, 1 or 7, and the three incomplete-probe systems
 --- report straight zeros. One value repeated across twelve systems is a template
---- default, not twelve measurements, so none of it may reach the infobox or SMW:
+--- default, not twelve measurements, so none of it may reach the infobox or the store:
 --- left alone these pages claim a 7 AU extent and a 0.1/10 economy for space
 --- nobody has surveyed, and store a `System size` that satisfies a "smaller than
 --- N AU" query.

@@ -16,6 +16,37 @@ local function findItem(sections, label)
 	return nil
 end
 
+--- Installs a faithful `mw.title.new` for the duration of fn. The runner's shim
+--- builds a title by copying its current-title stub, so `prefixedText` answers
+--- the TEST PAGE's own title whatever text it is given (see
+--- Module:Entity/StructuredData/testcases.lua's withTitleNew, whose
+--- `titles`/redirect-stub shape this mirrors); bucketRows' PAGE fields go
+--- through Module:Entity/StructuredData.shape, which reads `prefixedText`
+--- (and follows `redirectTarget`), so a test asserting one needs the real
+--- echo. `titles` maps an input to either its resolved `prefixedText`, or a
+--- table `{ prefixedText, redirectTarget }` to also stub a redirect; an
+--- unlisted input echoes with no redirect. Restored even if fn throws.
+--- @param titles table<string, string|table>
+--- @param fn fun()
+local function withTitleNew(titles, fn)
+	local realNew = mw.title.new
+	mw.title.new = function(text)
+		if type(text) ~= 'string' or text:find('|', 1, true) then
+			return nil
+		end
+		local entry = titles[text]
+		if type(entry) == 'table' then
+			return { prefixedText = entry.prefixedText or text, redirectTarget = entry.redirectTarget }
+		end
+		return { prefixedText = entry or text, redirectTarget = false }
+	end
+	local ok, err = pcall(fn)
+	mw.title.new = realNew
+	if not ok then
+		error(err, 0)
+	end
+end
+
 -- normalizeRace
 function suite:testNormalizeRaceDefaultsToHuman()
 	self:assertEquals('Human', company.normalizeRace(nil))
@@ -102,6 +133,29 @@ function suite:testStructuredParentIsPageTarget()
 	)
 end
 
+function suite:testStructuredParentDropsTrailingMarkup()
+	-- A link transform keeps only the first link's target; text outside the
+	-- brackets is dropped rather than stored as part of the title.
+	self:assertEquals(
+		'Hurston',
+		company.getStructuredData({ parent = '[[Hurston]] <small>(HQ)</small>' })['Parent company']
+	)
+end
+
+-- pageTitle keeps only the first link's target, dropping text on EITHER side
+-- of it, not just trailing markup (testStructuredParentDropsTrailingMarkup):
+-- "Lorville, [[Hurston]]" stores Hurston, not the whole string, which is not a
+-- title a PAGE column can hold. Affects Area served, Founder, Subsidiaries,
+-- Predecessor, Successor and Parent company; not Headquarters, which uses
+-- lastLink instead.
+function suite:testStructuredParentDropsLeadingTextKeepingOnlyTheFirstLinkTarget()
+	self:assertEquals('Hurston', company.getStructuredData({ parent = 'Lorville, [[Hurston]]' })['Parent company'])
+end
+
+function suite:testStructuredParentPlainTextUnchanged()
+	self:assertEquals('Independent', company.getStructuredData({ parent = 'Independent' })['Parent company'])
+end
+
 function suite:testStructuredPredecessorSuccessorArePageLists()
 	-- Predecessor/Successor are multi-value (mergers/splits): semicolon-split,
 	-- each item's link target, like Founder/Subsidiaries.
@@ -125,6 +179,13 @@ function suite:testStructuredHeadquartersSystemPerHq()
 		headquarters = '332 Yedilin Blvd, [[Nova Kyiv]], [[Terra (planet)|Terra]], [[Terra system|Terra]]; [[MacArthur]], [[Killian]]',
 	})
 	self:assertDeepEquals({ 'Terra system', 'Killian' }, data['Headquarters'])
+end
+
+function suite:testStructuredHeadquartersDropsTrailingMarkupOnLastLink()
+	-- lastLink already stops at the closing bracket, so a trailing annotation
+	-- outside it (e.g. a note span) never reaches the stored system.
+	local data = company.getStructuredData({ headquarters = 'Lorville, [[Hurston]] <small>(note)</small>' })
+	self:assertDeepEquals({ 'Hurston' }, data['Headquarters'])
 end
 
 function suite:testStructuredHeadquartersNoLinksOmitted()
@@ -156,7 +217,7 @@ function suite:testStructuredAreaServedAbsentWhenEmpty()
 end
 
 function suite:testStructuredFoundedStoresCleanYear()
-	-- The editor passes a clean year, so SMW stores the year (not rendered output).
+	-- The editor passes a clean year, so the stored value is the year (not rendered output).
 	self:assertEquals('2554', company.getStructuredData({ founded = '2554' })['Founded'])
 end
 
@@ -171,6 +232,35 @@ function suite:testStructuredOmitsDisplayOnlyAndEmpty()
 	self:assertEquals(nil, data['Fate'])
 	self:assertEquals(nil, data['Allies'])
 	self:assertEquals(nil, data['Headquarters'])
+end
+
+-- bucketRows (Bucket write, routed by properties.json's bucket/field per entry)
+function suite:testBucketRowsSplitsEntityAndCompany()
+	withTitleNew({}, function()
+		local rows = company.bucketRows({
+			name = 'Aegis Dynamics',
+			industry = 'Ships; Weapons',
+			image = 'File:Aegis.png',
+			parent = '[[UEE]]',
+		})
+		self:assertEquals('Aegis Dynamics', rows.entity.name)
+		self:assertEquals('Company', rows.entity.subject_type)
+		self:assertEquals('Aegis.png', rows.entity.image)
+		self:assertDeepEquals({ 'ships', 'weapons' }, rows.company.industry)
+		self:assertEquals('UEE', rows.company.parent_company)
+		self:assertEquals(nil, rows.company.name)
+	end)
+end
+
+function suite:testBucketRowsParentFollowsRedirect()
+	-- bucketRows runs every value through StructuredData.shape, so a Company
+	-- PAGE value follows a redirect the same way an Entity one does.
+	withTitleNew({
+		['UEE'] = { prefixedText = 'UEE', redirectTarget = { prefixedText = 'United Empire of Earth' } },
+	}, function()
+		local rows = company.bucketRows({ name = 'X', parent = '[[UEE]]' })
+		self:assertEquals('United Empire of Earth', rows.company.parent_company)
+	end)
 end
 
 -- getShortDescription

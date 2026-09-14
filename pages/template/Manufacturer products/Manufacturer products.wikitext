@@ -1,5 +1,5 @@
 <includeonly>{{Data table
-| conditions = [[Manufacturer::{{{1|{{PAGENAME}}}}}]]
+| filter = Manufacturer = {{{1|{{PAGENAME}}}}}
 | columns =
     Subject type ; label=Type ; filter
 }}</includeonly><noinclude>{{/doc}}</noinclude>

@@ -22,22 +22,22 @@ Renders a company infobox for organizations in the Star Citizen universe: manufa
 |------|------|----------|---------|-------------|---------|
 | `image` | wiki-file-name | No | | Infobox logo filename, without the `File:` prefix. | `Aegis-Dynamics-Logo.png` |
 | `imagebg` | string | No | | Logo background hint for transparent logos: `light` or `dark`. | `light` |
-| `name` | line | No | (page title, infobox title only) | Company name; the SMW `Name` property and manufacturer-code lookup get no fallback. | `Aegis Dynamics` |
-| `industry` | string | No | | Industry or industries (SMW). | `[[Spacecraft]] manufacturing` |
-| `products` | string | No | | Products or product categories (SMW). | `[[Fighter]]s; [[Capital ship]]s` |
-| `race` | string | No | `Human` | Species affiliation (SMW). | `Human` |
-| `headquarters` | string | No | | Headquarters location(s), as "place, …, system" (SMW). | `[[Lorville]], [[Hurston]]; [[Area18]], [[ArcCorp]]` |
-| `areaserved` | string | No | | Area served, narrower than the whole UEE (SMW). | `[[Lorville]]; [[Hurston]]` |
+| `name` | line | No | (page title, infobox title only) | Company name; the stored `Name` property and manufacturer-code lookup get no fallback. | `Aegis Dynamics` |
+| `industry` | string | No | | Industry or industries (stored). | `[[Spacecraft]] manufacturing` |
+| `products` | string | No | | Products or product categories (stored). | `[[Fighter]]s; [[Capital ship]]s` |
+| `race` | string | No | `Human` | Species affiliation (stored). | `Human` |
+| `headquarters` | string | No | | Headquarters location(s), as "place, …, system" (stored). | `[[Lorville]], [[Hurston]]; [[Area18]], [[ArcCorp]]` |
+| `areaserved` | string | No | | Area served, narrower than the whole UEE (stored). | `[[Lorville]]; [[Hurston]]` |
 | `keypeople` | string | No | | Key people; display only. | `[[John Donahue]] (CEO)` |
-| `founder` | string | No | | Founder(s) (SMW). | `[[Aaron Sykes]]` |
-| `founded` | string | No | | Founding year (SMW). | `2755` |
+| `founder` | string | No | | Founder(s) (stored). | `[[Aaron Sykes]]` |
+| `founded` | string | No | | Founding year (stored). | `2755` |
 | `fate` | string | No | | Fate of the company; display only. | `Nationalized` |
 | `defunct` | string | No | | Year or date the company became defunct; display only. | `2792` |
 | `formerly` | string | No | | Former name(s); display only. | `Roberts Space Industries` |
-| `predecessor` | string | No | | Predecessor company or companies (SMW). | `[[Aegis Macrocomputing]]; [[Dynamic Production Systems]]` |
-| `successor` | string | No | | Successor company or companies (SMW). | `[[New Aegis]]` |
-| `parent` | string | No | | Parent company (SMW). | `[[Shubin Interstellar]]` |
-| `subsidiaries` | string | No | | Subsidiary companies (SMW). | `[[Consolidated Outland]]` |
+| `predecessor` | string | No | | Predecessor company or companies (stored). | `[[Aegis Macrocomputing]]; [[Dynamic Production Systems]]` |
+| `successor` | string | No | | Successor company or companies (stored). | `[[New Aegis]]` |
+| `parent` | string | No | | Parent company (stored). | `[[Shubin Interstellar]]` |
+| `subsidiaries` | string | No | | Subsidiary companies (stored). | `[[Consolidated Outland]]` |
 | `allies` | string | No | | Allied organizations; display only. | `[[Hurston Dynamics]]` |
 | `rivals` | string | No | | Rival organizations; display only. | `[[Anvil Aerospace]]` |
 | `galactapediaurl` | url | No | | Galactapedia entry URL; renders a footer button. | `https://robertsspaceindustries.com/galactapedia/article/rQk5lnqbbB-aegis-dynamics` |
@@ -46,13 +46,13 @@ Renders a company infobox for organizations in the Star Citizen universe: manufa
 ## Behavior
 
 - Every list-type field above (`industry`, `products`, `headquarters`, `areaserved`, `keypeople`, `founder`, `predecessor`, `successor`, `subsidiaries`, `allies`, `rivals`) is `;`-separated; two or more items render as an unbulleted list with a hanging indent, a single item renders plain.
-- `headquarters` stores one star system per HQ to [SMW](https://www.mediawiki.org/wiki/Extension:Semantic_MediaWiki): the last wikilink in each `;`-separated segment ("place, …, system"). `areaserved` stores every place's own link target instead; fill it only when narrower than the whole UEE (a bare `[[United Empire of Earth]]` carries no signal).
+- `headquarters` stores one star system per HQ: the last wikilink in each `;`-separated segment ("place, …, system"). `areaserved` stores every place's own link target instead; fill it only when narrower than the whole UEE (a bare `[[United Empire of Earth]]` carries no signal).
 - There is no manufacturer-code parameter: the code is looked up from `name` against the manufacturer registry and shown in a collapsed Metadata section.
-- `founded` is stored to SMW exactly as typed; only the infobox display branches, rendering a bare year through `{{Start date and age}}`, else showing it as-is.
-- `keypeople`, `fate`, `defunct`, `formerly`, `allies`, and `rivals` are display-only and never reach SMW.
+- `founded` is stored exactly as typed; only the infobox display branches, rendering a bare year through `{{Start date and age}}`, else showing it as-is.
+- `keypeople`, `fate`, `defunct`, `formerly`, `allies`, and `rivals` are display-only and are never stored.
 - A wikilinked `industry`/`products` item and its plain-text equivalent normalise to the same stored value.
-- A failed SMW write adds the page to `Category:Pages with structured data errors` instead of raising an error.
-- SMW writes and content categories are gated to the main namespace, so `/doc` and sandbox pages stay clean.
+- A failed structured-data write adds the page to `Category:Pages with structured data errors` instead of raising an error.
+- Structured-data writes and content categories are gated to the main namespace, so `/doc` and sandbox pages stay clean.
 
 ## See also
 

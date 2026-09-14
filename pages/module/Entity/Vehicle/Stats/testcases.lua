@@ -1,5 +1,8 @@
 local ScribuntoUnit = require('Module:ScribuntoUnit')
 local Stats = require('Module:Entity/Vehicle/Stats')
+local ClassStats = require('Module:Entity/Vehicle/ClassStats')
+local store = require('Module:Entity/Store')
+local bucketLib = require('mw.ext.bucket')
 
 local suite = ScribuntoUnit:new()
 
@@ -12,8 +15,31 @@ local function ed()
 	}
 end
 
--- Headless (no mw.smw): Overview is cohort-gated to nil, so the first real axis leads.
+-- Bucket selector for a cohort stat key, resolved through the real manifest
+-- (Module:Entity/Store) rather than a hardcoded field-naming rule.
+local function selectorFor(key)
+	local entry = store.resolve(ClassStats._internal.cohortProps[key], 'Vehicle')
+	if entry.bucket == 'entity' then
+		return entry.field
+	end
+	return entry.bucket .. '.' .. entry.field
+end
+
+-- Rows as the real extension returns them for a joined query: keyed by the
+-- qualified selector; Store maps them to the stat keys.
+local function row(fields)
+	local r = {}
+	for k, v in pairs(fields) do
+		r[selectorFor(k)] = v
+	end
+	return r
+end
+
+-- No cohort rows installed: Bucket returns none for size 4, so Overview is cohort-gated
+-- to nil, and the first real axis leads.
 function suite:testStatsLeadsWithDefenseHeadless()
+	bucketLib._reset()
+	ClassStats._internal.clearCache()
 	local section = Stats.build({
 		is_spaceship = true,
 		size_class = 4,
@@ -33,6 +59,8 @@ end
 
 -- An Offense tab appears when weaponry is present.
 function suite:testOffenseTabPresent()
+	bucketLib._reset()
+	ClassStats._internal.clearCache()
 	local section = Stats.build({
 		is_spaceship = true,
 		size_class = 4,
@@ -53,6 +81,8 @@ end
 -- The Offense tab renders a Missiles row from weaponry.missiles.damage.total: the
 -- salvo TOTAL only (no count — consistent with the gun DPS rows).
 function suite:testOffenseTabMissileRow()
+	bucketLib._reset()
+	ClassStats._internal.clearCache()
 	local section = Stats.build({
 		is_spaceship = true,
 		size_class = 4,
@@ -86,6 +116,8 @@ end
 -- threshold rows (the averaged value matched neither). Physical rounds for display;
 -- a 0 threshold drops via positiveUnit.
 function suite:testDeflectionSplitRows()
+	bucketLib._reset()
+	ClassStats._internal.clearCache()
 	local section = Stats.build({
 		is_spaceship = true,
 		size_class = 4,
@@ -122,19 +154,16 @@ end
 -- Barred rows are labelless (the label rides inside the stubbed RangeBar), so they
 -- are counted by their block class.
 function suite:testPercentileRowRanksPeersNotLoners()
-	local real = mw.smw
-	mw.smw = {
-		ask = function()
-			-- 5-ship cohort (>= MIN_COHORT); only the first row carries missiles.
-			return {
-				{ missile_damage = '18000', pilot_dps = '5000', ir_emission = '5000' },
-				{ pilot_dps = '1000', ir_emission = '4000' },
-				{ pilot_dps = '2000', ir_emission = '3000' },
-				{ pilot_dps = '3000', ir_emission = '2000' },
-				{ pilot_dps = '4000', ir_emission = '1000' },
-			}
-		end,
-	}
+	bucketLib._reset()
+	ClassStats._internal.clearCache()
+	-- 5-ship cohort (>= MIN_COHORT); only the first row carries missiles.
+	bucketLib._setRows('entity', {
+		row({ missile_damage = 18000, pilot_dps = 5000, ir_emission = 5000 }),
+		row({ pilot_dps = 1000, ir_emission = 4000 }),
+		row({ pilot_dps = 2000, ir_emission = 3000 }),
+		row({ pilot_dps = 3000, ir_emission = 2000 }),
+		row({ pilot_dps = 4000, ir_emission = 1000 }),
+	})
 	local section = Stats.build({
 		is_spaceship = true,
 		size_class = 987,
@@ -145,7 +174,6 @@ function suite:testPercentileRowRanksPeersNotLoners()
 			return apiFallback
 		end,
 	})
-	mw.smw = real
 
 	local offense, stealth
 	for _, t in ipairs(section.sections) do
@@ -183,17 +211,14 @@ function suite:testPercentileRowRanksPeersNotLoners()
 end
 
 -- Cross-section is shown per axis (length/width/height), each effective (raw × the armor
--- cross-section multiplier) with the modifier suffix. No cohort here, so they are plain
--- labelled rows, not bars.
+-- cross-section multiplier) with the modifier suffix. No size_class here, so cohortRows
+-- short-circuits to nil before touching Bucket and the rows are plain, not bars.
 function suite:testStealthCrossSectionPerAxis()
-	local real = mw.smw
-	mw.smw = nil -- no cohort -> plain rows
 	local section = Stats.build({
 		is_spaceship = true,
 		cross_section = { length = 1000, width = 2000, height = 3000 },
 		armor = { signal_cross_section = 0.5 },
 	}, {}, ed())
-	mw.smw = real
 
 	local stealth
 	for _, t in ipairs(section.sections) do
@@ -219,18 +244,15 @@ end
 -- With a cohort, each cross-section axis ranks into a bar block, and the three CS rows
 -- lead the Stealth tab (before IR/EM).
 function suite:testStealthCrossSectionRanksAndLeads()
-	local real = mw.smw
-	mw.smw = {
-		ask = function()
-			return {
-				{ cross_section_length = '1000', cross_section_width = '1000', cross_section_height = '1000' },
-				{ cross_section_length = '2000', cross_section_width = '2000', cross_section_height = '2000' },
-				{ cross_section_length = '3000', cross_section_width = '3000', cross_section_height = '3000' },
-				{ cross_section_length = '4000', cross_section_width = '4000', cross_section_height = '4000' },
-				{ cross_section_length = '5000', cross_section_width = '5000', cross_section_height = '5000' },
-			}
-		end,
-	}
+	bucketLib._reset()
+	ClassStats._internal.clearCache()
+	bucketLib._setRows('entity', {
+		row({ cross_section_length = 1000, cross_section_width = 1000, cross_section_height = 1000 }),
+		row({ cross_section_length = 2000, cross_section_width = 2000, cross_section_height = 2000 }),
+		row({ cross_section_length = 3000, cross_section_width = 3000, cross_section_height = 3000 }),
+		row({ cross_section_length = 4000, cross_section_width = 4000, cross_section_height = 4000 }),
+		row({ cross_section_length = 5000, cross_section_width = 5000, cross_section_height = 5000 }),
+	})
 	-- size 983: unique across the vehicle suites (rowCache is shared per family|size).
 	-- emission is set so IR/EM rows ARE emitted — only then does the ordering assertion
 	-- (CS leads, before IR/EM) actually mean something. The cohort carries no ir/em data,
@@ -241,7 +263,6 @@ function suite:testStealthCrossSectionRanksAndLeads()
 		cross_section = { length = 1000, width = 3000, height = 5000 },
 		emission = { ir = 4000, em_max = 6000 },
 	}, {}, ed())
-	mw.smw = real
 
 	local stealth
 	for _, t in ipairs(section.sections) do

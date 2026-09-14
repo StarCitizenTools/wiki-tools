@@ -330,12 +330,25 @@ if itemLua and types and classes then
 end
 
 -- ── 7. properties.json self-check + editorial.json cross-reference ────────────
--- properties.json: every entry has a non-Quantity smw, an allowed unitless
--- bucket, a non-empty modules list, and a desc. Each editorial.json field's smw
--- must resolve to a declared property tagged with the owning module, so an
--- editorial field can never reference an undeclared or mis-tagged SMW property.
+-- properties.json: every entry has an allowed type, an allowed bucket, a
+-- non-empty modules list, and a desc. Each editorial.json field's property must
+-- resolve to a declared property tagged with the owning module, so an
+-- editorial field can never reference an undeclared or mis-tagged property.
 local PROPS_PATH = BASE .. '/properties.json'
-local ALLOWED_BUCKETS = { PAGE = true, TEXT = true, INTEGER = true, DOUBLE = true, BOOLEAN = true }
+local ALLOWED_TYPES = { PAGE = true, TEXT = true, INTEGER = true, DOUBLE = true, BOOLEAN = true }
+local ALLOWED_BUCKET_NAMES = {
+	entity = true,
+	vehicle = true,
+	vehicle_stats = true,
+	item_weapon = true,
+	item_component = true,
+	item_tool = true,
+	commodity = true,
+	location = true,
+	mission = true,
+	company = true,
+	wearable_set = true,
+}
 local EDITORIAL_MANIFESTS = {
 	{ path = BASE .. '/Vehicle/editorial.json', module = 'Vehicle' },
 }
@@ -345,30 +358,32 @@ if props then
 	local propsFailed = false
 	for name, def in pairs(props) do
 		if type(name) == 'string' and name:sub(1, 1) == '%' then
-			-- %doc meta, skip
+			-- meta key (%doc, %kinds), checked separately
 		elseif type(def) ~= 'table' then
 			fail(PROPS_PATH, 'entry ' .. tostring(name) .. ' is not an object')
 			propsFailed = true
 		else
-			if type(def.smw) ~= 'string' or def.smw == '' then
-				fail(PROPS_PATH, 'entry ' .. name .. ' has missing or empty .smw')
-				propsFailed = true
-			elseif def.smw == 'Quantity' then
-				fail(
-					PROPS_PATH,
-					'entry ' .. name .. " uses smw 'Quantity' (banned: store unitless, units are a render concern)"
-				)
-				propsFailed = true
-			end
-			if type(def.bucket) ~= 'string' or not ALLOWED_BUCKETS[def.bucket] then
+			if type(def.type) ~= 'string' or not ALLOWED_TYPES[def.type] then
 				fail(
 					PROPS_PATH,
 					'entry '
 						.. name
-						.. ' has invalid .bucket '
-						.. tostring(def.bucket)
+						.. ' has invalid .type '
+						.. tostring(def.type)
 						.. ' (allowed: PAGE/TEXT/INTEGER/DOUBLE/BOOLEAN)'
 				)
+				propsFailed = true
+			end
+			if def.multi ~= nil then
+				fail(PROPS_PATH, 'entry ' .. name .. ' still uses .multi (rename to .repeated)')
+				propsFailed = true
+			end
+			if type(def.field) ~= 'string' or not def.field:match('^[a-z][a-z0-9_]*$') then
+				fail(PROPS_PATH, 'entry ' .. name .. ' has missing or non-snake_case .field ' .. tostring(def.field))
+				propsFailed = true
+			end
+			if type(def.bucket) ~= 'string' and type(def.bucket) ~= 'table' then
+				fail(PROPS_PATH, 'entry ' .. name .. ' has missing .bucket (string, or object keyed by kind)')
 				propsFailed = true
 			end
 			if type(def.modules) ~= 'table' or def.modules[1] == nil then
@@ -413,22 +428,23 @@ if props then
 						fail(manifest.path, 'field ' .. field .. ' has missing or empty .arg')
 						edFailed = true
 					end
-					-- .smw is optional: absence means display-only (no SMW storage).
-					-- If present it must be a non-empty string declared in properties.json.
-					local smw = def.smw
-					if smw ~= nil then
-						if type(smw) ~= 'string' or smw == '' then
-							fail(manifest.path, 'field ' .. field .. ' has non-string or empty .smw')
+					-- .property is optional: absence means display-only (not stored).
+					-- If present it names a properties.json key, which must be
+					-- declared there.
+					local property = def.property
+					if property ~= nil then
+						if type(property) ~= 'string' or property == '' then
+							fail(manifest.path, 'field ' .. field .. ' has non-string or empty .property')
 							edFailed = true
-						elseif props[smw] == nil then
+						elseif props[property] == nil then
 							fail(
 								manifest.path,
-								'field ' .. field .. " smw '" .. smw .. "' is not declared in properties.json"
+								'field ' .. field .. " property '" .. property .. "' is not declared in properties.json"
 							)
 							edFailed = true
 						else
 							local tagged = false
-							for _, m in ipairs(props[smw].modules or {}) do
+							for _, m in ipairs(props[property].modules or {}) do
 								if m == manifest.module then
 									tagged = true
 									break
@@ -439,8 +455,8 @@ if props then
 									manifest.path,
 									'field '
 										.. field
-										.. " smw '"
-										.. smw
+										.. " property '"
+										.. property
 										.. "' exists but is not tagged with module '"
 										.. manifest.module
 										.. "'"
@@ -458,14 +474,28 @@ if props then
 	end
 end
 
--- ── 8. Vehicle.lua editorial field references ─────────────────────────────────
--- Every key passed to effective(resolved, '<key>') or editorialValue(resolved,
--- '<key>') in Vehicle.lua must be a declared top-level field in editorial.json
--- (excluding the %doc meta key). A typo'd key silently drops an infobox row;
--- this check catches it statically before deployment.
-local vehicleLua = readFile(VEHICLE_LUA_PATH)
+-- ── 8. Vehicle editorial field references ────────────────────────────────────
+-- Every key passed to an Editorial view's :value('<key>') anywhere under
+-- Vehicle/ must be a declared top-level field in editorial.json (excluding the
+-- %doc meta key). A typo'd key silently drops an infobox row; this check catches
+-- it statically before deployment. The scan covers the whole subtree, not just
+-- Vehicle.lua: most :value() calls live in the section sub-builders (Capacity,
+-- Cost, Dimensions, Stats, Overview, Lore, Development). Every `:value(` under
+-- Vehicle/ is an Editorial.view call, so the bare method name needs no receiver
+-- in the pattern.
+local VEHICLE_SUBTREE_LABEL = BASE .. '/Vehicle/**.lua'
+local vehicleLua = nil
+do
+	local parts = {}
+	local ph = io.popen('find ' .. BASE .. '/Vehicle -name "*.lua" -not -name "testcases.lua"')
+	for line in ph:lines() do
+		parts[#parts + 1] = readFile(line) or ''
+	end
+	ph:close()
+	vehicleLua = table.concat(parts, '\n')
+end
 local vehicleEditorial = readJson(VEHICLE_EDITORIAL_PATH)
-if vehicleLua and vehicleEditorial then
+if vehicleLua ~= '' and vehicleEditorial then
 	-- Build a set of declared editorial field names (exclude %doc meta key).
 	local editorialFields = {}
 	for field, _ in pairs(vehicleEditorial) do
@@ -474,9 +504,6 @@ if vehicleLua and vehicleEditorial then
 		end
 	end
 
-	-- Extract every key referenced in any of these shapes:
-	--   effective(resolved, 'key', ...)   editorialValue(resolved, 'key')   resolved.key.value
-	-- (the third covers direct reads like getHeaderBadge's resolved.production_state.value).
 	local missing = {}
 	local seen = {}
 	local function checkKey(key)
@@ -487,25 +514,24 @@ if vehicleLua and vehicleEditorial then
 			end
 		end
 	end
-	for key in vehicleLua:gmatch("effective%(resolved,%s*'([%w_]+)'") do
+	local checked = 0
+	for key in vehicleLua:gmatch(":value%('([%w_]+)'") do
+		checked = checked + 1
 		checkKey(key)
 	end
-	for key in vehicleLua:gmatch("editorialValue%(resolved,%s*'([%w_]+)'") do
-		checkKey(key)
-	end
-	for key in vehicleLua:gmatch('resolved%.([%w_]+)%.value') do
-		checkKey(key)
+	if checked == 0 then
+		fail(VEHICLE_SUBTREE_LABEL, 'found no :value() editorial field reference to check (the idiom moved?)')
 	end
 
 	if #missing > 0 then
 		for _, k in ipairs(missing) do
 			fail(
-				VEHICLE_LUA_PATH,
+				VEHICLE_SUBTREE_LABEL,
 				"editorial field reference '" .. k .. "' is not declared in " .. VEHICLE_EDITORIAL_PATH
 			)
 		end
 	else
-		pass(VEHICLE_LUA_PATH .. ' (editorial field cross-reference)')
+		pass(VEHICLE_SUBTREE_LABEL .. ' (editorial field cross-reference)')
 	end
 end
 
@@ -515,10 +541,10 @@ local CONSUMER_REQUIRES = {
 		file = 'pages/module/WearableSet/WearableSet.lua',
 		need = { 'Module:Entity/Data', 'Module:Entity/Facet/Environment', 'Module:Entity/Facet/Armor' },
 	},
-	{ file = 'pages/module/Entity/Orders/Orders.lua', need = { 'Module:Entity/Data', 'Module:Entity/StructuredData' } },
+	{ file = 'pages/module/Entity/Orders/Orders.lua', need = { 'Module:Entity/Data', 'Module:Entity/Orders/Lines' } },
 	{
 		file = 'pages/module/Entity/Rewards/Rewards.lua',
-		need = { 'Module:Entity/Data', 'Module:Entity/StructuredData' },
+		need = { 'Module:Entity/Data', 'Module:Entity/Rewards/Lines' },
 	},
 }
 for _, c in ipairs(CONSUMER_REQUIRES) do
@@ -538,51 +564,7 @@ for _, c in ipairs(CONSUMER_REQUIRES) do
 	end
 end
 
--- ── 10. properties.json %patterns shape ──────────────────────────────────────
-if props and type(props['%patterns']) == 'table' then
-	local patFailed = false
-	for i, pat in ipairs(props['%patterns']) do
-		if type(pat) ~= 'table' then
-			fail(PROPS_PATH, '%patterns[' .. i .. '] is not an object')
-			patFailed = true
-		else
-			if type(pat.keyMatch) ~= 'string' or pat.keyMatch == '' then
-				fail(PROPS_PATH, '%patterns[' .. i .. '] missing/empty .keyMatch')
-				patFailed = true
-			elseif not pcall(function()
-				return ('x'):match(pat.keyMatch)
-			end) then
-				fail(PROPS_PATH, '%patterns[' .. i .. '] .keyMatch is not a valid Lua pattern')
-				patFailed = true
-			end
-			if type(pat.property) ~= 'string' or pat.property == '' then
-				fail(PROPS_PATH, '%patterns[' .. i .. '] missing/empty .property')
-				patFailed = true
-			end
-			if pat.smw == 'Quantity' then
-				fail(PROPS_PATH, '%patterns[' .. i .. '] uses banned smw Quantity')
-				patFailed = true
-			end
-			if type(pat.bucket) ~= 'string' or not ALLOWED_BUCKETS[pat.bucket] then
-				fail(PROPS_PATH, '%patterns[' .. i .. '] invalid .bucket')
-				patFailed = true
-			end
-			if type(pat.modules) ~= 'table' or pat.modules[1] == nil then
-				fail(PROPS_PATH, '%patterns[' .. i .. '] missing/empty .modules')
-				patFailed = true
-			end
-			if type(pat.desc) ~= 'string' or pat.desc == '' then
-				fail(PROPS_PATH, '%patterns[' .. i .. '] missing/empty .desc')
-				patFailed = true
-			end
-		end
-	end
-	if not patFailed then
-		pass(PROPS_PATH .. ' (%patterns shape)')
-	end
-end
-
--- ── 11. emitted-key -> manifest bijection ────────────────────────────────────
+-- ── 10. emitted-key -> manifest bijection ────────────────────────────────────
 -- Known blind spots (don't over-trust this guard):
 --   (a) Brand-new SINGLE-WORD keys not yet in the manifest are skipped — a
 --       single-word key is only checked once it's already registered, since
@@ -595,14 +577,13 @@ end
 local function autoName(key)
 	return (key:gsub('_', ' '):gsub('^%l', string.upper))
 end
-local function patternMatches(key)
-	for _, pat in ipairs((props and props['%patterns']) or {}) do
-		if type(pat) == 'table' and type(pat.keyMatch) == 'string' and key:match(pat.keyMatch) then
-			return true
-		end
-	end
-	return false
-end
+-- Emitter keys composed at runtime (`data['modifier_' .. k]`, Facet/Mining) name
+-- no literal in the source, so neither scan can see the property they write.
+-- Bucket needs a declared column for each one regardless, so every expansion is
+-- a static properties.json entry and only the prefix is registered here: a
+-- dynamic prefix nobody registered fails below, and a property under a
+-- registered prefix counts as written in 10b.
+local DYNAMIC_PREFIXES = { ['modifier_'] = true }
 if props then
 	local files = {}
 	local ph = io.popen('find pages/module/Entity -name "*.lua"')
@@ -617,15 +598,17 @@ if props then
 			for block in src:gmatch('function%s+p%.getStructuredData.-\nend') do
 				for key in block:gmatch('([%a_][%w_]*)%s*=') do
 					if key:find('_') or type(props[autoName(key)]) == 'table' then
-						if type(props[autoName(key)]) ~= 'table' and not patternMatches(key) then
+						if type(props[autoName(key)]) ~= 'table' then
 							orphan[key] = fpath
 						end
 					end
 				end
-				for lit in block:gmatch("data%['([%a_]+)'%s*%.%.") do
-					if not patternMatches(lit .. 'x') then
-						orphan[lit .. '*'] = fpath
-					end
+			end
+			-- The runtime-composed form lives in the helper the hook calls, not in
+			-- the hook body, so this one is scanned over the whole file.
+			for lit in src:gmatch("data%['([%a_]+)'%s*%.%.") do
+				if not DYNAMIC_PREFIXES[lit] then
+					orphan[lit .. '*'] = fpath
 				end
 			end
 		end
@@ -638,12 +621,484 @@ if props then
 				.. key
 				.. "' ("
 				.. fpath
-				.. ') resolves to neither a properties.json entry nor a %patterns match'
+				.. ') resolves to neither a properties.json entry nor a registered dynamic prefix'
 		)
 		any = true
 	end
 	if not any then
 		pass(PROPS_PATH .. ' (emitted-key bijection)')
+	end
+end
+
+-- ── 10b. manifest property -> emitter (the inverse bijection) ────────────────
+-- A property nothing writes still costs a Bucket column, which is how the
+-- orphaned `Category` survived. Writers live in three places: a
+-- getStructuredData block; an editorial manifest entry, whose `property` name
+-- Module:Entity/Editorial projects onto the stored data; and the handful below,
+-- written outside any hook.
+local NON_HOOK_WRITERS = {
+	['Manual API field'] = 'Module:Entity/Editorial.toStructuredData',
+	['Subject type'] = 'Module:Entity, injected from the resolved typeInfo',
+}
+if props then
+	local emitted, suffixes, prefixes = {}, {}, {}
+	for prefix in pairs(DYNAMIC_PREFIXES) do
+		prefixes[#prefixes + 1] = autoName(prefix)
+	end
+	local sources = {}
+	local ph = io.popen('find pages/module/Entity -name "*.lua" -o -name "*.json"')
+	for line in ph:lines() do
+		sources[#sources + 1] = line
+	end
+	ph:close()
+	for _, fpath in ipairs(sources) do
+		local src = readFile(fpath)
+		if src then
+			for block in src:gmatch('function%s+p%.getStructuredData.-\nend') do
+				for key in block:gmatch('([%a_][%w_]*)%s*=') do
+					emitted[autoName(key)] = true
+				end
+				for key in block:gmatch("%['([^']+)'%]%s*=") do
+					emitted[key] = true
+				end
+				for suffix in block:gmatch("%.%.%s*'([^']+)'%s*%]") do
+					suffixes[#suffixes + 1] = autoName(suffix)
+				end
+			end
+			-- Editorial manifests: Lua field tables and editorial.json alike. Every
+			-- entry is one line carrying both `arg` and `property`, which is what
+			-- keeps a Store query column ({ property = 'Name', as = 'name' }) from
+			-- counting as a writer of that property.
+			if fpath ~= PROPS_PATH then
+				for line in src:gmatch('[^\n]+') do
+					if line:find('arg', 1, true) then
+						for name in line:gmatch("property%s*=%s*'([^']+)'") do
+							emitted[name] = true
+						end
+						for name in line:gmatch('"property"%s*:%s*"([^"]+)"') do
+							emitted[name] = true
+						end
+					end
+				end
+			end
+		end
+	end
+	local function isEmitted(name)
+		if emitted[name] or NON_HOOK_WRITERS[name] then
+			return true
+		end
+		for _, suffix in ipairs(suffixes) do
+			if name:sub(-#suffix) == suffix then
+				return true
+			end
+		end
+		for _, prefix in ipairs(prefixes) do
+			if name:sub(1, #prefix) == prefix then
+				return true
+			end
+		end
+		return false
+	end
+	local inverseFailed = false
+	for name, def in pairs(props) do
+		if type(name) == 'string' and name:sub(1, 1) ~= '%' and type(def) == 'table' then
+			if not isEmitted(name) then
+				fail(
+					PROPS_PATH,
+					"property '" .. name .. "' is written by no getStructuredData block or editorial manifest"
+				)
+				inverseFailed = true
+			end
+		end
+	end
+	if not inverseFailed then
+		pass(PROPS_PATH .. ' (property-emitter inverse)')
+	end
+end
+
+-- ── 11. Bucket limits ────────────────────────────────────────────────────────
+-- Verified live 2026-09-12: a bucket accepts at most 60 fields; bucket name +
+-- field name must not exceed 51 characters (the repeated-field side table
+-- bucket__<bucket>__<field> hits MySQL's 64-char identifier cap); a repeated
+-- field must be indexed. %kinds lists which buckets each kind may write.
+local BUCKET_MAX_FIELDS = 60
+local BUCKET_NAME_BUDGET = 51
+local function checkBucketLimits(path, manifest)
+	if not manifest then
+		return
+	end
+	local limitsFailed = false
+	local fields = {} -- bucket -> field -> display name
+	local stringBuckets = {} -- bucket -> true, for entries/patterns with a plain string .bucket
+	local function place(bucket, field, name, def)
+		fields[bucket] = fields[bucket] or {}
+		if fields[bucket][field] then
+			fail(
+				path,
+				'bucket '
+					.. bucket
+					.. ' field '
+					.. field
+					.. ' is claimed by both '
+					.. fields[bucket][field]
+					.. ' and '
+					.. name
+			)
+			limitsFailed = true
+		end
+		fields[bucket][field] = name
+		if not ALLOWED_BUCKET_NAMES[bucket] then
+			fail(path, 'bucket ' .. bucket .. ' is not an allowed bucket name')
+			limitsFailed = true
+		end
+		if #bucket + #field > BUCKET_NAME_BUDGET then
+			fail(
+				path,
+				'bucket '
+					.. bucket
+					.. ' field '
+					.. field
+					.. ' exceeds the '
+					.. BUCKET_NAME_BUDGET
+					.. '-char bucket+field budget'
+			)
+			limitsFailed = true
+		end
+		if def.repeated and not def.index then
+			fail(path, 'entry ' .. name .. ' is repeated but not indexed (Bucket requires index on repeated fields)')
+			limitsFailed = true
+		end
+	end
+	local function kindListsBucket(kind, bucket)
+		local list = manifest['%kinds'][kind]
+		for _, b in ipairs(list) do
+			if b == bucket then
+				return true
+			end
+		end
+		return false
+	end
+	for name, def in pairs(manifest) do
+		if type(name) == 'string' and name:sub(1, 1) ~= '%' and type(def) == 'table' and def.field then
+			if type(def.bucket) == 'string' then
+				stringBuckets[def.bucket] = true
+				place(def.bucket, def.field, name, def)
+			elseif type(def.bucket) == 'table' then
+				for kind, bucket in pairs(def.bucket) do
+					if type(manifest['%kinds']) ~= 'table' or manifest['%kinds'][kind] == nil then
+						fail(path, 'entry ' .. name .. ' routes kind ' .. tostring(kind) .. ' which is not in %kinds')
+						limitsFailed = true
+					elseif not kindListsBucket(kind, bucket) then
+						fail(
+							path,
+							'entry '
+								.. name
+								.. ' routes kind '
+								.. kind
+								.. ' to bucket '
+								.. bucket
+								.. ' which %kinds.'
+								.. kind
+								.. ' does not list'
+						)
+						limitsFailed = true
+					end
+					place(bucket, def.field, name .. ' (' .. kind .. ')', def)
+				end
+			end
+		end
+	end
+	for bucket, set in pairs(fields) do
+		local n = 0
+		for _ in pairs(set) do
+			n = n + 1
+		end
+		if n > BUCKET_MAX_FIELDS then
+			fail(path, 'bucket ' .. bucket .. ' has ' .. n .. ' fields (max ' .. BUCKET_MAX_FIELDS .. ')')
+			limitsFailed = true
+		end
+	end
+	if type(manifest['%kinds']) == 'table' then
+		local listedBuckets = {}
+		for kind, list in pairs(manifest['%kinds']) do
+			for _, bucket in ipairs(list) do
+				listedBuckets[bucket] = true
+				if fields[bucket] == nil then
+					fail(path, '%kinds.' .. kind .. ' names bucket ' .. bucket .. ' which no property uses')
+					limitsFailed = true
+				end
+			end
+		end
+		for bucket in pairs(stringBuckets) do
+			if bucket ~= 'entity' and not listedBuckets[bucket] then
+				fail(path, 'bucket ' .. bucket .. ' is written by no kind in %kinds')
+				limitsFailed = true
+			end
+		end
+	end
+	if not limitsFailed then
+		pass(path .. ' (bucket limits)')
+	end
+end
+checkBucketLimits(PROPS_PATH, props)
+
+-- ── 12. Registry kinds all have a %kinds entry ────────────────────────────────
+-- %kinds has five keys today only because Registry.kinds happens to list five
+-- modules with the same names; nothing checks that the two stay in step. A
+-- kind added to the registry without a %kinds entry would silently stop
+-- reaching Bucket for every cross-kind property and route the rest of that
+-- kind's pages into the unregistered-property tracking category, with no
+-- test failing (final-review.md Important 3).
+local REGISTRY_PATH = BASE .. '/Registry/Registry.lua'
+local function registryKinds(path)
+	local src = readFile(path)
+	if not src then
+		return nil
+	end
+	local block = src:match('p%.kinds%s*=%s*{(.-)\n}')
+	if not block then
+		fail(path, 'could not find a p.kinds = { ... } table')
+		return nil
+	end
+	local kinds = {}
+	for name in block:gmatch("require%('Module:Entity/([%w_]+)'%)") do
+		kinds[#kinds + 1] = name
+	end
+	return kinds
+end
+if props then
+	local kinds = registryKinds(REGISTRY_PATH)
+	if kinds then
+		local registryFailed = false
+		for _, kind in ipairs(kinds) do
+			if type(props['%kinds']) ~= 'table' or type(props['%kinds'][kind]) ~= 'table' then
+				fail(REGISTRY_PATH, "kind '" .. kind .. "' is registered but has no properties.json %kinds entry")
+				registryFailed = true
+			end
+		end
+		if not registryFailed then
+			pass(REGISTRY_PATH .. ' (registry kinds vs %kinds)')
+		end
+	end
+end
+
+-- ── 13. Cross-bucket field-name uniqueness ────────────────────────────────────
+-- Module:Entity/Store keeps two buckets' columns apart by selecting a joined
+-- one as `bucket.field`, but any consumer that merges rows on the bare field
+-- name has one property overwrite the other. A property whose bucket is an
+-- object (routed per kind) has one field name, not one per kind, so it is
+-- claimed once here.
+local function checkFieldNameUniqueness(path, manifest)
+	if not manifest then
+		return
+	end
+	local owner = {} -- field name -> display name
+	local failed = false
+	local function claim(field, name)
+		if owner[field] and owner[field] ~= name then
+			fail(path, "field '" .. field .. "' is used by both '" .. owner[field] .. "' and '" .. name .. "'")
+			failed = true
+		else
+			owner[field] = name
+		end
+	end
+	for name, def in pairs(manifest) do
+		if
+			type(name) == 'string'
+			and name:sub(1, 1) ~= '%'
+			and type(def) == 'table'
+			and type(def.field) == 'string'
+		then
+			claim(def.field, name)
+		end
+	end
+	if not failed then
+		pass(path .. ' (field-name uniqueness)')
+	end
+end
+checkFieldNameUniqueness(PROPS_PATH, props)
+
+local COMPANY_PROPS_PATH = 'pages/module/Company/properties.json'
+local companyProps = readJson(COMPANY_PROPS_PATH)
+if companyProps then
+	local cFailed = false
+	for name, def in pairs(companyProps) do
+		if type(name) == 'string' and name:sub(1, 1) ~= '%' and type(def) == 'table' then
+			if type(def.type) ~= 'string' or not ALLOWED_TYPES[def.type] then
+				fail(COMPANY_PROPS_PATH, 'entry ' .. name .. ' has invalid .type ' .. tostring(def.type))
+				cFailed = true
+			end
+			if (def.bucket ~= 'company' and def.bucket ~= 'entity') or type(def.field) ~= 'string' then
+				fail(COMPANY_PROPS_PATH, 'entry ' .. name .. " must have bucket 'company' or 'entity' and a .field")
+				cFailed = true
+			end
+		end
+	end
+	-- Company writes an `entity` row (shared with Entity) alongside its own
+	-- `company` row; %kinds documents that split for tests/manifest.lua and
+	-- Module:Entity/Registry-style cross-checks, though Company.bucketRows
+	-- routes by properties.json directly and never consults %kinds at runtime.
+	local companyKinds = companyProps['%kinds'] and companyProps['%kinds'].Company
+	if type(companyKinds) ~= 'table' or #companyKinds ~= 2 then
+		fail(COMPANY_PROPS_PATH, "%kinds.Company must be {'entity', 'company'}")
+		cFailed = true
+	else
+		local wanted = { entity = true, company = true }
+		for _, bucket in ipairs(companyKinds) do
+			wanted[bucket] = nil
+		end
+		if next(wanted) ~= nil then
+			fail(COMPANY_PROPS_PATH, "%kinds.Company must be {'entity', 'company'}")
+			cFailed = true
+		end
+	end
+	if not cFailed then
+		pass(COMPANY_PROPS_PATH)
+	end
+	checkBucketLimits(COMPANY_PROPS_PATH, companyProps)
+
+	-- The `entity` bucket is defined by both Entity/properties.json and
+	-- Company/properties.json (Name, Subject type, Image): a field the two
+	-- manifests share must agree on type/index/repeated, mirroring
+	-- scripts/internal/bucketschemas.Merge. Build the union (one definition per
+	-- field; a mismatch fails here instead of being silently shadowed) and run
+	-- checkBucketLimits over it so the budget/max-fields checks see both
+	-- manifests' contributions to `entity` together.
+	local function entityEntries(manifest)
+		local out = {}
+		for name, def in pairs(manifest) do
+			if
+				type(name) == 'string'
+				and name:sub(1, 1) ~= '%'
+				and type(def) == 'table'
+				and def.bucket == 'entity'
+				and type(def.field) == 'string'
+			then
+				out[def.field] = { name = name, def = def }
+			end
+		end
+		return out
+	end
+	local function shapeEquals(a, b)
+		return a.type == b.type
+			and (a.index or false) == (b.index or false)
+			and (a.repeated or false) == (b.repeated or false)
+	end
+
+	local entityFromEntity = entityEntries(props)
+	local entityFromCompany = entityEntries(companyProps)
+	local mergedEntity = {}
+	local mergeFailed = false
+	for _, entry in pairs(entityFromEntity) do
+		mergedEntity[entry.name] = entry.def
+	end
+	for field, entry in pairs(entityFromCompany) do
+		local prev = entityFromEntity[field]
+		if prev then
+			if not shapeEquals(prev.def, entry.def) then
+				fail(
+					COMPANY_PROPS_PATH,
+					'bucket entity field '
+						.. field
+						.. ' differs between manifests ('
+						.. prev.name
+						.. ' vs '
+						.. entry.name
+						.. ')'
+				)
+				mergeFailed = true
+			end
+		else
+			mergedEntity[entry.name] = entry.def
+		end
+	end
+	if not mergeFailed then
+		pass(COMPANY_PROPS_PATH .. ' (entity bucket merge)')
+	end
+	checkBucketLimits(COMPANY_PROPS_PATH .. ' + ' .. PROPS_PATH .. ' (merged entity)', mergedEntity)
+
+	local WEARABLESET_PROPS_PATH = 'pages/module/WearableSet/properties.json'
+	local wearableSetProps = readJson(WEARABLESET_PROPS_PATH)
+	if wearableSetProps then
+		local wsFailed = false
+		for name, def in pairs(wearableSetProps) do
+			if type(name) == 'string' and name:sub(1, 1) ~= '%' and type(def) == 'table' then
+				if type(def.type) ~= 'string' or not ALLOWED_TYPES[def.type] then
+					fail(WEARABLESET_PROPS_PATH, 'entry ' .. name .. ' has invalid .type ' .. tostring(def.type))
+					wsFailed = true
+				end
+				if (def.bucket ~= 'wearable_set' and def.bucket ~= 'entity') or type(def.field) ~= 'string' then
+					fail(
+						WEARABLESET_PROPS_PATH,
+						'entry ' .. name .. " must have bucket 'wearable_set' or 'entity' and a .field"
+					)
+					wsFailed = true
+				end
+			end
+		end
+		-- WearableSet writes an `entity` row (shared with Entity and Company)
+		-- alongside its own `wearable_set` row; %kinds documents that split the
+		-- same way Company's does, though WearableSet.bucketRows routes by
+		-- properties.json directly and never consults %kinds at runtime.
+		local wsKinds = wearableSetProps['%kinds'] and wearableSetProps['%kinds']['Wearable set']
+		if type(wsKinds) ~= 'table' or #wsKinds ~= 2 then
+			fail(WEARABLESET_PROPS_PATH, "%kinds['Wearable set'] must be {'entity', 'wearable_set'}")
+			wsFailed = true
+		else
+			local wanted = { entity = true, wearable_set = true }
+			for _, bucket in ipairs(wsKinds) do
+				wanted[bucket] = nil
+			end
+			if next(wanted) ~= nil then
+				fail(WEARABLESET_PROPS_PATH, "%kinds['Wearable set'] must be {'entity', 'wearable_set'}")
+				wsFailed = true
+			end
+		end
+		if not wsFailed then
+			pass(WEARABLESET_PROPS_PATH)
+		end
+		checkBucketLimits(WEARABLESET_PROPS_PATH, wearableSetProps)
+
+		-- The `entity` bucket is defined by three manifests: fold
+		-- WearableSet's contribution into the Entity+Company merge above (a
+		-- field it shares with either must agree on type/index/repeated too)
+		-- and re-check the three-way union.
+		local entityFromWearableSet = entityEntries(wearableSetProps)
+		local knownEntity = {}
+		for field, entry in pairs(entityFromEntity) do
+			knownEntity[field] = entry
+		end
+		for field, entry in pairs(entityFromCompany) do
+			knownEntity[field] = entry
+		end
+		local threeWayFailed = false
+		for field, entry in pairs(entityFromWearableSet) do
+			local prev = knownEntity[field]
+			if prev then
+				if not shapeEquals(prev.def, entry.def) then
+					fail(
+						WEARABLESET_PROPS_PATH,
+						'bucket entity field '
+							.. field
+							.. ' differs between manifests ('
+							.. prev.name
+							.. ' vs '
+							.. entry.name
+							.. ')'
+					)
+					threeWayFailed = true
+				end
+			else
+				mergedEntity[entry.name] = entry.def
+			end
+		end
+		if not threeWayFailed then
+			pass(WEARABLESET_PROPS_PATH .. ' (entity bucket merge)')
+		end
+		checkBucketLimits(
+			COMPANY_PROPS_PATH .. ' + ' .. PROPS_PATH .. ' + ' .. WEARABLESET_PROPS_PATH .. ' (merged entity)',
+			mergedEntity
+		)
 	end
 end
 

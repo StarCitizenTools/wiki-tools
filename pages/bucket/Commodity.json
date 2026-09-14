@@ -1,0 +1,47 @@
+{
+	"acquisition_kind": {
+		"type": "TEXT",
+		"index": false,
+		"repeated": false
+	},
+	"commodity_group": {
+		"type": "TEXT",
+		"index": false,
+		"repeated": false
+	},
+	"commodity_type": {
+		"type": "TEXT",
+		"index": false,
+		"repeated": false
+	},
+	"density": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"hei": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"mineable": {
+		"type": "BOOLEAN",
+		"index": false,
+		"repeated": false
+	},
+	"ndr": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"signature": {
+		"type": "TEXT",
+		"index": false,
+		"repeated": false
+	},
+	"tier": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": false
+	}
+}

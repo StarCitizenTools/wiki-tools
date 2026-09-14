@@ -13,6 +13,11 @@
 # SETGLOBAL is deliberately not scanned: strict permits declared writes and
 # module files don't write globals; the read scan alone pins the incident
 # class without false positives.
+#
+# A second scan below rejects require('mw.ext.bucket') outside testcases.lua:
+# the runner's require path still returns a callable recorder, so that call
+# passes every suite while raising "attempt to call a table value" on the
+# wiki, where require('mw.ext.bucket') returns a fresh, non-callable copy.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -31,6 +36,12 @@ while IFS= read -r -d '' f; do
 	if [ -n "$bad" ]; then
 		echo "UNDECLARED GLOBAL in $f:"
 		echo "$bad" | sed 's/^/    /'
+		fail=1
+	fi
+
+	if [ "$(basename "$f")" != 'testcases.lua' ] \
+		&& grep -Eq "require[[:space:]]*\([[:space:]]*['\"]mw\.ext\.bucket['\"][[:space:]]*\)" "$f"; then
+		echo "BUCKET REQUIRE in $f: use mw.ext.bucket at call time (require returns a non-callable copy on the wiki)"
 		fail=1
 	fi
 done < <(find pages/module -name '*.lua' -print0)

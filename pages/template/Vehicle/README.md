@@ -89,8 +89,8 @@ Concept or unreleased ship with no in-game record. Declare the page as a planned
 | `originalwarbondcost` | Original warbond price | number | No |  | Original warbond pledge price, in USD. Editorial only. | `200` |  |
 | `pledgeavailability` | Pledge availability | string | No |  | Free-text pledge-availability note. Editorial only. | `Limited` |  |
 | `productionstate` | Production state | string | No | (API value) | Production status: one of `Flight ready`, `In production`, `Active production`, `Active for Squadron 42`, `Long term production`, `In concept`, `Lore-only`, `Unconfirmed`. (concept/unreleased ships; in-game ships use the API value) | `In concept` |  |
-| `addedinversion` | Added in version | string | No |  | Game update the vehicle became flight ready (e.g. `Alpha 4.8.0`); rendered as the "Flight ready in" row in the Development section and stored as the `Added in version` SMW property (the canonical `Update:` page). Editorial only. | `Alpha 4.8.0` |  |
-| `productionstatenote` | Production state note | string | No |  | Free-text production note shown in the Development section (e.g. rework status). Display-only, not stored in SMW. Editorial only. | `Rework in progress` |  |
+| `addedinversion` | Added in version | string | No |  | Game update the vehicle became flight ready (e.g. `Alpha 4.8.0`); rendered as the "Flight ready in" row in the Development section and stored as the `Added in version` property (the canonical `Update:` page). Editorial only. | `Alpha 4.8.0` |  |
+| `productionstatenote` | Production state note | string | No |  | Free-text production note shown in the Development section (e.g. rework status). Display-only, not stored. Editorial only. | `Rework in progress` |  |
 | `model` | Model | string | No |  | Series/model grouping (the "Model" row). Editorial only. | `Constellation` | `series` |
 | `generation` | Generation | string | No |  | Generation/mark within the series. Editorial only. | `Mk IV` | `Generation`; `mark` |
 | `releasedate` | Release date | string | No |  | Lore release date. Editorial only. | `2956-12-19` |  |
@@ -109,7 +109,7 @@ Concept or unreleased ship with no in-game record. Declare the page as a planned
 - A record-less page whose `family` doesn't resolve to `ship`, `ground`, or `gravlev` renders from the Vehicle kind alone, with no subtype leaf; it loses both the size browse category (`<Size> ships`) and the `Pledge ships`/`Pledge vehicles` category, since only the leaf emits those.
 - Setting any parameter that also has an API counterpart (`size`, `career`, `scmspeed`, `mass`, and the rest of the stats/prices/production-state fields) adds the page to `Entities with manual API data`, whether it fills a gap on a planned page or overrides a live API value. Pure-editorial fields with no API counterpart (pledge prices, lore/development dates) don't trigger this by themselves.
 - `canBuy=no` / `canRent=no` affect more than the Availability summary: they also force the infobox's own Cost section Universe row to a hard No, not only the linked `{{Entity/Availability}}` card.
-- Like `{{Entity}}`, this template is what writes the page's [SMW](https://www.mediawiki.org/wiki/Extension:Semantic_MediaWiki) structured data, sets `SHORTDESC`, and appends categories for the whole page.
+- Like `{{Entity}}`, this template is what writes the page's structured data, sets `SHORTDESC`, and appends categories for the whole page.
 - The multi-value URL parameters (`brochureurl`, `trailerurl`, `presentationurl`, `qaurl`, `whitleysguideurl`) each accept a `;`-separated list to register more than one link.
 
 ## See also

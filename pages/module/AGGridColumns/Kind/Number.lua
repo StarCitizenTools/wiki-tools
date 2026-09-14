@@ -14,6 +14,7 @@ function p.buildColDef(spec)
 	return {
 		field = spec.field,
 		headerName = spec.header,
+		sort = spec.sort,
 		filter = spec.filter or 'agNumberColumnFilter',
 		type = 'numericColumn',
 		format = Util.cloneFormat(spec.format),

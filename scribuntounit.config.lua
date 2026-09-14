@@ -213,5 +213,94 @@ return {
 			function aggrid.register() end
 			return aggrid
 		end)
+
+		-- mw.ext.bucket — recording stand-in for Extension:Bucket. A query chain is
+		-- captured as data (select/join/where/limit/offset) and run() returns the
+		-- canned rows installed with mw.ext.bucket._setRows(bucketName, rows);
+		-- put() appends to mw.ext.bucket._puts. Methods are called with a dot on
+		-- the builder, as the real library requires. Built here (setup runs once,
+		-- before any suite) and installed on both the global `mw.ext.bucket` (what
+		-- module code resolves at call time) and `require('mw.ext.bucket')` (what
+		-- suites use), as the same table — installing it eagerly rather than lazily
+		-- behind the require means module code that reaches mw.ext.bucket before any
+		-- suite has required it (e.g. Entity/Data's parseArgs, via Entity/Store) still
+		-- finds it.
+		local lib = {}
+		lib._rows = {}
+		lib._puts = {}
+		lib._chains = {}
+		lib._failNext = false
+		function lib._setRows(name, rows)
+			lib._rows[name] = rows
+		end
+		function lib._reset()
+			lib._rows, lib._puts, lib._chains = {}, {}, {}
+			lib._failNext = false
+		end
+		function lib.Or(...)
+			return { op = 'or', ... }
+		end
+		function lib.And(...)
+			return { op = 'and', ... }
+		end
+		function lib.Not(c)
+			return { op = 'not', c }
+		end
+		function lib.Null()
+			return '&&NULL&&'
+		end
+		local function bucketBuilder(name, sub)
+			local chain = { bucket = name, sub = sub, select = {}, join = {}, where = {}, limit = nil, offset = nil }
+			lib._chains[#lib._chains + 1] = chain
+			local b = {}
+			function b.select(...)
+				for _, s in ipairs({ ... }) do
+					chain.select[#chain.select + 1] = s
+				end
+				return b
+			end
+			function b.join(other, a, c)
+				chain.join[#chain.join + 1] = { other, a, c }
+				return b
+			end
+			function b.where(...)
+				for _, w in ipairs({ ... }) do
+					chain.where[#chain.where + 1] = w
+				end
+				return b
+			end
+			function b.limit(n)
+				chain.limit = n
+				return b
+			end
+			function b.offset(n)
+				chain.offset = n
+				return b
+			end
+			function b.sub(id)
+				return bucketBuilder(name, id)
+			end
+			function b.put(data)
+				lib._puts[#lib._puts + 1] = { bucket = name, sub = sub, data = data }
+			end
+			function b.run()
+				if lib._failNext then
+					lib._failNext = false
+					error('bucket: simulated failure', 0)
+				end
+				return lib._rows[name] or {}
+			end
+			return b
+		end
+		local mwExtBucket = setmetatable(lib, {
+			__call = function(_, name)
+				return bucketBuilder(name, nil)
+			end,
+		})
+		api.mw.ext = api.mw.ext or {}
+		api.mw.ext.bucket = mwExtBucket
+		api.preload('mw.ext.bucket', function()
+			return mwExtBucket
+		end)
 	end,
 }

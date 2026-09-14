@@ -54,10 +54,10 @@ func TestPropertyScanAdd(t *testing.T) {
 	s := NewPropertyScan()
 	s.Add("Page A", 0, "Uuid", uuidA)
 	s.Add("Page A#_subobject", 0, "Uuid", uuidA)                    // fragment folds into the page
-	s.Add("Page A", 0, "UUID", uuidA)                               // duplicate via legacy property
-	s.Add("User:Sandbox/temp", 2, "UUID", uuidB)                    // non-main namespace
+	s.Add("Page A", 0, "Uuid", uuidA)                               // the same page twice
+	s.Add("User:Sandbox/temp", 2, "Uuid", uuidB)                    // non-main namespace
 	s.Add("Deferred", 0, "Uuid", PlaceholderUUID)                   // placeholder
-	s.Add("Typo", 0, "UUID", "00000000-0000-0000-0000-00000000000") // malformed
+	s.Add("Typo", 0, "Uuid", "00000000-0000-0000-0000-00000000000") // malformed
 
 	if got := s.Holders[uuidA]; !reflect.DeepEqual(got, []Holder{{"Page A", "Uuid"}}) {
 		t.Errorf("holders for %s = %v", uuidA, got)
@@ -70,15 +70,6 @@ func TestPropertyScanAdd(t *testing.T) {
 	}
 	if len(s.Invalid) != 1 || s.Invalid[0].Page != "Typo" {
 		t.Errorf("invalid = %v", s.Invalid)
-	}
-}
-
-func TestPropertyScanKeepsModernLabelOverLegacy(t *testing.T) {
-	s := NewPropertyScan()
-	s.Add("Page A", 0, "UUID", uuidA)
-	s.Add("Page A", 0, "Uuid", uuidA)
-	if got := s.Holders[uuidA][0].Property; got != "Uuid" {
-		t.Errorf("property label = %q, want the modern one", got)
 	}
 }
 
@@ -201,18 +192,6 @@ func TestReconcileCaseVariantCollision(t *testing.T) {
 	}
 	if len(plan.Review) != 2 {
 		t.Errorf("review = %v, want both variants flagged", plan.Review)
-	}
-}
-
-func TestReconcileTracksLegacyPages(t *testing.T) {
-	plan := Reconcile(scanWith(t,
-		func(s *PropertyScan) {
-			s.Add("Old Item", 0, "UUID", uuidA)
-			s.Add("New Item", 0, "Uuid", uuidB)
-		},
-	), "api", testTime)
-	if !reflect.DeepEqual(plan.LegacyPages, []string{"Old Item"}) {
-		t.Errorf("legacy pages = %v", plan.LegacyPages)
 	}
 }
 

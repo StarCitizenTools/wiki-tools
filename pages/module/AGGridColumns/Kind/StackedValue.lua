@@ -17,6 +17,7 @@ function p.buildColDef(spec)
 	return {
 		field = spec.field,
 		headerName = spec.header,
+		sort = spec.sort,
 		type = 'scwStackedValue',
 		filter = 'agNumberColumnFilter',
 		cellClass = 'ag-right-aligned-cell',

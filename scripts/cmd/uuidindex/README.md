@@ -21,18 +21,16 @@ in the plan.
 
 ## Where the uuids come from
 
-Two SMW properties, merged:
-
-- `Uuid` — what `{{Entity}}` stores. Effectively all annotations.
-- `UUID` — its predecessor, still emitted by a handful of unmigrated infobox
-  pages. Included so those pages stay resolvable; the plan lists them under
-  `legacy_property_pages` so the migration debt stays visible.
+One source: the `uuid` column of the `entity` Bucket table, which is what
+`{{Entity}}` stores.
 
 Three kinds of value never enter the index: annotations outside the main
 namespace (a sandbox must not own an index entry), the all-zeros placeholder
 uuid (its title carries a hand-written note page instead of a redirect), and
-values that are not well-formed uuids (reported under `invalid_values`; the
-fix belongs on the annotating page).
+values that are not well-formed uuids (reported under `invalid_values`; the fix
+belongs on the annotating page). Only the last two can occur while Bucket is the
+sole source, since `Module:Entity` writes Bucket rows from the main namespace
+alone.
 
 ## What the plan contains
 
@@ -67,7 +65,7 @@ letter, so `UUID:AB…` does **not** answer a lookup for `ab…`.
 
 ## Refusing to plan
 
-A scan that comes back half-empty is a degraded API — an SMW rebuild in
+A scan that comes back half-empty is a degraded API — a store rebuild in
 progress, a truncated page list — and planning from it would schedule a mass
 deletion of valid index entries. `-min-uuids` / `-min-pages` (default 5000)
 abort the run before a plan is built, and `-max-delete` (default 100) caps how
@@ -90,7 +88,7 @@ deleting it.
 ## Cost
 
 One full scan is ~140 anonymous read requests (a namespace-case check, one
-large SMW ask per property, the namespace listing, then redirect-target
+Bucket page per 5,000 entity rows, the namespace listing, then redirect-target
 resolution in batches of 50), about a minute at the default pacing.
 
 Most of that is the redirect resolution, and it looks like it should collapse
@@ -99,12 +97,10 @@ generator together with `redirects` ("Use `gapfilterredir=nonredirects`
 instead"), so a generator cannot both enumerate redirects and report their
 targets. The two passes are a constraint, not an oversight.
 
-The ask deliberately uses one large `limit` rather than offset pagination:
-SMW's `$smwgQMaxOffset` (default 5000) silently resets any larger offset to
-zero, which turns a naive continue-loop into an infinite cycle. If the
-annotation count ever outgrows a single request, the scan fails loudly rather
-than spinning; sharding the ask by uuid prefix (`[[Uuid::~0*]]` … `~f*`) is
-the escape hatch to implement that day.
+The Bucket walk has no such wall — it pages on `offset` until a short page —
+but its API is rate-limited per user and answers a throttled request with an
+empty envelope, which a paging loop would read as the end of the table.
+`internal/bucket` retries such a page with backoff rather than accepting it.
 
 The scan also refuses to run if namespace 69420 ever stops being
 first-letter-capitalised (`$wgCapitalLinkOverrides`). Every title this tool

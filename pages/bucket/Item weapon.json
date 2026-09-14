@@ -1,0 +1,167 @@
+{
+	"alpha_damage": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"ammo": {
+		"type": "INTEGER",
+		"index": false,
+		"repeated": false
+	},
+	"arm_time": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"blast_radius": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"capacity_count": {
+		"type": "INTEGER",
+		"index": false,
+		"repeated": false
+	},
+	"capacity_size": {
+		"type": "INTEGER",
+		"index": false,
+		"repeated": false
+	},
+	"damage": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"damage_class": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": false
+	},
+	"damage_type": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": false
+	},
+	"dps": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"drop_angle": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"explosion_radius": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"fire_rate": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"firing_type": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": false
+	},
+	"full_damage_range": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"laser_range": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"lock_angle": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"lock_range": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"lock_time": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"magnification": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"max_range": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"min_damage": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"missile_range": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"missile_speed": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"muzzle_velocity": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"pitch_speed": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"range_increment": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"signal_type": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": false
+	},
+	"slash_damage": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"stab_damage": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"warhead_damage": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"weapon_class": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": false
+	},
+	"yaw_speed": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	}
+}

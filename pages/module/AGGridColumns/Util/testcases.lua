@@ -3,6 +3,7 @@ require('strict')
 local ScribuntoUnit = require('Module:ScribuntoUnit')
 local suite = ScribuntoUnit:new()
 local Util = require('Module:AGGridColumns/Util')
+local aggrid = require('mw.ext.aggrid')
 
 function suite:testDecodeScalarPlain()
 	self:assertEquals('Behring', Util.decodeScalar('Behring'))
@@ -10,10 +11,6 @@ end
 
 function suite:testDecodeScalarEntities()
 	self:assertEquals('180\194\160m/s', Util.decodeScalar('180&#160;m/s'))
-end
-
-function suite:testDecodeScalarTable()
-	self:assertEquals('Foo', Util.decodeScalar({ fulltext = 'Foo' }))
 end
 
 function suite:testDecodeScalarNil()
@@ -24,12 +21,12 @@ function suite:testToTextArrayJoins()
 	self:assertEquals('A, B', Util.toText({ 'A', 'B' }))
 end
 
-function suite:testToNumberStripsUnits()
-	self:assertEquals(1234, Util.toNumber('1,234 m/s'))
+function suite:testToNumberParsesNumeralString()
+	self:assertEquals(1234, Util.toNumber('1234'))
 end
 
-function suite:testToNumberNbsp()
-	self:assertEquals(180, Util.toNumber('180&#160;m'))
+function suite:testToNumberPassesThroughRealNumber()
+	self:assertEquals(180, Util.toNumber(180))
 end
 
 function suite:testToNumberNil()
@@ -46,20 +43,8 @@ function suite:testParseLinkNotALink()
 	self:assertEquals(nil, (Util.parseLink('Aegis Dynamics')))
 end
 
-function suite:testClassifyColumnAllLinks()
-	self:assertEquals('link', Util.classifyColumn({ '[[:A|A]]', '[[:B|B]]' }))
-end
-
-function suite:testClassifyColumnMixedIsPlain()
-	self:assertEquals('plain', Util.classifyColumn({ '[[:A|A]]', 'text' }))
-end
-
-function suite:testClassifyColumnFileIsPlain()
-	self:assertEquals('plain', Util.classifyColumn({ '[[File:X.png|frameless]]' }))
-end
-
-function suite:testClassifyColumnEmptyIsPlain()
-	self:assertEquals('plain', Util.classifyColumn({}))
+function suite:testParseLinkTwoLinksNil()
+	self:assertEquals(nil, (Util.parseLink('[[A]] and [[B]]')))
 end
 
 function suite:testCloneFormatCopies()
@@ -88,38 +73,17 @@ function suite:testToTextAllEmptyArrayIsEmptyString()
 end
 
 function suite:testToNumberNegative()
-	self:assertEquals(-3, Util.toNumber('-3 m/s'))
+	self:assertEquals(-3, Util.toNumber('-3'))
 end
 
 function suite:testToNumberArrayUsesFirst()
-	self:assertEquals(100, Util.toNumber({ '100 m/s', '200 m/s' }))
+	self:assertEquals(100, Util.toNumber({ 100, 200 }))
 end
 
 function suite:testParseLinkNoDisplay()
 	local target, display = Util.parseLink('[[:Aegis Dynamics]]')
 	self:assertEquals('Aegis Dynamics', target)
 	self:assertEquals(nil, display)
-end
-
-function suite:testClassifyColumnAllTextIsPlain()
-	self:assertEquals('plain', Util.classifyColumn({ '180 m/s', '90 m/s' }))
-end
-
--- A multi-valued cell (a sequence) classifies the whole column as a value list.
-function suite:testClassifyColumnMultiValueIsList()
-	self:assertEquals('list', Util.classifyColumn({ { 'mining', 'salvage' } }))
-end
-
--- The list check is a full first pass: a single plain value before a multi-valued one
--- still yields 'list' (order-independent), not 'plain'.
-function suite:testClassifyColumnMixedSingleThenMultiIsList()
-	self:assertEquals('list', Util.classifyColumn({ 'trade', { 'mining', 'salvage' } }))
-end
-
--- A keyed-object scalar ({ fulltext = … }) is not a sequence, so it is not a list.
-function suite:testClassifyColumnKeyedObjectIsNotList()
-	self:assertEquals('link', Util.classifyColumn({ '[[:A|A]]', '[[:B|B]]' }))
-	self:assertEquals('plain', Util.classifyColumn({ { fulltext = 'Foo' } }))
 end
 
 function suite:testBuildValueListMultiPlain()
@@ -140,33 +104,62 @@ function suite:testBuildValueListLinksKeepTarget()
 	)
 end
 
+function suite:testBuildValueListPlainStaysPlain()
+	self:assertDeepEquals({ links = { { text = 'plain' } } }, Util.buildValueList({ 'plain' }))
+end
+
+-- An item wrapping exactly one link (e.g. a loot-table quantity prefix) links as
+-- a whole, the surrounding text kept as the cell's label.
+function suite:testBuildValueListWrappedLinkLinksWholeItem()
+	self:assertDeepEquals(
+		{ links = { { text = '50x Council Scrip', href = 'Council Scrip' } } },
+		Util.buildValueList({ '50x [[Council Scrip]]' })
+	)
+end
+
+-- A [[:Target|Label]] wrapped in surrounding text strips the leading colon and
+-- uses the label, same as a whole-link item.
+function suite:testBuildValueListWrappedLinkWithLabelUsesLabel()
+	self:assertDeepEquals(
+		{ links = { { text = '50x Scrip', href = 'Council Scrip' } } },
+		Util.buildValueList({ '50x [[:Council Scrip|Scrip]]' })
+	)
+end
+
+-- A target containing quotes must not be truncated at the first one.
+function suite:testBuildValueListWrappedLinkKeepsQuotesInTarget()
+	self:assertDeepEquals(
+		{ links = { { text = '1x Coda "Ascension" Pistol', href = 'Coda "Ascension" Pistol' } } },
+		Util.buildValueList({ '1x [[Coda "Ascension" Pistol]]' })
+	)
+end
+
+-- Two or more links in one item is ambiguous (which one is "the" link?), so it
+-- stays plain text.
+function suite:testBuildValueListTwoLinksStaysPlain()
+	self:assertDeepEquals({ links = { { text = '[[A]] and [[B]]' } } }, Util.buildValueList({ '[[A]] and [[B]]' }))
+end
+
 function suite:testBuildValueListDropsEmpty()
 	self:assertEquals(nil, Util.buildValueList(nil))
 	self:assertEquals(nil, Util.buildValueList({ '', '' }))
 end
 
--- looksNumeric mirrors the gadget's scwNumericPart, so these cases pin the rule the
--- two sides share: the number must LEAD, and only a digit-free unit may follow.
-function suite:testLooksNumericLeadingNumberWithUnit()
-	self:assertEquals(true, Util.looksNumeric('1,234 m/s'))
-	self:assertEquals(true, Util.looksNumeric('-15%'))
-	self:assertEquals(true, Util.looksNumeric('2.5'))
-	self:assertEquals(true, Util.looksNumeric('180&#160;m'))
-end
-
-function suite:testLooksNumericRejectsNonLeadingNumber()
-	-- Size codes and grades sort alphabetically and align left, so they are not numeric
-	-- even though Util.toNumber would happily read a number out of them.
-	self:assertEquals(false, Util.looksNumeric('S2'))
-	self:assertEquals(false, Util.looksNumeric('Gr. 3'))
-	self:assertEquals(false, Util.looksNumeric('$1,500'))
-	self:assertEquals(2, Util.toNumber('S2'))
-end
-
-function suite:testLooksNumericEmptyAndNil()
-	self:assertEquals(false, Util.looksNumeric(nil))
-	self:assertEquals(false, Util.looksNumeric(''))
-	self:assertEquals(false, Util.looksNumeric('   '))
+--- buildThumb must never empty a whole grid over one bad filename: when
+--- aggrid.thumb errors (an invalid title MediaWiki rejects), the cell drops
+--- instead of the render erroring.
+function suite:testBuildThumbSurvivesAggridThrow()
+	local real = aggrid.thumb
+	aggrid.thumb = function()
+		error('boom')
+	end
+	local ok, err = pcall(function()
+		self:assertEquals(nil, Util.buildThumb('[[File:X.png]]', 'Target'))
+	end)
+	aggrid.thumb = real
+	if not ok then
+		error(err, 0)
+	end
 end
 
 return suite

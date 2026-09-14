@@ -82,17 +82,17 @@ end
 --- derived from the celestial-object list — the section builder passes the
 --- computed value as the editorial view's fallback instead. affiliation and
 --- systemtype are pure-editorial identity for the systems the starmap does
---- not list (Hyoton, Krell, Ophos, …), no smw key: this leaf stores both
+--- not list (Hyoton, Krell, Ophos, …), no property key: this leaf stores both
 --- itself through the same resolvers the display uses (affiliationFromText /
 --- systemTypeEntry), so a free-text affiliation and its stored value cannot
 --- disagree. `type` is the legacy {{System}} arg name. The object-count
---- overrides (legacy {{System}} arg names) beat the starmap tallies; no smw
+--- overrides (legacy {{System}} arg names) beat the starmap tallies; no property
 --- key, getStructuredData stores the resolved counts itself.
 --- @return table
 function p.getEditorialManifest()
 	return {
 		population = { arg = 'population' },
-		size = { arg = 'size', smw = 'System size', apiPath = 'starsystem.aggregated.size', transform = 'number' },
+		size = { arg = 'size', property = 'System size', apiPath = 'starsystem.aggregated.size', transform = 'number' },
 		startypes = { arg = 'startypes' },
 		affiliation = { arg = 'affiliation' },
 		systemtype = { arg = { 'systemtype', 'type' } },
@@ -332,7 +332,7 @@ function p.getSections(ctx)
 end
 
 --- Pure-API structured data. size / discoveredin / discoveredby storage is
---- owned by the editorial manifest (smw fields there) — do not double-store.
+--- owned by the editorial manifest (property fields there) — do not double-store.
 --- @param ctx EntityHookContext
 --- @return table<string, any>
 function p.getStructuredData(ctx)

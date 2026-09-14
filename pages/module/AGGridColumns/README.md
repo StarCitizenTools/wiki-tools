@@ -9,7 +9,7 @@ Required by [Module:DataGrid](https://starcitizen.tools/Module:DataGrid) and [Mo
 ### API
 
 - `buildColumnDefs(specs)` → AG Grid `columnDefs`, one per spec.
-- `buildRowData(results, specs)` → AG Grid `rowData`, one row per `mw.smw.ask` result.
+- `buildRowData(results, specs)` → AG Grid `rowData`, one row per result the consumer fetched (a `Module:Entity/Store` row, for both current consumers).
 - Each kind (`Module:AGGridColumns/Kind/<Name>`) exposes `p.type` (the JS colDef `type` string, or `false` for a type-less column), `p.buildColDef(spec)`, and `p.buildCellValue(spec, result)`, registered by name in [Module:AGGridColumns/Registry](https://starcitizen.tools/Module:AGGridColumns/Registry). [Module:AGGridColumns/Contract](https://starcitizen.tools/Module:AGGridColumns/Contract) validates the shape; `testcases` loops every kind through it, so a kind missing a piece fails a unit test, not a render.
 
 Kinds, per [Module:AGGridColumns/Registry](https://starcitizen.tools/Module:AGGridColumns/Registry):
@@ -17,12 +17,12 @@ Kinds, per [Module:AGGridColumns/Registry](https://starcitizen.tools/Module:AGGr
 | kind | JS type | cell value | used by |
 |---|---|---|---|
 | `image` | `aggridImage` | linked thumbnail | none currently (spare) |
-| `link` | `aggridLink` | linked page | DataGrid, auto-classified page-link columns |
+| `link` | `aggridLink` | linked page | DataGrid, PAGE-typed columns |
 | `linkList` | `aggridLinkList` | list of links | PledgeVehicleGrid loaner |
-| `valueList` | `aggridLinkList` | list of plain-text tags and/or links (set filter splits per value) | DataGrid, auto-classified multi-valued columns |
+| `valueList` | `aggridLinkList` | list of plain-text tags and/or links; an item wrapping one link links as a whole (set filter splits per value) | DataGrid, repeated TEXT columns |
 | `text` | *(none)* | plain text | PledgeVehicleGrid text columns |
 | `date` | *(none)* | ISO date string (`cellDataType: 'dateString'`) | PledgeVehicleGrid concept date |
-| `smart` | `scwSmart` | numeric-aware text | DataGrid, auto-classified plain columns |
+| `smart` | `scwSmart` | numeric-aware text | DataGrid, TEXT columns |
 | `number` | `numericColumn` | real number + Intl format | PledgeVehicleGrid stats |
 | `card` | `scwEntityCard` | thumb + eyebrow + title | PledgeVehicleGrid vehicle card, DataGrid lead |
 | `stackedValue` | `scwStackedValue` | primary over muted secondary | PledgeVehicleGrid prices |
@@ -36,6 +36,6 @@ Adding a kind: author `Kind/<Name>` satisfying the contract, add one line to `Re
 ### Gotchas
 
 - `buildColumnDefs`/`buildRowData` raise a hard Lua error for a `kind` not in the registry; there is no silent fallback column.
-- [SMW](https://www.mediawiki.org/wiki/Extension:Semantic_MediaWiki)-value decoding (`decodeScalar`, `toText`, `toNumber`, `parseLink`, `buildThumb`, `buildLinkList`, `buildValueList`, `classifyColumn`, `cloneFormat`, `looksNumeric`) lives in [Module:AGGridColumns/Util](https://starcitizen.tools/Module:AGGridColumns/Util), shared by every kind and by consumers directly.
+- Stored-value decoding (`decodeScalar`, `toText`, `toNumber`, `parseLink`, `pageTarget`, `buildThumb`, `buildLinkList`, `buildValueList`, `cloneFormat`) lives in [Module:AGGridColumns/Util](https://starcitizen.tools/Module:AGGridColumns/Util), shared by every kind and by consumers directly.
 - `Kind/Date`'s `cellDataType` is declared, not inferred: AG Grid reads `rowData[0][field]` alone to infer a column's data type, so a first row with a missing or non-ISO value would otherwise silently drop the date filter's comparator.
 - `Kind/SignedBar`'s `good` is read against the value's sign, not a fixed polarity: 0 or a spec with no `good` leaves the cell's `good` field absent (neutral), distinct from `false` (leans the wrong way).

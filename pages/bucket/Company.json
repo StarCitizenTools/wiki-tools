@@ -1,0 +1,62 @@
+{
+	"area_served": {
+		"type": "PAGE",
+		"index": true,
+		"repeated": true
+	},
+	"founded": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": false
+	},
+	"founder": {
+		"type": "PAGE",
+		"index": true,
+		"repeated": true
+	},
+	"headquarters": {
+		"type": "PAGE",
+		"index": true,
+		"repeated": true
+	},
+	"industry": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": true
+	},
+	"manufacturer_code": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": false
+	},
+	"parent_company": {
+		"type": "PAGE",
+		"index": false,
+		"repeated": false
+	},
+	"predecessor": {
+		"type": "PAGE",
+		"index": true,
+		"repeated": true
+	},
+	"products": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": true
+	},
+	"race": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": false
+	},
+	"subsidiaries": {
+		"type": "PAGE",
+		"index": true,
+		"repeated": true
+	},
+	"successor": {
+		"type": "PAGE",
+		"index": true,
+		"repeated": true
+	}
+}

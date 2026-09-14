@@ -18,6 +18,7 @@ local api = require('Module:Entity/Api')
 local assembly = require('Module:Entity/Assembly')
 local editorial = require('Module:Entity/Editorial')
 local registry = require('Module:Entity/Registry')
+local store = require('Module:Entity/Store')
 local typeResolver = require('Module:Entity/TypeResolver')
 
 local p = {}
@@ -37,47 +38,10 @@ local function detectFacets(apiData)
 	return matched
 end
 
---- Returns the SMW property prefix for the current page's namespace.
---- Mirrors Module:Entity/StructuredData so reads round-trip with writes:
---- mainspace uses no prefix, other namespaces are prefixed (e.g.
---- `user_` on User: pages) so test pages don't pollute canonical
---- queries.
----
---- @return string
-local function getSmwPrefix()
-	local nsText = mw.title.getCurrentTitle().nsText
-	if nsText == '' then
-		return ''
-	end
-	return nsText:lower():gsub(' ', '_') .. '_'
-end
-
---- Reads the entity UUID stored on the current page via SMW's `#show`
---- parser function. Tries the new lowercase `uuid` property first,
---- then the legacy `UUID` property for compatibility with pages that
---- haven't been re-rendered since the schema change. Sibling renderers
---- can therefore omit the uuid arg as long as Module:Entity was
---- invoked earlier on the page (so the SMW store has the value from
---- the previous parse).
----
---- @param frame table
---- @return string|nil
-local function readSmwUuid(frame)
-	local prefix = getSmwPrefix()
-	local pageName = mw.title.getCurrentTitle().fullText
-	for _, propName in ipairs({ prefix .. 'uuid', prefix .. 'UUID' }) do
-		local value = frame:callParserFunction('#show', pageName, '?' .. propName)
-		if value and value ~= '' then
-			return value
-		end
-	end
-	return nil
-end
-
 --- Parses frame arguments into a simple table, merging frame.args with
 --- parent frame args (template invocation). Empty strings become nil.
---- When `uuid` is absent from both, falls back to the SMW-stored UUID
---- on the current page (set by Module:Entity on a prior parse).
+--- When `uuid` is absent from both, falls back to the uuid stored in Bucket
+--- on a prior link update.
 ---
 --- @param frame table The MediaWiki frame object
 --- @return table args
@@ -95,12 +59,11 @@ function p.parseArgs(frame)
 			end
 		end
 	end
-	-- Fall back to the page's stored SMW uuid only when the editor hasn't declared an
-	-- explicit kind. An editorial page (|kind=…) states its identity in wikitext; it
-	-- must not resurrect a stale/placeholder SMW uuid (e.g. an all-zeros or legacy
-	-- dev-stub value) — that would defeat editorial mode and re-store the bad uuid.
+	-- No uuid in wikitext and no declared kind: fall back to the uuid this page
+	-- stored in Bucket on a previous link update, so sibling renderers can omit
+	-- the arg. An editorial page (|kind=) must not resurrect a stale value.
 	if not args.uuid and not args.kind then
-		args.uuid = readSmwUuid(frame)
+		args.uuid = store.selfUuid()
 	end
 	return args
 end
@@ -366,7 +329,10 @@ function p.get(args)
 	end
 
 	-- Canonical kind name (Item when nothing matched, mirroring resolveLeaf's
-	-- fallback), kept for off-repo consumers; nothing in this repo reads it.
+	-- fallback), exposed as result.kind and ctx.kind for consumers and hooks. The
+	-- Bucket route is deliberately NOT this value: Module:Entity passes
+	-- result.matchedKind's name, so a page whose kind never resolved writes only
+	-- its entity-routable keys instead of routing as an Item.
 	local kind = (matchedKind and matchedKind.name) or 'Item'
 
 	local leaf = chain[#chain]

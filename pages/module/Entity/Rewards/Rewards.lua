@@ -1,14 +1,14 @@
 require('strict')
 
 local Data = require('Module:Entity/Data')
-local DataStore = require('Module:Entity/StructuredData')
 local TableLua = require('Module:TableLua')
+local Lines = require('Module:Entity/Rewards/Lines')
 
 local function renderEmpty(message)
 	return tostring(mw.html.create('p'):addClass('t-entity-order-empty'):wikitext(message))
 end
 
-local function processBlueprints(groups, rewardsTable)
+local function processBlueprints(groups)
 	local data = {}
 
 	for i, group in ipairs(groups) do
@@ -16,9 +16,7 @@ local function processBlueprints(groups, rewardsTable)
 		local blueprints = {}
 
 		for _, blueprint in ipairs(group.items) do
-			local str = string.format('[[%s]] blueprint', blueprint.name)
-			table.insert(blueprints, { str })
-			table.insert(rewardsTable, str)
+			table.insert(blueprints, { Lines.blueprintLine(blueprint) })
 		end
 
 		table.insert(data, { info = info, values = blueprints })
@@ -27,7 +25,7 @@ local function processBlueprints(groups, rewardsTable)
 	return data
 end
 
-local function processItems(groups, rewardsTable)
+local function processItems(groups)
 	local data = {}
 
 	for _, group in ipairs(groups) do
@@ -39,9 +37,7 @@ local function processItems(groups, rewardsTable)
 		local items = {}
 
 		for _, item in ipairs(group.items) do
-			local str = string.format('%dx [[%s]]', item.amount, item.name)
-			table.insert(items, { str })
-			table.insert(rewardsTable, str)
+			table.insert(items, { Lines.itemLine(item) })
 		end
 
 		table.insert(data, { info = info, values = items })
@@ -98,15 +94,13 @@ function p.main(frame)
 	local rewardGroups = result.apiData.reward_groups
 	local blueprintGroups = result.apiData.blueprints
 
-	local rewardsTable = {}
-
 	root:tag('h3'):wikitext('Items')
 	if result.hasApiError then
 		root:wikitext(renderEmpty('Item data unavailable.'))
 	elseif not rewardGroups or #rewardGroups == 0 then
 		root:wikitext(renderEmpty('No items awarded for this contract.'))
 	else
-		root:wikitext(renderSection(processItems(rewardGroups, rewardsTable)))
+		root:wikitext(renderSection(processItems(rewardGroups)))
 	end
 
 	root:tag('h3'):wikitext('Blueprints')
@@ -115,10 +109,8 @@ function p.main(frame)
 	elseif not blueprintGroups or #blueprintGroups == 0 then
 		root:wikitext(renderEmpty('No blueprints awarded for this contract.'))
 	else
-		root:wikitext(renderSection(processBlueprints(blueprintGroups, rewardsTable)))
+		root:wikitext(renderSection(processBlueprints(blueprintGroups)))
 	end
-
-	DataStore.store({ rewards = rewardsTable })
 
 	return styles .. tostring(root)
 end

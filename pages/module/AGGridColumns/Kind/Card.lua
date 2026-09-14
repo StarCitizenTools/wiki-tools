@@ -2,8 +2,8 @@ require('strict')
 
 --- 'card' kind — a compact entity cell (thumbnail + eyebrow + title) rendered by
 --- the gadget's scwEntityCard type. Generalised from PledgeVehicleGrid's buildCard.
---- Spec: { field, header, titleLabel, imageLabel?, filter?, filterOn?, pinned?,
----         width? | (flex?, minWidth?),
+--- Spec: { field, header, titleLabel, imageLabel?, displayLabel?, filter?,
+---         filterOn?, pinned?, width? | (flex?, minWidth?),
 ---         eyebrow? = fun(result): { text, full?, href?, icon? }|nil }.
 --- Sizing is either fixed (`width`) or flexible (`flex`, with `minWidth` as its
 --- floor) so the card can absorb a grid's leftover horizontal space.
@@ -11,6 +11,10 @@ require('strict')
 --- manufacturer to its short name + brand glyph), so this kind stays generic.
 --- `filterOn` ('title'|'eyebrow') tells the gadget which packed field the filter
 --- keys on; unset = the gadget default (eyebrow, falling back to title).
+--- `displayLabel`, when it names a non-empty string result field, is shown as
+--- the title instead of `titleLabel`'s own text; the link still targets
+--- `titleLabel`. Store's `page_name` builtin is the bare page title and does
+--- not carry a page's `{{DISPLAYTITLE}}`.
 
 local aggrid = require('mw.ext.aggrid')
 local Util = require('Module:AGGridColumns/Util')
@@ -24,6 +28,7 @@ function p.buildColDef(spec)
 	local def = {
 		field = spec.field,
 		headerName = spec.header,
+		sort = spec.sort,
 		type = 'scwEntityCard',
 		filter = spec.filter or 'aggridSet',
 		sortable = true,
@@ -57,13 +62,17 @@ end
 --- @param result table
 --- @return table|nil
 function p.buildCellValue(spec, result)
-	local titleTarget, titleDisplay = Util.parseLink(result[spec.titleLabel])
+	local titleTarget, titleDisplay = Util.pageTarget(result[spec.titleLabel])
 	if not titleTarget then
 		return nil
 	end
 	local titleLink = aggrid.link(titleTarget, titleDisplay)
+	local displayName = spec.displayLabel and result[spec.displayLabel]
+	if type(displayName) ~= 'string' or displayName == '' then
+		displayName = nil
+	end
 	local card = {
-		title = (titleLink and titleLink.text) or titleDisplay or titleTarget,
+		title = displayName or (titleLink and titleLink.text) or titleDisplay or titleTarget,
 		titleHref = titleLink and titleLink.href,
 		image = spec.imageLabel and Util.buildThumb(result[spec.imageLabel], titleTarget) or nil,
 	}

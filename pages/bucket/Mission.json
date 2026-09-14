@@ -1,0 +1,52 @@
+{
+	"available": {
+		"type": "BOOLEAN",
+		"index": true,
+		"repeated": false
+	},
+	"faction": {
+		"type": "TEXT",
+		"index": false,
+		"repeated": false
+	},
+	"legality": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": false
+	},
+	"orders": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": true
+	},
+	"reputation_max": {
+		"type": "TEXT",
+		"index": false,
+		"repeated": false
+	},
+	"reputation_min": {
+		"type": "TEXT",
+		"index": false,
+		"repeated": false
+	},
+	"rewards": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": true
+	},
+	"scrip": {
+		"type": "INTEGER",
+		"index": false,
+		"repeated": false
+	},
+	"type": {
+		"type": "TEXT",
+		"index": false,
+		"repeated": false
+	},
+	"uec": {
+		"type": "INTEGER",
+		"index": false,
+		"repeated": false
+	}
+}

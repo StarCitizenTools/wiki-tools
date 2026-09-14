@@ -2,20 +2,10 @@ require('strict')
 
 local Data = require('Module:Entity/Data')
 local TableLua = require('Module:TableLua')
-local DataStore = require('Module:Entity/StructuredData')
+local Lines = require('Module:Entity/Orders/Lines')
 
 local function renderEmpty(message)
 	return tostring(mw.html.create('p'):addClass('t-entity-order-empty'):wikitext(message))
-end
-
-local function formatQuantity(item)
-	if item.min_scu then
-		return tostring(item.min_scu) .. ' SCU', 0, item.min_scu
-	end
-	if item.min_amount or item.max_amount then
-		return tostring(item.min_amount or item.max_amount) .. 'x', item.min_amount or item.max_amount, 0
-	end
-	return '?', 0, 0
 end
 
 local function formatSize(item)
@@ -37,7 +27,7 @@ local function formatSize(item)
 	return '1 - ' .. tostring(item.max_container_size) .. ' SCU'
 end
 
-local function processOrders(orders, ordersTable)
+local function processOrders(orders)
 	local data = {}
 	local total = {
 		unique = 0,
@@ -47,27 +37,13 @@ local function processOrders(orders, ordersTable)
 
 	for _, order in ipairs(orders) do
 		local x = {}
-		local quantity, cargo = '', ''
-		local units, scu = 0, 0
-
-		quantity, units, scu = formatQuantity(order)
-
-		if order.kind == 'TagMatch' then
-			if order.max_container_size then
-				cargo = 'Cargo'
-			else
-				cargo = 'Package'
-			end
-		else
-			cargo = '[[' .. order.name .. ']]'
-		end
+		local quantity, units, scu = Lines.formatQuantity(order)
+		local cargo = Lines.cargoLabel(order)
 
 		table.insert(x, quantity)
 		table.insert(x, cargo)
 		table.insert(x, formatSize(order))
 		table.insert(data, x)
-
-		table.insert(ordersTable, string.format('%s %s', quantity, cargo))
 
 		total.unique = total.unique + 1
 		total.units = total.units + units
@@ -111,16 +87,12 @@ function p.main(frame)
 
 	local root = mw.html.create('div'):addClass('t-entity-order-container')
 
-	local orderTable = {}
-
-	root:wikitext(processOrders(result.apiData.hauling_orders, orderTable))
+	root:wikitext(processOrders(result.apiData.hauling_orders))
 
 	local styles = mw.getCurrentFrame():extensionTag({
 		name = 'templatestyles',
 		args = { src = 'Module:Entity/Orders/styles.css' },
 	})
-
-	DataStore.store({ orders = orderTable })
 
 	return styles .. tostring(root)
 end

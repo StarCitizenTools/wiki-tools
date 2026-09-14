@@ -8,7 +8,7 @@ Editors never invoke this module directly; it runs inside [Template:Location](ht
 
 ### API
 
-- `p.AFFILIATIONS`: starmap affiliation code (lowercased) → `{ label, short }`. `short` (falling back to `label`) is the compact form stored as the [SMW](https://www.mediawiki.org/wiki/Extension:Semantic_MediaWiki) `Affiliation` value, matching the vocabulary the pre-Entity pages already store (`UEE`, `Unclaimed`).
+- `p.AFFILIATIONS`: starmap affiliation code (lowercased) → `{ label, short }`. `short` (falling back to `label`) is the compact form stored as the `Affiliation` value, matching the vocabulary the pre-Entity pages already store (`UEE`, `Unclaimed`).
 - `p.affiliationEntry(starsystem) → { label, short }|nil`: the starmap record's first affiliation entry.
 - `p.affiliationFromText(text) → { label, short?, display? }|nil`: editorial affiliation text matched against `AFFILIATIONS` on code, label or short after normalising case and punctuation; anything unmatched passes through as free text (`label` delinked for storage/categories, `display` keeps the editor's markup so they choose whether it links).
 - `p.SYSTEM_TYPES`: starmap system-type code → `{ label, category }`.

@@ -279,9 +279,10 @@ end
 --- Mining facets for querying / the type index table: the module type, each laser
 --- beam's power modifier, charges + duration for active modules, and every
 --- `modifier_map` effect as a numeric `Modifier <effect>` property (e.g. "Modifier
---- resistance" = 15.5). The effect facets are dynamic, so new effects become
---- queryable without code changes, and the `Modifier <effect>` naming reuses the
---- legacy index's property names.
+--- resistance" = 15.5). Each `modifier_<effect>` key needs a declared Bucket
+--- column, so an effect the API adds later still renders but is not stored until
+--- it gets a `Module:Entity/properties.json` entry; `item_tool` is at 45 of 60
+--- fields.
 ---
 --- @param ctx EntityHookContext
 --- @return table<string, any>

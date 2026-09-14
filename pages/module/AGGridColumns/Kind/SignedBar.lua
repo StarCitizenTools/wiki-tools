@@ -30,6 +30,7 @@ function p.buildColDef(spec)
 	local def = {
 		field = spec.field,
 		headerName = spec.header,
+		sort = spec.sort,
 		type = 'scwSignedBar',
 		filter = 'agNumberColumnFilter',
 		cellClass = 'ag-right-aligned-cell',

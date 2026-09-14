@@ -7,8 +7,8 @@ require('strict')
 --- instead of scattering scales across facets.
 ---
 --- Maxes are hand-set round numbers with a little headroom — cheaper and far
---- lower-churn than live SMW max queries on every render; refresh them from SMW
---- (e.g. a maintenance pass) if drift becomes an issue.
+--- lower-churn than querying the stored maximum on every render; refresh them
+--- from the store (e.g. a maintenance pass) if drift becomes an issue.
 
 local p = {}
 

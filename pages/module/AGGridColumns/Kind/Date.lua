@@ -15,6 +15,7 @@ function p.buildColDef(spec)
 	return {
 		field = spec.field,
 		headerName = spec.header,
+		sort = spec.sort,
 		-- AG Grid gates every filter on a truthy colDef.filter (isFilterAllowed), so
 		-- the data type's own default filter is unreachable without one.
 		filter = spec.filter or 'agDateColumnFilter',

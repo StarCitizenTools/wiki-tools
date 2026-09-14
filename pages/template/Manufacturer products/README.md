@@ -24,11 +24,11 @@ Backed by [Template:Data table](https://starcitizen.tools/Template:Data_table), 
 
 | Name | Label | Type | Required | Default | Description | Example |
 |------|-------|------|----------|---------|-------------|---------|
-| `1` | Manufacturer | string | No | (the page title) | The manufacturer whose products are listed, matched against the `Manufacturer` SMW property (the manufacturer's full name, e.g. `ArcCorp`). Override only when the manufacturer name differs from the page title. | `ArcCorp` |
+| `1` | Manufacturer | string | No | (the page title) | The manufacturer whose products are listed, matched against the `Manufacturer` property (the manufacturer's full name, e.g. `ArcCorp`). Override only when the manufacturer name differs from the page title. | `ArcCorp` |
 
 ## Behavior
 
-- Queries the `Manufacturer` property (`[[Manufacturer::…]]`), not the manufacturer category. The category collects everything tagged to the company (locations, lore, people, concept art) alongside its products; the property is set only on the company's actual products, so the table lists products and nothing else.
+- Filters on the `Manufacturer` property, not the manufacturer category. The category collects everything tagged to the company (locations, lore, people, concept art) alongside its products; the property is set only on the company's actual products, so the table lists products and nothing else.
 - Lists every product whose `Manufacturer` property matches, with the automatic lead card (page image and name) plus a filterable Type column (the `Subject type` property).
 - The manufacturer defaults to the page title. An empty table usually means the manufacturer name differs from the page title (use the override): the `Manufacturer` property stores the manufacturer's full name, e.g. `Aegis Dynamics`, not its code (`AEGS`).
 

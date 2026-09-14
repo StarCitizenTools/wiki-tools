@@ -49,7 +49,7 @@ function p.matrixSize(apiData, args)
 end
 
 --- Armor damage types for the resistance tiles (abbr under tile, full name on
---- hover) and the per-type SMW damage modifiers. Vehicle keeps its own
+--- hover) and the per-type stored damage modifiers. Vehicle keeps its own
 --- `damage_*`-keyed table + order (distinct from Facet/Util.DAMAGE_TYPES).
 p.DAMAGE_TYPES = {
 	{ key = 'damage_physical', abbr = 'PHY', label = 'Physical' },

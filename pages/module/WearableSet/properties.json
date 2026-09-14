@@ -1,0 +1,15 @@
+{
+	"%doc": "Source-of-truth manifest of the structured data Module:WearableSet stores in Bucket. Same entry shape as Module:Entity/properties.json; source names the processed value the module reads.",
+	"%kinds": { "Wearable set": ["entity", "wearable_set"] },
+	"Name": { "type": "TEXT", "bucket": "entity", "field": "name", "source": "name", "desc": "Set name (the page's subpage title when the name argument is absent)." },
+	"Subject type": { "type": "TEXT", "bucket": "entity", "field": "subject_type", "index": true, "source": "classification", "desc": "The set's classification (Light armor, Racing suit, ...), the same value Entity pages carry as their structural type." },
+	"Image": { "type": "TEXT", "bucket": "entity", "field": "image", "source": "image", "desc": "Infobox image filename without the File: prefix, the value PageImages picks as the page image." },
+	"Manufacturer": { "type": "PAGE", "bucket": "entity", "field": "manufacturer", "index": true, "source": "manufacturer", "desc": "Manufacturer page; absent for UNKN and NONE." },
+	"Type": { "type": "TEXT", "bucket": "wearable_set", "field": "type", "index": true, "source": "type", "desc": "Set type: Armor set, Flight suit, Undersuit." },
+	"Classification": { "type": "TEXT", "bucket": "wearable_set", "field": "classification", "index": true, "source": "classification", "desc": "Light armor, Medium armor, Heavy armor, Racing suit, Armored flight suit, ..." },
+	"Minimum temperature": { "type": "DOUBLE", "bucket": "wearable_set", "field": "min_temperature", "source": "tempMin", "desc": "Lowest survivable temperature across the set's pieces (the highest of the pieces' minimums)." },
+	"Maximum temperature": { "type": "DOUBLE", "bucket": "wearable_set", "field": "max_temperature", "source": "tempMax", "desc": "Highest survivable temperature across the set's pieces (the lowest of the pieces' maximums)." },
+	"Radiation": { "type": "DOUBLE", "bucket": "wearable_set", "field": "radiation", "source": "radiation", "desc": "Lowest radiation capacity among the pieces." },
+	"Radiation scrub rate": { "type": "DOUBLE", "bucket": "wearable_set", "field": "radiation_scrub_rate", "source": "radiationScrub", "desc": "Lowest radiation dissipation rate among the pieces." },
+	"G Resistance": { "type": "DOUBLE", "bucket": "wearable_set", "field": "g_resistance", "source": "gResistance", "desc": "Summed G-force resistance of undersuit and arm and leg pieces." }
+}

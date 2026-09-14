@@ -1,21 +1,23 @@
 require('strict')
 
 -- PledgeVehicleGrid: renders the List of pledge vehicles as an AG Grid via the
--- AGGrid extension. Sources every pledge vehicle from SMW (mw.smw.ask), reshapes
--- the results into AG Grid rowData, and returns the grid. Replaces the former
--- `#ask format=datatables` table: same columns, but virtualised rows, rich cells
--- (linked names, thumbnails, loaner link-lists), and REST-served data.
+-- AGGrid extension. Sources every pledge vehicle from Bucket (Module:Entity/Store),
+-- reshapes the results into AG Grid rowData, and returns the grid: virtualised
+-- rows, rich cells (linked names, thumbnails, loaner link-lists), REST-served data.
 --
--- SMW value handling: mw.smw.ask returns each row as a flat table of *formatted
--- display strings*. Numerics carry units and embed the nbsp as the literal
--- entity text "&#160;", so values are HTML-decoded before being stripped to a
--- number (otherwise the "160" leaks in). Page/file printouts return
--- wikilink/file markup ("[[:100i|100i]]", "[[File:X.png|frameless|...]]"),
--- parsed to titles here. Multi-valued printouts (Loaner) arrive as arrays.
+-- Rows come from Module:Entity/Store as typed values (numbers, bare page titles,
+-- arrays for the loaner list), which the AGGridColumns kinds take as they are.
+--
+-- An empty result and a Store failure (rate limit, bad manifest) are both
+-- contained here and reported as "no pledge vehicles stored": Bucket's
+-- per-user API limiter also answers empty when throttled, so on a live
+-- article that message can mean a transient rate limit rather than missing
+-- data.
 
 local aggrid = require('mw.ext.aggrid')
 local AGGridColumns = require('Module:AGGridColumns')
 local Util = require('Module:AGGridColumns/Util')
+local store = require('Module:Entity/Store')
 
 local p = {}
 
@@ -63,10 +65,10 @@ local PRODUCTION_VARIANT = {
 }
 
 -- Eyebrow resolver for the vehicle card: the manufacturer's short name + brand
--- glyph, parsed from the row's Manufacturer page printout. Consumer-specific
+-- glyph, read from the row's Manufacturer page value. Consumer-specific
 -- (the card kind itself stays generic). Returns nil when there's no manufacturer.
 local function manufacturerEyebrow(result)
-	local mfrTarget, mfrDisplay = Util.parseLink(result['Manufacturer'])
+	local mfrTarget, mfrDisplay = Util.pageTarget(result['Manufacturer'])
 	if not mfrTarget then
 		return nil
 	end
@@ -84,12 +86,12 @@ local function manufacturerEyebrow(result)
 	return eyebrow
 end
 
--- "Added in version" is an SMW Page (the canonical Update: patch). This is a
+-- "Added in version" is a page reference (the canonical Update: patch). This is a
 -- vehicle-only grid, so the column shows just the version label: strip the
 -- "Update:Star Citizen " / "Star Citizen " prefix the page value carries
 -- ("Update:Star Citizen Alpha 3.24.3" -> "Alpha 3.24.3"). nil when absent.
 local function flightReadyLabel(value)
-	local target = Util.parseLink(value) or Util.toText(value)
+	local target = Util.pageTarget(value)
 	if not target or target == '' then
 		return nil
 	end
@@ -103,6 +105,7 @@ local COLUMNS = {
 		kind = 'card',
 		titleLabel = 'Name',
 		imageLabel = 'Image',
+		displayLabel = 'DisplayName',
 		eyebrow = manufacturerEyebrow,
 		filter = 'aggridSet',
 		width = 300,
@@ -193,43 +196,52 @@ local COLUMNS = {
 	},
 }
 
-local function buildQuery()
+-- One Store column per grid label; the label is the result key the column
+-- kinds read, so the COLUMNS table above is unchanged. DisplayName backs the
+-- card's displayLabel: Store's page_name builtin is the bare title and does
+-- not carry a page's {{DISPLAYTITLE}}.
+local SPEC_COLUMNS = {
+	{ builtin = 'page_name', as = 'Name' },
+	{ property = 'Name', as = 'DisplayName' },
+	{ property = 'Image', as = 'Image' },
+	{ property = 'Manufacturer', as = 'Manufacturer' },
+	{ property = 'Subject type', as = 'Type' },
+	{ property = 'Career', as = 'Career' },
+	{ property = 'Role', as = 'Role' },
+	{ property = 'Size', as = 'Size' },
+	{ property = 'Ship matrix size', as = 'Store size' },
+	{ property = 'Production state', as = 'Production state' },
+	{ property = 'Pledge availability', as = 'Pledge availability' },
+	{ property = 'Pledge price', as = 'Pledge' },
+	{ property = 'Original pledge price', as = 'Orig pledge' },
+	{ property = 'Warbond pledge price', as = 'Warbond' },
+	{ property = 'Original warbond pledge price', as = 'Orig warbond' },
+	{ property = 'Loaner vehicle', as = 'Loaner' },
+	{ property = 'Average purchase price', as = 'Avg purchase' },
+	{ property = 'Average rental price', as = 'Avg daily rental' },
+	{ property = 'Entity length', as = 'Length' },
+	{ property = 'Entity width', as = 'Width' },
+	{ property = 'Entity height', as = 'Height' },
+	{ property = 'Mass', as = 'Mass' },
+	{ property = 'Minimum crew', as = 'Min crew' },
+	{ property = 'Maximum crew', as = 'Max crew' },
+	{ property = 'Storage capacity', as = 'Inventory' },
+	{ property = 'Cargo capacity', as = 'Cargo' },
+	{ property = 'Scm speed', as = 'SCM speed' },
+	{ property = 'Max speed', as = 'Max speed' },
+	{ property = 'Roll rate', as = 'Roll' },
+	{ property = 'Pitch rate', as = 'Pitch' },
+	{ property = 'Yaw rate', as = 'Yaw' },
+	{ property = 'Concept announcement date', as = 'Concept date' },
+	{ property = 'Added in version', as = 'Flight ready' },
+}
+
+local function buildSpec()
 	return {
-		'[[:+]] [[Category:Pledge ships||Pledge vehicles]]',
-		'?Page Image=Image',
-		'?=Name',
-		'?Manufacturer',
-		'?Subject type=Type',
-		'?Career',
-		'?Role',
-		'?Size#-=Size',
-		'?Ship matrix size=Store size',
-		'?Production state#-=Production state',
-		'?Pledge availability#-=Pledge availability',
-		'?Pledge price#-=Pledge',
-		'?Original pledge price#-=Orig pledge',
-		'?Warbond pledge price#-=Warbond',
-		'?Original warbond pledge price#-=Orig warbond',
-		'?Loaner vehicle=Loaner',
-		'?Average purchase price#-=Avg purchase',
-		'?Average rental price#-=Avg daily rental',
-		'?Entity length#-=Length',
-		'?Entity width#-=Width',
-		'?Entity height#-=Height',
-		'?Mass#-=Mass',
-		'?Minimum crew#-=Min crew',
-		'?Maximum crew#-=Max crew',
-		'?Storage capacity#-=Inventory',
-		'?Cargo capacity#-=Cargo',
-		'?Scm speed#-=SCM speed',
-		'?Max speed#-=Max speed',
-		'?Roll rate#-=Roll',
-		'?Pitch rate#-=Pitch',
-		'?Yaw rate#-=Yaw',
-		'?Concept announcement date#-=Concept date',
-		'?Added in version=Flight ready',
-		'mainlabel=-',
-		'limit=1000',
+		kind = 'Vehicle',
+		filters = { { any = { 'Category:Pledge ships', 'Category:Pledge vehicles' } } },
+		columns = SPEC_COLUMNS,
+		limit = 1000,
 	}
 end
 
@@ -237,9 +249,9 @@ end
 --- @param frame mw.frame
 --- @return string
 function p.main(frame)
-	local results = mw.smw.ask(buildQuery())
-	if type(results) ~= 'table' then
-		return '<strong class="error">Module:PledgeVehicleGrid: no results from SMW.</strong>'
+	local ok, results = pcall(store.query, buildSpec())
+	if not ok or #results == 0 then
+		return '<strong class="error">Module:PledgeVehicleGrid: no pledge vehicles stored.</strong>'
 	end
 
 	-- Pre-clean the "Added in version" Page value to a bare version label for the
@@ -278,5 +290,8 @@ function p.main(frame)
 
 	return styles .. '<div class="t-pledge-grid">' .. aggrid.render(gridOptions) .. '</div>'
 end
+
+-- Test-only exports. Not part of the public API.
+p._internal = { buildSpec = buildSpec, flightReadyLabel = flightReadyLabel, columns = COLUMNS }
 
 return p

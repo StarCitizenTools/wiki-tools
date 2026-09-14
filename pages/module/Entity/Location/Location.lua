@@ -149,8 +149,8 @@ end
 --- @return table
 function p.getEditorialManifest()
 	return {
-		discoveredin = { arg = 'discoveredin', smw = 'Discovered in' },
-		discoveredby = { arg = 'discoveredby', smw = 'Discovered by' },
+		discoveredin = { arg = 'discoveredin', property = 'Discovered in' },
+		discoveredby = { arg = 'discoveredby', property = 'Discovered by' },
 		historicalnames = { arg = 'historicalnames' },
 	}
 end

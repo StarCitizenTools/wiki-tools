@@ -1,6 +1,6 @@
 # Module:Tiles
 
-A generic image-led grid renderer: each tile is an image with optional primary/secondary labels overlaid at the bottom, and the whole tile is clickable via a fakelink (a transparent absolutely-positioned `[[Page|Text]]` wikilink; MediaWiki's sanitizer strips raw `<a>` tags, so anchors only exist when the parser generates them from wikitext). Pure rendering: callers pass fully resolved rows, so lookup concerns ([SMW](https://www.mediawiki.org/wiki/Extension:Semantic_MediaWiki) resolution, API fetching) stay in the caller.
+A generic image-led grid renderer: each tile is an image with optional primary/secondary labels overlaid at the bottom, and the whole tile is clickable via a fakelink (a transparent absolutely-positioned `[[Page|Text]]` wikilink; MediaWiki's sanitizer strips raw `<a>` tags, so anchors only exist when the parser generates them from wikitext). Pure rendering: callers pass fully resolved rows, so lookup concerns (page resolution, API fetching) stay in the caller.
 
 Required by [Module:Entity/Related](https://starcitizen.tools/Module:Entity/Related) and [Module:Entity/UsedBy](https://starcitizen.tools/Module:Entity/UsedBy); not invoked from templates.
 
@@ -18,7 +18,7 @@ Required by [Module:Entity/Related](https://starcitizen.tools/Module:Entity/Rela
 | `placeholderImage` | `string` | `'Placeholderv2.png'` | Used when a row has no `image`. |
 | `imageWidth` | `string` | `'320px'` | Thumbnail width hint passed to `[[File:…\|<width>\|link=]]`. |
 
-**TilesRow**: `linkLabel` (required accessible text; a row without one is skipped, since there is no label to build a sanitizer-safe wikilink from), `page?` (falls back to `linkLabel`, rendering a red link to the bare name), `image?` (falls back to `placeholderImage`), `primary?` (prominent label), `secondary?` (kicker above `primary`).
+**TilesRow**: `linkLabel` (required accessible text; a row without one is skipped, since there is no label to build a sanitizer-safe wikilink from), `page?` (falls back to `linkLabel`, rendering a red link to the bare name), `image?` (falls back to `placeholderImage`), `primary?` (prominent label), `secondary?` (kicker above `primary`), `selected?` (adds the `t-tiles__tile--selected` modifier class, e.g. [Module:Entity/Related](https://starcitizen.tools/Module:Entity/Related) flagging the current page among a vehicle's series-mates).
 
 ### Gotchas
 
@@ -27,4 +27,4 @@ Required by [Module:Entity/Related](https://starcitizen.tools/Module:Entity/Rela
 
 ### Styles
 
-Consumer-targetable classes: `t-tiles` (grid root, holds the two custom properties above), `t-tiles__tile` (one tile, `position: relative` anchor for the fakelink), `t-tiles__link` (the transparent absolutely-positioned wikilink wrapper), `t-tiles__image`, `t-tiles__label`, `t-tiles__primary` / `t-tiles__secondary` (both single-line with ellipsis).
+Consumer-targetable classes: `t-tiles` (grid root, holds the two custom properties above), `t-tiles__tile` (one tile, `position: relative` anchor for the fakelink), `t-tiles__tile--selected` (a `selected` row's border highlight, compounded with `t-tiles__tile` so it outranks the base tile's `border` shorthand on specificity), `t-tiles__link` (the transparent absolutely-positioned wikilink wrapper), `t-tiles__image`, `t-tiles__label`, `t-tiles__primary` / `t-tiles__secondary` (both single-line with ellipsis).

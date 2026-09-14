@@ -10,7 +10,7 @@ Explicit UUID, same invocation for every kind:
 {{Entity/Availability|uuid=80ee3b95-5665-4548-9e2d-d2067895c0ac}}
 ```
 
-When `{{Entity}}` has been invoked earlier on the page, the UUID can be omitted; it falls back to the value a previous parse stored in [SMW](https://www.mediawiki.org/wiki/Extension:Semantic_MediaWiki) on the current page, so on a brand-new page it resolves only after the page has been saved and re-parsed (purged or re-saved):
+When `{{Entity}}` has been invoked earlier on the page, the UUID can be omitted; it falls back to the value a previous parse stored on the current page, so on a brand-new page it resolves only after the page has been saved and re-parsed (purged or re-saved):
 
 ```wikitext
 {{Entity}}
@@ -29,7 +29,7 @@ Editor overrides for the summary flags, set only when the API-derived value is w
 
 | Name | Label | Type | Required | Default | Description | Example |
 |------|-------|------|----------|---------|-------------|---------|
-| `uuid` | UUID | string | No | (falls back to the SMW uuid stored by a prior `{{Entity}}` parse) | UUID of the entity to render. Required if `{{Entity}}` hasn't been invoked. | `80ee3b95-5665-4548-9e2d-d2067895c0ac` |
+| `uuid` | UUID | string | No | (falls back to the uuid stored by a prior `{{Entity}}` parse) | UUID of the entity to render. Required if `{{Entity}}` hasn't been invoked. | `80ee3b95-5665-4548-9e2d-d2067895c0ac` |
 | `canBuy` | Can buy | boolean | No | (derived from UEX purchase data, all three kinds) | Override for the "Buy" summary flag. Set to `no` when UEX has stale prices for an entity removed from shops. | `no` |
 | `canRent` | Can rent | boolean | No | (items: card hidden unless set; vehicles: derived from uex_prices.rental; not used for commodities) | Whether the entity is rentable; for items the card is hidden by default. | `yes` |
 | `canLoot` | Can loot | boolean | No | (items: derived from apiData.is_lootable; not used for vehicles or commodities) | Override for the "Loot" summary flag. Items only. | `yes` |
@@ -57,7 +57,7 @@ Editor overrides for the summary flags, set only when the API-derived value is w
 
 ## See also
 
-- [Template:Entity](https://starcitizen.tools/Template:Entity), the infobox that owns the page's SMW data, SHORTDESC, and categories; sets the uuid this template falls back to.
+- [Template:Entity](https://starcitizen.tools/Template:Entity), the infobox that owns the page's structured data, SHORTDESC, and categories; sets the uuid this template falls back to.
 - [Template:Entity/Related](https://starcitizen.tools/Template:Entity/Related), sibling renderer for set components and cosmetic variants.
 - [Template:Entity/Description](https://starcitizen.tools/Template:Entity/Description), sibling renderer for the in-game description.
 - [Module:Entity/Availability](https://starcitizen.tools/Module:Entity/Availability), the implementation.

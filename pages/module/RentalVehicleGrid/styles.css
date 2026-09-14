@@ -1,0 +1,19 @@
+/* Presentation for the rental grid. The wrapper class is .t-pledge-grid because
+   this module reuses the pledge grid's wrapper; each module loads its own copy of
+   this file, so the two can diverge. */
+
+/* Map the height of the grid element to the custom property, falling back to 70vh */
+.t-pledge-grid .ext-aggrid {
+	height: var(--scw-grid-height, 70vh);
+}
+
+/* Vertically centre cell content within the row. */
+.t-pledge-grid .ag-cell {
+	display: flex;
+	align-items: center;
+}
+
+/* Keep numeric columns right-aligned now that the cell is a flex container. */
+.t-pledge-grid .ag-cell.ag-right-aligned-cell {
+	justify-content: flex-end;
+}

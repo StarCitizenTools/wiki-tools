@@ -23,3 +23,7 @@ Every row's price, vehicle and terminal data comes from [UEX](https://uexcorp.sp
 - Only the cheapest rental per ship/location pairing is kept; a costlier duplicate at the same location is dropped rather than shown alongside it.
 - The card, link, and value-list cell renderers come from [Module:AGGridColumns](https://starcitizen.tools/Module:AGGridColumns) and its `Kind/*` submodules, not from this module.
 - `Module:RentalVehicleGrid/styles.css` is bundled automatically, scoped to the `.t-pledge-grid` wrapper it shares with [Module:PledgeVehicleGrid](https://starcitizen.tools/Module:PledgeVehicleGrid).
+
+### Styles
+
+[Module:RentalVehicleGrid/styles.css](https://starcitizen.tools/Module:RentalVehicleGrid/styles.css) styles the `.t-pledge-grid` wrapper, the class this module reuses from [Module:PledgeVehicleGrid](https://starcitizen.tools/Module:PledgeVehicleGrid). Each module loads its own copy, so the two files may differ. A cell holds one line and clips what does not fit, matching the pledge grid: AG Grid sizes its line height to centre a single line in the row, so a wrapping cell would put its lines almost a row apart.

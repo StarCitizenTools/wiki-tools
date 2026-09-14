@@ -1,0 +1,257 @@
+{
+	"boost_speed": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"coolant_generation": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"cooling_rate": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"distortion": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"em_signature": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"emp_charge_time": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"emp_cooldown": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"emp_distortion_damage": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"emp_duration": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"emp_radius": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"g_force_resistance": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"health": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"ir_signature": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"jump_alignment_rate": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"jump_fuel_usage_multiplier": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"jump_tuning_rate": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"max_speed": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"maximum_temperature": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"minimum_temperature": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"pitch": {
+		"type": "TEXT",
+		"index": false,
+		"repeated": false
+	},
+	"pitch_boosted": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"pitch_max": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"pitch_min": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"power_generation": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"power_output": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"qig_charge_time": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"qig_cooldown": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"qig_dampener_range": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"qig_duration": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"qig_mode": {
+		"type": "TEXT",
+		"index": false,
+		"repeated": false
+	},
+	"qig_snare_range": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"quantum_cooldown": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"quantum_fuel_requirement": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"quantum_speed": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"quantum_spool_time": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"radar_aim_assist_range": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"radar_cooldown": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"radar_resource_sensitivity": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"radar_sensitivity": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"radiation_capacity": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"radiation_dissipation": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"roll": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"roll_boosted": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"scm_speed": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"shield_health": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"shield_regen_delay": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"shield_regeneration": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"yaw": {
+		"type": "TEXT",
+		"index": false,
+		"repeated": false
+	},
+	"yaw_boosted": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"yaw_max": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"yaw_min": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	}
+}

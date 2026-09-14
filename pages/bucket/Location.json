@@ -1,0 +1,72 @@
+{
+	"affiliation": {
+		"type": "TEXT",
+		"index": false,
+		"repeated": false
+	},
+	"destination_system": {
+		"type": "PAGE",
+		"index": false,
+		"repeated": false
+	},
+	"discovered_by": {
+		"type": "TEXT",
+		"index": false,
+		"repeated": false
+	},
+	"discovered_in": {
+		"type": "TEXT",
+		"index": false,
+		"repeated": false
+	},
+	"jump_point_count": {
+		"type": "INTEGER",
+		"index": false,
+		"repeated": false
+	},
+	"jump_point_size": {
+		"type": "TEXT",
+		"index": false,
+		"repeated": false
+	},
+	"manual_api_field": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": true
+	},
+	"moon_count": {
+		"type": "INTEGER",
+		"index": false,
+		"repeated": false
+	},
+	"planet_count": {
+		"type": "INTEGER",
+		"index": false,
+		"repeated": false
+	},
+	"star_count": {
+		"type": "INTEGER",
+		"index": false,
+		"repeated": false
+	},
+	"station_count": {
+		"type": "INTEGER",
+		"index": false,
+		"repeated": false
+	},
+	"system": {
+		"type": "PAGE",
+		"index": false,
+		"repeated": false
+	},
+	"system_size": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"system_type": {
+		"type": "TEXT",
+		"index": false,
+		"repeated": false
+	}
+}

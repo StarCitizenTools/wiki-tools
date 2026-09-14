@@ -1,0 +1,202 @@
+{
+	"added_in_version": {
+		"type": "PAGE",
+		"index": true,
+		"repeated": false
+	},
+	"average_purchase_price": {
+		"type": "INTEGER",
+		"index": false,
+		"repeated": false
+	},
+	"average_rental_price": {
+		"type": "INTEGER",
+		"index": false,
+		"repeated": false
+	},
+	"beds": {
+		"type": "INTEGER",
+		"index": false,
+		"repeated": false
+	},
+	"career": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": false
+	},
+	"cargo_capacity": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"concept_announcement_date": {
+		"type": "TEXT",
+		"index": false,
+		"repeated": false
+	},
+	"concept_sale_date": {
+		"type": "TEXT",
+		"index": false,
+		"repeated": false
+	},
+	"crew_stations": {
+		"type": "INTEGER",
+		"index": false,
+		"repeated": false
+	},
+	"entity_height": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"entity_length": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"entity_width": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"generation": {
+		"type": "TEXT",
+		"index": false,
+		"repeated": false
+	},
+	"insurance_claim_time": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"insurance_expedite_cost": {
+		"type": "INTEGER",
+		"index": false,
+		"repeated": false
+	},
+	"insurance_expedite_time": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"loaner_vehicle": {
+		"type": "PAGE",
+		"index": true,
+		"repeated": true
+	},
+	"lore_release_date": {
+		"type": "TEXT",
+		"index": false,
+		"repeated": false
+	},
+	"lore_retirement_date": {
+		"type": "TEXT",
+		"index": false,
+		"repeated": false
+	},
+	"manual_api_field": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": true
+	},
+	"mass": {
+		"type": "INTEGER",
+		"index": false,
+		"repeated": false
+	},
+	"maximum_cargo_container_size": {
+		"type": "INTEGER",
+		"index": false,
+		"repeated": false
+	},
+	"maximum_crew": {
+		"type": "INTEGER",
+		"index": false,
+		"repeated": false
+	},
+	"medical_bed_tier": {
+		"type": "INTEGER",
+		"index": false,
+		"repeated": false
+	},
+	"minimum_crew": {
+		"type": "INTEGER",
+		"index": false,
+		"repeated": false
+	},
+	"ore_capacity": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"original_pledge_price": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"original_warbond_pledge_price": {
+		"type": "INTEGER",
+		"index": false,
+		"repeated": false
+	},
+	"pledge_availability": {
+		"type": "TEXT",
+		"index": false,
+		"repeated": false
+	},
+	"pledge_price": {
+		"type": "INTEGER",
+		"index": false,
+		"repeated": false
+	},
+	"production_state": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": false
+	},
+	"retracted_height": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"retracted_length": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"retracted_width": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"role": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": false
+	},
+	"series": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": false
+	},
+	"ship_matrix_size": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": false
+	},
+	"storage_capacity": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"warbond_pledge_price": {
+		"type": "INTEGER",
+		"index": false,
+		"repeated": false
+	},
+	"weapon_rack_capacity": {
+		"type": "INTEGER",
+		"index": false,
+		"repeated": false
+	}
+}

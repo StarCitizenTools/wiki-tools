@@ -1,52 +1,71 @@
 {
-	"%doc": "Source-of-truth manifest of the SMW properties Module:Entity emits as structured data (StructuredData.store -> mw.smw.set). Each Property: page is generated from this with [[Has type::<smw>]]. Bucket-forward: only PAGE/TEXT/INTEGER/DOUBLE/BOOLEAN are used (never Quantity); data is stored UNITLESS (units are a render concern). `bucket` records the intended Bucket field type for the future migration (SMW has no integer/double split). `modules` lists the emitting Entity module(s). Multi-valued props (Effects/Systems) are TEXT for now; revisit their modeling at Bucket time.",
-	"%patterns": [
-		{
-			"keyMatch": "^modifier_(.+)$",
-			"property": "Modifier %s",
-			"smw": "Number",
-			"bucket": "DOUBLE",
-			"modules": [
-				"Facet/Mining"
-			],
-			"desc": "Per-effect mining modifier (dynamic; e.g. modifier_resistance -> 'Modifier resistance')."
-		}
-	],
+	"%doc": "Source-of-truth manifest of the structured data Module:Entity stores in Bucket. Keys are display names, which Module:Entity/StructuredData derives from the emitter key (ucfirst, underscores to spaces). type: Bucket field type; bucket: Bucket table, or an object keyed by kind name when the same property lives in a different table per kind; field: the Bucket column (lowercase snake_case of the emitter key); index/repeated: Bucket flags, absent = false; modules: emitting Entity modules. Data is stored UNITLESS. pages/bucket/<Name>.json schemas are generated from this file by `mise run bucket:schemas`. Limits verified live: 60 fields per bucket, bucket+field name at most 51 characters, repeated implies index.",
+	"%kinds": {
+		"Vehicle": [
+			"entity",
+			"vehicle",
+			"vehicle_stats"
+		],
+		"Item": [
+			"entity",
+			"item_weapon",
+			"item_component",
+			"item_tool"
+		],
+		"Commodity": [
+			"entity",
+			"commodity"
+		],
+		"Location": [
+			"entity",
+			"location"
+		],
+		"Mission": [
+			"entity",
+			"mission"
+		]
+	},
 	"Acquisition kind": {
-		"smw": "Text",
-		"bucket": "TEXT",
+		"type": "TEXT",
+		"bucket": "commodity",
+		"field": "acquisition_kind",
 		"modules": [
 			"Commodity"
 		],
 		"desc": "Acquisition kind of a commodity record."
 	},
 	"Added in version": {
-		"smw": "Page",
-		"bucket": "PAGE",
+		"type": "PAGE",
+		"bucket": "vehicle",
+		"field": "added_in_version",
+		"index": true,
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Game update in which an entity first became available in-game (the canonical Update: patch page). For vehicles this is the flight-ready patch, rendered as the Development \"Flight ready in\" row."
 	},
 	"Affiliation": {
-		"smw": "Text",
-		"bucket": "TEXT",
+		"type": "TEXT",
+		"bucket": "location",
+		"field": "affiliation",
 		"modules": [
 			"Location/StarSystem"
 		],
 		"desc": "Controlling empire / affiliation of a star system, in the compact vocabulary the pre-Entity pages already store ('UEE', 'Unclaimed', ...) so queries keep one value bucket."
 	},
 	"Alpha damage": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_weapon",
+		"field": "alpha_damage",
 		"modules": [
 			"WeaponGun"
 		],
 		"desc": "Per-shot (alpha) damage of a weapon."
 	},
 	"Ammo": {
-		"smw": "Number",
-		"bucket": "INTEGER",
+		"type": "INTEGER",
+		"bucket": "item_weapon",
+		"field": "ammo",
 		"modules": [
 			"WeaponGun",
 			"WeaponPersonal"
@@ -54,176 +73,192 @@
 		"desc": "Magazine / ammunition capacity of a weapon."
 	},
 	"Arm time": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_weapon",
+		"field": "arm_time",
 		"modules": [
 			"Bomb"
 		],
 		"desc": "Arming delay of a bomb, in seconds."
 	},
 	"Available": {
-		"smw": "Boolean",
-		"bucket": "BOOLEAN",
+		"type": "BOOLEAN",
+		"bucket": "mission",
+		"field": "available",
+		"index": true,
 		"modules": [
 			"Mission"
 		],
 		"desc": "Whether a mission is currently available."
 	},
 	"Average purchase price": {
-		"smw": "Number",
-		"bucket": "INTEGER",
+		"type": "INTEGER",
+		"bucket": "vehicle",
+		"field": "average_purchase_price",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Estimated in-game purchase price of a vehicle (median of the latest patch's UEX terminal prices), in aUEC."
 	},
 	"Average rental price": {
-		"smw": "Number",
-		"bucket": "INTEGER",
+		"type": "INTEGER",
+		"bucket": "vehicle",
+		"field": "average_rental_price",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Estimated in-game rental price of a vehicle (median of the latest patch's UEX terminal prices), in aUEC."
 	},
 	"Base variant": {
-		"smw": "Boolean",
-		"bucket": "BOOLEAN",
+		"type": "BOOLEAN",
+		"bucket": "entity",
+		"field": "base_variant",
+		"index": true,
 		"modules": [
 			"Item"
 		],
 		"desc": "Whether an item is the canonical base piece (true) rather than a colorway or edition variant (false)."
 	},
 	"Beam force": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_tool",
+		"field": "beam_force",
 		"modules": [
 			"Beam"
 		],
 		"desc": "Pull/push force of a tractor or towing beam, in newtons."
 	},
 	"Beam max angle": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_tool",
+		"field": "beam_max_angle",
 		"modules": [
 			"Beam"
 		],
 		"desc": "Maximum articulation angle of a tractor/towing beam, in degrees."
 	},
 	"Beam mode force": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_tool",
+		"field": "beam_mode_force",
 		"modules": [
 			"Beam"
 		],
 		"desc": "Heavy-lift mode force of a beam (cargo/tow), in newtons."
 	},
 	"Beam range": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_tool",
+		"field": "beam_range",
 		"modules": [
 			"Beam"
 		],
 		"desc": "Maximum range of a tractor/towing beam, in metres."
 	},
 	"Beam tether break": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_tool",
+		"field": "beam_tether_break",
 		"modules": [
 			"Beam"
 		],
 		"desc": "Tether break time of a towing beam, in seconds."
 	},
 	"Beds": {
-		"smw": "Number",
-		"bucket": "INTEGER",
+		"type": "INTEGER",
+		"bucket": "vehicle",
+		"field": "beds",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Number of beds aboard a vehicle."
 	},
 	"Biochemical damage modifier": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "vehicle_stats",
+		"field": "biochemical_damage_modifier",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Biochemical damage taken multiplier for vehicle armor (1.0 = no change)."
 	},
 	"Biochemical resistance": {
-		"smw": "Number",
-		"bucket": "INTEGER",
+		"type": "INTEGER",
+		"bucket": "item_tool",
+		"field": "biochemical_resistance",
 		"modules": [
 			"Armor"
 		],
 		"desc": "Biochemical damage resistance of armor, as a percentage."
 	},
 	"Blast radius": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_weapon",
+		"field": "blast_radius",
 		"modules": [
 			"Grenade"
 		],
 		"desc": "Area-of-effect blast radius of a grenade, in metres."
 	},
 	"Blood drug level": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_tool",
+		"field": "blood_drug_level",
 		"modules": [
 			"Medical"
 		],
 		"desc": "Blood drug level a medical consumable raises when administered."
 	},
 	"Boost speed": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_component",
+		"field": "boost_speed",
 		"modules": [
 			"FlightController"
 		],
 		"desc": "Boosted forward flight speed set by a flight controller, in m/s."
 	},
 	"Capacity count": {
-		"smw": "Number",
-		"bucket": "INTEGER",
+		"type": "INTEGER",
+		"bucket": "item_weapon",
+		"field": "capacity_count",
 		"modules": [
 			"Rack"
 		],
 		"desc": "Number of ordnance a rack carries."
 	},
 	"Capacity size": {
-		"smw": "Number",
-		"bucket": "INTEGER",
+		"type": "INTEGER",
+		"bucket": "item_weapon",
+		"field": "capacity_size",
 		"modules": [
 			"Rack"
 		],
 		"desc": "Size of each ordnance a rack carries."
 	},
 	"Career": {
-		"smw": "Text",
-		"bucket": "TEXT",
+		"type": "TEXT",
+		"bucket": "vehicle",
+		"field": "career",
+		"index": true,
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Career category of a vehicle (Combat, Transport, Exploration, …)."
 	},
 	"Cargo capacity": {
-		"smw": "Number",
-		"bucket": "INTEGER",
+		"type": "DOUBLE",
+		"bucket": "vehicle",
+		"field": "cargo_capacity",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Cargo capacity of a vehicle, in SCU."
 	},
-	"Category": {
-		"smw": "Text",
-		"bucket": "TEXT",
-		"modules": [
-			"Mission"
-		],
-		"desc": "Legality category of a mission (verified / unverified)."
-	},
 	"Charges": {
-		"smw": "Number",
-		"bucket": "INTEGER",
+		"type": "INTEGER",
+		"bucket": "item_tool",
+		"field": "charges",
 		"modules": [
 			"MiningModule",
 			"Hacking"
@@ -231,80 +266,91 @@
 		"desc": "Number of charges of a mining module, or breach charges of a cryptokey."
 	},
 	"Class": {
-		"smw": "Text",
-		"bucket": "TEXT",
+		"type": "TEXT",
+		"bucket": "entity",
+		"field": "class",
+		"index": true,
 		"modules": [
 			"Item"
 		],
 		"desc": "Component class (Military, Civilian, Industrial, …) of a graded vehicle component."
 	},
 	"Commodity group": {
-		"smw": "Text",
-		"bucket": "TEXT",
+		"type": "TEXT",
+		"bucket": "commodity",
+		"field": "commodity_group",
 		"modules": [
 			"Commodity"
 		],
 		"desc": "Commodity family group."
 	},
 	"Commodity type": {
-		"smw": "Text",
-		"bucket": "TEXT",
+		"type": "TEXT",
+		"bucket": "commodity",
+		"field": "commodity_type",
 		"modules": [
 			"Commodity"
 		],
 		"desc": "Commodity leaf type."
 	},
 	"Concept announcement date": {
-		"smw": "Text",
-		"bucket": "TEXT",
+		"type": "TEXT",
+		"bucket": "vehicle",
+		"field": "concept_announcement_date",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Real-world concept announcement date."
 	},
 	"Concept sale date": {
-		"smw": "Text",
-		"bucket": "TEXT",
+		"type": "TEXT",
+		"bucket": "vehicle",
+		"field": "concept_sale_date",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Real-world concept sale date."
 	},
 	"Coolant generation": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_component",
+		"field": "coolant_generation",
 		"modules": [
 			"Cooler"
 		],
 		"desc": "Coolant generated per segment by a cooler."
 	},
 	"Cooling rate": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_component",
+		"field": "cooling_rate",
 		"modules": [
 			"Cooler"
 		],
 		"desc": "Cooling rate of a cooler."
 	},
 	"Crew stations": {
-		"smw": "Number",
-		"bucket": "INTEGER",
+		"type": "INTEGER",
+		"bucket": "vehicle",
+		"field": "crew_stations",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Number of crew operating stations aboard a vehicle."
 	},
 	"Cross section signature modifier": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "vehicle_stats",
+		"field": "cs_signature_modifier",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Cross-section signature multiplier for vehicle armor (1.0 = no change)."
 	},
 	"Damage": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_weapon",
+		"field": "damage",
 		"modules": [
 			"Grenade",
 			"WeaponPersonal"
@@ -312,24 +358,29 @@
 		"desc": "Damage value of a weapon or grenade."
 	},
 	"Damage class": {
-		"smw": "Text",
-		"bucket": "TEXT",
+		"type": "TEXT",
+		"bucket": "item_weapon",
+		"field": "damage_class",
+		"index": true,
 		"modules": [
 			"WeaponPersonal"
 		],
 		"desc": "Damage class of a personal weapon (Ballistic, Energy, …)."
 	},
 	"Damage repair rate": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_tool",
+		"field": "damage_repair_rate",
 		"modules": [
 			"SalvageHead"
 		],
 		"desc": "Maximum damage-map repair rate of a salvage head."
 	},
 	"Damage type": {
-		"smw": "Text",
-		"bucket": "TEXT",
+		"type": "TEXT",
+		"bucket": "item_weapon",
+		"field": "damage_type",
+		"index": true,
 		"modules": [
 			"Grenade",
 			"WeaponGun"
@@ -337,64 +388,72 @@
 		"desc": "Damage type (Physical, Energy, …)."
 	},
 	"Density": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "commodity",
+		"field": "density",
 		"modules": [
 			"Commodity"
 		],
 		"desc": "Density of a commodity, in g/cm³."
 	},
 	"Destination system": {
-		"smw": "Page",
-		"bucket": "PAGE",
+		"type": "PAGE",
+		"bucket": "location",
+		"field": "destination_system",
 		"modules": [
 			"Location/JumpPoint"
 		],
 		"desc": "Star system on the far side of a jump-point tunnel, stored as the wiki page name ('Nyx system'): the side of the starmap celestial designation that is not the gate's entry system."
 	},
 	"Discovered by": {
-		"smw": "Text",
-		"bucket": "TEXT",
+		"type": "TEXT",
+		"bucket": "location",
+		"field": "discovered_by",
 		"modules": [
 			"Location"
 		],
 		"desc": "Discoverer of a star system (editorial; the APIs do not model discovery)."
 	},
 	"Discovered in": {
-		"smw": "Text",
-		"bucket": "TEXT",
+		"type": "TEXT",
+		"bucket": "location",
+		"field": "discovered_in",
 		"modules": [
 			"Location"
 		],
 		"desc": "Lore year a star system was discovered (editorial; the APIs do not model discovery)."
 	},
 	"Distortion": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_component",
+		"field": "distortion",
 		"modules": [
 			"Component"
 		],
 		"desc": "Maximum distortion health of a component."
 	},
 	"Distortion damage modifier": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "vehicle_stats",
+		"field": "distortion_damage_modifier",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Distortion damage taken multiplier for vehicle armor (1.0 = no change)."
 	},
 	"Distortion resistance": {
-		"smw": "Number",
-		"bucket": "INTEGER",
+		"type": "INTEGER",
+		"bucket": "item_tool",
+		"field": "distortion_resistance",
 		"modules": [
 			"Armor"
 		],
 		"desc": "Distortion damage resistance of armor, as a percentage."
 	},
 	"Dps": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_weapon",
+		"field": "dps",
 		"modules": [
 			"WeaponGun",
 			"WeaponPersonal"
@@ -402,137 +461,155 @@
 		"desc": "Damage per second of a weapon."
 	},
 	"Drop angle": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_weapon",
+		"field": "drop_angle",
 		"modules": [
 			"Bomb"
 		],
 		"desc": "Maximum drop angle of a bomb, in degrees."
 	},
 	"Duration": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_tool",
+		"field": "duration",
 		"modules": [
 			"MiningModule"
 		],
 		"desc": "Effect duration of a mining module, in seconds."
 	},
 	"Effects": {
-		"smw": "Text",
-		"bucket": "TEXT",
+		"type": "TEXT",
+		"bucket": "entity",
+		"field": "effects",
+		"index": true,
+		"repeated": true,
 		"modules": [
 			"Consumable"
 		],
-		"multi": true,
 		"desc": "Consumable effects (multi-valued)."
 	},
 	"Electromagnetic signature modifier": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "vehicle_stats",
+		"field": "em_signature_modifier",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Electromagnetic signature multiplier for vehicle armor (1.0 = no change)."
 	},
 	"Em signature": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_component",
+		"field": "em_signature",
 		"modules": [
 			"Component"
 		],
 		"desc": "Electromagnetic signature of a component."
 	},
 	"Emp charge time": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_component",
+		"field": "emp_charge_time",
 		"modules": [
 			"EMP"
 		],
 		"desc": "Charge duration of an EMP generator, in seconds."
 	},
 	"Emp cooldown": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_component",
+		"field": "emp_cooldown",
 		"modules": [
 			"EMP"
 		],
 		"desc": "Cooldown of an EMP generator, in seconds."
 	},
 	"Emp distortion damage": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_component",
+		"field": "emp_distortion_damage",
 		"modules": [
 			"EMP"
 		],
 		"desc": "Distortion damage of an EMP generator."
 	},
 	"Emp duration": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_component",
+		"field": "emp_duration",
 		"modules": [
 			"EMP"
 		],
 		"desc": "Unleash duration of an EMP generator, in seconds."
 	},
 	"Emp radius": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_component",
+		"field": "emp_radius",
 		"modules": [
 			"EMP"
 		],
 		"desc": "Radius of an EMP generator, in metres."
 	},
 	"Energy damage modifier": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "vehicle_stats",
+		"field": "energy_damage_modifier",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Energy damage taken multiplier for vehicle armor (1.0 = no change)."
 	},
 	"Energy resistance": {
-		"smw": "Number",
-		"bucket": "INTEGER",
+		"type": "INTEGER",
+		"bucket": "item_tool",
+		"field": "energy_resistance",
 		"modules": [
 			"Armor"
 		],
 		"desc": "Energy damage resistance of armor, as a percentage."
 	},
 	"Entity height": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "vehicle",
+		"field": "entity_height",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Height of an entity."
 	},
 	"Entity length": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "vehicle",
+		"field": "entity_length",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Length of an entity."
 	},
 	"Entity width": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "vehicle",
+		"field": "entity_width",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Width of an entity."
 	},
 	"Error chance": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_tool",
+		"field": "error_chance",
 		"modules": [
 			"Hacking"
 		],
 		"desc": "Per-attempt failure chance of a cryptokey, as a percentage."
 	},
 	"Explosion radius": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_weapon",
+		"field": "explosion_radius",
 		"modules": [
 			"Bomb",
 			"Missile"
@@ -540,320 +617,385 @@
 		"desc": "Explosion radius of a bomb or missile, in metres."
 	},
 	"Extraction efficiency": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_tool",
+		"field": "extraction_efficiency",
 		"modules": [
 			"Scraper"
 		],
 		"desc": "Salvage extraction efficiency of a salvage head, as a fraction."
 	},
 	"Extraction throughput": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_tool",
+		"field": "extraction_throughput",
 		"modules": [
 			"WeaponMining"
 		],
 		"desc": "Extraction throughput of a mining laser head."
 	},
 	"Faction": {
-		"smw": "Text",
-		"bucket": "TEXT",
+		"type": "TEXT",
+		"bucket": "mission",
+		"field": "faction",
 		"modules": [
 			"Mission"
 		],
 		"desc": "Issuing faction of a mission."
 	},
 	"Fire rate": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_weapon",
+		"field": "fire_rate",
 		"modules": [
 			"WeaponGun"
 		],
 		"desc": "Fire rate of a weapon, in rounds per minute."
 	},
 	"Firing type": {
-		"smw": "Text",
-		"bucket": "TEXT",
+		"type": "TEXT",
+		"bucket": "item_weapon",
+		"field": "firing_type",
+		"index": true,
 		"modules": [
 			"WeaponGun"
 		],
 		"desc": "Firing mechanism of a vehicle weapon (Cannon, Repeater, …)."
 	},
 	"Full damage range": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_weapon",
+		"field": "full_damage_range",
 		"modules": [
 			"DamageFalloff"
 		],
 		"desc": "Distance (m) over which a personal weapon deals full damage before falloff begins."
 	},
 	"G force resistance": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_component",
+		"field": "g_force_resistance",
 		"modules": [
 			"Environment"
 		],
 		"desc": "G-force resistance modifier a suit confers to the wearer."
 	},
 	"Generation": {
-		"smw": "Text",
-		"bucket": "TEXT",
+		"type": "TEXT",
+		"bucket": "vehicle",
+		"field": "generation",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Vehicle generation within its series (e.g. II, III)."
 	},
 	"Grade": {
-		"smw": "Text",
-		"bucket": "TEXT",
+		"type": "TEXT",
+		"bucket": "entity",
+		"field": "grade",
+		"index": true,
 		"modules": [
 			"Item"
 		],
 		"desc": "Component grade (A–D) of a graded vehicle component."
 	},
 	"Health": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_component",
+		"field": "health",
 		"modules": [
 			"Component"
 		],
 		"desc": "Health (hit points) of a component."
 	},
 	"Health point": {
-		"smw": "Number",
-		"bucket": "INTEGER",
+		"type": "INTEGER",
+		"bucket": "vehicle_stats",
+		"field": "health_point",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Hull hit points of a vehicle."
 	},
 	"Health repair rate": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_tool",
+		"field": "health_repair_rate",
 		"modules": [
 			"SalvageHead"
 		],
 		"desc": "Maximum health repair rate of a salvage head."
 	},
 	"Hei": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": {
+			"Commodity": "commodity",
+			"Item": "item_tool"
+		},
+		"field": "hei",
 		"modules": [
 			"Consumable"
 		],
 		"desc": "Hydration Efficacy Index of a consumable."
 	},
 	"Hydrogen fuel capacity": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "vehicle_stats",
+		"field": "hydrogen_fuel_capacity",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Hydrogen fuel tank capacity of a vehicle."
 	},
 	"Hydrogen fuel intake rate": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "vehicle_stats",
+		"field": "hydrogen_fuel_intake_rate",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Hydrogen fuel intake rate of a vehicle."
 	},
 	"Impact resistance": {
-		"smw": "Number",
-		"bucket": "INTEGER",
+		"type": "INTEGER",
+		"bucket": "item_tool",
+		"field": "impact_resistance",
 		"modules": [
 			"Armor"
 		],
 		"desc": "Impact damage resistance of armor, as a percentage."
 	},
 	"Insurance claim time": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "vehicle",
+		"field": "insurance_claim_time",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Standard insurance claim time of a vehicle, in minutes."
 	},
 	"Insurance expedite cost": {
-		"smw": "Number",
-		"bucket": "INTEGER",
+		"type": "INTEGER",
+		"bucket": "vehicle",
+		"field": "insurance_expedite_cost",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Insurance expedite fee of a vehicle, in aUEC."
 	},
 	"Insurance expedite time": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "vehicle",
+		"field": "insurance_expedite_time",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Insurance expedite time of a vehicle, in minutes."
 	},
 	"Infrared signature modifier": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "vehicle_stats",
+		"field": "ir_signature_modifier",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Infrared signature multiplier for vehicle armor (1.0 = no change)."
 	},
 	"Ir signature": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_component",
+		"field": "ir_signature",
 		"modules": [
 			"Component"
 		],
 		"desc": "Infrared signature of a component."
 	},
 	"Item type": {
-		"smw": "Text",
-		"bucket": "TEXT",
+		"type": "TEXT",
+		"bucket": "entity",
+		"field": "item_type",
+		"index": true,
 		"modules": [
 			"Item"
 		],
 		"desc": "In-game item type label."
 	},
 	"Jump alignment rate": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_component",
+		"field": "jump_alignment_rate",
 		"modules": [
 			"JumpModule"
 		],
 		"desc": "Quantum alignment rate of a jump module."
 	},
 	"Jump fuel usage multiplier": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_component",
+		"field": "jump_fuel_usage_multiplier",
 		"modules": [
 			"JumpModule"
 		],
 		"desc": "Quantum fuel-usage multiplier of a jump module."
 	},
 	"Jump point count": {
-		"smw": "Number",
-		"bucket": "INTEGER",
+		"type": "INTEGER",
+		"bucket": "location",
+		"field": "jump_point_count",
 		"modules": [
 			"Location/StarSystem"
 		],
 		"desc": "Number of jump points in a star system (typed celestialObjects count from the starmap record)."
 	},
 	"Jump point size": {
-		"smw": "Text",
-		"bucket": "TEXT",
+		"type": "TEXT",
+		"bucket": "location",
+		"field": "jump_point_size",
 		"modules": [
 			"Location/JumpPoint"
 		],
 		"desc": "Ship size class a jump point admits (Small, Medium, Large), mapped from the starmap jumppoints.size code (S/M/L); an unmapped code stores nothing."
 	},
 	"Jump tuning rate": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_component",
+		"field": "jump_tuning_rate",
 		"modules": [
 			"JumpModule"
 		],
 		"desc": "Quantum tuning rate of a jump module."
 	},
 	"Laser range": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_weapon",
+		"field": "laser_range",
 		"modules": [
 			"LaserPointer"
 		],
 		"desc": "Effective range of a laser pointer attachment, in metres."
 	},
+	"Legality": {
+		"type": "TEXT",
+		"bucket": "mission",
+		"field": "legality",
+		"index": true,
+		"modules": [
+			"Mission"
+		],
+		"desc": "Verified or unverified legality of a mission, as the API reports it."
+	},
 	"Loaner vehicle": {
-		"smw": "Page",
-		"bucket": "PAGE",
+		"type": "PAGE",
+		"bucket": "vehicle",
+		"field": "loaner_vehicle",
+		"index": true,
+		"repeated": true,
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Loaner vehicles granted while an unreleased vehicle is in production (suppressed for flight-ready vehicles)."
 	},
 	"Lock angle": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_weapon",
+		"field": "lock_angle",
 		"modules": [
 			"Missile"
 		],
 		"desc": "Lock-on cone angle of a missile, in degrees."
 	},
 	"Lock range": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_weapon",
+		"field": "lock_range",
 		"modules": [
 			"Missile"
 		],
 		"desc": "Maximum lock-on range of a missile, in metres."
 	},
 	"Lock time": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_weapon",
+		"field": "lock_time",
 		"modules": [
 			"Missile"
 		],
 		"desc": "Lock-on time of a missile, in seconds."
 	},
 	"Lore release date": {
-		"smw": "Text",
-		"bucket": "TEXT",
+		"type": "TEXT",
+		"bucket": "vehicle",
+		"field": "lore_release_date",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "In-lore release date."
 	},
 	"Lore retirement date": {
-		"smw": "Text",
-		"bucket": "TEXT",
+		"type": "TEXT",
+		"bucket": "vehicle",
+		"field": "lore_retirement_date",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "In-lore retirement date."
 	},
 	"Magnification": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_weapon",
+		"field": "magnification",
 		"modules": [
 			"Facet/WeaponModifier"
 		],
 		"desc": "Optical magnification of a scope or rangefinder (e.g. 8 means 8×)."
 	},
 	"Manufacturer": {
-		"smw": "Page",
-		"bucket": "PAGE",
+		"type": "PAGE",
+		"bucket": "entity",
+		"field": "manufacturer",
+		"index": true,
 		"modules": [
 			"Base"
 		],
 		"desc": "Manufacturer of an entity."
 	},
 	"Manual API field": {
-		"smw": "Text",
-		"bucket": "TEXT",
+		"type": "TEXT",
+		"bucket": {
+			"Location": "location",
+			"Vehicle": "vehicle"
+		},
+		"field": "manual_api_field",
+		"index": true,
+		"repeated": true,
 		"modules": [
+			"Location",
 			"Vehicle"
 		],
 		"desc": "Editorial field keys that were hand-supplied for API-owned data (fill or override); drives the 'Entities with manual API data' maintenance category."
 	},
 	"Mass": {
-		"smw": "Number",
-		"bucket": "INTEGER",
+		"type": "INTEGER",
+		"bucket": "vehicle",
+		"field": "mass",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Mass of a vehicle, in kg."
 	},
 	"Material efficiency": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_tool",
+		"field": "material_efficiency",
 		"modules": [
 			"SalvageHead"
 		],
 		"desc": "Material efficiency of a salvage head, as a fraction."
 	},
 	"Max range": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_weapon",
+		"field": "max_range",
 		"modules": [
 			"WeaponGun",
 			"WeaponPersonal",
@@ -862,8 +1004,12 @@
 		"desc": "Maximum range of a weapon, in metres (personal weapons / gadgets display it as \"Range\")."
 	},
 	"Max speed": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": {
+			"Item": "item_component",
+			"Vehicle": "vehicle_stats"
+		},
+		"field": "max_speed",
 		"modules": [
 			"FlightController",
 			"Vehicle"
@@ -871,136 +1017,244 @@
 		"desc": "Maximum flight/travel speed in m/s (a vehicle's, or set by a flight controller)."
 	},
 	"Maximum cargo container size": {
-		"smw": "Number",
-		"bucket": "INTEGER",
+		"type": "INTEGER",
+		"bucket": "vehicle",
+		"field": "maximum_cargo_container_size",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Largest single cargo container the vehicle's cargo grid accepts, in SCU."
 	},
 	"Maximum crew": {
-		"smw": "Number",
-		"bucket": "INTEGER",
+		"type": "INTEGER",
+		"bucket": "vehicle",
+		"field": "maximum_crew",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Maximum crew count of a vehicle."
 	},
 	"Maximum range": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_tool",
+		"field": "maximum_range",
 		"modules": [
 			"WeaponMining"
 		],
 		"desc": "Maximum mining range of a mining laser head, in metres."
 	},
 	"Maximum temperature": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_component",
+		"field": "maximum_temperature",
 		"modules": [
 			"Environment"
 		],
 		"desc": "Hottest temperature a wearable protects against, in °C."
 	},
 	"Medical bed tier": {
-		"smw": "Number",
-		"bucket": "INTEGER",
+		"type": "INTEGER",
+		"bucket": "vehicle",
+		"field": "medical_bed_tier",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Highest medical bed tier aboard a vehicle (1-3)."
 	},
 	"Min damage": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_weapon",
+		"field": "min_damage",
 		"modules": [
 			"DamageFalloff"
 		],
 		"desc": "Floored per-shot damage a personal weapon deals at long range after falloff."
 	},
 	"Mineable": {
-		"smw": "Boolean",
-		"bucket": "BOOLEAN",
+		"type": "BOOLEAN",
+		"bucket": "commodity",
+		"field": "mineable",
 		"modules": [
 			"Commodity"
 		],
 		"desc": "Whether a commodity is mineable."
 	},
 	"Minimum crew": {
-		"smw": "Number",
-		"bucket": "INTEGER",
+		"type": "INTEGER",
+		"bucket": "vehicle",
+		"field": "minimum_crew",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Minimum crew count of a vehicle."
 	},
 	"Minimum temperature": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_component",
+		"field": "minimum_temperature",
 		"modules": [
 			"Environment"
 		],
 		"desc": "Coldest temperature a wearable protects against, in °C."
 	},
 	"Mining power max": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_tool",
+		"field": "mining_power_max",
 		"modules": [
 			"WeaponMining"
 		],
 		"desc": "Maximum mining laser power."
 	},
 	"Mining power min": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_tool",
+		"field": "mining_power_min",
 		"modules": [
 			"WeaponMining"
 		],
 		"desc": "Minimum mining laser power."
 	},
 	"Mining type": {
-		"smw": "Text",
-		"bucket": "TEXT",
+		"type": "TEXT",
+		"bucket": "item_tool",
+		"field": "mining_type",
+		"index": true,
 		"modules": [
 			"MiningModule"
 		],
 		"desc": "Mining modifier type of a mining module."
 	},
 	"Missile range": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_weapon",
+		"field": "missile_range",
 		"modules": [
 			"Missile"
 		],
 		"desc": "Flight range of a missile, in metres."
 	},
 	"Missile speed": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_weapon",
+		"field": "missile_speed",
 		"modules": [
 			"Missile"
 		],
 		"desc": "Speed of a missile, in m/s."
 	},
+	"Modifier cluster factor": {
+		"type": "DOUBLE",
+		"bucket": "item_tool",
+		"field": "modifier_cluster_factor",
+		"modules": [
+			"Facet/Mining"
+		],
+		"desc": "Cluster factor change a mining module or laser head applies, as a signed percentage."
+	},
+	"Modifier extraction laser power": {
+		"type": "DOUBLE",
+		"bucket": "item_tool",
+		"field": "modifier_extraction_laser_power",
+		"modules": [
+			"Facet/Mining"
+		],
+		"desc": "Extraction laser power change a mining module or laser head applies, as a signed percentage."
+	},
+	"Modifier inert materials": {
+		"type": "DOUBLE",
+		"bucket": "item_tool",
+		"field": "modifier_inert_materials",
+		"modules": [
+			"Facet/Mining"
+		],
+		"desc": "Inert material level change a mining module or laser head applies, as a signed percentage; negated from the API's all_charge_rates so a reduction reads negative."
+	},
+	"Modifier laser instability": {
+		"type": "DOUBLE",
+		"bucket": "item_tool",
+		"field": "modifier_laser_instability",
+		"modules": [
+			"Facet/Mining"
+		],
+		"desc": "Laser instability change a mining module or laser head applies, as a signed percentage."
+	},
+	"Modifier mining laser power": {
+		"type": "DOUBLE",
+		"bucket": "item_tool",
+		"field": "modifier_mining_laser_power",
+		"modules": [
+			"Facet/Mining"
+		],
+		"desc": "Mining (fracture) laser power change a mining module or laser head applies, as a signed percentage."
+	},
+	"Modifier optimal charge rate": {
+		"type": "DOUBLE",
+		"bucket": "item_tool",
+		"field": "modifier_optimal_charge_rate",
+		"modules": [
+			"Facet/Mining"
+		],
+		"desc": "Optimal charge rate change a mining module or laser head applies, as a signed percentage."
+	},
+	"Modifier optimal charge window size": {
+		"type": "DOUBLE",
+		"bucket": "item_tool",
+		"field": "modifier_optimal_charge_window_size",
+		"modules": [
+			"Facet/Mining"
+		],
+		"desc": "Optimal charge window size change a mining module or laser head applies, as a signed percentage."
+	},
+	"Modifier overcharge rate": {
+		"type": "DOUBLE",
+		"bucket": "item_tool",
+		"field": "modifier_overcharge_rate",
+		"modules": [
+			"Facet/Mining"
+		],
+		"desc": "Overcharge rate change a mining module or laser head applies, as a signed percentage."
+	},
+	"Modifier resistance": {
+		"type": "DOUBLE",
+		"bucket": "item_tool",
+		"field": "modifier_resistance",
+		"modules": [
+			"Facet/Mining"
+		],
+		"desc": "Resistance change a mining module or laser head applies, as a signed percentage."
+	},
+	"Modifier shatter damage": {
+		"type": "DOUBLE",
+		"bucket": "item_tool",
+		"field": "modifier_shatter_damage",
+		"modules": [
+			"Facet/Mining"
+		],
+		"desc": "Shatter damage change a mining module or laser head applies, as a signed percentage."
+	},
 	"Module slots": {
-		"smw": "Number",
-		"bucket": "INTEGER",
+		"type": "INTEGER",
+		"bucket": "item_tool",
+		"field": "module_slots",
 		"modules": [
 			"WeaponMining"
 		],
 		"desc": "Number of mining-module slots on a mining laser head."
 	},
 	"Moon count": {
-		"smw": "Number",
-		"bucket": "INTEGER",
+		"type": "INTEGER",
+		"bucket": "location",
+		"field": "moon_count",
 		"modules": [
 			"Location/StarSystem"
 		],
 		"desc": "Number of moons (SATELLITE objects) in a star system."
 	},
 	"Muzzle velocity": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_weapon",
+		"field": "muzzle_velocity",
 		"modules": [
 			"WeaponGun",
 			"WeaponPersonal"
@@ -1008,201 +1262,230 @@
 		"desc": "Muzzle velocity of a weapon, in m/s."
 	},
 	"Name": {
-		"smw": "Text",
-		"bucket": "TEXT",
+		"type": "TEXT",
+		"bucket": "entity",
+		"field": "name",
 		"modules": [
 			"Base"
 		],
 		"desc": "Display name of an entity."
 	},
 	"Ndr": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": {
+			"Commodity": "commodity",
+			"Item": "item_tool"
+		},
+		"field": "ndr",
 		"modules": [
 			"Consumable"
 		],
 		"desc": "Nutritional Density Rating of a consumable."
 	},
 	"Optimal range": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_tool",
+		"field": "optimal_range",
 		"modules": [
 			"WeaponMining"
 		],
 		"desc": "Optimal mining range of a mining laser head, in metres."
 	},
 	"Orders": {
-		"smw": "Text",
-		"bucket": "TEXT",
+		"type": "TEXT",
+		"bucket": "mission",
+		"field": "orders",
+		"index": true,
+		"repeated": true,
 		"modules": [
-			"Orders"
+			"Mission"
 		],
-		"multi": true,
-		"desc": "Hauling-contract requested cargo lines (Module:Entity/Orders)."
+		"desc": "Hauling-contract requested cargo lines."
 	},
 	"Ore capacity": {
-		"smw": "Number",
-		"bucket": "INTEGER",
+		"type": "DOUBLE",
+		"bucket": "vehicle",
+		"field": "ore_capacity",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Mining ore hold capacity of a vehicle, in SCU."
 	},
 	"Original pledge price": {
-		"smw": "Number",
-		"bucket": "INTEGER",
+		"type": "DOUBLE",
+		"bucket": "vehicle",
+		"field": "original_pledge_price",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Original (launch) standalone pledge price of a vehicle, in USD."
 	},
 	"Original warbond pledge price": {
-		"smw": "Number",
-		"bucket": "INTEGER",
+		"type": "INTEGER",
+		"bucket": "vehicle",
+		"field": "original_warbond_pledge_price",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Original (launch) warbond pledge price of a vehicle, in USD."
 	},
 	"Physical damage modifier": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "vehicle_stats",
+		"field": "physical_damage_modifier",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Physical damage taken multiplier for vehicle armor (1.0 = no change)."
 	},
 	"Physical resistance": {
-		"smw": "Number",
-		"bucket": "INTEGER",
+		"type": "INTEGER",
+		"bucket": "item_tool",
+		"field": "physical_resistance",
 		"modules": [
 			"Armor"
 		],
 		"desc": "Physical damage resistance of armor, as a percentage."
 	},
 	"Pilot DPS": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "vehicle_stats",
+		"field": "pilot_dps",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Total damage per second of a vehicle's pilot-controlled weapons (stock loadout)."
 	},
 	"Turret DPS": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "vehicle_stats",
+		"field": "turret_dps",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Total damage per second of a vehicle's crew/turret weapons (stock loadout)."
 	},
 	"Pilot sustained DPS": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "vehicle_stats",
+		"field": "pilot_sustained_dps",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Sustained (capacitor/heat-limited) damage per second of a vehicle's pilot-controlled weapons (stock loadout)."
 	},
 	"Turret sustained DPS": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "vehicle_stats",
+		"field": "turret_sustained_dps",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Sustained (capacitor/heat-limited) damage per second of a vehicle's crew/turret weapons (stock loadout)."
 	},
 	"Missile damage": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "vehicle_stats",
+		"field": "missile_damage",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Total damage of a vehicle's missile loadout."
 	},
 	"Armor resistance": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "vehicle_stats",
+		"field": "armor_resistance",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Mean damage resistance across damage types, as a percent (0-100)."
 	},
 	"Armor deflection": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "vehicle_stats",
+		"field": "armor_deflection",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Mean armor deflection threshold (physical and energy): the minimum per-shot damage needed to penetrate; higher is tougher."
 	},
 	"Physical deflection": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "vehicle_stats",
+		"field": "physical_deflection",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Physical armor deflection threshold: the minimum per-shot physical damage needed to penetrate; higher is tougher."
 	},
 	"Energy deflection": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "vehicle_stats",
+		"field": "energy_deflection",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Energy armor deflection threshold: the minimum per-shot energy damage needed to penetrate; higher is tougher."
 	},
 	"Infrared emission": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "vehicle_stats",
+		"field": "ir_emission",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Infrared signature emission of a vehicle (lower is stealthier)."
 	},
 	"Electromagnetic emission": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "vehicle_stats",
+		"field": "em_emission",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Maximum electromagnetic signature emission of a vehicle (lower is stealthier)."
 	},
 	"Cross section": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "vehicle_stats",
+		"field": "cross_section",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Mean radar cross-section signature of a vehicle across its three axes (lower is stealthier)."
 	},
 	"Cross section length": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "vehicle_stats",
+		"field": "cross_section_length",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Radar cross-section signature of a vehicle along its length axis (lower is stealthier)."
 	},
 	"Cross section width": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "vehicle_stats",
+		"field": "cross_section_width",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Radar cross-section signature of a vehicle along its width axis (lower is stealthier)."
 	},
 	"Cross section height": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "vehicle_stats",
+		"field": "cross_section_height",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Radar cross-section signature of a vehicle along its height axis (lower is stealthier)."
 	},
 	"Pitch": {
-		"smw": "Text",
-		"bucket": "TEXT",
+		"type": "TEXT",
+		"bucket": "item_component",
+		"field": "pitch",
 		"modules": [
 			"FlightController",
 			"Seat"
@@ -1210,176 +1493,202 @@
 		"desc": "Pitch traverse range of a seat or flight controller (display string)."
 	},
 	"Pitch boosted": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_component",
+		"field": "pitch_boosted",
 		"modules": [
 			"FlightController"
 		],
 		"desc": "Boosted pitch rate of a flight controller, in °/s."
 	},
 	"Pitch max": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_component",
+		"field": "pitch_max",
 		"modules": [
 			"Seat"
 		],
 		"desc": "Maximum pitch angle of a seat, in degrees."
 	},
 	"Pitch min": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_component",
+		"field": "pitch_min",
 		"modules": [
 			"Seat"
 		],
 		"desc": "Minimum pitch angle of a seat, in degrees."
 	},
 	"Pitch rate": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "vehicle_stats",
+		"field": "pitch_rate",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Pitch agility rate of a vehicle, in °/s."
 	},
 	"Pitch speed": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_weapon",
+		"field": "pitch_speed",
 		"modules": [
 			"Turret"
 		],
 		"desc": "Pitch rotation speed of a turret, in °/s."
 	},
 	"Planet count": {
-		"smw": "Number",
-		"bucket": "INTEGER",
+		"type": "INTEGER",
+		"bucket": "location",
+		"field": "planet_count",
 		"modules": [
 			"Location/StarSystem"
 		],
 		"desc": "Number of planets in a star system."
 	},
 	"Pledge availability": {
-		"smw": "Text",
-		"bucket": "TEXT",
+		"type": "TEXT",
+		"bucket": "vehicle",
+		"field": "pledge_availability",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Pledge store availability status of a vehicle (e.g. Available, Limited, Unavailable)."
 	},
 	"Pledge price": {
-		"smw": "Number",
-		"bucket": "INTEGER",
+		"type": "INTEGER",
+		"bucket": "vehicle",
+		"field": "pledge_price",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "MSRP pledge price of a vehicle, in USD."
 	},
 	"Power generation": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_component",
+		"field": "power_generation",
 		"modules": [
 			"PowerPlant"
 		],
 		"desc": "Power generated per segment by a power plant."
 	},
 	"Power output": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_component",
+		"field": "power_output",
 		"modules": [
 			"PowerPlant"
 		],
 		"desc": "Power output of a power plant."
 	},
 	"Production state": {
-		"smw": "Text",
-		"bucket": "TEXT",
+		"type": "TEXT",
+		"bucket": "vehicle",
+		"field": "production_state",
+		"index": true,
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Production/flight-readiness state of a vehicle (e.g. Flight Ready, In Production)."
 	},
 	"Qig charge time": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_component",
+		"field": "qig_charge_time",
 		"modules": [
 			"QuantumInterdictionGenerator"
 		],
 		"desc": "Charge time of a quantum interdiction generator, in seconds."
 	},
 	"Qig cooldown": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_component",
+		"field": "qig_cooldown",
 		"modules": [
 			"QuantumInterdictionGenerator"
 		],
 		"desc": "Cooldown of a quantum interdiction generator, in seconds."
 	},
 	"Qig dampener range": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_component",
+		"field": "qig_dampener_range",
 		"modules": [
 			"QuantumInterdictionGenerator"
 		],
 		"desc": "Quantum dampener range of a quantum interdiction generator, in metres."
 	},
 	"Qig duration": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_component",
+		"field": "qig_duration",
 		"modules": [
 			"QuantumInterdictionGenerator"
 		],
 		"desc": "Discharge duration of a quantum interdiction generator, in seconds."
 	},
 	"Qig mode": {
-		"smw": "Text",
-		"bucket": "TEXT",
+		"type": "TEXT",
+		"bucket": "item_component",
+		"field": "qig_mode",
 		"modules": [
 			"QuantumInterdictionGenerator"
 		],
 		"desc": "Mode of a quantum interdiction generator (QED, QDMP, QID)."
 	},
 	"Qig snare range": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_component",
+		"field": "qig_snare_range",
 		"modules": [
 			"QuantumInterdictionGenerator"
 		],
 		"desc": "Quantum snare radius of a quantum interdiction generator, in metres."
 	},
 	"Quantum cooldown": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_component",
+		"field": "quantum_cooldown",
 		"modules": [
 			"QuantumDrive"
 		],
 		"desc": "Cooldown of a quantum drive, in seconds."
 	},
 	"Quantum fuel requirement": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_component",
+		"field": "quantum_fuel_requirement",
 		"modules": [
 			"QuantumDrive"
 		],
 		"desc": "Quantum fuel requirement of a quantum drive."
 	},
 	"Quantum fuel capacity": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "vehicle_stats",
+		"field": "quantum_fuel_capacity",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Quantum fuel tank capacity of a vehicle."
 	},
 	"Quantum range": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "vehicle_stats",
+		"field": "quantum_range",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Quantum travel range of a vehicle, in Gm."
 	},
 	"Quantum speed": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": {
+			"Item": "item_component",
+			"Vehicle": "vehicle_stats"
+		},
+		"field": "quantum_speed",
 		"modules": [
 			"QuantumDrive",
 			"Vehicle"
@@ -1387,8 +1696,12 @@
 		"desc": "Travel speed of a quantum drive or vehicle in quantum travel, in Mm/s."
 	},
 	"Quantum spool time": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": {
+			"Item": "item_component",
+			"Vehicle": "vehicle_stats"
+		},
+		"field": "quantum_spool_time",
 		"modules": [
 			"QuantumDrive",
 			"Vehicle"
@@ -1396,185 +1709,214 @@
 		"desc": "Spool-up time of a quantum drive, in seconds."
 	},
 	"Radar aim assist range": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_component",
+		"field": "radar_aim_assist_range",
 		"modules": [
 			"Radar"
 		],
 		"desc": "Aim-assist assignment range of a radar, in metres."
 	},
 	"Radar cooldown": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_component",
+		"field": "radar_cooldown",
 		"modules": [
 			"Radar"
 		],
 		"desc": "Cooldown of a radar."
 	},
 	"Radar resource sensitivity": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_component",
+		"field": "radar_resource_sensitivity",
 		"modules": [
 			"Radar"
 		],
 		"desc": "Resource-detection sensitivity of a radar."
 	},
 	"Radar sensitivity": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_component",
+		"field": "radar_sensitivity",
 		"modules": [
 			"Radar"
 		],
 		"desc": "Infrared sensitivity of a radar."
 	},
 	"Radiation capacity": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_component",
+		"field": "radiation_capacity",
 		"modules": [
 			"Environment"
 		],
 		"desc": "Maximum radiation a suit can absorb before its protection fails."
 	},
 	"Radiation dissipation": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_component",
+		"field": "radiation_dissipation",
 		"modules": [
 			"Environment"
 		],
 		"desc": "Rate at which a suit dissipates absorbed radiation."
 	},
 	"Radius multiplier": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_tool",
+		"field": "radius_multiplier",
 		"modules": [
 			"Scraper"
 		],
 		"desc": "Salvage radius multiplier of a scraper module."
 	},
 	"Ramp down time": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_tool",
+		"field": "ramp_down_time",
 		"modules": [
 			"SalvageHead"
 		],
 		"desc": "Salvage ramp-down time of a salvage head, in seconds."
 	},
 	"Ramp up time": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_tool",
+		"field": "ramp_up_time",
 		"modules": [
 			"SalvageHead"
 		],
 		"desc": "Salvage ramp-up time of a salvage head, in seconds."
 	},
 	"Range increment": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_weapon",
+		"field": "range_increment",
 		"modules": [
 			"IronSight"
 		],
 		"desc": "Per-step range increment of an iron-sight attachment, in metres."
 	},
 	"Rarity": {
-		"smw": "Text",
-		"bucket": "TEXT",
+		"type": "TEXT",
+		"bucket": "entity",
+		"field": "rarity",
+		"index": true,
 		"modules": [
 			"Item"
 		],
 		"desc": "Rarity tier of an item (Common, Uncommon, Rare, Epic, Legendary)."
 	},
 	"Reputation max": {
-		"smw": "Text",
-		"bucket": "TEXT",
+		"type": "TEXT",
+		"bucket": "mission",
+		"field": "reputation_max",
 		"modules": [
 			"Mission"
 		],
 		"desc": "Maximum reputation standing at which a mission is offered."
 	},
 	"Reputation min": {
-		"smw": "Text",
-		"bucket": "TEXT",
+		"type": "TEXT",
+		"bucket": "mission",
+		"field": "reputation_min",
 		"modules": [
 			"Mission"
 		],
 		"desc": "Minimum reputation standing required for a mission."
 	},
 	"Retracted height": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "vehicle",
+		"field": "retracted_height",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Retracted (folded) height of a vehicle, in metres."
 	},
 	"Retracted length": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "vehicle",
+		"field": "retracted_length",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Retracted (folded) length of a vehicle, in metres."
 	},
 	"Retracted width": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "vehicle",
+		"field": "retracted_width",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Retracted (folded) width of a vehicle, in metres."
 	},
 	"Rewards": {
-		"smw": "Text",
-		"bucket": "TEXT",
+		"type": "TEXT",
+		"bucket": "mission",
+		"field": "rewards",
+		"index": true,
+		"repeated": true,
 		"modules": [
-			"Rewards"
+			"Mission"
 		],
-		"multi": true,
-		"desc": "Contract reward item/blueprint lines (Module:Entity/Rewards)."
+		"desc": "Contract reward item/blueprint lines."
 	},
 	"Roll": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_component",
+		"field": "roll",
 		"modules": [
 			"FlightController"
 		],
 		"desc": "Base roll rate of a flight controller, in °/s."
 	},
 	"Roll boosted": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_component",
+		"field": "roll_boosted",
 		"modules": [
 			"FlightController"
 		],
 		"desc": "Boosted roll rate of a flight controller, in °/s."
 	},
 	"Roll rate": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "vehicle_stats",
+		"field": "roll_rate",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Roll agility rate of a vehicle, in °/s."
 	},
 	"Role": {
-		"smw": "Text",
-		"bucket": "TEXT",
+		"type": "TEXT",
+		"bucket": "vehicle",
+		"field": "role",
+		"index": true,
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Role of a vehicle (e.g. Light Fighter, Heavy Bomber, Cargo)."
 	},
 	"Salvage speed multiplier": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_tool",
+		"field": "salvage_speed_multiplier",
 		"modules": [
 			"Scraper"
 		],
 		"desc": "Salvage speed multiplier of a scraper module."
 	},
 	"Scm speed": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": {
+			"Item": "item_component",
+			"Vehicle": "vehicle_stats"
+		},
+		"field": "scm_speed",
 		"modules": [
 			"FlightController",
 			"Vehicle"
@@ -1582,80 +1924,94 @@
 		"desc": "SCM (combat) speed in m/s (a vehicle's, or set by a flight controller)."
 	},
 	"Series": {
-		"smw": "Text",
-		"bucket": "TEXT",
+		"type": "TEXT",
+		"bucket": "vehicle",
+		"field": "series",
+		"index": true,
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Vehicle series/product line a vehicle belongs to."
 	},
 	"Scrip": {
-		"smw": "Number",
-		"bucket": "INTEGER",
+		"type": "INTEGER",
+		"bucket": "mission",
+		"field": "scrip",
 		"modules": [
 			"Mission"
 		],
 		"desc": "Reputation/scrip reward of a mission."
 	},
 	"Shield health": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_component",
+		"field": "shield_health",
 		"modules": [
 			"Shield"
 		],
 		"desc": "Maximum shield health of a shield generator."
 	},
 	"Shield regen delay": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_component",
+		"field": "shield_regen_delay",
 		"modules": [
 			"Shield"
 		],
 		"desc": "Shield regeneration delay after damage, in seconds."
 	},
 	"Shield regeneration": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_component",
+		"field": "shield_regeneration",
 		"modules": [
 			"Shield"
 		],
 		"desc": "Shield regeneration rate of a shield generator."
 	},
 	"Shield health point": {
-		"smw": "Number",
-		"bucket": "INTEGER",
+		"type": "INTEGER",
+		"bucket": "vehicle_stats",
+		"field": "shield_health_point",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Shield hit points of a vehicle."
 	},
 	"Signal type": {
-		"smw": "Text",
-		"bucket": "TEXT",
+		"type": "TEXT",
+		"bucket": "item_weapon",
+		"field": "signal_type",
+		"index": true,
 		"modules": [
 			"Missile"
 		],
 		"desc": "Missile guidance signal type (Cross Section, …)."
 	},
 	"Signature": {
-		"smw": "Text",
-		"bucket": "TEXT",
+		"type": "TEXT",
+		"bucket": "commodity",
+		"field": "signature",
 		"modules": [
 			"Commodity"
 		],
 		"desc": "Material signature of a commodity."
 	},
 	"Ship matrix size": {
-		"smw": "Text",
-		"bucket": "TEXT",
+		"type": "TEXT",
+		"bucket": "vehicle",
+		"field": "ship_matrix_size",
+		"index": true,
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Curated ship-matrix size name of a vehicle (Small, Medium, Large, ...); the numeric size class is stored as Size."
 	},
 	"Size": {
-		"smw": "Number",
-		"bucket": "INTEGER",
+		"type": "INTEGER",
+		"bucket": "entity",
+		"field": "size",
+		"index": true,
 		"modules": [
 			"Item",
 			"Vehicle"
@@ -1663,40 +2019,48 @@
 		"desc": "Numeric size of an entity: a component's slot size, or a vehicle's size class (1–10)."
 	},
 	"Slash damage": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_weapon",
+		"field": "slash_damage",
 		"modules": [
 			"Knife"
 		],
 		"desc": "Blade-slash damage of a melee weapon."
 	},
 	"Stab damage": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_weapon",
+		"field": "stab_damage",
 		"modules": [
 			"Knife"
 		],
 		"desc": "Blade-stab damage of a melee weapon."
 	},
 	"Star count": {
-		"smw": "Number",
-		"bucket": "INTEGER",
+		"type": "INTEGER",
+		"bucket": "location",
+		"field": "star_count",
 		"modules": [
 			"Location/StarSystem"
 		],
 		"desc": "Number of stars in a star system."
 	},
 	"Station count": {
-		"smw": "Number",
-		"bucket": "INTEGER",
+		"type": "INTEGER",
+		"bucket": "location",
+		"field": "station_count",
 		"modules": [
 			"Location/StarSystem"
 		],
 		"desc": "Number of stations (MANMADE objects) in a star system."
 	},
 	"Storage capacity": {
-		"smw": "Number",
-		"bucket": "INTEGER",
+		"type": "DOUBLE",
+		"bucket": {
+			"Item": "item_tool",
+			"Vehicle": "vehicle"
+		},
+		"field": "storage_capacity",
 		"modules": [
 			"Inventory",
 			"Vehicle"
@@ -1704,130 +2068,150 @@
 		"desc": "Inventory carrying capacity of a garment, container, or vehicle (personal stowage), in µSCU."
 	},
 	"Stun damage modifier": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "vehicle_stats",
+		"field": "stun_damage_modifier",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Stun damage taken multiplier for vehicle armor (1.0 = no change)."
 	},
 	"Stun resistance": {
-		"smw": "Number",
-		"bucket": "INTEGER",
+		"type": "INTEGER",
+		"bucket": "item_tool",
+		"field": "stun_resistance",
 		"modules": [
 			"Armor"
 		],
 		"desc": "Stun damage resistance of armor, as a percentage."
 	},
 	"Subject type": {
-		"smw": "Text",
-		"bucket": "TEXT",
+		"type": "TEXT",
+		"bucket": "entity",
+		"field": "subject_type",
+		"index": true,
 		"modules": [
 			"Entity"
 		],
 		"desc": "Most-specific structural type of the page subject (e.g. Gun, Cooler, Company). Injected centrally by Module:Entity from the resolved typeInfo."
 	},
 	"System": {
-		"smw": "Page",
-		"bucket": "PAGE",
+		"type": "PAGE",
+		"bucket": "location",
+		"field": "system",
 		"modules": [
 			"Location/JumpPoint"
 		],
 		"desc": "Star system a location resides in, stored as the wiki page name ('Pyro system'). Written today by the JumpPoint leaf (the gate's entry system); the vocabulary is kind-wide for future Location leaves."
 	},
 	"System size": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "location",
+		"field": "system_size",
 		"modules": [
 			"Location"
 		],
 		"desc": "Aggregated size of a star system in AU (stored unitless; editorial-overridable via |size=). Retyped Number on-wiki 2026-08-17 (was a pre-manifest Quantity page with 'Corresponds to 1 AU'); consumers append the AU unit at display time."
 	},
 	"System type": {
-		"smw": "Text",
-		"bucket": "TEXT",
+		"type": "TEXT",
+		"bucket": "location",
+		"field": "system_type",
 		"modules": [
 			"Location/StarSystem"
 		],
 		"desc": "Star-topology type of a system as the SYSTEM_TYPES display label ('Single star system', 'Binary star system'), the same string the infobox subtitle shows. Retyped from raw starmap codes 2026-08-17 when legacy Module:System retired and this became the only writer; an unmapped ARK code still stores raw as the fallback."
 	},
 	"Systems": {
-		"smw": "Text",
-		"bucket": "TEXT",
+		"type": "TEXT",
+		"bucket": "entity",
+		"field": "systems",
+		"index": true,
+		"repeated": true,
 		"modules": [
 			"Commodity",
 			"Mission"
 		],
-		"multi": true,
 		"desc": "Star systems a commodity or mission is associated with (multi-valued)."
 	},
 	"Thermal damage modifier": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "vehicle_stats",
+		"field": "thermal_damage_modifier",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Thermal damage taken multiplier for vehicle armor (1.0 = no change)."
 	},
 	"Thermal resistance": {
-		"smw": "Number",
-		"bucket": "INTEGER",
+		"type": "INTEGER",
+		"bucket": "item_tool",
+		"field": "thermal_resistance",
 		"modules": [
 			"Armor"
 		],
 		"desc": "Thermal damage resistance of armor, as a percentage."
 	},
 	"Tier": {
-		"smw": "Number",
-		"bucket": "INTEGER",
+		"type": "TEXT",
+		"bucket": "commodity",
+		"field": "tier",
+		"index": true,
 		"modules": [
 			"Commodity"
 		],
 		"desc": "Tier of a commodity."
 	},
 	"Type": {
-		"smw": "Text",
-		"bucket": "TEXT",
+		"type": "TEXT",
+		"bucket": "mission",
+		"field": "type",
 		"modules": [
 			"Mission"
 		],
 		"desc": "Mission type."
 	},
 	"Uec": {
-		"smw": "Number",
-		"bucket": "INTEGER",
+		"type": "INTEGER",
+		"bucket": "mission",
+		"field": "uec",
 		"modules": [
 			"Mission"
 		],
 		"desc": "aUEC payout of a mission."
 	},
 	"Uuid": {
-		"smw": "Text",
-		"bucket": "TEXT",
+		"type": "TEXT",
+		"bucket": "entity",
+		"field": "uuid",
+		"index": true,
 		"modules": [
 			"Base"
 		],
 		"desc": "Game UUID of an entity."
 	},
 	"Volume": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "entity",
+		"field": "volume",
 		"modules": [
 			"Item"
 		],
 		"desc": "Volume of an item, in microSCU."
 	},
 	"Warbond pledge price": {
-		"smw": "Number",
-		"bucket": "INTEGER",
+		"type": "INTEGER",
+		"bucket": "vehicle",
+		"field": "warbond_pledge_price",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Warbond pledge price of a vehicle, in USD."
 	},
 	"Warhead damage": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_weapon",
+		"field": "warhead_damage",
 		"modules": [
 			"Bomb",
 			"Missile"
@@ -1835,32 +2219,38 @@
 		"desc": "Total warhead damage of a bomb or missile."
 	},
 	"Weapon class": {
-		"smw": "Text",
-		"bucket": "TEXT",
+		"type": "TEXT",
+		"bucket": "item_weapon",
+		"field": "weapon_class",
+		"index": true,
 		"modules": [
 			"WeaponPersonal"
 		],
 		"desc": "Player-facing weapon class of a personal weapon (Pistol, Assault Rifle, …)."
 	},
 	"Weapon rack capacity": {
-		"smw": "Number",
-		"bucket": "INTEGER",
+		"type": "INTEGER",
+		"bucket": "vehicle",
+		"field": "weapon_rack_capacity",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Total personal weapon rack slots aboard a vehicle."
 	},
 	"Weight class": {
-		"smw": "Text",
-		"bucket": "TEXT",
+		"type": "TEXT",
+		"bucket": "item_tool",
+		"field": "weight_class",
+		"index": true,
 		"modules": [
 			"Armor"
 		],
 		"desc": "Weight class of an armor piece (Light, Medium, Heavy, Super heavy)."
 	},
 	"Yaw": {
-		"smw": "Text",
-		"bucket": "TEXT",
+		"type": "TEXT",
+		"bucket": "item_component",
+		"field": "yaw",
 		"modules": [
 			"FlightController",
 			"Seat"
@@ -1868,51 +2258,66 @@
 		"desc": "Yaw traverse range of a seat or flight controller (display string)."
 	},
 	"Yaw boosted": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_component",
+		"field": "yaw_boosted",
 		"modules": [
 			"FlightController"
 		],
 		"desc": "Boosted yaw rate of a flight controller, in °/s."
 	},
 	"Yaw max": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_component",
+		"field": "yaw_max",
 		"modules": [
 			"Seat"
 		],
 		"desc": "Maximum yaw angle of a seat, in degrees."
 	},
 	"Yaw min": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_component",
+		"field": "yaw_min",
 		"modules": [
 			"Seat"
 		],
 		"desc": "Minimum yaw angle of a seat, in degrees."
 	},
 	"Yaw rate": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "vehicle_stats",
+		"field": "yaw_rate",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Yaw agility rate of a vehicle, in °/s."
 	},
 	"Yaw speed": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "item_weapon",
+		"field": "yaw_speed",
 		"modules": [
 			"Turret"
 		],
 		"desc": "Yaw rotation speed of a turret, in °/s."
 	},
 	"Zero to Maximum speed time": {
-		"smw": "Number",
-		"bucket": "DOUBLE",
+		"type": "DOUBLE",
+		"bucket": "vehicle_stats",
+		"field": "zero_to_maximum_speed_time",
 		"modules": [
 			"Vehicle"
 		],
 		"desc": "Time in seconds to accelerate from a standstill to maximum speed."
+	},
+	"Image": {
+		"type": "TEXT",
+		"bucket": "entity",
+		"field": "image",
+		"modules": [
+			"Base"
+		],
+		"desc": "Infobox image filename without the File: prefix, the value PageImages picks as the page image."
 	}
 }

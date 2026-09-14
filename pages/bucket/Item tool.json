@@ -1,0 +1,227 @@
+{
+	"beam_force": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"beam_max_angle": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"beam_mode_force": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"beam_range": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"beam_tether_break": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"biochemical_resistance": {
+		"type": "INTEGER",
+		"index": false,
+		"repeated": false
+	},
+	"blood_drug_level": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"charges": {
+		"type": "INTEGER",
+		"index": false,
+		"repeated": false
+	},
+	"damage_repair_rate": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"distortion_resistance": {
+		"type": "INTEGER",
+		"index": false,
+		"repeated": false
+	},
+	"duration": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"energy_resistance": {
+		"type": "INTEGER",
+		"index": false,
+		"repeated": false
+	},
+	"error_chance": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"extraction_efficiency": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"extraction_throughput": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"health_repair_rate": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"hei": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"impact_resistance": {
+		"type": "INTEGER",
+		"index": false,
+		"repeated": false
+	},
+	"material_efficiency": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"maximum_range": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"mining_power_max": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"mining_power_min": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"mining_type": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": false
+	},
+	"modifier_cluster_factor": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"modifier_extraction_laser_power": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"modifier_inert_materials": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"modifier_laser_instability": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"modifier_mining_laser_power": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"modifier_optimal_charge_rate": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"modifier_optimal_charge_window_size": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"modifier_overcharge_rate": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"modifier_resistance": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"modifier_shatter_damage": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"module_slots": {
+		"type": "INTEGER",
+		"index": false,
+		"repeated": false
+	},
+	"ndr": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"optimal_range": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"physical_resistance": {
+		"type": "INTEGER",
+		"index": false,
+		"repeated": false
+	},
+	"radius_multiplier": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"ramp_down_time": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"ramp_up_time": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"salvage_speed_multiplier": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"storage_capacity": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"stun_resistance": {
+		"type": "INTEGER",
+		"index": false,
+		"repeated": false
+	},
+	"thermal_resistance": {
+		"type": "INTEGER",
+		"index": false,
+		"repeated": false
+	},
+	"weight_class": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": false
+	}
+}

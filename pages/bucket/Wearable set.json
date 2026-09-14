@@ -1,0 +1,37 @@
+{
+	"classification": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": false
+	},
+	"g_resistance": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"max_temperature": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"min_temperature": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"radiation": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"radiation_scrub_rate": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"type": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": false
+	}
+}

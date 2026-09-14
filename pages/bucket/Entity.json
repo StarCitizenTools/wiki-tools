@@ -1,0 +1,72 @@
+{
+	"base_variant": {
+		"type": "BOOLEAN",
+		"index": true,
+		"repeated": false
+	},
+	"class": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": false
+	},
+	"effects": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": true
+	},
+	"grade": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": false
+	},
+	"image": {
+		"type": "TEXT",
+		"index": false,
+		"repeated": false
+	},
+	"item_type": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": false
+	},
+	"manufacturer": {
+		"type": "PAGE",
+		"index": true,
+		"repeated": false
+	},
+	"name": {
+		"type": "TEXT",
+		"index": false,
+		"repeated": false
+	},
+	"rarity": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": false
+	},
+	"size": {
+		"type": "INTEGER",
+		"index": true,
+		"repeated": false
+	},
+	"subject_type": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": false
+	},
+	"systems": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": true
+	},
+	"uuid": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": false
+	},
+	"volume": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	}
+}

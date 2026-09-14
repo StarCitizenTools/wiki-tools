@@ -1,36 +1,69 @@
 require('strict')
 
---- Generic browse-table component on AG Grid (Extension:AGGrid), the successor to
---- Module:DataTableLua. Same {{Data table}} contract (category + multi-line columns
---- + conditions), but virtualised rows, rich cells, and REST-served data. Reads
---- every row from SMW (mw.smw.ask), reshapes the results into AG Grid rowData +
---- columnDefs, and returns the grid.
+--- Generic browse-table component on AG Grid (Extension:AGGrid). Reads through
+--- Module:Entity/Store (Bucket): `category` (direct membership, `A; B` for
+--- disjunction), `filter` (one clause per line) and `kind` (only needed to
+--- disambiguate a property stored per kind) become a Store spec; result rows
+--- and manifest types drive the AG Grid rowData + columnDefs.
 ---
 --- Column model: a single card lead (thumbnail + linked name, optional eyebrow
 --- from a column flagged `eyebrow`), then one column per editor line. An eyebrow
---- column feeds the lead card and is not emitted as its own column. Each remaining
---- editor column is classified from its values as a multi-value list column
---- (aggridLinkList, when any row holds several values), a page-link column (aggridLink),
---- or a plain column (the gadget's scwSmart type). A `filter`-flagged list column gets
---- the extension's set filter, which splits each cell into one option per value. Numeric
---- typing is NOT decided here -- scwSmart sorts numeric-looking values numerically and
---- right-aligns them per cell at render time. The one exception is the column-level
---- `numeric` flag, which an empty cell falls back to because it has no value of its
---- own to look numeric.
+--- column feeds the lead card and is not emitted as its own column. Each
+--- remaining editor column is classified from its manifest type: PAGE becomes a
+--- link column (aggridLink), or a link list (aggridLinkList) when repeated; a
+--- repeated non-PAGE property becomes a value list; INTEGER/DOUBLE becomes a
+--- numeric column; BOOLEAN becomes the tri-state icon column; anything else is
+--- plain (the gadget's scwSmart type). `kind=effect|bar|boolean` overrides the
+--- classification. A `filter`-flagged column gets the extension's set filter,
+--- which splits each cell into one option per value.
 
 local Util = require('Module:AGGridColumns/Util')
 local AGGridColumns = require('Module:AGGridColumns')
 local aggrid = require('mw.ext.aggrid')
 local yesno = require('Module:Yesno')
+local Store = require('Module:Entity/Store')
 
 local p = {}
 
--- SMW aliases (result-row keys) for the two fixed lead columns.
+-- Result-row keys for the lead columns buildSpec adds ahead of the editor's own.
 local IMAGE_ALIAS = 'Image'
 local NAME_ALIAS = 'Name'
+local DISPLAY_ALIAS = 'DisplayName'
 
--- Fixed query tail.
-local QUERY_OPTIONS = { 'mainlabel=-', 'limit=1000' }
+--- @class DataGridOptions
+--- @field leadImage? boolean  `false` drops the Image lead column and frees its
+--- alias for an editor column. Module:DataGrid/Static passes it, because a
+--- wikitable's image is a column the editor places; the grid's lead card is the
+--- image, so the grid never does.
+
+--- Whether a caller keeps the Image lead column. No options at all is the grid's
+--- shape: all three lead columns, `Image` reserved.
+--- @param options DataGridOptions|nil
+--- @return boolean
+local function wantsLeadImage(options)
+	return options == nil or options.leadImage ~= false
+end
+
+-- `kind=` values Store's manifests disambiguate on.
+local KINDS = {
+	Vehicle = true,
+	Item = true,
+	Commodity = true,
+	Location = true,
+	Mission = true,
+	Company = true,
+	['Wearable set'] = true,
+}
+
+local NUMBER_FORMAT = { style = 'number' }
+
+-- Operator patterns. findOperator (below) picks whichever of these starts
+-- earliest in the line, so a relational operator inside the VALUE (e.g. "Name
+-- = A<=B") never pre-empts an earlier "=". List order only breaks a tie
+-- between two candidates starting at the same position ("<=" over "<", ">="
+-- over ">"): longer wins.
+local OPERATORS = { '<=', '>=', '!=', '=', '<', '>' }
+local NUMERIC_OPS = { ['<'] = true, ['<='] = true, ['>'] = true, ['>='] = true }
 
 -- Lead card geometry. The lead flexes to absorb any leftover horizontal space
 -- (the data columns auto-size to content, so short tables would otherwise leave a
@@ -40,6 +73,24 @@ local QUERY_OPTIONS = { 'mainlabel=-', 'limit=1000' }
 local LEAD_WIDTH = 260
 local ROW_HEIGHT = 48
 local EYEBROW_ROW_HEIGHT = 60
+
+--- Strip `[[…]]`/`[[:…]]` wikilink markup to its target, else trim the value as-is.
+--- @param value string
+--- @return string
+local function stripLink(value)
+	local inner = value:match('^%[%[:?(.-)%]%]$')
+	if inner then
+		value = inner:match('^([^|]*)') or inner
+	end
+	return mw.text.trim(value)
+end
+
+--- Wrap an error message in the module's inline-error markup.
+--- @param msg string
+--- @return string
+local function fail(msg)
+	return '<strong class="error">Module:DataGrid: ' .. mw.text.nowiki(msg) .. '</strong>'
+end
 
 --- @class DataGridColumn
 --- @field property string
@@ -56,7 +107,7 @@ local EYEBROW_ROW_HEIGHT = 60
 
 --- Parse the multi-line `columns` value. Carried over from Module:DataTableLua:
 --- one column per non-blank line; within a line, `;`-separated clauses where the
---- first is the SMW property and the rest are modifiers (`label=X`, `size=X`,
+--- first is the property and the rest are modifiers (`label=X`, `size=X`,
 --- `kind=X`, `good=higher|lower`, `group=X`, `prefix=X`, `suffix=X`, `suffix1=X`,
 --- or the bare flags `filter` / `eyebrow`).
 --- `eyebrow` promotes the column into the lead card instead of rendering it as its
@@ -109,9 +160,8 @@ function p.parseColumns(raw)
 	return columns
 end
 
---- The SMW alias / result-row key for an editor column: its `label`, else the
---- property name verbatim. Always emitted as an explicit `=alias` so result rows
---- key deterministically (never relies on bare-property keying).
+--- The result-row key for an editor column: its `label`, else the property name
+--- verbatim.
 --- @param column DataGridColumn
 --- @return string
 function p.columnAlias(column)
@@ -121,12 +171,69 @@ function p.columnAlias(column)
 	return column.property
 end
 
---- The first editor column whose alias collides with another column or with a lead
---- key. mw.smw.ask keys by alias, so a collision silently drops a column's data.
+--- @class DataGridSort
+--- @field alias string  The matching column's result-row key (`columnAlias`).
+--- @field direction 'asc'|'desc'
+
+--- Parse the `sort` argument: `<label or property> [asc|desc]`, direction
+--- defaulting to `asc`. The name matches a column's alias (`columnAlias`) or its
+--- raw `property`, so `sort=Subtype` still finds a column relabelled `label=Type`.
+--- A name may itself contain spaces (e.g. "Weapon class"), so the whole string is
+--- tried as a bare name first; only when that fails is the trailing word split off
+--- as the direction. An `eyebrow` column is excluded from matching: it is folded
+--- into the lead card rather than getting its own spec, so naming one is an error
+--- (`no column named`), not a silent no-op.
+--- @param raw string|nil
 --- @param columns DataGridColumn[]
+--- @return DataGridSort|nil sort  nil for an empty (or absent) `raw`
+--- @return string|nil error  ready to display as-is
+function p.parseSort(raw, columns)
+	raw = mw.text.trim(tostring(raw or ''))
+	if raw == '' then
+		return nil, nil
+	end
+	-- An `eyebrow` column is folded into the lead card and never gets its own spec,
+	-- so it has nothing for AG Grid to sort; skip it here rather than resolve to an
+	-- alias that then matches no spec and silently does nothing.
+	local function findAlias(name)
+		for _, column in ipairs(columns) do
+			if not column.eyebrow then
+				local alias = p.columnAlias(column)
+				if alias == name or column.property == name then
+					return alias
+				end
+			end
+		end
+		return nil
+	end
+	local alias = findAlias(raw)
+	if alias then
+		return { alias = alias, direction = 'asc' }, nil
+	end
+	local name, word = raw:match('^(.-)%s+(%S+)$')
+	if not name then
+		return nil, 'sort "' .. raw .. '": no column named ' .. raw
+	end
+	alias = findAlias(name)
+	if not alias then
+		return nil, 'sort "' .. name .. '": no column named ' .. name
+	end
+	if word ~= 'asc' and word ~= 'desc' then
+		return nil, 'sort "' .. word .. '": direction must be asc or desc'
+	end
+	return { alias = alias, direction = word }, nil
+end
+
+--- The first editor column whose alias collides with another column or with a lead
+--- key. Store keys rows by alias, so a collision silently drops a column's data.
+--- @param columns DataGridColumn[]
+--- @param options DataGridOptions|nil
 --- @return string|nil  the offending alias, or nil when all are unique
-function p.duplicateAlias(columns)
-	local seen = { [IMAGE_ALIAS] = true, [NAME_ALIAS] = true }
+function p.duplicateAlias(columns, options)
+	local seen = { [NAME_ALIAS] = true, [DISPLAY_ALIAS] = true }
+	if wantsLeadImage(options) then
+		seen[IMAGE_ALIAS] = true
+	end
 	for _, column in ipairs(columns) do
 		local alias = p.columnAlias(column)
 		if seen[alias] then
@@ -137,38 +244,191 @@ function p.duplicateAlias(columns)
 	return nil
 end
 
---- Build the mw.smw.ask query: a main-namespace restriction, an optional category
---- condition, and optional raw conditions; then the two lead printouts, one aliased
---- printout per editor column, and the fixed options. At least one of `category` or
---- `conditions` should be non-empty (`main` enforces this) — a bare `[[:+]]` would
---- otherwise match the entire main namespace.
---- @param category string
---- @param columns DataGridColumn[]
---- @param conditions? string
---- @return string[]
-function p.buildQuery(category, columns, conditions)
-	-- `[[:+]]` restricts to the main namespace so File/Category pages don't leak in
-	-- as rows.
-	local condition = '[[:+]]'
-	if category and category ~= '' then
-		condition = condition .. ' [[Category:' .. category .. ']]'
+--- Finds the operator a filter line splits on: whichever OPERATORS candidate
+--- starts earliest in the line (so an operator-shaped substring inside the
+--- VALUE never pre-empts an earlier one, e.g. "Name = A<=B" splits on the
+--- first "="); among candidates tied at the same start position, the longest
+--- wins ("<=" over "<", "!=" over "=").
+--- @param line string
+--- @return string|nil op
+--- @return integer|nil at  1-based index the match starts at
+local function findOperator(line)
+	local bestOp, bestAt
+	for _, candidate in ipairs(OPERATORS) do
+		local at = line:find(candidate, 1, true)
+		if at and (bestAt == nil or at < bestAt or (at == bestAt and #candidate > #bestOp)) then
+			bestOp, bestAt = candidate, at
+		end
 	end
-	if conditions and conditions ~= '' then
-		condition = condition .. ' ' .. conditions
-	end
-	local query = { condition, '?Page Image=' .. IMAGE_ALIAS, '?=' .. NAME_ALIAS }
-	for _, column in ipairs(columns) do
-		query[#query + 1] = '?' .. column.property .. '=' .. p.columnAlias(column)
-	end
-	for _, option in ipairs(QUERY_OPTIONS) do
-		query[#query + 1] = option
-	end
-	return query
+	return bestOp, bestAt
 end
 
---- One eyebrow column's value as `{ text, href? }`: a linked label when the value
---- is a single page printout, else plain text. No icon — the brand glyph is
---- PledgeVehicleGrid-specific. nil when the value is empty.
+--- Parse the multi-line `filter` value. One clause per non-blank line:
+--- `Property = Value`, `Property = A; B`, `Property != Value`, `Property = +`,
+--- `Property <op> Number` for <, <=, >, >=. `||` is also accepted for the Or
+--- form (it arrives from an editor's `{{!}}{{!}}`); `;` is preferred because a
+--- raw `|` cannot survive inside a template parameter. The property name and
+--- every value are entity-decoded, so a `{{PAGENAME}}`-derived value
+--- (`Klaus &#38; Werner`) matches Bucket's stored text.
+--- A value containing `;` is not expressible: the separator wins.
+--- @param raw string|nil
+--- @return table[]|nil filters  Store filter entries
+--- @return string|nil error  the first line that does not parse
+function p.parseFilters(raw)
+	local filters = {}
+	for line in (tostring(raw or '') .. '\n'):gmatch('([^\n]*)\n') do
+		line = mw.text.trim(line)
+		if line ~= '' then
+			local property, op, rest
+			local bestOp, at = findOperator(line)
+			if bestOp then
+				property, op, rest = mw.text.trim(line:sub(1, at - 1)), bestOp, mw.text.trim(line:sub(at + #bestOp))
+				-- Decode BEFORE splitting on ";": an HTML entity's own syntax ends in
+				-- ";" (e.g. "&#38;"), so splitting first would fragment it.
+				property = mw.text.decode(property, true)
+				rest = mw.text.decode(rest, true)
+			end
+			if not property or property == '' or rest == '' then
+				return nil, line
+			end
+			if op == '=' and rest == '+' then
+				filters[#filters + 1] = { property, '+' }
+			elseif op == '=' and (rest:find(';', 1, true) or rest:find('||', 1, true)) then
+				local any = {}
+				for chunk in (rest .. ';'):gmatch('([^;]*);') do
+					for part in (chunk .. '||'):gmatch('(.-)||') do
+						part = stripLink(part)
+						if part ~= '' then
+							any[#any + 1] = { property, '=', part }
+						end
+					end
+				end
+				if #any == 0 then
+					return nil, line
+				end
+				filters[#filters + 1] = { any = any }
+			elseif NUMERIC_OPS[op] then
+				local n = tonumber(rest)
+				if n == nil then
+					return nil, line
+				end
+				filters[#filters + 1] = { property, op, n }
+			else
+				filters[#filters + 1] = { property, op, stripLink(rest) }
+			end
+		end
+	end
+	return filters, nil
+end
+
+--- Parse `category`: names separated by `;` (or legacy `||`, which arrives
+--- from an editor's `{{!}}{{!}}`), direct membership only. Names are
+--- entity-decoded, so a `{{PAGENAME}}`-derived name matches a real category.
+--- @param raw string|nil
+--- @return string|table|nil filter
+--- @return string|nil error  a part carrying a `|` or `+depth` modifier
+function p.parseCategory(raw)
+	raw = mw.text.trim(tostring(raw or ''))
+	if raw == '' then
+		return nil, nil
+	end
+	-- Decode BEFORE splitting on ";": an HTML entity's own syntax ends in ";"
+	-- (e.g. "&#38;"), so splitting first would fragment it.
+	raw = mw.text.decode(raw, true)
+	local parts = {}
+	for chunk in (raw .. ';'):gmatch('([^;]*);') do
+		for part in (chunk .. '||'):gmatch('(.-)||') do
+			part = mw.text.trim(part)
+			if part:find('|', 1, true) or part:find('+depth', 1, true) then
+				return nil, part
+			end
+			if part ~= '' then
+				parts[#parts + 1] = 'Category:' .. part
+			end
+		end
+	end
+	if #parts == 0 then
+		return nil, raw
+	end
+	if #parts == 1 then
+		return parts[1], nil
+	end
+	return { any = parts }, nil
+end
+
+--- The Store spec for a table. Resolves every column so a bad name is an error
+--- the editor sees, not an empty column.
+--- @param kind string|nil
+--- @param categoryFilter string|table|nil
+--- @param filters table[]
+--- @param columns DataGridColumn[]
+--- @param options DataGridOptions|nil
+--- @return table|nil spec
+--- @return string|nil error
+function p.buildSpec(kind, categoryFilter, filters, columns, options)
+	local lead = { { builtin = 'page_name', as = NAME_ALIAS } }
+	if wantsLeadImage(options) then
+		lead[#lead + 1] = { property = 'Image', as = IMAGE_ALIAS }
+	end
+	lead[#lead + 1] = { property = 'Name', as = DISPLAY_ALIAS }
+	local spec = {
+		kind = kind,
+		filters = {},
+		columns = lead,
+		limit = 1000,
+	}
+	if categoryFilter then
+		spec.filters[1] = categoryFilter
+	end
+	for _, f in ipairs(filters) do
+		spec.filters[#spec.filters + 1] = f
+	end
+	-- `op` is given only for a filter clause: a relational operator over a
+	-- non-numeric entry or `!=` over a repeated one is a static contract
+	-- violation, caught here rather than surfacing as a Store runtime error.
+	local function check(property, op)
+		local entry = Store.resolve(property, kind)
+		if entry == nil then
+			if Store.needsKind(property) then
+				if kind then
+					return '"' .. property .. '" is not stored for kind ' .. kind
+				end
+				return '"'
+					.. property
+					.. '" lives in a different table per kind; add kind= (Vehicle, Item, Commodity, Location, Mission, Company or Wearable set)'
+			end
+			return "unknown property '" .. property .. "'"
+		end
+		if NUMERIC_OPS[op] and entry.type ~= 'INTEGER' and entry.type ~= 'DOUBLE' then
+			return '"' .. property .. '" is not numeric; ' .. op .. ' needs a number column'
+		end
+		if op == '!=' and entry.repeated then
+			return '"' .. property .. '" is a list; != cannot be applied'
+		end
+	end
+	for _, column in ipairs(columns) do
+		local err = check(column.property)
+		if err then
+			return nil, err
+		end
+		spec.columns[#spec.columns + 1] = { property = column.property, as = p.columnAlias(column) }
+	end
+	for _, f in ipairs(filters) do
+		local names = f.any and f.any or { f }
+		for _, sub in ipairs(names) do
+			local err = check(sub[1], sub[2])
+			if err then
+				return nil, err
+			end
+		end
+	end
+	return spec, nil
+end
+
+--- One eyebrow column's value as `{ text, href? }`: a linked label for a PAGE
+--- property, else plain text. `page` decides which, since a plain-text
+--- property's raw value must never be treated as a page title. No icon — the
+--- brand glyph is PledgeVehicleGrid-specific. nil when the value is empty.
 ---
 --- A composed eyebrow strips the column headers that would otherwise say what a
 --- number is — "S1 · 1 · Active" tells a reader nothing — so `prefix` and `suffix`
@@ -179,17 +439,19 @@ end
 --- passive modules have one charge, so "1 charges" would be wrong on more rows
 --- than it is right.
 --- @param result table
---- @param part table  { alias, prefix?, suffix?, suffix1? }
+--- @param part table  { alias, page, prefix?, suffix?, suffix1? }
 --- @return table|nil
 local function eyebrowPart(result, part)
 	local value = result[part.alias]
-	local target, display = Util.parseLink(value)
-	if target then
-		local link = aggrid.link(target, display)
-		return {
-			text = (link and link.text) or display or target,
-			href = link and link.href,
-		}
+	if part.page then
+		local target, display = Util.pageTarget(value)
+		if target then
+			local link = aggrid.link(target, display)
+			return {
+				text = (link and link.text) or display or target,
+				href = link and link.href,
+			}
+		end
 	end
 	local text = Util.toText(value)
 	if text == nil or text == '' then
@@ -216,7 +478,7 @@ end
 --- `filterPart` is the column the lead's set filter keys on, surfaced separately as
 --- `full` (the Card kind's set-filter value). Without it the whole composed line
 --- would become the filter option, which is one option per row.
---- @param parts table[]  { alias, prefix?, suffix?, suffix1? }
+--- @param parts table[]  { alias, page, prefix?, suffix?, suffix1? }
 --- @param filterPart table|nil
 --- @return fun(result: table): table|nil
 local function eyebrowResolver(parts, filterPart)
@@ -251,21 +513,24 @@ local function eyebrowResolver(parts, filterPart)
 end
 
 --- Build the AGGridColumns column specs for this query: a single card lead
---- (thumbnail + linked name, optional eyebrow), then one spec per editor column
---- (classified link vs multi-value list vs smart-plain). A column flagged
---- `eyebrow` feeds the lead card and is not emitted as its own column.
+--- (thumbnail + linked name, optional eyebrow), then one spec per editor column,
+--- classified from its manifest type. A column flagged `eyebrow` feeds the lead
+--- card and is not emitted as its own column.
 --- @param results table[]
 --- @param columns DataGridColumn[]
 --- @param eyebrowColumns DataGridColumn[]
 --- @param pinLead boolean
+--- @param kind string|nil
+--- @param sort DataGridSort|nil  Applied to the spec whose `label` matches `sort.alias`.
 --- @return table[]
-local function buildSpecs(results, columns, eyebrowColumns, pinLead)
+local function buildSpecs(results, columns, eyebrowColumns, pinLead, kind, sort)
 	local leadSpec = {
 		kind = 'card',
 		field = 'lead',
 		header = NAME_ALIAS,
 		titleLabel = NAME_ALIAS,
 		imageLabel = IMAGE_ALIAS,
+		displayLabel = DISPLAY_ALIAS,
 		filterOn = 'title',
 		filter = 'agTextColumnFilter',
 	}
@@ -289,8 +554,10 @@ local function buildSpecs(results, columns, eyebrowColumns, pinLead)
 	if eyebrowColumns[1] then
 		local parts, filterPart = {}, nil
 		for _, column in ipairs(eyebrowColumns) do
+			local entry = Store.resolve(column.property, kind)
 			local part = {
 				alias = p.columnAlias(column),
+				page = entry.type == 'PAGE',
 				prefix = column.prefix,
 				suffix = column.suffix,
 				suffix1 = column.suffix1,
@@ -311,7 +578,6 @@ local function buildSpecs(results, columns, eyebrowColumns, pinLead)
 	end
 	local specs = { leadSpec }
 	local groups = { false }
-	local KINDS = { list = 'valueList', link = 'link', plain = 'smart' }
 	for i, column in ipairs(columns) do
 		if not column.eyebrow then
 			groups[#specs + 1] = (column.group ~= nil and column.group ~= '') and column.group or false
@@ -358,30 +624,37 @@ local function buildSpecs(results, columns, eyebrowColumns, pinLead)
 					filter = 'aggridSet',
 				}
 			else
-				local values = {}
-				for _, result in ipairs(results) do
-					if result[alias] ~= nil then
-						values[#values + 1] = result[alias]
-					end
+				local entry = Store.resolve(column.property, kind)
+				local filter = column.filter and 'aggridSet' or 'agTextColumnFilter'
+				local spec = { field = 'c' .. i, header = header, label = alias }
+				if entry.type == 'PAGE' then
+					spec.kind = entry.repeated and 'linkList' or 'link'
+					spec.filter = filter
+				elseif entry.repeated then
+					spec.kind = 'valueList'
+					spec.filter = filter
+				elseif entry.type == 'INTEGER' or entry.type == 'DOUBLE' then
+					spec.kind = 'number'
+					spec.format = NUMBER_FORMAT
+					spec.filter = column.filter and 'aggridSet' or nil
+				elseif entry.type == 'BOOLEAN' then
+					spec.kind = 'boolean'
+					spec.filter = 'aggridSet'
+				else
+					spec.kind = 'smart'
+					spec.filter = filter
 				end
-				-- All-numeric, not majority-numeric: the flag exists so an empty cell
-				-- can be aligned like the rest of its column, and in a mixed column
-				-- there is no "rest" to align to.
-				local numeric = #values > 0
-				for _, v in ipairs(values) do
-					if not Util.looksNumeric(v) then
-						numeric = false
-						break
-					end
-				end
-				specs[#specs + 1] = {
-					kind = KINDS[Util.classifyColumn(values)],
-					field = 'c' .. i,
-					header = header,
-					label = alias,
-					filter = column.filter and 'aggridSet' or 'agTextColumnFilter',
-					numeric = numeric,
-				}
+				specs[#specs + 1] = spec
+			end
+		end
+	end
+	-- Every kind's buildColDef passes `sort` through to AG Grid's initial-sort key,
+	-- so setting it on the matching spec is enough regardless of column kind.
+	if sort then
+		for i = 2, #specs do
+			if specs[i].label == sort.alias then
+				specs[i].sort = sort.direction
+				break
 			end
 		end
 	end
@@ -418,29 +691,120 @@ local function groupColumnDefs(defs, groups)
 	return out
 end
 
---- Entry point for {{Data table}}. Reads `category`, `columns`, `conditions` from
---- the parent frame, builds the grid, and returns it preceded by the styles load.
+--- Runs the Store query, catching a Bucket infrastructure failure (a
+--- QueryException, the per-query execution limit, the per-page budget, or an
+--- unregistered bucket during a staged deploy) instead of letting it
+--- script-error the page: every programming mistake (an unknown property, a
+--- bad operator) is already caught by buildSpec before this runs, so a
+--- failure here is infrastructure, not an editing mistake. An Rdbms
+--- DBQueryError (the self-join class) is not catchable from Lua and still
+--- propagates.
+--- @param spec table
+--- @return table[]|nil results
+--- @return string|nil err
+function p.runQuery(spec)
+	local ok, results = pcall(Store.query, spec)
+	if not ok then
+		return nil, results
+	end
+	return results, nil
+end
+
+--- Sort query results by the `Name` alias (the `page_name` builtin), byte
+--- comparison, so a table opens in page-title order (Bucket otherwise returns
+--- store order). AG Grid's initial `sort=` sort overrides the visible order
+--- regardless, so this is unconditional.
+--- @param results table[]
+--- @return table[] results  the same table, sorted in place
+function p.sortRows(results)
+	table.sort(results, function(a, b)
+		return (a[NAME_ALIAS] or '') < (b[NAME_ALIAS] or '')
+	end)
+	return results
+end
+
+--- @class DataGridRequest
+--- @field spec table  the Module:Entity/Store query spec
+--- @field columns DataGridColumn[]  the editor's columns, in order
+--- @field kind string|nil
+--- @field sort DataGridSort|nil
+
+--- Resolve a {{Data table}} argument table into the Store spec and the parsed
+--- columns. Every contract violation comes back as a ready-to-display message,
+--- in the order an editor meets them (unsupported argument, kind, category,
+--- filter, columns, properties, sort). Shared with Module:DataGrid/Static so the
+--- two templates accept one grammar and report one set of failures; `options`
+--- is how that caller drops the Image lead column it renders itself.
+--- @param args table
+--- @param options DataGridOptions|nil  passed on to duplicateAlias and buildSpec
+--- @return DataGridRequest|nil request
+--- @return string|nil error
+function p.resolveArgs(args, options)
+	if args.conditions and mw.text.trim(args.conditions) ~= '' then
+		return nil, '"conditions" is not supported; use "filter" (see Template:Data table)'
+	end
+
+	local kind = mw.text.trim(args.kind or '')
+	if kind == '' then
+		kind = nil
+	elseif not KINDS[kind] then
+		return nil, 'unknown kind "' .. kind .. '"'
+	end
+
+	local categoryFilter, badCategory = p.parseCategory(args.category)
+	if badCategory then
+		return nil, 'category "' .. badCategory .. '": use plain names separated by ";"; membership is direct only'
+	end
+
+	local filters, badLine = p.parseFilters(args.filter)
+	if badLine then
+		return nil,
+			'filter line "'
+				.. badLine
+				.. '" is not Property = Value, Property = A; B, Property != Value, Property = + or Property <op> Number'
+	end
+
+	if not categoryFilter and #filters == 0 then
+		return nil, 'provide "category" or "filter"'
+	end
+
+	local columns = p.parseColumns(args.columns)
+	if #columns == 0 then
+		return nil, 'no columns defined'
+	end
+
+	local duplicate = p.duplicateAlias(columns, options)
+	if duplicate then
+		return nil, 'duplicate column "' .. duplicate .. '"'
+	end
+
+	local spec, badSpec = p.buildSpec(kind, categoryFilter, filters, columns, options)
+	if badSpec then
+		return nil, badSpec
+	end
+
+	local sort, badSort = p.parseSort(args.sort, columns)
+	if badSort then
+		return nil, badSort
+	end
+
+	return { spec = spec, columns = columns, kind = kind, sort = sort }, nil
+end
+
+--- Entry point for {{Data table}}. Reads `category`, `filter`, `kind`, `columns`,
+--- `pinlead` and `sort` from the parent frame, runs the Store query, builds the
+--- grid, and returns it preceded by the styles load.
 --- @param frame mw.frame
 --- @return string
 function p.main(frame)
 	local getArgs = require('Module:Arguments').getArgs
 	local args = getArgs(frame)
 
-	local category = mw.text.trim(args.category or '')
-	local conditions = mw.text.trim(args.conditions or '')
-	if category == '' and conditions == '' then
-		return '<strong class="error">Module:DataGrid: provide a "category" or "conditions" to query.</strong>'
+	local request, badArgs = p.resolveArgs(args)
+	if badArgs then
+		return fail(badArgs)
 	end
-
-	local columns = p.parseColumns(args.columns)
-	if #columns == 0 then
-		return '<strong class="error">Module:DataGrid: no columns defined.</strong>'
-	end
-
-	local duplicate = p.duplicateAlias(columns)
-	if duplicate then
-		return '<strong class="error">Module:DataGrid: duplicate column "' .. duplicate .. '".</strong>'
-	end
+	local columns, kind, sort = request.columns, request.kind, request.sort
 
 	-- Every `eyebrow` column composes the lead card's second line, in the order the
 	-- editor wrote them.
@@ -452,15 +816,13 @@ function p.main(frame)
 	end
 	local pinLead = yesno(args.pinlead, false)
 
-	-- A query that matches nothing legitimately returns no rows; coerce non-table to
-	-- {} so the grid renders empty (AG Grid shows its own "no rows" overlay) rather
-	-- than erroring.
-	local results = mw.smw.ask(p.buildQuery(category, columns, conditions))
-	if type(results) ~= 'table' then
-		results = {}
+	local results, queryErr = p.runQuery(request.spec)
+	if queryErr then
+		return fail('the query could not be run: ' .. tostring(queryErr))
 	end
+	p.sortRows(results)
 
-	local specs, groups = buildSpecs(results, columns, eyebrowColumns, pinLead)
+	local specs, groups = buildSpecs(results, columns, eyebrowColumns, pinLead, kind, sort)
 	local gridOptions = {
 		columnDefs = groupColumnDefs(AGGridColumns.buildColumnDefs(specs), groups),
 		rowData = AGGridColumns.buildRowData(results, specs),

@@ -6,7 +6,6 @@ require('strict')
 --- is the sort / set-filter key (real "Yes"/"No" words) even though the cell
 --- shows only a glyph. Spec: { field, header, label, filter?, width? }.
 
-local Util = require('Module:AGGridColumns/Util')
 local Boolean = require('Module:Boolean')
 local Icon = require('Module:Icon')
 
@@ -19,6 +18,7 @@ function p.buildColDef(spec)
 	return {
 		field = spec.field,
 		headerName = spec.header,
+		sort = spec.sort,
 		type = 'scwBoolean',
 		filter = spec.filter or 'aggridSet',
 		sortable = true,
@@ -31,10 +31,7 @@ end
 --- @param result table
 --- @return table|nil
 function p.buildCellValue(spec, result)
-	-- Normalise the raw SMW value first (entity-decode, unwrap { fulltext } table
-	-- shapes), matching the sibling Badge / BadgeList kinds, so the value reaches
-	-- Module:Yesno in a parseable form rather than silently classifying unknown.
-	local raw = Util.decodeScalar(result[spec.label])
+	local raw = result[spec.label]
 	if raw == nil or raw == '' then
 		return nil
 	end

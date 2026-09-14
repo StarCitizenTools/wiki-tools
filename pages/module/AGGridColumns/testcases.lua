@@ -5,6 +5,7 @@ local suite = ScribuntoUnit:new()
 local AGGridColumns = require('Module:AGGridColumns')
 local Registry = require('Module:AGGridColumns/Registry')
 local Contract = require('Module:AGGridColumns/Contract')
+local Util = require('Module:AGGridColumns/Util')
 
 -- Conformance: every registered kind satisfies the contract.
 function suite:testAllKindsConform()
@@ -112,6 +113,25 @@ function suite:testCardPinnedPassesThrough()
 	self:assertEquals('left', Card.buildColDef(spec).pinned)
 end
 
+-- Every kind's colDef carries `sort` (AG Grid's initial-sort key) through from
+-- the spec, nil when unset so existing output is unchanged. Covers a plain
+-- table-literal kind, one delegating to an aggrid.*Column helper, and one built
+-- from a local `def` with conditional fields.
+function suite:testColDefCarriesSortWhenSet()
+	self:assertEquals('desc', colDefOf({ kind = 'text', field = 'c', header = 'C', label = 'C', sort = 'desc' }).sort)
+	self:assertEquals(nil, colDefOf({ kind = 'text', field = 'c', header = 'C', label = 'C' }).sort)
+end
+
+function suite:testLinkColDefCarriesSort()
+	self:assertEquals('asc', colDefOf({ kind = 'link', field = 'c', header = 'C', label = 'C', sort = 'asc' }).sort)
+	self:assertEquals(nil, colDefOf({ kind = 'link', field = 'c', header = 'C', label = 'C' }).sort)
+end
+
+function suite:testCardColDefCarriesSort()
+	local spec = { kind = 'card', field = 'lead', header = 'Name', titleLabel = 'Name', sort = 'desc' }
+	self:assertEquals('desc', colDefOf(spec).sort)
+end
+
 function suite:testUnknownKindErrors()
 	self:assertThrows(function()
 		AGGridColumns.buildColumnDefs({ { kind = 'nope', field = 'c' } })
@@ -128,7 +148,7 @@ function suite:testTextCell()
 end
 
 function suite:testNumberCell()
-	self:assertEquals(1234, cellOf({ kind = 'number', field = 'c', label = 'C' }, { C = '1,234 m' }))
+	self:assertEquals(1234, cellOf({ kind = 'number', field = 'c', label = 'C' }, { C = 1234 }))
 end
 
 -- The dateString type renders anything failing /^\d{4}-\d{2}-\d{2}$/ as an empty cell
@@ -212,6 +232,53 @@ end
 -- boolean kind: an absent field yields an empty cell (no Icon.src call)
 function suite:testBooleanCellEmpty()
 	self:assertEquals(nil, cellOf({ kind = 'boolean', field = 'c', label = 'C' }, {}))
+end
+
+function suite:testPageTargetAcceptsMarkupAndBareTitle()
+	local t, d = Util.pageTarget('[[:Avenger Titan|Titan]]')
+	self:assertEquals('Avenger Titan', t)
+	self:assertEquals('Titan', d)
+	t, d = Util.pageTarget('Avenger Titan')
+	self:assertEquals('Avenger Titan', t)
+	self:assertEquals(nil, d)
+	self:assertEquals(nil, Util.pageTarget(''))
+	self:assertEquals(nil, Util.pageTarget(nil))
+	-- parseLink keeps requiring brackets: DataGrid types columns from the manifest,
+	-- not from parseLink or its values.
+	self:assertEquals(nil, Util.parseLink('Avenger Titan'))
+end
+
+function suite:testCardCellFromTypedRow()
+	local spec = { field = 'v', kind = 'card', titleLabel = 'Name', imageLabel = 'Image' }
+	local card = cellOf(spec, { Name = 'Avenger Titan', Image = 'X.png' })
+	self:assertEquals('Avenger Titan', card.title)
+	self:assertTrue(card.image ~= nil)
+end
+
+-- displayLabel shows a page's stored name while the link still targets
+-- titleLabel: Store's page_name builtin is the bare page title and does not
+-- carry {{DISPLAYTITLE}} (Dragonfly / Dragonfly Black).
+function suite:testCardCellDisplayLabelOverridesTitleTextOnly()
+	local spec = { field = 'v', kind = 'card', titleLabel = 'Name', displayLabel = 'DisplayName' }
+	local card = cellOf(spec, { Name = 'Dragonfly', DisplayName = 'Dragonfly Black' })
+	self:assertEquals('Dragonfly Black', card.title)
+	self:assertEquals('Dragonfly', card.titleHref)
+end
+
+-- An absent or empty displayLabel result falls back to the title text as before.
+function suite:testCardCellDisplayLabelFallsBackWhenEmpty()
+	local spec = { field = 'v', kind = 'card', titleLabel = 'Name', displayLabel = 'DisplayName' }
+	local card = cellOf(spec, { Name = 'Avenger Titan', DisplayName = '' })
+	self:assertEquals('Avenger Titan', card.title)
+end
+
+function suite:testLinkListFromBareTitles()
+	local a = Util.buildLinkList({ 'A', 'B' })
+	local b = Util.buildLinkList({ '[[:A|A]]', '[[:B|B]]' })
+	self:assertTrue(a ~= nil and b ~= nil)
+	-- mw.text.jsonEncode needs the PHP path, unavailable in the headless runner;
+	-- compare the stubbed aggrid.linkList shape structurally instead.
+	self:assertDeepEquals(a, b)
 end
 
 return suite

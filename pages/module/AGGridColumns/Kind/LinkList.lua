@@ -12,11 +12,13 @@ p.type = 'aggridLinkList'
 --- @param spec table
 --- @return table
 function p.buildColDef(spec)
-	return aggrid.linkListColumn({
+	local def = aggrid.linkListColumn({
 		field = spec.field,
 		header = spec.header,
 		filter = spec.filter or 'agTextColumnFilter',
 	})
+	def.sort = spec.sort
+	return def
 end
 
 --- @param spec table

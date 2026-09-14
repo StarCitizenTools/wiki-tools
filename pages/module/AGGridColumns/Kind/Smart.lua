@@ -15,6 +15,7 @@ function p.buildColDef(spec)
 	local def = {
 		field = spec.field,
 		headerName = spec.header,
+		sort = spec.sort,
 		type = 'scwSmart',
 		filter = spec.filter or 'agTextColumnFilter',
 	}

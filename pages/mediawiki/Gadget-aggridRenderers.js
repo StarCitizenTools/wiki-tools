@@ -92,9 +92,9 @@
 		return span;
 	}
 
-	// Decode HTML entities in a display string (notably the literal "&#160;" the SMW
-	// formatter emits for nbsp) by round-tripping through a detached <textarea>. This
-	// is browser-native decoding; it never executes markup.
+	// Decode HTML entities in a display string (notably a literal "&#160;" for nbsp)
+	// by round-tripping through a detached <textarea>. This is browser-native
+	// decoding; it never executes markup.
 	var scwDecodeEl = document.createElement( 'textarea' );
 	function scwDecode( s ) {
 		// Callers pass an already-stringified value (see scwClean); s is always a string.
@@ -114,8 +114,8 @@
 		var s = typeof v === 'string' ? v : String( v );
 		s = scwDecode( s );
 		// \s already covers nbsp (and every other Unicode space), so one collapse
-		// handles the "&#160;" the SMW formatter emits -- no separate nbsp pass, and
-		// never a literal nbsp in the source, which is unreviewable in a diff.
+		// handles a decoded "&#160;" -- no separate nbsp pass, and never a literal
+		// nbsp in the source, which is unreviewable in a diff.
 		return s.replace( /\s+/g, ' ' ).replace( /^\s+|\s+$/g, '' );
 	}
 
@@ -125,8 +125,7 @@
 	// digits: ' m/s', ' kg', ' SCU', '°/s', '🗡️'). 'S2' / 'Gr. 3' / '$1,500' have the
 	// number after a non-digit prefix, so they are NON-numeric and sort
 	// alphabetically ( 'S1' < 'S10' < 'S2' ). One predictable rule for every column.
-	// Module:AGGridColumns/Util.looksNumeric MIRRORS this rule for the column-level
-	// scwNumericColumn flag; change one and the two disagree about alignment.
+	// The gadget's numeric detection is its own rule; no Lua-side helper mirrors it.
 	function scwNumericPart( v ) {
 		if ( typeof v === 'number' ) {
 			return isFinite( v ) ? v : null;

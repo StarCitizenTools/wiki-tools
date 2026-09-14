@@ -21,6 +21,7 @@ function p.buildColDef(spec)
 	return {
 		field = spec.field,
 		headerName = spec.header,
+		sort = spec.sort,
 		type = 'scwBadgeList',
 		filter = spec.filter or 'aggridSet',
 		sortable = true,
@@ -35,7 +36,7 @@ function p.buildCellValue(spec, result)
 	if values == nil then
 		return nil
 	end
-	-- A multi-valued SMW printout arrives as an array; a single value as a scalar.
+	-- A repeated column arrives as an array; a single value as a scalar.
 	if type(values) ~= 'table' then
 		values = { values }
 	end

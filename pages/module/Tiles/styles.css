@@ -37,6 +37,16 @@
 }
 
 /*
+ * Flags a row's own tile as the current page (e.g. Entity/Related's vehicle
+ * series branch). Compounded with .t-tiles__tile for higher specificity than
+ * the base rule above, since both are otherwise 0-1-0 and the base rule's
+ * `border` shorthand would reset this modifier's border-color to the base's.
+ */
+.t-tiles__tile.t-tiles__tile--selected {
+	border-color: var(--color-progressive);
+}
+
+/*
  * Fakelink: MediaWiki's sanitizer strips raw <a> tags, so we wrap a
  * [[Page|Page]] wikilink in an absolutely-positioned, transparent div.
  * The parser-generated <a> stretches to fill the tile so clicking

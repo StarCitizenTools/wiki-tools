@@ -8,7 +8,7 @@ require('strict')
 --- so anchors only exist when the parser generates them from wikitext).
 ---
 --- Pure rendering: callers pass fully resolved rows (page, image,
---- labels). Look-up concerns (SMW page resolution, API fetching) live
+--- labels). Look-up concerns (page resolution, API fetching) live
 --- in the caller. This keeps Tiles testable and reusable across
 --- unrelated callers — Module:Entity/Related and Module:Entity/UsedBy
 --- both consume it but resolve their data differently.
@@ -19,6 +19,7 @@ require('strict')
 --- @field image string|nil      Image filename without the `File:` prefix. When nil, falls back to `props.placeholderImage`.
 --- @field primary string|nil    Prominent label rendered at the bottom of the tile.
 --- @field secondary string|nil  Smaller kicker rendered above `primary` (subtitle style).
+--- @field selected boolean|nil  Adds the `t-tiles__tile--selected` modifier class (e.g. Entity/Related flagging the current page among a vehicle's series-mates), styled in Tiles/styles.css, compounded with the base tile selector.
 
 --- @class TilesProps
 --- @field rows TilesRow[]              Rows to render, in order.
@@ -54,6 +55,9 @@ local function renderTile(row, placeholderImage, imageWidth)
 	end
 
 	local tile = mw.html.create('div'):addClass('t-tiles__tile')
+	if row.selected then
+		tile:addClass('t-tiles__tile--selected')
+	end
 	tile:tag('div'):addClass('t-tiles__link'):wikitext('[[' .. linkPage .. '|' .. linkLabel .. ']]')
 	-- notpageimage: a tile always shows some OTHER page's image, so it must never
 	-- be scored as this page's page image. Without it PageImages happily promotes

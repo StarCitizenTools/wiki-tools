@@ -45,7 +45,7 @@ the TemplateData top-level `description`.
 ```markdown
 | Name | Label | Type | Required | Default | Description | Example |
 |------|-------|------|----------|---------|-------------|---------|
-| `uuid` | UUID | string | No | (falls back to SMW) | Entity UUID. | `80ee3b95-...` |
+| `uuid` | UUID | string | No | (falls back to the stored uuid) | Entity UUID. | `80ee3b95-...` |
 | `paramB` | Param B | number | No | `0` | Another desc. | `42` |
 ```
 

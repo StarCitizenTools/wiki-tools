@@ -15,7 +15,7 @@ Pass `wiki: "starcitizen.tools"` explicitly on **every** MCP call in this workfl
 
 ### 2. Scan Local Files
 
-Determine the namespace from the path (`pages/module/...` → `Module:`, `pages/template/...` → `Template:`). Read all files in `pages/<namespace>/<Name>/`. Map each file to a wiki page title and content model.
+Determine the namespace from the path (`pages/module/...` → `Module:`, `pages/template/...` → `Template:`, `pages/bucket/...` → `Bucket:`). Read all files in `pages/<namespace>/<Name>/`. Map each file to a wiki page title and content model.
 
 **Module namespace (`pages/module/<Name>/`):**
 
@@ -37,6 +37,10 @@ Determine the namespace from the path (`pages/module/...` → `Module:`, `pages/
 - `README.md` → `Template:<Name>/doc` — content model: `wikitext` (requires conversion, see step 5)
 - Subdirectories (e.g. `pages/template/Entity/Description/`) recurse with the same rules — the subpath becomes part of the wiki title.
 
+**Bucket namespace (`pages/bucket/`):**
+
+- `<Name>.json` → `Bucket:<Name>` — content model: `json`. These are generated (`mise run bucket:schemas`); deploy them only from a clean tree. Saving creates or alters the table (adding a field is non-destructive); deleting the page drops the table. The deploying account needs `editbucket` (Alistar Bot has it). `README.md` in this directory is repo documentation, not a wiki page.
+
 ### 3. Choose the Edit Summary
 
 Run `git status --porcelain` and `git log --oneline -1`.
@@ -46,6 +50,8 @@ Run `git status --porcelain` and `git log --oneline -1`.
 - **No commits exist** → use `Sync from Git`.
 
 ### 4. Deploy Each File (except README.md)
+
+**Order matters when one page calls another.** Deploy the caller first when it starts passing something the callee will need: `Module:Entity` before `Module:Entity/StructuredData` — the new Entity passes an extra argument the old StructuredData ignores; the reverse order leaves a window where every page is written with `kind == nil`. The wiki re-renders pages from the job queue while a deploy is in progress, so a window of a few seconds is enough to write wrong data to real pages.
 
 For each non-README file:
 

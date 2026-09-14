@@ -1,6 +1,6 @@
 # tests/
 
-Local test layers. Run everything with `mise run test` (manifest + unit).
+Local test layers. Run everything with `mise run test` (Lua manifest + unit suites, Go, gadget JS).
 
 ## Off-wiki ScribuntoUnit suites
 
@@ -9,13 +9,16 @@ The actual test cases live next to their modules at `pages/module/**/testcases.l
 [`mediawiki-scribuntounit`](https://github.com/StarCitizenTools/mediawiki-scribuntounit)
 runner, consumed via mise (`[tools]` in `.mise.toml`, which provides the
 `scribuntounit` command). Wiki-specific configuration — where modules live, which
-render primitives to stub, and the `mw.ext.aggrid` / `BadgeLua` / `Yesno`
-stand-ins — is declared in `scribuntounit.config.lua` at the repo root.
+render primitives to stub, and the `mw.ext.aggrid` / `BadgeLua` / `Yesno` /
+`mw.ext.bucket` stand-ins — is declared in `scribuntounit.config.lua` at the
+repo root.
 
 ```
 mise run test:lua:unit            # all suites (auto-fetches the lualib first)
 mise run test:lua:unit RangeBar   # filter to one module
 ```
+
+`mw.ext.bucket` is a recorder: a query chain is captured as data in `mw.ext.bucket._chains` (select, join, where, limit, offset), `run()` returns rows installed with `_setRows(bucketName, rows)`, and `put()` appends to `_puts`. It is installed as the global `mw.ext.bucket` (what module code resolves) and is also require-able as `require('mw.ext.bucket')` (what suites use), both names resolving the same table. ScribuntoUnit has no per-test fixture hook, so suites that touch it call `_reset()` at the top of each test, or through a shared helper (`Store/testcases.lua`'s `withManifest`). Rows for a query with joins must be keyed by the qualified selector (`vehicle_stats.scm_speed`), which is how the real extension returns them.
 
 The runner does NOT bundle the Scribunto lualib; it fetches it (pinned to
 `scribunto.ref` in `scribuntounit.config.lua`, default `REL1_43`) into a

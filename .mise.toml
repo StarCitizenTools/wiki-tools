@@ -19,6 +19,7 @@ run = [
   'cd scripts && if [ -n "$(gofmt -l .)" ]; then echo "gofmt: needs formatting:"; gofmt -l .; exit 1; fi',
   "cd scripts && go vet ./...",
   "cd scripts && go run ./cmd/docindex -check",
+  "cd scripts && go run ./cmd/bucketschemas -check",
 ]
 description = "Check formatting"
 
@@ -74,6 +75,21 @@ description = "Run all local tests"
 dir = "scripts"
 run = "go run ./cmd/docindex"
 description = "Regenerate the page catalog in pages/README.md from the README.md beside every module and template; lint fails while it is stale"
+
+[tasks."bucket:schemas"]
+dir = "scripts"
+run = "go run ./cmd/bucketschemas"
+description = "Regenerate the Bucket schema pages in pages/bucket/ from the Entity, Company and WearableSet property manifests; lint fails while they are stale"
+
+[tasks."bucket:schemas:check"]
+dir = "scripts"
+run = "go run ./cmd/bucketschemas -check"
+description = "Exit 1 if any generated Bucket schema page is stale"
+
+[tasks.datatablerows]
+dir = "scripts"
+run = "go run ./cmd/datatablerows"
+description = "Count the rows of every live Data table grid (title, grid index, row count); diff two runs to audit a change to the grids. Read-only."
 
 [tasks."test:go"]
 dir = "scripts"

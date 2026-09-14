@@ -55,6 +55,7 @@ Consume `Module:Entity/Data` directly:
 - [Module:Entity/Infobox](https://starcitizen.tools/Module:Entity/Infobox): assembles and renders the infobox HTML
 - [Module:Entity/Categories](https://starcitizen.tools/Module:Entity/Categories): derives browse categories + trailing wikitext
 - [Module:Entity/StructuredData](https://starcitizen.tools/Module:Entity/StructuredData): the Bucket write, split per table by the manifest
+- [Module:Entity/Store](https://starcitizen.tools/Module:Entity/Store): the Bucket read, and the only module that knows which table a property lives in
 - [Module:Entity/TypeResolver](https://starcitizen.tools/Module:Entity/TypeResolver): resolves display type + browse category
 - [Module:Entity/SubtypeResolver](https://starcitizen.tools/Module:Entity/SubtypeResolver): shared token → leaf-module dispatch
 - [Module:Entity/Types](https://starcitizen.tools/Module:Entity/Types): LuaCATS interfaces for every hook, kind, and facet

@@ -55,10 +55,24 @@ end
 function p.getStructuredData(ctx)
 	local apiData, args = ctx.apiData, ctx.args
 	local manufacturer = p.resolveManufacturer(apiData, args)
+	local image = args.image
+	if type(image) == 'string' then
+		image = image:gsub('^[Ff]ile:', '')
+		-- Stored verbatim otherwise, so a percent-encoded filename the wikitext
+		-- parser tolerates but Title validation rejects (e.g. one carrying a
+		-- literal %27) would reach every Bucket consumer; drop it here instead.
+		-- The infobox itself reads args.image directly and is unaffected.
+		if image == '' or not mw.title.new('File:' .. image) then
+			image = nil
+		end
+	else
+		image = nil
+	end
 	return {
 		uuid = args.uuid,
 		name = args.name or apiData.name,
 		manufacturer = manufacturer and manufacturer.name,
+		image = image,
 	}
 end
 

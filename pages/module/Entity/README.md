@@ -1,12 +1,12 @@
 # Module:Entity
 
-Renders the entity infobox and owns an item, commodity, mission, vehicle, or location page's [SMW](https://www.mediawiki.org/wiki/Extension:Semantic_MediaWiki) data, short description, and categories from a single template invocation. Editors reach it through `{{Entity}}` and its `{{Vehicle}}`/`{{Location}}` facades; sibling templates share [Apiunto](https://www.mediawiki.org/wiki/Extension:Apiunto)'s cached data to render the rest of the page.
+Renders the entity infobox and owns an item, commodity, mission, vehicle, or location page's structured data, short description, and categories from a single template invocation. Editors reach it through `{{Entity}}` and its `{{Vehicle}}`/`{{Location}}` facades; sibling templates share [Apiunto](https://www.mediawiki.org/wiki/Extension:Apiunto)'s cached data to render the rest of the page.
 
 ## For editors
 
-Use `{{Entity}}` at the top of an item, commodity, or mission page; `{{Vehicle}}` for a ship, ground vehicle, or gravlev; `{{Location}}` for a star system or jump point. All three render through this module and write the page's SMW data, `SHORTDESC`, and categories.
+Use `{{Entity}}` at the top of an item, commodity, or mission page; `{{Vehicle}}` for a ship, ground vehicle, or gravlev; `{{Location}}` for a star system or jump point. All three render through this module and write the page's structured data, `SHORTDESC`, and categories.
 
-Sibling templates share Apiunto's cached data; place them further down the page: [Template:Entity/Description](https://starcitizen.tools/Template:Entity/Description) (in-game description prose), [Template:Entity/Availability](https://starcitizen.tools/Template:Entity/Availability) (where to buy/rent/loot/craft it), [Template:Entity/Related](https://starcitizen.tools/Template:Entity/Related) (variants or cargo sizes), [Template:Entity/UsedBy](https://starcitizen.tools/Template:Entity/UsedBy) (vehicles that equip this item), [Template:Entity/Blueprints](https://starcitizen.tools/Template:Entity/Blueprints) (crafting recipes), and [Template:Entity/Ports](https://starcitizen.tools/Template:Entity/Ports) (hardpoint/port tree). On a Mission page, `{{Entity/Orders}}` and `{{Entity/Rewards}}` also store their SMW data.
+Sibling templates share Apiunto's cached data; place them further down the page: [Template:Entity/Description](https://starcitizen.tools/Template:Entity/Description) (in-game description prose), [Template:Entity/Availability](https://starcitizen.tools/Template:Entity/Availability) (where to buy/rent/loot/craft it), [Template:Entity/Related](https://starcitizen.tools/Template:Entity/Related) (variants or cargo sizes), [Template:Entity/UsedBy](https://starcitizen.tools/Template:Entity/UsedBy) (vehicles that equip this item), [Template:Entity/Blueprints](https://starcitizen.tools/Template:Entity/Blueprints) (crafting recipes), and [Template:Entity/Ports](https://starcitizen.tools/Template:Entity/Ports) (hardpoint/port tree). On a Mission page, `{{Entity/Orders}}` and `{{Entity/Rewards}}` render the hauling-order and reward tables; the `Orders`/`Rewards` values are written by `{{Entity}}` itself, from the Mission kind's own structured data.
 
 ## Index
 
@@ -40,8 +40,8 @@ Consume `Module:Entity/Data` directly:
 - [Module:Entity/Related](https://starcitizen.tools/Module:Entity/Related): implements `{{Entity/Related}}`
 - [Module:Entity/UsedBy](https://starcitizen.tools/Module:Entity/UsedBy): implements `{{Entity/UsedBy}}`
 - [Module:Entity/Ports](https://starcitizen.tools/Module:Entity/Ports): implements `{{Entity/Ports}}` (Categories/Pipeline/Render submodules)
-- [Module:Entity/Orders](https://starcitizen.tools/Module:Entity/Orders): Mission hauling-order table; stores its own `orders` SMW data
-- [Module:Entity/Rewards](https://starcitizen.tools/Module:Entity/Rewards): Mission reward items/blueprints; stores its own `rewards` SMW data
+- [Module:Entity/Orders](https://starcitizen.tools/Module:Entity/Orders): Mission hauling-order table
+- [Module:Entity/Rewards](https://starcitizen.tools/Module:Entity/Rewards): Mission reward items/blueprints
 
 ### Pipeline core
 
@@ -54,7 +54,7 @@ Consume `Module:Entity/Data` directly:
 - [Module:Entity/Base](https://starcitizen.tools/Module:Entity/Base): root chain link: name, uuid, manufacturer
 - [Module:Entity/Infobox](https://starcitizen.tools/Module:Entity/Infobox): assembles and renders the infobox HTML
 - [Module:Entity/Categories](https://starcitizen.tools/Module:Entity/Categories): derives browse categories + trailing wikitext
-- [Module:Entity/StructuredData](https://starcitizen.tools/Module:Entity/StructuredData): backend-agnostic SMW write
+- [Module:Entity/StructuredData](https://starcitizen.tools/Module:Entity/StructuredData): the Bucket write, split per table by the manifest
 - [Module:Entity/TypeResolver](https://starcitizen.tools/Module:Entity/TypeResolver): resolves display type + browse category
 - [Module:Entity/SubtypeResolver](https://starcitizen.tools/Module:Entity/SubtypeResolver): shared token → leaf-module dispatch
 - [Module:Entity/Types](https://starcitizen.tools/Module:Entity/Types): LuaCATS interfaces for every hook, kind, and facet
@@ -66,7 +66,7 @@ Consume `Module:Entity/Data` directly:
 - [Module:Entity/StatFormat](https://starcitizen.tools/Module:Entity/StatFormat): display-scale registry for bar/range stats
 - [Module:Entity/Acquisition](https://starcitizen.tools/Module:Entity/Acquisition): logic behind the kinds' `getAcquisition`
 - [Module:Entity/ProductionStatus](https://starcitizen.tools/Module:Entity/ProductionStatus): vehicle production-state badge
-- [Module:Entity/PageResolver](https://starcitizen.tools/Module:Entity/PageResolver): resolves uuids to wiki pages via SMW
+- [Module:Entity/PageResolver](https://starcitizen.tools/Module:Entity/PageResolver): resolves uuids to wiki pages through Store
 - [Module:Entity/Facet/Util](https://starcitizen.tools/Module:Entity/Facet/Util): shared facet display helpers (22 facet modules live under Facet/*)
 
 ## For module editors
@@ -75,7 +75,7 @@ Consume `Module:Entity/Data` directly:
 
 `Data.get`, called independently by every sibling renderer:
 
-1. `parseArgs` merges `#invoke` args with the parent frame's; with neither `uuid` nor `kind` set, it reads the page's stored SMW uuid.
+1. `parseArgs` merges `#invoke` args with the parent frame's; with neither `uuid` nor `kind` set, it reads the page's stored uuid.
 2. `probeKind` fetches a declared `kind`'s endpoint behind a `matches()` gate, or else walks `Registry.kinds` until one matches.
 3. `resolveLeaf` refines a matched kind to a subtype leaf via `resolveSubtype`, or keeps the kind itself when no subtype resolves; Item is the fallback only when no kind matched at all.
 4. `Assembly.buildChain` walks `p.parent` from the leaf to Base, root-first.
@@ -85,7 +85,7 @@ Consume `Module:Entity/Data` directly:
 8. `getTypeInfo` (leaf, else `TypeResolver`) resolves `typeInfo`; the merged `getEditorialManifest` drives `Editorial.resolve`; `getCategories` and facet detection (`Registry.facets`) run last.
 9. Returns one result table (`chain`, `facets`, `typeInfo`, `resolved`, `ctx`, …) shared by every renderer.
 
-`Entity.main`: parses args, calls `Data.get`, guards on `isIdentifiable` (a uuid, a name, curated or API, or a kind that claimed the page), renders the infobox, stores structured data to SMW, sets `SHORTDESC`, and appends tracking categories.
+`Entity.main`: parses args, calls `Data.get`, guards on `isIdentifiable` (a uuid, a name, curated or API, or a kind that claimed the page), renders the infobox, stores the structured data, sets `SHORTDESC`, and appends tracking categories.
 
 ### Hooks
 
@@ -110,7 +110,7 @@ Identity-shaped hooks take no `ctx`; the rest take `EntityHookContext`. `*` mark
 | `getSubtitle` | link | `(ctx) → string\|nil` | leaf-first, skip empty | `Infobox` |
 | `getHeaderBadge` | link | `(ctx) → string\|nil` | leaf-first, skip empty | `Infobox` |
 | `getAcquisition` | link | `(ctx) → {summary,cards}\|nil` | leaf-first wins | `Entity/Availability` |
-| `getRelated` | link | `(ctx) → EntityRelatedPayload\|nil` | leaf-first wins | `Entity/Related` |
+| `getRelated` | link | `(ctx) → EntityRelatedPayload\|nil` | leaf-first, skip nil | `Entity/Related` |
 | `getBlueprints` | link | `(ctx) → EntityBlueprintsPayload\|nil` | leaf-first wins | `Entity/Blueprints` |
 | `getPorts` | link | `(ctx) → EntityPortsPayload\|nil` | leaf-first wins | `Entity/Ports` |
 
@@ -126,6 +126,16 @@ Identity-shaped hooks take no `ctx`; the rest take `EntityHookContext`. `*` mark
 | `typeInfo` | `{ name, category, categories }` | during `enrich` / `getTypeInfo` / `getCategories` |
 | `prefix` | facet adjective for the short description | every hook except `getShortDescription` |
 | `kind`, `family` | canonical kind name; leaf family token | during `enrich` / `getTypeInfo` / `getCategories` |
+
+### Structured data
+
+Every hook's `getStructuredData` output is merged and handed to `Module:Entity/StructuredData.store`, which writes it to [Bucket](https://www.mediawiki.org/wiki/Extension:Bucket) from the main namespace as one put per table. `Module:Entity/properties.json` decides the table and column for each property and documents its own keys; the schema pages under `pages/bucket/` are generated from it, so neither is edited by hand.
+
+A property lives in `entity` when `Base` or `Entity` emits it, when one module emits it for more than one kind (Effects, which Consumable emits for both Item and Commodity pages), or when `Item` emits it, the Item kind spanning three tables. A property stored in a different table per kind carries an object keyed by kind name instead. Every other property lives in the one table its emitting modules map to.
+
+`Module:Company` and `Module:WearableSet` write the shared `entity` table as well, each from its own manifest through the same put loop. Readers go through `Module:Entity/Store`, never `mw.ext.bucket` directly.
+
+`Module:Entity` passes the kind that actually matched, not the `Item` fallback `Data.get` exposes as `result.kind`, so a page whose kind never resolved (e.g. no uuid) is stored with no kind: it writes its entity-routable keys and nothing else, rather than writing another kind's columns. `StructuredData.store` has no other caller.
 
 ### Adding a kind
 
@@ -151,3 +161,5 @@ Identity-shaped hooks take no `ctx`; the rest take `EntityHookContext`. `*` mark
 - `#` and `next()` are unsafe on a `mw.loadJsonData` fragment (Vehicle's editorial manifest is one); use `pairs`/`ipairs` or check `t[1] ~= nil`.
 - A leaf-first-wins hook stops at the first link that *defines* it, even on a `nil` return; it does not fall through. Only `getSubtitle`/`getHeaderBadge` skip `nil`/empty and keep walking.
 - `Registry.kinds` order is a probe-cost optimisation only: the declared-`kind` gate can hand any kind's `matches()` a foreign record, so `matches()` must reject on its own.
+- A bucket holds at most 60 fields and a bucket name plus field name may not exceed 51 characters; `tests/manifest.lua` fails the build before the schema page would. Moving a property to another table is a manifest edit plus a regenerated schema, and a deleted table drops its rows.
+- Bucket rows appear after the page's link update, not at parse time, so a fresh page reads its own uuid from Bucket only on the next render.

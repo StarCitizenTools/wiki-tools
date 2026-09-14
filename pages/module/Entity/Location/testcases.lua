@@ -209,7 +209,7 @@ end
 function suite:testEditorialManifestShape()
 	local manifest = assembly.mergeEditorialManifests(assembly.buildChain(StarSystem))
 	self:assertEquals('discoveredin', manifest.discoveredin.arg)
-	self:assertEquals('Discovered in', manifest.discoveredin.smw)
+	self:assertEquals('Discovered in', manifest.discoveredin.property)
 	self:assertEquals('starsystem.aggregated.size', manifest.size.apiPath)
 	self:assertEquals('number', manifest.size.transform)
 	self:assertEquals('startypes', manifest.startypes.arg)
@@ -1146,7 +1146,7 @@ function suite:testJumpPointManifestStarmapCode()
 	local manifest = assembly.mergeEditorialManifests(assembly.buildChain(JumpPoint))
 	self:assertEquals('starmapcode', manifest.starmapcode.arg[1])
 	self:assertEquals('code', manifest.starmapcode.arg[2])
-	self:assertEquals(nil, manifest.starmapcode.smw)
+	self:assertEquals(nil, manifest.starmapcode.property)
 	self:assertEquals(nil, manifest.starmapcode.transform)
 	self:assertEquals('discoveredin', manifest.discoveredin.arg) -- inherited from the kind
 end

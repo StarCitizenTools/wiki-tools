@@ -236,22 +236,26 @@ function suite:testParseArgsNoUuidFallsBackToNil()
 	self:assertEquals(nil, Data.parseArgs(makeFrame({ name = 'NoUuid' })).uuid)
 end
 
-function suite:testParseArgsNoKindReadsSmwUuid()
-	-- No |kind= and no wikitext uuid: fall back to the page's stored SMW uuid.
+function suite:testParseArgsNoKindReadsStoredUuid()
+	-- No |kind= and no wikitext uuid: fall back to the uuid the page stored in Bucket.
+	local bucketLib = require('mw.ext.bucket')
+	bucketLib._reset()
+	bucketLib._setRows('entity', { { uuid = 'stored-uuid-1' } })
 	local frame = makeFrame({ name = 'InGame' })
 	frame.callParserFunction = function()
-		return 'stored-uuid-1'
+		error('parseArgs must not call #show any more')
 	end
 	self:assertEquals('stored-uuid-1', Data.parseArgs(frame).uuid)
 end
 
-function suite:testParseArgsKindSkipsSmwUuid()
-	-- Editorial page (|kind=): must NOT resurrect a stale/placeholder SMW uuid.
-	local frame = makeFrame({ name = 'Concept', kind = 'Vehicle' })
-	frame.callParserFunction = function()
-		return 'stale-placeholder-uuid'
-	end
-	self:assertEquals(nil, Data.parseArgs(frame).uuid)
+function suite:testParseArgsKindSkipsStoredUuid()
+	-- Editorial page (|kind=): must NOT resurrect a stale/placeholder stored uuid.
+	local bucketLib = require('mw.ext.bucket')
+	bucketLib._reset()
+	bucketLib._setRows('entity', { { uuid = 'stale-placeholder-uuid' } })
+	local args = Data.parseArgs(makeFrame({ name = 'Concept', kind = 'Vehicle' }))
+	self:assertEquals(nil, args.uuid)
+	self:assertEquals(0, #bucketLib._chains)
 end
 
 -- get({}) (public entry point with no uuid — offline safe)

@@ -102,7 +102,7 @@ Star system with curated overrides and lore fields (the discovery citation belon
 
 ## Behavior
 
-- The infobox, page categories, short description, and [SMW](https://www.mediawiki.org/wiki/Extension:Semantic_MediaWiki) properties are all owned by the single invocation, exactly like `{{Entity}}`.
+- The infobox, page categories, short description, and stored properties are all owned by the single invocation, exactly like `{{Entity}}`.
 - No parameter is required. With no `uuid`, the page identifies itself by its own title: that is the infobox heading and the starmap lookup key alike, so a bare `{{Location}}` never hits the "no uuid, name, or kind" error.
 - A `uuid` that is supplied but doesn't resolve to a genuine record is not treated as a lore system either: it adds the page to `Pages with an unresolved entity reference` instead of silently rendering one.
 - The starmap record is fetched by system name; affiliation, jurisdiction, size, star types, sensor readings (economy and population), and object-count tiles come from it. Hand counts beat starmap tallies wherever both exist, in the display and in the stored properties alike.

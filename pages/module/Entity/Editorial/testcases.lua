@@ -6,11 +6,11 @@ local Editorial = require('Module:Entity/Editorial')
 local suite = ScribuntoUnit:new()
 
 local MANIFEST = {
-	pledge_price = { arg = 'pledgecost', smw = 'Pledge Price', apiPath = 'msrp', transform = 'number' },
-	scm_speed = { arg = 'scmspeed', smw = 'SCM Speed', apiPath = 'speed.scm', transform = 'number' },
-	availability = { arg = 'pledgeavailability', smw = 'Pledge Availability' },
-	series = { arg = 'series', smw = 'Series', transform = 'page' },
-	added_in_version = { arg = 'addedinversion', smw = 'Added in version', transform = 'patchPage' },
+	pledge_price = { arg = 'pledgecost', property = 'Pledge Price', apiPath = 'msrp', transform = 'number' },
+	scm_speed = { arg = 'scmspeed', property = 'SCM Speed', apiPath = 'speed.scm', transform = 'number' },
+	availability = { arg = 'pledgeavailability', property = 'Pledge Availability' },
+	series = { arg = 'series', property = 'Series', transform = 'page' },
+	added_in_version = { arg = 'addedinversion', property = 'Added in version', transform = 'patchPage' },
 }
 
 function suite:testApiOnlyWhenNoEditor()
@@ -88,7 +88,8 @@ end
 -- row that "vanished". No live page currently supplies such a value: all 1068
 -- transform-field values across the 292 pages parse.
 function suite:testUnparseableNumberWithNoApiValueLeavesNothingToShow()
-	local manifest = { warbond_price = { arg = 'warbondcost', smw = 'Warbond pledge price', transform = 'number' } }
+	local manifest =
+		{ warbond_price = { arg = 'warbondcost', property = 'Warbond pledge price', transform = 'number' } }
 	local resolved = Editorial.resolve({}, { warbondcost = 'TBA' }, manifest)
 	self:assertEquals(nil, resolved.warbond_price)
 	-- No entry and no caller fallback: the display value is nil, so the row is dropped.
@@ -129,7 +130,7 @@ function suite:testToStructuredDataProjectsAndFlagsManual()
 	self:assertEquals('scm_speed', data['Manual API field'][1])
 end
 
--- SMW values are queried, not rendered: the projection delinks wiki markup and
+-- Stored values are queried, not rendered: the projection delinks wiki markup and
 -- strips parser strip-markers (a ref in an editor arg is a UNIQ…QINU token by
 -- the time Lua sees it), while the display path keeps the original value.
 function suite:testToStructuredDataSanitizesStrings()
@@ -143,19 +144,19 @@ end
 -- An editor arg may hold a template; it reaches Lua already expanded, so the
 -- stored projection would otherwise carry <span>s, &nbsp; and a display:none
 -- duplicate. This is Template:SDA's real output for {{SDA|2578|sctime=yes}}.
-function suite:testToSmwValueStripsRenderedHtml()
+function suite:testToStoredValueStripsRenderedHtml()
 	local rendered = 'SEY&#160;2578<span class="noprint">&#59;&#32;378&#160;years ago</span>'
 		.. '<span style="display:none">&#160;(<span class="bday">2578</span>)</span>'
 	-- Tags go, entities decode, nbsp collapses. The microformat's hidden duplicate
 	-- survives as plain text — harmless, and not worth a nesting-aware matcher.
-	self:assertEquals('SEY 2578; 378 years ago (2578)', Editorial.toSmwValue(rendered))
+	self:assertEquals('SEY 2578; 378 years ago (2578)', Editorial.toStoredValue(rendered))
 end
 
 -- Plain values are untouched by the HTML pass — no stray trimming or decoding.
-function suite:testToSmwValueLeavesPlainTextAlone()
-	self:assertEquals('Late 2520s', Editorial.toSmwValue('Late 2520s'))
-	self:assertEquals('2932(MkIII) • 2944(MkIV)', Editorial.toSmwValue('2932(MkIII) • 2944(MkIV)'))
-	self:assertEquals(2578, Editorial.toSmwValue(2578))
+function suite:testToStoredValueLeavesPlainTextAlone()
+	self:assertEquals('Late 2520s', Editorial.toStoredValue('Late 2520s'))
+	self:assertEquals('2932(MkIII) • 2944(MkIV)', Editorial.toStoredValue('2932(MkIII) • 2944(MkIV)'))
+	self:assertEquals(2578, Editorial.toStoredValue(2578))
 end
 
 function suite:testPageTransform()
@@ -165,7 +166,7 @@ end
 
 function suite:testArgAliasFirstNonEmptyWins()
 	-- A list-valued .arg tries each alias in order (mirrors legacy [ARG_Series, ARG_Model]).
-	local M = { series = { arg = { 'series', 'model' }, smw = 'Series' } }
+	local M = { series = { arg = { 'series', 'model' }, property = 'Series' } }
 	self:assertEquals('Hull', Editorial.resolve({}, { series = 'Hull' }, M).series.value)
 	self:assertEquals('Railen', Editorial.resolve({}, { model = 'Railen' }, M).series.value)
 	-- First alias wins when both are set.

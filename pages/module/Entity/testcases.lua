@@ -47,4 +47,41 @@ function suite:testNothingAtAllIsAnError()
 	self:assertFalse(isIdentifiable({}, result()))
 end
 
+function suite:testBaseStructuredDataCarriesImage()
+	local Base = require('Module:Entity/Base')
+	local data = Base.getStructuredData({ apiData = { name = 'X' }, args = { uuid = 'u', image = 'File:X.png' } })
+	self:assertEquals('X.png', data.image)
+	self:assertEquals(nil, Base.getStructuredData({ apiData = { name = 'X' }, args = {} }).image)
+end
+
+--- A percent-encoded filename such as `Valkyrie_%27Liberator%27_...png` (a live
+--- |image= value) is a title the wikitext parser tolerates but MediaWiki's
+--- Title class rejects; storing it verbatim once raised inside aggrid.thumb and
+--- blanked a whole grid (task-12-report.md). The off-wiki runner's mw.title.new
+--- shim never rejects a title (mwenv.lua's titleStub echoes back whatever text
+--- it is given), so this overrides it for the duration of the test to simulate
+--- the wiki's real Title validation; on the wiki no override is needed.
+function suite:testBaseStructuredDataDropsInvalidImageTitle()
+	local Base = require('Module:Entity/Base')
+	local BAD = 'File:Valkyrie_%27Liberator%27_flying_fast_-_Above.png'
+	local realNew = mw.title.new
+	mw.title.new = function(text)
+		if text == BAD then
+			return nil
+		end
+		return realNew(text)
+	end
+	local ok, err = pcall(function()
+		local data = Base.getStructuredData({
+			apiData = { name = 'X' },
+			args = { image = 'Valkyrie_%27Liberator%27_flying_fast_-_Above.png' },
+		})
+		self:assertEquals(nil, data.image)
+	end)
+	mw.title.new = realNew
+	if not ok then
+		error(err, 0)
+	end
+end
+
 return suite

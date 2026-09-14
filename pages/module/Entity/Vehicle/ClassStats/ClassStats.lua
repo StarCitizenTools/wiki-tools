@@ -2,19 +2,20 @@ require('strict')
 
 --- @module Entity/Vehicle/ClassStats
 --- Exposes memoized cohort rows and a percentile helper for the vehicle scoring
---- profile. Fetches and decodes a fixed set of numeric SMW properties for the
---- same-size-class ship cohort with one mw.smw.ask per family|size.
---- Returns nil when comparison is unavailable: no SMW (headless tests),
---- a non-ship family, or a cohort below MIN_COHORT.
+--- profile. Fetches a fixed set of numeric properties for the same-size-class ship
+--- cohort with one Bucket query per family|size through Module:Entity/Store.
+--- Returns nil when comparison is unavailable: a non-ship family, or a cohort
+--- below MIN_COHORT.
 
 local vehicleUtil = require('Module:Entity/Vehicle/Util')
+local store = require('Module:Entity/Store')
 
 local p = {}
 
---- Stat key to SMW property. Queried with the `#-` plain formatter so values come
---- back unitless. Keys match the stat fields accessed by cohortRows callers (the
---- scoring profile). The three `*_modifier` keys carry the armor signal multipliers,
---- folded into the matching emission/cross-section value in cohortRows so callers see a
+--- Stat key to display name (the Store property name). Keys match the stat
+--- fields accessed by cohortRows callers (the scoring profile). The three
+--- `*_modifier` keys carry the armor signal multipliers, folded into the
+--- matching emission/cross-section value in cohortRows so callers see a
 --- single effective stealth figure (see the fold below).
 local COHORT_PROPS = {
 	scm_speed = 'Scm speed',
@@ -49,75 +50,51 @@ local COHORT_PROPS = {
 }
 
 --- Only ships have a cohort large enough to average; ground/gravlev return nil.
-local FAMILY_CATEGORY = { ship = 'Ships' }
+--- The cohort is every page whose Subject type is Spacecraft (Module:Entity/
+--- Vehicle/Ship's getTypeInfo name) of the same size, not Category:Ships
+--- membership: Bucket categories are direct-membership only, so a category
+--- filter would miss ships that sit solely in a subcategory (Racing ships,
+--- Capital ships, Large ships).
+local FAMILY_SUBJECT = { ship = 'Spacecraft' }
 local MIN_COHORT = 5
 
 --- Render-local memo for cohortRows, keyed "family|size". Persists across the page's #invoke calls.
 local rowCache = {}
 
---- Coerce an SMW value to a number: HTML-decode (so the nbsp entity "&#160;"
---- does not leak its "160" digits), then strip everything but digits/dot/minus.
---- @param value any
---- @return number|nil
-local function decodeNumber(value)
-	if type(value) == 'table' then
-		value = value[1]
-	end
-	if type(value) == 'number' then
-		return value
-	end
-	if type(value) ~= 'string' then
-		return nil
-	end
-	return tonumber((mw.text.decode(value, true):gsub('[^%d%.%-]', '')))
-end
-
---- Build the mw.smw.ask query parts for a given category and size class.
---- @param category string  cohort scoping category (e.g. "Ships")
---- @param size number|string  numeric size class
---- @return string[] query parts for mw.smw.ask
-local function buildQuery(category, size)
-	local queryParts = {
-		-- [[:+]] restricts the cohort to main-namespace articles (keeps User:/sandbox
-		-- {{Entity}} pages out). After migrating ships it can lag a render or two until
-		-- SMW indexes the new pages' namespace data — a forcelinkupdate re-parse of the
-		-- cohort pages settles it.
-		'[[:+]] [[Category:' .. category .. ']][[Size::' .. tostring(size) .. ']]',
-		'mainlabel=-',
-		'limit=500',
-	}
-	for key, prop in pairs(COHORT_PROPS) do
-		queryParts[#queryParts + 1] = '?' .. prop .. '#-=' .. key
-	end
-	return queryParts
-end
-
 --- Memoized decoded cohort rows, or nil when comparison is unavailable
---- (no SMW / non-ship family / cohort below MIN_COHORT). Each row is a
+--- (non-ship family / cohort below MIN_COHORT). Each row is a
 --- { stat_key = number } map of the cohort member's stored scoring stats.
 --- @param family string
 --- @param size number|string|nil
 --- @return table[]|nil
 function p.cohortRows(family, size)
-	if not (mw.smw and mw.smw.ask) then
-		return nil
-	end
-	local category = FAMILY_CATEGORY[family]
-	if category == nil or size == nil or size == '' then
+	local subject = FAMILY_SUBJECT[family]
+	if subject == nil or size == nil or size == '' then
 		return nil
 	end
 	local cacheKey = family .. '|' .. tostring(size)
 	local entry = rowCache[cacheKey]
 	if entry == nil then
-		local raw = mw.smw.ask(buildQuery(category, size))
-		if type(raw) == 'table' and #raw >= MIN_COHORT then
+		local columns = {}
+		for key, prop in pairs(COHORT_PROPS) do
+			columns[#columns + 1] = { property = prop, as = key }
+		end
+		local ok, raw = pcall(store.query, {
+			kind = 'Vehicle',
+			filters = { { 'Subject type', subject }, { 'Size', tonumber(size) or size } },
+			columns = columns,
+			limit = 500,
+		})
+		if not ok then
+			return nil
+		end
+		if #raw >= MIN_COHORT then
 			local rows = {}
 			for _, r in ipairs(raw) do
 				local row = {}
 				for key in pairs(COHORT_PROPS) do
-					local n = decodeNumber(r[key])
-					if n ~= nil then
-						row[key] = n
+					if type(r[key]) == 'number' then
+						row[key] = r[key]
 					end
 				end
 				-- Fold each armor signal multiplier into its raw signature so callers
@@ -167,5 +144,16 @@ function p.percentile(values, value)
 	end
 	return math.floor(100 * (below + 0.5 * equal) / n + 0.5)
 end
+
+-- Test-only exports. Not part of the public API.
+p._internal = {
+	-- Stat key to display name, shared so test fixtures can build recorder rows
+	-- through Module:Entity/Store's real manifest resolution instead of guessing
+	-- Bucket field names locally.
+	cohortProps = COHORT_PROPS,
+	clearCache = function()
+		rowCache = {}
+	end,
+}
 
 return p

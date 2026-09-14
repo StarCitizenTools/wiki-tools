@@ -10,7 +10,7 @@ Explicit UUID:
 {{Entity/Related|uuid=80ee3b95-5665-4548-9e2d-d2067895c0ac}}
 ```
 
-When `{{Entity}}` has been invoked earlier on the page, the UUID can be omitted; it falls back to the value a previous parse stored in [SMW](https://www.mediawiki.org/wiki/Extension:Semantic_MediaWiki) on the current page, so on a brand-new page it resolves only after the page has been saved and re-parsed (purged or re-saved):
+When `{{Entity}}` has been invoked earlier on the page, the UUID can be omitted; it falls back to the value a previous parse stored on the current page, so on a brand-new page it resolves only after the page has been saved and re-parsed (purged or re-saved):
 
 ```wikitext
 {{Entity}}
@@ -23,7 +23,7 @@ When `{{Entity}}` has been invoked earlier on the page, the UUID can be omitted;
 
 | Name | Label | Type | Required | Default | Description | Example |
 |------|-------|------|----------|---------|-------------|---------|
-| `uuid` | UUID | string | No | (falls back to the SMW uuid stored by a prior `{{Entity}}` parse) | UUID of the entity to render. Required if `{{Entity}}` hasn't been invoked. | `80ee3b95-5665-4548-9e2d-d2067895c0ac` |
+| `uuid` | UUID | string | No | (falls back to the uuid stored by a prior `{{Entity}}` parse) | UUID of the entity to render. Required if `{{Entity}}` hasn't been invoked. | `80ee3b95-5665-4548-9e2d-d2067895c0ac` |
 
 ## Behavior
 
@@ -32,11 +32,11 @@ When `{{Entity}}` has been invoked earlier on the page, the UUID can be omitted;
 - **Vehicles, missions, and locations** have no related-items data, so the template falls back to the muted placeholder line, "No related items available from the API." An upstream fetch failure shows that exact same line: there is no separate "API error" wording here, unlike `{{Entity/Blueprints}}`.
 - The current page is filtered out of the Variants grid so an entity never links to itself; Set pieces need no such filter, since set components are always distinct items.
 - A variant's size or grade only appears as a small caption above the name when it actually differs across the family; if every variant shares the same size and grade, the caption is omitted.
-- Tile links and images resolve through the SMW `uuid` property, so a disambiguated title like `Hyperion (quantum drive)` links to the right article; an item with no resolvable page falls back to the API name for both link and image, with a placeholder image.
+- Tile links and images resolve through the stored `uuid`, so a disambiguated title like `Hyperion (quantum drive)` links to the right article; an item with no resolvable page falls back to the API name for both link and image, with a placeholder image.
 
 ## See also
 
-- [Template:Entity](https://starcitizen.tools/Template:Entity), the infobox that owns the page's SMW data, SHORTDESC, and categories; sets the uuid this template falls back to.
+- [Template:Entity](https://starcitizen.tools/Template:Entity), the infobox that owns the page's structured data, SHORTDESC, and categories; sets the uuid this template falls back to.
 - [Template:Entity/Availability](https://starcitizen.tools/Template:Entity/Availability), sibling renderer for shop, loot, and pledge availability.
 - [Template:Entity/Description](https://starcitizen.tools/Template:Entity/Description), sibling renderer for the in-game description.
 - [Module:Entity/Related](https://starcitizen.tools/Module:Entity/Related), the implementation.

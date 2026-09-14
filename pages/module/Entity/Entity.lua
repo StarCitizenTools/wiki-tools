@@ -15,10 +15,12 @@ local p = {}
 --- @param chain table[]
 --- @param facets table[]
 --- @param ctx EntityHookContext
---- @param editorialData table|nil Pre-projected SMW key-value pairs from the editorial layer
+--- @param editorialData table|nil Pre-projected key-value pairs from the editorial layer
+--- @param kind string|nil Kind name, selects the Bucket tables the page may write; nil when no kind
+---   matched (e.g. no uuid), in which case only the entity-routable keys are written
 --- @return boolean success True if the backend accepted the data
 --- @return string[]|nil unregistered Emitter keys not registered in properties.json, or nil
-local function storeStructuredData(chain, facets, ctx, editorialData)
+local function storeStructuredData(chain, facets, ctx, editorialData, kind)
 	local dataList = {}
 	for _, mod in ipairs(chain) do
 		if mod.getStructuredData then
@@ -37,12 +39,12 @@ local function storeStructuredData(chain, facets, ctx, editorialData)
 	-- `subject_type` is the page's most-specific structural type (fine-grained:
 	-- "Gun", "Cooler", …), deliberately distinct from the coarse `result.kind`
 	-- (Item / Vehicle / …). It is the same value that drives the structural
-	-- category, persisted as a queryable SMW property. SMW treats underscores as
-	-- spaces in property names, so `subject_type` maps to the property "Subject type".
+	-- category, persisted as a queryable property. An emitter key maps to the
+	-- manifest key with underscores as spaces, so `subject_type` is "Subject type".
 	if ctx.typeInfo and ctx.typeInfo.name then
 		merged.subject_type = ctx.typeInfo.name
 	end
-	local success, _err, unregistered = structuredData.store(merged)
+	local success, _err, unregistered = structuredData.store(merged, kind)
 	return success, unregistered
 end
 
@@ -103,8 +105,8 @@ local function isIdentifiable(args, result)
 end
 
 --- Main entry point for the Entity module. Renders the infobox and owns
---- page-metadata responsibilities (SMW storage, SHORTDESC, tracking
---- categories). Sibling renderers on the same page should consume
+--- page-metadata responsibilities (structured-data storage, SHORTDESC,
+--- tracking categories). Sibling renderers on the same page should consume
 --- Module:Entity/Data directly and leave page metadata to this template.
 ---
 --- @param frame table The MediaWiki frame object
@@ -119,8 +121,16 @@ function p.main(frame)
 	end
 
 	local html = entityInfobox.render(result, args)
-	local storeSuccess, unregistered =
-		storeStructuredData(result.chain, result.facets, result.ctx, result.editorialData)
+	-- The Bucket route is the kind that actually matched, never result.kind's
+	-- 'Item' fallback: a page whose kind never resolved writes its entity-routable
+	-- keys only, rather than another kind's columns.
+	local storeSuccess, unregistered = storeStructuredData(
+		result.chain,
+		result.facets,
+		result.ctx,
+		result.editorialData,
+		result.matchedKind and result.matchedKind.name or nil
+	)
 
 	setShortDescription(frame, result.chain, result.facets, result.ctx)
 

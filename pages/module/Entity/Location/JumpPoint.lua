@@ -35,7 +35,7 @@ function p.enrich(ctx)
 end
 
 --- The starmap celestial-object code (`code` is the legacy {{Astronomical
---- object}} arg name). No smw key, no transform: this leaf surfaces it itself
+--- object}} arg name). No property key, no transform: this leaf surfaces it itself
 --- (metadata row, Starmap button). enrich and the starmapCode accessor read
 --- the RAW arg through Editorial.rawArg with this entry, so the alias order
 --- is declared here once.

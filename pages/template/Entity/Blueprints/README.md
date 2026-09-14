@@ -10,7 +10,7 @@ Explicit UUID:
 {{Entity/Blueprints|uuid=80ee3b95-5665-4548-9e2d-d2067895c0ac}}
 ```
 
-When `{{Entity}}` has been invoked earlier on the page, the UUID can be omitted; it falls back to the value a previous parse stored in [SMW](https://www.mediawiki.org/wiki/Extension:Semantic_MediaWiki) on the current page, so on a brand-new page it resolves only after the page has been saved and re-parsed (purged or re-saved):
+When `{{Entity}}` has been invoked earlier on the page, the UUID can be omitted; it falls back to the value a previous parse stored on the current page, so on a brand-new page it resolves only after the page has been saved and re-parsed (purged or re-saved):
 
 ```wikitext
 {{Entity}}
@@ -23,7 +23,7 @@ When `{{Entity}}` has been invoked earlier on the page, the UUID can be omitted;
 
 | Name | Label | Type | Required | Default | Description | Example |
 |------|-------|------|----------|---------|-------------|---------|
-| `uuid` | UUID | string | No | (falls back to the SMW uuid stored by a prior `{{Entity}}` parse) | UUID of the entity to render. Required if `{{Entity}}` hasn't been invoked. | `80ee3b95-5665-4548-9e2d-d2067895c0ac` |
+| `uuid` | UUID | string | No | (falls back to the uuid stored by a prior `{{Entity}}` parse) | UUID of the entity to render. Required if `{{Entity}}` hasn't been invoked. | `80ee3b95-5665-4548-9e2d-d2067895c0ac` |
 
 ## Behavior
 
@@ -36,7 +36,7 @@ When `{{Entity}}` has been invoked earlier on the page, the UUID can be omitted;
 
 ## See also
 
-- [Template:Entity](https://starcitizen.tools/Template:Entity), the infobox that owns the page's SMW data, SHORTDESC, and categories; sets the uuid this template falls back to.
+- [Template:Entity](https://starcitizen.tools/Template:Entity), the infobox that owns the page's structured data, SHORTDESC, and categories; sets the uuid this template falls back to.
 - [Template:Entity/Availability](https://starcitizen.tools/Template:Entity/Availability), sibling renderer for acquisition and shop data.
 - [Template:Entity/Related](https://starcitizen.tools/Template:Entity/Related), sibling renderer for set components and cosmetic variants.
 - [Module:Entity/Blueprints](https://starcitizen.tools/Module:Entity/Blueprints), the implementation.

@@ -1,7 +1,19 @@
 local ScribuntoUnit = require('Module:ScribuntoUnit')
 local ClassStats = require('Module:Entity/Vehicle/ClassStats')
+local store = require('Module:Entity/Store')
+local bucketLib = require('mw.ext.bucket')
 
 local suite = ScribuntoUnit:new()
+
+-- Bucket selector for a cohort stat key, resolved through the real manifest
+-- (Module:Entity/Store) rather than a hardcoded field-naming rule.
+local function selectorFor(key)
+	local entry = store.resolve(ClassStats._internal.cohortProps[key], 'Vehicle')
+	if entry.bucket == 'entity' then
+		return entry.field
+	end
+	return entry.bucket .. '.' .. entry.field
+end
 
 function suite:testPercentile()
 	local v = { 10, 20, 30, 40, 50 }
@@ -16,71 +28,99 @@ function suite:testPercentileHazenMedianAndTies()
 	self:assertEquals(30, ClassStats.percentile({ 0, 0, 0, 10, 20 }, 0)) -- ties not inflated: (0 + 0.5*3)/5
 end
 
-function suite:testCohortRowsNilWithoutSmw()
+function suite:testCohortRowsNilWithNoBucketRows()
+	bucketLib._reset()
+	ClassStats._internal.clearCache()
 	self:assertEquals(nil, ClassStats.cohortRows('ship', 4))
 end
 
-function suite:testCohortRowsNonShip()
-	local realSmw = mw.smw
-	mw.smw = {
-		ask = function()
-			error('should not query for non-ship')
-		end,
+-- Rows as the real extension returns them for a joined query: keyed by the
+-- qualified selector; Store maps them to the stat keys.
+local function row(over)
+	local base = {
+		scm_speed = 200,
+		max_speed = 1000,
+		ir_emission = 100,
+		ir_modifier = 0.5,
+		em_emission = 50,
+		cross_section = 10,
+		cross_section_length = 20,
+		cross_section_width = 8,
+		cross_section_height = 5,
 	}
-	local r = ClassStats.cohortRows('ground', 2)
-	mw.smw = realSmw
-	self:assertEquals(nil, r)
+	for k, v in pairs(over or {}) do
+		base[k] = v
+	end
+	local r = {}
+	for k, v in pairs(base) do
+		r[selectorFor(k)] = v
+	end
+	return r
 end
 
-function suite:testCohortRowsStubbedDecodes()
-	local realSmw = mw.smw
-	mw.smw = {
-		ask = function()
-			return {
-				{ health = '100,000', pilot_dps = '4000' },
-				{ health = '200000' },
-				{ health = '150000' },
-				{ health = '120000' },
-				{ health = '130000' },
-			}
-		end,
-	}
-	local rows = ClassStats.cohortRows('ship', 991)
-	mw.smw = realSmw
-	self:assertEquals(5, #rows)
-	self:assertEquals(100000, rows[1].health)
-	self:assertEquals(4000, rows[1].pilot_dps)
-	self:assertEquals(nil, rows[2].pilot_dps) -- missing decodes to absent, not 0
+local function cohort(n)
+	local rows = {}
+	for i = 1, n do
+		rows[i] = row({ scm_speed = 100 + i })
+	end
+	return rows
 end
 
-function suite:testCohortRowsFoldsSignatureModifier()
-	local realSmw = mw.smw
-	mw.smw = {
-		ask = function()
-			return {
-				-- stealth coating ×0.5 folds into IR and every cross-section axis
-				{
-					ir_emission = '10000',
-					ir_modifier = '0.5',
-					cross_section_length = '10000',
-					cross_section_modifier = '0.5',
-				},
-				{ ir_emission = '8000' }, -- no modifier → unchanged
-				{ ir_emission = '6000', em_emission = '4000', em_modifier = '2' }, -- louder EM → 8000
-				{ ir_emission = '4000' },
-				{ ir_emission = '2000' },
-			}
-		end,
-	}
-	-- size 985: unique across the vehicle suites (rowCache is shared per family|size).
-	local rows = ClassStats.cohortRows('ship', 985)
-	mw.smw = realSmw
-	self:assertEquals(5000, rows[1].ir_emission) -- 10000 × 0.5
-	self:assertEquals(8000, rows[2].ir_emission) -- absent multiplier → raw
-	self:assertEquals(8000, rows[3].em_emission) -- 4000 × 2
-	self:assertEquals(5000, rows[1].cross_section_length) -- per-axis folds the same modifier
-	self:assertEquals(nil, rows[1].ir_modifier) -- modifier key dropped, never a phantom stat
-	self:assertEquals(nil, rows[1].cross_section_modifier)
+--- cohortRows' contract is "nil when comparison is unavailable"; a Bucket
+--- infrastructure failure must land in that same bucket, not error the page.
+function suite:testCohortRowsContainsBucketFailure()
+	bucketLib._reset()
+	ClassStats._internal.clearCache()
+	bucketLib._setRows('entity', cohort(6))
+	bucketLib._failNext = true
+	self:assertEquals(nil, ClassStats.cohortRows('ship', 991))
+end
+
+function suite:testCohortBelowMinimumIsNil()
+	bucketLib._reset()
+	ClassStats._internal.clearCache()
+	bucketLib._setRows('entity', cohort(4))
+	self:assertEquals(nil, ClassStats.cohortRows('ship', 3))
+end
+
+function suite:testCohortQueryShape()
+	bucketLib._reset()
+	ClassStats._internal.clearCache()
+	bucketLib._setRows('entity', cohort(6))
+	ClassStats.cohortRows('ship', 3)
+	local chain = bucketLib._chains[1]
+	self:assertEquals('entity', chain.bucket)
+	self:assertDeepEquals({ { 'subject_type', '=', 'Spacecraft' }, { 'size', '=', 3 } }, chain.where)
+	self:assertDeepEquals({ { 'vehicle_stats', 'vehicle_stats.page_name', 'entity.page_name' } }, chain.join)
+	self:assertEquals(500, chain.limit)
+	self:assertEquals(29, #chain.select)
+end
+
+function suite:testCohortFoldsSignatureModifiers()
+	bucketLib._reset()
+	ClassStats._internal.clearCache()
+	bucketLib._setRows('entity', cohort(6))
+	local out = ClassStats.cohortRows('ship', 3)
+	self:assertEquals(6, #out)
+	self:assertEquals(50, out[1].ir_emission)
+	self:assertEquals(nil, out[1].ir_modifier)
+	self:assertEquals(101, out[1].scm_speed)
+end
+
+function suite:testCohortMemoised()
+	bucketLib._reset()
+	ClassStats._internal.clearCache()
+	bucketLib._setRows('entity', cohort(6))
+	ClassStats.cohortRows('ship', 3)
+	ClassStats.cohortRows('ship', 3)
+	self:assertEquals(1, #bucketLib._chains)
+end
+
+function suite:testNonShipFamilyIsNil()
+	bucketLib._reset()
+	ClassStats._internal.clearCache()
+	self:assertEquals(nil, ClassStats.cohortRows('ground', 3))
+	self:assertEquals(0, #bucketLib._chains)
 end
 
 return suite

@@ -212,7 +212,7 @@ function suite:testEditorialManifestLoads()
 	local m = Vehicle.getEditorialManifest()
 	self:assertEquals('msrp', m.pledge_price.apiPath)
 	self:assertEquals('speed.scm', m.scm_speed.apiPath)
-	self:assertEquals('Pledge availability', m.pledge_availability.smw)
+	self:assertEquals('Pledge availability', m.pledge_availability.property)
 end
 
 function suite:testStructuredDataPureApiStats()
@@ -628,7 +628,7 @@ end
 
 function suite:testEditorialManifestDatesPureEditorial()
 	local m = Vehicle.getEditorialManifest()
-	self:assertEquals('Lore release date', m.release_date.smw)
+	self:assertEquals('Lore release date', m.release_date.property)
 	self:assertEquals(nil, m.release_date.apiPath)
 end
 
@@ -749,7 +749,7 @@ function suite:testEditorialManifestHasGeneration()
 	self:assertEquals('generation', m.generation.arg[1])
 	self:assertEquals('Generation', m.generation.arg[2])
 	self:assertEquals('mark', m.generation.arg[3])
-	self:assertEquals('Generation', m.generation.smw)
+	self:assertEquals('Generation', m.generation.property)
 	self:assertEquals(nil, m.generation.apiPath)
 end
 
@@ -1145,6 +1145,71 @@ function suite:testGetPortsNarrowsChildrenForEveryVehicleLeaf()
 		self:assertEquals(apiData.ports, payload.ports)
 		self:assertTrue(payload.narrowChildren)
 	end
+end
+
+--- Run `fn(calls)` with Module:Entity/Store.selfValue replaced by a stub that
+--- returns `result` and records each (displayName, kind) call in `calls`.
+--- Always restores the real function (the runner never reloads modules), so
+--- one failing test cannot poison the rest of the suite.
+--- @param result any
+--- @param fn fun(calls: table[])
+local function withStubbedSelfValue(result, fn)
+	local store = require('Module:Entity/Store')
+	local realSelfValue = store.selfValue
+	local calls = {}
+	store.selfValue = function(displayName, kind)
+		calls[#calls + 1] = { displayName, kind }
+		return result
+	end
+	local ok, err = pcall(fn, calls)
+	store.selfValue = realSelfValue
+	if not ok then
+		error(err, 0)
+	end
+end
+
+function suite:testGetRelatedReturnsSeriesWhenPresent()
+	local result = Vehicle.getRelated(ctx({}, {}, { series = { value = 'Avenger', source = 'editorial' } }))
+	self:assertDeepEquals({ vehicleSeries = 'Avenger' }, result)
+end
+
+-- Editorial series wins outright: the Bucket fallback is not even consulted.
+function suite:testGetRelatedDoesNotConsultStoreWhenSeriesPresent()
+	withStubbedSelfValue('Constellation', function(calls)
+		local result = Vehicle.getRelated(ctx({}, {}, { series = { value = 'Avenger', source = 'editorial' } }))
+		self:assertDeepEquals({ vehicleSeries = 'Avenger' }, result)
+		self:assertEquals(0, #calls)
+	end)
+end
+
+function suite:testGetRelatedReadsSeriesFromStoreWhenEditorialSeriesEmpty()
+	withStubbedSelfValue('Avenger', function(calls)
+		local result = Vehicle.getRelated(ctx({}, {}, { series = { value = '', source = 'editorial' } }))
+		self:assertDeepEquals({ vehicleSeries = 'Avenger' }, result)
+		self:assertDeepEquals({ 'Series', 'Vehicle' }, calls[1])
+	end)
+end
+
+-- nil (not an absent {}) so Entity/Related's acceptNonEmpty walk falls
+-- through to Base's related_items payload instead of stopping here.
+function suite:testGetRelatedReadsSeriesFromStoreWhenNoEditorialSeries()
+	withStubbedSelfValue('Avenger', function(calls)
+		local result = Vehicle.getRelated(ctx({}, {}, {}))
+		self:assertDeepEquals({ vehicleSeries = 'Avenger' }, result)
+		self:assertDeepEquals({ 'Series', 'Vehicle' }, calls[1])
+	end)
+end
+
+function suite:testGetRelatedNilWhenSeriesEmptyAndStoreNil()
+	withStubbedSelfValue(nil, function()
+		self:assertEquals(nil, Vehicle.getRelated(ctx({}, {}, { series = { value = '', source = 'editorial' } })))
+	end)
+end
+
+function suite:testGetRelatedNilWhenNoSeriesAndStoreNil()
+	withStubbedSelfValue(nil, function()
+		self:assertEquals(nil, Vehicle.getRelated(ctx({}, {}, {})))
+	end)
 end
 
 -- Exercises the real dispatch (assembly.callHook), not a direct call, so a

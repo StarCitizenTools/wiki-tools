@@ -497,8 +497,11 @@ function p.master_table(frame)
 			kind = 'valueList',
 			label = 'Role',
 			filter = 'aggridSet',
-			width = 120,
-			minWidth = 90,
+			-- Cells hold one line, so this has to fit the longest value rather than
+			-- wrap it: two roles joined by a comma ("Starter, Light Fighter") need
+			-- about 160px once the cell's own padding is counted.
+			width = 175,
+			minWidth = 120,
 		},
 	}
 	table.insert(columns, {
@@ -600,10 +603,11 @@ function p.master_table(frame)
 		rowData = AGGridColumns.buildRowData(results, columns),
 		quickSearch = true,
 		includeHiddenColumnsInQuickFilter = true,
+		expand = true,
 		pagination = false,
 		rowHeight = rowHeight,
 		autoSizeStrategy = { type = 'fitGridWidth' },
-		defaultColDef = { sortable = true, resizable = true, wrapText = true, autoHeight = true },
+		defaultColDef = { sortable = true, resizable = true },
 	}
 
 	local styles = frame:extensionTag({

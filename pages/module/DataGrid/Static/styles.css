@@ -1,0 +1,24 @@
+/* Module:DataGrid/Static presentation. The image rules key off the
+   t-datagrid-static__image class the module puts on that column's cells; the
+   rest is scoped to the .t-datagrid-static wrapper around the wikitable. */
+
+/* Thumbnails differ in width, so aligning them on one edge keeps the column tidy
+   instead of ragged. The image column is the last one on the tables this is
+   tuned for, which puts that edge against the table's own. */
+.t-datagrid-static__image {
+	text-align: right;
+}
+
+/* Row thumbnails are requested at 200px; cap them here too, so an image stored at
+   another size cannot stretch its row. */
+.t-datagrid-static table img {
+	max-width: 200px;
+	max-height: 200px;
+	width: auto;
+	height: auto;
+}
+
+/* Fill the content width rather than shrink-wrapping to the shortest row. */
+.t-datagrid-static table {
+	min-width: 100%;
+}

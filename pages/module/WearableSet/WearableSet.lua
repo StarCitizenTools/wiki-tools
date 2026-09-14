@@ -5,6 +5,9 @@ local WearableSet = {}
 local Data = require('Module:Entity/Data')
 local Environment = require('Module:Entity/Facet/Environment')
 local Damage = require('Module:Entity/Facet/Armor')
+local StructuredData = require('Module:Entity/StructuredData')
+
+local PROPERTIES = mw.loadJsonData('Module:WearableSet/properties.json')
 
 --- @param categories table Plain text categories in array
 local function convertCategories(categories)
@@ -126,6 +129,45 @@ end
 local function processAll(entity, values)
 	processPorts(entity, values)
 	processEntity(entity, values)
+end
+
+--- Bucket rows for the page, keyed by bucket, from the same processed values
+--- WearableSet.main computes; values shaped by Module:Entity/StructuredData.
+--- @param args table
+--- @param processed table
+--- @param values table
+--- @return table<string, table<string, any>>
+function WearableSet.bucketRows(args, processed, values)
+	local image = args['image']
+	if type(image) == 'string' then
+		image = image:gsub('^[Ff]ile:', '')
+		if image == '' or mw.title.new('File:' .. image) == nil then
+			image = nil
+		end
+	end
+	local src = {
+		name = args['name'] or mw.title.getCurrentTitle().subpageText,
+		classification = processed.classification,
+		image = image,
+		manufacturer = processed.manufacturer,
+		type = processed.type,
+		tempMin = processed.tempMin,
+		tempMax = processed.tempMax,
+		radiation = processed.radiation,
+		radiationScrub = processed.radiationScrub,
+		gResistance = values.gResistance,
+	}
+	local rows = {}
+	for prop, def in pairs(PROPERTIES) do
+		if prop:sub(1, 1) ~= '%' then
+			local value = src[def.source]
+			if value ~= nil and value ~= '' then
+				rows[def.bucket] = rows[def.bucket] or {}
+				rows[def.bucket][def.field] = StructuredData.shape(def, value)
+			end
+		end
+	end
+	return rows
 end
 
 --- @param frame table https://www.mediawiki.org/wiki/Extension:Scribunto/Lua_reference_manual#Frame_object
@@ -410,20 +452,10 @@ function WearableSet.main(frame)
 		},
 	}
 
-	-- Set Semantic MediaWiki properties
-	mw.smw.set({
-		['Title'] = args['name'],
-		['Type'] = processed.type,
-		['Classification'] = processed.classification,
-		['Image'] = args['image'],
-		['Manufacturer'] = processed.manufacturer,
-		['Minimum temperature'] = processed.tempMin,
-		['Maximum temperature'] = processed.tempMax,
-		['Radiation'] = processed.radiation,
-		['Radiation scrub rate'] = processed.radiationScrub,
-		['G Resistance'] = values.gResistance,
-		['Subject type'] = processed.classification,
-	})
+	local bucketErr = StructuredData.putBuckets(WearableSet.bucketRows(args, processed, values))
+	if bucketErr then
+		table.insert(categories, 'Pages with structured data errors')
+	end
 
 	local styles = frame:extensionTag({
 		name = 'templatestyles',

@@ -9,6 +9,7 @@ local infobox = require('Module:InfoboxLua')
 local manufacturers = require('Module:Manufacturers')
 local button = require('Module:ButtonLua')
 local makeList = require('Module:list').makeList
+local StructuredData = require('Module:Entity/StructuredData')
 
 local lang = mw.language.getContentLanguage()
 
@@ -28,17 +29,22 @@ local function delink(text)
 	return text
 end
 
---- Extract the link TARGET (page title) for SMW Page properties:
---- [[Target|Label]] -> Target, [[Target]] -> Target, plain text -> itself.
+--- Extract the link TARGET (page title) for PAGE-type properties:
+--- [[Target|Label]] -> Target, [[Target]] -> Target, plain text -> itself
+--- trimmed. A value with a link keeps ONLY that first link's target; trailing
+--- markup outside the brackets (e.g. "[[Hurston]] <small>(HQ)</small>") is
+--- dropped rather than stored as part of the title.
 --- @param text string|nil
 --- @return string|nil
 local function pageTitle(text)
 	if not text or text == '' then
 		return text
 	end
-	text = text:gsub('%[%[([^%]|]*)|[^%]]-%]%]', '%1') -- piped -> target
-	text = text:gsub('%[%[([^%]]-)%]%]', '%1') -- simple -> target
-	return text
+	local target = text:match('%[%[([^%]|]*)|?[^%]]-%]%]')
+	if target then
+		return target
+	end
+	return mw.text.trim(text)
 end
 
 --- Split a semicolon-separated list into trimmed, non-empty parts. Semicolon is
@@ -74,8 +80,8 @@ local function lastLink(text)
 end
 
 --- Founded display: a bare SC year renders via {{Start date and age}} (so the
---- editor passes a clean year and SMW stores the year, not rendered template
---- output); any other value (full date, "Unknown", …) shows as-is.
+--- editor passes a clean year and the stored value is the year, not rendered
+--- template output); any other value (full date, "Unknown", …) shows as-is.
 --- @param value string|nil
 --- @return string|nil
 local function foundedDisplay(value)
@@ -207,10 +213,24 @@ function p.raceLink(args)
 	return '[[:Category:' .. race .. ' companies|' .. race .. ']]'
 end
 
---- Build the SMW property table from the manifest. Pure (no frame).
+--- Every manifest value for the page, keyed by property: source parameter,
+--- trimmed, defaulted, transformed; arrays only when non-empty. Image is
+--- validated the way Module:Entity/Base validates it: a
+--- leading File: prefix stripped, kept only when `mw.title.new('File:' ..
+--- image)` resolves, so an unparseable filename never reaches Bucket.
 --- @param args table
---- @return table<string, string|string[]>
-function p.getStructuredData(args)
+--- @return table<string, any>
+local function collect(args)
+	local image = args.image
+	if type(image) == 'string' then
+		image = image:gsub('^[Ff]ile:', '')
+		if image == '' or not mw.title.new('File:' .. image) then
+			image = nil
+		end
+	else
+		image = nil
+	end
+
 	local src = {
 		name = args.name,
 		industry = args.industry,
@@ -225,6 +245,7 @@ function p.getStructuredData(args)
 		subsidiaries = args.subsidiaries,
 		predecessor = args.predecessor,
 		successor = args.successor,
+		image = image,
 	}
 
 	local data = {}
@@ -252,6 +273,29 @@ function p.getStructuredData(args)
 		end
 	end
 	return data
+end
+
+--- The page's manifest values, keyed by property display name. Pure (no
+--- frame); `bucketRows` routes the same values into their Bucket columns.
+--- @param args table
+--- @return table<string, string|string[]>
+function p.getStructuredData(args)
+	return collect(args)
+end
+
+--- Bucket rows for the page, keyed by bucket: the manifest's bucket/field per
+--- property, values shaped by Module:Entity/StructuredData (PAGE titles
+--- normalised, repeated values as arrays). Pure (no frame).
+--- @param args table
+--- @return table<string, table<string, any>>
+function p.bucketRows(args)
+	local rows = {}
+	for prop, value in pairs(collect(args)) do
+		local def = PROPERTIES[prop]
+		rows[def.bucket] = rows[def.bucket] or {}
+		rows[def.bucket][def.field] = StructuredData.shape(def, value)
+	end
+	return rows
 end
 
 --- Short description: "<race> company in the <industry> industry", or
@@ -455,13 +499,11 @@ function p.main(frame)
 	frame:callParserFunction('SHORTDESC', p.getShortDescription(args))
 
 	-- Structured data + content categories: mainspace only, so /doc and sandbox
-	-- pages don't pollute canonical SMW / the category tree.
+	-- pages don't pollute canonical Bucket rows / the category tree.
 	local categories = ''
 	if mw.title.getCurrentTitle():inNamespace(0) then
-		-- Capture the pcall result so SMW write failures are surfaced as a
-		-- tracking category, consistent with Module:Entity/Categories.
-		local smwOk = pcall(mw.smw.set, p.getStructuredData(args))
-		if not smwOk then
+		local bucketErr = StructuredData.putBuckets(p.bucketRows(args))
+		if bucketErr then
 			categories = categories .. '[[Category:Pages with structured data errors]]'
 		end
 		for _, name in ipairs(p.getCategories(args)) do

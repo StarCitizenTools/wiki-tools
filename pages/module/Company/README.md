@@ -17,14 +17,15 @@ Builder functions, all pure except `p.main`:
 - `p.getContentSections(args)`: the unlabelled top group plus collapsible People/History/Relations sections; empty groups self-drop.
 - `p.getMetadataSection`, `p.getExternalSitesSection`, `p.getFooterSection`: the collapsed Metadata (manufacturer code), External sites (portfolio link), and footer (Galactapedia button) sections; each `nil` when its source value is absent.
 - `p.getSections(args)`: all sections, in render order.
-- `p.getStructuredData(args)`: the [SMW](https://www.mediawiki.org/wiki/Extension:Semantic_MediaWiki) property table, built from `properties.json`.
+- `p.getStructuredData(args)`: the page's manifest values, keyed by property display name, built from `properties.json`.
+- `p.bucketRows(args)`: the [Bucket](https://www.mediawiki.org/wiki/Extension:Bucket) rows, `{ entity = {...}, company = {...} }`, values shaped by `Module:Entity/StructuredData.shape`.
 - `p.getShortDescription(args)`, `p.getCategories(args)`: the short description and content category names.
 - `p.main(frame)`: wikitext entry point.
 
-**Data schema**: `properties.json` maps each SMW property to a source parameter and an optional `transform`: `page` (link target), `pageList` (semicolon-split link targets), `hqSystems` (last wikilink per `;`-segment), `textList` (semicolon-split, delinked, lcfirst). `Subject type` has no source: every Company page gets `Subject type = Company` unconditionally, so other modules can query `[[Subject type::Company]]` across kinds.
+**Data schema**: `properties.json` maps each property to a source parameter, a `bucket`/`field` (the Bucket table and column `bucketRows` writes to), and an optional `transform`: `page` (link target), `pageList` (semicolon-split link targets), `hqSystems` (last wikilink per `;`-segment), `textList` (semicolon-split, delinked, lcfirst). Each of these link transforms keeps only the first wikilink's target; text outside the `[[...]]` brackets, such as a trailing `<small>(HQ)</small>` note, is dropped rather than stored alongside it. `Subject type` has no source: every Company page gets `Subject type = Company` unconditionally, so other modules can select companies on the shared `entity` bucket's `subject_type` column across kinds. `Name`, `Subject type` and `Image` route to the `entity` bucket (shared with Module:Entity); every other property routes to `company`.
 
 ### Gotchas
 
 - `textList` delinks before lowercasing the first character: `lcfirst` only touches the first character, and a wikilinked item starts with `[`, so lcfirst-then-delink would leave `[[Clothing]] manufacture` capitalised after its brackets are stripped, forking a duplicate value from the plain-text form.
 - `resolveCode` takes no override argument by design: [Module:Manufacturers](https://starcitizen.tools/Module:Manufacturers) is the sole source of truth for the code.
-- SMW writes and category additions are gated to the main namespace; a write failure is caught with `pcall` and reported as a tracking category rather than a script error.
+- The Bucket write and category additions are gated to the main namespace; a Bucket write failure is caught with `pcall` and reported through the `Pages with structured data errors` tracking category rather than a script error.

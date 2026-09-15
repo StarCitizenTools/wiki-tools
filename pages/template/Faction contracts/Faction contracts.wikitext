@@ -1,0 +1,14 @@
+<includeonly><!--
+-->{{Data table
+| kind = Mission
+| filter = Faction = {{{1|{{{faction|{{PAGENAME}}}}}}}}
+| columns = {{{columns|
+    Type ; filter
+    Legality ; filter ; label=Category
+    Systems ; filter ; label=Takes place
+    Available ; filter
+}}}
+}}<!--
+--></includeonly><noinclude>
+{{/doc}}
+</noinclude>

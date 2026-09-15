@@ -1,0 +1,36 @@
+/* The card shell (Module:CardLua) already carries the border, surface, radius
+ * and `overflow: clip`, so only the tabber's fit inside it is set here. */
+.t-tabbed-card {
+	font-size: var(--font-size-small);
+	line-height: var(--line-height-small);
+}
+
+/* The tab strip reads as the card's header, so it takes a raised fill and runs
+ * edge to edge; the shell's corner clipping trims it to the border radius. */
+.t-tabbed-card .tabber__header {
+	background-color: var(--color-surface-1);
+}
+
+/* Aligns the first tab's label with the text below it. */
+.t-tabbed-card .tabber__tab {
+	padding-inline: var(--space-sm);
+}
+
+.t-tabbed-card .tabber__panel {
+	padding: var(--space-sm);
+}
+
+.t-tabbed-card--flush .tabber__panel {
+	padding: 0;
+}
+
+/* The panel's padding owns the gap, so the outermost children give up theirs;
+ * otherwise a panel holding a <p> or a blockquote is padded twice at top and
+ * bottom and the tabs look loose against their content. */
+.t-tabbed-card .tabber__panel > *:first-child {
+	margin-block-start: 0;
+}
+
+.t-tabbed-card .tabber__panel > *:last-child {
+	margin-block-end: 0;
+}

@@ -36,7 +36,7 @@ Consume `Module:Entity/Data` directly:
 
 - [Module:Entity/Availability](https://starcitizen.tools/Module:Entity/Availability): implements `{{Entity/Availability}}`
 - [Module:Entity/Blueprints](https://starcitizen.tools/Module:Entity/Blueprints): implements `{{Entity/Blueprints}}`
-- [Module:Entity/Description](https://starcitizen.tools/Module:Entity/Description): implements `{{Entity/Description}}`
+- [Module:Entity/Description](https://starcitizen.tools/Module:Entity/Description): implements `{{Entity/Description}}`; several interchangeable descriptions render as a [Module:TabbedCard](https://starcitizen.tools/Module:TabbedCard)
 - [Module:Entity/Related](https://starcitizen.tools/Module:Entity/Related): implements `{{Entity/Related}}`
 - [Module:Entity/UsedBy](https://starcitizen.tools/Module:Entity/UsedBy): implements `{{Entity/UsedBy}}`
 - [Module:Entity/Ports](https://starcitizen.tools/Module:Entity/Ports): implements `{{Entity/Ports}}` (Categories/Pipeline/Render submodules)
@@ -164,3 +164,4 @@ A property lives in `entity` when `Base` or `Entity` emits it, when one module e
 - `Registry.kinds` order is a probe-cost optimisation only: the declared-`kind` gate can hand any kind's `matches()` a foreign record, so `matches()` must reject on its own.
 - A bucket holds at most 60 fields and a bucket name plus field name may not exceed 51 characters; `tests/manifest.lua` fails the build before the schema page would. Moving a property to another table is a manifest edit plus a regenerated schema, and a deleted table drops its rows.
 - Bucket rows appear after the page's link update, not at parse time, so a fresh page reads its own uuid from Bucket only on the next render.
+- A record whose `description` is a bare `[Contractor|…]` token often carries the real prose in `description_variants` instead, and the game picks between those at random per offer. `{{Entity/Description}}` falls back to them and shows every one as a numbered tab, so a page can look empty in preview yet render text once saved. Do not transcribe a description onto a page before checking that field.

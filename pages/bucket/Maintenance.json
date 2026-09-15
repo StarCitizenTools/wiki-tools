@@ -1,0 +1,17 @@
+{
+	"banner": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": false
+	},
+	"reason": {
+		"type": "TEXT",
+		"index": false,
+		"repeated": false
+	},
+	"status": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": false
+	}
+}

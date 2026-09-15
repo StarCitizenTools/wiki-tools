@@ -38,9 +38,9 @@ local DISPLAY_ALIAS = 'DisplayName'
 --- @field primary? string  Base table the Store query roots on, default `entity`.
 --- Deliberately not an editor-facing `{{Data table}}` parameter: rooting on the
 --- wrong table silently changes which rows exist rather than erroring. A table
---- whose subject is not an Entity page sets it, because filtering a joined
---- bucket makes that join INNER and rooting on `entity` would drop every page
---- with no Entity row.
+--- whose subject is not an Entity page sets it (Module:Maintenance roots on
+--- `maintenance`, because filtering a joined bucket makes that join INNER and
+--- rooting on `entity` would drop every page with no Entity row).
 
 --- Whether a caller keeps the Image lead column. No options at all is the grid's
 --- shape: all three lead columns, `Image` reserved.
@@ -803,7 +803,7 @@ end
 --- grid, and returns it preceded by the styles load.
 --- @param frame mw.frame
 --- @param options DataGridOptions|nil  Caller-side options; {{Data table}} passes
---- none. A module wrapping this one uses it to set `primary`.
+--- none. A module wrapping this one uses it to set `primary` (Module:Maintenance).
 --- @return string
 function p.main(frame, options)
 	local getArgs = require('Module:Arguments').getArgs

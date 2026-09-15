@@ -7,6 +7,7 @@ require('strict')
 --- so it shares Apiunto's cache with any other Entity template on the page.
 
 local data = require('Module:Entity/Data')
+local format = require('Module:Entity/Format')
 local tabbedCard = require('Module:TabbedCard')
 
 local p = {}
@@ -152,11 +153,12 @@ function p.main(frame)
 		args = { src = 'Module:Entity/Description/styles.css' },
 	})
 
+	local version = format.gameVersion(result.apiData)
 	local description = p.resolveDescription(result.apiData)
 	if not description then
 		local variants = p.resolveVariants(result.apiData)
 		if #variants > 0 then
-			return styles .. variantsHtml(variants, result.apiData.version)
+			return styles .. variantsHtml(variants, version)
 		end
 	end
 
@@ -172,8 +174,8 @@ function p.main(frame)
 			:wikitext('No description available from the API.')
 	end
 
-	if result.apiData.version then
-		root:tag('p'):addClass('t-entity-description-source'):wikitext(result.apiData.version)
+	if version then
+		root:tag('p'):addClass('t-entity-description-source'):wikitext(version)
 	end
 
 	return styles .. tostring(root)

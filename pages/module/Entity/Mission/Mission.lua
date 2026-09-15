@@ -28,6 +28,44 @@ local function resolveReputationScope(scope)
 	return SCOPE[scope] or scope
 end
 
+--- `mission_giver` is normally the better of the two faction names: it is the
+--- specific contractor a reader can look up (MT Protection Services, BlacJac
+--- Security, Miles Eckhart) where `faction.name` gives only the parent
+--- corporation (microTech, ArcCorp, Eckhart Security). But on some records it is
+--- an unresolved internal token instead, and those must not reach the page.
+---
+--- Matched on shape rather than by enumerating names, because the token set
+--- grows with the data and the per-record `faction.name` is the right answer for
+--- each: `MicroTechBountyDepartment` resolves to microTech on some records and
+--- Hurston Dynamics on others. `XenoThreat` is deliberately NOT matched, being a
+--- real faction name that happens to be unspaced.
+--- @param giver string
+--- @return boolean
+local function isInternalToken(giver)
+	return giver:find('_', 1, true) ~= nil
+		or giver:find('~', 1, true) ~= nil
+		or giver:find('BountyDepartment$') ~= nil
+		or giver == 'N/A'
+end
+
+--- The faction to show and store: the mission giver, or that record's
+--- `faction.name` when the giver is an internal token, or nil when neither is
+--- usable (~100 records carry neither). One definition so the infobox row, the
+--- stored `Faction` property and the short description can never disagree.
+--- @param apiData table
+--- @return string|nil
+local function resolveFaction(apiData)
+	local giver = apiData.mission_giver
+	local factionName = apiData.faction and apiData.faction.name
+	if type(giver) == 'string' and giver ~= '' and not isInternalToken(giver) then
+		return giver
+	end
+	if type(factionName) == 'string' and factionName ~= '' then
+		return factionName
+	end
+	return nil
+end
+
 --- The reader-facing name for a raw `mission_type`: an entry in TYPE_LABELS, or
 --- the API string as-is. Derived rather than enumerated so a type CIG adds later
 --- renders under its own name instead of erroring.
@@ -106,7 +144,7 @@ end
 function p.getSections(ctx)
 	local apiData, args = ctx.apiData, ctx.args
 	local typeInfo = p.getTypeInfo(ctx)
-	local faction = apiData.mission_giver
+	local faction = resolveFaction(apiData)
 
 	local data = {
 		category = 'Verified',
@@ -293,7 +331,7 @@ end
 function p.getStructuredData(ctx)
 	local apiData, args = ctx.apiData, ctx.args
 	local typeInfo = p.getTypeInfo(ctx)
-	local faction = apiData.faction and apiData.faction.name or apiData.mission_giver
+	local faction = resolveFaction(apiData)
 	local scrip
 	local available = true
 
@@ -348,7 +386,7 @@ end
 --- @return string|nil
 function p.getShortDescription(ctx)
 	local apiData, typeInfo = ctx.apiData, ctx.typeInfo
-	local faction = apiData.faction and apiData.faction.name or apiData.mission_giver
+	local faction = resolveFaction(apiData)
 	local typeName = typeInfo and typeInfo.name
 
 	if not typeName then

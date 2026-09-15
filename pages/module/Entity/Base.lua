@@ -71,6 +71,10 @@ function p.getStructuredData(ctx)
 	return {
 		uuid = args.uuid,
 		name = args.name or apiData.name,
+		-- The game-data class name, stored as the stable key for matching a page
+		-- against the game files or another site's dataset. Missions carry none,
+		-- so this is simply absent on contract pages.
+		class_name = apiData.class_name,
 		manufacturer = manufacturer and manufacturer.name,
 		image = image,
 	}

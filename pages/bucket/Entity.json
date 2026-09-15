@@ -9,6 +9,11 @@
 		"index": true,
 		"repeated": false
 	},
+	"class_name": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": false
+	},
 	"effects": {
 		"type": "TEXT",
 		"index": true,

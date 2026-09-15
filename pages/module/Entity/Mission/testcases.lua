@@ -141,6 +141,74 @@ function suite:testSectionsMarkAnIllegalContractUnverified()
 	self:assertEquals('Unverified', itemByLabel(sections, 'Category').content)
 end
 
+function suite:testFactionPrefersTheSpecificMissionGiver()
+	-- mission_giver is the contractor a reader can look up; faction.name is only
+	-- the parent corporation, so it must NOT win.
+	local sections = Mission.getSections(ctx({
+		mission_type = 'Mercenary',
+		mission_giver = 'MT Protection Services',
+		faction = { name = 'microTech' },
+	}))
+	self:assertEquals('[[MT Protection Services]]', itemByLabel(sections, 'Faction').content)
+end
+
+function suite:testFactionFallsBackWhenTheGiverIsAnInternalToken()
+	-- Regression: the infobox printed 'HurstonBountyDepartment' verbatim.
+	for _, token in ipairs({
+		'HurstonBountyDepartment',
+		'CrusaderBountyDepartment',
+		'NorthRock_Bounty',
+		'MissionGiver_LingFamilyHauling',
+		'~mission(Contractor|BountyFrom)',
+		'N/A',
+	}) do
+		local sections = Mission.getSections(ctx({
+			mission_type = 'Bounty Hunter',
+			mission_giver = token,
+			faction = { name = 'Hurston Dynamics' },
+		}))
+		self:assertEquals('[[Hurston Dynamics]]', itemByLabel(sections, 'Faction').content)
+	end
+end
+
+function suite:testFactionKeepsAnUnspacedRealName()
+	-- XenoThreat, microTech and ArcCorp are real names that happen to be
+	-- unspaced or internally capitalised; a CamelCase rule would eat them.
+	for _, name in ipairs({ 'XenoThreat', 'microTech', 'ArcCorp', 'Wikelo' }) do
+		local sections = Mission.getSections(ctx({ mission_type = 'Mercenary', mission_giver = name }))
+		self:assertEquals('[[' .. name .. ']]', itemByLabel(sections, 'Faction').content)
+	end
+end
+
+function suite:testFactionIsNilWhenTheRecordHasNeither()
+	local sections = Mission.getSections(ctx({ mission_type = 'Mercenary' }))
+	self:assertEquals(nil, itemByLabel(sections, 'Faction').content)
+end
+
+function suite:testStoredFactionMatchesTheInfoboxRow()
+	-- One resolver, so the Faction property and the infobox cannot disagree.
+	local apiData = {
+		mission_type = 'Bounty Hunter',
+		mission_giver = 'CrusaderBountyDepartment',
+		faction = { name = 'Crusader Industries' },
+	}
+	local sections = Mission.getSections(ctx(apiData))
+	local stored = Mission.getStructuredData(ctx(apiData))
+	self:assertEquals('[[Crusader Industries]]', itemByLabel(sections, 'Faction').content)
+	self:assertEquals('Crusader Industries', stored.faction)
+end
+
+function suite:testShortDescriptionUsesTheResolvedFaction()
+	self:assertEquals(
+		'Crusader industries bounty hunter contract',
+		Mission.getShortDescription({
+			apiData = { mission_giver = 'CrusaderBountyDepartment', faction = { name = 'Crusader Industries' } },
+			args = {},
+			typeInfo = { name = 'Bounty Hunter' },
+		})
+	)
+end
+
 function suite:testStructuredDataCarriesTheResolvedType()
 	local stored = Mission.getStructuredData(ctx({ mission_type = 'Wikelo - Other Items', illegal = false }))
 	self:assertEquals('Collection', stored.type)

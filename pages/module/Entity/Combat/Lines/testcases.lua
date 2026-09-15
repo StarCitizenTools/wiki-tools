@@ -44,21 +44,71 @@ function suite:testSpawnKind()
 	self:assertEquals(nil, Lines.spawnKind({}))
 end
 
-function suite:testShipLinksDedupeVariantClassNames()
-	-- Both Hammerhead class_names resolve to one display name; the link must not double up.
+--- Stands in for the Bucket lookup, which is keyed lowercase.
+local function resolver(className)
+	return ({ aegs_hammerhead = 'Hammerhead', aegs_gladius = 'Gladius', orig_85x = '85X' })[className]
+end
+
+function suite:testShipLabelsLinkAResolvedClassName()
+	local spawn = { ships = { { class_name = 'AEGS_Gladius', name = 'Aegis Gladius' } } }
+	self:assertDeepEquals({ '[[Gladius]]' }, Lines.shipLabels(spawn, resolver))
+end
+
+function suite:testShipLabelsFallBackToPlainTextWhenUnresolved()
+	-- No Bucket row means no page to link, so the display name renders as text
+	-- rather than as a guessed (and red) link.
+	local spawn = { ships = { { class_name = 'ANVL_Valkyrie', name = 'Anvil Valkyrie' } } }
+	self:assertDeepEquals({ 'Anvil Valkyrie' }, Lines.shipLabels(spawn, resolver))
+end
+
+function suite:testShipLabelsGroupByDisplayNameBeforeResolving()
+	-- Regression: the _GS variant has no page of its own, so resolving before
+	-- grouping emitted '[[Hammerhead]]' AND 'Aegis Hammerhead' for one ship.
 	local spawn = {
 		ships = {
 			{ class_name = 'AEGS_Hammerhead_GS', name = 'Aegis Hammerhead' },
 			{ class_name = 'AEGS_Hammerhead', name = 'Aegis Hammerhead' },
-			{ class_name = 'AEGS_Idris', name = 'Aegis Idris-M' },
 		},
 	}
-	self:assertDeepEquals({ '[[Aegis Hammerhead]]', '[[Aegis Idris-M]]' }, Lines.shipLinks(spawn))
+	self:assertDeepEquals({ '[[Hammerhead]]' }, Lines.shipLabels(spawn, resolver))
 end
 
-function suite:testShipLinksEmptyForAnNpcGroup()
-	self:assertDeepEquals({}, Lines.shipLinks({ ships = {} }))
-	self:assertDeepEquals({}, Lines.shipLinks({}))
+function suite:testShipLabelsMatchRegardlessOfClassNameCase()
+	-- The two sources disagree on case for the same identifier: combat gives
+	-- ORIG_85x where the page stores ORIG_85X, which cost a link each.
+	local spawn = { ships = { { class_name = 'ORIG_85x', name = 'Origin 85X Limited' } } }
+	self:assertDeepEquals({ '[[85X]]' }, Lines.shipLabels(spawn, resolver))
+end
+
+function suite:testShipLabelsSortAlphabetically()
+	-- The API orders the pool by manufacturer, which no longer shows once the
+	-- linked entries display their model-only page titles.
+	local spawn = {
+		ships = {
+			{ class_name = 'AEGS_Hammerhead', name = 'Aegis Hammerhead' },
+			{ class_name = 'ANVL_Valkyrie', name = 'Anvil Valkyrie' },
+			{ class_name = 'AEGS_Gladius', name = 'Aegis Gladius' },
+		},
+	}
+	-- Ordered by the VISIBLE text, so an unresolved entry interleaves with the
+	-- links instead of being filed after them: Anvil Valkyrie, Gladius, Hammerhead.
+	self:assertDeepEquals({ 'Anvil Valkyrie', '[[Gladius]]', '[[Hammerhead]]' }, Lines.shipLabels(spawn, resolver))
+end
+
+function suite:testShipLabelsTolerateAMissingResolver()
+	-- An empty Bucket (nothing reparsed yet) degrades every entry to plain text.
+	local spawn = { ships = { { class_name = 'AEGS_Gladius', name = 'Aegis Gladius' } } }
+	self:assertDeepEquals({ 'Aegis Gladius' }, Lines.shipLabels(spawn, nil))
+end
+
+function suite:testShipLabelsTolerateAShipWithNoClassName()
+	local spawn = { ships = { { name = 'Wreckage' } } }
+	self:assertDeepEquals({ 'Wreckage' }, Lines.shipLabels(spawn, resolver))
+end
+
+function suite:testShipLabelsEmptyForAnNpcGroup()
+	self:assertDeepEquals({}, Lines.shipLabels({ ships = {} }, resolver))
+	self:assertDeepEquals({}, Lines.shipLabels({}, resolver))
 end
 
 function suite:testSpawnRowsOrderEnemiesFirst()

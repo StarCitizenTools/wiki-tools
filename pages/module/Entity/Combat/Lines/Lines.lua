@@ -70,30 +70,81 @@ function p.spawnKind(spawn)
 	return kind
 end
 
---- The distinct vehicle names a spawn group can draw from, linked, in API
---- order. Duplicates are dropped: a group commonly lists two `class_name`
---- variants of one ship (`AEGS_Hammerhead_GS` and `AEGS_Hammerhead` both name
---- 'Aegis Hammerhead'), which would otherwise render the same link twice.
+--- The vehicles a spawn group can draw from, one entry per distinct vehicle,
+--- sorted alphabetically.
+---
+--- A vehicle resolves to a link only when `resolvePage` finds a wiki page for
+--- one of its game-data class names; otherwise it renders as plain text. That
+--- way an entry is a link exactly when there is something to link to, instead
+--- of guessing a title from the display name: the wiki titles vehicle pages by
+--- model alone, so linking the API's `Aegis Gladius` verbatim is a red link
+--- where `Gladius` is not.
+---
+--- Grouping by display name happens BEFORE resolution, which is what stops one
+--- vehicle rendering twice: a group routinely lists several class names that
+--- share a display name (`AEGS_Hammerhead_GS` and `AEGS_Hammerhead` are both
+--- 'Aegis Hammerhead') and typically only the base one has a page, so resolving
+--- first would emit the linked and the plain form side by side.
+---
+--- Sorted because the API orders the pool by manufacturer, an order that no
+--- longer shows once the linked entries display their model-only page titles.
+---
 --- @param spawn table aggregated_spawns entry
+--- @param resolvePage fun(className: string): string|nil Wiki page title for a LOWERCASED game-data class name, or nil when it has no page
 --- @return string[]
-function p.shipLinks(spawn)
-	local links, seen = {}, {}
+function p.shipLabels(spawn, resolvePage)
+	local order, classNames = {}, {}
 	for _, ship in ipairs(spawn.ships or {}) do
 		local name = ship.name
-		if type(name) == 'string' and name ~= '' and not seen[name] then
-			seen[name] = true
-			table.insert(links, '[[' .. name .. ']]')
+		if type(name) == 'string' and name ~= '' then
+			if not classNames[name] then
+				classNames[name] = {}
+				table.insert(order, name)
+			end
+			if type(ship.class_name) == 'string' and ship.class_name ~= '' then
+				table.insert(classNames[name], ship.class_name)
+			end
 		end
 	end
-	return links
+
+	local entries, seen = {}, {}
+	for _, name in ipairs(order) do
+		local page
+		for _, className in ipairs(classNames[name]) do
+			-- Lowercased: the two sources disagree on case for the same identifier
+			-- (combat gives ORIG_85x and ARGO_Mole where the pages store ORIG_85X
+			-- and ARGO_MOLE), which silently cost a link each.
+			page = resolvePage and resolvePage(mw.ustring.lower(className))
+			if page then
+				break
+			end
+		end
+		-- Sorted on the VISIBLE text, not the wikitext: '[' sorts after every
+		-- letter, so sorting the markup would file every link after every plain
+		-- entry instead of interleaving them alphabetically.
+		local text = page or name
+		if not seen[text] then
+			seen[text] = true
+			table.insert(entries, { text = text, label = page and ('[[' .. page .. ']]') or name })
+		end
+	end
+	table.sort(entries, function(a, b)
+		return a.text < b.text
+	end)
+	local labels = {}
+	for i, entry in ipairs(entries) do
+		labels[i] = entry.label
+	end
+	return labels
 end
 
 --- One row per spawn group: role, label, kind, concurrent count and ship pool.
 --- Groups are grouped by role in ROLE_ORDER, preserving API order within a role,
 --- so the enemy groups a page is about lead the table.
 --- @param combat table|nil the mission's `combat` object
+--- @param resolvePage fun(className: string): string|nil Passed through to shipLabels
 --- @return { role: string, roleLabel: string, label: string, kind: string|nil, count: string|nil, ships: string[] }[]
-function p.spawnRows(combat)
+function p.spawnRows(combat, resolvePage)
 	local byRole = {}
 	local roles = {}
 	for _, spawn in ipairs((combat or {}).aggregated_spawns or {}) do
@@ -108,7 +159,7 @@ function p.spawnRows(combat)
 			label = p.groupLabel(spawn),
 			kind = p.spawnKind(spawn),
 			count = p.countRange(spawn.concurrent_min, spawn.concurrent_max),
-			ships = p.shipLinks(spawn),
+			ships = p.shipLabels(spawn, resolvePage),
 		})
 	end
 

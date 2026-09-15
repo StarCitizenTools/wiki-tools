@@ -15,10 +15,55 @@ local function renderEmpty(message)
 	return tostring(mw.html.create('p'):addClass('t-entity-combat-empty'):wikitext(message))
 end
 
---- The ship pool is the widest column by far (a patrol contract draws from 30+
---- ships), so it renders as a comma-joined list rather than a nested list: the
---- table already scrolls horizontally on a phone and a nested <ul> per row
---- would make every row as tall as the longest pool.
+--- Builds the game-data class name to wiki page lookup the vehicle pool needs,
+--- as ONE query for every vehicle the wiki has rather than one per ship, which
+--- is cheap enough to sit well inside Bucket's per-query budget.
+---
+--- Narrowed to the vehicle subject types in the QUERY, not in Lua. The entity
+--- bucket holds far more rows than any one query returns, so an unfiltered read
+--- is silently truncated by the row limit and loses every vehicle past the cut.
+---
+--- Keyed lowercase because the two sources disagree on case for the same
+--- identifier: the combat data gives `ORIG_85x` and `ARGO_Mole` where the pages
+--- store `ORIG_85X` and `ARGO_MOLE`.
+---
+--- A class name absent from the result has no Bucket row, so the caller renders
+--- that vehicle as plain text rather than guessing a title. The query is wrapped
+--- because a Bucket infrastructure failure must not take the whole section down:
+--- an empty map degrades every entry to plain text.
+--- @return fun(className: string): string|nil Takes a LOWERCASED class name
+local function buildPageResolver()
+	local bucket = mw.ext.bucket
+	local ok, rows = pcall(function()
+		return bucket('entity')
+			.select('page_name', 'class_name')
+			.where(
+				bucket.Or(
+					{ 'subject_type', '=', 'Spacecraft' },
+					{ 'subject_type', '=', 'Ground vehicle' },
+					{ 'subject_type', '=', 'Grav-lev vehicle' }
+				)
+			)
+			.limit(1000)
+			.run()
+	end)
+	local byClassName = {}
+	if ok and type(rows) == 'table' then
+		for _, row in ipairs(rows) do
+			if type(row.class_name) == 'string' and row.class_name ~= '' then
+				byClassName[mw.ustring.lower(row.class_name)] = row.page_name
+			end
+		end
+	end
+	return function(className)
+		return byClassName[className]
+	end
+end
+
+--- The pool as a comma-joined list rather than a nested list, so a row stays as
+--- short as its content allows. The whole pool renders: a reader checking
+--- whether one specific ship can appear needs the complete list, and linking by
+--- canonical page title is what keeps it readable.
 --- @param row table a Lines.spawnRows entry
 --- @return string
 local function shipCell(row)
@@ -86,7 +131,7 @@ function p.main(frame)
 		root:tag('p'):addClass('t-entity-combat-total'):wikitext('Hostiles: '):tag('strong'):wikitext(total)
 	end
 
-	local rows = Lines.spawnRows(combat)
+	local rows = Lines.spawnRows(combat, buildPageResolver())
 	if #rows > 0 then
 		root:wikitext(renderSpawnTable(rows))
 	end

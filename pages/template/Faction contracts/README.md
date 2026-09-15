@@ -18,10 +18,12 @@ Where the page title and the recorded faction name differ, name the faction. Thi
 
 ## Parameters
 
-| Parameter | Description |
-|---|---|
-| `1` / `faction` | Faction name to match, exactly as the contract pages record it. Defaults to the page name. |
-| `columns` | Replaces the default column set. Same grammar as [Template:Data table](https://starcitizen.tools/Template:Data_table)'s `columns`. |
+<!-- templatedata: format=block -->
+
+| Name | Label | Type | Required | Default | Description | Example | Aliases |
+|------|-------|------|----------|---------|-------------|---------|---------|
+| `1` | Faction | string | No | (the page name) | Faction name to match, exactly as the contract pages record it. | `Rough & Ready` | `faction` |
+| `columns` | Columns | content | No | (type, legality, systems, availability) | Replaces the default column set. Same grammar as [Template:Data table](https://starcitizen.tools/Template:Data_table)'s `columns`. | `Type ; filter` |  |
 
 ## Behavior
 

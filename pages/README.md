@@ -108,6 +108,8 @@ The `README.md` beside a page is the source of its live `/doc` page: `module/Ent
 | [Template:Mainpage](template/Mainpage) ([doc](https://starcitizen.tools/Template:Mainpage/doc)) | Renders the wiki's main page as one full-bleed sequence of content bands, transcluded as the page's entire content. |
 | [Template:Manufacturer products](template/Manufacturer%20products) ([doc](https://starcitizen.tools/Template:Manufacturer_products/doc)) | Renders a manufacturer's full product catalogue as an interactive, filterable browse table. |
 | [Template:Rarity](template/Rarity) ([doc](https://starcitizen.tools/Template:Rarity/doc)) | Shows an item's rarity tier as a small coloured badge. |
+| [Template:Removed](template/Removed) ([doc](https://starcitizen.tools/Template:Removed/doc)) | Hatnote marking a page or section that describes content removed from ''Star Citizen'', and the categoriser that tracks it. |
+| [Template:Removed contract](template/Removed%20contract) ([doc](https://starcitizen.tools/Template:Removed_contract/doc)) | Infobox for a contract that has been removed from ''Star Citizen''. |
 | [Template:System map](template/System%20map) ([doc](https://starcitizen.tools/Template:System_map/doc)) | Renders the star, planet, and moon hierarchy of one star system as a horizontal orbit rail. |
 | [Template:UEC](template/UEC) ([doc](https://starcitizen.tools/Template:UEC/doc)) | Formats an in-game money value in United Earth Credit (UEC): the UEC glyph followed by the amount with thousands separators. |
 | [Template:Vehicle](template/Vehicle) ([doc](https://starcitizen.tools/Template:Vehicle/doc)) | Renders a ship or ground-vehicle infobox through the same `Module:Entity` engine as `{{Entity}}`, with the editing form scoped to vehicle parameters. |

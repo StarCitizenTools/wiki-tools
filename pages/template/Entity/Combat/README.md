@@ -30,6 +30,7 @@ When `{{Entity}}` has been invoked earlier on the page, the UUID can be omitted;
 - Each row is one spawn group: the game's own group name, its role, whether it spawns as a ship or on foot, how many can be present at once, and the vehicles it can draw from.
 - Hostile groups are listed first, then escort targets, defend targets, and anything untagged. The group name carries its own head count, so a row reading `Soldier x 2` spawns two soldiers.
 - The concurrent count and the vehicle pool apply to ship groups only. On an on-foot group both cells are an em dash, which reflects the data rather than a gap in it.
+- Vehicles are listed alphabetically and named by their wiki page title, with the manufacturer omitted. The whole pool is shown, and one that has no page yet appears as plain text rather than as a broken link.
 - A contract with no recorded encounter shows "No combat encounters recorded for this contract." Most contracts have none, so add this section only where the data exists.
 
 ## See also

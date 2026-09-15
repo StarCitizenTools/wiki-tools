@@ -99,6 +99,12 @@
 	color: #fff;
 }
 
+/* SCMDB: the site's own near-black ground and cyan accent. */
+.t-button--scmdb.cdx-button {
+	--t-button-ground: #0f1318;
+	color: #00d4ff;
+}
+
 /* Patreon. */
 .t-button--patreon.cdx-button {
 	--t-button-ground: #ff424d;

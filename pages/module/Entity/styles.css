@@ -54,13 +54,14 @@
     display: block;
 }
 
-/* Layout only: brand identity (grounds, content colors, the derived
-   hover/active shades) is a button concern and lives with the t-button--*
-   namespace in Module:ButtonLua/styles.css. */
+/* Brand identity (grounds, content colors, the derived hover/active shades)
+   is a button concern and lives with the t-button--* namespace in
+   Module:ButtonLua/styles.css. */
 .t-infobox-section--footer .cdx-button {
     display: flex;
     width: 100%;
     justify-content: center;
+    font-size: var(--font-size-small);
 }
 
 /* Vehicle Overview ring-gauge profile: fit 5 word-labelled tiles at infobox width. */

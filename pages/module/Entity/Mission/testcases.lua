@@ -266,4 +266,21 @@ function suite:testShortDescriptionIsNilWithoutAType()
 	)
 end
 
+function suite:testFooterButtonLinksScmdbByUuid()
+	local buttons = Mission.getFooterButtons(ctx({ uuid = '73f88f71-74e2-454a-9722-dd4b32bb8cf5' }))
+	self:assertEquals(1, #buttons)
+	self:assertEquals('SCMDB', buttons[1].label)
+	self:assertEquals('https://scmdb.net/?g=73f88f71-74e2-454a-9722-dd4b32bb8cf5', buttons[1].url)
+end
+
+function suite:testFooterButtonPrefersTheTemplateUuid()
+	local buttons = Mission.getFooterButtons(ctx({ uuid = 'from-api' }, { uuid = 'from-args' }))
+	self:assertEquals('https://scmdb.net/?g=from-args', buttons[1].url)
+end
+
+function suite:testFooterButtonNeedsAUuid()
+	self:assertEquals(0, #Mission.getFooterButtons(ctx({})))
+	self:assertEquals(0, #Mission.getFooterButtons(ctx({ uuid = '' })))
+end
+
 return suite

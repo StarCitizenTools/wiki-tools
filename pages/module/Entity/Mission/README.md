@@ -16,6 +16,7 @@ Editors never invoke this module directly; it runs inside [Template:Entity](http
 - `resolveFaction(apiData)` (local): the faction the infobox row, the stored `Faction` property and the short description all use, so they cannot disagree.
 - `p.getStructuredData(ctx)`: the `mission` Bucket row. `orders` and `rewards` come from [Module:Entity/Orders/Lines](https://starcitizen.tools/Module:Entity/Orders/Lines) and [Module:Entity/Rewards/Lines](https://starcitizen.tools/Module:Entity/Rewards/Lines), the same formatters the visible tables use, so a stored line and a rendered row never disagree.
 - `p.getShortDescription(ctx)`: `"<Faction> <type> contract"`, degrading to `"<Type> contract"` and then to nil as the record gets thinner.
+- `p.getFooterButtons(ctx)`: the SCMDB button, built from the page's uuid.
 
 ### Extending
 
@@ -31,3 +32,5 @@ Three sibling renderers read this kind's record and store nothing: [Module:Entit
 - A contract can award either MG Scrip or Council Scrip; the payout row is labelled from the reward the record actually carries, not from a fixed string.
 - `not_for_release` marks a contract unavailable, but `|available=` overrides it in both directions: several pages document a contract the API still flags as unreleased.
 - Prerequisite titles go through `fixTitle`, which strips brackets and turns a pipe into a hyphen. Mission titles contain templating placeholders (`Claim #[ClaimNumber]: [Ship] Salvage Rights`) that would otherwise emit a broken link.
+- The SCMDB footer link uses that site's `?g=<uuid>` form, never the `?m=` form its own share button emits. `?m=` is a hash of the game's internal debug name, so a rename silently breaks it and two contracts sharing a debug name collide onto one URL. `?g=` takes the game's contract GUID, which is the same value the API returns as `uuid`, so no mapping table is needed.
+- The button is offered whenever the record has a uuid, not only when SCMDB holds the contract. That catalogue covers the contractor-given career contracts and carries almost none of the `PU_*` families, so many of ours are absent; an id it does not hold opens its mission browser rather than an error page. Do not read an absence there as the contract being gone from the game.

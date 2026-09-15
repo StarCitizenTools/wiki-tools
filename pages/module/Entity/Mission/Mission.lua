@@ -405,4 +405,36 @@ function p.getExternalSiteItems(ctx)
 	return {}
 end
 
+--- SCMDB as a footer action button, the same shape as the star systems'
+--- Starmap button.
+---
+--- SCMDB keys its catalogue by the game's own contract GUID, which is the
+--- value the API returns as `uuid`, so the page's uuid addresses the contract
+--- there with no mapping table: `?g=` resolves against a contract id or one of
+--- its contractDefinitionIds and the site then canonicalises the URL itself.
+--- Its `?m=` form is a hash of the internal debug name, so it is not linkable
+--- -- a rename breaks it silently and two contracts sharing a debug name
+--- collide onto one URL.
+---
+--- Offered for every record with a uuid rather than gated on whether SCMDB
+--- holds it. Its catalogue covers the contractor-given career contracts and
+--- not the `PU_*` families, so a good fraction of ours are absent, but an id
+--- it does not hold opens its mission browser rather than an error page.
+---
+--- @param ctx EntityHookContext
+--- @return table[]
+function p.getFooterButtons(ctx)
+	local uuid = ctx.args.uuid or ctx.apiData.uuid
+	if type(uuid) ~= 'string' or uuid == '' then
+		return {}
+	end
+	return {
+		{
+			label = 'SCMDB',
+			url = 'https://scmdb.net/?g=' .. uuid,
+			class = 't-button--branded t-button--scmdb',
+		},
+	}
+end
+
 return p

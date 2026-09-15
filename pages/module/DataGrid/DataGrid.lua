@@ -1,7 +1,7 @@
 require('strict')
 
 --- Generic browse-table component on AG Grid (Extension:AGGrid). Reads through
---- Module:Entity/Store (Bucket): `category` (direct membership, `A; B` for
+--- Module:BucketQuery (Bucket): `category` (direct membership, `A; B` for
 --- disjunction), `filter` (one clause per line) and `kind` (only needed to
 --- disambiguate a property stored per kind) become a Store spec; result rows
 --- and manifest types drive the AG Grid rowData + columnDefs.
@@ -21,7 +21,7 @@ local Util = require('Module:AGGridColumns/Util')
 local AGGridColumns = require('Module:AGGridColumns')
 local aggrid = require('mw.ext.aggrid')
 local yesno = require('Module:Yesno')
-local Store = require('Module:Entity/Store')
+local BucketQuery = require('Module:BucketQuery')
 
 local p = {}
 
@@ -394,9 +394,9 @@ function p.buildSpec(kind, categoryFilter, filters, columns, options)
 	-- non-numeric entry or `!=` over a repeated one is a static contract
 	-- violation, caught here rather than surfacing as a Store runtime error.
 	local function check(property, op)
-		local entry = Store.resolve(property, kind)
+		local entry = BucketQuery.resolve(property, kind)
 		if entry == nil then
-			if Store.needsKind(property) then
+			if BucketQuery.needsKind(property) then
 				if kind then
 					return '"' .. property .. '" is not stored for kind ' .. kind
 				end
@@ -561,7 +561,7 @@ local function buildSpecs(results, columns, eyebrowColumns, pinLead, kind, sort)
 	if eyebrowColumns[1] then
 		local parts, filterPart = {}, nil
 		for _, column in ipairs(eyebrowColumns) do
-			local entry = Store.resolve(column.property, kind)
+			local entry = BucketQuery.resolve(column.property, kind)
 			local part = {
 				alias = p.columnAlias(column),
 				page = entry.type == 'PAGE',
@@ -631,7 +631,7 @@ local function buildSpecs(results, columns, eyebrowColumns, pinLead, kind, sort)
 					filter = 'aggridSet',
 				}
 			else
-				local entry = Store.resolve(column.property, kind)
+				local entry = BucketQuery.resolve(column.property, kind)
 				local filter = column.filter and 'aggridSet' or 'agTextColumnFilter'
 				local spec = { field = 'c' .. i, header = header, label = alias }
 				if entry.type == 'PAGE' then
@@ -710,7 +710,7 @@ end
 --- @return table[]|nil results
 --- @return string|nil err
 function p.runQuery(spec)
-	local ok, results = pcall(Store.query, spec)
+	local ok, results = pcall(BucketQuery.query, spec)
 	if not ok then
 		return nil, results
 	end
@@ -731,7 +731,7 @@ function p.sortRows(results)
 end
 
 --- @class DataGridRequest
---- @field spec table  the Module:Entity/Store query spec
+--- @field spec table  the Module:BucketQuery query spec
 --- @field columns DataGridColumn[]  the editor's columns, in order
 --- @field kind string|nil
 --- @field sort DataGridSort|nil

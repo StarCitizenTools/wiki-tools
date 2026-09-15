@@ -12,5 +12,5 @@ Renders the jump point table on a star system page: one row per jump gate in the
 ### Gotchas
 
 - This file is bundled output from [ari-party/sct-module-jump-points](https://github.com/ari-party/sct-module-jump-points) via [scribunto-bundler](https://github.com/ari-party/scribunto-bundler), inlining that project's own `Module:Translate` wrapper and a small string-cleaning helper as anonymous registered chunks; a future logic change belongs upstream and should arrive here as a re-bundle, not a hand-edit, except where a repository-specific fix can't wait for that.
-- `Module:Jump points/config.json` and `Module:Jump points/i18n.json` are off-repo and stay live; this module stores and reads nothing, so it carries no [Module:Entity/Store](https://starcitizen.tools/Module:Entity/Store) dependency.
+- `Module:Jump points/config.json` and `Module:Jump points/i18n.json` are off-repo and stay live; this module stores and reads nothing, so it carries no [Module:BucketQuery](https://starcitizen.tools/Module:BucketQuery) dependency.
 - No `testcases.lua` ships with this mirror: the module is vendored, generated output, not something edited here function-by-function.

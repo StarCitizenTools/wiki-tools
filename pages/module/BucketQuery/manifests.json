@@ -1,0 +1,9 @@
+{
+	"%doc": "The property manifests Module:BucketQuery searches, in order. A manifest declares which Bucket table and column each of its properties lives in; see Module:Entity/properties.json for the shape. Registering a domain here is what makes its properties nameable in a {{Data table}} filter or column, and the same file is read by the bucketschemas generator that writes the Bucket: schema pages, so a domain is registered once rather than in two lists that drift apart. Order matters only for a property name declared by more than one manifest, where the first wins; a kind's own manifest is searched ahead of the rest when a caller names a kind.",
+	"manifests": [
+		"Module:Entity/properties.json",
+		"Module:Company/properties.json",
+		"Module:WearableSet/properties.json",
+		"Module:Maintenance/properties.json"
+	]
+}

@@ -2,7 +2,7 @@ require('strict')
 
 --- Static counterpart of Module:DataGrid: the same {{Data table}} grammar
 --- (`category`, `filter`, `kind`, `columns`, `sort`) and the same
---- Module:Entity/Store query, rendered as a plain wikitable instead of an AG Grid.
+--- Module:BucketQuery query, rendered as a plain wikitable instead of an AG Grid.
 --- Every row reaches the parser output, so browser find reaches all of them, and a
 --- stored value's own wikitext ("50x [[Council Scrip]]") renders as the link it is.
 ---
@@ -17,7 +17,7 @@ require('strict')
 --- among the others, or leaves out.
 
 local DataGrid = require('Module:DataGrid')
-local Store = require('Module:Entity/Store')
+local BucketQuery = require('Module:BucketQuery')
 local Util = require('Module:AGGridColumns/Util')
 local yesno = require('Module:Yesno')
 
@@ -31,7 +31,7 @@ local DISPLAY_ALIAS = 'DisplayName'
 -- wherever the editor's own columns put it, and a table may want none at all.
 local RESOLVE_OPTIONS = { leadImage = false }
 
--- Where Module:Entity/Store keeps the page image. A column is the image column
+-- Where Module:BucketQuery keeps the page image. A column is the image column
 -- when it resolves to this bucket and field, not when it is spelled `Image`, so
 -- `Image ; label=Picture` still renders as a thumbnail.
 local IMAGE_BUCKET = 'entity'
@@ -213,7 +213,7 @@ local function buildTable(results, columns, kind)
 	header:tag('th'):wikitext(NAME_ALIAS)
 	for i, column in ipairs(columns) do
 		aliases[i] = DataGrid.columnAlias(column)
-		entries[i] = Store.resolve(column.property, kind)
+		entries[i] = BucketQuery.resolve(column.property, kind)
 		local th = header:tag('th')
 		-- Sorting on image markup means nothing, so that column opts out.
 		if isImageColumn(entries[i]) then

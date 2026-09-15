@@ -1,5 +1,5 @@
 // Command bucketschemas generates the Bucket schema pages under pages/bucket/
-// from the Entity, Company and WearableSet property manifests.
+// from the Entity, Company, WearableSet and Maintenance property manifests.
 //
 //	bucketschemas          # write pages/bucket/<Name>.json
 //	bucketschemas -check   # exit 1 if any generated file is stale or missing
@@ -19,6 +19,7 @@ var manifests = []string{
 	"../pages/module/Entity/properties.json",
 	"../pages/module/Company/properties.json",
 	"../pages/module/WearableSet/properties.json",
+	"../pages/module/Maintenance/properties.json",
 }
 
 func main() {

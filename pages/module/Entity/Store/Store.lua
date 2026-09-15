@@ -23,17 +23,22 @@ end
 
 local p = {}
 
--- Default base table. A spec may name another with `primary`, for a table whose
--- subject is not an Entity page: a filter on a joined bucket makes that join
--- INNER, so rooting on `entity` would drop every page with no Entity row.
+-- Default base table. A spec may name another with `primary`: the maintenance
+-- report roots on `maintenance`, because a filter on a joined bucket makes that
+-- join INNER and rooting on `entity` would drop every tagged page that is not an
+-- Entity page (most of them).
 local PRIMARY = 'entity'
 local DEFAULT_LIMIT = 1000
 local UUID_BATCH = 50
 
 -- Manifests are searched in this order; a kind's own manifest is searched first
 -- when the caller names a kind.
-local MANIFEST_TITLES =
-	{ 'Module:Entity/properties.json', 'Module:Company/properties.json', 'Module:WearableSet/properties.json' }
+local MANIFEST_TITLES = {
+	'Module:Entity/properties.json',
+	'Module:Company/properties.json',
+	'Module:WearableSet/properties.json',
+	'Module:Maintenance/properties.json',
+}
 
 local manifests = nil
 

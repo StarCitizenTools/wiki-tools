@@ -297,6 +297,19 @@ return {
 				return bucketBuilder(name, nil)
 			end,
 		})
+		-- mw.text.killMarkers delegates to PHP in the real lualib, so the runner gets
+		-- nothing back for it. Module:Maintenance uses it to keep a <ref> inside a
+		-- maintenance reason from storing the parser's placeholder, and that is worth
+		-- a test, so the marker semantics are reproduced here: MediaWiki delimits a
+		-- strip marker with \127 (Parser::MARKER_PREFIX / MARKER_SUFFIX) and nothing
+		-- else may contain that byte.
+		api.mw.text.killMarkers = function(s)
+			if type(s) ~= 'string' then
+				return s
+			end
+			return (s:gsub('\127[^\127]*\127', ''))
+		end
+
 		api.mw.ext = api.mw.ext or {}
 		api.mw.ext.bucket = mwExtBucket
 		api.preload('mw.ext.bucket', function()

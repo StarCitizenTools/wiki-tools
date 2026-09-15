@@ -1,0 +1,23 @@
+{
+	"%doc": "Source-of-truth manifest for the `maintenance` Bucket table: the per-page maintenance flag a banner template records through Module:Maintenance ({{Outdated}}, {{Cleanup}} and {{Delete}}). Unlike the Entity manifests this describes pages of every kind, and most tagged pages are not Entity pages at all (lore, concept and meta articles carry the bulk of the tags), so nothing here routes by kind and there is no %kinds map. The property names are prefixed `Maintenance ` because they are resolved from the same flat namespace as every Entity property (Module:Entity/Store searches all manifests) and a bare `Status` or `Reason` would be a collision waiting to happen. One row per banner rather than per page: each record call puts its own row, so a page carrying two banners lists twice, which is what a worklist wants. type/bucket/field/index are the Bucket keys; desc is documentation only.",
+	"Maintenance status": {
+		"type": "TEXT",
+		"bucket": "maintenance",
+		"field": "status",
+		"index": true,
+		"desc": "What is wrong with the page: Outdated, Obsolete or Needs update from {{Outdated}}, Needs cleanup from {{Cleanup}}, Proposed for deletion from {{Delete}}. Indexed because it is the report's main filter."
+	},
+	"Maintenance banner": {
+		"type": "TEXT",
+		"bucket": "maintenance",
+		"field": "banner",
+		"index": true,
+		"desc": "Template that recorded the flag, without the Template: prefix: Outdated, Cleanup or Delete. Lets further banner templates share this table without a schema change."
+	},
+	"Maintenance reason": {
+		"type": "TEXT",
+		"bucket": "maintenance",
+		"field": "reason",
+		"desc": "The editor's explanation, from the banner's `why` parameter, stored as the wikitext they wrote, minus any strip marker a <ref> inside it left behind. The AG Grid report shows it as text, so a wikilink in it is not rendered. Not indexed: it is free text, shown rather than filtered on."
+	}
+}

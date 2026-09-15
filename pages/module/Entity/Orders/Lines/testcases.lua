@@ -38,6 +38,18 @@ function suite:testCargoLabelLinksTheItemNameForAnyOtherKind()
 	self:assertEquals('[[Agricium]]', Lines.cargoLabel({ kind = 'Item', name = 'Agricium' }))
 end
 
+function suite:testCargoLabelFallsBackWhenTheOrderHasNoName()
+	-- Regression: a nameless order (kind 'MissionItem', uuid only) concatenated
+	-- nil and script-errored the whole Orders table. 146 such orders in 4.10.
+	self:assertEquals('Mission item', Lines.cargoLabel({ kind = 'MissionItem', uuid = 'abc' }))
+	self:assertEquals('Mission item', Lines.cargoLabel({ kind = 'Or' }))
+	self:assertEquals('Mission item', Lines.cargoLabel({ kind = 'Item', name = '' }))
+end
+
+function suite:testOrderLinesToleratesANamelessOrder()
+	self:assertDeepEquals({ '1x Mission item' }, Lines.orderLines({ { kind = 'MissionItem', min_amount = 1 } }))
+end
+
 function suite:testOrderLines()
 	local haulingOrders = {
 		{ kind = 'Item', name = 'Agricium', min_scu = 5 },

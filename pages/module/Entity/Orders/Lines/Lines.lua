@@ -32,6 +32,13 @@ function p.cargoLabel(order)
 	if order.kind == 'TagMatch' then
 		return order.max_container_size and 'Cargo' or 'Package'
 	end
+	-- 146 orders in the 4.10 corpus carry only a uuid and no name (nearly all
+	-- kind 'MissionItem'): an item the mission defines that the catalogue does
+	-- not name. Concatenating the nil took the whole Orders table down with a
+	-- script error.
+	if type(order.name) ~= 'string' or order.name == '' then
+		return 'Mission item'
+	end
 	return '[[' .. order.name .. ']]'
 end
 

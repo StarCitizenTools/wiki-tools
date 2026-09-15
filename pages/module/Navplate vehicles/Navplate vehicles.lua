@@ -11,7 +11,7 @@ local common = require('Module:Common')
 local manufacturer = require('Module:Manufacturer'):new()
 local i18n = require('Module:i18n'):new()
 local TNT = require('Module:Translate'):new()
-local Store = require('Module:Entity/Store')
+local BucketQuery = require('Module:BucketQuery')
 local lang = mw.getContentLanguage()
 
 --- Wrapper function for Module:i18n.translate
@@ -53,7 +53,7 @@ local function sortRows(rows)
 	return rows
 end
 
---- Reads Bucket via Module:Entity/Store: page and manufacturer for every page
+--- Reads Bucket via Module:BucketQuery: page and manufacturer for every page
 --- in `category`. A Store failure (or an empty result) returns nil rather than
 --- red-erroring the page; `make` turns that into an error hatnote.
 --- @return table|nil
@@ -65,7 +65,7 @@ function methodtable.getRows(self, category)
 
 	category = category or ''
 
-	local ok, rows = pcall(Store.query, {
+	local ok, rows = pcall(BucketQuery.query, {
 		filters = { 'Category:' .. category },
 		columns = {
 			{ builtin = 'page_name', as = 'page' },

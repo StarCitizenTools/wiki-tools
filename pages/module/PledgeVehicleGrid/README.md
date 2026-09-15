@@ -6,7 +6,7 @@ Renders the [List of pledge vehicles](https://starcitizen.tools/List_of_pledge_v
 
 Place `{{#invoke:PledgeVehicleGrid|main}}` directly on a page; it takes no parameters and isn't wrapped in a template. The only page currently doing so is [List of pledge vehicles](https://starcitizen.tools/List_of_pledge_vehicles) (not mirrored in this repository).
 
-Every row comes from one [Module:Entity/Store](https://starcitizen.tools/Module:Entity/Store) query over `Category:Pledge ships` / `Category:Pledge vehicles`: tagging a vehicle into either category and filling its infobox (manufacturer, type, size, prices, physical stats, and so on) is enough for it to appear, with no edit to this module. The query does not run on every view: the grid is built from the categories' state as of this page's last save or forced reparse, so a vehicle just tagged in may not show until this page is next saved or purged with `forcelinkupdate`.
+Every row comes from one [Module:BucketQuery](https://starcitizen.tools/Module:BucketQuery) query over `Category:Pledge ships` / `Category:Pledge vehicles`: tagging a vehicle into either category and filling its infobox (manufacturer, type, size, prices, physical stats, and so on) is enough for it to appear, with no edit to this module. The query does not run on every view: the grid is built from the categories' state as of this page's last save or forced reparse, so a vehicle just tagged in may not show until this page is next saved or purged with `forcelinkupdate`.
 
 The grid carries a themed search box wired to AG Grid's quick filter (`quickSearch = true`), a toolbar button that reopens it in a full-window modal with filter and sort state carried over (`expand = true`), and no pagination: every vehicle loads into one virtualised, internally-scrolling grid where only the visible rows are ever in the DOM (`pagination = false`) (`PledgeVehicleGrid.lua:266-274`).
 
@@ -14,7 +14,7 @@ The grid carries a themed search box wired to AG Grid's quick filter (`quickSear
 
 ### API
 
-- `buildSpec()`: the [Module:Entity/Store](https://starcitizen.tools/Module:Entity/Store) spec: `kind = 'Vehicle'`, an either-category filter over `Category:Pledge ships`/`Pledge vehicles`, one aliased column per grid label, capped at `limit = 1000` (`PledgeVehicleGrid.lua:239-246`).
+- `buildSpec()`: the [Module:BucketQuery](https://starcitizen.tools/Module:BucketQuery) spec: `kind = 'Vehicle'`, an either-category filter over `Category:Pledge ships`/`Pledge vehicles`, one aliased column per grid label, capped at `limit = 1000` (`PledgeVehicleGrid.lua:239-246`).
 - `COLUMNS`: the declarative column spec array, one entry per grid column (`field`, `header`, `kind`, plus per-kind options), consumed by [Module:AGGridColumns](https://starcitizen.tools/Module:AGGridColumns)'s `buildColumnDefs`/`buildRowData`. `kind` selects the renderer: `card` (thumbnail + manufacturer eyebrow + name), `stackedValue` (current price over a muted original), `badge` (production state), `linkList` (loaners), `date` (concept date), `number`/`text` otherwise.
 - `manufacturerEyebrow(result)`: the vehicle card's eyebrow: consumer-specific because the manufacturer-to-glyph mapping is this list's own (`PledgeVehicleGrid.lua:70-87`).
 - `flightReadyLabel(value)`: strips the `Added in version` page title's `Update:`/`Star Citizen ` prefixes to a bare version label for the `Flight ready` column (`PledgeVehicleGrid.lua:93-99`).

@@ -3,7 +3,7 @@ require('strict')
 local ScribuntoUnit = require('Module:ScribuntoUnit')
 local Grid = require('Module:PledgeVehicleGrid')
 local AGGridColumns = require('Module:AGGridColumns')
-local store = require('Module:Entity/Store')
+local bucketQuery = require('Module:BucketQuery')
 local bucketLib = require('mw.ext.bucket')
 
 local suite = ScribuntoUnit:new()
@@ -37,11 +37,11 @@ end
 -- Every property the spec asks for must resolve against the real manifests, so
 -- a manifest rename shows up here rather than as a red error on the live page.
 function suite:testSpecColumnsResolveThroughStore()
-	store._internal.setManifests(nil)
+	bucketQuery._internal.setManifests(nil)
 	local spec = Grid._internal.buildSpec()
 	for _, col in ipairs(spec.columns) do
 		if col.property then
-			self:assertTrue(store.resolve(col.property, 'Vehicle') ~= nil, col.property)
+			self:assertTrue(bucketQuery.resolve(col.property, 'Vehicle') ~= nil, col.property)
 		end
 	end
 end
@@ -49,7 +49,7 @@ end
 -- p.main contains a Store failure (rate limit, bad manifest) the same way it
 -- contains an empty result: one user-visible message, no script error.
 function suite:testMainReportsStoredMessageOnStoreFailure()
-	store._internal.setManifests(nil)
+	bucketQuery._internal.setManifests(nil)
 	bucketLib._reset()
 	bucketLib._failNext = true
 	self:assertEquals(

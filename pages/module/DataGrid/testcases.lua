@@ -3,7 +3,7 @@ require('strict')
 local ScribuntoUnit = require('Module:ScribuntoUnit')
 local suite = ScribuntoUnit:new()
 local dg = require('Module:DataGrid')
-local Store = require('Module:Entity/Store')
+local BucketQuery = require('Module:BucketQuery')
 local bucketLib = require('mw.ext.bucket')
 
 local MANIFEST = {
@@ -21,9 +21,9 @@ local MANIFEST = {
 -- manifest into every suite that requires Store afterwards; always restore the
 -- real one (setManifests(nil)) before propagating any assertion failure.
 local function withManifest(fn)
-	Store._internal.setManifests({ MANIFEST })
+	BucketQuery._internal.setManifests({ MANIFEST })
 	local ok, err = pcall(fn)
-	Store._internal.setManifests(nil)
+	BucketQuery._internal.setManifests(nil)
 	if not ok then
 		error(err, 0)
 	end
@@ -481,7 +481,7 @@ function suite:testBuildSpecRejectsNotEqualOnRepeated()
 	end)
 end
 
--- Store.needsKind ignores the kind already given, so a property that is by-kind
+-- BucketQuery.needsKind ignores the kind already given, so a property that is by-kind
 -- but not stored for THIS kind needs its own message: "add kind=" would be wrong
 -- advice when kind= is already set.
 function suite:testBuildSpecNotStoredForKindMessage()

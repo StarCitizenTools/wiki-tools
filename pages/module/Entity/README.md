@@ -55,7 +55,7 @@ Consume `Module:Entity/Data` directly:
 - [Module:Entity/Infobox](https://starcitizen.tools/Module:Entity/Infobox): assembles and renders the infobox HTML
 - [Module:Entity/Categories](https://starcitizen.tools/Module:Entity/Categories): derives browse categories + trailing wikitext
 - [Module:Entity/StructuredData](https://starcitizen.tools/Module:Entity/StructuredData): the Bucket write, split per table by the manifest
-- [Module:Entity/Store](https://starcitizen.tools/Module:Entity/Store): the Bucket read, and the only module that knows which table a property lives in
+- [Module:Entity/Store](https://starcitizen.tools/Module:Entity/Store): Entity's Bucket reads, the page's own uuid and the uuid-to-page lookups. Which table a property lives in, and how a query is built from property names, is [Module:BucketQuery](https://starcitizen.tools/Module:BucketQuery)
 - [Module:Entity/TypeResolver](https://starcitizen.tools/Module:Entity/TypeResolver): resolves display type + browse category
 - [Module:Entity/SubtypeResolver](https://starcitizen.tools/Module:Entity/SubtypeResolver): shared token → leaf-module dispatch
 - [Module:Entity/Types](https://starcitizen.tools/Module:Entity/Types): LuaCATS interfaces for every hook, kind, and facet
@@ -134,7 +134,7 @@ Every hook's `getStructuredData` output is merged and handed to `Module:Entity/S
 
 A property lives in `entity` when `Base` or `Entity` emits it, when one module emits it for more than one kind (Effects, which Consumable emits for both Item and Commodity pages), or when `Item` emits it, the Item kind spanning three tables. A property stored in a different table per kind carries an object keyed by kind name instead. Every other property lives in the one table its emitting modules map to.
 
-`Module:Company` and `Module:WearableSet` write the shared `entity` table as well, each from its own manifest through the same put loop. Readers go through `Module:Entity/Store`, never `mw.ext.bucket` directly.
+`Module:Company` and `Module:WearableSet` write the shared `entity` table as well, each from its own manifest through the same put loop. Readers go through `Module:BucketQuery` (or `Module:Entity/Store` for Entity's own lookups), never `mw.ext.bucket` directly.
 
 `Module:Entity` passes the kind that actually matched, not the `Item` fallback `Data.get` exposes as `result.kind`, so a page whose kind never resolved (e.g. no uuid) is stored with no kind: it writes its entity-routable keys and nothing else, rather than writing another kind's columns. `StructuredData.store` has no other caller.
 

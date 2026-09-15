@@ -1,6 +1,6 @@
 # Module:DataGrid
 
-Builds an interactive, filterable browse table on [AG Grid](https://www.ag-grid.com/) (via [Extension:AGGrid](https://www.mediawiki.org/wiki/Extension:AGGrid)) from a [Module:Entity/Store](https://starcitizen.tools/Module:Entity/Store) query: a category, a `filter` clause list, or both.
+Builds an interactive, filterable browse table on [AG Grid](https://www.ag-grid.com/) (via [Extension:AGGrid](https://www.mediawiki.org/wiki/Extension:AGGrid)) from a [Module:BucketQuery](https://starcitizen.tools/Module:BucketQuery) query: a category, a `filter` clause list, or both.
 
 Editors use this through `{{Data table}}`; see [Template:Data table](https://starcitizen.tools/Template:Data_table).
 
@@ -25,7 +25,7 @@ Column kinds come from `Store.resolve(property, kind).type`, not from the fetche
 ### Gotchas
 
 - The lead columns are the page title (as `Name`), the page image (`Image`) and the stored name (`DisplayName`), ahead of the editor's own. `options.leadImage = false` on `resolveArgs`, `buildSpec` or `duplicateAlias` omits the `Image` one and frees that alias for an editor column, which is how [Module:DataGrid/Static](https://starcitizen.tools/Module:DataGrid/Static) lets a table place its own image. A caller that passes no options, this module included, gets all three leads and keeps `Image` reserved.
-- `Maximum temperature`, `Minimum temperature` and `Type` are stored per kind but resolve to the item and mission tables without `kind` ([Module:Entity/Store](https://starcitizen.tools/Module:Entity/Store) searches Entity's manifest before WearableSet's), so a wearable-set table must pass `kind = 'Wearable set'` or those columns come back empty.
+- `Maximum temperature`, `Minimum temperature` and `Type` are stored per kind but resolve to the item and mission tables without `kind` ([Module:BucketQuery](https://starcitizen.tools/Module:BucketQuery) searches Entity's manifest before WearableSet's), so a wearable-set table must pass `kind = 'Wearable set'` or those columns come back empty.
 - `size=` is parsed for backward compatibility only; it has no effect on rendering.
 - `main` calls `sortRows` (the `Name` alias, byte comparison, unassigned first) right after `runQuery` and before `buildSpecs`, so rows are listed by page title unless `sort` chooses a column; Bucket otherwise returns them in store order.
 - `sort` only ever names one of the editor's non-`eyebrow` `columns` lines; `buildSpecs` matches it against each spec's `label` and sets that spec's `sort` field, which every kind's `buildColDef` (in `Module:AGGridColumns/Kind`) forwards unchanged to AG Grid's own initial-sort key. `parseSort` excludes `eyebrow` columns from matching, since one is folded into the lead card and never gets its own spec to sort; naming one is the same `no column named` error as naming an unknown property.

@@ -1,11 +1,11 @@
 require('strict')
 
 -- PledgeVehicleGrid: renders the List of pledge vehicles as an AG Grid via the
--- AGGrid extension. Sources every pledge vehicle from Bucket (Module:Entity/Store),
+-- AGGrid extension. Sources every pledge vehicle from Bucket (Module:BucketQuery),
 -- reshapes the results into AG Grid rowData, and returns the grid: virtualised
 -- rows, rich cells (linked names, thumbnails, loaner link-lists), REST-served data.
 --
--- Rows come from Module:Entity/Store as typed values (numbers, bare page titles,
+-- Rows come from Module:BucketQuery as typed values (numbers, bare page titles,
 -- arrays for the loaner list), which the AGGridColumns kinds take as they are.
 --
 -- An empty result and a Store failure (rate limit, bad manifest) are both
@@ -17,7 +17,7 @@ require('strict')
 local aggrid = require('mw.ext.aggrid')
 local AGGridColumns = require('Module:AGGridColumns')
 local Util = require('Module:AGGridColumns/Util')
-local store = require('Module:Entity/Store')
+local bucketQuery = require('Module:BucketQuery')
 
 local p = {}
 
@@ -249,7 +249,7 @@ end
 --- @param frame mw.frame
 --- @return string
 function p.main(frame)
-	local ok, results = pcall(store.query, buildSpec())
+	local ok, results = pcall(bucketQuery.query, buildSpec())
 	if not ok or #results == 0 then
 		return '<strong class="error">Module:PledgeVehicleGrid: no pledge vehicles stored.</strong>'
 	end

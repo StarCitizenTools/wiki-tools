@@ -8,6 +8,7 @@ require('strict')
 
 local button = require('Module:ButtonLua')
 local assembly = require('Module:Entity/Assembly')
+local format = require('Module:Entity/Format')
 local infobox = require('Module:InfoboxLua')
 local rarity = require('Module:Rarity')
 
@@ -53,7 +54,7 @@ local function buildMetadataSection(chain, ctx)
 			content = apiData.tags and #apiData.tags > 0 and table.concat(apiData.tags, ', ') or nil,
 		},
 		{ label = 'Entity tags', content = formatEntityTags(apiData) },
-		{ label = 'Version', content = apiData.version },
+		{ label = 'Version', content = format.gameVersion(apiData) },
 	}
 
 	-- Chain-contributed metadata rows (the getMetadataItems hook), root-to-leaf,

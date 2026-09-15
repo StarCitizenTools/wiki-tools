@@ -23,6 +23,9 @@ end
 
 local p = {}
 
+-- Default base table. A spec may name another with `primary`, for a table whose
+-- subject is not an Entity page: a filter on a joined bucket makes that join
+-- INNER, so rooting on `entity` would drop every page with no Entity row.
 local PRIMARY = 'entity'
 local DEFAULT_LIMIT = 1000
 local UUID_BATCH = 50
@@ -130,6 +133,7 @@ end
 --- @field as string|nil result key (defaults to property or builtin)
 
 --- @class StoreSpec
+--- @field primary string|nil base table the query roots on; defaults to `entity`
 --- @field kind string|nil
 --- @field filters table list of: 'Category:X' | { property, value } | { property, op, value } | { any = { ... } }
 --- @field columns table list of string|StoreColumn
@@ -138,8 +142,12 @@ end
 local NUMERIC = { INTEGER = true, DOUBLE = true }
 local RELATIONAL = { ['<'] = true, ['<='] = true, ['>'] = true, ['>='] = true }
 
-local function selectorFor(entry)
-	if entry.bucket == PRIMARY then
+--- The primary's own fields are selected bare; every other bucket's are
+--- qualified. Defaults rather than trusting the caller: a nil primary would
+--- qualify every selector, which Bucket accepts and which then silently changes
+--- what a query returns.
+local function selectorFor(entry, primary)
+	if entry.bucket == (primary or PRIMARY) then
 		return entry.field
 	end
 	return entry.bucket .. '.' .. entry.field
@@ -151,7 +159,7 @@ local function resolveOrError(spec, property, joins)
 	if entry == nil then
 		error("Store: unknown property '" .. tostring(property) .. "'")
 	end
-	if entry.bucket ~= PRIMARY and not joins.seen[entry.bucket] then
+	if entry.bucket ~= (spec.primary or PRIMARY) and not joins.seen[entry.bucket] then
 		joins.seen[entry.bucket] = true
 		joins[#joins + 1] = entry.bucket
 	end
@@ -181,7 +189,7 @@ local function condition(spec, f, joins)
 		op, value = '=', op
 	end
 	local entry = resolveOrError(spec, property, joins)
-	local selector = selectorFor(entry)
+	local selector = selectorFor(entry, spec.primary or PRIMARY)
 	if op == '+' then
 		return bucketLib().Not({ selector, bucketLib().Null() })
 	end
@@ -206,6 +214,7 @@ end
 --- @param spec StoreSpec
 --- @return table[] rows keyed by result key
 function p.query(spec)
+	local primary = spec.primary or PRIMARY
 	local selectors, keys, joins = {}, {}, { seen = {} }
 	for _, col in ipairs(spec.columns or {}) do
 		local selector, key
@@ -216,7 +225,7 @@ function p.query(spec)
 			selector, key = col.builtin, col.as or col.builtin
 		else
 			local entry = resolveOrError(spec, col.property, joins)
-			selector, key = selectorFor(entry), col.as or col.property
+			selector, key = selectorFor(entry, primary), col.as or col.property
 		end
 		if not keys[selector] then
 			selectors[#selectors + 1] = selector
@@ -228,9 +237,9 @@ function p.query(spec)
 	for i, f in ipairs(spec.filters or {}) do
 		conds[i] = condition(spec, f, joins)
 	end
-	local q = bucketLib()(PRIMARY).select(unpack(selectors))
+	local q = bucketLib()(primary).select(unpack(selectors))
 	for _, bucket in ipairs(joins) do
-		q = q.join(bucket, bucket .. '.page_name', PRIMARY .. '.page_name')
+		q = q.join(bucket, bucket .. '.page_name', primary .. '.page_name')
 	end
 	if #conds > 0 then
 		q = q.where(unpack(conds))

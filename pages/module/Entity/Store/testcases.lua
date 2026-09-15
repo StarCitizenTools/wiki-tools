@@ -128,6 +128,34 @@ function suite:testQueryBuildsPrimaryPlusJoins()
 	end)
 end
 
+function suite:testQueryRootsOnTheGivenPrimary()
+	withManifest(function()
+		Store.query({
+			primary = 'vehicle',
+			kind = 'Vehicle',
+			filters = { { 'Role', 'Fighter' } },
+			columns = { 'Role', 'Name' },
+		})
+		local chain = bucketLib._chains[1]
+		self:assertEquals('vehicle', chain.bucket)
+		-- the primary's own fields stay bare; entity becomes the joined one
+		self:assertDeepEquals({ 'role', 'entity.name' }, chain.select)
+		self:assertDeepEquals({ { 'entity', 'entity.page_name', 'vehicle.page_name' } }, chain.join)
+		self:assertDeepEquals({ { 'role', '=', 'Fighter' } }, chain.where)
+	end)
+end
+
+function suite:testQueryDefaultsToTheEntityPrimary()
+	withManifest(function()
+		Store.query({ kind = 'Vehicle', filters = { { 'Role', 'Fighter' } }, columns = { 'Role', 'Name' } })
+		local chain = bucketLib._chains[1]
+		self:assertEquals('entity', chain.bucket)
+		self:assertDeepEquals({ 'vehicle.role', 'name' }, chain.select)
+		self:assertDeepEquals({ { 'vehicle', 'vehicle.page_name', 'entity.page_name' } }, chain.join)
+		self:assertDeepEquals({ { 'vehicle.role', '=', 'Fighter' } }, chain.where)
+	end)
+end
+
 function suite:testQueryJoinsEachBucketOnce()
 	withManifest(function()
 		Store.query({ kind = 'Vehicle', filters = { 'Category:Ships' }, columns = { 'Mass', 'Mass' } })

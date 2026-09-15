@@ -35,6 +35,12 @@ local DISPLAY_ALIAS = 'DisplayName'
 --- alias for an editor column. Module:DataGrid/Static passes it, because a
 --- wikitable's image is a column the editor places; the grid's lead card is the
 --- image, so the grid never does.
+--- @field primary? string  Base table the Store query roots on, default `entity`.
+--- Deliberately not an editor-facing `{{Data table}}` parameter: rooting on the
+--- wrong table silently changes which rows exist rather than erroring. A table
+--- whose subject is not an Entity page sets it, because filtering a joined
+--- bucket makes that join INNER and rooting on `entity` would drop every page
+--- with no Entity row.
 
 --- Whether a caller keeps the Image lead column. No options at all is the grid's
 --- shape: all three lead columns, `Image` reserved.
@@ -372,6 +378,7 @@ function p.buildSpec(kind, categoryFilter, filters, columns, options)
 	end
 	lead[#lead + 1] = { property = 'Name', as = DISPLAY_ALIAS }
 	local spec = {
+		primary = options and options.primary or nil,
 		kind = kind,
 		filters = {},
 		columns = lead,
@@ -795,12 +802,14 @@ end
 --- `pinlead` and `sort` from the parent frame, runs the Store query, builds the
 --- grid, and returns it preceded by the styles load.
 --- @param frame mw.frame
+--- @param options DataGridOptions|nil  Caller-side options; {{Data table}} passes
+--- none. A module wrapping this one uses it to set `primary`.
 --- @return string
-function p.main(frame)
+function p.main(frame, options)
 	local getArgs = require('Module:Arguments').getArgs
 	local args = getArgs(frame)
 
-	local request, badArgs = p.resolveArgs(args)
+	local request, badArgs = p.resolveArgs(args, options)
 	if badArgs then
 		return fail(badArgs)
 	end

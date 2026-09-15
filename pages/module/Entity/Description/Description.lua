@@ -28,6 +28,32 @@ local function getEnglishDescription(apiData)
 	return nil
 end
 
+--- The game data leaves some contracts' description as a bare unresolved
+--- reference -- `[Contractor|DestroyProbeDescription]` -- rather than prose;
+--- 184 of the 1,786 mission records in 4.10 are shaped this way. Rendering one
+--- verbatim would print an internal token to the page, so a description that is
+--- nothing but a single bracketed reference counts as absent. A description
+--- that merely CONTAINS such a reference is prose and is kept: the game
+--- substitutes those inline (`head over to [Location|Address] and ...`).
+--- @param description string
+--- @return boolean
+local function isUnresolvedPlaceholder(description)
+	return string.match(description, '^%s*%[[^%]]*%]%s*$') ~= nil
+end
+
+--- The description worth rendering, or nil when the record has none: absent,
+--- empty, or an unresolved placeholder. Exposed so the behaviour is unit
+--- testable without a render pipeline.
+--- @param apiData table
+--- @return string|nil
+function p.resolveDescription(apiData)
+	local desc = getEnglishDescription(apiData)
+	if type(desc) ~= 'string' or desc == '' or isUnresolvedPlaceholder(desc) then
+		return nil
+	end
+	return desc
+end
+
 --- Converts the game's `<EMn>` emphasis markup into themed spans so the
 --- colored highlight survives into the rendered HTML. `%1` carries the
 --- emphasis level (1-4) through to the matching `.t-entity-description-emN`
@@ -57,7 +83,7 @@ function p.main(frame)
 	})
 
 	local root = mw.html.create('div'):addClass('t-entity-description')
-	local description = getEnglishDescription(result.apiData)
+	local description = p.resolveDescription(result.apiData)
 	if description then
 		-- <blockquote> is the correct semantic for the quoted game text.
 		-- aria-label identifies the quote source ("in-game description")

@@ -275,6 +275,16 @@
 		],
 		"desc": "Component class (Military, Civilian, Industrial, …) of a graded vehicle component."
 	},
+	"Class name": {
+		"type": "TEXT",
+		"bucket": "entity",
+		"field": "class_name",
+		"index": true,
+		"modules": [
+			"Base"
+		],
+		"desc": "Game-data class name of an entity (AEGS_Gladius), the stable identifier for matching a page against the game files or another site's dataset. Absent on missions, which carry no class name."
+	},
 	"Commodity group": {
 		"type": "TEXT",
 		"bucket": "commodity",

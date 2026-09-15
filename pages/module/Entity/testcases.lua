@@ -47,6 +47,24 @@ function suite:testNothingAtAllIsAnError()
 	self:assertFalse(isIdentifiable({}, result()))
 end
 
+function suite:testBaseStructuredDataCarriesTheClassName()
+	local Base = require('Module:Entity/Base')
+	-- The stable game-data key, stored for matching a page against the game files
+	-- or another site's dataset.
+	local data = Base.getStructuredData({
+		apiData = { name = 'Gladius', class_name = 'AEGS_Gladius' },
+		args = { uuid = 'u' },
+	})
+	self:assertEquals('AEGS_Gladius', data.class_name)
+end
+
+function suite:testBaseStructuredDataOmitsAnAbsentClassName()
+	local Base = require('Module:Entity/Base')
+	-- Missions carry no class name; the column is simply absent on those rows.
+	local data = Base.getStructuredData({ apiData = { name = 'X' }, args = { uuid = 'u' } })
+	self:assertEquals(nil, data.class_name)
+end
+
 function suite:testBaseStructuredDataCarriesImage()
 	local Base = require('Module:Entity/Base')
 	local data = Base.getStructuredData({ apiData = { name = 'X' }, args = { uuid = 'u', image = 'File:X.png' } })

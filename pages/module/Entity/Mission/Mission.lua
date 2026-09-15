@@ -7,26 +7,17 @@ local Boolean = require('Module:Boolean')
 local orderLines = require('Module:Entity/Orders/Lines').orderLines
 local rewardLines = require('Module:Entity/Rewards/Lines').rewardLines
 
-local CATEGORIES = {
-	['Bounty Hunter'] = 'Bounty hunter contracts',
-	['Collection'] = 'Collection contracts',
-	['Delivery'] = 'Delivery contracts',
-	['Mercenary'] = 'Mercenary contracts',
-	['Priority'] = 'Priority contracts',
-	['Salvage'] = 'Salvage contracts',
-	['Wikelo - Other Items'] = 'Collection contracts',
-	['Wikelo - Vehicles'] = 'Collection contracts',
-}
-
-local LABELS = {
-	['Bounty Hunter'] = 'Bounty Hunter',
-	['Collection'] = 'Collection',
-	['Delivery'] = 'Delivery',
-	['Mercenary'] = 'Mercenary',
-	['Priority'] = 'Priority',
-	['Salvage'] = 'Salvage',
+--- `mission_type` values whose display label is not the raw API string. The API
+--- carries 30-odd types and CIG adds more with each patch, so labels are derived
+--- from the raw value (see `typeLabel`) and only genuine exceptions are listed
+--- here: the two Wikelo buckets are both barter collections to a reader, and the
+--- lone `local` record is one mis-tagged Klescher mission whose sibling
+--- (`RepairO2Kiosk` vs `PU_RepairO2Kiosk`) is tagged Maintenance.
+--- @type table<string, string>
+local TYPE_LABELS = {
 	['Wikelo - Other Items'] = 'Collection',
 	['Wikelo - Vehicles'] = 'Collection',
+	['local'] = 'Maintenance',
 }
 
 local SCOPE = {
@@ -37,14 +28,23 @@ local function resolveReputationScope(scope)
 	return SCOPE[scope] or scope
 end
 
---- @param apiData table
---- @return { parent: string, leaf: string }|nil
-local function resolveTypes(apiData)
-	local type = apiData.mission_type
-	if CATEGORIES[type] == nil then
-		return nil
-	end
-	return type
+--- The reader-facing name for a raw `mission_type`: an entry in TYPE_LABELS, or
+--- the API string as-is. Derived rather than enumerated so a type CIG adds later
+--- renders under its own name instead of erroring.
+--- @param missionType string
+--- @return string
+local function typeLabel(missionType)
+	return TYPE_LABELS[missionType] or missionType
+end
+
+--- The browse category for a type label, matching the names the retired
+--- {{Contract}} template generated through {{Fixcaps}}: first letter upper, rest
+--- lower, plus ' contracts'. So 'Bounty Hunter' routes to the existing
+--- [[Category:Bounty hunter contracts]], not a near-miss duplicate.
+--- @param label string
+--- @return string
+local function typeCategory(label)
+	return mw.ustring.upper(mw.ustring.sub(label, 1, 1)) .. mw.ustring.lower(mw.ustring.sub(label, 2)) .. ' contracts'
 end
 
 local function linked(str)
@@ -89,14 +89,14 @@ end
 --- @param ctx EntityHookContext
 --- @return table|nil { name, category, categories }
 function p.getTypeInfo(ctx)
-	local apiData = ctx.apiData
-	local g = resolveTypes(apiData)
-	if not g then
+	local missionType = ctx.apiData.mission_type
+	if type(missionType) ~= 'string' or missionType == '' then
 		return nil
 	end
+	local label = typeLabel(missionType)
 	return {
-		name = LABELS[g],
-		category = CATEGORIES[g],
+		name = label,
+		category = typeCategory(label),
 		categories = { 'Contracts' },
 	}
 end
@@ -110,7 +110,7 @@ function p.getSections(ctx)
 
 	local data = {
 		category = 'Verified',
-		type = typeInfo.name,
+		type = typeInfo and typeInfo.name,
 		cooldown = nil,
 		shareable = 'Yes',
 		available = 'Available',
@@ -118,7 +118,9 @@ function p.getSections(ctx)
 		payout = {
 			uec = nil,
 			scrip = {
-				type = 'MG Scrip',
+				-- Overwritten by whichever scrip the contract actually awards;
+				-- MG Scrip is the default only because it is the common case.
+				name = 'MG Scrip',
 				amount = 0,
 			},
 		},
@@ -203,7 +205,9 @@ function p.getSections(ctx)
 		and resolveReputationScope(apiData.reputation_gained[1].scope)
 	data.reputation.gain = apiData.reputation_amount
 
-	data.location.systems = apiData.star_systems
+	-- Always an array in the current corpus, but defaulted so the hook tolerates a
+	-- partial record (the API omitting the key, or a caller passing one field).
+	data.location.systems = apiData.star_systems or {}
 
 	local general = {
 		key = 'general',
@@ -228,7 +232,7 @@ function p.getSections(ctx)
 			items = {
 				{ label = 'aUEC', content = format.formatNum(data.payout.uec) },
 				{
-					label = data.payout.scrip.type,
+					label = data.payout.scrip.name,
 					content = data.payout.scrip.amount > 0 and format.formatNum(data.payout.scrip.amount),
 				},
 			},
@@ -318,7 +322,7 @@ function p.getStructuredData(ctx)
 
 	return {
 		legality = apiData.illegal and 'unverified' or 'verified',
-		type = typeInfo.name,
+		type = typeInfo and typeInfo.name,
 		faction = faction,
 		systems = apiData.star_systems,
 		uec = args['payout'] or apiData.reward_min or nil,
@@ -335,15 +339,26 @@ function p.getStructuredData(ctx)
 	}
 end
 
---- "<Faction> <type> contract" e.g. "Headhunter mercenary contract".
+--- "<Faction> <type> contract" e.g. "Headhunter mercenary contract", falling
+--- back to "<Type> contract" for the ~100 records in the corpus that carry
+--- neither a faction nor a mission giver, and to nil when even the type is
+--- missing, which leaves the page's own SHORTDESC in place.
 ---
 --- @param ctx EntityHookContext
---- @return string
+--- @return string|nil
 function p.getShortDescription(ctx)
 	local apiData, typeInfo = ctx.apiData, ctx.typeInfo
 	local faction = apiData.faction and apiData.faction.name or apiData.mission_giver
+	local typeName = typeInfo and typeInfo.name
 
-	return string.format('%s %s contract', faction:lower():gsub('^%l', string.upper), typeInfo.name:lower())
+	if not typeName then
+		return nil
+	end
+	if type(faction) ~= 'string' or faction == '' then
+		return string.format('%s contract', (typeName:gsub('^%l', string.upper)))
+	end
+
+	return string.format('%s %s contract', faction:lower():gsub('^%l', string.upper), typeName:lower())
 end
 
 --- @param ctx EntityHookContext

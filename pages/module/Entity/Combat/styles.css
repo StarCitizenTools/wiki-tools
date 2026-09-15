@@ -1,0 +1,15 @@
+/* The vehicle pool runs to 30+ links on a patrol contract, so that column is
+   allowed to be the wide one and the table scrolls rather than wrapping every
+   other cell. */
+.t-entity-combat-table td:last-child {
+  font-size: var(--font-size-small);
+  line-height: var(--line-height-small);
+}
+
+.t-entity-combat-total {
+  margin-block: 0 var(--space-sm);
+}
+
+.t-entity-combat-empty {
+  color: var(--color-subtle);
+}

@@ -244,14 +244,8 @@ function suite:testGradedShortDescriptionNilWhenMissing()
 	self:assertEquals(nil, format.gradedShortDescription('Power plant', 3, 'Military', nil, 'A&R'))
 end
 
-function suite:testGameVersionReadsEitherEndpointKey()
-	-- items/vehicles/locations spell it `version`, missions `game_version`.
+function suite:testGameVersionReadsTheBuildKey()
 	self:assertEquals('4.10.0-LIVE.12519617', format.gameVersion({ version = '4.10.0-LIVE.12519617' }))
-	self:assertEquals('4.10.0-LIVE.12519617', format.gameVersion({ game_version = '4.10.0-LIVE.12519617' }))
-end
-
-function suite:testGameVersionPrefersTheItemKeyWhenBothArePresent()
-	self:assertEquals('a', format.gameVersion({ version = 'a', game_version = 'b' }))
 end
 
 function suite:testGameVersionIsNilWhenAbsentOrUnusable()

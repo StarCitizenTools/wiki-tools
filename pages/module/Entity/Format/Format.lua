@@ -12,12 +12,9 @@ local lang = mw.getContentLanguage()
 --- (e.g. 1480 -> "1,480"). Returns nil for nil so callers can collapse
 --- empty rows; passes non-numeric values through unchanged.
 ---
---- The game build a record was captured at. The upstream API spells this
---- differently per endpoint -- `items`, `vehicles` and `locations` return
---- `version`, `missions` returns `game_version` -- while the value itself is
---- the same build string, so both are read here rather than at each call site.
---- A reader that checks only one silently shows nothing for every kind served
---- by the other endpoint.
+--- The game build a record was captured at, as
+--- `<major>.<minor>.<patch>-<channel>.<build>`, or nil when the record
+--- carries none.
 ---
 --- @param apiData table|nil
 --- @return string|nil
@@ -25,7 +22,7 @@ function p.gameVersion(apiData)
 	if type(apiData) ~= 'table' then
 		return nil
 	end
-	local version = apiData.version or apiData.game_version
+	local version = apiData.version
 	if type(version) ~= 'string' or version == '' then
 		return nil
 	end

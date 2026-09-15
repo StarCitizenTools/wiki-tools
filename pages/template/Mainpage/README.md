@@ -25,7 +25,7 @@ Everything an editor changes is in `Module:Mainpage/settings.json`, linked at th
 
 | Section | Holds |
 | --- | --- |
-| `featured` | `page`, `text`. The picture is the article's own Page Image (a placeholder if absent), so the page name is all there is to set. With no `page`, the card falls back to `Star Citizen`, never a self-link. |
+| `featured` | `page`, `text`, `image`, the picture named bare as in `hero`. With no `image` the card shows the placeholder; with no `page` it falls back to `Star Citizen`, never a self-link. |
 | `event` | `name`, `page`, `text`, `starts`, `ends`, and one of `banner` or `image` (see below). Clearing `name` removes the card; clearing `ends` keeps the card and drops its countdown. |
 | `patches` | One object per build chip: `channel`, `name`, `page`, `highlights`. `channel: "LIVE"` marks the current chip; with none marked, the first chip with a `name` is used instead. |
 | `hero` | `image`, `lede`, `ledeDetail`, `searchTails`. |

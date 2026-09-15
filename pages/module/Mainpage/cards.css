@@ -212,7 +212,7 @@
    The plate states 16:9 rather than inheriting whatever shape the row leaves,
    because object-fit: cover cuts whichever axis overflows: a box flatter than
    the source loses its top and bottom, a taller box loses its sides. Featured
-   Page Images run about 1.78:1, so the box matches them and crops neither.
+   artwork runs about 1.78:1, so the box matches it and crops neither.
 
    COUPLING: this only holds while nothing else in the row is taller. The plate
    grows with the card, and a grid row stretched by a tall neighbour overrides

@@ -1,12 +1,11 @@
 require('strict')
 
 --- @module Mainpage/Featured
---- The featured card: a whole-card link over the featured page's own artwork.
+--- The featured card: a whole-card link over the featured article's picture.
 ---
---- The picture comes from the page's `Page Image` semantic property rather than
---- from a setting, so promoting a different article is a one-word edit to
---- `featured.page` in [[Module:Mainpage/settings.json]] and nothing else. A
---- page with no Page Image falls back to the placeholder.
+--- Both the article and its picture are set in
+--- [[Module:Mainpage/settings.json]]; an unset picture falls back to the
+--- placeholder.
 ---
 --- The card is NOT built on Module:CardLua. CardLua's media card puts its
 --- picture in a slot beside or above a body; this one puts the body *over* the
@@ -29,21 +28,12 @@ local p = {}
 
 --- @return string
 function p.render()
-	local frame = mw.getCurrentFrame()
 	local featured = cfg.section('featured')
 	local page = featured.page or DEFAULT_PAGE
 	local tagline = featured.text
 
-	-- `#show` with `#-` returns the raw file title rather than a rendered link,
-	-- which is what can then be fed back into a file link with a size.
-	local image = frame:callParserFunction('#show', {
-		page,
-		'?Page Image#-',
-		'default=' .. PLACEHOLDER,
-	})
-	if not image or mw.text.trim(image) == '' then
-		image = PLACEHOLDER
-	end
+	-- Named bare in the settings, the way `event.image` and `hero.image` are.
+	local image = featured.image and ('File:' .. featured.image) or PLACEHOLDER
 
 	local card = mw.html.create('div'):addClass('t-card'):addClass('home-card--read'):addClass('home-feat-card')
 

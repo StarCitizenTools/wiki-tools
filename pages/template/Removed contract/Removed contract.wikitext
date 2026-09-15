@@ -1,0 +1,62 @@
+<includeonly><!--
+
+-->{{Removed|what=contract|category=Removed contracts}}<!--
+
+-->{{InfoboxNeue
+| image              = {{#if:{{{image|}}}|{{{image}}}}}
+
+| title              = {{{name}}}
+| subtitle           = {{#if:{{{contractee|}}}|[[{{{contractee}}}]]}}
+| label1             = Category
+| content1           = {{#if:{{{category|}}}|{{{category}}}}}
+| label2             = Type
+| content2           = {{#if:{{{type|}}}|{{{type}}}}}
+| label3             = Contract Pickup
+| content3           = {{#if:{{{pickup|}}}|[[{{{pickup}}}]]}}
+| label4             = Shareable
+| content4           = {{#if:{{{shareable|}}}|{{{shareable}}}}}
+| label6             = Available during
+| content6           = {{#if:{{{season|}}}|[[{{{season}}}]]}}
+
+| section7           = Rewards
+| section-col7       = 1
+| label8             = aUEC
+| content8           = {{#if:{{{reward|}}}|{{{reward}}}}}
+| label9             = Items
+| content9           = {{#if:{{{reward items|}}}|{{{reward items}}}}}
+| label10            = Unlocks
+| content10          = {{#if:{{{unlock|}}}|{{{unlock}}}}}
+
+| section11          = Requirements
+| label12            = Reputation
+| content12          = {{#if:{{{reputation|}}}|{{{reputation}}}}}
+| label13            = Contract
+| content13          = {{#if:{{{requirement|}}}|{{{requirement}}}}}
+| label14            = Fee
+| content14          = {{#if:{{{fee|}}}|{{{fee}}} aUEC}}
+
+| section15          = Series
+| section-subtitle15 = {{#if:{{{series|}}}|{{{series}}}}}
+| label16            = Previous
+| content16          = {{#if:{{{previous|}}}|[[{{{previous}}}]]}}
+| label17            = Next
+| content17          = {{#if:{{{next|}}}|[[{{{next}}}]]}}
+
+| section18          = Location
+| label19            = System
+| content19          = {{#if:{{{takes place|}}}|{{{takes place}}}}}
+| label20            = Orbit
+| content20          = {{#if:{{{orbit|}}}|{{{orbit}}}}}
+}}<!--
+
+-----------------
+Short description
+-----------------
+-->{{Short description|Removed {{#if:{{{type|}}}|{{{type}}} }}contract}}<!--
+
+--></includeonly><!--
+
+-------------
+Documentation
+-------------
+--><noinclude>{{/doc}}</noinclude>

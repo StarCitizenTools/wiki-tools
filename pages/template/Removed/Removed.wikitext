@@ -1,0 +1,10 @@
+<templatestyles src="Module:Mbox/styles.css" /><!--
+
+--><div class="mbox mbox-med mbox-removed" role="presentation"><span class="mbox-title"><span class="mbox-icon metadata">[[File:WikimediaUI-Alert.svg|14px|link=]]</span><span>This {{#if:{{{what|{{{Subject|}}}}}}|{{{what|{{{Subject}}}}}}|page or section}} describes content that has been removed from ''[[Star Citizen]]''.</span></span>
+
+<div class="mbox-text">
+{{#if:{{{why|{{{Reason|}}}}}}|Reason: '''{{{why|{{{Reason}}}}}}''' |}}It is kept as a record of what the content was, since the game no longer describes it. See [[:Category:{{{category|Removed content}}}]] for others.</div></div><!--
+
+--><includeonly>[[Category:{{{category|Removed content}}}]]</includeonly><noinclude>
+{{/doc}}
+</noinclude>

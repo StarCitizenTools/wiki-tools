@@ -568,20 +568,38 @@ function suite:testLeafEnrichRunsOnTheChain()
 end
 
 -- getCategories is collected from every link: the StarSystem leaf's type and
--- affiliation categories reach typeInfo.categories, and the leaf's manifest
+-- affiliation categories reach result.chainCategories, and the leaf's manifest
 -- fragment (size) is merged into the editorial layer.
 function suite:testLeafCategoriesAndManifestReachTheResult()
 	local endpoint = 'starsystems?filter[name]=%s&include=celestialObjects&locale=en_EN'
 	withStubbedFetch({ ['locations/%s'] = solarSystemRecord(), [endpoint] = { starsystemRecord() } }, function()
 		local r = Data.get({ uuid = 'c9c137cf-c520-47ee-9e6d-5d653dfbe201', kind = 'Location', size = '5' })
 		local cats = {}
-		for _, c in ipairs(r.typeInfo.categories or {}) do
+		for _, c in ipairs(r.chainCategories) do
 			cats[c] = true
 		end
 		self:assertEquals(true, cats['Single Star systems'])
 		self:assertEquals(true, cats['United Empire of Earth systems'])
 		self:assertEquals(5, r.resolved.size.value)
 		self:assertEquals('override', r.resolved.size.source)
+	end)
+end
+
+-- A record-less vehicle that never reached a family leaf has no type at all.
+-- The chain still contributes browse categories (career, production state), and
+-- those must not be folded into typeInfo: a categories-only table is truthy, so
+-- every `if ctx.typeInfo` guard downstream reads it as a resolved type. That is
+-- what took Sabre Raven EX down, whose uuid the API still 404s.
+function suite:testChainCategoriesDoNotInventATypeInfo()
+	withStubbedFetch({}, function()
+		local r = Data.get({ kind = 'Vehicle', name = 'Sabre Raven EX', career = 'Combat' })
+		self:assertEquals(nil, r.typeInfo)
+		self:assertEquals(nil, r.ctx.typeInfo)
+		local cats = {}
+		for _, c in ipairs(r.chainCategories) do
+			cats[c] = true
+		end
+		self:assertEquals(true, cats['Combat career'])
 	end)
 end
 

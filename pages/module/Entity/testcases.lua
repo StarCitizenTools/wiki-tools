@@ -6,6 +6,7 @@ local Entity = require('Module:Entity')
 local suite = ScribuntoUnit:new()
 
 local isIdentifiable = Entity._internal.isIdentifiable
+local setShortDescription = Entity._internal.setShortDescription
 
 --- Only the two fields the identity guard reads out of a Data.get result.
 --- @param fields nil|{ apiData: table|nil, matchedKind: table|nil }
@@ -100,6 +101,64 @@ function suite:testBaseStructuredDataDropsInvalidImageTitle()
 	if not ok then
 		error(err, 0)
 	end
+end
+
+-- ── setShortDescription ────────────────────────────────────────────────────
+
+--- @return table frame, table captured
+local function capturingFrame()
+	local captured = {}
+	local frame = {
+		callParserFunction = function(_, name, value)
+			captured[#captured + 1] = { name = name, value = value }
+			return ''
+		end,
+	}
+	return frame, captured
+end
+
+--- A record-less page whose type never resolved has nothing to describe.
+--- #shortdesc rejects a nil value with a Lua error that aborts the whole render
+--- (Sabre Raven EX: a uuid the API 404s, no |family= so the Vehicle kind stayed
+--- the leaf and contributed no getShortDescription, and a typeInfo carrying only
+--- categories), so the hook must stay silent rather than call out with nothing.
+function suite:testShortDescriptionSkippedWhenNothingResolves()
+	local frame, captured = capturingFrame()
+	setShortDescription(frame, { {} }, {}, { typeInfo = { category = 'Ships' } })
+	self:assertEquals(0, #captured)
+end
+
+function suite:testShortDescriptionSkippedWhenEmpty()
+	local frame, captured = capturingFrame()
+	setShortDescription(frame, { {
+		getShortDescription = function()
+			return ''
+		end,
+	} }, {}, { typeInfo = {} })
+	self:assertEquals(0, #captured)
+end
+
+function suite:testShortDescriptionSetFromTheChain()
+	local frame, captured = capturingFrame()
+	setShortDescription(
+		frame,
+		{ {
+			getShortDescription = function()
+				return 'Light fighter'
+			end,
+		} },
+		{},
+		{ typeInfo = {} }
+	)
+	self:assertEquals(1, #captured)
+	self:assertEquals('SHORTDESC', captured[1].name)
+	self:assertEquals('Light fighter', captured[1].value)
+end
+
+function suite:testShortDescriptionFallsBackToTheTypeName()
+	local frame, captured = capturingFrame()
+	setShortDescription(frame, { {} }, {}, { typeInfo = { name = 'Spacecraft' } })
+	self:assertEquals('Spacecraft', captured[1].value)
 end
 
 return suite

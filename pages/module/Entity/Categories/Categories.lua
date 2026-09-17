@@ -25,24 +25,35 @@ local p = {}
 ---    (structured data), NOT categories.
 ---  * optional extra categories from `typeInfo.categories` (e.g. a commodity also
 ---    lands in Category:Commodities), appended after the structural category.
+---  * the browse categories the type chain contributed (Module:Entity/Data
+---    collects every link's getCategories), which apply whether or not a type
+---    resolved.
 ---  * the manufacturer category (cross-cutting; a brand's catalogue is a useful
 ---    standalone browse). Generic across kinds.
 ---
 --- @param typeInfo table|nil
+--- @param chainCategories string[]|nil
 --- @param apiData table
 --- @param args table
 --- @return string[] Ordered list of category names
-function p.deriveCategories(typeInfo, apiData, args)
+function p.deriveCategories(typeInfo, chainCategories, apiData, args)
 	local names = {}
 
 	if typeInfo then
-		table.insert(names, typeInfo.category or typeInfo.name)
+		local structural = typeInfo.category or typeInfo.name
+		if structural then
+			table.insert(names, structural)
+		end
 		-- Optional extra categories a kind wants to join beyond its primary
 		-- structural bucket (e.g. a commodity also lands in Category:Commodities
 		-- so the index Data table can query every commodity in one category).
 		for _, extra in ipairs(typeInfo.categories or {}) do
 			table.insert(names, extra)
 		end
+	end
+
+	for _, extra in ipairs(chainCategories or {}) do
+		table.insert(names, extra)
 	end
 
 	local manufacturer = base.resolveManufacturer(apiData, args)
@@ -60,6 +71,7 @@ end
 --- namespace so errors surface wherever the module runs.
 ---
 --- @param typeInfo table|nil
+--- @param chainCategories string[]|nil
 --- @param apiData table
 --- @param args table
 --- @param hasApiError boolean
@@ -70,6 +82,7 @@ end
 --- @return string
 function p.build(
 	typeInfo,
+	chainCategories,
 	apiData,
 	args,
 	hasApiError,
@@ -81,7 +94,7 @@ function p.build(
 	local categories = ''
 
 	if mw.title.getCurrentTitle():inNamespace(0) then
-		for _, name in ipairs(p.deriveCategories(typeInfo, apiData, args)) do
+		for _, name in ipairs(p.deriveCategories(typeInfo, chainCategories, apiData, args)) do
 			categories = categories .. '[[Category:' .. name .. ']]'
 		end
 	end

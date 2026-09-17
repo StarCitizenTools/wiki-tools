@@ -17,23 +17,24 @@ end
 -- deriveCategories()
 
 function suite:testTypeCategoryUsesTypeInfoCategory()
-	local names = Categories.deriveCategories({ name = 'Gun', category = 'Guns' }, {}, {})
+	local names = Categories.deriveCategories({ name = 'Gun', category = 'Guns' }, nil, {}, {})
 	self:assertEquals(true, hasValue(names, 'Guns'))
 end
 
 function suite:testTypeCategoryFallsBackToName()
-	local names = Categories.deriveCategories({ name = 'Gun' }, {}, {})
+	local names = Categories.deriveCategories({ name = 'Gun' }, nil, {}, {})
 	self:assertEquals(true, hasValue(names, 'Gun'))
 end
 
 function suite:testManufacturerCategoryFromArg()
-	local names = Categories.deriveCategories({ name = 'Gun', category = 'Guns' }, {}, { manufacturer = 'HRST' })
+	local names = Categories.deriveCategories({ name = 'Gun', category = 'Guns' }, nil, {}, { manufacturer = 'HRST' })
 	self:assertEquals(true, hasValue(names, 'Hurston Dynamics'))
 end
 
 function suite:testManufacturerCategoryFromApiFallback()
 	local names = Categories.deriveCategories(
 		{ name = 'Gun', category = 'Guns' },
+		nil,
 		{ manufacturer = { code = 'ZZZ_NOT_A_REAL_CODE', name = 'Test Manufacturer' } },
 		{}
 	)
@@ -48,6 +49,7 @@ function suite:testNoStructuralCategoryWithoutTypeInfo()
 		0,
 		#Categories.deriveCategories(
 			nil,
+			nil,
 			{ sub_type = 'PDCTurret', description_data = { { name = 'Item Type', value = 'Laser Repeater' } } },
 			{}
 		)
@@ -55,11 +57,11 @@ function suite:testNoStructuralCategoryWithoutTypeInfo()
 end
 
 function suite:testEmptyWhenNoTypeInfoOrManufacturer()
-	self:assertEquals(0, #Categories.deriveCategories(nil, {}, {}))
+	self:assertEquals(0, #Categories.deriveCategories(nil, nil, {}, {}))
 end
 
 function suite:testExtraCategoriesAppendedAfterPrimary()
-	local names = Categories.deriveCategories({ category = 'Metals', categories = { 'Commodities' } }, {}, {})
+	local names = Categories.deriveCategories({ category = 'Metals', categories = { 'Commodities' } }, nil, {}, {})
 	self:assertEquals(true, hasValue(names, 'Metals'))
 	self:assertEquals(true, hasValue(names, 'Commodities'))
 	-- primary group category comes before the extra
@@ -77,43 +79,67 @@ end
 
 function suite:testNoExtraCategoriesWhenAbsent()
 	-- typeInfo without a `categories` field must behave exactly as before.
-	local names = Categories.deriveCategories({ name = 'Gun', category = 'Guns' }, {}, {})
+	local names = Categories.deriveCategories({ name = 'Gun', category = 'Guns' }, nil, {}, {})
 	self:assertEquals(true, hasValue(names, 'Guns'))
 	self:assertEquals(false, hasValue(names, 'Commodities'))
+end
+
+function suite:testChainCategoriesEmittedWithoutATypeInfo()
+	-- A record-less page resolves no type but still earns its chain's browse
+	-- categories (a vehicle's career, its production state).
+	local names = Categories.deriveCategories(nil, { 'Combat career', 'Flight ready' }, {}, {})
+	self:assertEquals(true, hasValue(names, 'Combat career'))
+	self:assertEquals(true, hasValue(names, 'Flight ready'))
+end
+
+function suite:testChainCategoriesFollowTheTypeInfoOnes()
+	local names = Categories.deriveCategories(
+		{ category = 'Metals', categories = { 'Commodities' } },
+		{ 'Flight ready' },
+		{},
+		{}
+	)
+	self:assertEquals('Metals', names[1])
+	self:assertEquals('Commodities', names[2])
+	self:assertEquals('Flight ready', names[3])
+end
+
+function suite:testNoStructuralCategoryFromANamelessTypeInfo()
+	self:assertEquals(0, #Categories.deriveCategories({ categories = {} }, nil, {}, {}))
 end
 
 -- build()
 
 function suite:testBuildEmitsManualApiDataCategoryWhenTrue()
-	local out = Categories.build({ name = 'Ship', category = 'Ships' }, {}, {}, false, false, true)
+	local out = Categories.build({ name = 'Ship', category = 'Ships' }, nil, {}, {}, false, false, true)
 	self:assertEquals(true, string.find(out, 'Category:Entities with manual API data', 1, true) ~= nil)
 end
 
 function suite:testBuildOmitsManualApiDataCategoryWhenFalse()
-	local out = Categories.build({ name = 'Ship', category = 'Ships' }, {}, {}, false, false, false)
+	local out = Categories.build({ name = 'Ship', category = 'Ships' }, nil, {}, {}, false, false, false)
 	self:assertEquals(true, string.find(out, 'Category:Entities with manual API data', 1, true) == nil)
 end
 
 function suite:testBuildEmitsUnresolvedReferenceWhenTrue()
-	local out = Categories.build({ name = 'Ship', category = 'Ships' }, {}, {}, false, false, false, true)
+	local out = Categories.build({ name = 'Ship', category = 'Ships' }, nil, {}, {}, false, false, false, true)
 	self:assertEquals(true, string.find(out, 'Pages with an unresolved entity reference', 1, true) ~= nil)
 end
 
 function suite:testBuildOmitsUnresolvedReferenceWhenFalse()
-	local out = Categories.build({ name = 'Ship', category = 'Ships' }, {}, {}, false, false, false, false)
+	local out = Categories.build({ name = 'Ship', category = 'Ships' }, nil, {}, {}, false, false, false, false)
 	self:assertEquals(true, string.find(out, 'unresolved entity reference', 1, true) == nil)
 end
 
 function suite:testBuildOmitsUnresolvedReferenceWhenAbsent()
 	-- 6-arg legacy callers must behave exactly as before.
-	local out = Categories.build({ name = 'Ship', category = 'Ships' }, {}, {}, false, false, false)
+	local out = Categories.build({ name = 'Ship', category = 'Ships' }, nil, {}, {}, false, false, false)
 	self:assertEquals(true, string.find(out, 'unresolved entity reference', 1, true) == nil)
 end
 
 function suite:testUnregisteredPropertyCategory()
-	local withFlag = Categories.build(nil, {}, {}, false, false, false, false, true)
+	local withFlag = Categories.build(nil, nil, {}, {}, false, false, false, false, true)
 	self:assertTrue(withFlag:find('Entities with unregistered structured-data properties', 1, true) ~= nil)
-	local withoutFlag = Categories.build(nil, {}, {}, false, false, false, false, false)
+	local withoutFlag = Categories.build(nil, nil, {}, {}, false, false, false, false, false)
 	self:assertEquals(nil, withoutFlag:find('Entities with unregistered structured-data properties', 1, true))
 end
 

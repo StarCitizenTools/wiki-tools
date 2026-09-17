@@ -80,6 +80,12 @@ local function setShortDescription(frame, chain, facets, ctx)
 	if desc == nil then
 		desc = ctx.typeInfo.name
 	end
+	-- #shortdesc rejects an absent value with a Lua error that takes the whole
+	-- render down with it, and a page with nothing to describe is better off
+	-- with no short description than with the infobox replaced by an error.
+	if desc == nil or desc == '' then
+		return
+	end
 
 	frame:callParserFunction('SHORTDESC', desc)
 end
@@ -137,6 +143,7 @@ function p.main(frame)
 	return html
 		.. categories.build(
 			result.typeInfo,
+			result.chainCategories,
 			result.apiData,
 			args,
 			result.hasApiError,
@@ -150,6 +157,7 @@ end
 -- Test-only exports. Not part of the public API.
 p._internal = {
 	isIdentifiable = isIdentifiable,
+	setShortDescription = setShortDescription,
 }
 
 return p

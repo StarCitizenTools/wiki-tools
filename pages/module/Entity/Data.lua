@@ -303,7 +303,7 @@ end
 --- type chain, and packages everything a renderer needs into a single table.
 ---
 --- @param args table Parsed wikitext args (use p.parseArgs to produce)
---- @return { args: table, kind: string, apiData: table, chain: table[], facets: table[], typeInfo: table|nil, displayType: string|nil, hasApiError: boolean, resolved: table, editorialData: table, hasManualApiData: boolean, unresolvedReference: boolean, matchedKind: table|nil, family: string|nil, ctx: EntityHookContext }
+--- @return { args: table, kind: string, apiData: table, chain: table[], facets: table[], typeInfo: table|nil, chainCategories: string[], displayType: string|nil, hasApiError: boolean, resolved: table, editorialData: table, hasManualApiData: boolean, unresolvedReference: boolean, matchedKind: table|nil, family: string|nil, ctx: EntityHookContext }
 function p.get(args)
 	local ctx, chain, hasApiError, matchedKind = fetchApiData(args)
 
@@ -355,26 +355,12 @@ function p.get(args)
 	end
 	ctx.resolved = resolved
 
-	-- Browse categories every chain link contributes (additive, root to leaf),
-	-- appended to typeInfo.categories. typeInfo may be a frozen typeResolver
-	-- result, so copy before appending.
-	local extra = assembly.collect(chain, 'getCategories', ctx)
-	if extra[1] ~= nil then
-		local copy = {}
-		for k, v in pairs(typeInfo or {}) do
-			copy[k] = v
-		end
-		local cats = {}
-		for _, c in ipairs(copy.categories or {}) do
-			cats[#cats + 1] = c
-		end
-		for _, c in ipairs(extra) do
-			cats[#cats + 1] = c
-		end
-		copy.categories = cats
-		typeInfo = copy
-		displayType = displayType or copy.name
-	end
+	-- Browse categories every chain link contributes (additive, root to leaf).
+	-- Carried beside typeInfo, never merged into it: a page whose type never
+	-- resolved still contributes categories, and folding them in would hand
+	-- every `if ctx.typeInfo` guard downstream a nameless table to mistake for a
+	-- resolved type.
+	local chainCategories = assembly.collect(chain, 'getCategories', ctx)
 
 	ctx.typeInfo = typeInfo
 	ctx.kind = kind
@@ -387,6 +373,7 @@ function p.get(args)
 		chain = chain,
 		facets = detectFacets(ctx.apiData),
 		typeInfo = typeInfo,
+		chainCategories = chainCategories,
 		displayType = displayType,
 		hasApiError = hasApiError,
 		resolved = resolved,

@@ -7,7 +7,7 @@ description: Use when a new Star Citizen patch has gone LIVE and its Update: pag
 
 Operator-run pass that turns CIG's patch-notes comm-link into a finished `Update:Star Citizen Alpha <version>` page. Run it once per release, major or point.
 
-This is **not** an ingestion pipeline and is not automated. CIG changes its comm-link format regularly - the wiki's own comm-link mirror (`api.star-citizen.wiki`) covers eras 1-4 and 404s for every 4.x patch, era-5 prose moved into Vue component attributes on a separate fragment, and the component set varies from patch to patch. The steps below record the shape as of Alpha 4.9 (verified 2026-08-19) **and how to re-derive it when it shifts**. Expect to check, not to assume.
+This is **not** an ingestion pipeline and is not automated. CIG changes its comm-link format regularly - era-5 prose moved into Vue component attributes on a separate fragment, the component set varies from patch to patch, and the attribute quoting and heading depth have both shifted mid-era. The steps below record the shape as of Alpha 4.10.1 (verified 2026-09-17) **and how to re-derive it when it shifts**. Expect to check, not to assume.
 
 The 167-page standardisation pass that established this layout is done; see the `project_patch_page_redesign` and `project_patch_pass_resume` memories. Every `Update:` page already matches the skeleton in step 5, so a new page only has to join them.
 
@@ -27,6 +27,7 @@ The 167-page standardisation pass that established this layout is done; see the 
 ## Prerequisites
 
 - Public reads via `curl`. No credentials, no API key.
+- Dry-run renders go through the MediaWiki MCP's `parse-wikitext`. A `POST` to `starcitizen.tools/api.php` is answered by a Cloudflare interstitial, so `action=parse` over `curl` returns an HTML challenge page rather than JSON. `GET` requests to `api.php` and `action=raw` are unaffected.
 - Writes through the MediaWiki MCP with `bot: true`.
 
 ## The starting state is a pre-release stub, not a blank page
@@ -57,6 +58,8 @@ Read this before step 1. The page almost always exists already, written months e
 | `== Roadmap deliverables ==` | already populated from the roadmap | reconcile against what actually shipped; deliverables get cut |
 
 Everything else - `Prev`, `Next`, `image`, categories, `DEFAULTSORT` - carries over verbatim. Never synthesise those (`feedback_carry_metadata_verbatim`). Check the neighbouring pages' `| Next =` and `| Prev =` chain to the new page.
+
+**Another editor may have started the page on release day**, with `futurerelease` already cleared and `buildnumber`, `publishdate` and a lead already filled from the launcher rather than the comm-link. Treat their values as claims to check, not as given: on 4.10.1 the stub's `buildnumber` was `12660092` while CIG's release line said `12650677`, and the two must agree because the page prints both. The corpus keys `buildnumber` to CIG's release line, so that is the default, but a genuine post-notes rebuild is possible - surface the mismatch to the owner rather than picking silently.
 
 ## Steps
 
@@ -102,16 +105,21 @@ curl -sL -A "$UA" "https://robertsspaceindustries.com/<fragment path>" -o fragme
 
 (No leading slash on the concatenation - the grep output already starts at `alexandria/`.)
 
-**Inventory what the fragment actually contains before extracting.** The component set varies per patch. As of 4.9:
+**Inventory what the fragment actually contains before extracting.** The component set varies per patch. As of 4.10.1:
 
 | Component | Attribute | Encoding | Carries |
 |---|---|---|---|
 | `<g-faq>` | `:question-list="…"` | HTML-escaped **JSON** | the feature/fix sections, as `{title, content}` |
 | `<g-article>` | `body="…"` | **raw HTML**, entities escaped | the release line, and one or more of stability / bug fixes / known issues |
-| `<g-platform-client-component>` | `:properties="…"` | HTML-escaped JSON | narrative bodies - walk for `body` keys (4.8 uses this, 4.9 does not) |
+| `<g-platform-client-component>` | `:properties='…'` | HTML-escaped JSON | narrative bodies - walk for `body` and `text` keys (4.8 and the announcement transmissions use this; 4.9 and 4.10.1 patch notes do not) |
 | `<g-banner-advanced>` | `:content="…"` | HTML-escaped JSON | version and divider banners (step 3) |
+| `<g-narrative-group>` | - | - | a **wrapper** around `g-article`, not a carrier. Ignore it and read the `g-article` inside |
+
+**Quoting is per attribute and not uniform.** `:properties` is delimited by **single** quotes, every other attribute above by double. A `"([^"]*)"` regex against `:properties` matches nothing and returns silently, which reads as "this patch has no narrative bodies" when the fragment is full of them. Match the delimiter the attribute actually uses, and assert you extracted a non-zero number of blocks.
 
 Watch the encoding column: the JSON attributes need an unescape *then* a parse, but `g-article`'s `body=` is already raw markup (`<h3>…`) with only entities escaped. A blanket unescape step mangles one or the other.
+
+**Fix bullets nest.** Since 4.10.1 a fix `<li>` can carry a `<ul><li>` explanation of the root cause, inline after the issue-council link and with no separating markup. Those become nested `**` bullets. A `<li>.*?</li>` regex stops at the *inner* `</li>` and silently truncates every fix that has one, so parse the block properly (`html.parser` and a tree walk) rather than pattern-matching list items.
 
 Everything else is marketing furniture - `g-grid` (roughly 47KB of the 88KB 4.9 fragment), nav, `g-introduction`, subscriber promos. Do not transcribe it. `g-introduction` is a judgement call: it holds the Build Info block (LTP status, server meshing config, starting aUEC), which 4.0.0 and 4.2.1 transcribe under `=== Build and server information ===` but 4.5.0 onward drop. **Drop it** - modern pages do.
 
@@ -122,11 +130,11 @@ Two things to filter:
 
 **If the selectors match nothing**, the format has moved. Dump the fragment and look for the longest runs of escaped prose; the carrier is whichever attribute holds `&lt;p&gt;` or `&lt;li&gt;`. Record what you find here before moving on.
 
-### 3. Point releases live inside the major's comm-link
+### 3. A point release may or may not have its own comm-link
 
-CIG stopped giving point releases their own comm-link. 4.7.1, 4.7.2, 4.8.1, 4.8.2 and 4.8.3 all have their notes as a **version-titled section inside the 4.7 / 4.8 comm-link**.
+This has gone both ways and the banner inventory is what tells you which. 4.7.1, 4.7.2, 4.8.1, 4.8.2 and 4.8.3 have their notes as a **version-titled section inside the 4.7 / 4.8 comm-link**. 4.10.1 has its **own** Patch-Notes comm-link (21330) whose fragment holds exactly one version banner. Do the partition either way: on a dedicated comm-link it is a no-op that costs one pass, and skipping it on a shared one silently drops most of the patch.
 
-Partition the major's fragment by `<g-banner-advanced>` markers, but **only those whose `:content` JSON has a `text.title` matching `Star Citizen Alpha ([\d.]+) LIVE`**. Each *version* banner starts a span running to the next *version* banner, or to end of fragment for the last one.
+Partition the fragment by `<g-banner-advanced>` markers, but **only those whose `:content` JSON has a `text.title` matching `Star Citizen Alpha ([\d.]+) LIVE`**. Each *version* banner starts a span running to the next *version* banner, or to end of fragment for the last one. One version banner means the whole fragment is that release.
 
 **Divider banners do not split a span.** CIG uses the same component for section dividers, and they sit *inside* a version span. The live 4.8 fragment:
 
@@ -152,8 +160,19 @@ CIG's markup is shallow and regular: `h2`/`h3`/`h4` for sections, `ul`/`li` (som
 
 **Heading depth is per carrier, not global:**
 
-- A `g-faq` entry's `title` becomes an `h3` section; `h3`s *inside* its `content` map onto `h4`.
-- A `g-article`'s own `h3`s map onto `h3` - they are top-level sections. 4.9's second article carries `<h3>Stability & Performance</h3>` and `<h3>Bug Fixes</h3>`, which the live page renders as `=== Stability and performance ===` / `=== Bug fixes ===`. Mapping them to `h4` buries the whole bug-fix tree a level too deep.
+- A `g-faq` entry's `title` becomes an `h3` section; the headings *inside* its `content` map onto `h4`, whatever level CIG gave them.
+- A `g-article`'s own top-level headings map onto `h3`. 4.9's second article carries `<h3>Stability & Performance</h3>` and `<h3>Bug Fixes</h3>`, which the live page renders as `=== Stability and performance ===` / `=== Bug fixes ===`. Mapping them to `h4` buries the whole bug-fix tree a level too deep.
+
+**CIG's own heading levels are not a reliable ranking.** Within one 4.10.1 article the peer bug-fix categories are split between `h4` (Missions, Ships and Vehicles, UI) and `h3` (Inventory and Items) for no reason, and `<h3><br></h3>` / `<h4><br></h4>` appear as pure spacers. Drop any heading whose text is empty, and rank the rest by what they contain, not by their tag. The reliable discriminator is the **markup of the label**, not the level:
+
+| Source markup | Meaning |
+|---|---|
+| `<h3>`/`<h4>` with text | a category, one level under the wrapper |
+| `<p><strong><u>…</u></strong></p>` | a pseudo-heading label, one level under its category |
+| `<p><strong>…</strong></p>` | a label *only* if it passes the step-6 guards; otherwise emphasised prose |
+| `<p>` with no emphasis | explanatory prose - keep it in source order, it sits between bullet lists |
+
+CIG also dropped its own `<h3>Bug Fixes</h3>` wrapper in 4.10.1 while keeping the categories under it. Supply `=== Bug fixes ===` yourself; the whole namespace has it.
 
 **A faq `title` is a teaser string, not a heading.** Keep only the text before the first colon, then canonicalise it (`reference_heading_case_normalisation`):
 
@@ -190,8 +209,9 @@ Rules the whole namespace follows:
 
 - **All of CIG's prose goes under `== Patch notes ==`**, keeping CIG's own structure. Do not summarise, reorder or trim it.
 - **Known issues goes last** inside `== Patch notes ==`, as `=== Known issues ===`, opening with the gloss `''The issues Cloud Imperium Games listed as outstanding at release.''` so it reads as CIG's list rather than the wiki's. Some patches have none - 4.9 links a Knowledge Base instead, and its page has no such section. Do not manufacture one.
+- **A hotfix rollup gets its own `===`**, not a slot under `=== Bug fixes ===`. Point-release notes now end with a block of fixes that already reached live between the major and this patch (4.10.1: `Fixed by Hotfix Since 4.10.0 Went Live`, 26 of them). It is a different release window, and its subsections repeat the bug-fix category names, so nesting it collides.
 - **`<references />`**, never `{{reflist}}`. No `=` (h1) headings anywhere.
-- **`DEFAULTSORT` zero-pads the minor**: 4.9.0 sorts as `4.09.0, Alpha`. A few legacy pages lack it; add it, that is the settled form.
+- **`DEFAULTSORT` zero-pads the minor**: 4.9.0 sorts as `4.09.0, Alpha`, 4.10.1 as `4.10.1, Alpha`. It goes on its own line directly above the category, no blank line between. Every page in the namespace now carries one bar the redirects and the unreleased `Update:Star Citizen Release 1.0`, so a missing one is an omission, not a convention.
 - **`== What's new ==`** is a wikilinked digest of the release, grouped under bold labels that reuse the divider-banner titles from step 3 (`'''Features and Gameplay'''`, `'''Bug Fixes and Technical Updates'''`). Include it only when CIG published a summary to digest.
 
 ### 6. Promote CIG's pseudo-headings
@@ -206,7 +226,8 @@ CIG's bolding is unreliable: 4.8.0 writes `'''// 01 - '''Approach and Defend Tra
 Guards, or prose gets promoted:
 
 - **A trailing full stop disqualifies it.** `?` and `!` do not - FAQ-style headings are real (`What can I expect?`).
-- Not a label if a value follows an inner colon: `Build Update: VERSION 4.8.3-LIVE.12122953` is a statement, and appears un-promoted on the live 4.8.1. A classifying colon is fine: `Delivery: Courier`.
+- Not a label if a value follows an inner colon: `Build Update: VERSION 4.8.3-LIVE.12122953` is a statement, and appears un-promoted on the live 4.8.1. A classifying colon is fine: `Delivery: Courier`. A digit in the text after the colon separates the two cleanly. Skip this guard and the release line itself (`Your launcher should now display: VERSION 4.10.1-LIVE.12650677`) is promoted to a heading and loses its bold.
+- Strip `&nbsp;` before applying any of these guards. CIG puts one after the colon in the release line, so a plain `': '` test misses it.
 - Not a label if it trails off into the next line (`PIT provides an interface to`).
 
 ### 7. Official links, Media, and Roadmap deliverables
@@ -227,16 +248,17 @@ Order: full patch notes, the Spectrum release-notes thread when one exists, the 
 * [https://www.youtube.com/watch?v=OX__JZULs-Y Inside Star Citizen: Alpha 4.9 Patch Report] &ndash; ''YouTube''
 ```
 
-The announcement trailer first, then the patch report. The announcement transmission usually embeds both - pull the video ids from it rather than searching YouTube.
+The announcement trailer first, then the patch report. The announcement transmission usually embeds both - pull the video ids from it rather than searching YouTube. Recent announcements sometimes embed none: 4.10.1's carries only store copy, so its page has no `== Media ==`. Grep the fragment for `youtube`/`youtu.be`/`vimeo` and ignore the template boilerplate that holds a literal `{$video_id}` placeholder; real ids are the only reason to emit the section.
 
-The wiki's comm-link mirror finds announcements and reports faster than probing ids, and it **does** carry the transmission series even though it has no Patch-Notes series:
+The wiki's comm-link mirror finds announcements and reports faster than probing ids, and it now carries the Patch-Notes series too (21330 is there as series `Release Info`), so it also answers "has CIG published the notes yet" and gives a `created_at` that settles `publishdate`:
 
 ```bash
-curl -s 'https://api.star-citizen.wiki/api/comm-links?filter[title]=Frontier%20Tensions'   # -> rsi_url, id 21220
-curl -s 'https://api.star-citizen.wiki/api/comm-links?filter[title]=Inside%20Star%20Citizen' # newest first
+curl -s 'https://api.star-citizen.wiki/api/comm-links/21330'                                  # -> title, rsi_url, created_at, images
+curl -s 'https://api.star-citizen.wiki/api/comm-links?filter[title]=Inside%20Star%20Citizen'  # newest first
+curl -s 'https://api.star-citizen.wiki/api/comm-links?limit=5&sort=-id'                       # newest overall
 ```
 
-Announcements are titled like `Alpha 4.9: Frontier Tensions`; patch reports are always `Inside Star Citizen`.
+Announcements are titled like `Alpha 4.9: Frontier Tensions`; patch reports are always `Inside Star Citizen`. A patch report is not guaranteed - 4.10 and 4.10.1 have none, and the mirror listing is how you establish that rather than assuming one exists. An empty response body means the query was malformed, not that nothing matched; check the base endpoint returns 200 before believing a zero result.
 
 **`== Roadmap deliverables ==`** is a `{| class="wikitable"` grouped by category with `colspan="2"` header rows. It comes from **RSI's roadmap, not the patch notes** - the two do not match, and deliverables get cut. The pre-release page already has this table; reconcile it against what shipped rather than rebuilding it. Link subjects that have wiki pages.
 

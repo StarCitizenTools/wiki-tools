@@ -1460,6 +1460,19 @@ function suite:testSubtitleKeepsEditorialWording()
 	self:assertEquals('[[K-type main-sequence star|K-type main-sequence flare star]]', Star.getSubtitle(c))
 end
 
+-- A LINKED editorial classification must not reach the subtitle, the stored
+-- `Subject type` or the short description: the subtitle would nest one link
+-- inside another and render literal brackets, and the other two are stored or
+-- read as plain text. Delinking happens once, in classification().
+function suite:testLinkedEditorialClassificationIsDelinked()
+	local args = { classification = '[[Main sequence star|K-type main-sequence]] flare star' }
+	local c = ctx(starApiData(), args, starResolved(args))
+	self:assertEquals('K-type main-sequence flare star', Star.getTypeInfo(c).name)
+	self:assertEquals('[[K-type main-sequence star|K-type main-sequence flare star]]', Star.getSubtitle(c))
+	self:assertEquals('K-type main-sequence flare star in the Stanton system', Star.getShortDescription(c))
+	self:assertEquals('K-type main-sequence flare star', Star.getStructuredData(c).classification)
+end
+
 function suite:testSubtitleFallbacks()
 	local blackHole = starApiData()
 	blackHole.celestialobject.sub_type = { name = 'Stellar', type = 'BLACKHOLE' }
@@ -1469,6 +1482,9 @@ function suite:testSubtitleFallbacks()
 	blackHole.celestialobject.sub_type = nil
 	blackHole.celestialobject.type = 'BLACKHOLE'
 	self:assertEquals('[[Black hole]]', Star.getSubtitle(ctx(blackHole, {})))
+	-- The subtitle and the category must name the same class: a sub_type-less
+	-- black hole files under Black holes, not Unknown spectral type stars.
+	self:assertEquals('Black holes', Star.getCategories(ctx(blackHole, {}))[1])
 	-- An unmapped class names no page, so the subtitle stays plain.
 	local unknown = starApiData()
 	unknown.celestialobject.sub_type = { name = 'Main Sequence-Dwarf-Q' }

@@ -8,6 +8,7 @@ local assembly = require('Module:Entity/Assembly')
 local StarSystem = require('Module:Entity/Location/StarSystem')
 local JumpPoint = require('Module:Entity/Location/JumpPoint')
 local Star = require('Module:Entity/Location/Star')
+local Body = require('Module:Entity/Location/Body')
 
 --- Hook context for direct hook calls (Module:Entity/Types EntityHookContext).
 local function ctx(apiData, args, resolved)
@@ -84,10 +85,13 @@ function suite:testMatchesSolarSystem()
 	self:assertTrue(Location.matches(solarSystemFixture()))
 end
 
+-- Outpost stands in for "a location type no leaf models yet"; it is the most
+-- numerous one (902 records). Planet and Moon were this test's example until
+-- the Body leaf claimed them.
 function suite:testMatchesRejectsOtherLocationClassifications()
-	local planet = solarSystemFixture()
-	planet.type = { name = 'Planet', classification = 'Planet' }
-	self:assertFalse(Location.matches(planet))
+	local outpost = solarSystemFixture()
+	outpost.type = { name = 'Outpost', classification = 'Outpost' }
+	self:assertFalse(Location.matches(outpost))
 end
 
 function suite:testMatchesRejectsNonLocationPayloads()
@@ -244,9 +248,9 @@ function suite:testResolveSubtypeReturnsStarSystem()
 end
 
 function suite:testResolveSubtypeUnknownClassification()
-	local planet = solarSystemFixture()
-	planet.type = { name = 'Planet' }
-	self:assertEquals(nil, Location.resolveSubtype(planet, {}))
+	local outpost = solarSystemFixture()
+	outpost.type = { name = 'Outpost' }
+	self:assertEquals(nil, Location.resolveSubtype(outpost, {}))
 end
 
 function suite:testResolveSubtypeKindDeclaredDefaultsToStarSystem()
@@ -327,7 +331,7 @@ function suite:testGetTypeInfoFallback()
 end
 
 function suite:testFormatSensor()
-	local f = StarSystem._internal.formatSensor
+	local f = Util.formatSensor
 	self:assertEquals('10/10', f(10))
 	self:assertEquals('8.1/10', f(8.13))
 	self:assertEquals('3/10', f(3.02))
@@ -801,7 +805,7 @@ end
 -- A record no leaf models resolves no leaf, so no link on its chain fetches
 -- anything.
 function suite:testUnclaimedPayloadResolvesNoLeaf()
-	self:assertEquals(nil, Location.resolveSubtype({ type = { name = 'Planet' } }, nil))
+	self:assertEquals(nil, Location.resolveSubtype({ type = { name = 'Outpost' } }, nil))
 	self:assertEquals(nil, Location.enrich)
 end
 
@@ -1167,10 +1171,11 @@ function suite:testJumpPointMetadataItems()
 	local items = JumpPoint.getMetadataItems(ctx(jumpPointApiData(), {}))
 	self:assertEquals(1, #items)
 	self:assertEquals('Starmap code', items[1].label)
-	self:assertEquals('PYRO.JUMPPOINTS.NYX', items[1].content)
+	-- <wbr> after each dot: the row breaks at a segment, not mid-name.
+	self:assertEquals('PYRO.<wbr>JUMPPOINTS.<wbr>NYX', items[1].content)
 	-- The arg fallback feeds the row too (soft-failed fetch).
 	local fromArg = JumpPoint.getMetadataItems(ctx(jumpPointFixture(), { code = 'NYX.JUMPPOINTS.PYRO' }))
-	self:assertEquals('NYX.JUMPPOINTS.PYRO', fromArg[1].content)
+	self:assertEquals('NYX.<wbr>JUMPPOINTS.<wbr>PYRO', fromArg[1].content)
 end
 
 -- No usable code from record or args → neither button nor metadata row.
@@ -1553,10 +1558,11 @@ function suite:testStarStarmapButtonAndMetadata()
 	local buttons = Star.getFooterButtons(ctx(starApiData(), {}))
 	self:assertEquals(1, #buttons)
 	self:assertEquals('https://robertsspaceindustries.com/starmap?location=GOSS.STARS.GOSSA', buttons[1].url)
-	self:assertEquals('GOSS.STARS.GOSSA', Star.getMetadataItems(ctx(starApiData(), {}))[1].content)
+	-- The button keeps the bare code; only the row gains the break points.
+	self:assertEquals('GOSS.<wbr>STARS.<wbr>GOSSA', Star.getMetadataItems(ctx(starApiData(), {}))[1].content)
 	-- A soft-failed fetch still renders both from the arg that would have
 	-- keyed it, under either alias.
-	self:assertEquals('SOL.STARS.SOL', Star.getMetadataItems(ctx({}, { code = 'SOL.STARS.SOL' }))[1].content)
+	self:assertEquals('SOL.<wbr>STARS.<wbr>SOL', Star.getMetadataItems(ctx({}, { code = 'SOL.STARS.SOL' }))[1].content)
 	self:assertEquals(0, #Star.getFooterButtons(ctx({}, {})))
 	self:assertEquals(0, #Star.getMetadataItems(ctx({}, {})))
 end
@@ -1567,6 +1573,425 @@ function suite:testStarEnrichFetchesByCode()
 		self:assertEquals('GOSS.STARS.GOSSA', captured.key)
 		self:assertEquals('Goss A', apiData.celestialobject.designation)
 	end)
+end
+
+-- ── Body leaf ──────────────────────────────────────────────────────────────
+
+--- Cellin's location record (trimmed): a moon with a real game record.
+local function moonFixture()
+	return {
+		uuid = 'aaaa1111-0000-0000-0000-000000000001',
+		name = 'Cellin',
+		respawn_location_type = 'None',
+		type = { name = 'Moon', classification = 'Moon' },
+		system = 'Stanton System',
+		size = 260333, -- metres; the record's size IS the radius
+		parent = { name = 'Crusader', type_name = 'Planet' },
+	}
+end
+
+--- A Stanton-shaped starsystem payload holding the objects the Body leaf
+--- resolves against, in the ARK's real shape: a body carries its plain `name`
+--- while its code embeds the designation and the owning corporation, and a star
+--- carries no `name` at all, only a designation that IS the system's.
+local function bodyStarsystemFixture()
+	return {
+		code = 'STANTON',
+		name = 'Stanton',
+		affiliation = { { code = 'uee', name = 'UEE' } },
+		celestial_objects = {
+			{ id = 1691, code = 'STANTON.STARS.STANTON', type = 'STAR', designation = 'Stanton' },
+			{
+				id = 1693,
+				code = 'STANTON.PLANETS.STANTONIHURSTONDYNAMICS',
+				type = 'PLANET',
+				name = 'Hurston',
+				designation = 'Stanton I',
+				parent_id = 1691,
+				sub_type = { name = 'Super-Earth', type = 'PLANET' },
+				sensor = { population = 6, economy = 6, danger = 4 },
+			},
+			{
+				id = 1695,
+				code = 'STANTON.PLANETS.STANTONIICRUSADER',
+				type = 'PLANET',
+				name = 'Crusader',
+				designation = 'Stanton II',
+				parent_id = 1691,
+				sub_type = { name = 'Gas Giant', type = 'PLANET' },
+			},
+			{
+				id = 2737,
+				code = 'STANTON.MOONS.CELLIN',
+				type = 'SATELLITE',
+				name = 'Cellin',
+				designation = 'Stanton 2a',
+				parent_id = 1695,
+				sub_type = { name = 'Planetary Moon', type = 'SATELLITE' },
+			},
+		},
+	}
+end
+
+local function bodyApiData()
+	local apiData = moonFixture()
+	apiData.starsystem = bodyStarsystemFixture()
+	return apiData
+end
+
+local function bodyResolved(args)
+	return Editorial.resolve({}, args, assembly.mergeEditorialManifests(assembly.buildChain(Body)))
+end
+
+function suite:testResolveSubtypePlanetAndMoonRecords()
+	local moon = moonFixture()
+	self:assertTrue(Location.matches(moon))
+	self:assertEquals('body', Location._internal.recordFamily(moon))
+	self:assertEquals(Body, Location.resolveSubtype(moon, {}))
+	local planet = moonFixture()
+	planet.type = { name = 'Planet', classification = 'Planet' }
+	self:assertEquals('body', Location._internal.recordFamily(planet))
+	self:assertEquals(Body, Location.resolveSubtype(planet, {}))
+	self:assertEquals(Body, Location.resolveSubtype({}, { kind = 'Location', family = 'body' }))
+end
+
+-- The record decides, because the two sources disagree on Delamar: the game
+-- calls it a Moon, the starmap a PLANET.
+function suite:testIsMoonPrefersTheRecord()
+	local apiData = bodyApiData()
+	self:assertTrue(Body._internal.isMoon(apiData, { code = 'STANTON.MOONS.CELLIN' }))
+	-- Flipping the type needs the parent flipped too, since a planet parent
+	-- settles it first.
+	apiData.type = { name = 'Planet' }
+	apiData.parent = { name = 'Stanton', type_name = 'Star' }
+	self:assertFalse(Body._internal.isMoon(apiData, { code = 'STANTON.MOONS.CELLIN' }))
+	-- No record: the starmap's SATELLITE token answers instead.
+	local recordless = { starsystem = bodyStarsystemFixture() }
+	self:assertTrue(Body._internal.isMoon(recordless, { code = 'STANTON.MOONS.CELLIN' }))
+	self:assertFalse(Body._internal.isMoon(recordless, { code = 'STANTON.PLANETS.STANTONIHURSTONDYNAMICS' }))
+end
+
+-- Neither starmap signal is reliable alone: the ARK types Pyro IV a PLANET but
+-- parents it to a planet, and types Gainey a SATELLITE but parents it to the
+-- star. Both pages say Moon, so |type= outranks the token.
+function suite:testIsMoonHonoursTheStatedType()
+	local recordless = { starsystem = bodyStarsystemFixture() }
+	local asMoon = { code = 'STANTON.PLANETS.STANTONIHURSTONDYNAMICS', type = 'Moon' }
+	self:assertTrue(Body._internal.isMoon(recordless, asMoon))
+	self:assertEquals('Moons', Body.getTypeInfo(ctx(recordless, asMoon)).category)
+	local asPlanet = { code = 'STANTON.MOONS.CELLIN', type = 'Planet' }
+	self:assertFalse(Body._internal.isMoon(recordless, asPlanet))
+	-- The legacy corpus spells one of them plural.
+	self:assertTrue(Body._internal.isMoon(recordless, { type = 'Moons' }))
+	-- The record still outranks the page: the game calls Delamar a Moon while
+	-- the starmap files it as a PLANET.
+	local record = { type = { name = 'Moon' }, starsystem = bodyStarsystemFixture() }
+	self:assertTrue(Body._internal.isMoon(record, { type = 'Planet' }))
+end
+
+-- Pyro IV's own record is type Planet with parent Pyro V, itself a planet.
+function suite:testIsMoonPrefersTheRecordParentOverItsOwnType()
+	local pyroIV = { type = { name = 'Planet' }, parent = { name = 'Pyro V', type_name = 'Planet' } }
+	self:assertTrue(Body._internal.isMoon(pyroIV, {}))
+	self:assertEquals('Moons', Body.getTypeInfo(ctx(pyroIV, {})).category)
+	-- One direction only: a star parent does not unmake a moon, which is how
+	-- Delamar's record reads.
+	local delamar = { type = { name = 'Moon' }, parent = { name = 'Nyx', type_name = 'Star' } }
+	self:assertTrue(Body._internal.isMoon(delamar, {}))
+	local planet = { type = { name = 'Planet' }, parent = { name = 'Stanton', type_name = 'Star' } }
+	self:assertFalse(Body._internal.isMoon(planet, {}))
+end
+
+-- The record's size is METRES and is the radius. The starmap size is never
+-- read for a body: it carries at least three different units there.
+function suite:testBodyRadiusComesFromTheRecordInMetres()
+	self:assertEquals(260.333, Body._internal.radiusKm(moonFixture()))
+	self:assertEquals('260 km', Body._internal.radiusDisplay(moonFixture()))
+	local big = moonFixture()
+	big.size = 7450000
+	self:assertEquals('7,450 km', Body._internal.radiusDisplay(big))
+	self:assertEquals(nil, Body._internal.radiusKm({}))
+	-- No record: an editor's kilometres stand in, which is the only radius the
+	-- starmap-only bodies can have.
+	local args = { radius = '1740' }
+	self:assertEquals(1740, Body._internal.radiusKm({}, bodyResolved(args)))
+	self:assertEquals('1,740 km', Body._internal.radiusDisplay({}, bodyResolved(args)))
+	-- The record still wins where there is one.
+	self:assertEquals(260.333, Body._internal.radiusKm(moonFixture(), bodyResolved(args)))
+end
+
+function suite:testBodyClassification()
+	local hurston = { starsystem = bodyStarsystemFixture() }
+	self:assertEquals(
+		'Super-Earth',
+		Body._internal.classification(hurston, { code = 'STANTON.PLANETS.STANTONIHURSTONDYNAMICS' })
+	)
+	-- A moon's uniform sub_type maps to nothing, so the subtitle stays 'Moon'.
+	self:assertEquals(nil, Body._internal.classification(bodyApiData(), { code = 'STANTON.MOONS.CELLIN' }))
+	self:assertEquals('Moon', Body.getTypeInfo(ctx(bodyApiData(), { code = 'STANTON.MOONS.CELLIN' })).name)
+	self:assertEquals('Moons', Body.getTypeInfo(ctx(bodyApiData(), { code = 'STANTON.MOONS.CELLIN' })).category)
+	-- An editor's linked wording is delinked before it can reach the store.
+	self:assertEquals('Super-Earth', Body._internal.classification(hurston, { classification = '[[Super-Earth]]' }))
+end
+
+-- The 33 in-game body pages carry no `code`, so the name match is the only
+-- thing that resolves them. Without it they lose their classification, their
+-- starmap parent and their Starmap button.
+function suite:testBodyResolvesByNameWithoutACode()
+	local hurston = { name = 'Hurston', starsystem = bodyStarsystemFixture() }
+	self:assertEquals('Super-Earth', Body._internal.classification(hurston, {}))
+	self:assertEquals('STANTON.PLANETS.STANTONIHURSTONDYNAMICS', Body._internal.resolvedStarmapCode(hurston, {}))
+	-- Only the display name is asserted: the target depends on which title
+	-- exists, which the runner's mw.title shim cannot answer, so it is verified
+	-- on the live wiki like tier()'s own linking.
+	self:assertEquals('Stanton', (Body._internal.parentAnchor(hurston, {})))
+	-- A code the editor supplied still wins, so an ARK name collision stays
+	-- correctable from the page.
+	self:assertEquals(
+		'Gas giant',
+		Body._internal.classification(hurston, { code = 'STANTON.PLANETS.STANTONIICRUSADER' })
+	)
+end
+
+-- The designation rides in the header title, so it is suppressed where it
+-- would only repeat it: every body the ARK names by designation alone.
+function suite:testBodyTitleAnnotationIsTheDesignation()
+	local hurston = { name = 'Hurston', starsystem = bodyStarsystemFixture() }
+	self:assertEquals('Stanton I', Body.getTitleAnnotation(ctx(hurston, {})))
+	-- The editor's arg wins over the ARK's.
+	local args = { designation = 'Stanton One' }
+	self:assertEquals('Stanton One', Body.getTitleAnnotation(ctx(hurston, args, bodyResolved(args))))
+	-- A body the ARK names only by designation: the title already says it.
+	local gossI = {
+		name = 'Goss I',
+		starsystem = {
+			celestial_objects = { { code = 'GOSS.PLANETS.GOSSI', type = 'PLANET', designation = 'Goss I' } },
+		},
+	}
+	self:assertEquals(nil, Body.getTitleAnnotation(ctx(gossI, {})))
+	self:assertEquals(nil, Body.getTitleAnnotation(ctx({}, {})))
+	-- Stored as a property regardless, including from the ARK alone.
+	self:assertEquals('Stanton I', Body.getStructuredData(ctx(hurston, {})).designation)
+	self:assertEquals('Goss I', Body.getStructuredData(ctx(gossI, {})).designation)
+end
+
+-- The starmap gives every body a sensor block; a zero is "no reading", not a
+-- rating of nothing.
+function suite:testBodySensorSection()
+	local hurston = { name = 'Hurston', starsystem = bodyStarsystemFixture() }
+	local sections = Body.getSections(ctx(hurston, {}))
+	local sensor
+	for _, section in ipairs(sections) do
+		if section.key == 'sensor' then
+			sensor = section
+		end
+	end
+	self:assertEquals('Sensor readings', sensor.label)
+	self:assertEquals(3, #sensor.items)
+	-- A body with no starmap object has no section at all.
+	for _, section in ipairs(Body.getSections(ctx({}, {}))) do
+		self:assertNotEquals('sensor', section.key)
+	end
+	-- Stored so a type index page can column and sort on them.
+	local data = Body.getStructuredData(ctx(hurston, {}))
+	self:assertEquals(6, data.population_rating)
+	self:assertEquals(6, data.economy_rating)
+	self:assertEquals(4, data.danger_rating)
+	-- A zero reading is the starmap's no-data sentinel, so nothing is stored.
+	local blank = { name = 'Hurston', starsystem = bodyStarsystemFixture() }
+	blank.starsystem.celestial_objects[2].sensor = { population = 0, economy = 0, danger = 0 }
+	local none = Body.getStructuredData(ctx(blank, {}))
+	self:assertEquals(nil, none.population_rating)
+	self:assertEquals(nil, none.danger_rating)
+end
+
+-- VerseGuide's path is the system code plus the designation's tail, and it
+-- carries only what is in the game.
+function suite:testVerseguideUrl()
+	local hurston = {
+		type = { name = 'Planet' },
+		name = 'Hurston',
+		starsystem = bodyStarsystemFixture(),
+	}
+	self:assertEquals('https://verseguide.com/location/STANTON/I', Body._internal.verseguideUrl(hurston, {}, nil))
+	local aberdeen = { type = { name = 'Moon' }, starsystem = bodyStarsystemFixture() }
+	local args = { designation = 'Stanton 1b' }
+	self:assertEquals(
+		'https://verseguide.com/location/STANTON/1B',
+		Body._internal.verseguideUrl(aberdeen, args, bodyResolved(args))
+	)
+	-- No game record: the body is not in VerseGuide.
+	self:assertEquals(
+		nil,
+		Body._internal.verseguideUrl({ starsystem = bodyStarsystemFixture() }, args, bodyResolved(args))
+	)
+	-- No designation to key on.
+	self:assertEquals(nil, Body._internal.verseguideUrl({ type = { name = 'Planet' } }, {}, nil))
+	-- The button rides alongside the Starmap one.
+	local buttons = Body.getFooterButtons(ctx(hurston, {}))
+	self:assertEquals(2, #buttons)
+	self:assertEquals('Starmap', buttons[1].label)
+	self:assertEquals('VerseGuide', buttons[2].label)
+end
+
+-- A body with no resolvable system must NOT bridge: attachStarsystem's own
+-- fallback would look the body's own name up as a system.
+function suite:testEnrichSkipsTheBridgeWithoutASystem()
+	local apiData = Body.enrich({ apiData = { name = 'Oberon' }, args = {} })
+	self:assertEquals(nil, apiData.starsystem)
+end
+
+-- A body need not share its system's affiliation, so it gets its own row and
+-- the chain's first tier stays the system's.
+function suite:testBodyAffiliationIsItsOwnRow()
+	local apiData = bodyApiData()
+	-- No statement on the page: the system's affiliation stands in.
+	self:assertEquals('[[United Empire of Earth]]', Body._internal.affiliationText(apiData, nil))
+	-- A canonical token renders like its siblings, NOT as the editor typed it:
+	-- a bare "UEE" next to another page's "United Empire of Earth" is the bug.
+	local uee = { affiliation = 'UEE' }
+	self:assertEquals('[[United Empire of Earth]]', Body._internal.affiliationText(apiData, bodyResolved(uee)))
+	-- Free text keeps the editor's own markup, so they choose whether it links.
+	local args = { affiliation = '[[Outsiders]]' }
+	local resolved = bodyResolved(args)
+	self:assertEquals('[[Outsiders]]', Body._internal.affiliationText(apiData, resolved))
+	-- ... and it does not reach the chain, whose first tier links the systems
+	-- category and so must describe the system.
+	local chain = Body._internal.locationChain(apiData, args)
+	self:assertStringContains('UEE space', chain)
+	self:assertEquals(nil, chain:find('Outsiders', 1, true))
+	-- No system either: nothing to fall back to.
+	self:assertEquals(nil, Body._internal.affiliationText({}, nil))
+end
+
+-- Stored compact, so a body and its system share one value bucket whatever
+-- wording the page uses.
+function suite:testBodyStoredAffiliation()
+	local apiData = bodyApiData()
+	self:assertEquals('UEE', Body._internal.storedAffiliation(apiData, nil))
+	for _, wording in ipairs({ 'UEE', 'United Empire of Earth', '[[United Empire of Earth]]' }) do
+		local args = { affiliation = wording }
+		self:assertEquals('UEE', Body._internal.storedAffiliation(apiData, bodyResolved(args)))
+	end
+	local free = { affiliation = '[[Outsiders]]' }
+	self:assertEquals('Outsiders', Body._internal.storedAffiliation(apiData, bodyResolved(free)))
+	-- Two affiliations in one arg against a single-valued column: the first is
+	-- the token. Without the split, Editorial.toStoredValue strips the tag with
+	-- no separator and the row stores 'VanduulIndependent'.
+	local two = { affiliation = '[[Vanduul]]<br/>Independent' }
+	self:assertEquals('Vanduul', Body._internal.storedAffiliation(apiData, bodyResolved(two)))
+	self:assertEquals(
+		'Vanduul',
+		Body._internal.storedAffiliation(apiData, bodyResolved({ affiliation = '[[Vanduul]]<br>Independent' }))
+	)
+	-- The row still shows both, since the page said both.
+	self:assertStringContains('Independent', Body._internal.affiliationText(apiData, bodyResolved(two)))
+end
+
+-- The system category is what keeps a body on {{Navplate system}}, whose
+-- Planets and Moons rows intersect the type category with it.
+function suite:testBodyCategories()
+	local hurston = { name = 'Hurston', system = 'Stanton System', starsystem = bodyStarsystemFixture() }
+	local categories = Body.getCategories(ctx(hurston, {}))
+	self:assertEquals('Super-Earths', categories[1])
+	self:assertEquals('Stanton system', categories[2])
+	-- An editor's classification carries the facet where the ARK object is
+	-- absent, in the wiki's spelling or the ARK's.
+	local lore = { classification = 'Gas giant', system = 'Goss' }
+	self:assertEquals('Gas giants', Body.getCategories(ctx({}, lore))[1])
+	self:assertEquals('Goss system', Body.getCategories(ctx({}, lore))[2])
+	self:assertEquals('Gas giants', Body.getCategories(ctx({}, { classification = 'Gas Giant' }))[1])
+	-- A moon has no facet of its own, so only the system category remains.
+	self:assertEquals(1, #Body.getCategories(ctx(bodyApiData(), {})))
+	self:assertEquals('Stanton system', Body.getCategories(ctx(bodyApiData(), {}))[1])
+end
+
+-- Exactly three tiers, and never an ancestor that is not the direct parent.
+function suite:testLocationChainIsThreeTiers()
+	local args = { code = 'STANTON.MOONS.CELLIN' }
+	local chain = Body._internal.locationChain(bodyApiData(), args, nil)
+	self:assertStringContains('UEE space', chain)
+	self:assertStringContains('Stanton system', chain)
+	self:assertStringContains('Crusader', chain)
+	-- The star is an ancestor but NOT the parent, so it must not appear.
+	self:assertEquals(nil, string.find(chain, 'Stanton ›%s*Stanton'))
+	self:assertEquals(2, select(2, chain:gsub('›', '')))
+end
+
+-- The eleven planets in multi-star systems carry parent_id = null, so the
+-- chain honestly stops at the system rather than guessing a sun.
+function suite:testLocationChainDropsAnAbsentParent()
+	local sys = bodyStarsystemFixture()
+	sys.celestial_objects = {
+		{ id = 9, code = 'GOSS.PLANETS.GOSSI', type = 'PLANET', designation = 'Goss I', parent_id = nil },
+	}
+	sys.name = 'Goss'
+	local chain = Body._internal.locationChain(
+		{ starsystem = sys },
+		{ code = 'GOSS.PLANETS.GOSSI', system = 'Goss' },
+		nil
+	)
+	self:assertStringContains('Goss system', chain)
+	self:assertEquals(1, select(2, chain:gsub('›', '')))
+end
+
+function suite:testBodyParentAnchor()
+	-- Display names only: the link target prefers a qualified title when one
+	-- exists, which the runner's mw.title shim cannot answer.
+	self:assertEquals('Crusader', (Body._internal.parentAnchor(bodyApiData(), { code = 'STANTON.MOONS.CELLIN' })))
+	local planet = moonFixture()
+	planet.parent = { name = 'Stanton', type_name = 'Star' }
+	self:assertEquals('Stanton', (Body._internal.parentAnchor(planet, {})))
+	-- Record-less: resolved from parent_id against the system's object list.
+	local n3, t3 = Body._internal.parentAnchor(
+		{ starsystem = bodyStarsystemFixture() },
+		{ code = 'STANTON.MOONS.CELLIN' }
+	)
+	self:assertEquals('Crusader', n3)
+end
+
+function suite:testBodyStructuredData()
+	local args = { code = 'STANTON.MOONS.CELLIN', designation = 'Stanton 2a', satellites = '2' }
+	local data = Body.getStructuredData(ctx(bodyApiData(), args, bodyResolved(args)))
+	self:assertEquals('Stanton system', data.system)
+	self:assertEquals('Crusader', data.parent)
+	self:assertEquals('Stanton 2a', data.designation)
+	self:assertEquals(260.333, data.radius)
+	self:assertEquals(2, data.moon_count)
+end
+
+function suite:testBodyShortDescription()
+	local hurston = { starsystem = bodyStarsystemFixture() }
+	self:assertEquals(
+		'Super-Earth in the Stanton system',
+		Body.getShortDescription(ctx(hurston, { code = 'STANTON.PLANETS.STANTONIHURSTONDYNAMICS', system = 'Stanton' }))
+	)
+	-- A moon names what it orbits; Cellin's record gives Crusader.
+	self:assertEquals(
+		'Moon of Crusader in the Stanton system',
+		Body.getShortDescription(ctx(bodyApiData(), { code = 'STANTON.MOONS.CELLIN' }))
+	)
+	-- A moon the starmap hangs off the star names nothing extra.
+	local offStar = {
+		type = { name = 'Moon' },
+		parent = { name = 'Stanton', type_name = 'Star' },
+		system = 'Stanton System',
+		starsystem = bodyStarsystemFixture(),
+	}
+	self:assertEquals('Moon in the Stanton system', Body.getShortDescription(ctx(offStar, {})))
+	-- 'Natural satellite of X' reads; a planet-type classification on a moon
+	-- does not, so Pyro IV keeps its class and drops the parent.
+	local args = { classification = 'Natural satellite' }
+	self:assertEquals(
+		'Natural satellite of Crusader in the Stanton system',
+		Body.getShortDescription(ctx(bodyApiData(), args, bodyResolved(args)))
+	)
+	local planetClass = { classification = 'Terrestrial rocky planet' }
+	self:assertEquals(
+		'Terrestrial rocky planet in the Stanton system',
+		Body.getShortDescription(ctx(bodyApiData(), planetClass, bodyResolved(planetClass)))
+	)
+	self:assertEquals('A planet in Star Citizen', Body.getShortDescription(ctx({}, {})))
 end
 
 -- ── Orbital zones (StarSystem) ─────────────────────────────────────────────

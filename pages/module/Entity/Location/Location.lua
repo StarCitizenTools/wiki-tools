@@ -2,10 +2,11 @@ require('strict')
 
 --- @module Entity/Location
 --- Location kind: entities backed by the game-data /api/locations endpoint
---- (star systems, planets, moons, stations, …). Three classifications are
+--- (star systems, planets, moons, stations, …). Four classifications are
 --- modelled: SolarSystem (the StarSystem leaf), jump points (the JumpPoint
---- leaf) and stars (the Star leaf). matches() claims exactly the records a leaf
---- renders: SolarSystem records, Star records, and jump-point gates (the
+--- leaf), stars (the Star leaf) and planets and moons (the Body leaf, which
+--- serves both). matches() claims exactly the records a leaf renders:
+--- SolarSystem, Star, Planet and Moon records, and jump-point gates (the
 --- locations API types gates as 'Anomaly', a token shared with wreck sites, so
 --- a gate is recognised by name — see isJumpPointRecord). Every other location
 --- stays unclaimed until its leaf exists. This module is kind identity only;
@@ -35,6 +36,7 @@ local LOCATION_SUBTYPE_MAP = {
 	starsystem = 'Entity/Location/StarSystem',
 	jumppoint = 'Entity/Location/JumpPoint',
 	star = 'Entity/Location/Star',
+	body = 'Entity/Location/Body',
 }
 
 --- The leaf a kind-declared page with no typed record resolves to: the lore
@@ -93,10 +95,10 @@ local function isJumpPointRecord(apiData)
 end
 
 --- Family token of a typed location record: 'jumppoint' for a gate,
---- 'starsystem' for a SolarSystem record, 'star' for a Star record, false for a
---- typed record no leaf models (planets, wreck sites), nil when the record
---- carries no type table at all (no record, or the editorial fork's empty
---- apiData).
+--- 'starsystem' for a SolarSystem record, 'star' for a Star record, 'body' for a
+--- Planet or Moon record, false for a typed record no leaf models (wreck sites,
+--- stations), nil when the record carries no type table at all (no record, or
+--- the editorial fork's empty apiData).
 --- @param apiData table|nil
 --- @return string|false|nil
 local function recordFamily(apiData)
@@ -113,6 +115,11 @@ local function recordFamily(apiData)
 	-- page is record-less and reaches the Star leaf through a curated |family=.
 	if apiData.type.name == 'Star' then
 		return 'star'
+	end
+	-- One leaf serves both: a moon differs from a planet only in what its
+	-- parent is, which is a value rather than a shape.
+	if apiData.type.name == 'Planet' or apiData.type.name == 'Moon' then
+		return 'body'
 	end
 	return false
 end

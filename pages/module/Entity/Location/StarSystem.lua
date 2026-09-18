@@ -8,7 +8,6 @@ require('strict')
 --- degrades to location-only rows).
 
 local locationUtil = require('Module:Entity/Location/Util')
-local meterBar = require('Module:MeterBar')
 local sectionBuilder = require('Module:Entity/SectionBuilder')
 local statTiles = require('Module:StatTiles')
 local Editorial = require('Module:Entity/Editorial')
@@ -141,20 +140,6 @@ local function getAggregated(starsystem)
 	return type(aggregated) == 'table' and aggregated or {}
 end
 
---- 0–10 sensor value → display text: one decimal, trailing .0 dropped
---- ("8.13" → "8.1/10", 10 → "10/10"). nil for missing/zero/non-numeric —
---- zero means "no reading" in the starmap data, not an actual rating.
---- @param value any
---- @return string|nil
-local function formatSensor(value)
-	local n = tonumber(value)
-	if not n or n <= 0 then
-		return nil
-	end
-	local rounded = math.floor(n * 10 + 0.5) / 10
-	return tostring(rounded) .. '/10'
-end
-
 --- Count celestial objects by type.
 --- @param starsystem table|nil
 --- @return table<string, number>
@@ -265,21 +250,6 @@ local function buildZoneItems(starsystem)
 	return items
 end
 
---- Append a MeterBar sensor row as a full-width block item.
---- @param items EntityItemData[]
---- @param label string
---- @param value any
-local function appendMeter(items, label, value)
-	local text = formatSensor(value)
-	if not text then
-		return
-	end
-	items[#items + 1] = {
-		content = meterBar.render({ label = label, value = tonumber(value), max = 10, text = text }),
-		class = 't-infobox-item--block',
-	}
-end
-
 --- Type info runs before editorial resolution in Data.get, so the editorial
 --- system type is read from the raw args through Editorial.rawArg with this
 --- leaf's own manifest entry; everything downstream of resolution goes
@@ -321,8 +291,8 @@ function p.getSections(ctx)
 	sectionBuilder.push(general, 'Starmap status', starsystem and STATUS_LABELS[starsystem.status] or nil)
 
 	local sensor = {}
-	appendMeter(sensor, 'Economy', aggregated.economy)
-	appendMeter(sensor, 'Population', aggregated.population)
+	locationUtil.appendSensorMeter(sensor, 'Economy', aggregated.economy)
+	locationUtil.appendSensorMeter(sensor, 'Population', aggregated.population)
 
 	local objects = {}
 	local tiles = buildObjectTiles(starsystem, ed)
@@ -448,7 +418,6 @@ end
 
 -- Test-only exports. Not part of the public API.
 p._internal = {
-	formatSensor = formatSensor,
 	buildZoneItems = buildZoneItems,
 	countObjects = countObjects,
 	buildObjectTiles = buildObjectTiles,

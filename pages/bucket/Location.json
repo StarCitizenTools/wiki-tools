@@ -9,6 +9,16 @@
 		"index": false,
 		"repeated": false
 	},
+	"danger_rating": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"designation": {
+		"type": "TEXT",
+		"index": false,
+		"repeated": false
+	},
 	"destination_system": {
 		"type": "PAGE",
 		"index": false,
@@ -21,6 +31,11 @@
 	},
 	"discovered_in": {
 		"type": "TEXT",
+		"index": false,
+		"repeated": false
+	},
+	"economy_rating": {
+		"type": "DOUBLE",
 		"index": false,
 		"repeated": false
 	},
@@ -44,8 +59,18 @@
 		"index": false,
 		"repeated": false
 	},
+	"parent": {
+		"type": "PAGE",
+		"index": false,
+		"repeated": false
+	},
 	"planet_count": {
 		"type": "INTEGER",
+		"index": false,
+		"repeated": false
+	},
+	"population_rating": {
+		"type": "DOUBLE",
 		"index": false,
 		"repeated": false
 	},

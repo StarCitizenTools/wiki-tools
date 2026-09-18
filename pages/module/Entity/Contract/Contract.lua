@@ -17,10 +17,10 @@ local p = {}
 --- categories are additive root-to-leaf; enrich runs root-to-leaf, each link
 --- receiving the previous link's apiData; the editorial manifest merges
 --- root-to-leaf with leaf keys winning; type info, short description,
---- subtitle, header badge, acquisition and the sibling payloads getBlueprints
---- and getPorts are leaf-first-wins (even a nil answer stands); getRelated is
---- leaf-first, first non-empty wins (Entity/Related resolves it with
---- assembly.acceptNonEmpty, so a leaf's nil falls through instead of winning).
+--- acquisition and the sibling payloads getBlueprints and getPorts are
+--- leaf-first-wins (even a nil answer stands); subtitle, title annotation,
+--- header badge and getRelated are leaf-first but SKIP a nil or empty answer
+--- and keep walking, because their resolvers pass assembly.acceptNonEmpty.
 --- @type table<string, boolean>
 p.CONTRIBUTOR = {
 	getSections = false,
@@ -32,6 +32,7 @@ p.CONTRIBUTOR = {
 	getTypeInfo = false,
 	getApiConfigs = false,
 	getSubtitle = false,
+	getTitleAnnotation = false,
 	getHeaderBadge = false,
 	enrich = false,
 	getEditorialManifest = false,

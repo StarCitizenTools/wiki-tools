@@ -2,10 +2,11 @@ require('strict')
 
 --- @module Entity/Location
 --- Location kind: entities backed by the game-data /api/locations endpoint
---- (star systems, planets, moons, stations, …). Four classifications are
+--- (star systems, planets, moons, stations, …). Five classifications are
 --- modelled: SolarSystem (the StarSystem leaf), jump points (the JumpPoint
---- leaf), stars (the Star leaf) and planets and moons (the Body leaf, which
---- serves both). matches() claims exactly the records a leaf renders:
+--- leaf), stars (the Star leaf), planets and moons (the Body leaf, which serves
+--- both) and asteroid formations (the Belt leaf, which has no record and is
+--- reached only through |family=). matches() claims exactly the records a leaf renders:
 --- SolarSystem, Star, Planet and Moon records, and jump-point gates (the
 --- locations API types gates as 'Anomaly', a token shared with wreck sites, so
 --- a gate is recognised by name — see isJumpPointRecord). Every other location
@@ -37,6 +38,7 @@ local LOCATION_SUBTYPE_MAP = {
 	jumppoint = 'Entity/Location/JumpPoint',
 	star = 'Entity/Location/Star',
 	body = 'Entity/Location/Body',
+	belt = 'Entity/Location/Belt',
 }
 
 --- The leaf a kind-declared page with no typed record resolves to: the lore

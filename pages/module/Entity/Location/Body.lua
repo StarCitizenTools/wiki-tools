@@ -179,23 +179,14 @@ local function classification(apiData, args)
 	return entry and entry.classification or nil
 end
 
---- The affiliation to STORE: the compact token StarSystem also writes, taken
---- from the first segment of the page's own value, else from the system.
----
---- Only the first segment, because a page may name two affiliations in one arg
---- ("[[Vanduul]]<br/>Independent" on Armitage) against a single-valued column,
---- and Editorial.toStoredValue strips the tag with no separator, so the raw
---- value would store as the unqueryable "VanduulIndependent".
+--- The affiliation to STORE: the compact token StarSystem also writes. The
+--- single-segment rule that makes a two-affiliation arg queryable lives in
+--- locationUtil.storedAffiliation, which every leaf shares.
 --- @param apiData table
 --- @param resolved table|nil
 --- @return string|nil
 local function storedAffiliation(apiData, resolved)
-	local stated = Editorial.view(resolved):value('affiliation')
-	if type(stated) == 'string' then
-		stated = mw.text.split(stated, '<%s*[bB][rR]%s*/?%s*>')[1]
-	end
-	local entry = locationUtil.affiliationFromText(stated) or locationUtil.affiliationEntry(getStarsystem(apiData))
-	return entry and (entry.short or entry.label) or nil
+	return locationUtil.storedAffiliation(getStarsystem(apiData), resolved)
 end
 
 --- The body's own affiliation, which need not match its system's: Charon III

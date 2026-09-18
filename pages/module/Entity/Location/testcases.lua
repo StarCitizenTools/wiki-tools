@@ -9,6 +9,7 @@ local StarSystem = require('Module:Entity/Location/StarSystem')
 local JumpPoint = require('Module:Entity/Location/JumpPoint')
 local Star = require('Module:Entity/Location/Star')
 local Body = require('Module:Entity/Location/Body')
+local Belt = require('Module:Entity/Location/Belt')
 
 --- Hook context for direct hook calls (Module:Entity/Types EntityHookContext).
 local function ctx(apiData, args, resolved)
@@ -1992,6 +1993,224 @@ function suite:testBodyShortDescription()
 		Body.getShortDescription(ctx(bodyApiData(), planetClass, bodyResolved(planetClass)))
 	)
 	self:assertEquals('A planet in Star Citizen', Body.getShortDescription(ctx({}, {})))
+end
+
+-- ── Belt (asteroid formations) ─────────────────────────────────────────────
+
+--- A system payload carrying one of each formation the ARK models, in its real
+--- shape: no `name`, a designation, a numeric parent_id, and a sensor block
+--- whose zeros mean "no reading".
+local function beltStarsystemFixture()
+	return {
+		code = 'OSIRIS',
+		name = 'Osiris',
+		affiliation = { { code = 'uee', name = 'UEE' } },
+		celestial_objects = {
+			{ id = 1855, code = 'OSIRIS.STARS.OSIRIS', type = 'STAR', designation = 'Osiris' },
+			{
+				id = 1860,
+				code = 'OSIRIS.PLANETS.OSIRISII',
+				type = 'PLANET',
+				name = 'Cassel',
+				designation = 'Osiris II',
+				parent_id = 1855,
+			},
+			{
+				id = 2542,
+				code = 'OSIRIS.BELTS.OSIRISBELTALPHA',
+				type = 'ASTEROID_BELT',
+				designation = 'Osiris Belt Alpha',
+				parent_id = 1855,
+				distance = 1.73,
+				sensor = { population = 2, economy = 3, danger = 4 },
+				sub_type = { name = 'System Belt', type = 'ASTEROID_BELT' },
+			},
+			{
+				id = 2038,
+				code = 'OSIRIS.BELTS.RINGSOFCASSEL',
+				type = 'ASTEROID_BELT',
+				designation = 'Rings of Cassel',
+				parent_id = 1860,
+				distance = 0,
+				sensor = { population = 0, economy = 0, danger = 0 },
+				sub_type = { name = 'Planetary Ring', type = 'ASTEROID_BELT' },
+			},
+			-- The shape the three real sub_type-less belts carry: the ARK serves
+			-- the key with every field null, which reaches Lua as an EMPTY TABLE
+			-- rather than an absent sub_type.
+			{
+				id = 2771,
+				code = 'OSIRIS.ACCRETIONDISK',
+				type = 'ASTEROID_BELT',
+				designation = 'Osiris accretion disk',
+				parent_id = 1855,
+				distance = 3.1,
+				sub_type = {},
+			},
+			{
+				id = 2770,
+				code = 'OSIRIS.PLANET.OSIRISSPLIT',
+				type = 'ASTEROID_FIELD',
+				designation = 'Osiris split',
+				parent_id = 1855,
+				distance = 2.48,
+				sub_type = { name = 'System Cluster', type = 'ASTEROID_FIELD' },
+			},
+		},
+	}
+end
+
+local function beltResolved(args)
+	return Editorial.resolve({}, args, assembly.mergeEditorialManifests(assembly.buildChain(Belt)))
+end
+
+local function beltApiData()
+	return { starsystem = beltStarsystemFixture(), system = 'Osiris System' }
+end
+
+function suite:testBeltVocabulary()
+	self:assertEquals('Asteroid belts', Util.beltTypeEntry({ name = 'System Belt' }).category)
+	self:assertEquals('Asteroid clusters', Util.beltTypeEntry('System Cluster').category)
+	-- The ring category is NOT 'Planetary rings', which exists but is empty.
+	self:assertEquals('Planetary ring systems', Util.beltTypeEntry('Planetary Ring').category)
+	-- The wording the ten ring pages already carry, and the singular of their
+	-- category. 'Planetary ring' would be an invention.
+	self:assertEquals('Planetary ring system', Util.beltTypeEntry('Planetary Ring').classification)
+	-- One concept page for the whole family: the per-type titles are redlinks.
+	for _, k in ipairs({ 'System Belt', 'System Cluster', 'Planetary Ring' }) do
+		self:assertEquals('Asteroid formation', Util.beltTypeEntry(k).page)
+	end
+	self:assertEquals(nil, Util.beltTypeEntry(nil))
+	-- Three ARK belts carry no sub_type, so the bare type token names the class.
+	self:assertEquals('Asteroid belts', Util.beltTypeEntry(nil, 'ASTEROID_BELT').category)
+	-- And that is how they REALLY arrive: the key present, every field null.
+	self:assertEquals('Asteroid belts', Util.beltTypeEntry({}, 'ASTEROID_BELT').category)
+	-- A sub_type the vocabulary does not map does NOT fall through to the token:
+	-- it is a real classification this leaf has no word for, not a missing one.
+	self:assertEquals(nil, Util.beltTypeEntry('System Ring', 'ASTEROID_BELT'))
+	-- The sub_type still decides where there is one: 11 ASTEROID_BELT objects
+	-- are rings, and the token alone would file them as belts.
+	self:assertEquals('Planetary ring systems', Util.beltTypeEntry('Planetary Ring', 'ASTEROID_BELT').category)
+	-- Every ASTEROID_FIELD names a sub_type, so the token maps to nothing.
+	self:assertEquals(nil, Util.beltTypeEntry(nil, 'ASTEROID_FIELD'))
+	-- An editor's wording resolves in any of the three forms.
+	for _, wording in ipairs({ 'Asteroid belt', 'System Belt', '[[Asteroid belt]]' }) do
+		self:assertEquals('Asteroid belts', Util.beltTypeFromText(wording).category)
+	end
+	self:assertEquals('Planetary ring systems', Util.beltTypeFromText('Planetary ring system').category)
+	self:assertEquals('Planetary ring systems', Util.beltTypeFromText('Planetary Ring').category)
+	self:assertEquals(nil, Util.beltTypeFromText('Gas giant'))
+end
+
+function suite:testBeltResolvesAndClassifies()
+	local api = beltApiData()
+	self:assertEquals('Asteroid belt', Belt._internal.classification(api, { code = 'OSIRIS.BELTS.OSIRISBELTALPHA' }))
+	self:assertEquals(
+		'Planetary ring system',
+		Belt._internal.classification(api, { code = 'OSIRIS.BELTS.RINGSOFCASSEL' })
+	)
+	self:assertEquals('Asteroid cluster', Belt._internal.classification(api, { code = 'OSIRIS.PLANET.OSIRISSPLIT' }))
+	-- A code is never derivable: the cluster carries a PLANET segment.
+	self:assertEquals(
+		'OSIRIS.PLANET.OSIRISSPLIT',
+		Belt._internal.resolvedStarmapCode(api, { code = 'OSIRIS.PLANET.OSIRISSPLIT' })
+	)
+	-- Resolution by name works where no code is written, as it does for bodies.
+	local named = { starsystem = beltStarsystemFixture(), system = 'Osiris System', name = 'Osiris Belt Alpha' }
+	self:assertEquals('Asteroid belt', Belt._internal.classification(named, {}))
+end
+
+function suite:testBeltTypeInfoAndCategories()
+	local api = beltApiData()
+	local belt = Belt.getTypeInfo(ctx(api, { code = 'OSIRIS.BELTS.OSIRISBELTALPHA' }))
+	self:assertEquals('Asteroid belt', belt.name)
+	self:assertEquals('Asteroid belts', belt.category)
+	local ring = Belt.getTypeInfo(ctx(api, { code = 'OSIRIS.BELTS.RINGSOFCASSEL' }))
+	self:assertEquals('Planetary ring systems', ring.category)
+	-- No sub_type and no editorial class: the container category, not a guess.
+	self:assertEquals('Asteroid Formations', Belt.getTypeInfo(ctx({}, {})).category)
+	-- A sub_type-less belt reads its class off the bare type token.
+	local disk = Belt.getTypeInfo(ctx(api, { code = 'OSIRIS.ACCRETIONDISK' }))
+	self:assertEquals('Asteroid belt', disk.name)
+	self:assertEquals('Asteroid belts', disk.category)
+	-- getSubtitle links the display noun at the family's one concept page.
+	self:assertEquals(
+		'[[Asteroid formation|Asteroid belt]]',
+		Belt.getSubtitle(ctx(api, { code = 'OSIRIS.BELTS.OSIRISBELTALPHA' }))
+	)
+	-- Only the system category is contributed; the type one is structural.
+	local cats = Belt.getCategories(ctx(api, { code = 'OSIRIS.BELTS.OSIRISBELTALPHA' }))
+	self:assertEquals(1, #cats)
+	self:assertEquals('Osiris system', cats[1])
+end
+
+-- What a formation orbits is the whole difference between the three: a belt and
+-- a cluster hang off the star, a ring off its planet.
+function suite:testBeltParentAndChain()
+	local api = beltApiData()
+	self:assertEquals('Osiris', (Belt._internal.parentAnchor(api, { code = 'OSIRIS.BELTS.OSIRISBELTALPHA' })))
+	self:assertEquals('Cassel', (Belt._internal.parentAnchor(api, { code = 'OSIRIS.BELTS.RINGSOFCASSEL' })))
+	local chain = Belt._internal.locationChain(api, { code = 'OSIRIS.BELTS.RINGSOFCASSEL' })
+	self:assertStringContains('UEE space', chain)
+	self:assertStringContains('Osiris system', chain)
+	self:assertStringContains('Cassel', chain)
+	self:assertEquals(3, select(2, chain:gsub('›', '')) + 1)
+end
+
+function suite:testBeltDistance()
+	local api = beltApiData()
+	self:assertEquals('1.73 AU', Belt._internal.distanceAu(api, { code = 'OSIRIS.BELTS.OSIRISBELTALPHA' }))
+	self:assertEquals('2.48 AU', Belt._internal.distanceAu(api, { code = 'OSIRIS.PLANET.OSIRISSPLIT' }))
+	-- A ring sits ON its planet, so the ARK reports 0 and no row is shown.
+	self:assertEquals(nil, Belt._internal.distanceAu(api, { code = 'OSIRIS.BELTS.RINGSOFCASSEL' }))
+end
+
+function suite:testBeltSectionsAndStructuredData()
+	local api = beltApiData()
+	local args = { code = 'OSIRIS.BELTS.OSIRISBELTALPHA' }
+	local sensor
+	for _, section in ipairs(Belt.getSections(ctx(api, args))) do
+		if section.key == 'sensor' then
+			sensor = section
+		end
+	end
+	self:assertEquals(3, #sensor.items)
+	-- A ring's readings are all the no-reading sentinel, so no section at all.
+	for _, section in ipairs(Belt.getSections(ctx(api, { code = 'OSIRIS.BELTS.RINGSOFCASSEL' }))) do
+		self:assertNotEquals('sensor', section.key)
+	end
+	local data = Belt.getStructuredData(ctx(api, args))
+	self:assertEquals('Osiris system', data.system)
+	self:assertEquals('UEE', data.affiliation)
+	self:assertEquals('Asteroid belt', data.classification)
+	self:assertEquals(4, data.danger_rating)
+	-- Belts hang off the star, so the stored parent is the star's page.
+	self:assertEquals('Osiris', data.parent)
+	-- A ring hangs off its planet instead.
+	self:assertEquals('Cassel', Belt.getStructuredData(ctx(api, { code = 'OSIRIS.BELTS.RINGSOFCASSEL' })).parent)
+	-- Two affiliations in one arg store as the first token, not 'VanduulIndependent'.
+	local two = { code = 'OSIRIS.BELTS.OSIRISBELTALPHA', affiliation = '[[Vanduul]]<br/>Independent' }
+	self:assertEquals('Vanduul', Belt.getStructuredData(ctx(api, two, beltResolved(two))).affiliation)
+	-- The row still shows both, since the page said both.
+	self:assertStringContains('Independent', Belt._internal.affiliationText(api, beltResolved(two)))
+end
+
+function suite:testBeltShortDescription()
+	local api = beltApiData()
+	self:assertEquals(
+		'Asteroid belt in the Osiris system',
+		Belt.getShortDescription(ctx(api, { code = 'OSIRIS.BELTS.OSIRISBELTALPHA' }))
+	)
+	-- A ring names its planet: that is what tells one ring from another.
+	self:assertEquals(
+		'Planetary ring system of Cassel in the Osiris system',
+		Belt.getShortDescription(ctx(api, { code = 'OSIRIS.BELTS.RINGSOFCASSEL' }))
+	)
+	self:assertEquals('Asteroid formation in Star Citizen', Belt.getShortDescription(ctx({}, {})))
+end
+
+function suite:testBeltFamilyDispatch()
+	self:assertEquals(Belt, Location.resolveSubtype({}, { kind = 'Location', family = 'belt' }))
 end
 
 -- ── Orbital zones (StarSystem) ─────────────────────────────────────────────

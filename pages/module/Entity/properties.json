@@ -292,7 +292,7 @@
 		"modules": [
 			"Location/Star"
 		],
-		"desc": "Spectral class of a star, as the star infobox's subtitle words it ('K-type main sequence star', 'A-type white dwarf', 'Stellar black hole'). Editorial text wins over the starmap sub_type, so lore-only classes ('K-type main sequence flare star') store faithfully."
+		"desc": "Spectral class of a star, as the star infobox's subtitle words it ('K-type main-sequence star', 'White dwarf', 'Stellar black hole'; hyphenated to match the wiki's article titles). Editorial text wins over the starmap sub_type, so lore-only classes ('K-type main-sequence flare star') store faithfully, delinked. Duplicates the kind-generic Subject type for classed stars; it earns its place by letting a location query filter on class without joining the entity bucket."
 	},
 	"Commodity group": {
 		"type": "TEXT",
@@ -1573,7 +1573,7 @@
 			"Location/StarSystem",
 			"Location/Star"
 		],
-		"desc": "Number of planets in a star system. The Star leaf stores a star's own satellites here: they are the same fact, and for a binary the per-star count is the more precise one."
+		"desc": "Number of planets in a star system. The Star leaf stores a star's own satellites here rather than adding a column for the same fact; note that every live binary carries the SYSTEM total on both stars (Tyrol A and B both 7), so a star row's value is not a per-star figure and an aggregate query must filter by Subject type."
 	},
 	"Pledge availability": {
 		"type": "TEXT",

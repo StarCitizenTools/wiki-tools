@@ -40,7 +40,7 @@ end
 --- planet count, which no endpoint this leaf fetches carries, and for a binary
 --- it is per-star rather than per-system. No entry takes a property key —
 --- getStructuredData stores these itself, so display and store cannot diverge.
---- This leaf declares all four itself, which is the only reason reading its own
+--- This leaf declares all five itself, which is the only reason reading its own
 --- fragment below (rather than the merged chain manifest) is correct.
 --- @return table
 function p.getEditorialManifest()
@@ -81,13 +81,18 @@ end
 --- Editorial text wins: Pyro is a flare star by lore, which the starmap does
 --- not carry. nil where nothing classes the object, so callers fall back to the
 --- generic rather than inventing a class.
+---
+--- DELINKED here, once, because three of the four consumers cannot take markup:
+--- getTypeInfo's name is stored as the indexed `Subject type` and is the
+--- short-description fallback, and getSubtitle wraps the text in a link, so an
+--- editor's own `[[…]]` would nest and render as literal brackets.
 --- @param apiData table
 --- @param args table|nil
 --- @return string|nil
 local function classification(apiData, args)
 	local editorialText = editorialClassification(args)
 	if type(editorialText) == 'string' and editorialText ~= '' then
-		return editorialText
+		return Editorial.toStoredValue(editorialText)
 	end
 	local entry = starTypeEntry(apiData)
 	if entry then
@@ -190,10 +195,15 @@ function p.getTypeInfo(ctx)
 	}
 end
 
---- Display text → index page for the two classifications that come from no
---- sub_type at all: a star the ARK never classed, and a black hole it gave no
---- sub_type. Both strings are themselves page titles.
-local GENERIC_PAGES = { ['Star'] = 'Star', ['Black hole'] = 'Black hole' }
+--- The two classifications that come from no sub_type at all: a star the ARK
+--- never classed, and a black hole it gave none. Each carries BOTH its index
+--- page and its category, because the pair has to move together — a subtitle
+--- reading "Black hole" filed under Unknown spectral type stars would break the
+--- invariant starTypeEntry exists to hold.
+local GENERIC = {
+	['Star'] = { page = 'Star', category = 'Unknown spectral type stars' },
+	['Black hole'] = { page = 'Black hole', category = 'Black holes' },
+}
 
 --- The classification linked to its index page. DISPLAY ONLY — getTypeInfo
 --- keeps the plain form because that one is stored. An editor's wording is kept
@@ -208,8 +218,8 @@ function p.getSubtitle(ctx)
 	if entry then
 		return locationUtil.starTypeLink(entry, text)
 	end
-	local generic = GENERIC_PAGES[text]
-	return generic and ('[[' .. generic .. ']]') or text
+	local generic = GENERIC[text]
+	return generic and ('[[' .. generic.page .. ']]') or text
 end
 
 --- Two categories, one browse and one functional.
@@ -227,7 +237,8 @@ end
 --- @return string[]
 function p.getCategories(ctx)
 	local entry = starTypeEntry(ctx.apiData) or locationUtil.starTypeFromText(editorialClassification(ctx.args))
-	local categories = { entry and entry.category or 'Unknown spectral type stars' }
+	local generic = not entry and GENERIC[classification(ctx.apiData, ctx.args) or 'Star'] or nil
+	local categories = { entry and entry.category or (generic and generic.category) or 'Unknown spectral type stars' }
 	local system = systemName(ctx.apiData, ctx.args)
 	if system then
 		categories[#categories + 1] = system .. ' system'
@@ -263,9 +274,12 @@ function p.getSections(ctx)
 end
 
 --- The system stores as the wiki PAGE name ("Stanton system"), JumpPoint's
---- vocabulary, so queries resolve real pages. A star's satellites ARE its
---- planets, so they reuse Planet count rather than adding a column for the same
---- fact. discoveredin/discoveredby belong to the kind's manifest, not here.
+--- vocabulary, so queries resolve real pages. A star's satellites reuse Planet
+--- count rather than adding a column for the same fact; note that every live
+--- binary carries the SYSTEM total on both stars (Tyrol A and B both 7), so a
+--- star row's planet_count is not a per-star figure and an aggregate query must
+--- filter by subject_type. discoveredin/discoveredby belong to the kind's
+--- manifest, not here.
 --- @param ctx EntityHookContext
 --- @return table<string, any>
 function p.getStructuredData(ctx)

@@ -43,17 +43,10 @@ function p.getEditorialManifest()
 	}
 end
 
---- @param apiData table
---- @return table|nil
-local function getStarsystem(apiData)
-	return type(apiData.starsystem) == 'table' and apiData.starsystem or nil
-end
-
---- Read from the RAW arg because getTypeInfo runs before editorial resolution.
 --- @param args table|nil
 --- @return string|nil
 local function starmapCode(args)
-	return Editorial.rawArg(args, p.getEditorialManifest().starmapcode)
+	return locationUtil.manifestArg(args, p.getEditorialManifest(), 'starmapcode')
 end
 
 --- The ARK object types this leaf may resolve to. The two are one family to the
@@ -68,7 +61,7 @@ local BELT_OBJECT_TYPES = { ASTEROID_BELT = true, ASTEROID_FIELD = true }
 --- @param args table|nil
 --- @return table|nil
 local function celestial(apiData, args)
-	local starsystem = getStarsystem(apiData)
+	local starsystem = locationUtil.starsystemOf(apiData)
 	return locationUtil.celestialByCode(starsystem, starmapCode(args))
 		or locationUtil.celestialByName(starsystem, locationUtil.subjectName(apiData, args), BELT_OBJECT_TYPES)
 end
@@ -77,19 +70,13 @@ end
 --- @param args table|nil
 --- @return string|nil
 local function resolvedStarmapCode(apiData, args)
-	local code = starmapCode(args)
-	if type(code) == 'string' and code ~= '' then
-		return code
-	end
-	local obj = celestial(apiData, args)
-	code = obj and obj.code or nil
-	return type(code) == 'string' and code ~= '' and code or nil
+	return locationUtil.resolvedStarmapCode(args, p.getEditorialManifest(), celestial(apiData, args))
 end
 
 --- @param args table|nil
 --- @return string|nil
 local function editorialClassification(args)
-	return Editorial.rawArg(args, p.getEditorialManifest().classification)
+	return locationUtil.manifestArg(args, p.getEditorialManifest(), 'classification')
 end
 
 --- The vocabulary entry this page's starmap object resolves to.
@@ -123,11 +110,7 @@ end
 --- @param args table|nil
 --- @return string|nil
 local function systemName(apiData, args)
-	local fromRecord = locationUtil.entrySystem(apiData)
-	if fromRecord then
-		return fromRecord
-	end
-	return locationUtil.systemShortName(Editorial.rawArg(args, p.getEditorialManifest().system))
+	return locationUtil.systemNameFrom(apiData, args, p.getEditorialManifest())
 end
 
 --- Bridges by the SYSTEM name, explicitly, for the same reason the Body leaf
@@ -142,96 +125,36 @@ function p.enrich(ctx)
 	return locationUtil.attachStarsystem(ctx.apiData, ctx.args, system)
 end
 
---- The page an anchor should link, preferring a qualified title only when it is
---- there. Shares the Body leaf's reasoning: a planet may sit at
---- "<name> (planet)" behind a disambiguation page, while a binary's component
---- star sits at the bare name.
---- @param name string
---- @param qualifier string
---- @return string
-local function anchorTitle(name, qualifier)
-	local qualified = name .. ' (' .. qualifier .. ')'
-	local title = mw.title.new(qualified)
-	if title and title.exists then
-		return qualified
-	end
-	return name
-end
-
 --- What this formation orbits, as display name plus link target. A belt or
 --- cluster hangs off the star; a ring hangs off its planet, which is the whole
---- difference between them.
+--- difference between them. The starmap parent is the ONLY source here: unlike
+--- a body, a formation has no record to carry one.
 --- @param apiData table
 --- @param args table|nil
 --- @return string|nil name
 --- @return string|nil target
 local function parentAnchor(apiData, args)
-	local starsystem = getStarsystem(apiData)
-	local obj = locationUtil.celestialParent(starsystem, celestial(apiData, args))
-	local name = locationUtil.celestialName(obj)
-	if not name then
-		return nil, nil
-	end
-	if obj.type == 'STAR' or obj.type == 'BLACKHOLE' then
-		return name, anchorTitle(name, 'star')
-	end
-	return name, anchorTitle(name, 'planet')
+	return locationUtil.celestialParentAnchor(locationUtil.starsystemOf(apiData), celestial(apiData, args))
 end
 
---- One linked tier of the Location row, linked only where the page exists.
---- Untested offline: the runner's title shim cannot answer `exists`.
---- @param name string|nil
---- @param target string|nil
---- @return string|nil
-local function tier(name, target)
-	if type(name) ~= 'string' or name == '' then
-		return nil
-	end
-	local title = type(target) == 'string' and target ~= '' and mw.title.new(target) or nil
-	if title and title.exists then
-		return '[[' .. target .. '|' .. name .. ']]'
-	end
-	return name
-end
-
---- The Location row: `affiliation space › system › parent`, the same three
---- tiers the Body leaf builds, so a belt and a planet in one system read alike.
 --- @param apiData table
 --- @param args table|nil
 --- @return string|nil
 local function locationChain(apiData, args)
-	local starsystem = getStarsystem(apiData)
-	local parts = {}
-	-- The SYSTEM's affiliation, never the page's: this tier links the systems
-	-- category, so it has to describe the system.
-	local affiliation = locationUtil.affiliationEntry(starsystem)
-	if affiliation then
-		local text = (affiliation.short or affiliation.label) .. ' space'
-		parts[#parts + 1] = tier(text, ':Category:' .. affiliation.label .. ' systems')
-	end
-	local system = systemName(apiData, args)
-	if system then
-		parts[#parts + 1] = tier(system .. ' system', system .. ' system')
-	end
 	local parentName, parentTarget = parentAnchor(apiData, args)
-	parts[#parts + 1] = tier(parentName, parentTarget)
-	if #parts == 0 then
-		return nil
-	end
-	return table.concat(parts, ' › ')
+	return locationUtil.locationChain(
+		locationUtil.starsystemOf(apiData),
+		systemName(apiData, args),
+		parentName,
+		parentTarget
+	)
 end
 
---- The formation's own affiliation, shown as StarSystem shows it: an editor's
---- markup for free text, the canonical label linked otherwise.
 --- @param apiData table
 --- @param resolved table|nil
 --- @return string|nil
 local function affiliationText(apiData, resolved)
-	local entry = locationUtil.resolveAffiliation(getStarsystem(apiData), resolved)
-	if not entry then
-		return nil
-	end
-	return entry.display or ('[[' .. entry.label .. ']]')
+	return locationUtil.affiliationDisplay(locationUtil.starsystemOf(apiData), resolved)
 end
 
 --- The distance from what it orbits, in AU. Parent-relative, not star-relative,
@@ -332,7 +255,7 @@ function p.getStructuredData(ctx)
 	end
 	return {
 		system = system and (system .. ' system') or nil,
-		affiliation = locationUtil.storedAffiliation(getStarsystem(apiData), resolved),
+		affiliation = locationUtil.storedAffiliation(locationUtil.starsystemOf(apiData), resolved),
 		parent = parentTarget,
 		classification = classification(apiData, args),
 		designation = Editorial.view(resolved):value('designation'),

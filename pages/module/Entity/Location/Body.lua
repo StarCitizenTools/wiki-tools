@@ -107,10 +107,11 @@ local function resolvedStarmapCode(apiData, args)
 end
 
 --- Is this body a moon? The LOCATION record decides when there is one, because
---- it is what a player sees in game. The two sources do disagree: the game
---- calls Delamar a Moon where the starmap types it a PLANET, though the wiki
---- calls it an asteroid and so no Body page renders it today. Were one to, this
---- order would type it a Moon against that judgement.
+--- it is what a player sees in game, except where the record contradicts
+--- itself: nothing orbiting a star directly is a moon. Delamar is the only
+--- record of the 1,970 that claims otherwise, typed a Moon of the star Nyx
+--- where the starmap types it a PLANET, and it falls through to the signals
+--- below.
 ---
 --- An editor's |type= comes next, ahead of the starmap, because neither starmap
 --- signal is reliable on its own. The ARK types Pyro IV a PLANET yet parents it
@@ -126,14 +127,14 @@ end
 local function isMoon(apiData, args)
 	-- A record naming a PLANET as its parent describes a moon whatever its own
 	-- type says: the game's Pyro IV record is type Planet with parent Pyro V,
-	-- itself a planet. Within one record the parent is the reliable field. Only
-	-- the positive direction holds, because a record may name a star as the
-	-- parent of something it still calls a moon.
-	if type(apiData.parent) == 'table' and apiData.parent.type_name == 'Planet' then
+	-- itself a planet. Within one record the parent is the reliable field.
+	local parentType = type(apiData.parent) == 'table' and apiData.parent.type_name or nil
+	if parentType == 'Planet' then
 		return true
 	end
 	local recordType = type(apiData.type) == 'table' and apiData.type.name or nil
-	if recordType == 'Moon' then
+	-- The star-parent exclusion the header describes, which only Delamar trips.
+	if recordType == 'Moon' and parentType ~= 'Star' then
 		return true
 	end
 	if recordType == 'Planet' then

@@ -1,0 +1,32 @@
+{
+	"issue_number": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": false
+	},
+	"pages": {
+		"type": "INTEGER",
+		"index": false,
+		"repeated": false
+	},
+	"publication_year": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": false
+	},
+	"published": {
+		"type": "TEXT",
+		"index": false,
+		"repeated": false
+	},
+	"title": {
+		"type": "TEXT",
+		"index": false,
+		"repeated": false
+	},
+	"total_number": {
+		"type": "INTEGER",
+		"index": true,
+		"repeated": false
+	}
+}

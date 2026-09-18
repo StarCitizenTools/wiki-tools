@@ -1,0 +1,48 @@
+{
+	"%doc": "Source-of-truth manifest for the `jump_point_issue` Bucket table: one row per issue page of the Jump Point magazine, written by Module:JumpPointMagazine from the {{JumpPointMagazine}} infobox arguments. Issue pages are not Entity pages and hold no Entity row, so a table over them roots on this bucket rather than `entity` (Module:DataGrid/Static's `primary`); rooted on `entity` the query returns nothing at all, silently. The property names are prefixed `Jump Point ` because Module:BucketQuery resolves every registered manifest from one flat namespace, where a bare `Title`, `Pages` or `Published` would be a collision waiting to happen. type/bucket/field/index are the Bucket keys; desc is documentation only.",
+	"Jump Point title": {
+		"type": "TEXT",
+		"bucket": "jump_point_issue",
+		"field": "title",
+		"modules": ["JumpPointMagazine"],
+		"desc": "Title of the issue as it appears on the cover (Homemaking), without the issue number. Not indexed: it is shown rather than filtered on."
+	},
+	"Jump Point issue number": {
+		"type": "TEXT",
+		"bucket": "jump_point_issue",
+		"field": "issue_number",
+		"index": true,
+		"modules": ["JumpPointMagazine"],
+		"desc": "Volume-and-issue number as the magazine writes it, zero-padded (04-11). Text, not a number: the hyphen is part of the identifier, and it sorts correctly as written."
+	},
+	"Jump Point total number": {
+		"type": "INTEGER",
+		"bucket": "jump_point_issue",
+		"field": "total_number",
+		"index": true,
+		"modules": ["JumpPointMagazine"],
+		"desc": "Running count of the issue across every volume (48 for issue 04-11), the figure the magazine itself calls the Jump Point number."
+	},
+	"Jump Point publication year": {
+		"type": "TEXT",
+		"bucket": "jump_point_issue",
+		"field": "publication_year",
+		"index": true,
+		"modules": ["JumpPointMagazine"],
+		"desc": "Volume the issue belongs to, spelled as the word the categories use (Four, not 4 or 2016), because the module builds Category:Jump Point Year <value> from it."
+	},
+	"Jump Point published": {
+		"type": "TEXT",
+		"bucket": "jump_point_issue",
+		"field": "published",
+		"modules": ["JumpPointMagazine"],
+		"desc": "Release date in ISO form (2016-11-19). Text rather than a date column so it sorts lexicographically as written; the infobox renders its own long-form date separately."
+	},
+	"Jump Point pages": {
+		"type": "INTEGER",
+		"bucket": "jump_point_issue",
+		"field": "pages",
+		"modules": ["JumpPointMagazine"],
+		"desc": "Page count of the issue. Absent rather than zero when the infobox was given no usable number, so an unknown count reads as an empty cell."
+	}
+}

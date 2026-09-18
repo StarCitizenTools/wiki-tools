@@ -8,7 +8,7 @@ metatable.__index = methodtable
 
 local navplate = require('Module:Navplate')
 local common = require('Module:Common')
-local manufacturer = require('Module:Manufacturer'):new()
+local manufacturers = require('Module:Manufacturers')
 local i18n = require('Module:i18n'):new()
 local TNT = require('Module:Translate'):new()
 local BucketQuery = require('Module:BucketQuery')
@@ -166,7 +166,7 @@ function methodtable.make(self)
 		for mfu, vehicles in common.spairs(grouped) do
 			local icon = ''
 			local label
-			local mfuData = manufacturer:get(mfu)
+			local mfuData = manufacturers.resolve(mfu)
 			if mfuData and mfuData.code then
 				icon = string.format('[[File:sc-icon-brand-%s.svg|36px|link=]] ', string.lower(mfuData.code))
 				-- TODO: Intergrate label title and subtitle into Module:Navplate

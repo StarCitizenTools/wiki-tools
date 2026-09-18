@@ -285,6 +285,15 @@
 		],
 		"desc": "Game-data class name of an entity (AEGS_Gladius), the stable identifier for matching a page against the game files or another site's dataset. Absent on missions, which carry no class name."
 	},
+	"Classification": {
+		"type": "TEXT",
+		"bucket": "location",
+		"field": "classification",
+		"modules": [
+			"Location/Star"
+		],
+		"desc": "Spectral class of a star, as the star infobox's subtitle words it ('K-type main sequence star', 'A-type white dwarf', 'Stellar black hole'). Editorial text wins over the starmap sub_type, so lore-only classes ('K-type main sequence flare star') store faithfully."
+	},
 	"Commodity group": {
 		"type": "TEXT",
 		"bucket": "commodity",
@@ -1366,6 +1375,15 @@
 		],
 		"desc": "Total damage per second of a vehicle's pilot-controlled weapons (stock loadout)."
 	},
+	"Star radius": {
+		"type": "DOUBLE",
+		"bucket": "location",
+		"field": "star_radius",
+		"modules": [
+			"Location/Star"
+		],
+		"desc": "Radius of a star in kilometres, from the starmap size or an editorial |radius=. Absent where the starmap carries a placeholder instead of a measurement (see the Star leaf's radiusKm); the in-game record's size is never stored, being a placeholder for two of the three stars that have one."
+	},
 	"Turret DPS": {
 		"type": "DOUBLE",
 		"bucket": "vehicle_stats",
@@ -1552,9 +1570,10 @@
 		"bucket": "location",
 		"field": "planet_count",
 		"modules": [
-			"Location/StarSystem"
+			"Location/StarSystem",
+			"Location/Star"
 		],
-		"desc": "Number of planets in a star system."
+		"desc": "Number of planets in a star system. The Star leaf stores a star's own satellites here: they are the same fact, and for a binary the per-star count is the more precise one."
 	},
 	"Pledge availability": {
 		"type": "TEXT",
@@ -2110,9 +2129,10 @@
 		"bucket": "location",
 		"field": "system",
 		"modules": [
-			"Location/JumpPoint"
+			"Location/JumpPoint",
+			"Location/Star"
 		],
-		"desc": "Star system a location resides in, stored as the wiki page name ('Pyro system'). Written today by the JumpPoint leaf (the gate's entry system); the vocabulary is kind-wide for future Location leaves."
+		"desc": "Star system a location resides in, stored as the wiki page name ('Pyro system'). Written by the JumpPoint leaf (the gate's entry system) and the Star leaf; the vocabulary is kind-wide for future Location leaves."
 	},
 	"System size": {
 		"type": "DOUBLE",

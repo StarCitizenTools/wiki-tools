@@ -555,13 +555,14 @@ end
 -- kind's) attaches the celestial object on a declared-kind page.
 function suite:testLeafEnrichRunsOnTheChain()
 	local celestial = { code = 'PYRO.JUMPPOINTS.NYX', designation = 'Pyro - Nyx', type = 'JUMPPOINT' }
-	withStubbedFetch({ ['locations/%s'] = jumpPointRecord(), ['celestial-objects/%s'] = celestial }, function(seen)
+	local endpoint = 'celestial-objects/%s?include=starsystem&locale=en_EN'
+	withStubbedFetch({ ['locations/%s'] = jumpPointRecord(), [endpoint] = celestial }, function(seen)
 		local r = Data.get({
 			uuid = '80bac534-3e84-4a2d-97c2-3edefa2d5bef',
 			kind = 'Location',
 			starmapcode = 'PYRO.JUMPPOINTS.NYX',
 		})
-		self:assertEquals(true, seen['celestial-objects/%s'])
+		self:assertEquals(true, seen[endpoint])
 		self:assertEquals('Pyro - Nyx', r.apiData.celestialobject.designation)
 		self:assertEquals(nil, r.apiData.starsystem)
 	end)

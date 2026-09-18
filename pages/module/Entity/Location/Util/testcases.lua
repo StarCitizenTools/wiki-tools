@@ -271,4 +271,65 @@ function suite:testSystemShortNameStripsStarmapDecorations()
 	self:assertEquals(nil, f(' System'))
 end
 
+-- ── Star vocabulary ────────────────────────────────────────────────────────
+
+function suite:testStarTypeEntryAcceptsBothShapes()
+	local entry = Util.starTypeEntry({ name = 'Main Sequence-Dwarf-G', type = 'STAR' })
+	self:assertEquals('G-type main-sequence star', entry.classification)
+	self:assertEquals('G-type main-sequence stars', entry.category)
+	-- The bare name resolves identically, so callers may pass either.
+	self:assertEquals(entry, Util.starTypeEntry('Main Sequence-Dwarf-G'))
+	self:assertEquals(nil, Util.starTypeEntry(nil))
+	self:assertEquals(nil, Util.starTypeEntry('Main Sequence-Dwarf-Q'))
+end
+
+-- The compact form the system infobox's star-type row shows, which is NOT the
+-- classification wherever the two wordings differ.
+function suite:testStarTypeLabel()
+	local f = Util.starTypeLabel
+	self:assertEquals('G-type main-sequence', f({ name = 'Main Sequence-Dwarf-G' }))
+	self:assertEquals('Subgiant', f({ name = 'Subgiant' }))
+	-- No short form declared: the classification carries the row.
+	self:assertEquals('Neutron star', f({ name = 'Neutron' }))
+	-- An unmapped ARK class degrades to its raw name rather than vanishing.
+	self:assertEquals('Main Sequence-Dwarf-Q', f({ name = 'Main Sequence-Dwarf-Q' }))
+	self:assertEquals(nil, f(nil))
+end
+
+-- Display, link target and category are spelt alike, and the seven
+-- main-sequence pages the links point at exist under exactly these titles.
+function suite:testStarTypeLink()
+	local f = Util.starTypeLink
+	local g = Util.starTypeEntry('Main Sequence-Dwarf-G')
+	-- Page and text agree: a bare link, not a piped one repeating itself.
+	self:assertEquals('[[G-type main-sequence star]]', f(g, 'G-type main-sequence star'))
+	-- The system row's compact label pipes to the same page.
+	self:assertEquals('[[G-type main-sequence star|G-type main-sequence]]', f(g, 'G-type main-sequence'))
+	-- An entry whose page differs from its classification.
+	local bh = Util.starTypeEntry('Stellar')
+	self:assertEquals('[[Black hole|Stellar black hole]]', f(bh, bh.classification))
+	-- No entry, or nothing to display: plain text, never an invented target.
+	self:assertEquals('Main Sequence-Dwarf-Q', f(nil, 'Main Sequence-Dwarf-Q'))
+	self:assertEquals(nil, f(g, nil))
+	self:assertEquals(nil, f(g, ''))
+end
+
+-- The only route from a record-less page's editorial text to a category.
+function suite:testStarTypeFromText()
+	local f = Util.starTypeFromText
+	self:assertEquals('K-type main-sequence stars', f('K-type main-sequence star').category)
+	-- Matched on either wording, and case, punctuation and HYPHEN drift are
+	-- normalized away — which is what lets the legacy pages' unhyphenated
+	-- `| classification = K-type main sequence star` still resolve after the
+	-- vocabulary hyphenated.
+	self:assertEquals('K-type main-sequence stars', f('K-type main sequence star').category)
+	self:assertEquals('K-type main-sequence stars', f('k-type Main Sequence').category)
+	self:assertEquals('White dwarfs', f('[[White dwarf]]').category)
+	-- Exact, not fuzzy: Pyro's elaborated text must NOT resolve here — the
+	-- starmap already classes Pyro and the record owns the category.
+	self:assertEquals(nil, f('K-type main-sequence flare star'))
+	self:assertEquals(nil, f(''))
+	self:assertEquals(nil, f(nil))
+end
+
 return suite

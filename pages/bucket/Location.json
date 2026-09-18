@@ -4,6 +4,11 @@
 		"index": false,
 		"repeated": false
 	},
+	"classification": {
+		"type": "TEXT",
+		"index": false,
+		"repeated": false
+	},
 	"destination_system": {
 		"type": "PAGE",
 		"index": false,
@@ -46,6 +51,11 @@
 	},
 	"star_count": {
 		"type": "INTEGER",
+		"index": false,
+		"repeated": false
+	},
+	"star_radius": {
+		"type": "DOUBLE",
 		"index": false,
 		"repeated": false
 	},

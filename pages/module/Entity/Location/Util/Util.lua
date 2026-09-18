@@ -341,6 +341,89 @@ function p.appendSensorMeter(items, label, value)
 	}
 end
 
+--- RSI starmap `sub_type.name` → asteroid-formation vocabulary, the third of
+--- these tables. `classification` is the display noun and doubles as the index
+--- page title; `category` is the wiki's own, which does NOT follow the ARK's
+--- wording in any of the three cases and cannot be derived from it:
+--- `Planetary Ring` files under 'Planetary ring systems', the category the ring
+--- pages actually carry, and the ARK says 'System' where the wiki says
+--- 'Asteroid'.
+---
+--- All three sit under Category:Asteroid Formations, the container. No entry
+--- here names it, because a page belongs in its own leaf category; only
+--- getTypeInfo's fallback emits it, for an object no entry resolves.
+---
+--- Every entry names `page` because this family has ONE concept page, not the
+--- per-type index pages planets and stars have: 'Asteroid belt', 'Asteroid
+--- field' and 'Planetary ring system' are all redlinks, and 'Asteroid cluster'
+--- is itself a redirect to 'Asteroid formation'. Without `page` the subtitle
+--- would link at nothing on every page this leaf renders.
+p.BELT_TYPES = {
+	['System Belt'] = {
+		classification = 'Asteroid belt',
+		category = 'Asteroid belts',
+		page = 'Asteroid formation',
+	},
+	['System Cluster'] = {
+		classification = 'Asteroid cluster',
+		category = 'Asteroid clusters',
+		page = 'Asteroid formation',
+	},
+	-- 'Planetary ring system', not 'Planetary ring': the wording all ten pages
+	-- already carry, and the exact singular of their category.
+	['Planetary Ring'] = {
+		classification = 'Planetary ring system',
+		category = 'Planetary ring systems',
+		page = 'Asteroid formation',
+	},
+}
+
+--- The ARK object type to read when an object carries no sub_type. Only
+--- ASTEROID_BELT ever lacks one, on 3 objects against the 55 that name 'System
+--- Belt', so the token names the class rather than inventing it. Every
+--- ASTEROID_FIELD names a sub_type, which is why none is mapped here.
+local BELT_OBJECT_TYPE_CLASS = { ASTEROID_BELT = 'System Belt' }
+
+--- The BELT_TYPES entry for a starmap object, from its sub_type where it has
+--- one and its bare type token otherwise. Accepts the sub_type table or its
+--- name. nil for an object with neither, which keeps the bare kind noun.
+--- @param subType table|string|nil
+--- @param objectType string|nil the object's ARK `type`, read only without a sub_type
+--- @return { classification: string, category: string, page: string }|nil
+function p.beltTypeEntry(subType, objectType)
+	local name = type(subType) == 'table' and subType.name or subType
+	if type(name) ~= 'string' or name == '' then
+		name = type(objectType) == 'string' and BELT_OBJECT_TYPE_CLASS[objectType] or nil
+	end
+	if type(name) ~= 'string' or name == '' then
+		return nil
+	end
+	return p.BELT_TYPES[name]
+end
+
+--- The BELT_TYPES entry an editor's classification text names, matching the
+--- classification, the ARK's own spelling and the singular of the category, the
+--- same three forms bodyTypeFromText accepts.
+--- @param text string|nil
+--- @return { classification: string, category: string, page: string }|nil
+function p.beltTypeFromText(text)
+	if type(text) ~= 'string' or mw.text.trim(text) == '' then
+		return nil
+	end
+	local key = editorial.toStoredValue(mw.text.trim(text)):lower():gsub('[^%w]', '')
+	for arkName, entry in pairs(p.BELT_TYPES) do
+		-- The category singular is parenthesised because gsub also returns a
+		-- count, which the constructor would otherwise take as a fourth form.
+		local forms = { entry.classification, arkName, (entry.category:gsub('s$', '')) }
+		for _, form in ipairs(forms) do
+			if key == form:lower():gsub('[^%w]', '') then
+				return entry
+			end
+		end
+	end
+	return nil
+end
+
 --- The BODY_TYPES entry an editor's classification text names, the body
 --- counterpart of starTypeFromText. It matches the wiki classification, the
 --- ARK's own spelling and the singular of the category name, so 'Gas giant',
@@ -574,6 +657,26 @@ end
 --- @return { label: string, short: string|nil, display: string|nil }|nil
 function p.resolveAffiliation(starsystem, resolved)
 	return p.affiliationFromText(editorial.view(resolved):value('affiliation')) or p.affiliationEntry(starsystem)
+end
+
+--- The affiliation to STORE: the compact token, from the FIRST <br>-delimited
+--- segment of the page's own value, else the system's.
+---
+--- The split is only for the stored side. A page may name two affiliations in
+--- one arg ('[[Vanduul]]<br/>Independent' on Armitage) against a single-valued
+--- column, and Editorial.toStoredValue strips the tag with no separator, so the
+--- raw value would store as the unqueryable 'VanduulIndependent'. The DISPLAY
+--- row keeps both, through resolveAffiliation, because the page said both.
+--- @param starsystem table|nil
+--- @param resolved table|nil
+--- @return string|nil
+function p.storedAffiliation(starsystem, resolved)
+	local stated = editorial.view(resolved):value('affiliation')
+	if type(stated) == 'string' then
+		stated = mw.text.split(stated, '<%s*[bB][rR]%s*/?%s*>')[1]
+	end
+	local entry = p.affiliationFromText(stated) or p.affiliationEntry(starsystem)
+	return entry and (entry.short or entry.label) or nil
 end
 
 --- The name of the subject this page is about: explicit override, then the

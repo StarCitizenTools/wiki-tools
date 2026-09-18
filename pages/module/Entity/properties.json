@@ -50,7 +50,8 @@
 		"field": "affiliation",
 		"modules": [
 			"Location/StarSystem",
-			"Location/Body"
+			"Location/Body",
+			"Location/Belt"
 		],
 		"desc": "Controlling empire / affiliation, in the compact vocabulary the pre-Entity pages already store ('UEE', 'Unclaimed', ...) so queries keep one value bucket. A body stores its own where it differs from its system's (Charon III reads Independent inside UEE space) and the system's otherwise, so the value is always the effective one."
 	},
@@ -292,9 +293,10 @@
 		"field": "classification",
 		"modules": [
 			"Location/Star",
-			"Location/Body"
+			"Location/Body",
+			"Location/Belt"
 		],
-		"desc": "Spectral class of a star, as the star infobox's subtitle words it ('K-type main-sequence star', 'White dwarf', 'Stellar black hole'; hyphenated to match the wiki's article titles). Editorial text wins over the starmap sub_type, so lore-only classes ('K-type main-sequence flare star') store faithfully, delinked. Duplicates the kind-generic Subject type for classed stars; it earns its place by letting a location query filter on class without joining the entity bucket."
+		"desc": "Sub-kind of a location within its leaf, worded as that leaf's infobox subtitle words it: a star's spectral class ('K-type main-sequence star', 'White dwarf'; hyphenated to match the wiki's article titles), a body's type ('Super-Earth', 'Gas giant') or a formation's ('Asteroid belt', 'Planetary ring system'). Editorial text wins over the starmap sub_type, so lore-only classes ('K-type main-sequence flare star') store faithfully, delinked. Duplicates the kind-generic Subject type; it earns its place by letting a location query filter on class without joining the entity bucket."
 	},
 	"Commodity group": {
 		"type": "TEXT",
@@ -413,9 +415,10 @@
 		"bucket": "location",
 		"field": "danger_rating",
 		"modules": [
-			"Location/Body"
+			"Location/Body",
+			"Location/Belt"
 		],
-		"desc": "RSI starmap danger reading for a body, on its 0-10 scale. Zero is the starmap's no-reading sentinel, not a rating of nothing, so it is stored only when positive. Distinct from the free-text Population a system page carries."
+		"desc": "RSI starmap danger reading for a body or asteroid formation, on its 0-10 scale. Zero is the starmap's no-reading sentinel, not a rating of nothing, so it is stored only when positive. Distinct from the free-text Population a system page carries."
 	},
 	"Density": {
 		"type": "DOUBLE",
@@ -431,7 +434,8 @@
 		"bucket": "location",
 		"field": "designation",
 		"modules": [
-			"Location/Body"
+			"Location/Body",
+			"Location/Belt"
 		],
 		"desc": "Catalogue designation of an astronomical body ('Stanton 2a'). The wiki uses arabic numbering where the game data uses roman ('Stanton IIb'); the editorial value wins, so the stored form is the wiki's."
 	},
@@ -522,9 +526,10 @@
 		"bucket": "location",
 		"field": "economy_rating",
 		"modules": [
-			"Location/Body"
+			"Location/Body",
+			"Location/Belt"
 		],
-		"desc": "RSI starmap economy reading for a body, on its 0-10 scale. Zero is the starmap's no-reading sentinel, so it is stored only when positive."
+		"desc": "RSI starmap economy reading for a body or asteroid formation, on its 0-10 scale. Zero is the starmap's no-reading sentinel, so it is stored only when positive."
 	},
 	"Effects": {
 		"type": "TEXT",
@@ -1383,7 +1388,8 @@
 		"bucket": "location",
 		"field": "parent",
 		"modules": [
-			"Location/Body"
+			"Location/Body",
+			"Location/Belt"
 		],
 		"desc": "Astronomical body a location directly orbits or sits on, as the wiki page name. ONE hop only: a record names its immediate parent and nothing above it, so this is not an ancestry. Absent for the eleven planets in multi-star or star-less systems, whose starmap parent_id is null because the ARK does not record which sun they orbit."
 	},
@@ -1419,9 +1425,10 @@
 		"bucket": "location",
 		"field": "population_rating",
 		"modules": [
-			"Location/Body"
+			"Location/Body",
+			"Location/Belt"
 		],
-		"desc": "RSI starmap population reading for a body, on its 0-10 scale. Zero is the starmap's no-reading sentinel, so it is stored only when positive. Distinct from the free-text Population a system page carries."
+		"desc": "RSI starmap population reading for a body or asteroid formation, on its 0-10 scale. Zero is the starmap's no-reading sentinel, so it is stored only when positive. Distinct from the free-text Population a system page carries."
 	},
 	"Radius": {
 		"type": "DOUBLE",
@@ -2180,7 +2187,8 @@
 		"modules": [
 			"Location/JumpPoint",
 			"Location/Star",
-			"Location/Body"
+			"Location/Body",
+			"Location/Belt"
 		],
 		"desc": "Star system a location resides in, stored as the wiki page name ('Pyro system'). Written by the JumpPoint leaf (the gate's entry system) and the Star leaf; the vocabulary is kind-wide for future Location leaves."
 	},

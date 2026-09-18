@@ -33,6 +33,7 @@ p.ImageComponentDataSchema = {
 
 --- @class HeaderComponentData @Represents the structure of a validated infobox header for HeaderComponent.
 --- @field title string The title of the header.
+--- @field annotation string|nil A second name for the same subject, shown after the title. Optional.
 --- @field subtitle string|nil The subtitle of the header. Optional.
 --- @field image ImageComponentData|string|nil The image of the header. Optional.
 --- @field images table<ImageComponentData>|nil The images of the header. Optional.
@@ -40,6 +41,7 @@ p.ImageComponentDataSchema = {
 --- @type DataSchemaDefinition @The schema for HeaderComponent data.
 p.HeaderComponentDataSchema = {
 	title = { type = 'string', required = true },
+	annotation = { type = 'string', required = false, default = nil },
 	subtitle = { type = 'string', required = false, default = nil },
 	image = { type = 'table', required = false, default = nil },
 	images = { type = 'table', required = false, default = nil },

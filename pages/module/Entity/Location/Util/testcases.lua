@@ -46,8 +46,56 @@ local function jumpPointFixture()
 	}
 end
 
-function suite:testResolveLookupNamePrecedence()
-	local f = Util._internal.resolveLookupName
+-- The corpus writes several classes in the category's own wording, which is
+-- neither the classification nor the ARK's spelling: 96 pages say 'Terrestrial
+-- rocky planet' against a 'Terrestrial Rocky' sub_type.
+function suite:testBodyTypeFromText()
+	self:assertEquals('Gas giants', Util.bodyTypeFromText('Gas giant').category)
+	self:assertEquals('Gas giants', Util.bodyTypeFromText('Gas Giant').category)
+	self:assertEquals('Gas giants', Util.bodyTypeFromText('[[Gas giant]]').category)
+	self:assertEquals('Terrestrial rocky planets', Util.bodyTypeFromText('Terrestrial rocky planet').category)
+	self:assertEquals('Terrestrial rocky planets', Util.bodyTypeFromText('Terrestrial Rocky').category)
+	self:assertEquals('Super-Earths', Util.bodyTypeFromText('Super-Earth').category)
+	self:assertEquals(nil, Util.bodyTypeFromText('Natural satellite'))
+	self:assertEquals(nil, Util.bodyTypeFromText(''))
+	self:assertEquals(nil, Util.bodyTypeFromText(nil))
+end
+
+-- Most objects carry no `name`, so the designation path is the common one, and
+-- the ARK embeds a Xi'an alias mid-designation where systemShortName only
+-- strips a trailing parenthetical.
+function suite:testCelestialName()
+	self:assertEquals('Terra Nova', Util.celestialName({ name = 'Terra Nova', designation = 'Terra' }))
+	self:assertEquals('Stanton I', Util.celestialName({ designation = 'Stanton I' }))
+	self:assertEquals("Kyuk'ya A", Util.celestialName({ designation = "Kyuk'ya (Indra) A" }))
+	self:assertEquals("Kyuk'ya I", Util.celestialName({ designation = "Kyuk'ya (Indra) I" }))
+	self:assertEquals(nil, Util.celestialName({}))
+	self:assertEquals(nil, Util.celestialName(nil))
+end
+
+-- A body has no derivable code, so its name is the only join to the ARK. The
+-- type restriction matters: a star carries no `name`, only a designation, and
+-- that designation is the system's own, so a page about a body named after its
+-- system would otherwise match the star.
+function suite:testCelestialByName()
+	local sys = {
+		celestial_objects = {
+			{ code = 'STANTON.STARS.STANTON', type = 'STAR', designation = 'Stanton' },
+			{ code = 'STANTON.PLANETS.STANTONIHURSTONDYNAMICS', type = 'PLANET', name = 'Hurston' },
+		},
+	}
+	local bodies = { PLANET = true, SATELLITE = true }
+	self:assertEquals('STANTON.PLANETS.STANTONIHURSTONDYNAMICS', Util.celestialByName(sys, 'Hurston', bodies).code)
+	self:assertEquals('STANTON.PLANETS.STANTONIHURSTONDYNAMICS', Util.celestialByName(sys, 'hurston', bodies).code)
+	self:assertEquals(nil, Util.celestialByName(sys, 'Stanton', bodies))
+	self:assertEquals('STANTON.STARS.STANTON', Util.celestialByName(sys, 'Stanton').code)
+	self:assertEquals(nil, Util.celestialByName(sys, 'Nowhere', bodies))
+	self:assertEquals(nil, Util.celestialByName(nil, 'Hurston', bodies))
+	self:assertEquals(nil, Util.celestialByName(sys, nil, bodies))
+end
+
+function suite:testSubjectNamePrecedence()
+	local f = Util.subjectName
 	self:assertEquals('Rihlah', f({ name = 'Ignored System' }, { starmapname = 'Rihlah', name = 'Also ignored' }))
 	self:assertEquals('Stanton System', f({ name = 'Stanton System' }, { name = 'Ignored' }))
 	self:assertEquals('Terra system', f({}, { name = 'Terra system' }))

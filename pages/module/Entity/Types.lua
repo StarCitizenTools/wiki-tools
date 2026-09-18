@@ -56,6 +56,7 @@ local p = {}
 --- @field getMetadataItems nil|fun(ctx: EntityHookContext): EntityItemData[] Extra rows appended to the Infobox's Metadata section (StarSystem: the ARK starmap code)
 --- @field getTypeInfo nil|fun(ctx: EntityHookContext): table|nil Display metadata { name, category }
 --- @field getSubtitle nil|fun(ctx: EntityHookContext): string|nil Header subtitle override (else the display type)
+--- @field getTitleAnnotation nil|fun(ctx: EntityHookContext): string|nil A second name for the same subject, shown after the header title
 --- @field getHeaderBadge nil|fun(ctx: EntityHookContext): string|nil Header badge HTML composed into the image overlay
 --- @field getCategories nil|fun(ctx: EntityHookContext): string[] Extra browse categories, collected from every link and appended after the structural + manufacturer categories
 --- @field getAcquisition nil|fun(ctx: EntityHookContext): { summary: table[], cards: table[] }|nil Acquisition data for {{Entity/Availability}}; leaf-first wins. Absent on every link → no acquisition block.

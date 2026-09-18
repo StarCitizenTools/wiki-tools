@@ -109,6 +109,7 @@ Identity-shaped hooks take no `ctx`; the rest take `EntityHookContext`. `*` mark
 | `getCategories` | link | `(ctx) → string[]` | additive | `Data.get`/`Categories.build` |
 | `getTypeInfo` | link | `(ctx) → table\|nil` | leaf only, else `TypeResolver` | `Data.get` |
 | `getSubtitle` | link | `(ctx) → string\|nil` | leaf-first, skip empty | `Infobox` |
+| `getTitleAnnotation` | link | `(ctx) → string\|nil` | leaf-first, skip empty | `Infobox` |
 | `getHeaderBadge` | link | `(ctx) → string\|nil` | leaf-first, skip empty | `Infobox` |
 | `getAcquisition` | link | `(ctx) → {summary,cards}\|nil` | leaf-first wins | `Entity/Availability` |
 | `getRelated` | link | `(ctx) → EntityRelatedPayload\|nil` | leaf-first, skip nil | `Entity/Related` |
@@ -160,7 +161,7 @@ A property lives in `entity` when `Base` or `Entity` emits it, when one module e
 
 - A nested `sections` entry (a subsection tab) takes a raw `{ label, items }` table with no `key`.
 - `#` and `next()` are unsafe on a `mw.loadJsonData` fragment (Vehicle's editorial manifest is one); use `pairs`/`ipairs` or check `t[1] ~= nil`.
-- A leaf-first-wins hook stops at the first link that *defines* it, even on a `nil` return; it does not fall through. Only `getSubtitle`/`getHeaderBadge` skip `nil`/empty and keep walking.
+- A leaf-first-wins hook stops at the first link that *defines* it, even on a `nil` return; it does not fall through. Only `getSubtitle`/`getTitleAnnotation`/`getHeaderBadge` skip `nil`/empty and keep walking.
 - `Registry.kinds` order is a probe-cost optimisation only: the declared-`kind` gate can hand any kind's `matches()` a foreign record, so `matches()` must reject on its own.
 - A bucket holds at most 60 fields and a bucket name plus field name may not exceed 51 characters; `tests/manifest.lua` fails the build before the schema page would. Moving a property to another table is a manifest edit plus a regenerated schema, and a deleted table drops its rows.
 - Bucket rows appear after the page's link update, not at parse time, so a fresh page reads its own uuid from Bucket only on the next render.

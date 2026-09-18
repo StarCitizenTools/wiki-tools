@@ -127,6 +127,16 @@ function suite:testFooterVerseGuideOrderAfterChainBeforeWikiApi()
 	self:assertTrue(galactapedia < starmap and starmap < verseguide and verseguide < wikiApi)
 end
 
+-- The astronomical-object corpus spells it bare on 245 pages, so it is an
+-- alias rather than a rename those pages would all have to carry.
+function suite:testFooterGalactapediaArgAliases()
+	for _, arg in ipairs({ 'galactapediaurl', 'galactapedia_url', 'galactapedia' }) do
+		local content = buildFooterSection({}, ctx({}, { [arg] = 'https://example.com/g' })).content
+		self:assertTrue(content:find('Galactapedia', 1, true) ~= nil)
+		self:assertTrue(content:find('https://example.com/g', 1, true) ~= nil)
+	end
+end
+
 function suite:testFooterNilWithNoButtons()
 	self:assertEquals(nil, buildFooterSection({}, ctx({}, {})))
 	-- An empty-string arg is absent, not a blank button.

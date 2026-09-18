@@ -49,9 +49,10 @@
 		"bucket": "location",
 		"field": "affiliation",
 		"modules": [
-			"Location/StarSystem"
+			"Location/StarSystem",
+			"Location/Body"
 		],
-		"desc": "Controlling empire / affiliation of a star system, in the compact vocabulary the pre-Entity pages already store ('UEE', 'Unclaimed', ...) so queries keep one value bucket."
+		"desc": "Controlling empire / affiliation, in the compact vocabulary the pre-Entity pages already store ('UEE', 'Unclaimed', ...) so queries keep one value bucket. A body stores its own where it differs from its system's (Charon III reads Independent inside UEE space) and the system's otherwise, so the value is always the effective one."
 	},
 	"Alpha damage": {
 		"type": "DOUBLE",
@@ -290,7 +291,8 @@
 		"bucket": "location",
 		"field": "classification",
 		"modules": [
-			"Location/Star"
+			"Location/Star",
+			"Location/Body"
 		],
 		"desc": "Spectral class of a star, as the star infobox's subtitle words it ('K-type main-sequence star', 'White dwarf', 'Stellar black hole'; hyphenated to match the wiki's article titles). Editorial text wins over the starmap sub_type, so lore-only classes ('K-type main-sequence flare star') store faithfully, delinked. Duplicates the kind-generic Subject type for classed stars; it earns its place by letting a location query filter on class without joining the entity bucket."
 	},
@@ -406,6 +408,15 @@
 		],
 		"desc": "Damage type (Physical, Energy, …)."
 	},
+	"Danger rating": {
+		"type": "DOUBLE",
+		"bucket": "location",
+		"field": "danger_rating",
+		"modules": [
+			"Location/Body"
+		],
+		"desc": "RSI starmap danger reading for a body, on its 0-10 scale. Zero is the starmap's no-reading sentinel, not a rating of nothing, so it is stored only when positive. Distinct from the free-text Population a system page carries."
+	},
 	"Density": {
 		"type": "DOUBLE",
 		"bucket": "commodity",
@@ -414,6 +425,15 @@
 			"Commodity"
 		],
 		"desc": "Density of a commodity, in g/cm³."
+	},
+	"Designation": {
+		"type": "TEXT",
+		"bucket": "location",
+		"field": "designation",
+		"modules": [
+			"Location/Body"
+		],
+		"desc": "Catalogue designation of an astronomical body ('Stanton 2a'). The wiki uses arabic numbering where the game data uses roman ('Stanton IIb'); the editorial value wins, so the stored form is the wiki's."
 	},
 	"Destination system": {
 		"type": "PAGE",
@@ -496,6 +516,15 @@
 			"MiningModule"
 		],
 		"desc": "Effect duration of a mining module, in seconds."
+	},
+	"Economy rating": {
+		"type": "DOUBLE",
+		"bucket": "location",
+		"field": "economy_rating",
+		"modules": [
+			"Location/Body"
+		],
+		"desc": "RSI starmap economy reading for a body, on its 0-10 scale. Zero is the starmap's no-reading sentinel, so it is stored only when positive."
 	},
 	"Effects": {
 		"type": "TEXT",
@@ -1266,9 +1295,10 @@
 		"bucket": "location",
 		"field": "moon_count",
 		"modules": [
-			"Location/StarSystem"
+			"Location/StarSystem",
+			"Location/Body"
 		],
-		"desc": "Number of moons (SATELLITE objects) in a star system."
+		"desc": "Number of moons. Written by the StarSystem leaf as the system's tally and by the Body leaf as a body's own satellite count (a moon may carry one too, from the legacy arg), so an aggregate query must filter by Subject type."
 	},
 	"Muzzle velocity": {
 		"type": "DOUBLE",
@@ -1348,6 +1378,15 @@
 		],
 		"desc": "Original (launch) warbond pledge price of a vehicle, in USD."
 	},
+	"Parent": {
+		"type": "PAGE",
+		"bucket": "location",
+		"field": "parent",
+		"modules": [
+			"Location/Body"
+		],
+		"desc": "Astronomical body a location directly orbits or sits on, as the wiki page name. ONE hop only: a record names its immediate parent and nothing above it, so this is not an ancestry. Absent for the eleven planets in multi-star or star-less systems, whose starmap parent_id is null because the ARK does not record which sun they orbit."
+	},
 	"Physical damage modifier": {
 		"type": "DOUBLE",
 		"bucket": "vehicle_stats",
@@ -1375,14 +1414,24 @@
 		],
 		"desc": "Total damage per second of a vehicle's pilot-controlled weapons (stock loadout)."
 	},
+	"Population rating": {
+		"type": "DOUBLE",
+		"bucket": "location",
+		"field": "population_rating",
+		"modules": [
+			"Location/Body"
+		],
+		"desc": "RSI starmap population reading for a body, on its 0-10 scale. Zero is the starmap's no-reading sentinel, so it is stored only when positive. Distinct from the free-text Population a system page carries."
+	},
 	"Radius": {
 		"type": "DOUBLE",
 		"bucket": "location",
 		"field": "radius",
 		"modules": [
-			"Location/Star"
+			"Location/Star",
+			"Location/Body"
 		],
-		"desc": "Radius of an astronomical body in kilometres. Kind-wide: the Star leaf writes it and every later Location leaf (planets, moons) writes the same column, since it is one measurement of one kind of thing. Absent where the source carries a placeholder rather than a measurement, or where a class ceiling rejects an impossible figure (see the Star leaf's radiusKm)."
+		"desc": "Radius of an astronomical body in kilometres. Kind-wide: the Star leaf writes it from the starmap, guarded against that source's placeholders, and the Body leaf writes the game record's own size, which needs no guard."
 	},
 	"Turret DPS": {
 		"type": "DOUBLE",
@@ -2130,7 +2179,8 @@
 		"field": "system",
 		"modules": [
 			"Location/JumpPoint",
-			"Location/Star"
+			"Location/Star",
+			"Location/Body"
 		],
 		"desc": "Star system a location resides in, stored as the wiki page name ('Pyro system'). Written by the JumpPoint leaf (the gate's entry system) and the Star leaf; the vocabulary is kind-wide for future Location leaves."
 	},

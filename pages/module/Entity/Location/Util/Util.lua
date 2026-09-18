@@ -20,6 +20,7 @@ require('strict')
 
 local api = require('Module:Entity/Api')
 local editorial = require('Module:Entity/Editorial')
+local meterBar = require('Module:MeterBar')
 
 local p = {}
 
@@ -186,6 +187,44 @@ p.STAR_TYPES = {
 	Stellar = { classification = 'Stellar black hole', page = 'Black hole', category = 'Black holes' },
 }
 
+--- RSI starmap planet `sub_type.name` → body vocabulary, the planet counterpart
+--- of STAR_TYPES. `classification` doubles as the index page title, which is why
+--- no entry needs a separate `page`: every one of these 22 titles exists in
+--- Category:Planet types. Their categories sit under Category:Planets except
+--- Dwarf planets and Protoplanets, which the wiki files under Planetoids
+--- instead, so a query must not assume the type tree hangs off Planets.
+--- The ARK spells its sub_types in Title Case while the wiki uses sentence case
+--- ('Smog Planet' → 'Smog planet'), so these cannot be derived from the ARK
+--- string: they are transcribed from the live page and category names.
+--- 'Artificial', 'Super Jupiter' and 'Terrestrial Rocky' are the three the ARK
+--- does not name the way the wiki does at all. Moons carry a uniform
+--- 'Planetary Moon' sub_type and so have no type tree; the Body leaf handles
+--- them from the record type instead.
+p.BODY_TYPES = {
+	['Artificial'] = { classification = 'Artificial planet', category = 'Artificial planets' },
+	['Carbon Planet'] = { classification = 'Carbon planet', category = 'Carbon planets' },
+	['Chthonian Planet'] = { classification = 'Chthonian planet', category = 'Chthonian planets' },
+	['Coreless Planet'] = { classification = 'Coreless planet', category = 'Coreless planets' },
+	['Desert Planet'] = { classification = 'Desert planet', category = 'Desert planets' },
+	['Dwarf Planet'] = { classification = 'Dwarf planet', category = 'Dwarf planets' },
+	['Evaporating Planet'] = { classification = 'Evaporating planet', category = 'Evaporating planets' },
+	['Gas Dwarf'] = { classification = 'Gas dwarf', category = 'Gas dwarfs' },
+	['Gas Giant'] = { classification = 'Gas giant', category = 'Gas giants' },
+	['Ice Giant'] = { classification = 'Ice giant', category = 'Ice giants' },
+	['Ice Planet'] = { classification = 'Ice planet', category = 'Ice planets' },
+	['Iron Planet'] = { classification = 'Iron planet', category = 'Iron planets' },
+	['Lava Planet'] = { classification = 'Lava planet', category = 'Lava planets' },
+	['Mesoplanet'] = { classification = 'Mesoplanet', category = 'Mesoplanets' },
+	['Ocean Planet'] = { classification = 'Ocean planet', category = 'Ocean planets' },
+	['Protoplanet'] = { classification = 'Protoplanet', category = 'Protoplanets' },
+	['Puffy Planet'] = { classification = 'Puffy planet', category = 'Puffy planets' },
+	['Rogue Planet'] = { classification = 'Rogue planet', category = 'Rogue planets' },
+	['Smog Planet'] = { classification = 'Smog planet', category = 'Smog planets' },
+	['Super Jupiter'] = { classification = 'Super-Jupiter', category = 'Super-Jupiters' },
+	['Super-Earth'] = { classification = 'Super-Earth', category = 'Super-Earths' },
+	['Terrestrial Rocky'] = { classification = 'Terrestrial rocky planet', category = 'Terrestrial rocky planets' },
+}
+
 --- The STAR_TYPES entry for a celestial object's sub_type, accepting either the
 --- sub_type table the starmap serves or its bare name. nil for an unmapped or
 --- absent class — callers decide whether that means the raw upstream name
@@ -215,11 +254,11 @@ function p.starTypeLabel(subType)
 	return type(name) == 'string' and name ~= '' and name or nil
 end
 
---- A star type linked to its index page. `text` is the caller's own wording —
---- the leaf's classification, the system row's label, an editor's phrasing — so
---- one target serves every surface. Plain text when the entry names no page,
---- which keeps an unmapped ARK class from linking at nothing.
---- @param entry table|nil a STAR_TYPES entry
+--- A star or body type linked to its index page. `text` is the caller's own
+--- wording (the leaf's classification, the system row's label, an editor's
+--- phrasing), so one target serves every surface. Plain text when the entry
+--- names no page, which keeps an unmapped ARK class from linking at nothing.
+--- @param entry table|nil a STAR_TYPES or BODY_TYPES entry
 --- @param text string|nil display wording
 --- @return string|nil
 function p.starTypeLink(entry, text)
@@ -234,6 +273,187 @@ function p.starTypeLink(entry, text)
 		return '[[' .. page .. ']]'
 	end
 	return '[[' .. page .. '|' .. text .. ']]'
+end
+
+--- The BODY_TYPES entry for a planet's sub_type, accepting the sub_type table or
+--- its bare name. nil for a moon (uniform 'Planetary Moon', no type tree) and
+--- for an unmapped class.
+--- @param subType table|string|nil
+--- @return { classification: string, category: string }|nil
+function p.bodyTypeEntry(subType)
+	local name = type(subType) == 'table' and subType.name or subType
+	if type(name) ~= 'string' or name == '' then
+		return nil
+	end
+	return p.BODY_TYPES[name]
+end
+
+--- The celestial object in a starsystem payload whose code matches, or nil.
+--- Codes are compared case-sensitively and whole: a starmap code is an exact
+--- key, and prefix matching would collide (SOL.PLANETS.EARTH against a
+--- hypothetical SOL.PLANETS.EARTHII).
+--- @param starsystem table|nil
+--- @param code string|nil
+--- @return table|nil
+function p.celestialByCode(starsystem, code)
+	if type(starsystem) ~= 'table' or type(code) ~= 'string' or code == '' then
+		return nil
+	end
+	local objects = starsystem.celestial_objects
+	if type(objects) ~= 'table' then
+		return nil
+	end
+	for _, obj in ipairs(objects) do
+		if type(obj) == 'table' and obj.code == code then
+			return obj
+		end
+	end
+	return nil
+end
+
+--- 0-10 starmap sensor value → display text: one decimal, trailing .0 dropped
+--- ("8.13" → "8.1/10", 10 → "10/10"). nil for missing, zero or non-numeric —
+--- zero means "no reading" in the starmap data, not an actual rating.
+--- @param value any
+--- @return string|nil
+function p.formatSensor(value)
+	local n = tonumber(value)
+	if not n or n <= 0 then
+		return nil
+	end
+	local rounded = math.floor(n * 10 + 0.5) / 10
+	return tostring(rounded) .. '/10'
+end
+
+--- Append a MeterBar sensor row as a full-width block item. Shared so a system
+--- and the bodies inside it read their sensor rows the same way.
+--- @param items EntityItemData[]
+--- @param label string
+--- @param value any
+function p.appendSensorMeter(items, label, value)
+	local text = p.formatSensor(value)
+	if not text then
+		return
+	end
+	items[#items + 1] = {
+		content = meterBar.render({ label = label, value = tonumber(value), max = 10, text = text }),
+		class = 't-infobox-item--block',
+	}
+end
+
+--- The BODY_TYPES entry an editor's classification text names, the body
+--- counterpart of starTypeFromText. It matches the wiki classification, the
+--- ARK's own spelling and the singular of the category name, so 'Gas giant',
+--- 'Gas Giant' and 'Terrestrial rocky planet' all resolve. The category form
+--- is the one the corpus actually writes for several classes.
+---
+--- Without this a page whose ARK object is missing lands in no type category
+--- while its subtitle still reads the class.
+--- @param text string|nil
+--- @return { classification: string, category: string }|nil
+function p.bodyTypeFromText(text)
+	if type(text) ~= 'string' or mw.text.trim(text) == '' then
+		return nil
+	end
+	local key = editorial.toStoredValue(mw.text.trim(text)):lower():gsub('[^%w]', '')
+	for arkName, entry in pairs(p.BODY_TYPES) do
+		local forms = {
+			entry.classification,
+			arkName,
+			-- Parenthesised: gsub also returns a count, which the constructor
+			-- would otherwise take as a fourth form.
+			(entry.category:gsub('s$', '')),
+		}
+		for _, form in ipairs(forms) do
+			if key == form:lower():gsub('[^%w]', '') then
+				return entry
+			end
+		end
+	end
+	return nil
+end
+
+--- The celestial object in a starsystem payload whose name matches, or nil.
+--- `types` restricts the candidates to those ARK `type` values, and a body must
+--- pass it: Stanton's star is also named "Stanton", so an unrestricted match
+--- from a page about a body could land on the star.
+---
+--- This is how an in-game planet or moon resolves at all. A code is not
+--- derivable from a body's name: Hurston's is
+--- STANTON.PLANETS.STANTONIHURSTONDYNAMICS, built from the designation and the
+--- owning corporation, and the 33 in-game pages carry no `code` arg because
+--- they were written from the game API, which has no starmap code. The ARK's
+--- own `name` is the body's plain name, so it is the one reliable join.
+--- @param starsystem table|nil
+--- @param name string|nil
+--- @param types table|nil set of accepted ARK `type` values
+--- @return table|nil
+function p.celestialByName(starsystem, name, types)
+	if type(starsystem) ~= 'table' or type(name) ~= 'string' or name == '' then
+		return nil
+	end
+	local objects = starsystem.celestial_objects
+	if type(objects) ~= 'table' then
+		return nil
+	end
+	local key = mw.ustring.lower(name)
+	for _, obj in ipairs(objects) do
+		if type(obj) == 'table' and (types == nil or types[obj.type]) then
+			local objName = p.celestialName(obj)
+			if objName and mw.ustring.lower(objName) == key then
+				return obj
+			end
+		end
+	end
+	return nil
+end
+
+--- A celestial object's display name: its own `name` when the ARK gives one,
+--- else its designation with the alias parenthetical and catalogue decorations
+--- stripped. Terra's star is the reason `name` wins: it is "Terra Nova" while
+--- the designation is just "Terra". Most objects have no `name` at all, so the
+--- designation path is the common one.
+---
+--- The parenthetical is stripped wherever it sits, not just trailing as
+--- systemShortName does it: the ARK embeds a Xi'an alias MID-designation
+--- ("Kyuk'ya (Indra) A"), and leaving it in names a page that does not exist.
+--- An ARK designation carries no other parentheses.
+--- @param obj table|nil
+--- @return string|nil
+function p.celestialName(obj)
+	if type(obj) ~= 'table' then
+		return nil
+	end
+	local name = type(obj.name) == 'string' and obj.name ~= '' and obj.name or nil
+	if name then
+		return name
+	end
+	if type(obj.designation) ~= 'string' then
+		return nil
+	end
+	return p.systemShortName((obj.designation:gsub('%s*%b()', '')))
+end
+
+--- The object an object orbits, resolved against its own system's object list.
+--- The starmap gives only a numeric `parent_id`, so a single-object fetch can
+--- never answer this — which is why bodies bridge through attachStarsystem.
+--- nil where the ARK records no parent: the eleven planets in multi-star or
+--- star-less systems (Goss, Baker, Bacchus, Min) carry `parent_id = null`,
+--- because it does not say which sun they orbit.
+--- @param starsystem table|nil
+--- @param obj table|nil
+--- @return table|nil
+function p.celestialParent(starsystem, obj)
+	local id = type(obj) == 'table' and obj.parent_id or nil
+	if id == nil or type(starsystem) ~= 'table' or type(starsystem.celestial_objects) ~= 'table' then
+		return nil
+	end
+	for _, candidate in ipairs(starsystem.celestial_objects) do
+		if type(candidate) == 'table' and candidate.id == id then
+			return candidate
+		end
+	end
+	return nil
 end
 
 --- Editorial classification text → a STAR_TYPES entry, matched on either
@@ -356,12 +576,14 @@ function p.resolveAffiliation(starsystem, resolved)
 	return p.affiliationFromText(editorial.view(resolved):value('affiliation')) or p.affiliationEntry(starsystem)
 end
 
---- The starmap lookup name: explicit override, then the location record's
---- name, then the editor's display name, then the page title.
+--- The name of the subject this page is about: explicit override, then the
+--- location record's name, then the editor's display name, then the page
+--- title. It is the starmap lookup key for a system page and the body's own
+--- name for a planet or moon, which is why it is public.
 --- @param apiData table
 --- @param args table|nil
 --- @return string|nil
-local function resolveLookupName(apiData, args)
+function p.subjectName(apiData, args)
 	if args and type(args.starmapname) == 'string' and args.starmapname ~= '' then
 		return args.starmapname
 	end
@@ -493,11 +715,16 @@ end
 --- on a fetch error or an empty result the record stays absent and the
 --- infobox renders what it has.
 ---
+--- `name`, when given, names the system outright and wins over every heuristic
+--- in p.subjectName. A leaf whose subject is NOT the system must pass it:
+--- for a planet or moon `apiData.name` is the body's own name, so the default
+--- chain would look up a system called "Hurston" and attach nothing.
 --- @param apiData table
 --- @param args table|nil
+--- @param name string|nil explicit system name
 --- @return table apiData
-function p.attachStarsystem(apiData, args)
-	local key = plainKey(resolveLookupName(apiData, args))
+function p.attachStarsystem(apiData, args, name)
+	local key = plainKey(name or p.subjectName(apiData, args))
 	if not key then
 		return apiData
 	end
@@ -534,9 +761,9 @@ end
 
 --- The RSI Starmap footer action button for a starmap code, or no buttons at
 --- all when there is no usable code. The Galactapedia mark doubles as the
---- icon — it is technically the Starmap's logo — and the brand class is shared
---- with every other Starmap button on the wiki. One definition for all three
---- leaves, so their buttons cannot drift apart.
+--- icon (it is technically the Starmap's logo) and the brand class is shared
+--- with every other Starmap button on the wiki. One definition for every leaf,
+--- so their buttons cannot drift apart.
 --- @param code string|nil
 --- @return table[]
 function p.starmapFooterButtons(code)
@@ -563,12 +790,15 @@ function p.starmapMetadataItems(code)
 	if type(code) ~= 'string' or code == '' then
 		return {}
 	end
-	return { { label = 'Starmap code', content = code } }
+	-- One unbreakable token of up to 39 characters
+	-- (STANTON.PLANETS.STANTONIHURSTONDYNAMICS), which the row otherwise breaks
+	-- mid-segment. <wbr> offers the dots as break points instead and survives
+	-- the sanitizer. Parenthesised because gsub also returns a count.
+	return { { label = 'Starmap code', content = (code:gsub('%.', '.<wbr>')) } }
 end
 
 -- Test-only exports. Not part of the public API.
 p._internal = {
-	resolveLookupName = resolveLookupName,
 	plainKey = plainKey,
 	pickStarsystem = pickStarsystem,
 	normalizeAggregates = normalizeAggregates,

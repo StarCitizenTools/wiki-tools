@@ -132,9 +132,11 @@ local function buildFooterSection(chain, ctx)
 	local apiData, args = ctx.apiData, ctx.args
 	local buttons = {}
 
-	-- Canonical arg is `galactapediaurl` (the consistent <name>url form, also used by
-	-- Vehicle's external-sites row); `galactapedia_url` is kept as a back-compat alias.
-	local galactapediaUrl = args.galactapediaurl or args.galactapedia_url
+	-- Canonical arg is `galactapediaurl` (the consistent <name>url form);
+	-- `galactapedia_url` and the bare `galactapedia` that Vehicle's
+	-- external-sites row and the astronomical-object corpus both use are kept as
+	-- aliases.
+	local galactapediaUrl = args.galactapediaurl or args.galactapedia_url or args.galactapedia
 	if galactapediaUrl and galactapediaUrl ~= '' then
 		table.insert(
 			buttons,
@@ -305,6 +307,11 @@ function p.render(result, args)
 	local subtitle = assembly.resolveMostSpecific(result.chain, 'getSubtitle', assembly.acceptNonEmpty, ctx)
 		or result.displayType
 
+	-- A second name for the same subject, shown after the title instead of
+	-- taking a row (bodies show their designation). Leaf-first wins.
+	local titleAnnotation =
+		assembly.resolveMostSpecific(result.chain, 'getTitleAnnotation', assembly.acceptNonEmpty, ctx)
+
 	-- Header badge: a chain link (vehicles) may contribute a badge for the image
 	-- overlay (e.g. production status). Leaf-first wins.
 	local headerBadge = assembly.resolveMostSpecific(result.chain, 'getHeaderBadge', assembly.acceptNonEmpty, ctx)
@@ -315,6 +322,7 @@ function p.render(result, args)
 		-- the args-first name convention used for structured data and external sites
 		-- everywhere else.
 		title = args.name or result.apiData.name or mw.title.getCurrentTitle().text,
+		annotation = titleAnnotation,
 		subtitle = subtitle,
 		image = buildImage(result.apiData, args, headerBadge),
 		sections = sections,

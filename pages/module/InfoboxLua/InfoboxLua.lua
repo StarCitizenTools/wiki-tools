@@ -15,6 +15,7 @@ local imageResolver = require('Module:InfoboxLua/ImageResolver')
 --- @field class string|nil An additional HTML class for the infobox's container. Optional.
 --- @field css table<string, string>|nil Additional CSS rules for the infobox. Optional.
 --- @field title string The title of the infobox.
+--- @field annotation string|nil A second name for the same subject, shown after the title. Optional.
 --- @field subtitle string|nil The subtitle of the infobox. Optional.
 --- @field image ImageComponentData|string|nil The main image of the infobox. Optional.
 --- @field imageUploadName string|nil Override for the auto-discovery / upload convention base. Optional.
@@ -73,6 +74,7 @@ local function getContentHtml(data)
 
 	contentHtml:node(headerComponent.getHtml({
 		title = data.title,
+		annotation = data.annotation or nil,
 		subtitle = data.subtitle or nil,
 		image = getImageData(data.image, data.imageUploadName),
 		images = data.images or nil,

@@ -89,14 +89,21 @@ local function getImagesHtml(images)
 	return root
 end
 
+--- The annotation is a second name for the same subject, parenthesised inside
+--- the title element rather than given a row of its own. It stays out of the
+--- container's aria-label, which the caller sets from the bare title.
 --- @param title string
+--- @param annotation string|nil
 --- @return mw.html
-local function getHeaderTitleHtml(title)
+local function getHeaderTitleHtml(title, annotation)
 	local root = mw.html.create('div')
 	root:addClass('t-infobox-title')
 	root:attr('role', 'heading')
 	root:attr('aria-level', '2')
 	root:wikitext(title)
+	if util.isNonEmptyString(annotation) then
+		root:tag('span'):addClass('t-infobox-title-annotation'):wikitext('(' .. annotation .. ')'):done()
+	end
 	return root
 end
 
@@ -111,8 +118,9 @@ end
 
 --- @param title string
 --- @param subtitle string
+--- @param annotation string|nil
 --- @return mw.html
-local function getHeaderContentHtml(title, subtitle)
+local function getHeaderContentHtml(title, subtitle, annotation)
 	local root = mw.html.create('div')
 	root:addClass('t-infobox-header-content')
 
@@ -120,7 +128,7 @@ local function getHeaderContentHtml(title, subtitle)
 		root:node(getHeaderSubtitleHtml(subtitle))
 	end
 
-	root:node(getHeaderTitleHtml(title))
+	root:node(getHeaderTitleHtml(title, annotation))
 
 	return root
 end
@@ -146,7 +154,7 @@ function p.getHtml(data)
 		root:node(getImageHtml(header.image, true))
 	end
 
-	root:node(getHeaderContentHtml(header.title, header.subtitle))
+	root:node(getHeaderContentHtml(header.title, header.subtitle, header.annotation))
 
 	return root
 end

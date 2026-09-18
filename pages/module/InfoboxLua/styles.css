@@ -80,6 +80,14 @@
     color: var(--color-emphasized);
 }
 
+.t-infobox-title-annotation {
+	margin-left: 0.25em;
+	font-size: var(--font-size-medium);
+	line-height: var(--line-height-medium);
+	font-weight: var(--font-weight-normal);
+	color: var(--color-subtle);
+}
+
 .t-infobox-subtitle {
 	margin-bottom: 2px;
 }

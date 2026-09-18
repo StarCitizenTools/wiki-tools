@@ -1695,10 +1695,11 @@ function suite:testIsMoonPrefersTheRecordParentOverItsOwnType()
 	local pyroIV = { type = { name = 'Planet' }, parent = { name = 'Pyro V', type_name = 'Planet' } }
 	self:assertTrue(Body._internal.isMoon(pyroIV, {}))
 	self:assertEquals('Moons', Body.getTypeInfo(ctx(pyroIV, {})).category)
-	-- One direction only: a star parent does not unmake a moon, which is how
-	-- Delamar's record reads.
+	-- Delamar's record types it a Moon of the star Nyx. Nothing orbiting a star
+	-- directly is a moon, so the token loses and the starmap PLANET stands.
 	local delamar = { type = { name = 'Moon' }, parent = { name = 'Nyx', type_name = 'Star' } }
-	self:assertTrue(Body._internal.isMoon(delamar, {}))
+	self:assertFalse(Body._internal.isMoon(delamar, {}))
+	self:assertEquals('Planets', Body.getTypeInfo(ctx(delamar, {})).category)
 	local planet = { type = { name = 'Planet' }, parent = { name = 'Stanton', type_name = 'Star' } }
 	self:assertFalse(Body._internal.isMoon(planet, {}))
 end
@@ -1972,14 +1973,11 @@ function suite:testBodyShortDescription()
 		'Moon of Crusader in the Stanton system',
 		Body.getShortDescription(ctx(bodyApiData(), { code = 'STANTON.MOONS.CELLIN' }))
 	)
-	-- A moon the starmap hangs off the star names nothing extra.
-	local offStar = {
-		type = { name = 'Moon' },
-		parent = { name = 'Stanton', type_name = 'Star' },
-		system = 'Stanton System',
-		starsystem = bodyStarsystemFixture(),
-	}
-	self:assertEquals('Moon in the Stanton system', Body.getShortDescription(ctx(offStar, {})))
+	-- A moon the starmap hangs off the star names nothing extra. Gainey's shape:
+	-- the ARK types it a SATELLITE parented to the star, so only the page says
+	-- moon and there is no planet to name.
+	local offStar = { system = 'Stanton System', starsystem = bodyStarsystemFixture() }
+	self:assertEquals('Moon in the Stanton system', Body.getShortDescription(ctx(offStar, { type = 'moon' })))
 	-- 'Natural satellite of X' reads; a planet-type classification on a moon
 	-- does not, so Pyro IV keeps its class and drops the parent.
 	local args = { classification = 'Natural satellite' }

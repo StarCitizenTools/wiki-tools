@@ -290,9 +290,6 @@ function p.getStructuredData(ctx)
 		system = system and (system .. ' system') or nil,
 		classification = class and Editorial.toStoredValue(class) or nil,
 		radius = radiusKm(apiData, resolved),
-		-- Written in parallel with `radius` until the index-page data tables
-		-- naming the star-only column have moved over, then dropped.
-		star_radius = radiusKm(apiData, resolved),
 		planet_count = tonumber(Editorial.view(resolved):value('satellites')),
 	}
 end

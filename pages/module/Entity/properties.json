@@ -1382,16 +1382,7 @@
 		"modules": [
 			"Location/Star"
 		],
-		"desc": "Radius of an astronomical body in kilometres. Kind-wide: the Star leaf writes it today and every later Location leaf (planets, moons) writes the same column, since it is one measurement of one kind of thing. Absent where the source carries a placeholder rather than a measurement (see the Star leaf's radiusKm). Supersedes the star-only `Star radius`, which is written in parallel until its readers move over."
-	},
-	"Star radius": {
-		"type": "DOUBLE",
-		"bucket": "location",
-		"field": "star_radius",
-		"modules": [
-			"Location/Star"
-		],
-		"desc": "Radius of a star in kilometres. SUPERSEDED by the kind-wide `Radius`, which holds the same value; this column is written in parallel only until the 13 index-page data tables that name it have moved over, then it is dropped."
+		"desc": "Radius of an astronomical body in kilometres. Kind-wide: the Star leaf writes it and every later Location leaf (planets, moons) writes the same column, since it is one measurement of one kind of thing. Absent where the source carries a placeholder rather than a measurement, or where a class ceiling rejects an impossible figure (see the Star leaf's radiusKm)."
 	},
 	"Turret DPS": {
 		"type": "DOUBLE",

@@ -59,11 +59,6 @@
 		"index": false,
 		"repeated": false
 	},
-	"star_radius": {
-		"type": "DOUBLE",
-		"index": false,
-		"repeated": false
-	},
 	"station_count": {
 		"type": "INTEGER",
 		"index": false,

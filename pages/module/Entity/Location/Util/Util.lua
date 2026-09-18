@@ -12,11 +12,11 @@ require('strict')
 --- the starmap-derived /api/starsystems endpoint. The two records share no
 --- key, so attachStarsystem bridges by name and attaches the record as
 --- apiData.starsystem — namespaced, never flat-merged: both payloads carry
---- colliding name/type/description/affiliation keys. Jump-point records bridge
---- to the starmap differently: by the editor-supplied starmap code, to the
---- /api/celestial-objects endpoint, attached as apiData.celestialobject. The
---- two fetches are mutually exclusive by construction — a record is either
---- SolarSystem-typed or Anomaly-typed, never both.
+--- colliding name/type/description/affiliation keys. Jump points and stars
+--- bridge to the starmap differently: by the editor-supplied starmap code, to
+--- the /api/celestial-objects endpoint, attached as apiData.celestialobject.
+--- The two fetches are mutually exclusive by construction — a page resolves to
+--- exactly one leaf, and no leaf calls both.
 
 local api = require('Module:Entity/Api')
 local editorial = require('Module:Entity/Editorial')
@@ -112,6 +112,151 @@ function p.systemTypeEntry(text)
 		return nil, nil
 	end
 	return code, entry
+end
+
+--- RSI starmap `sub_type.name` → star vocabulary: `classification` is the star
+--- page's subtitle and stored value, `label` (default: classification) the
+--- compact form the system's "Star type" row shows, `page` (default:
+--- classification) the index page both link to, `category` the spectral-type
+--- category. All four are spelt alike, hyphenated as the wiki's own page titles
+--- and Wikipedia have it.
+---
+--- `maxRadiusKm` is declared only where the physics pins the size down, because
+--- Tanga's white dwarf carries 58,460,000 km — byte-identical to La'uo's M
+--- giant, so a copy-paste — and would otherwise render as an 84-solar-radius
+--- white dwarf. Main-sequence and giant ranges overlap too much to police.
+---
+--- 'Stellar' is black-hole vocabulary, not a star class: the ARK uses it as the
+--- sub_type of its one BLACKHOLE-typed object (Tamsa).
+---
+--- Every white dwarf the ARK serves is `Degenerate-A`, and that letter is NOT
+--- the temperature class the main-sequence letters are — on a degenerate
+--- remnant it denotes atmospheric composition. "A-type white dwarf" would
+--- invite exactly that confusion, so the class is simply "White dwarf".
+p.STAR_TYPES = {
+	['Main Sequence-Dwarf-O'] = {
+		classification = 'O-type main-sequence star',
+		label = 'O-type main-sequence',
+		category = 'O-type main-sequence stars',
+	},
+	['Main Sequence-Dwarf-B'] = {
+		classification = 'B-type main-sequence star',
+		label = 'B-type main-sequence',
+		category = 'B-type main-sequence stars',
+	},
+	['Main Sequence-Dwarf-A'] = {
+		classification = 'A-type main-sequence star',
+		label = 'A-type main-sequence',
+		category = 'A-type main-sequence stars',
+	},
+	['Main Sequence-Dwarf-F'] = {
+		classification = 'F-type main-sequence star',
+		label = 'F-type main-sequence',
+		category = 'F-type main-sequence stars',
+	},
+	['Main Sequence-Dwarf-G'] = {
+		classification = 'G-type main-sequence star',
+		label = 'G-type main-sequence',
+		category = 'G-type main-sequence stars',
+	},
+	['Main Sequence-Dwarf-K'] = {
+		classification = 'K-type main-sequence star',
+		label = 'K-type main-sequence',
+		category = 'K-type main-sequence stars',
+	},
+	['Main Sequence-Dwarf-M'] = {
+		classification = 'M-type main-sequence star',
+		label = 'M-type main-sequence',
+		category = 'M-type main-sequence stars',
+	},
+	['Giants-Giant-M'] = { classification = 'M-type giant', category = 'M-type giants' },
+	['White Dwarf-Degenerate-A'] = {
+		classification = 'White dwarf',
+		category = 'White dwarfs',
+		maxRadiusKm = 20000,
+	},
+	Subgiant = {
+		classification = 'Subgiant star',
+		label = 'Subgiant',
+		page = 'Subgiant',
+		category = 'Subgiants',
+	},
+	Neutron = { classification = 'Neutron star', category = 'Neutron stars', maxRadiusKm = 50 },
+	Variable = { classification = 'Variable star', category = 'Variable stars' },
+	Stellar = { classification = 'Stellar black hole', page = 'Black hole', category = 'Black holes' },
+}
+
+--- The STAR_TYPES entry for a celestial object's sub_type, accepting either the
+--- sub_type table the starmap serves or its bare name. nil for an unmapped or
+--- absent class — callers decide whether that means the raw upstream name
+--- (the system's star-type row) or no claim at all (the star page's subtitle).
+--- @param subType table|string|nil
+--- @return { classification: string, label: string|nil, category: string }|nil
+function p.starTypeEntry(subType)
+	local name = type(subType) == 'table' and subType.name or subType
+	if type(name) ~= 'string' or name == '' then
+		return nil
+	end
+	return p.STAR_TYPES[name]
+end
+
+--- The compact "Star type" label for a sub_type: the vocabulary's short form,
+--- its classification where it has none, else the raw upstream name — an
+--- unmapped ARK class degrades to a visible string instead of vanishing, and
+--- self-heals once STAR_TYPES learns it.
+--- @param subType table|string|nil
+--- @return string|nil
+function p.starTypeLabel(subType)
+	local entry = p.starTypeEntry(subType)
+	if entry then
+		return entry.label or entry.classification
+	end
+	local name = type(subType) == 'table' and subType.name or subType
+	return type(name) == 'string' and name ~= '' and name or nil
+end
+
+--- A star type linked to its index page. `text` is the caller's own wording —
+--- the leaf's classification, the system row's label, an editor's phrasing — so
+--- one target serves every surface. Plain text when the entry names no page,
+--- which keeps an unmapped ARK class from linking at nothing.
+--- @param entry table|nil a STAR_TYPES entry
+--- @param text string|nil display wording
+--- @return string|nil
+function p.starTypeLink(entry, text)
+	if type(text) ~= 'string' or text == '' then
+		return nil
+	end
+	local page = entry and (entry.page or entry.classification) or nil
+	if type(page) ~= 'string' or page == '' then
+		return text
+	end
+	if page == text then
+		return '[[' .. page .. ']]'
+	end
+	return '[[' .. page .. '|' .. text .. ']]'
+end
+
+--- Editorial classification text → a STAR_TYPES entry, matched on either
+--- wording after normalizing case and punctuation. The reverse of starTypeEntry,
+--- and the only way a record-less star page reaches a spectral-type category.
+--- Deliberately exact rather than fuzzy: Pyro's editorial "K-type main sequence
+--- flare star" must NOT resolve here, because the starmap already classes Pyro
+--- and the record wins the category (see the Star leaf's getCategories).
+--- @param text any
+--- @return { classification: string, label: string|nil, category: string }|nil
+function p.starTypeFromText(text)
+	if type(text) ~= 'string' or mw.text.trim(text) == '' then
+		return nil
+	end
+	local key = editorial.toStoredValue(mw.text.trim(text)):lower():gsub('[^%w]', '')
+	for _, entry in pairs(p.STAR_TYPES) do
+		local classification = entry.classification:lower():gsub('[^%w]', '')
+		local label = entry.label and entry.label:lower():gsub('[^%w]', '') or nil
+		if key == classification or key == label then
+			return entry
+		end
+	end
+	return nil
 end
 
 --- A system name reduced to its bare form: a trailing " System"/" system"
@@ -322,13 +467,18 @@ function p.attachCelestialObject(apiData, code)
 	if type(code) ~= 'string' or code == '' then
 		return apiData
 	end
-	-- Unlike the starsystems endpoint below, this is a plain path with no query
-	-- string of its own, so locale rides `params` — exactly like the primary
-	-- locations/%s config — and cannot corrupt anything.
+	-- `include=starsystem` names the object's system authoritatively, which is
+	-- the only reliable way to get it: the code's own first segment is a code,
+	-- not a name, and starsystems' filter[name] does not accept codes (KYUKYA,
+	-- RILA, THUSUNG and KAPARI all miss). The included record is compact
+	-- ({ id, code, name }) — the zone and aggregate fields live on the full
+	-- starsystems record that attachStarsystem fetches.
+	-- locale rides the endpoint, NOT `params`: Apiunto appends params as
+	-- `?query`, which after an endpoint that already carries `?include=` would
+	-- produce a second `?` and corrupt the include value.
 	local data = api.fetchApi({
 		name = 'StarCitizenWikiAPI',
-		endpoint = 'celestial-objects/%s',
-		params = { locale = 'en_EN' },
+		endpoint = 'celestial-objects/%s?include=starsystem&locale=en_EN',
 		responseDataPath = 'data',
 	}, code)
 	if type(data) == 'table' and next(data) ~= nil then
@@ -363,6 +513,57 @@ function p.attachStarsystem(apiData, args)
 		apiData.starsystem = normalizeAggregates(pickStarsystem(data, key))
 	end
 	return apiData
+end
+
+--- The ARK starmap code carried by an attached celestial-object record, else
+--- the raw |starmapcode=/|code= arg the fetch would have used — so a page
+--- whose fetch soft-failed still gets the button and metadata row keyed by the
+--- code the editor supplied. Shared by the two leaves that bridge by code
+--- (JumpPoint, Star); the empty case is rejected once, here.
+--- @param apiData table
+--- @param fallback string|nil the raw starmap-code arg
+--- @return string|nil
+function p.celestialStarmapCode(apiData, fallback)
+	local celestial = type(apiData.celestialobject) == 'table' and apiData.celestialobject or nil
+	local code = celestial and celestial.code or nil
+	if type(code) == 'string' and code ~= '' then
+		return code
+	end
+	return type(fallback) == 'string' and fallback ~= '' and fallback or nil
+end
+
+--- The RSI Starmap footer action button for a starmap code, or no buttons at
+--- all when there is no usable code. The Galactapedia mark doubles as the
+--- icon — it is technically the Starmap's logo — and the brand class is shared
+--- with every other Starmap button on the wiki. One definition for all three
+--- leaves, so their buttons cannot drift apart.
+--- @param code string|nil
+--- @return table[]
+function p.starmapFooterButtons(code)
+	if type(code) ~= 'string' or code == '' then
+		return {}
+	end
+	return {
+		{
+			label = 'Starmap',
+			url = 'https://robertsspaceindustries.com/starmap?location=' .. code,
+			icon = 'Sc-icon-galactapedia.svg',
+			class = 't-button--branded t-button--starmap',
+		},
+	}
+end
+
+--- The chain-contributed Metadata row for a starmap code: the `?location=` key
+--- on the RSI starmap, the same vocabulary the legacy System and Astronomical
+--- object templates exposed. Pairs with starmapFooterButtons so a page's button
+--- and its printed code always come from the same value.
+--- @param code string|nil
+--- @return EntityItemData[]
+function p.starmapMetadataItems(code)
+	if type(code) ~= 'string' or code == '' then
+		return {}
+	end
+	return { { label = 'Starmap code', content = code } }
 end
 
 -- Test-only exports. Not part of the public API.

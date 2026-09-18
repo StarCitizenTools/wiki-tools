@@ -219,22 +219,14 @@ local function starmapVisibility(apiData)
 	return boolean.render(not apiData.hide_in_starmap)
 end
 
---- The ARK starmap code (the `?location=` key): the fetched celestial record's
---- own code first, else the raw |starmapcode=/|code= arg read through the
---- manifest entry enrich fetches with, so a page whose fetch soft-failed
---- still gets its button and metadata row from the arg that would have keyed
---- it. One accessor for both consumers (Starmap button, Metadata row): they
---- cannot drift, and the empty case is rejected once.
+--- The ARK starmap code (the `?location=` key), read through the manifest entry
+--- enrich fetches with, so a page whose fetch soft-failed still gets its button
+--- and metadata row from the arg that would have keyed it.
 --- @param apiData table
 --- @param args table|nil
 --- @return string|nil
 local function starmapCode(apiData, args)
-	local celestial = getCelestialObject(apiData)
-	local code = celestial and celestial.code or nil
-	if type(code) == 'string' and code ~= '' then
-		return code
-	end
-	return Editorial.rawArg(args, p.getEditorialManifest().starmapcode)
+	return locationUtil.celestialStarmapCode(apiData, Editorial.rawArg(args, p.getEditorialManifest().starmapcode))
 end
 
 --- @param ctx EntityHookContext
@@ -323,24 +315,10 @@ function p.getShortDescription(ctx)
 end
 
 --- RSI Starmap as a footer action button, from the shared code accessor.
---- Same button contract as StarSystem's (the Galactapedia mark doubles as the
---- Starmap's logo); no usable code → no button.
 --- @param ctx EntityHookContext
 --- @return table[]
 function p.getFooterButtons(ctx)
-	local apiData, args = ctx.apiData, ctx.args
-	local code = starmapCode(apiData, args)
-	if not code then
-		return {}
-	end
-	return {
-		{
-			label = 'Starmap',
-			url = 'https://robertsspaceindustries.com/starmap?location=' .. code,
-			icon = 'Sc-icon-galactapedia.svg',
-			class = 't-button--branded t-button--starmap',
-		},
-	}
+	return locationUtil.starmapFooterButtons(starmapCode(ctx.apiData, ctx.args))
 end
 
 --- Chain-contributed Metadata rows: the ARK starmap code, through the same
@@ -348,12 +326,7 @@ end
 --- @param ctx EntityHookContext
 --- @return EntityItemData[]
 function p.getMetadataItems(ctx)
-	local apiData, args = ctx.apiData, ctx.args
-	local code = starmapCode(apiData, args)
-	if not code then
-		return {}
-	end
-	return { { label = 'Starmap code', content = code } }
+	return locationUtil.starmapMetadataItems(starmapCode(ctx.apiData, ctx.args))
 end
 
 -- Test-only exports. Not part of the public API.

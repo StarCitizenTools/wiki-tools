@@ -32,18 +32,6 @@ local STATUS_LABELS = {
 	M = 'UEE Military Classified',
 }
 
---- Star sub_type.name → display form. Ported from the legacy
---- Module:System/config.json subtype_rename map.
-local STAR_SUBTYPES = {
-	['Main Sequence-Dwarf-O'] = 'O-type main sequence',
-	['Main Sequence-Dwarf-B'] = 'B-type main sequence',
-	['Main Sequence-Dwarf-A'] = 'A-type main sequence',
-	['Main Sequence-Dwarf-F'] = 'F-type main sequence',
-	['Main Sequence-Dwarf-G'] = 'G-type main sequence',
-	['Main Sequence-Dwarf-K'] = 'K-type main sequence',
-	['Main Sequence-Dwarf-M'] = 'M-type main sequence',
-}
-
 --- Tile catalog: celestial_objects type → labels, in display order. `one` is
 --- the count-1 label; `title` carries the unabbreviated name as a tooltip;
 --- `field` names the editorial count-override field (legacy {{System}} arg),
@@ -209,8 +197,11 @@ local function buildObjectTiles(starsystem, ed)
 	return tiles
 end
 
---- Display list of the system's star types (renamed sub_types, deduplicated,
---- comma-joined). nil when no star carries a sub_type.
+--- Display list of the system's star types, each linked to its index page,
+--- deduplicated and comma-joined. Deduplication keys on the LABEL rather than
+--- the rendered link, so a binary whose two stars share a class still lists it
+--- once. Display only: no star-type value is stored, so the markup reaches
+--- nothing but the row.
 --- @param starsystem table|nil
 --- @return string|nil
 local function starTypeList(starsystem)
@@ -221,11 +212,10 @@ local function starTypeList(starsystem)
 	local names, seen = {}, {}
 	for _, obj in ipairs(objects) do
 		if type(obj) == 'table' and obj.type == 'STAR' and type(obj.sub_type) == 'table' then
-			local raw = obj.sub_type.name
-			local name = STAR_SUBTYPES[raw] or raw
+			local name = locationUtil.starTypeLabel(obj.sub_type)
 			if type(name) == 'string' and not seen[name] then
 				seen[name] = true
-				names[#names + 1] = name
+				names[#names + 1] = locationUtil.starTypeLink(locationUtil.starTypeEntry(obj.sub_type), name)
 			end
 		end
 	end
@@ -248,6 +238,31 @@ local function affiliationDisplay(starsystem, resolved)
 		return nil
 	end
 	return affiliation.display or ('[[' .. affiliation.label .. ']]')
+end
+
+--- The system's two orbital-zone distances, in AU from the star: the habitable
+--- zone (where liquid water is possible — Stanton's four planets all sit inside
+--- it) and the frost line (beyond which volatiles stay frozen). Zero is the
+--- starmap's no-data sentinel here, not a measurement: every unsurveyed system
+--- reports a flat 0/0/0, so each value is guarded independently rather than as
+--- a block — Oberon publishes a frost line with no habitable zone at all.
+--- @param starsystem table|nil
+--- @return EntityItemData[]
+local function buildZoneItems(starsystem)
+	local items = {}
+	if type(starsystem) ~= 'table' then
+		return items
+	end
+	local inner = tonumber(starsystem.habitable_zone_inner)
+	local outer = tonumber(starsystem.habitable_zone_outer)
+	if inner and outer and inner > 0 and outer > 0 then
+		sectionBuilder.push(items, 'Habitable zone', tostring(inner) .. ' – ' .. tostring(outer) .. ' AU')
+	end
+	local frost = tonumber(starsystem.frost_line)
+	if frost and frost > 0 then
+		sectionBuilder.push(items, 'Frost line', tostring(frost) .. ' AU')
+	end
+	return items
 end
 
 --- Append a MeterBar sensor row as a full-width block item.
@@ -327,6 +342,15 @@ function p.getSections(ctx)
 		sectionBuilder.section({ key = 'general', items = general }),
 		sectionBuilder.section({ key = 'sensor', label = 'Sensor readings', items = sensor }),
 		sectionBuilder.section({ key = 'objects', label = 'Astronomical objects', items = objects }),
+		-- Collapsed, unlike Lore: the zones are reference astronomy with no
+		-- bearing on play, so they stay out of the way until asked for.
+		sectionBuilder.section({
+			key = 'zones',
+			label = 'Orbital zones',
+			collapsible = true,
+			collapsed = true,
+			items = buildZoneItems(starsystem),
+		}),
 		sectionBuilder.section({ key = 'lore', label = 'Lore', collapsible = true, items = lore })
 	)
 end
@@ -405,45 +429,27 @@ function p.getShortDescription(ctx)
 end
 
 --- RSI Starmap as a footer action button (from the starsystem code), sitting
---- beside the Galactapedia and Wiki API buttons. The Galactapedia mark doubles
---- as the icon — it is technically the Starmap's logo. Galactapedia itself is
---- NOT handled here: the Infobox footer already renders it from
+--- beside the Galactapedia and Wiki API buttons. Galactapedia itself is NOT
+--- handled here: the Infobox footer already renders it from
 --- args.galactapediaurl.
 --- @param ctx EntityHookContext
 --- @return table[]
 function p.getFooterButtons(ctx)
-	local apiData = ctx.apiData
-	local code = starmapCode(apiData)
-	if not code then
-		return {}
-	end
-	return {
-		{
-			label = 'Starmap',
-			url = 'https://robertsspaceindustries.com/starmap?location=' .. code,
-			icon = 'Sc-icon-galactapedia.svg',
-			class = 't-button--branded t-button--starmap',
-		},
-	}
+	return locationUtil.starmapFooterButtons(starmapCode(ctx.apiData))
 end
 
---- Chain-contributed Metadata rows: the ARK starmap code — the `?location=`
---- key on the RSI starmap, the same vocabulary the legacy System and
---- Astronomical object templates expose.
+--- Chain-contributed Metadata rows: the ARK starmap code, through the same
+--- accessor as the footer button so the two cannot disagree.
 --- @param ctx EntityHookContext
 --- @return EntityItemData[]
 function p.getMetadataItems(ctx)
-	local apiData = ctx.apiData
-	local code = starmapCode(apiData)
-	if not code then
-		return {}
-	end
-	return { { label = 'Starmap code', content = code } }
+	return locationUtil.starmapMetadataItems(starmapCode(ctx.apiData))
 end
 
 -- Test-only exports. Not part of the public API.
 p._internal = {
 	formatSensor = formatSensor,
+	buildZoneItems = buildZoneItems,
 	countObjects = countObjects,
 	buildObjectTiles = buildObjectTiles,
 	starTypeList = starTypeList,

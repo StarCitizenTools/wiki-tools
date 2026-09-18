@@ -7,6 +7,7 @@ local Util = require('Module:Entity/Location/Util')
 local assembly = require('Module:Entity/Assembly')
 local StarSystem = require('Module:Entity/Location/StarSystem')
 local JumpPoint = require('Module:Entity/Location/JumpPoint')
+local Star = require('Module:Entity/Location/Star')
 
 --- Hook context for direct hook calls (Module:Entity/Types EntityHookContext).
 local function ctx(apiData, args, resolved)
@@ -392,7 +393,10 @@ function suite:testShortDescriptionPlanetOverride()
 end
 
 function suite:testStarTypeList()
-	self:assertEquals('G-type main sequence', StarSystem._internal.starTypeList(starsystemFixture()))
+	self:assertEquals(
+		'[[G-type main-sequence star|G-type main-sequence]]',
+		StarSystem._internal.starTypeList(starsystemFixture())
+	)
 	self:assertEquals(nil, StarSystem._internal.starTypeList(nil))
 end
 
@@ -583,7 +587,7 @@ function suite:testGetSectionsGeneralRows()
 	self:assertEquals('[[United Empire of Earth]]', findItem(general, 'Affiliation'))
 	self:assertEquals('[[UEE]]', findItem(general, 'Jurisdiction'))
 	self:assertEquals('4.85 AU', findItem(general, 'Size'))
-	self:assertEquals('G-type main sequence', findItem(general, 'Star type'))
+	self:assertEquals('[[G-type main-sequence star|G-type main-sequence]]', findItem(general, 'Star type'))
 	-- Demoted from a header badge: RSI workflow state renders as a plain,
 	-- explicitly-labelled row so it cannot read as in-game availability.
 	self:assertEquals('Published', findItem(general, 'Starmap status'))
@@ -750,12 +754,11 @@ function suite:testEnrichJumpPointFetchesCelestialObject()
 		local apiData =
 			JumpPoint.enrich(ctx(jumpPointFixture(), { kind = 'Location', starmapcode = 'PYRO.JUMPPOINTS.NYX' }))
 		self:assertEquals('PYRO.JUMPPOINTS.NYX', captured.key)
-		self:assertEquals('celestial-objects/%s', captured.config.endpoint)
-		-- A plain path endpoint (no query string of its own), so locale rides
-		-- params like the primary locations/%s config — NOT the endpoint
-		-- string, which the starsystems fetch needs only to survive its
-		-- ?filter[…] query.
-		self:assertEquals('en_EN', captured.config.params.locale)
+		self:assertEquals('celestial-objects/%s?include=starsystem&locale=en_EN', captured.config.endpoint)
+		-- locale rides the endpoint, not params: the include gives the endpoint
+		-- a query string of its own, and Apiunto appends params as a second
+		-- `?query` that would corrupt it.
+		self:assertEquals(nil, captured.config.params)
 		self:assertEquals('data', captured.config.responseDataPath)
 		self:assertEquals('Pyro - Nyx', apiData.celestialobject.designation)
 		-- Mutually exclusive with the starsystems bridge by construction.
@@ -1266,6 +1269,321 @@ function suite:testShortDescriptionNoTypeKeepsLegacyShape()
 			resolved = resolveEditorially(args),
 		})
 	)
+end
+
+-- ── Star leaf ──────────────────────────────────────────────────────────────
+
+--- Stanton's star location record (trimmed): one of the three stars the game
+--- actually serves.
+local function starFixture()
+	return {
+		uuid = '34ff378f-faee-47bb-b5fe-f505e665c5ca',
+		name = 'Stanton',
+		respawn_location_type = 'None',
+		type = { name = 'Star', classification = 'Star' },
+		jurisdiction = { name = 'UEE' },
+		system = 'Stanton System',
+		size = 696000000, -- metres, and never read: see radiusKm
+	}
+end
+
+--- Starmap celestial-object record for a star, as attachCelestialObject leaves
+--- it. `starsystem` is the include the bridge asks for and the only reliable
+--- name for the star's system.
+local function starCelestialFixture()
+	return {
+		code = 'GOSS.STARS.GOSSA',
+		designation = 'Goss A',
+		type = 'STAR',
+		size = 536151,
+		sub_type = { name = 'Main Sequence-Dwarf-K', type = 'STAR' },
+		starsystem = { id = 306, code = 'GOSS', name = 'Goss' },
+	}
+end
+
+--- Star payload with both halves merged, the shape every hook below sees.
+local function starApiData()
+	local apiData = starFixture()
+	apiData.celestialobject = starCelestialFixture()
+	return apiData
+end
+
+--- Drive the REAL manifest through Editorial.resolve, as the Star leaf's own
+--- chain assembles it.
+local function starResolved(args)
+	return Editorial.resolve({}, args, assembly.mergeEditorialManifests(assembly.buildChain(Star)))
+end
+
+function suite:testResolveSubtypeStarRecord()
+	local apiData = starFixture()
+	self:assertTrue(Location.matches(apiData))
+	self:assertEquals('star', Location._internal.recordFamily(apiData))
+	local leaf = Location.resolveSubtype(apiData, {})
+	self:assertEquals(Star, leaf)
+	self:assertEquals('Entity/Location', leaf.parent)
+end
+
+-- Every star page but three is record-less, so |family=star IS the entry path.
+function suite:testFamilyArgResolvesStarLeaf()
+	self:assertEquals(Star, Location.resolveSubtype({}, { kind = 'Location', family = 'star' }))
+	self:assertEquals('Entity/Location/Star', Location._internal.LOCATION_SUBTYPE_MAP.star)
+end
+
+-- The starmap serves star sizes in km, and the surveyed values are sound.
+function suite:testRadiusReadsTheStarmapSize()
+	self:assertEquals(536151, Star._internal.radiusKm(starApiData(), nil))
+end
+
+-- The nineteen placeholders: eighteen unsurveyed stars carry a bare `1` and
+-- Stanton a `1.2`, neither of them a radius in any unit. Banshee's 13.91 km
+-- neutron radius is on the other side of the cut and must survive it.
+function suite:testRadiusDropsPlaceholdersButKeepsANeutronStar()
+	local placeholder = starApiData()
+	placeholder.celestialobject.size = 1
+	self:assertEquals(nil, Star._internal.radiusKm(placeholder, nil))
+	placeholder.celestialobject.size = 1.2
+	self:assertEquals(nil, Star._internal.radiusKm(placeholder, nil))
+	local neutron = starApiData()
+	neutron.celestialobject.size = 13.91
+	self:assertEquals(13.91, Star._internal.radiusKm(neutron, nil))
+end
+
+-- The location record's own size is a placeholder too (Pyro and Nyx share one
+-- byte-identical value), so a record with no starmap half yields no radius
+-- rather than a 696,000,000 km star.
+function suite:testRadiusIgnoresTheLocationRecordSize()
+	self:assertEquals(nil, Star._internal.radiusKm(starFixture(), nil))
+end
+
+-- The only route to a radius for the placeholder stars.
+function suite:testEditorialRadiusWins()
+	local apiData = starApiData()
+	self:assertEquals(696340, Star._internal.radiusKm(apiData, starResolved({ radius = '696340' })))
+end
+
+function suite:testRadiusDisplay()
+	local f = Star._internal.radiusDisplay
+	self:assertEquals('536,151 km (0.77 R☉)', f(536151))
+	-- Sub-100 km keeps its decimals, and 0.00002 R☉ would print as a
+	-- meaningless 0.00, so the comparison is dropped rather than rounded.
+	self:assertEquals('13.91 km', f(13.91))
+	-- A white dwarf is still legible at two decimals.
+	self:assertEquals('6,260 km (0.01 R☉)', f(6259.5))
+	self:assertEquals(nil, f(nil))
+end
+
+function suite:testClassificationFromTheStarmapSubType()
+	self:assertEquals('K-type main-sequence star', Star._internal.classification(starApiData(), {}))
+	self:assertEquals('K-type main-sequence star', Star.getTypeInfo(ctx(starApiData(), {})).name)
+	self:assertEquals('Stars', Star.getTypeInfo(ctx(starApiData(), {})).category)
+end
+
+-- Pyro is a flare star by lore, a fact the starmap does not carry.
+function suite:testEditorialClassificationWins()
+	local args = { classification = 'K-type main sequence flare star' }
+	self:assertEquals('K-type main sequence flare star', Star._internal.classification(starApiData(), args))
+	self:assertEquals('K-type main sequence flare star', Star.getTypeInfo(ctx(starApiData(), args)).name)
+end
+
+-- A black hole with no mapped sub_type still says what it is; a star with
+-- nothing to go on stays the generic 'Star' rather than inventing a class.
+function suite:testClassificationFallbacks()
+	local blackHole = starApiData()
+	blackHole.celestialobject.type = 'BLACKHOLE'
+	blackHole.celestialobject.sub_type = nil
+	self:assertEquals('Black hole', Star._internal.classification(blackHole, {}))
+	blackHole.celestialobject.sub_type = { name = 'Stellar', type = 'BLACKHOLE' }
+	self:assertEquals('Stellar black hole', Star._internal.classification(blackHole, {}))
+	self:assertEquals(nil, Star._internal.classification(starFixture(), {}))
+	self:assertEquals('Star', Star.getTypeInfo(ctx(starFixture(), {})).name)
+end
+
+function suite:testGetCategoriesUsesTheRecordClassFirst()
+	self:assertEquals('K-type main-sequence stars', Star.getCategories(ctx(starApiData(), {}))[1])
+	-- Pyro's elaborated display text must not cost it the API's own class.
+	local elaborated = ctx(starApiData(), { classification = 'K-type main-sequence flare star' })
+	self:assertEquals('K-type main-sequence stars', Star.getCategories(elaborated)[1])
+end
+
+-- FUNCTIONAL, not taxonomy: {{Navplate system}} builds its Stars row from the
+-- per-system category intersected with Stars, so a star that stops filing
+-- under its system empties that row on the system page.
+function suite:testGetCategoriesFilesUnderTheSystem()
+	self:assertEquals('Stanton system', Star.getCategories(ctx(starApiData(), {}))[2])
+	local recordless = ctx({ celestialobject = starCelestialFixture() }, {})
+	self:assertEquals('Goss system', Star.getCategories(recordless)[2])
+	-- Nothing to name the system with: the facet stands alone rather than a
+	-- category called ' system'.
+	self:assertEquals(1, #Star.getCategories(ctx({}, {})))
+end
+
+-- A record-less page's only route to a spectral-type category.
+function suite:testGetCategoriesFromEditorialClassification()
+	self:assertEquals(
+		'G-type main-sequence stars',
+		Star.getCategories(ctx({}, { classification = 'G-type main-sequence star' }))[1]
+	)
+	self:assertEquals('Unknown spectral type stars', Star.getCategories(ctx({}, {}))[1])
+end
+
+-- The system comes from the record or the include, NEVER the page title:
+-- "Terra Nova" is the star of Terra and "Goss A" is one of two suns, so a
+-- title-derived name is wrong for exactly the pages it would exist to rescue.
+function suite:testSystemName()
+	self:assertEquals('Stanton', Star._internal.systemName(starApiData()))
+	local recordless = { celestialobject = starCelestialFixture() }
+	self:assertEquals('Goss', Star._internal.systemName(recordless))
+	self:assertEquals(nil, Star._internal.systemName({}))
+end
+
+-- The starmap lists no 78 Leonis, so the editorial arg is the only thing that
+-- can name its system. It is LAST: a record or the include always wins.
+function suite:testSystemNameFallsBackToTheEditorialArg()
+	self:assertEquals('78 Leonis', Star._internal.systemName({}, { system = '78 Leonis system' }))
+	self:assertEquals('Stanton', Star._internal.systemName(starApiData(), { system = 'Wrong' }))
+	local recordless = { celestialobject = starCelestialFixture() }
+	self:assertEquals('Goss', Star._internal.systemName(recordless, { system = 'Wrong' }))
+end
+
+-- The subtitle links; getTypeInfo.name must NOT, because it is stored as
+-- `Subject type` and is the short-description fallback.
+function suite:testSubtitleLinksButTypeInfoStaysPlain()
+	local c = ctx(starApiData(), {})
+	self:assertEquals('[[K-type main-sequence star]]', Star.getSubtitle(c))
+	self:assertEquals('K-type main-sequence star', Star.getTypeInfo(c).name)
+end
+
+-- An editor's wording is kept as the display and the target still comes from
+-- the record's class, so Pyro points at the K-type index.
+function suite:testSubtitleKeepsEditorialWording()
+	local c = ctx(starApiData(), { classification = 'K-type main-sequence flare star' })
+	self:assertEquals('[[K-type main-sequence star|K-type main-sequence flare star]]', Star.getSubtitle(c))
+end
+
+function suite:testSubtitleFallbacks()
+	local blackHole = starApiData()
+	blackHole.celestialobject.sub_type = { name = 'Stellar', type = 'BLACKHOLE' }
+	self:assertEquals('[[Black hole|Stellar black hole]]', Star.getSubtitle(ctx(blackHole, {})))
+	-- Unclassed, and a black hole the ARK gave no sub_type: the generic pages.
+	self:assertEquals('[[Star]]', Star.getSubtitle(ctx({}, {})))
+	blackHole.celestialobject.sub_type = nil
+	blackHole.celestialobject.type = 'BLACKHOLE'
+	self:assertEquals('[[Black hole]]', Star.getSubtitle(ctx(blackHole, {})))
+	-- An unmapped class names no page, so the subtitle stays plain.
+	local unknown = starApiData()
+	unknown.celestialobject.sub_type = { name = 'Main Sequence-Dwarf-Q' }
+	self:assertEquals(
+		'Main Sequence-Dwarf-Q',
+		Star.getSubtitle(ctx(unknown, { classification = 'Main Sequence-Dwarf-Q' }))
+	)
+end
+
+-- Tanga's white dwarf carries 58,460,000 km, byte-identical to La'uo's M
+-- giant. Only the classes with a declared ceiling are policed.
+function suite:testRadiusCeilingRejectsAnImpossibleClassSize()
+	local tanga = starApiData()
+	tanga.celestialobject.sub_type = { name = 'White Dwarf-Degenerate-A', type = 'STAR' }
+	tanga.celestialobject.size = 58460000
+	self:assertEquals(nil, Star._internal.radiusKm(tanga, nil))
+	tanga.celestialobject.size = 14834
+	self:assertEquals(14834, Star._internal.radiusKm(tanga, nil))
+	local giant = starApiData()
+	giant.celestialobject.sub_type = { name = 'Giants-Giant-M', type = 'STAR' }
+	giant.celestialobject.size = 58460000
+	self:assertEquals(58460000, Star._internal.radiusKm(giant, nil))
+end
+
+function suite:testStarSections()
+	local sections = Star.getSections(ctx(starApiData(), {}, starResolved({ satellites = '4' })))
+	local general = findSection(sections, 'general')
+	self:assertEquals('[[Stanton system]]', findItem(general, 'System'))
+	self:assertEquals('536,151 km (0.77 R☉)', findItem(general, 'Radius'))
+	-- A STRING, not the number the 'number' transform produced: InfoboxLua's
+	-- item schema requires string content and drops anything else without a
+	-- word, so asserting the section table alone passes while the live row
+	-- disappears.
+	self:assertEquals('4', findItem(general, 'Satellites'))
+	self:assertEquals('[[UEE]]', findItem(general, 'Jurisdiction'))
+end
+
+-- A star's satellites are its planets, so they store as Planet count rather
+-- than inventing a second column for the same fact.
+function suite:testStarStructuredData()
+	local data = Star.getStructuredData(ctx(starApiData(), {}, starResolved({ satellites = '4' })))
+	self:assertEquals('Stanton system', data.system)
+	self:assertEquals('K-type main-sequence star', data.classification)
+	self:assertEquals(536151, data.star_radius)
+	self:assertEquals(4, data.planet_count)
+end
+
+-- An editor's markup is delinked before it is stored, the same rule the
+-- affiliation vocabulary follows.
+function suite:testStarStructuredDataDelinksClassification()
+	local args = { classification = '[[Main sequence star|K-type main-sequence]] flare star' }
+	local data = Star.getStructuredData(ctx(starApiData(), args, starResolved(args)))
+	self:assertEquals('K-type main-sequence flare star', data.classification)
+end
+
+function suite:testStarShortDescription()
+	self:assertEquals(
+		'K-type main-sequence star in the Stanton system',
+		Star.getShortDescription(ctx(starApiData(), {}))
+	)
+	self:assertEquals('Star in the Stanton system', Star.getShortDescription(ctx(starFixture(), {})))
+	self:assertEquals('A star in Star Citizen', Star.getShortDescription(ctx({}, {})))
+end
+
+function suite:testStarStarmapButtonAndMetadata()
+	local buttons = Star.getFooterButtons(ctx(starApiData(), {}))
+	self:assertEquals(1, #buttons)
+	self:assertEquals('https://robertsspaceindustries.com/starmap?location=GOSS.STARS.GOSSA', buttons[1].url)
+	self:assertEquals('GOSS.STARS.GOSSA', Star.getMetadataItems(ctx(starApiData(), {}))[1].content)
+	-- A soft-failed fetch still renders both from the arg that would have
+	-- keyed it, under either alias.
+	self:assertEquals('SOL.STARS.SOL', Star.getMetadataItems(ctx({}, { code = 'SOL.STARS.SOL' }))[1].content)
+	self:assertEquals(0, #Star.getFooterButtons(ctx({}, {})))
+	self:assertEquals(0, #Star.getMetadataItems(ctx({}, {})))
+end
+
+function suite:testStarEnrichFetchesByCode()
+	withStubbedFetch(starCelestialFixture(), function(captured)
+		local apiData = Star.enrich(ctx({}, { kind = 'Location', family = 'star', code = 'GOSS.STARS.GOSSA' }))
+		self:assertEquals('GOSS.STARS.GOSSA', captured.key)
+		self:assertEquals('Goss A', apiData.celestialobject.designation)
+	end)
+end
+
+-- ── Orbital zones (StarSystem) ─────────────────────────────────────────────
+
+function suite:testZoneItems()
+	local items = StarSystem._internal.buildZoneItems({
+		habitable_zone_inner = 0.89,
+		habitable_zone_outer = 3,
+		frost_line = 4.96,
+	})
+	self:assertEquals('Habitable zone', items[1].label)
+	self:assertEquals('0.89 – 3 AU', items[1].content)
+	self:assertEquals('Frost line', items[2].label)
+	self:assertEquals('4.96 AU', items[2].content)
+end
+
+-- Zero is the starmap's no-data sentinel, not a measurement: every unsurveyed
+-- system reports a flat 0/0/0. Each value is guarded on its own because Oberon
+-- publishes a frost line with no habitable zone at all.
+function suite:testZoneItemsDropTheZeroSentinel()
+	self:assertEquals(0, #StarSystem._internal.buildZoneItems({
+		habitable_zone_inner = 0,
+		habitable_zone_outer = 0,
+		frost_line = 0,
+	}))
+	local oberon = StarSystem._internal.buildZoneItems({
+		habitable_zone_inner = 0,
+		habitable_zone_outer = 0,
+		frost_line = 0.01,
+	})
+	self:assertEquals(1, #oberon)
+	self:assertEquals('Frost line', oberon[1].label)
+	self:assertEquals(0, #StarSystem._internal.buildZoneItems(nil))
 end
 
 -- Dispatch: every Location leaf takes an EntityHookContext — a leaf whose

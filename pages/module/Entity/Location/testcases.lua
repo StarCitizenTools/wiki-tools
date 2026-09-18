@@ -1528,10 +1528,7 @@ function suite:testStarStructuredData()
 	local data = Star.getStructuredData(ctx(starApiData(), {}, starResolved({ satellites = '4' })))
 	self:assertEquals('Stanton system', data.system)
 	self:assertEquals('K-type main-sequence star', data.classification)
-	-- Both columns carry the same value while the rename is in flight; the
-	-- star-only one goes once its readers have moved to `radius`.
 	self:assertEquals(536151, data.radius)
-	self:assertEquals(536151, data.star_radius)
 	self:assertEquals(4, data.planet_count)
 end
 

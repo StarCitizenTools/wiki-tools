@@ -59,19 +59,13 @@ function p.getEditorialManifest()
 	}
 end
 
---- @param apiData table
---- @return table|nil
-local function getStarsystem(apiData)
-	return type(apiData.starsystem) == 'table' and apiData.starsystem or nil
-end
-
 --- The raw starmap code, read through the manifest entry so the alias order is
 --- declared once. Read from the RAW arg because getTypeInfo runs before
 --- editorial resolution.
 --- @param args table|nil
 --- @return string|nil
 local function starmapCode(args)
-	return Editorial.rawArg(args, p.getEditorialManifest().starmapcode)
+	return locationUtil.manifestArg(args, p.getEditorialManifest(), 'starmapcode')
 end
 
 --- The ARK object types a body page may resolve to. Passed to celestialByName
@@ -85,7 +79,7 @@ local BODY_OBJECT_TYPES = { PLANET = true, SATELLITE = true }
 --- @param args table|nil
 --- @return table|nil
 local function celestial(apiData, args)
-	local starsystem = getStarsystem(apiData)
+	local starsystem = locationUtil.starsystemOf(apiData)
 	return locationUtil.celestialByCode(starsystem, starmapCode(args))
 		or locationUtil.celestialByName(starsystem, locationUtil.subjectName(apiData, args), BODY_OBJECT_TYPES)
 end
@@ -97,13 +91,7 @@ end
 --- @param args table|nil
 --- @return string|nil
 local function resolvedStarmapCode(apiData, args)
-	local code = starmapCode(args)
-	if type(code) == 'string' and code ~= '' then
-		return code
-	end
-	local obj = celestial(apiData, args)
-	code = obj and obj.code or nil
-	return type(code) == 'string' and code ~= '' and code or nil
+	return locationUtil.resolvedStarmapCode(args, p.getEditorialManifest(), celestial(apiData, args))
 end
 
 --- Is this body a moon? The LOCATION record decides when there is one, because
@@ -160,7 +148,7 @@ end
 --- @param args table|nil
 --- @return string|nil
 local function editorialClassification(args)
-	return Editorial.rawArg(args, p.getEditorialManifest().classification)
+	return locationUtil.manifestArg(args, p.getEditorialManifest(), 'classification')
 end
 
 --- The body's classification: the editor's text when given, delinked so it can
@@ -187,7 +175,7 @@ end
 --- @param resolved table|nil
 --- @return string|nil
 local function storedAffiliation(apiData, resolved)
-	return locationUtil.storedAffiliation(getStarsystem(apiData), resolved)
+	return locationUtil.storedAffiliation(locationUtil.starsystemOf(apiData), resolved)
 end
 
 --- The body's own affiliation, which need not match its system's: Charon III
@@ -198,15 +186,7 @@ end
 --- @param resolved table|nil
 --- @return string|nil
 local function affiliationText(apiData, resolved)
-	local entry = locationUtil.resolveAffiliation(getStarsystem(apiData), resolved)
-	if not entry then
-		return nil
-	end
-	-- Same form StarSystem's row uses: an editor's own markup when they wrote
-	-- free text, else the canonical label linked. A canonical token must NOT
-	-- render as the editor typed it, or |affiliation=UEE would read a bare
-	-- "UEE" next to a sibling page's linked "United Empire of Earth".
-	return entry.display or ('[[' .. entry.label .. ']]')
+	return locationUtil.affiliationDisplay(locationUtil.starsystemOf(apiData), resolved)
 end
 
 --- The body's designation: the editor's arg, else the ARK object's own, which
@@ -276,11 +256,7 @@ end
 --- @param args table|nil
 --- @return string|nil
 local function systemName(apiData, args)
-	local fromRecord = locationUtil.entrySystem(apiData)
-	if fromRecord then
-		return fromRecord
-	end
-	return locationUtil.systemShortName(Editorial.rawArg(args, p.getEditorialManifest().system))
+	return locationUtil.systemNameFrom(apiData, args, p.getEditorialManifest())
 end
 
 --- Bridges by the SYSTEM name, explicitly: a body's own `apiData.name` is the
@@ -297,24 +273,6 @@ function p.enrich(ctx)
 		return ctx.apiData
 	end
 	return locationUtil.attachStarsystem(ctx.apiData, ctx.args, system)
-end
-
---- The page an anchor should link, preferring a qualified title only when it
---- is actually there. Both directions occur: a planet can share its name with
---- a disambiguation page while the article sits at "<name> (planet)", as
---- ArcCorp and microTech do, so the bare name is not enough even though it
---- exists; but a binary's component star sits at the bare "Goss A", where the
---- letter already disambiguates and no "(star)" page was ever made.
---- @param name string
---- @param qualifier string
---- @return string
-local function anchorTitle(name, qualifier)
-	local qualified = name .. ' (' .. qualifier .. ')'
-	local title = mw.title.new(qualified)
-	if title and title.exists then
-		return qualified
-	end
-	return name
 end
 
 --- The body's parent, as display name plus link target. The location record
@@ -334,38 +292,11 @@ local function parentAnchor(apiData, args)
 	local recordParent = type(apiData.parent) == 'table' and apiData.parent or nil
 	if recordParent and type(recordParent.name) == 'string' and recordParent.name ~= '' then
 		if recordParent.type_name == 'Star' then
-			return recordParent.name, anchorTitle(recordParent.name, 'star')
+			return recordParent.name, locationUtil.anchorTitle(recordParent.name, 'star')
 		end
-		return recordParent.name, anchorTitle(recordParent.name, 'planet')
+		return recordParent.name, locationUtil.anchorTitle(recordParent.name, 'planet')
 	end
-	local starsystem = getStarsystem(apiData)
-	local obj = locationUtil.celestialParent(starsystem, celestial(apiData, args))
-	local name = locationUtil.celestialName(obj)
-	if not name then
-		return nil, nil
-	end
-	if obj.type == 'STAR' or obj.type == 'BLACKHOLE' then
-		return name, anchorTitle(name, 'star')
-	end
-	return name, anchorTitle(name, 'planet')
-end
-
---- One linked tier of the Location row. The target is linked only when its page
---- exists, so a chain never paints a red link; the display name survives either
---- way. Kept thin and untested offline — the runner's title shim cannot answer
---- `exists`.
---- @param name string|nil
---- @param target string|nil
---- @return string|nil
-local function tier(name, target)
-	if type(name) ~= 'string' or name == '' then
-		return nil
-	end
-	local title = type(target) == 'string' and target ~= '' and mw.title.new(target) or nil
-	if title and title.exists then
-		return '[[' .. target .. '|' .. name .. ']]'
-	end
-	return name
+	return locationUtil.celestialParentAnchor(locationUtil.starsystemOf(apiData), celestial(apiData, args))
 end
 
 --- The Location row: `affiliation space › system › parent`, exactly three tiers
@@ -376,30 +307,13 @@ end
 --- @param args table|nil
 --- @return string|nil
 local function locationChain(apiData, args)
-	local starsystem = getStarsystem(apiData)
-	local parts = {}
-	-- The SYSTEM's affiliation, never the page's: this tier links the systems
-	-- category, so it has to describe the system. A body whose own affiliation
-	-- differs states it in its own row.
-	local affiliation = locationUtil.affiliationEntry(starsystem)
-	if affiliation then
-		-- The COMPACT form for the tier ("UEE space", the wording the legacy
-		-- pages used); the long label would spend a breadcrumb tier on "United
-		-- Empire of Earth space". The category the tier links is the long form,
-		-- which is what StarSystem files systems under.
-		local text = (affiliation.short or affiliation.label) .. ' space'
-		parts[#parts + 1] = tier(text, ':Category:' .. affiliation.label .. ' systems')
-	end
-	local system = systemName(apiData, args)
-	if system then
-		parts[#parts + 1] = tier(system .. ' system', system .. ' system')
-	end
 	local parentName, parentTarget = parentAnchor(apiData, args)
-	parts[#parts + 1] = tier(parentName, parentTarget)
-	if #parts == 0 then
-		return nil
-	end
-	return table.concat(parts, ' › ')
+	return locationUtil.locationChain(
+		locationUtil.starsystemOf(apiData),
+		systemName(apiData, args),
+		parentName,
+		parentTarget
+	)
 end
 
 --- The type is the subtitle, so no row repeats it; the classification refines it
@@ -479,7 +393,7 @@ function p.getSections(ctx)
 	sectionBuilder.push(general, 'Location', locationChain(apiData, args))
 	sectionBuilder.push(general, 'Affiliation', affiliationText(apiData, resolved))
 	local jurisdiction = type(apiData.jurisdiction) == 'table' and apiData.jurisdiction.name or nil
-	sectionBuilder.push(general, 'Jurisdiction', tier(jurisdiction, jurisdiction))
+	sectionBuilder.push(general, 'Jurisdiction', locationUtil.tier(jurisdiction, jurisdiction))
 	sectionBuilder.push(general, 'Habitable', ed:value('habitable'))
 	sectionBuilder.push(general, 'Satellites', format.formatNum(ed:value('satellites')))
 	sectionBuilder.push(general, 'Landing zones', format.formatNum(ed:value('landingzones')))
@@ -610,7 +524,7 @@ local function verseguideUrl(apiData, args, resolved)
 	if type(apiData.type) ~= 'table' or type(apiData.type.name) ~= 'string' then
 		return nil
 	end
-	local starsystem = getStarsystem(apiData)
+	local starsystem = locationUtil.starsystemOf(apiData)
 	local code = starsystem and starsystem.code or nil
 	local text = designation(apiData, args, resolved)
 	if type(code) ~= 'string' or code == '' or not text then

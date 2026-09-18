@@ -407,21 +407,7 @@ end
 --- @param text string|nil
 --- @return { classification: string, category: string, page: string }|nil
 function p.beltTypeFromText(text)
-	if type(text) ~= 'string' or mw.text.trim(text) == '' then
-		return nil
-	end
-	local key = editorial.toStoredValue(mw.text.trim(text)):lower():gsub('[^%w]', '')
-	for arkName, entry in pairs(p.BELT_TYPES) do
-		-- The category singular is parenthesised because gsub also returns a
-		-- count, which the constructor would otherwise take as a fourth form.
-		local forms = { entry.classification, arkName, (entry.category:gsub('s$', '')) }
-		for _, form in ipairs(forms) do
-			if key == form:lower():gsub('[^%w]', '') then
-				return entry
-			end
-		end
-	end
-	return nil
+	return p.vocabularyFromText(p.BELT_TYPES, text)
 end
 
 --- The BODY_TYPES entry an editor's classification text names, the body
@@ -435,18 +421,24 @@ end
 --- @param text string|nil
 --- @return { classification: string, category: string }|nil
 function p.bodyTypeFromText(text)
+	return p.vocabularyFromText(p.BODY_TYPES, text)
+end
+
+--- The entry an editor's wording names in one of these vocabularies, matching
+--- the classification, the ARK's own spelling, or the singular of the category.
+--- Comparison is on alphanumerics only, so punctuation and case do not matter.
+--- @param vocab table one of BODY_TYPES / BELT_TYPES / STAR_TYPES
+--- @param text string|nil
+--- @return table|nil
+function p.vocabularyFromText(vocab, text)
 	if type(text) ~= 'string' or mw.text.trim(text) == '' then
 		return nil
 	end
 	local key = editorial.toStoredValue(mw.text.trim(text)):lower():gsub('[^%w]', '')
-	for arkName, entry in pairs(p.BODY_TYPES) do
-		local forms = {
-			entry.classification,
-			arkName,
-			-- Parenthesised: gsub also returns a count, which the constructor
-			-- would otherwise take as a fourth form.
-			(entry.category:gsub('s$', '')),
-		}
+	for arkName, entry in pairs(vocab) do
+		-- The category singular is parenthesised because gsub also returns a
+		-- count, which the constructor would otherwise take as a fourth form.
+		local forms = { entry.classification, arkName, (entry.category:gsub('s$', '')) }
 		for _, form in ipairs(forms) do
 			if key == form:lower():gsub('[^%w]', '') then
 				return entry
@@ -697,6 +689,156 @@ function p.subjectName(apiData, args)
 		return args.name
 	end
 	return mw.title.getCurrentTitle().text
+end
+
+--- The attached starmap SYSTEM payload, or nil. A leaf that bridges by system
+--- namespaces it here rather than flat on apiData.
+--- @param apiData table|nil
+--- @return table|nil
+function p.starsystemOf(apiData)
+	return type(apiData) == 'table' and type(apiData.starsystem) == 'table' and apiData.starsystem or nil
+end
+
+--- A leaf's own editorial arg, RAW. Raw because the hooks that read these run
+--- before editorial resolution, and the leaf's manifest is passed in because
+--- each leaf owns its own arg aliases.
+--- @param args table|nil
+--- @param manifest table the leaf's getEditorialManifest() fragment
+--- @param key string
+--- @return string|nil
+function p.manifestArg(args, manifest, key)
+	local entry = type(manifest) == 'table' and manifest[key] or nil
+	return entry and editorial.rawArg(args, entry) or nil
+end
+
+--- The system a page belongs to: the record's own, else the editorial arg.
+--- NOT the starmap code's first segment, which is not always the system.
+--- @param apiData table
+--- @param args table|nil
+--- @param manifest table
+--- @return string|nil
+function p.systemNameFrom(apiData, args, manifest)
+	local fromRecord = p.entrySystem(apiData)
+	if fromRecord then
+		return fromRecord
+	end
+	return p.systemShortName(p.manifestArg(args, manifest, 'system'))
+end
+
+--- The starmap code to publish: the editor's arg when there is one, else the
+--- resolved object's own.
+--- @param args table|nil
+--- @param manifest table
+--- @param obj table|nil the leaf's already-resolved celestial object
+--- @return string|nil
+function p.resolvedStarmapCode(args, manifest, obj)
+	local code = p.manifestArg(args, manifest, 'starmapcode')
+	if type(code) == 'string' and code ~= '' then
+		return code
+	end
+	code = obj and obj.code or nil
+	return type(code) == 'string' and code ~= '' and code or nil
+end
+
+--- The page an anchor should link, preferring a qualified title only when it
+--- is actually there. Both directions occur: a planet can share its name with
+--- a disambiguation page while the article sits at "<name> (planet)", as
+--- ArcCorp and microTech do, so the bare name is not enough even though it
+--- exists; but a binary's component star sits at the bare "Goss A", where the
+--- letter already disambiguates and no "(star)" page was ever made.
+--- @param name string
+--- @param qualifier string
+--- @return string
+function p.anchorTitle(name, qualifier)
+	local qualified = name .. ' (' .. qualifier .. ')'
+	local title = mw.title.new(qualified)
+	if title and title.exists then
+		return qualified
+	end
+	return name
+end
+
+--- What a starmap object orbits, as display name plus link target. A star or
+--- black hole takes the '(star)' qualifier, anything else '(planet)'.
+--- @param starsystem table|nil
+--- @param obj table|nil the object whose parent is wanted
+--- @return string|nil name
+--- @return string|nil target
+function p.celestialParentAnchor(starsystem, obj)
+	local parent = p.celestialParent(starsystem, obj)
+	local name = p.celestialName(parent)
+	if not name then
+		return nil, nil
+	end
+	if parent.type == 'STAR' or parent.type == 'BLACKHOLE' then
+		return name, p.anchorTitle(name, 'star')
+	end
+	return name, p.anchorTitle(name, 'planet')
+end
+
+--- One linked tier of the Location row. The target is linked only when its page
+--- exists, so a chain never paints a red link; the display name survives either
+--- way. Kept thin and untested offline: the runner's title shim cannot answer
+--- `exists`.
+--- @param name string|nil
+--- @param target string|nil
+--- @return string|nil
+function p.tier(name, target)
+	if type(name) ~= 'string' or name == '' then
+		return nil
+	end
+	local title = type(target) == 'string' and target ~= '' and mw.title.new(target) or nil
+	if title and title.exists then
+		return '[[' .. target .. '|' .. name .. ']]'
+	end
+	return name
+end
+
+--- The Location row: `affiliation space › system › parent`. Every leaf that
+--- builds one builds the same three tiers, so a belt and a planet in one system
+--- read alike; the caller supplies only the parent, which is the one tier each
+--- leaf resolves differently.
+---
+--- The first tier is the SYSTEM's affiliation, never the page's, because it
+--- links the systems category and so has to describe the system; a page whose
+--- own affiliation differs states it in its own row. The tier shows the COMPACT
+--- form ('UEE space', the wording the legacy pages used) while linking the long
+--- form, which is what StarSystem files systems under.
+--- @param starsystem table|nil
+--- @param system string|nil
+--- @param parentName string|nil
+--- @param parentTarget string|nil
+--- @return string|nil
+function p.locationChain(starsystem, system, parentName, parentTarget)
+	local parts = {}
+	local affiliation = p.affiliationEntry(starsystem)
+	if affiliation then
+		local text = (affiliation.short or affiliation.label) .. ' space'
+		parts[#parts + 1] = p.tier(text, ':Category:' .. affiliation.label .. ' systems')
+	end
+	if system then
+		parts[#parts + 1] = p.tier(system .. ' system', system .. ' system')
+	end
+	parts[#parts + 1] = p.tier(parentName, parentTarget)
+	if #parts == 0 then
+		return nil
+	end
+	return table.concat(parts, ' › ')
+end
+
+--- The affiliation to SHOW, as StarSystem shows it: an editor's own markup for
+--- free text, the canonical label linked otherwise. A canonical token must NOT
+--- render as the editor typed it, or |affiliation=UEE would read a bare 'UEE'
+--- next to a sibling page's linked 'United Empire of Earth'.
+--- @param starsystem table|nil
+--- @param resolved table|nil
+--- @return string|nil
+function p.affiliationDisplay(starsystem, resolved)
+	local entry = p.resolveAffiliation(starsystem, resolved)
+	if not entry then
+		return nil
+	end
+	return entry.display or ('[[' .. entry.label .. ']]')
 end
 
 --- Plain lowercase key for a system name: trailing " System" stripped. This

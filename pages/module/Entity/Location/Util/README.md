@@ -2,7 +2,7 @@
 
 Location-internal shared helpers used by more than one Location leaf: the starmap vocabulary (affiliation and system-type tables with their resolvers), the system-name helpers, and the two starmap bridges the leaves' `enrich` hooks call. Not cross-kind (see [Module:Entity/Facet/Util](https://starcitizen.tools/Module:Entity/Facet/Util)) and not kind identity (see [Module:Entity/Location](https://starcitizen.tools/Module:Entity/Location)).
 
-Editors never invoke this module directly; it runs inside [Template:Location](https://starcitizen.tools/Template:Location), which declares the kind, or inside [Template:Entity](https://starcitizen.tools/Template:Entity) when the probe claims a location record; the two leaves that call it are on [Module:Entity/Location](https://starcitizen.tools/Module:Entity/Location).
+Editors never invoke this module directly; it runs inside [Template:Location](https://starcitizen.tools/Template:Location), which declares the kind, or inside [Template:Entity](https://starcitizen.tools/Template:Entity) when the probe claims a location record; the four leaves that call it are on [Module:Entity/Location](https://starcitizen.tools/Module:Entity/Location).
 
 ## For module editors
 
@@ -11,6 +11,10 @@ Editors never invoke this module directly; it runs inside [Template:Location](ht
 - `p.AFFILIATIONS`: starmap affiliation code (lowercased) → `{ label, short }`. `short` (falling back to `label`) is the compact form stored as the `Affiliation` value, matching the vocabulary the pre-Entity pages already store (`UEE`, `Unclaimed`).
 - `p.affiliationEntry(starsystem) → { label, short }|nil`: the starmap record's first affiliation entry.
 - `p.affiliationFromText(text) → { label, short?, display? }|nil`: editorial affiliation text matched against `AFFILIATIONS` on code, label or short after normalising case and punctuation; anything unmatched passes through as free text (`label` delinked for storage/categories, `display` keeps the editor's markup so they choose whether it links).
+- `p.STAR_TYPES`: starmap star `sub_type.name` → `{ classification, label?, category, page?, maxRadiusKm? }`. `classification` doubles as the index page title. `maxRadiusKm` is a physical ceiling used to reject a starmap size the class cannot have.
+- `p.starTypeEntry(subType) → entry|nil`, `p.starTypeLabel(entry) → string|nil`, `p.starTypeFromText(text) → entry|nil`, `p.starTypeLink(entry, text) → string`: the star vocabulary's lookups. `starTypeFromText` matches an editor's wording against the classification or the short label; `starTypeLink` links the entry's index page while displaying the caller's text.
+- `p.BODY_TYPES`: starmap planet `sub_type.name` → `{ classification, category }`, the planet counterpart. Moons carry one uniform sub_type and so have no entry.
+- `p.bodyTypeEntry(subType) → entry|nil`, `p.bodyTypeFromText(text) → entry|nil`: the body vocabulary's lookups. `bodyTypeFromText` matches the wiki classification, the ARK's spelling and the singular of the category name, because the corpus writes several classes in the category's wording.
 - `p.SYSTEM_TYPES`: starmap system-type code → `{ label, category }`.
 - `p.systemTypeEntry(text) → code, entry`: editorial system-type text normalised (case, separators) and looked up in `SYSTEM_TYPES`; unrecognised text resolves to nothing rather than inventing a row.
 - `p.systemShortName(name) → string|nil`: a system name reduced to its bare form (trailing `System`/`system` stripped, an alias parenthetical and the Vanduul catalogue form removed).
@@ -18,8 +22,14 @@ Editors never invoke this module directly; it runs inside [Template:Location](ht
 - `p.gateEntrySystem(apiData) → string|nil`: the location record's system when one exists, else the entry-first side of the celestial designation; lets a record-less `|family=jumppoint` page still know its system.
 - `p.resolveSystemType(starsystem, resolved) → code, entry`: the editorial value wins over the starmap record's; an unmapped record code still returns, so it stores faithfully.
 - `p.resolveAffiliation(starsystem, resolved) → entry|nil`: the same editorial-first precedence as `resolveSystemType`.
-- `p.attachStarsystem(apiData, args) → apiData`: bridges by name to `/api/starsystems`, attaching the picked and normalised record as `apiData.starsystem`. The lookup name is `|starmapname=`, else the location record's own name, else `|name=`, else the page title. Soft-fails: an error or empty result leaves the record absent.
+- `p.subjectName(apiData, args) → string|nil`: the name of whatever the page is about: `|starmapname=`, else the location record's own name, else `|name=`, else the page title. It is the starmap lookup key for a system page and the body's own name for a planet or moon, which is why it is public.
+- `p.attachStarsystem(apiData, args, name?) → apiData`: bridges by name to `/api/starsystems`, attaching the picked and normalised record as `apiData.starsystem`. The name is `subjectName` unless the caller passes one; a leaf whose subject is NOT the system must pass it, since a body's own name would look up a system that does not exist. Soft-fails: an error or empty result leaves the record absent.
 - `p.attachCelestialObject(apiData, code) → apiData`: bridges by the editor-supplied starmap code to `/api/celestial-objects/<code>`, attaching the record as `apiData.celestialobject`. No code, no fetch; soft-fails the same way.
+- `p.celestialByCode(starsystem, code) → object|nil`, `p.celestialByName(starsystem, name, types?) → object|nil`: find one object inside an attached system payload. Codes match whole and case-sensitively; a name match should pass `types` (a set of ARK `type` values) because a star carries no `name` and its designation is the system's, so an unrestricted match from a body page can land on the star.
+- `p.celestialName(obj) → string|nil`: an object's display name, its own `name` when the ARK gives one, else the designation stripped of decorations. Terra's star is why `name` wins: it is "Terra Nova" against a "Terra" designation. Most objects have no `name`, so the designation path is the common one, and the alias parenthetical is stripped wherever it sits, not only trailing as `systemShortName` does it (the ARK writes `Kyuk'ya (Indra) A`).
+- `p.celestialParent(starsystem, obj) → object|nil`: resolves an object's numeric `parent_id` against its own system's object list, which a single-object fetch cannot do. nil for the eleven planets the ARK gives no parent.
+- `p.celestialStarmapCode(apiData, fallback) → string|nil`, `p.starmapFooterButtons(code) → table[]`, `p.starmapMetadataItems(code) → table[]`: the Starmap button and code row every leaf shares. The row breaks the code at its dots with `<wbr>`, since a code runs to 39 unbreakable characters.
+- `p.formatSensor(value) → string|nil`, `p.appendSensorMeter(items, label, value)`: the starmap 0-10 readings as `8.1/10` text and as a full-width MeterBar row. Zero is the no-reading sentinel, so both return/append nothing for it, which is also the test callers use before storing a value.
 
 ### Gotchas
 

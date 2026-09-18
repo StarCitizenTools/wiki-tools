@@ -106,6 +106,40 @@ function suite:testQuerySpecForCategoryAndFilter()
 	end)
 end
 
+-- A wrapping module's `primary` reaches the query, which is what lets a table
+-- whose subject is not an Entity page list at all: rooted on `entity` the
+-- category condition can only match pages that have an Entity row, so the rows
+-- come back short rather than wrong-looking. The entity table stays a LEFT join
+-- for the lead `Name`, so a page with no Entity row still lists.
+function suite:testPrimaryRootsTheQueryOnTheWrappersBucket()
+	bucketLib._reset()
+	withManifest(function()
+		local request, err = DataGrid.resolveArgs({
+			category = 'Jump Point Year One',
+			columns = 'Legality',
+		}, static._internal.resolveOptions({ primary = 'mission' }))
+		self:assertEquals(nil, err)
+		DataGrid.runQuery(request.spec)
+		local chain = bucketLib._chains[1]
+		self:assertEquals('mission', chain.bucket)
+		self:assertEquals('entity', chain.join[1][1])
+		self:assertEquals('Category:Jump Point Year One', chain.where[1][1])
+		-- The wrapper's own bucket selects unprefixed; the joined entity table does not.
+		self:assertDeepEquals({ 'page_name', 'entity.name', 'legality' }, chain.select)
+	end)
+end
+
+-- Options merge rather than replace: a wrapper sets `primary` without having to
+-- know that the static table also opts out of the grid's lead image, and cannot
+-- switch that image back on by passing its own options.
+function suite:testResolveOptionsMergesAndKeepsLeadImageOff()
+	local merged = static._internal.resolveOptions({ primary = 'maintenance', leadImage = true })
+	self:assertEquals('maintenance', merged.primary)
+	self:assertEquals(false, merged.leadImage)
+	-- No options at all still opts the lead image out.
+	self:assertEquals(false, static._internal.resolveOptions(nil).leadImage)
+end
+
 -- The page name is the one lead column, showing the stored name while the link
 -- targets the page. The image is one of the editor's columns and renders where
 -- they put it, with the cell class the stylesheet keys on and a header that opts

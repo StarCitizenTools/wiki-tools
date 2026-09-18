@@ -31,6 +31,26 @@ local DISPLAY_ALIAS = 'DisplayName'
 -- wherever the editor's own columns put it, and a table may want none at all.
 local RESOLVE_OPTIONS = { leadImage = false }
 
+--- `RESOLVE_OPTIONS` with a wrapping module's own options folded in. `primary` is
+--- the one that matters: the query roots on `entity` by default, so a table whose
+--- subject is not an Entity page returns nothing at all without it, silently and
+--- with no error (a maintenance query over `entity` drops every tagged page that
+--- has no Entity row). `leadImage` is forced back to false whatever the caller
+--- passed, because a static table renders its image as an ordinary column.
+--- @param options DataGridOptions|nil
+--- @return DataGridOptions
+local function resolveOptions(options)
+	if options == nil then
+		return RESOLVE_OPTIONS
+	end
+	local merged = {}
+	for key, value in pairs(options) do
+		merged[key] = value
+	end
+	merged.leadImage = false
+	return merged
+end
+
 -- Where Module:BucketQuery keeps the page image. A column is the image column
 -- when it resolves to this bucket and field, not when it is spelled `Image`, so
 -- `Image ; label=Picture` still renders as a thumbnail.
@@ -244,13 +264,17 @@ end
 --- {{Data table}} through Module:DataGrid's resolveArgs, runs the Store query, and
 --- returns the wikitable preceded by the styles load. `pinlead` is accepted and
 --- ignored: it pins the grid's lead card, which a wikitable does not have.
+---
+--- `options` mirrors Module:DataGrid's second argument, so a module wrapping this
+--- one sets `primary` the way Module:Maintenance does for the grid.
 --- @param frame mw.frame
+--- @param options DataGridOptions|nil
 --- @return string
-function p.main(frame)
+function p.main(frame, options)
 	local getArgs = require('Module:Arguments').getArgs
 	local args = getArgs(frame)
 
-	local request, badArgs = DataGrid.resolveArgs(args, RESOLVE_OPTIONS)
+	local request, badArgs = DataGrid.resolveArgs(args, resolveOptions(options))
 	if badArgs then
 		return fail(badArgs)
 	end
@@ -277,6 +301,7 @@ p._internal = {
 	buildTable = buildTable,
 	applySort = applySort,
 	fail = fail,
+	resolveOptions = resolveOptions,
 }
 
 return p

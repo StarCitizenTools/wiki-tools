@@ -10,7 +10,7 @@ Editors use this through `{{Entity/Navplates}}`; see [Template:Entity/Navplates]
 
 `{{Navplate manufacturers}}` and the per-type navplates listed a whole set on every page in that set, so a manufacturer with n products rendered n² links across the wiki. Clark Defense Systems alone accounted for roughly 337,000 of 828,792, and 741 of the 844 links on `ADP Arms Grey` were its two footer navplates. This renders two links per page whatever the catalogue grows to.
 
-The swap was made by rewriting `{{Navplate manufacturers}}` into a shim onto this module rather than by editing its 6,335 transclusions; the shim passes nothing through, since the module resolves the manufacturer itself. `{{Navplate manufacturer}}` is a redirect to it and needed nothing. The per-type navplates (`{{Navplate personal armor}}`, `{{Navplate vehicles}}` and the rest) are **not** yet replaced: the type cell duplicates part of what they do, so a page can currently show both.
+The swap was made by rewriting `{{Navplate manufacturers}}` into a shim onto this module rather than by editing its 6,335 transclusions; the shim passes nothing through, since the module resolves the manufacturer itself. `{{Navplate manufacturer}}` is a redirect to it and needed nothing. The per-type navplates for personal armor, personal weapons, vehicle weapons, vehicle ordnances and computers are gone. `{{Navplate vehicles}}` and `{{Navplate commodities}}` are kept: the type cell does not reach a vehicle's role hub, and a commodity's subject type is a substance (`Metal`) that has no hub page at all, so a page carrying one of those still shows both it and the browse row.
 
 ### API
 

@@ -80,10 +80,9 @@ function suite:testResolveHubKeepsProperNounCasing()
 	self:assertEquals('Multi-Tool attachments', tools)
 end
 
-function suite:testResolveHubPicksTheLiveHubOfADuplicatePair()
-	-- "Ballistic Repeater" and "Ballistic repeater" are two real pages; the
-	-- capitalised one is a 320-byte orphan with no inbound links, so only the
-	-- lowercase hub is in the map and resolution is not a coin flip.
+function suite:testResolveHubReachesTheHubFromACapitalisedPlural()
+	-- Hub titles are matched lowercased, so a type string that both capitalises
+	-- the noun and pluralises it still lands on the one hub page.
 	self:assertEquals('Ballistic repeater', hubFor('Ballistic Repeater'))
 	local _, label = hubFor('Ballistic repeaters')
 	self:assertEquals('ballistic repeaters', label)

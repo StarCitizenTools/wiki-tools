@@ -35,6 +35,7 @@
 	"Char_Head_Hair": { "name": "Hair", "category": "Hair" },
 	"Char_Lens": { "name": "Lens", "category": "Lenses" },
 	"Char_Skin_Color": { "name": "Skin color", "category": "Skin colors" },
+	"Computer": { "name": "Computer", "category": "Computers" },
 	"Consumable": { "name": "Consumable", "category": "Consumables" },
 	"Container": { "name": "Container", "category": "Containers" },
 	"Cooler": { "name": "Cooler", "category": "Coolers" },

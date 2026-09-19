@@ -1,0 +1,136 @@
+/* Entity browse row — the bar at the foot of an entity page holding the link
+   out to the manufacturer's catalogue and to the type hub. Rendered by
+   Module:Entity/Navplates. */
+
+.t-entity-navplates {
+	display: flex;
+	flex-wrap: wrap;
+	border: 1px solid var( --border-color-base );
+	border-radius: var( --border-radius-medium );
+	overflow: hidden;
+	margin-block-start: var( --space-md );
+}
+
+/* The cell is the whole target: the wikilink inside is stretched over it
+   by .t-entity-navplates__line a::after, so the link stays a real wikilink (it
+   redlinks, previews and tracks like any other) while the eyebrow and the
+   count sit outside its label, where a wikilink label cannot hold them. */
+.t-entity-navplates__cell {
+	position: relative;
+	flex: 1 1 0;
+	min-width: 0;
+	padding: var( --space-sm ) var( --space-md );
+	/* room for the corner arrow, which is out of flow */
+	padding-inline-end: calc( var( --space-md ) + var( --space-lg ) );
+	transition: background-color 100ms ease;
+}
+
+.t-entity-navplates__cell:hover {
+	background-color: var( --color-surface-2 );
+}
+
+.t-entity-navplates__cell + .t-entity-navplates__cell {
+	border-inline-start: 1px solid var( --border-color-base );
+}
+
+/* "More from" is the eyebrow and the destination is the title, so the subject
+   is what the eye lands on rather than the preposition in front of it. The
+   count rides the eyebrow: it is the same register of small subtle type, and
+   it leaves the title row to the title, which matters once the title wraps. */
+.t-entity-navplates__eyebrow {
+	display: block;
+	font-size: var( --font-size-x-small );
+	line-height: var( --line-height-x-small );
+	color: var( --color-subtle );
+}
+
+.t-entity-navplates__sep {
+	margin-inline: 0.35em;
+	opacity: 0.6;
+}
+
+/* The featured card's title character at a footer size: medium rather than
+   bold, tight leading, and the negative tracking a large size needs. */
+.t-entity-navplates__line {
+	display: block;
+	font-size: 1.25rem;
+	line-height: 1.2;
+	font-weight: var( --font-weight-medium );
+	letter-spacing: -0.02em;
+	color: var( --color-emphasized );
+	/* Wraps rather than clips. The longest manufacturer name is 41 characters
+	   and would ellipsis in a narrow column; a two-line title costs a row and
+	   says the whole name. */
+	overflow-wrap: break-word;
+}
+
+/* The destination is not painted as a link: the whole cell is the target and
+   the arrow carries the affordance, so link blue here would say it twice and
+   put a wiki-link colour on something that is not a link in running prose. */
+.t-entity-navplates__line a {
+	color: inherit;
+	text-decoration: none;
+}
+
+.t-entity-navplates__line a::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	z-index: 1;
+}
+
+.t-entity-navplates__cell:hover .t-entity-navplates__line a {
+	text-decoration: underline;
+}
+
+.t-entity-navplates__meta {
+	font-variant-numeric: tabular-nums;
+}
+
+/* Pinned to the top corner and turned 45 degrees, so it reads as "opens
+   this" rather than as a step in a sequence. Out of flow, so a wrapping title
+   does not push it around; the cell reserves its gutter with padding instead.
+   The angle is a literal, not a token: TemplateStyles drops a transform whose
+   value comes from var(). */
+.t-entity-navplates__arrow {
+	position: absolute;
+	inset-block-start: var( --space-sm );
+	inset-inline-end: var( --space-sm );
+	z-index: 2;
+	color: var( --color-subtle );
+	display: flex;
+	transform: rotate( -45deg );
+}
+
+/* Citizen drops a table-of-contents sidebar in at 1120px, which makes the
+   content column non-monotonic in viewport width: 1119px of viewport gives a
+   1071px column, 1120px gives 740px. 740px is therefore the narrowest column
+   the bar sees at or above the skin's desktop edge, and two cells fit it. Below
+   that edge the cells stack. A container query would express this directly, but
+   TemplateStyles rejects @container outright and a rejected rule is fatal to
+   the whole stylesheet. */
+@media ( max-width: 1119.98px ) {
+	.t-entity-navplates__cell {
+		flex-basis: 100%;
+	}
+
+	.t-entity-navplates__cell + .t-entity-navplates__cell {
+		border-inline-start: 0;
+		border-block-start: 1px solid var( --border-color-base );
+	}
+}
+
+.t-entity-navplates--stacked .t-entity-navplates__cell {
+	flex-basis: 100%;
+}
+
+.t-entity-navplates--stacked .t-entity-navplates__cell + .t-entity-navplates__cell {
+	border-inline-start: 0;
+	border-block-start: 1px solid var( --border-color-base );
+}
+
+@media ( prefers-reduced-motion: reduce ) {
+	.t-entity-navplates__cell {
+		transition: none;
+	}
+}

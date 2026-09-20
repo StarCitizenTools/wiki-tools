@@ -112,7 +112,9 @@ local COLUMNS = {
 	},
 	{ field = 'type', header = 'Type', kind = 'text', label = 'Type', filter = 'aggridSet', width = 130 },
 	{ field = 'career', header = 'Career', kind = 'text', label = 'Career', filter = 'aggridSet', width = 110 },
-	{ field = 'role', header = 'Role', kind = 'text', label = 'Role', filter = 'aggridSet', width = 180 },
+	-- Role is a repeated Bucket field: a valueList renders each role and lets the
+	-- set filter offer them separately, the same shape RentalVehicleGrid uses.
+	{ field = 'role', header = 'Role', kind = 'valueList', label = 'Role', filter = 'aggridSet', width = 180 },
 	{ field = 'size', header = 'Size', kind = 'number', label = 'Size', filter = 'aggridSet', width = 80 },
 	{
 		field = 'storeSize',

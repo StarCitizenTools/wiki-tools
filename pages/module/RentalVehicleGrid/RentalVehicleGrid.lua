@@ -160,7 +160,15 @@ local function splitRoles(val)
 		end
 	end
 
-	addParts(val)
+	-- Role is a repeated Bucket field, so the read already gives one value per
+	-- role; older rows still arrive as a single separator-joined string.
+	if type(val) == 'table' then
+		for _, part in ipairs(val) do
+			addParts(part)
+		end
+	else
+		addParts(val)
+	end
 	return #roles > 0 and roles or nil
 end
 

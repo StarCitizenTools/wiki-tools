@@ -103,6 +103,18 @@ function suite:testToVehicleTilesRowsShapesRowsAndMarksCurrentPage()
 	self:assertTrue(tilesRows[2].selected)
 end
 
+function suite:testToVehicleTilesRowsJoinsARepeatedRole()
+	-- Role is a repeated Bucket field, so the read returns a list; the tile
+	-- caption is one line. Passing the list straight through raised "string or
+	-- number expected, got table" from Module:Tiles on every series sibling.
+	local tilesRows = Related._internal.toVehicleTilesRows({
+		{ page = 'Aurora MR', name = 'Aurora MR', role = { 'Starter', 'Light fighter' } },
+		{ page = 'Aurora CL', name = 'Aurora CL', role = { 'Light freight' } },
+	}, 'Aurora MR')
+	self:assertEquals('Starter / Light fighter', tilesRows[1].secondary)
+	self:assertEquals('Light freight', tilesRows[2].secondary)
+end
+
 -- renderVehicleVariants()
 
 function suite:testRenderVehicleVariantsEmptyForFewerThanTwoRows()

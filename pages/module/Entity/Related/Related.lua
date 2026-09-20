@@ -324,7 +324,9 @@ local function toVehicleTilesRows(rows, currentPage)
 			linkLabel = row.name or row.page,
 			image = row.image,
 			primary = row.name,
-			secondary = row.role,
+			-- Role is a repeated Bucket field, so the read returns a list; the
+			-- tile caption is one line.
+			secondary = type(row.role) == 'table' and table.concat(row.role, ' / ') or row.role,
 			selected = row.page == currentPage,
 		})
 	end

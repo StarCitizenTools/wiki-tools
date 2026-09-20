@@ -37,7 +37,7 @@ Section sub-builders read through the shared view: `ed:value(field, apiFallback)
 
 | Module | Section key | Role |
 |---|---|---|
-| `Vehicle/Overview` | `overview` | Type / Career / Role / Size / Model, a labelless top group |
+| `Vehicle/Overview` | `overview` | Type / Career / Role / Size / Model, a labelless top group. Career and each Role link to the page listing their members; a role with no hub stays plain rather than redlinking |
 | `Vehicle/Capacity` | `capacity` | Subsection tabs Overview (crew/cargo/inventory headline) + Cargo/Crew detail; collapses to flat rows when there's nothing to drill into |
 | `Vehicle/Cost` | `cost` | Subsection tabs: Universe / Pledge / Insurance |
 | `Vehicle/Stats` | `stats` | Subsection tabs: Overview (percentile ring gauges) + Offense / Defense / Mobility / Travel / Stealth |
@@ -45,7 +45,7 @@ Section sub-builders read through the shared view: `ed:value(field, apiFallback)
 | `Vehicle/Lore` | `lore` | In-lore release/retirement dates, collapsed |
 | `Vehicle/Development` | `development` | Real-world dates, flight-ready patch, production note, collapsed |
 
-`Vehicle/Stats/Overview`, `/Profile`, `/Standing`, `/PercentileBar`, and `Vehicle/ClassStats` support the Stats sub-builder (the size-class cohort query and its percentile math) but expose no section of their own. `Vehicle/Util` holds vehicle-domain helpers (`resolveCareer`, `matrixSize`, `DAMAGE_TYPES`, the mean armor / cross-section / deflection functions) shared across the sub-builders and `getStructuredData`.
+`Vehicle/Stats/Overview`, `/Profile`, `/Standing`, `/PercentileBar`, and `Vehicle/ClassStats` support the Stats sub-builder (the size-class cohort query and its percentile math) but expose no section of their own. `Vehicle/Util` holds vehicle-domain helpers (`resolveCareer`, `resolveRole`, `roleHub`, `matrixSize`, `DAMAGE_TYPES`, the mean armor / cross-section / deflection functions) shared across the sub-builders and `getStructuredData`. `resolveRole` returns the roles as a list, since a vehicle can hold more than one and `Role` is a repeated Bucket field; `roleHub` maps one role to its browse hub, and is what lets the Overview row and `Module:Entity/Navplates` link the same destination from one lookup.
 
 Every sub-builder exposes one `build(apiData, args, ed)` returning an `EntitySectionEntry` or `nil`, except `Vehicle/Overview`, whose `build(apiData, args, ed, typeName)` takes a fourth argument: the resolved subtype's `getTypeInfo().name`, computed once in `getSections` and passed in so the sub-builder never requires back into `Vehicle.lua`. They are pure: they never fetch and never re-resolve the subtype.
 

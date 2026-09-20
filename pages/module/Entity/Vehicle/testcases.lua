@@ -160,13 +160,13 @@ end
 function suite:testRoleWikiParamWinsOverApi()
 	-- wiki `role` param wins over the API in the Role row (curated taxonomy, like Career).
 	local s = Vehicle.getSections(ctx({ is_spaceship = true, role = 'Light Fighter' }, { role = 'Heavy Fighter' }, {}))
-	self:assertEquals('Heavy fighter', findItem(findSection(s, 'overview').items, 'Role').content)
+	self:assertEquals('[[Heavy fighters|Heavy fighter]]', findItem(findSection(s, 'overview').items, 'Role').content)
 end
 
 function suite:testRoleFromApiWhenNoArg()
 	-- with no wiki override, the Role row shows the API role.
 	local s = Vehicle.getSections(ctx({ is_spaceship = true, role = 'Light Fighter' }, {}, {}))
-	self:assertEquals('Light fighter', findItem(findSection(s, 'overview').items, 'Role').content)
+	self:assertEquals('[[Light fighters|Light fighter]]', findItem(findSection(s, 'overview').items, 'Role').content)
 end
 
 function suite:testGroundVehicleSpeedUsesDrive()
@@ -283,11 +283,28 @@ function suite:testStructuredDataRoleSplitsOnCommaToo()
 	self:assertEquals('Salvage', d['Role'][2])
 end
 
-function suite:testRoleRowJoinsMultiRoleForDisplay()
-	-- The infobox row is a string: the segments come back joined, and with the
-	-- separator normalised whatever the source used.
+function suite:testRoleRowLinksOnlyTheRolesWithAHub()
+	-- The row is one string: segments joined with " / ", each linked to its own
+	-- hub. "Salvage" has none, so it stays plain rather than redlinking, and the
+	-- label on the linked half names exactly what that page lists.
 	local s = Vehicle.getSections(ctx({ role = 'Mining, Salvage' }, {}, {}))
-	self:assertEquals('Mining / Salvage', findItem(findSection(s, 'overview').items, 'Role').content)
+	self:assertEquals('[[Mining ships|Mining]] / Salvage', findItem(findSection(s, 'overview').items, 'Role').content)
+end
+
+function suite:testRoleRowLinksEachHalfOfAMultiRoleSeparately()
+	-- Both halves resolve, to different pages: linking the whole phrase at one
+	-- of them would put a label on a destination that does not match it.
+	local s = Vehicle.getSections(ctx({ role = 'Starter / Light fighter' }, {}, {}))
+	self:assertEquals(
+		'[[Starter ships|Starter]] / [[Light fighters|Light fighter]]',
+		findItem(findSection(s, 'overview').items, 'Role').content
+	)
+end
+
+function suite:testRoleRowLeavesAnUnmappedRolePlain()
+	-- Carrier has fewer than five vehicles, so no hub: plain text, no redlink.
+	local s = Vehicle.getSections(ctx({ role = 'Carrier' }, {}, {}))
+	self:assertEquals('Carrier', findItem(findSection(s, 'overview').items, 'Role').content)
 end
 
 function suite:testStructuredDataOmitsManifestOwnedFields()

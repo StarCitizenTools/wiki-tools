@@ -172,7 +172,7 @@
 	"role": {
 		"type": "TEXT",
 		"index": true,
-		"repeated": false
+		"repeated": true
 	},
 	"series": {
 		"type": "TEXT",

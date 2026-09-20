@@ -1981,10 +1981,11 @@
 		"bucket": "vehicle",
 		"field": "role",
 		"index": true,
+		"repeated": true,
 		"modules": [
 			"Vehicle"
 		],
-		"desc": "Role of a vehicle (e.g. Light Fighter, Heavy Bomber, Cargo)."
+		"desc": "Role of a vehicle (e.g. Light fighter, Heavy bomber, Cargo). Repeated: a vehicle can hold more than one."
 	},
 	"Salvage speed multiplier": {
 		"type": "DOUBLE",

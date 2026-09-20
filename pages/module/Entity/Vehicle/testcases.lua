@@ -160,13 +160,13 @@ end
 function suite:testRoleWikiParamWinsOverApi()
 	-- wiki `role` param wins over the API in the Role row (curated taxonomy, like Career).
 	local s = Vehicle.getSections(ctx({ is_spaceship = true, role = 'Light Fighter' }, { role = 'Heavy Fighter' }, {}))
-	self:assertEquals('Heavy Fighter', findItem(findSection(s, 'overview').items, 'Role').content)
+	self:assertEquals('Heavy fighter', findItem(findSection(s, 'overview').items, 'Role').content)
 end
 
 function suite:testRoleFromApiWhenNoArg()
 	-- with no wiki override, the Role row shows the API role.
 	local s = Vehicle.getSections(ctx({ is_spaceship = true, role = 'Light Fighter' }, {}, {}))
-	self:assertEquals('Light Fighter', findItem(findSection(s, 'overview').items, 'Role').content)
+	self:assertEquals('Light fighter', findItem(findSection(s, 'overview').items, 'Role').content)
 end
 
 function suite:testGroundVehicleSpeedUsesDrive()
@@ -230,12 +230,64 @@ end
 function suite:testStructuredDataRoleWikiParamWins()
 	-- the stored Role property honors the wiki `role` override (matches the Role row + short desc).
 	local d = Vehicle.getStructuredData(ctx({ role = 'Light Fighter' }, { role = 'Heavy Fighter' }, {}))
-	self:assertEquals('Heavy Fighter', d['Role'])
+	self:assertEquals(1, #d['Role'])
+	self:assertEquals('Heavy fighter', d['Role'][1])
 end
 
 function suite:testStructuredDataRoleFromApiWhenNoArg()
 	local d = Vehicle.getStructuredData(ctx({ role = 'Light Fighter' }, {}, {}))
-	self:assertEquals('Light Fighter', d['Role'])
+	self:assertEquals(1, #d['Role'])
+	self:assertEquals('Light fighter', d['Role'][1])
+end
+
+function suite:testStructuredDataRoleSplitsMultiRole()
+	-- Role is a repeated field: each role is stored on its own so a per-role
+	-- query matches. Joined into one value, a ship listed "Starter / Light
+	-- Fighter" is absent from every light-fighter listing.
+	local d = Vehicle.getStructuredData(ctx({ role = 'Starter / Light Fighter' }, {}, {}))
+	self:assertEquals(2, #d['Role'])
+	self:assertEquals('Starter', d['Role'][1])
+	self:assertEquals('Light fighter', d['Role'][2])
+end
+
+function suite:testRoleIsNormalisedToSentenceCase()
+	-- The hub pages and categories a role links to are sentence case
+	-- ([[Light fighters]]), so a Title Case value would label a link
+	-- differently from its destination. The override decides which role a
+	-- vehicle has, not how it is cased, so it is normalised too.
+	local d = Vehicle.getStructuredData(ctx({ role = 'Light Fighter' }, { role = 'Heavy Fighter' }, {}))
+	self:assertEquals('Heavy fighter', d['Role'][1])
+	local e = Vehicle.getStructuredData(ctx({ role = 'Anti-Air' }, {}, {}))
+	self:assertEquals('Anti-air', e['Role'][1])
+	-- A value that is caps throughout is an editor shouting, not an acronym:
+	-- left alone it would store a second casing of an existing role.
+	local f = Vehicle.getStructuredData(ctx({ role = 'MULTI-ROLE / Fighter-Bomber' }, {}, {}))
+	self:assertEquals('Multi-role', f['Role'][1])
+	self:assertEquals('Fighter-bomber', f['Role'][2])
+	-- ...but a caps run beside normally-cased words is one, and survives.
+	local g = Vehicle.getStructuredData(ctx({ role = 'UEE patrol' }, {}, {}))
+	self:assertEquals('UEE patrol', g['Role'][1])
+end
+
+function suite:testRoleCasingKeepsAcronyms()
+	-- An all-caps run is an acronym; lowercasing it would destroy it.
+	local d = Vehicle.getStructuredData(ctx({ role = 'UEE Patrol' }, {}, {}))
+	self:assertEquals('UEE patrol', d['Role'][1])
+end
+
+function suite:testStructuredDataRoleSplitsOnCommaToo()
+	-- One page separated its roles with a comma rather than a slash.
+	local d = Vehicle.getStructuredData(ctx({ role = 'Mining, Salvage' }, {}, {}))
+	self:assertEquals(2, #d['Role'])
+	self:assertEquals('Mining', d['Role'][1])
+	self:assertEquals('Salvage', d['Role'][2])
+end
+
+function suite:testRoleRowJoinsMultiRoleForDisplay()
+	-- The infobox row is a string: the segments come back joined, and with the
+	-- separator normalised whatever the source used.
+	local s = Vehicle.getSections(ctx({ role = 'Mining, Salvage' }, {}, {}))
+	self:assertEquals('Mining / Salvage', findItem(findSection(s, 'overview').items, 'Role').content)
 end
 
 function suite:testStructuredDataOmitsManifestOwnedFields()

@@ -10,6 +10,8 @@ local statFormat = require('Module:Entity/StatFormat')
 
 local p = {}
 
+local ROLE_HUBS_PAGE = 'Module:Entity/Navplates/hubs.json'
+
 --- Career value: the wiki `career` arg wins over the API (curated taxonomy).
 --- @param apiData table
 --- @param args table
@@ -79,6 +81,67 @@ function p.resolveRole(apiData, args)
 		end
 	end
 	return roles[1] and roles or nil
+end
+
+--- The browse hub for one role, or nil where none covers it. The map lives
+--- beside the other hubs in Module:Entity/Navplates/hubs.json because it points
+--- into that catalogue, but it is a section of its own there: role values are
+--- generic words ("Medical", "Mining", "Cargo") and the type index is one
+--- lowercased keyspace shared with guns and armor, so matching a role against
+--- it would let an item hub of the same name capture it.
+---
+--- Most of these hubs list spacecraft, so an entry names the family it covers
+--- and a known mismatch resolves to nothing: a ground vehicle's "Medical" must
+--- not link Medical ships, which does not list it. An unknown family still
+--- resolves, because a vehicle page with a blank `uuid` has no record to derive
+--- one from and would otherwise lose its hub.
+---
+--- Only roles with a real hub resolve. A rare role returns nil, so the caller
+--- renders it plain rather than linking a page that lists one vehicle.
+---
+--- @param role string
+--- @param family string|nil 'ship' | 'ground' | 'gravlev', nil when unknown
+--- @return string|nil hub page title
+function p.roleHub(role, family)
+	if type(role) ~= 'string' or role == '' then
+		return nil
+	end
+	local doc = mw.loadJsonData(ROLE_HUBS_PAGE)
+	if type(doc.roles) ~= 'table' then
+		return nil
+	end
+	local wanted = mw.ustring.lower(mw.text.trim(role))
+	for name, entry in pairs(doc.roles) do
+		if mw.ustring.lower(name) == wanted then
+			if family ~= nil and entry.family ~= nil and entry.family ~= family then
+				return nil
+			end
+			return entry.hub
+		end
+	end
+	return nil
+end
+
+--- The vehicle family a record describes, or nil when it carries none. Mirrors
+--- the leaf subtypes (Ship / GroundVehicle / Gravlev) for callers that hold
+--- apiData rather than the resolved chain.
+---
+--- @param apiData table
+--- @return string|nil
+function p.family(apiData)
+	if type(apiData) ~= 'table' then
+		return nil
+	end
+	if apiData.is_spaceship then
+		return 'ship'
+	end
+	if apiData.is_gravlev then
+		return 'gravlev'
+	end
+	if apiData.is_vehicle then
+		return 'ground'
+	end
+	return nil
 end
 
 --- Ship-matrix size string: the curated `|size=` arg wins over `apiData.size`

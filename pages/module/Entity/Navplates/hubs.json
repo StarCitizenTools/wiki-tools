@@ -1,5 +1,5 @@
 {
-	"//": "Type hubs carrying a #list anchor, mapped to the plural the hub's own heading uses. Module:Entity/Navplates matches a type string against the keys by singular and plural, and says \"More <value>\". `overrides` covers the cases pluralisation cannot reach.",
+	"//": "Type hubs carrying a #list anchor, mapped to the plural the hub's own heading uses. Module:Entity/Navplates matches a type string against the keys by singular and plural, and says \"More <value>\". `overrides` covers the cases pluralisation cannot reach. `roles` is a separate, exact-match map from a vehicle's Role to its hub: role values are generic words (Medical, Mining, Cargo), so matching them against the shared `hubs` keyspace would let an item hub of the same name capture them. Each entry names the vehicle family its hub lists, because most of these hubs are spacecraft: a ground vehicle's Medical role must not link Medical ships, which does not list it.",
 	"hubs": {
 		"A-type main-sequence star": "A-type main-sequence stars",
 		"Alien vehicles": "alien vehicles",
@@ -176,5 +176,75 @@
 		"Arm armor": "Arms armor",
 		"Leg armor": "Legs armor",
 		"Optic": "Optics attachment"
+	},
+	"roles": {
+		"Anti-air": {
+			"hub": "Anti-air vehicles",
+			"family": "ground"
+		},
+		"Dropship": {
+			"hub": "Dropships",
+			"family": "ship"
+		},
+		"Expedition": {
+			"hub": "Expedition ships",
+			"family": "ship"
+		},
+		"Heavy fighter": {
+			"hub": "Heavy fighters",
+			"family": "ship"
+		},
+		"Interdiction": {
+			"hub": "Interdiction ships",
+			"family": "ship"
+		},
+		"Light fighter": {
+			"hub": "Light fighters",
+			"family": "ship"
+		},
+		"Light freight": {
+			"hub": "Light freighters",
+			"family": "ship"
+		},
+		"Luxury touring": {
+			"hub": "Luxury touring ships",
+			"family": "ship"
+		},
+		"Medical": {
+			"hub": "Medical ships",
+			"family": "ship"
+		},
+		"Medium fighter": {
+			"hub": "Medium fighters",
+			"family": "ship"
+		},
+		"Medium freight": {
+			"hub": "Medium freighters",
+			"family": "ship"
+		},
+		"Mining": {
+			"hub": "Mining ships",
+			"family": "ship"
+		},
+		"Passenger": {
+			"hub": "Passenger ships",
+			"family": "ship"
+		},
+		"Pathfinder": {
+			"hub": "Pathfinders",
+			"family": "ship"
+		},
+		"Racing": {
+			"hub": "Racing ships",
+			"family": "ship"
+		},
+		"Starter": {
+			"hub": "Starter ships",
+			"family": "ship"
+		},
+		"Stealth fighter": {
+			"hub": "Stealth fighters",
+			"family": "ship"
+		}
 	}
 }

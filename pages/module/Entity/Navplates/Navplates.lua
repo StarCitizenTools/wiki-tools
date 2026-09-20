@@ -25,6 +25,7 @@ local BucketQuery = require('Module:BucketQuery')
 local Icon = require('Module:Icon')
 local manufacturers = require('Module:Manufacturers')
 local Store = require('Module:Entity/Store')
+local vehicleUtil = require('Module:Entity/Vehicle/Util')
 
 local p = {}
 
@@ -124,27 +125,61 @@ local function hubIndex()
 	return index, labels
 end
 
---- Resolves a type string to the hub page that carries the `#list` anchor, and
---- the plural that hub's own heading uses. The label is carried in the data
+--- Maps role strings to their browse hubs, most specific first. The lookup and
+--- the reason it is scoped away from the shared type index live in
+--- Module:Entity/Vehicle/Util.roleHub; this only shapes the result into
+--- candidates.
+---
+--- Carries no count. Of the hubs a role reaches, the ones that predate the map
+--- select their rows by category, not by Role, so counting `Role` would size a
+--- different set from the page linked.
+---
+--- @param roles string[]|nil
+--- @param family string|nil
+--- @return { hub: string, label: string }[]
+local function roleHubs(roles, family)
+	local out = {}
+	if type(roles) ~= 'table' then
+		return out
+	end
+	for _, role in ipairs(roles) do
+		local hub = vehicleUtil.roleHub(role, family)
+		if hub then
+			out[#out + 1] = { hub = hub, label = mw.ustring.lower(hub) }
+		end
+	end
+	return out
+end
+
+--- Resolves a candidate list to the hub page that carries the `#list` anchor,
+--- and the plural that hub's own heading uses. The label is carried in the data
 --- rather than derived: "armor" is uncountable, the dietary-effect hubs are
 --- adjectives that need "items" appended, and several hub titles are proper
 --- nouns. The headings already settled all three, so this reuses their wording
 --- instead of inventing a second one.
 ---
---- Each candidate carries the `Subject type` value that counts the hub it
---- resolves to, or nil where nothing counts it. The two travel together because
---- the count has to describe the set the cell links to: a hub reached through a
---- browse category ("Medium ships") holds a curated page set that no single
---- subject type selects, so counting the page's own type there sizes a
---- different, much larger set than the reader is being sent to.
+--- A candidate is one of two shapes. `{ hub, label }` already names its
+--- destination and is returned as-is, never looked up, which is what keeps a
+--- role out of the shared type index. `{ value, countOn }` is a type string
+--- matched against that index, and carries the `Subject type` value that counts
+--- the hub it resolves to, or nil where nothing counts it. The two travel
+--- together because the count has to describe the set the cell links to: a hub
+--- reached through a browse category ("Medium ships") holds a curated page set
+--- that no single subject type selects, so counting the page's own type there
+--- sizes a different, much larger set than the reader is being sent to.
 ---
---- @param candidates { value: string|nil, countOn: string|nil }[] most specific first
+--- @param candidates ({ hub: string, label: string }|{ value: string|nil, countOn: string|nil })[] most specific first
 --- @return string|nil hub page title
 --- @return string|nil plural label
 --- @return string|nil the value to count on, nil when the hub is uncountable
 local function resolveHub(candidates)
 	local index, labels
 	for _, candidate in ipairs(candidates) do
+		-- A role candidate already names its hub page, so it never goes through
+		-- the shared index: that is what keeps a generic role out of an item hub.
+		if candidate.hub then
+			return candidate.hub, candidate.label, candidate.countOn
+		end
 		if type(candidate.value) == 'string' and candidate.value ~= '' then
 			if not index then
 				index, labels = hubIndex()
@@ -251,11 +286,46 @@ function p.main(frame)
 	-- fighter reaches Light fighters instead of rendering no type cell at all.
 	local typeInfo = result.typeInfo
 	local typeName = typeInfo and typeInfo.name
-	local candidates = {
+	-- A vehicle's role outranks its type and the chain's browse categories:
+	-- "Light freighters" and "Anti-air vehicles" both say more than the type
+	-- hub they would otherwise fall back to ("Ground vehicles", 42 rows), and a
+	-- spacecraft's own type resolves to no hub at all.
+	-- The page's stored row wins over the API record, because the editorial
+	-- `role=` an editor wrote on {{Entity}} is frequently a CORRECTION of a wrong
+	-- upstream value, and a sibling invocation cannot see that arg itself. The
+	-- Cyclone is "Passenger" upstream and "Exploration / Recon" on the page; the
+	-- MOLE is "Medium Mining" and "Prospecting / Mining". Reading the API first
+	-- made the browse row contradict the infobox beside it.
+	--
+	-- One read, at one precedence point. A vehicle page with a blank `uuid`
+	-- resolves no record, so a sibling sees kind "Item" and an empty apiData
+	-- (Cydnus, Arrastra); that is why an empty record qualifies too, rather than
+	-- kind alone. Commodities and items reach neither branch and pay nothing.
+	local family = vehicleUtil.family(result.apiData)
+	local candidates = {}
+	if result.kind == 'Vehicle' or next(result.apiData or {}) == nil then
+		local stored = Store.selfValues('Role', 'Vehicle')
+		if stored then
+			-- A row exists, so it is the answer, even when it names roles no hub
+			-- covers: falling back to the API there would put the upstream value
+			-- back in front of the editor's. The Cutter Scout is "Pathfinder"
+			-- upstream and "Reconnaissance / Intelligence" on the page, and it
+			-- must reach no role hub rather than Pathfinders.
+			candidates = roleHubs(stored, family)
+		elseif result.kind == 'Vehicle' then
+			-- No row yet, which is a page that has never had a link update. The
+			-- API record is all there is.
+			candidates = roleHubs(vehicleUtil.resolveRole(result.apiData or {}, args), family)
+		end
+	end
+	local typeCandidates = {
 		{ value = typeInfo and typeInfo.category, countOn = typeName },
 		{ value = typeName, countOn = typeName },
 		{ value = result.displayType, countOn = typeName },
 	}
+	for _, candidate in ipairs(typeCandidates) do
+		candidates[#candidates + 1] = candidate
+	end
 	local browse = result.chainCategories or {}
 	for i = #browse, 1, -1 do
 		candidates[#candidates + 1] = { value = browse[i] }
@@ -263,10 +333,10 @@ function p.main(frame)
 
 	local hub, noun, countOn = resolveHub(candidates)
 	if not hub then
-		-- Same reason as the manufacturer above: a sibling cannot see the `type`
-		-- an editor set on the page's own {{Entity}} call, but the Bucket row can.
-		-- Read last and only on a miss, so the pages the chain already answers for
-		-- do not each pay a Bucket query for a value they never consult.
+		-- Same reason as the role above: a sibling cannot see the `type` an
+		-- editor set on the page's own {{Entity}} call, but the Bucket row can.
+		-- Read last and only on a miss, so the pages the chain already answers
+		-- for do not each pay a Bucket query for a value they never consult.
 		local stored = Store.selfValue('Subject type')
 		hub, noun, countOn = resolveHub({ { value = stored, countOn = stored } })
 	end

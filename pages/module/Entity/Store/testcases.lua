@@ -137,6 +137,44 @@ function suite:testSelfValueContainsBucketFailure()
 	end)
 end
 
+--- selfValues is the repeated-field counterpart: a repeated column comes back
+--- as an array, which selfValue rejects, so a caller that wants one needs this.
+function suite:testSelfValuesReturnsTheList()
+	withManifest(function()
+		bucketLib._setRows('wearable_set', { { classification = { 'Heavy armor', 'Light armor' } } })
+		self:assertDeepEquals({ 'Heavy armor', 'Light armor' }, Store.selfValues('Classification'))
+	end)
+end
+
+--- A single-valued column is not a list, so selfValues declines it rather than
+--- wrapping it: the two accessors must not silently cover for each other.
+function suite:testSelfValuesRejectsAScalar()
+	withManifest(function()
+		bucketLib._setRows('wearable_set', { { classification = 'Heavy armor' } })
+		self:assertEquals(nil, Store.selfValues('Classification'))
+	end)
+end
+
+function suite:testSelfValuesDropsEmptyEntriesAndNilsAnEmptyList()
+	withManifest(function()
+		bucketLib._setRows('wearable_set', { { classification = { 'Heavy armor', '', 'Light armor' } } })
+		self:assertDeepEquals({ 'Heavy armor', 'Light armor' }, Store.selfValues('Classification'))
+	end)
+	withManifest(function()
+		bucketLib._setRows('wearable_set', { { classification = {} } })
+		self:assertEquals(nil, Store.selfValues('Classification'))
+	end)
+end
+
+--- Same best-effort contract as selfValue: infrastructure failure degrades to
+--- nil rather than erroring the page.
+function suite:testSelfValuesContainsBucketFailure()
+	withManifest(function()
+		bucketLib._failNext = true
+		self:assertEquals(nil, Store.selfValues('Classification'))
+	end)
+end
+
 --- An unresolvable displayName is nil with no query attempted, the same as an
 --- unresolvable kind for resolve() itself.
 function suite:testSelfValueUnresolvableIsNil()

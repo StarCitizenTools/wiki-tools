@@ -93,4 +93,45 @@ function suite:testEffectiveCrossSection()
 	self:assertEquals(nil, Util.effectiveCrossSection({ armor = { signal_cross_section = 0.6 } }))
 end
 
+-- roleHub()
+
+function suite:testRoleHubResolvesCaseAndSpaceInsensitively()
+	self:assertEquals('Light fighters', Util.roleHub('Light fighter'))
+	self:assertEquals('Light fighters', Util.roleHub('  LIGHT FIGHTER  '))
+end
+
+function suite:testRoleHubIsNilForARoleWithNoHub()
+	-- Carrier has fewer than five vehicles, so it has no hub and must render
+	-- plain rather than linking a page that lists one ship.
+	self:assertEquals(nil, Util.roleHub('Carrier'))
+	self:assertEquals(nil, Util.roleHub(''))
+	self:assertEquals(nil, Util.roleHub(nil))
+end
+
+function suite:testRoleHubRefusesAKnownFamilyMismatch()
+	-- Medical ships lists spacecraft and does not list the Ursa Medivac, so a
+	-- ground vehicle's Medical role must not link it.
+	self:assertEquals('Medical ships', Util.roleHub('Medical', 'ship'))
+	self:assertEquals(nil, Util.roleHub('Medical', 'ground'))
+	self:assertEquals(nil, Util.roleHub('Racing', 'gravlev'))
+	-- Anti-air is the ground hub, so the gate runs the other way too.
+	self:assertEquals('Anti-air vehicles', Util.roleHub('Anti-air', 'ground'))
+	self:assertEquals(nil, Util.roleHub('Anti-air', 'ship'))
+end
+
+function suite:testRoleHubResolvesWhenTheFamilyIsUnknown()
+	-- A vehicle page with a blank uuid has no record to derive a family from;
+	-- it must keep its hub rather than lose it to the gate.
+	self:assertEquals('Mining ships', Util.roleHub('Mining'))
+	self:assertEquals('Mining ships', Util.roleHub('Mining', nil))
+end
+
+function suite:testFamilyFromApiData()
+	self:assertEquals('ship', Util.family({ is_spaceship = true }))
+	self:assertEquals('gravlev', Util.family({ is_gravlev = true }))
+	self:assertEquals('ground', Util.family({ is_vehicle = true }))
+	self:assertEquals(nil, Util.family({}))
+	self:assertEquals(nil, Util.family(nil))
+end
+
 return suite

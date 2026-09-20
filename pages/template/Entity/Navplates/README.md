@@ -29,7 +29,8 @@ On a page with no `{{Entity}}` call, name the entity:
 
 - Each cell appears only when its destination resolves, so a page can show two cells, one, or no bar at all.
 - The manufacturer cell prefers `manufacturer=`, then the API record, then the manufacturer stored on the page by a previous `{{Entity}}` parse. The stored value is consulted for `UNKN` as well as for a missing one, because the API returns `UNKN` wherever the real maker is unrecorded and it would otherwise hide an editorial `manufacturer=`.
-- The type cell links the hub for the entity's type, falling back to the browse categories its type chain contributed and then to the type stored on the page. `Ships`, `Vehicles` and `Spacecraft` have no index to link, so a spacecraft reaches a role hub such as `Medium ships` or shows no type cell.
+- The second cell links the most specific hub the entity has: a vehicle's role first (`Light freighters`, `Anti-air vehicles`), then its type, then the browse categories its type chain contributed, then the type stored on the page. `Ships`, `Vehicles` and `Spacecraft` have no index to link, so a spacecraft reaches its role hub or none.
+- A role only links where a hub exists for it. The map covers the roles with at least five vehicles, so a rare one shows no cell rather than a page listing a single ship.
 - Both links land on the destination's `#list` anchor, so the reader arrives at the index rather than the lead.
 - The count beside each cell is omitted rather than shown as zero when it cannot be established. A type hub reached through a browse category carries no count at all, because the pages in that category are a curated set that no single type selects.
 - Counts are baked into the parser cache, which expires after three days, so a count can trail the wiki by that much.

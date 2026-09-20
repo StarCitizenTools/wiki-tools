@@ -140,4 +140,45 @@ function suite:testResolveHubSkipsCandidatesWithoutAValue()
 	self:assertEquals('Gun', resolveHub({ {}, { value = 'Guns', countOn = 'Gun' } }))
 end
 
+function suite:testResolveHubTakesACandidateThatNamesItsHub()
+	-- A role candidate carries the hub page itself and must not be looked up in
+	-- the shared index: the 10 role-only hubs are deliberately absent from it.
+	local hub, label, countOn = resolveHub({
+		{ hub = 'Light freighters', label = 'light freighters' },
+		{ value = 'Guns', countOn = 'Gun' },
+	})
+	self:assertEquals('Light freighters', hub)
+	self:assertEquals('light freighters', label)
+	self:assertEquals(nil, countOn)
+end
+
+function suite:testRoleHubsBypassTheSharedIndexEvenOnACollision()
+	-- The scoping guarantee, stated as the invariant rather than as today's
+	-- coincidence: a candidate naming its hub is returned before hubIndex is
+	-- consulted at all, so an item hub of the same name cannot capture it. The
+	-- value here would resolve to a different page through the index.
+	local hub, label, countOn = resolveHub({
+		{ hub = 'Medical ships', label = 'medical ships' },
+		{ value = 'Guns', countOn = 'Gun' },
+	})
+	self:assertEquals('Medical ships', hub)
+	self:assertEquals('medical ships', label)
+	self:assertEquals(nil, countOn)
+end
+
+function suite:testEveryRoleEntryNamesAHubAndAFamily()
+	-- Each entry must carry both, since roleHub gates on family: an entry
+	-- missing one would silently link a ground vehicle to a spacecraft hub.
+	local hubs = mw.loadJsonData('Module:Entity/Navplates/hubs.json')
+	local families = {}
+	for role, entry in pairs(hubs.roles) do
+		self:assertEquals('table', type(entry), role)
+		self:assertEquals(true, type(entry.hub) == 'string' and entry.hub ~= '', role)
+		self:assertEquals(true, mw.ustring.find(entry.hub, '^%u') ~= nil, role)
+		self:assertEquals(true, entry.family == 'ship' or entry.family == 'ground', role)
+		families[entry.family] = true
+	end
+	self:assertEquals(true, families.ship)
+end
+
 return suite

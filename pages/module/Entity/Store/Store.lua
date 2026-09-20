@@ -98,6 +98,32 @@ function p.selfValue(displayName, kind)
 	return nil
 end
 
+--- The current page's own stored values for a REPEATED property, as a list.
+--- A repeated field comes back as an array, which selfValue deliberately
+--- rejects, so a caller that wants one needs this instead. nil until the page's
+--- first link update has run, and nil when the row holds no usable value.
+--- @param displayName string
+--- @param kind string|nil
+--- @return string[]|nil
+function p.selfValues(displayName, kind)
+	local entry = p.resolve(displayName, kind)
+	if entry == nil then
+		return nil
+	end
+	local row = selfRow(entry.bucket, entry.field)
+	local value = row and row[entry.field]
+	if type(value) ~= 'table' then
+		return nil
+	end
+	local out = {}
+	for _, item in ipairs(value) do
+		if type(item) == 'string' and item ~= '' then
+			out[#out + 1] = item
+		end
+	end
+	return out[1] and out or nil
+end
+
 --- Maps uuids to their page and infobox image. Bucket rows exist only for
 --- main-namespace pages (the write-side rule), so no namespace check is needed.
 --- @param uuids string[]

@@ -19,21 +19,66 @@ function p.resolveCareer(apiData, args)
 	return type(c) == 'string' and c ~= '' and c or nil
 end
 
---- Role value: the wiki `role` arg wins over the API (curated taxonomy, mirroring
---- resolveCareer). Returns the raw value — the override string, or the API role
---- (a string, or a slash-joinable table on the rare multi-role record). nil when neither.
+--- Sentence case, which is the wiki's canonical form for a role. The hub pages
+--- and categories a role links to are sentence case ("Light fighters",
+--- "Category:Light armor"), so a Title Case value would label a link differently
+--- from its destination. The upstream API is uniformly Title Case and is not the
+--- authority here: it carries game data, not wiki style.
+---
+--- An all-caps run is left alone, since lowercasing it would destroy an acronym.
+---
+--- @param role string
+--- @return string
+local function sentenceCase(role)
+	-- A caps run is only an acronym when something around it is cased normally.
+	-- A value that is caps throughout is an editor shouting, not "UEE": left
+	-- alone it would store a second casing of a role that already exists and
+	-- reintroduce the collisions this normalising removes.
+	local shouted = mw.ustring.find(role, '%l') == nil
+	local out = mw.ustring.gsub(role, '%a+', function(word)
+		if not shouted and mw.ustring.find(word, '^%u%u+$') then
+			return word
+		end
+		return mw.ustring.lower(word)
+	end)
+	return mw.ustring.upper(mw.ustring.sub(out, 1, 1)) .. mw.ustring.sub(out, 2)
+end
+
+--- The vehicle's roles, as a list. A vehicle can genuinely hold more than one
+--- ("Starter / Light freight"), and both the wiki param and the API deliver them
+--- as a single separator-joined string, so they are split here: `Role` is a
+--- repeated Bucket field, and storing the whole phrase as one value means no
+--- per-role query matches it (a ship listed "Starter / Light fighter" would be
+--- absent from every light-fighter listing).
+---
+--- The wiki `role` param wins over the API, the same curated-taxonomy rule as
+--- Career, and is split identically. Every segment is normalised to sentence
+--- case whatever its source: the override decides *which* role a vehicle has,
+--- not how it is cased.
+---
 --- @param apiData table
 --- @param args table
---- @return string|table|nil
+--- @return string[]|nil
 function p.resolveRole(apiData, args)
-	if type(args.role) == 'string' and args.role ~= '' then
-		return args.role
+	local raw = (type(args.role) == 'string' and args.role ~= '') and args.role or apiData.role
+	if type(raw) == 'table' then
+		local normalised = {}
+		for _, segment in ipairs(raw) do
+			normalised[#normalised + 1] = sentenceCase(mw.text.trim(segment))
+		end
+		return normalised[1] and normalised or nil
 	end
-	local r = apiData.role
-	if type(r) == 'table' then
-		return r
+	if type(raw) ~= 'string' or raw == '' then
+		return nil
 	end
-	return type(r) == 'string' and r ~= '' and r or nil
+	local roles = {}
+	for segment in mw.text.gsplit(raw, '%s*[/,]%s*') do
+		segment = mw.text.trim(segment)
+		if segment ~= '' then
+			roles[#roles + 1] = sentenceCase(segment)
+		end
+	end
+	return roles[1] and roles or nil
 end
 
 --- Ship-matrix size string: the curated `|size=` arg wins over `apiData.size`

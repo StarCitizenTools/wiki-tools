@@ -41,6 +41,29 @@ local function careerLink(career)
 	return '[[:Category:' .. c .. ' career|' .. c .. ']]'
 end
 
+--- The Role row: each role linked to its browse hub where one exists, plain
+--- text where none does, joined with the same " / " the value is stored under.
+---
+--- Linked per role rather than as one phrase, so the label always names exactly
+--- what the link lists: a Reliant Kore is "Starter / Light freight", and the
+--- two halves go to different pages. Linking the whole phrase at one of them
+--- would put a label on a destination that does not match it.
+---
+--- @param roles string[]|nil
+--- @param family string|nil vehicle family, so a ground vehicle does not link a spacecraft hub
+--- @return string|nil
+local function roleLinks(roles, family)
+	if type(roles) ~= 'table' then
+		return nil
+	end
+	local parts = {}
+	for _, role in ipairs(roles) do
+		local hub = vehicleUtil.roleHub(role, family)
+		parts[#parts + 1] = hub and ('[[' .. hub .. '|' .. role .. ']]') or role
+	end
+	return parts[1] and table.concat(parts, ' / ') or nil
+end
+
 --- "Model" row (legacy label for the series): the editorial series as
 --- "<mfr code> <series>" linked to the manufacturer's series browse category,
 --- or the plain series when no manufacturer. Appends a generation link when a
@@ -81,11 +104,11 @@ function p.build(apiData, args, ed, typeName)
 	-- read (not an editorial overlap field) — the difference is systematic, so it
 	-- must not flag every vehicle into the manual-API-data maintenance category.
 	sectionBuilder.push(overview, 'Career', careerLink(vehicleUtil.resolveCareer(apiData, args)))
-	local role = vehicleUtil.resolveRole(apiData, args)
-	if type(role) == 'table' then
-		role = table.concat(role, ' / ')
-	end
-	sectionBuilder.push(overview, 'Role', role)
+	sectionBuilder.push(
+		overview,
+		'Role',
+		roleLinks(vehicleUtil.resolveRole(apiData, args), vehicleUtil.family(apiData))
+	)
 	sectionBuilder.push(overview, 'Size', sizeDisplay(apiData, args))
 	sectionBuilder.push(overview, 'Model', modelLink(apiData, args, ed))
 	return sectionBuilder.section({ key = 'overview', items = overview })

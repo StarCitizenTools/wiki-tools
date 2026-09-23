@@ -123,7 +123,7 @@ function suite:testRenderVehicleVariantsEmptyForFewerThanTwoRows()
 			{ page_name = 'Aurora MR', name = 'Aurora MR', image = 'AuroraMR.png', ['vehicle.role'] = 'Multi-role' },
 		})
 		local html = Related._internal.renderVehicleVariants('Aurora', 'Aurora MR')
-		self:assertStringContains('t-entity-related-empty', html, true)
+		self:assertStringContains('t-mbox--placeholder', html, true)
 	end)
 end
 
@@ -139,7 +139,7 @@ function suite:testRenderVehicleVariantsRendersSectionForTwoRows()
 			{ page_name = 'Aurora ES', name = 'Aurora ES', image = 'AuroraES.png', ['vehicle.role'] = 'Starter' },
 		})
 		local html = Related._internal.renderVehicleVariants('Aurora', 'Aurora MR')
-		self:assertNotStringContains('t-entity-related-empty', html, true)
+		self:assertNotStringContains('t-mbox--placeholder', html, true)
 		self:assertStringContains('Variants', html, true)
 	end)
 end

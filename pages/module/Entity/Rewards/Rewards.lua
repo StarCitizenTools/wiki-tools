@@ -3,10 +3,7 @@ require('strict')
 local Data = require('Module:Entity/Data')
 local TableLua = require('Module:TableLua')
 local Lines = require('Module:Entity/Rewards/Lines')
-
-local function renderEmpty(message)
-	return tostring(mw.html.create('p'):addClass('t-entity-order-empty'):wikitext(message))
-end
+local emptyState = require('Module:Entity/EmptyState')
 
 local function processBlueprints(groups)
 	local data = {}
@@ -83,10 +80,10 @@ function p.main(frame)
 
 	if result.hasApiError then
 		root:tag('h3'):wikitext('Items')
-		root:wikitext(renderEmpty('Item data unavailable.'))
+		root:wikitext(emptyState.failed("Couldn't load awarded items."))
 
 		root:tag('h3'):wikitext('Blueprints')
-		root:wikitext(renderEmpty('Blueprint data unavailable.'))
+		root:wikitext(emptyState.failed("Couldn't load awarded blueprints."))
 
 		return styles .. tostring(root)
 	end
@@ -95,19 +92,15 @@ function p.main(frame)
 	local blueprintGroups = result.apiData.blueprints
 
 	root:tag('h3'):wikitext('Items')
-	if result.hasApiError then
-		root:wikitext(renderEmpty('Item data unavailable.'))
-	elseif not rewardGroups or #rewardGroups == 0 then
-		root:wikitext(renderEmpty('No items awarded for this contract.'))
+	if not rewardGroups or #rewardGroups == 0 then
+		root:wikitext(emptyState.none('No items awarded.'))
 	else
 		root:wikitext(renderSection(processItems(rewardGroups)))
 	end
 
 	root:tag('h3'):wikitext('Blueprints')
-	if result.hasApiError then
-		root:wikitext(renderEmpty('Blueprint data unavailable.'))
-	elseif not blueprintGroups or #blueprintGroups == 0 then
-		root:wikitext(renderEmpty('No blueprints awarded for this contract.'))
+	if not blueprintGroups or #blueprintGroups == 0 then
+		root:wikitext(emptyState.none('No blueprints awarded.'))
 	else
 		root:wikitext(renderSection(processBlueprints(blueprintGroups)))
 	end

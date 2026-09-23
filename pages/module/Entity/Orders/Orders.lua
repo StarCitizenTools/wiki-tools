@@ -3,10 +3,7 @@ require('strict')
 local Data = require('Module:Entity/Data')
 local TableLua = require('Module:TableLua')
 local Lines = require('Module:Entity/Orders/Lines')
-
-local function renderEmpty(message)
-	return tostring(mw.html.create('p'):addClass('t-entity-order-empty'):wikitext(message))
-end
+local emptyState = require('Module:Entity/EmptyState')
 
 local function formatSize(item)
 	if not item.max_container_size and not item.max_scu and not item.min_scu then
@@ -81,13 +78,17 @@ function p.main(frame)
 	local args = Data.parseArgs(frame)
 	local result = Data.get(args)
 
-	if not result.apiData or not result.apiData.hauling_orders or type(result.apiData.hauling_orders) ~= 'table' then
-		return renderEmpty('No items requested by contract.')
+	local orders = result.apiData and result.apiData.hauling_orders
+	if type(orders) ~= 'table' or #orders == 0 then
+		if result.hasApiError then
+			return emptyState.failed("Couldn't load requested items.")
+		end
+		return emptyState.none('No items requested.')
 	end
 
 	local root = mw.html.create('div'):addClass('t-entity-order-container')
 
-	root:wikitext(processOrders(result.apiData.hauling_orders))
+	root:wikitext(processOrders(orders))
 
 	local styles = mw.getCurrentFrame():extensionTag({
 		name = 'templatestyles',

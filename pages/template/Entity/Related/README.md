@@ -27,10 +27,12 @@ When `{{Entity}}` has been invoked earlier on the page, the UUID can be omitted;
 
 ## Behavior
 
-- **Items** render up to two tile grids in order: Set pieces (other items forming a wearable set) then Variants (cosmetic variants of the same base item). A grid is omitted when its bucket is empty; if both are empty, the template falls back to a single muted placeholder line instead.
+- **Items** render up to two tile grids in order: Set pieces (other items forming a wearable set) then Variants (cosmetic variants of the same base item). A grid is omitted when it is empty; if both are, it shows the placeholder "No related items." instead.
 - **Commodities** render neither grid; instead a sortable Cargo variants table lists each SCU box size with its dimensions and mass, since cargo boxes share one image and have no wiki pages of their own. A box size outside the standard SCU ladder (0.125 through 32) still gets a row, but its Length/Width/Height cells render `-` instead of a dimension.
-- **Vehicles, missions, and locations** have no related-items data, so the template falls back to the muted placeholder line, "No related items available from the API." An upstream fetch failure shows that exact same line: there is no separate "API error" wording here, unlike `{{Entity/Blueprints}}`.
-- The current page is filtered out of the Variants grid so an entity never links to itself; Set pieces need no such filter, since set components are always distinct items.
+- **Vehicles** with an editorial series render a Variants tile grid of every vehicle in that series, the current one highlighted; a vehicle with no series, or alone in its series, shows the placeholder.
+- **Missions and locations** have no related-items data and show the placeholder.
+- An upstream fetch failure shows the warning "Couldn't load related items."
+- The current page is filtered out of an item's Variants grid so an entity never links to itself; Set pieces need no such filter, since set components are always distinct items.
 - A variant's size or grade only appears as a small caption above the name when it actually differs across the family; if every variant shares the same size and grade, the caption is omitted.
 - Tile links and images resolve through the stored `uuid`, so a disambiguated title like `Hyperion (quantum drive)` links to the right article; an item with no resolvable page falls back to the API name for both link and image, with a placeholder image.
 

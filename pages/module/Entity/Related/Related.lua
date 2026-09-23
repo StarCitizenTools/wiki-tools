@@ -24,9 +24,8 @@ require('strict')
 --- packaging ladder, which shares one image and has no own pages) renders
 --- as a table; `vehicleSeries` (Vehicle: the editorial series name) queries
 --- Module:Entity/Store for the rest of the series and renders as wider
---- tiles with the current page highlighted. The container always renders
---- so the layout is stable — falls back to a muted empty-state placeholder
---- when the payload has nothing to show or the upstream fetch failed.
+--- tiles with the current page highlighted. Module:Entity/EmptyState draws the
+--- "nothing to show" and "couldn't load" boxes.
 
 local data = require('Module:Entity/Data')
 local assembly = require('Module:Entity/Assembly')
@@ -36,10 +35,12 @@ local Tiles = require('Module:Tiles')
 local tableLua = require('Module:TableLua')
 local format = require('Module:Entity/Format')
 local collapsibleCard = require('Module:CollapsibleCard')
+local emptyState = require('Module:Entity/EmptyState')
 
 local p = {}
 
-local EMPTY_STATE_MESSAGE = 'No related items available from the API.'
+local EMPTY_MESSAGE = 'No related items.'
+local FAILED_MESSAGE = "Couldn't load related items."
 -- Star Citizen item renders are usually portrait 3D product shots;
 -- 3:4 keeps them roughly proportional across all column widths.
 local TILE_ASPECT_RATIO = '3 / 4'
@@ -242,20 +243,6 @@ local function toTilesRows(rows, pageMap)
 	return tilesRows
 end
 
---- Renders the empty-state placeholder: a muted single-line `<p>` with
---- this module's own templatestyles tag (Tiles styles aren't needed
---- when no tiles will render).
----
---- @return string
-local function renderEmpty()
-	local styles = mw.getCurrentFrame():extensionTag({
-		name = 'templatestyles',
-		args = { src = 'Module:Entity/Related/styles.css' },
-	})
-	local empty = mw.html.create('p'):addClass('t-entity-related-empty'):wikitext(EMPTY_STATE_MESSAGE)
-	return styles .. tostring(empty)
-end
-
 --- Renders one labeled section: a raw `<h3>` subheading followed by a
 --- Tiles grid. Uses mw.html for the heading rather than wikitext
 --- `=== … ===` so the subheading stays out of the page TOC — they're
@@ -344,7 +331,7 @@ end
 local function renderVehicleVariants(series, currentPage)
 	local rows = queryVehicleVariants(series)
 	if #rows < 2 then
-		return renderEmpty()
+		return emptyState.none(EMPTY_MESSAGE)
 	end
 	return renderSection('Variants', toVehicleTilesRows(rows, currentPage), {
 		aspectRatio = VEHICLE_TILE_ASPECT_RATIO,
@@ -398,7 +385,7 @@ end
 --- @return string
 local function renderCargoVariants(rows)
 	if rows[1] == nil then
-		return renderEmpty()
+		return emptyState.none(EMPTY_MESSAGE)
 	end
 	local function metres(v)
 		return v and (format.formatNum(v) .. ' m') or '-'
@@ -449,7 +436,7 @@ function p.main(frame)
 	local result = data.get(args)
 
 	if result.hasApiError then
-		return renderEmpty()
+		return emptyState.failed(FAILED_MESSAGE)
 	end
 
 	local payload = assembly.resolveMostSpecific(result.chain, 'getRelated', assembly.acceptNonEmpty, result.ctx) or {}
@@ -462,14 +449,14 @@ function p.main(frame)
 
 	local relatedItems = payload.items
 	if type(relatedItems) ~= 'table' then
-		return renderEmpty()
+		return emptyState.none(EMPTY_MESSAGE)
 	end
 
 	local setRows = buildSetRows(relatedItems)
 	local variantRows = buildVariantRows(relatedItems, args.uuid)
 
 	if #setRows == 0 and #variantRows == 0 then
-		return renderEmpty()
+		return emptyState.none(EMPTY_MESSAGE)
 	end
 
 	local pageMap = PageResolver.resolve(collectUuids(setRows, variantRows))

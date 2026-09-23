@@ -1,6 +1,6 @@
 # Module:Entity/Rewards
 
-Renders a Mission page's reward items and blueprints as two sectioned tables, or an "unavailable"/"no rewards" notice when the API has no data.
+Renders a Mission page's reward items and blueprints as two sectioned tables.
 
 Editors use this through `{{Entity/Rewards}}`; see [Template:Entity/Rewards](https://starcitizen.tools/Template:Entity/Rewards). The `Rewards` property is written separately, by `{{Entity}}` from the Mission kind's own structured data.
 

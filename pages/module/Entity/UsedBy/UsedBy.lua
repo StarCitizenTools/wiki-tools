@@ -14,17 +14,18 @@ require('strict')
 --- wikilink).
 ---
 --- Items only today (reads apiData.vehicles, populated by the
---- vehicles include on the items endpoint). Non-item entities render
---- the empty-state placeholder. The container always renders so the
---- page layout stays stable.
+--- vehicles include on the items endpoint). Non-item entities get the
+--- Module:Entity/EmptyState placeholder.
 
 local data = require('Module:Entity/Data')
 local PageResolver = require('Module:Entity/PageResolver')
 local Tiles = require('Module:Tiles')
+local emptyState = require('Module:Entity/EmptyState')
 
 local p = {}
 
-local EMPTY_STATE_MESSAGE = 'No vehicles known to use this item.'
+local EMPTY_MESSAGE = 'No vehicles come equipped with this item.'
+local FAILED_MESSAGE = "Couldn't load vehicles."
 -- Vehicle hero shots are typically landscape; 16:9 keeps them in the
 -- right shape across all column widths.
 local TILE_ASPECT_RATIO = '16 / 9'
@@ -108,18 +109,6 @@ local function toTilesRows(rows, pageMap)
 	return tilesRows
 end
 
---- Renders the empty-state placeholder.
----
---- @return string
-local function renderEmpty()
-	local styles = mw.getCurrentFrame():extensionTag({
-		name = 'templatestyles',
-		args = { src = 'Module:Entity/UsedBy/styles.css' },
-	})
-	local empty = mw.html.create('p'):addClass('t-entity-usedby-empty'):wikitext(EMPTY_STATE_MESSAGE)
-	return styles .. tostring(empty)
-end
-
 --- Main entry point.
 ---
 --- @param frame table
@@ -129,12 +118,12 @@ function p.main(frame)
 	local result = data.get(args)
 
 	if result.hasApiError then
-		return renderEmpty()
+		return emptyState.failed(FAILED_MESSAGE)
 	end
 
 	local rows = buildRows(result.apiData.vehicles)
 	if #rows == 0 then
-		return renderEmpty()
+		return emptyState.none(EMPTY_MESSAGE)
 	end
 
 	local pageMap = PageResolver.resolve(collectUuids(rows))

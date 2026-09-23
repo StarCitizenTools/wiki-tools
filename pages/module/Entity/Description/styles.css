@@ -21,10 +21,6 @@
 	line-height: var(--line-height-small);
 }
 
-.t-entity-description-text--empty {
-	color: var(--color-subtle);
-}
-
 .t-entity-description-source {
 	color: var(--color-subtle);
 	font-size: var(--font-size-x-small);

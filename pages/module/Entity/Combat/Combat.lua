@@ -10,10 +10,7 @@ require('strict')
 local Data = require('Module:Entity/Data')
 local TableLua = require('Module:TableLua')
 local Lines = require('Module:Entity/Combat/Lines')
-
-local function renderEmpty(message)
-	return tostring(mw.html.create('p'):addClass('t-entity-combat-empty'):wikitext(message))
-end
+local emptyState = require('Module:Entity/EmptyState')
 
 --- Builds the game-data class name to wiki page lookup the vehicle pool needs,
 --- as ONE query for every vehicle the wiki has rather than one per ship, which
@@ -110,19 +107,19 @@ function p.main(frame)
 	local args = Data.parseArgs(frame)
 	local result = Data.get(args)
 
-	local styles = mw.getCurrentFrame():extensionTag({
-		name = 'templatestyles',
-		args = { src = 'Module:Entity/Combat/styles.css' },
-	})
-
 	if result.hasApiError then
-		return styles .. renderEmpty('Combat data unavailable.')
+		return emptyState.failed("Couldn't load combat encounters.")
 	end
 
 	local combat = result.apiData.combat
 	if not Lines.hasData(combat) then
-		return styles .. renderEmpty('No combat encounters recorded for this contract.')
+		return emptyState.none('No combat encounters.')
 	end
+
+	local styles = mw.getCurrentFrame():extensionTag({
+		name = 'templatestyles',
+		args = { src = 'Module:Entity/Combat/styles.css' },
+	})
 
 	local root = mw.html.create('div'):addClass('t-entity-combat')
 

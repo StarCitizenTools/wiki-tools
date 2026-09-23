@@ -17,6 +17,7 @@ local cardLua = require('Module:CardLua')
 local tableLua = require('Module:TableLua')
 local format = require('Module:Entity/Format')
 local api = require('Module:Entity/Api')
+local emptyState = require('Module:Entity/EmptyState')
 
 local p = {}
 
@@ -72,10 +73,6 @@ local function nonEmptyList(blueprints)
 		return blueprints
 	end
 	return nil
-end
-
-local function renderEmpty(message)
-	return tostring(mw.html.create('p'):addClass('t-entity-blueprint-empty'):wikitext(message))
 end
 
 local function renderAspect(aspect)
@@ -202,15 +199,15 @@ end
 --- @return string
 local function renderUsedIn(name)
 	if not name then
-		return renderEmpty('No crafting data available.')
+		return emptyState.failed("Couldn't load recipes.")
 	end
 
 	local count = usedInBlueprintCount(name)
 	if count == nil then
-		return renderEmpty('Crafting usage data unavailable.')
+		return emptyState.failed("Couldn't load recipes.")
 	end
 	if count == 0 then
-		return renderEmpty('Not used as an ingredient in any known crafting recipe.')
+		return emptyState.none('No recipes use this ingredient.')
 	end
 
 	local title = count == 1 and 'Browse 1 recipe' or ('Browse ' .. format.formatNum(count) .. ' recipes')
@@ -265,9 +262,9 @@ function p.main(frame)
 
 	root:tag('h3'):wikitext('Blueprints')
 	if result.hasApiError then
-		root:wikitext(renderEmpty('Blueprint data unavailable.'))
+		root:wikitext(emptyState.failed("Couldn't load blueprints."))
 	elseif #craftable == 0 then
-		root:wikitext(renderEmpty('No blueprints found for this item.'))
+		root:wikitext(emptyState.none('No blueprints.'))
 	else
 		for _, blueprint in ipairs(craftable) do
 			root:tag('div'):addClass('t-entity-blueprint'):wikitext(renderBlueprint(blueprint))
@@ -276,9 +273,9 @@ function p.main(frame)
 
 	root:tag('h3'):wikitext('Dismantle')
 	if result.hasApiError then
-		root:wikitext(renderEmpty('Dismantle data unavailable.'))
+		root:wikitext(emptyState.failed("Couldn't load dismantle returns."))
 	elseif #dismantlable == 0 then
-		root:wikitext(renderEmpty('No dismantle returns for this item.'))
+		root:wikitext(emptyState.none('No dismantle returns.'))
 	else
 		for _, blueprint in ipairs(dismantlable) do
 			root:tag('div'):addClass('t-entity-dismantle'):wikitext(renderDismantle(blueprint))

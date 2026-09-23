@@ -28,9 +28,9 @@ When `{{Entity}}` has been invoked earlier on the page, the UUID can be omitted;
 ## Behavior
 
 - **Items** render two sections, Blueprints and Dismantle, each with one collapsible card per blueprint entry that has matching data (recipe aspects, or dismantle returns). Both section headings always render, even when both are empty.
-- **Commodities** render neither section; instead a single card titled "Browse N recipes" (or "Browse 1 recipe") shows how many recipes use the commodity as an ingredient, with a button to the full filtered list, since a commodity can be an ingredient in far more recipes than an item's own blueprint list could usefully enumerate as cards. Three empty states cover it: no resolvable name shows "No crafting data available.", a failed count fetch shows "Crafting usage data unavailable.", and a genuine zero shows "Not used as an ingredient in any known crafting recipe."
-- **Vehicles, missions, and locations** carry no blueprint data, so both sections still render, showing the item-worded empty-state text ("No blueprints found for this item." / "No dismantle returns for this item.") rather than being omitted.
-- An upstream fetch failure shows "Blueprint data unavailable." / "Dismantle data unavailable." instead of the no-data message, so editors can tell an API outage from a genuinely blueprint-less entity.
+- **Commodities** render neither section; instead a single card titled "Browse N recipes" (or "Browse 1 recipe") shows how many recipes use the commodity as an ingredient, with a button to the full filtered list, since a commodity can be an ingredient in far more recipes than an item's own blueprint list could usefully enumerate as cards. When the count can't be fetched it shows the warning "Couldn't load recipes."; a genuine zero shows the placeholder "No recipes use this ingredient."
+- **Vehicles, missions, and locations** carry no blueprint data, so both sections still render, showing the placeholders "No blueprints." and "No dismantle returns." rather than being omitted.
+- An upstream fetch failure shows the warnings "Couldn't load blueprints." and "Couldn't load dismantle returns." instead.
 - The Grade badge on a blueprint card falls back to `Grade 1` when the API entry carries no grade field.
 - No parameter overrides the rendered data; there is nothing here for an editor to curate beyond `uuid`.
 

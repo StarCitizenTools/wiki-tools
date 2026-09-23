@@ -35,7 +35,7 @@ When `{{Entity}}` has been invoked earlier on the page, the UUID can be omitted;
 - Engine, cockpit, and animation hardpoints (Controllers, Crew Stations, Doors & Hatches, Thrusters, Fuel, and so on) collapse into a single closed-by-default "Other" card at the bottom, sub-grouped by their original category label so the reader can still tell what's where. If every top-level port on the page lands in a collapsed category, only that "Other" card renders; there is no separate empty state, since it can still be expanded.
 - Hardware-locked ports show a diagonal stripe on their size pill.
 - On a carrier ship, a docking port shows the docked vehicle's own name and size rather than the docking-tube hardware occupying that port; the docked vehicle's own internal ports (fuel, relay, screen mounts) aren't shown, since that vehicle has its own page for its loadout. Docking ports are routed to the "Docked Vehicles" category, which sorts first, so they always appear at the top of the stack.
-- An upstream fetch failure shows the muted line "Port data unavailable."; an entity with no ports at all shows "No ports." instead.
+- An upstream fetch failure shows the warning "Couldn't load ports."; an entity with no ports shows the placeholder "No ports."
 - There is nothing here for an editor to curate beyond `uuid`.
 
 ## See also

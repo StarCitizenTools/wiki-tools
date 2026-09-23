@@ -27,7 +27,7 @@ When `{{Entity}}` has been invoked earlier on the page, the UUID can be omitted;
 
 ## Behavior
 
-- The container always renders, so the page layout stays stable. When the API returns no description, a "No description available from the API." placeholder is shown in a muted style instead of the quote.
+- With no description and no description variants, it shows the placeholder "No description.", or the warning "Couldn't load the description." when the fetch failed.
 - Some in-game descriptions carry coloured emphasis spans; these are preserved in the rendered quote, not stripped.
 - The version line below the quote is the [Apiunto](https://www.mediawiki.org/wiki/Extension:Apiunto) `version` field, useful for cross-referencing which in-game build the description was captured from.
 

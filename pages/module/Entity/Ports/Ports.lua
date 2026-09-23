@@ -13,6 +13,7 @@ local assembly = require('Module:Entity/Assembly')
 local pipeline = require('Module:Entity/Ports/Pipeline')
 local render = require('Module:Entity/Ports/Render')
 local PageResolver = require('Module:Entity/PageResolver')
+local emptyState = require('Module:Entity/EmptyState')
 
 local p = {}
 
@@ -22,27 +23,21 @@ function p.main(frame)
 	local args = data.parseArgs(frame)
 	local result = data.get(args)
 
-	local styles = mw.getCurrentFrame():extensionTag({
-		name = 'templatestyles',
-		args = { src = 'Module:Entity/Ports/styles.css' },
-	})
-
-	local function empty(text)
-		local root = mw.html.create('p'):addClass('t-entity-ports-empty'):wikitext(text)
-		return styles .. tostring(root)
-	end
-
 	if result.hasApiError then
-		return empty('Port data unavailable.')
+		return emptyState.failed("Couldn't load ports.")
 	end
 	-- The chain decides what "ports" means (getPorts, leaf-first; Base
 	-- supplies the record's own tree). This renderer never reads apiData.
 	local payload = assembly.resolveMostSpecific(result.chain, 'getPorts', nil, result.ctx) or {}
 	local rawPorts = payload.ports
 	if type(rawPorts) ~= 'table' or #rawPorts == 0 then
-		return empty('No ports.')
+		return emptyState.none('No ports.')
 	end
 
+	local styles = mw.getCurrentFrame():extensionTag({
+		name = 'templatestyles',
+		args = { src = 'Module:Entity/Ports/styles.css' },
+	})
 	local groups = pipeline.process(rawPorts, { narrowChildren = payload.narrowChildren == true })
 	pipeline.applyResolvedLinks(groups, PageResolver.resolve(pipeline.collectEquippedUuids(groups)))
 	return styles .. render.fromGroups(groups)

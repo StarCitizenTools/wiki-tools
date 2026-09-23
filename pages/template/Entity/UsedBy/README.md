@@ -28,11 +28,11 @@ When `{{Entity}}` has been invoked earlier on the page, the UUID can be omitted;
 ## Behavior
 
 - It is the inverse of `{{Entity/Related}}`: Related shows an item's own variants and set pieces, this shows the vehicles that use it.
-- Works for items only; commodities, vehicles, missions, and locations render the muted placeholder instead, since only the items endpoint carries a `vehicles` include.
+- Works for items only, since only the items endpoint carries a `vehicles` include.
 - Renders a single tile grid sorted by manufacturer code then by name, so vehicles from the same brand (e.g. all Anvil Hornets) cluster naturally without explicit subheadings.
 - Each tile shows the vehicle's page image with the vehicle name overlaid at the bottom and the in-game role (e.g. `Medium Fighter`) as a small kicker above the name.
 - Link target and image resolve through the stored `uuid`, so disambiguated titles (e.g. `Hyperion (quantum drive)` for a variant, or any vehicle whose API name collides with another article) link to the canonical article rather than the disambiguation page. A vehicle with no resolvable page falls back to a placeholder image.
-- Empty state: when the upstream fetch fails, the entity isn't an item, or no vehicle equips it, the template renders a single muted line, "No vehicles known to use this item." The container always renders, so the page layout doesn't shift between items that have hosts and items that don't.
+- An upstream fetch failure shows the warning "Couldn't load vehicles."; a page that isn't an item, or an item no vehicle equips, shows the placeholder "No vehicles come equipped with this item."
 
 ## See also
 

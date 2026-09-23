@@ -9,7 +9,3 @@
 .t-entity-combat-total {
   margin-block: 0 var(--space-sm);
 }
-
-.t-entity-combat-empty {
-  color: var(--color-subtle);
-}

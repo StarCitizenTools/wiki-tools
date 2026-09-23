@@ -25,7 +25,7 @@ Editors never invoke this module directly; it runs inside [Template:Entity](http
 | `facets` | table[] | matched facet modules; additive `getSections`/`getStructuredData` |
 | `typeInfo` / `displayType` | table\|nil / string\|nil | leaf `getTypeInfo` else `TypeResolver`; infobox header, stored `subject_type` |
 | `resolved` / `editorialData` / `hasManualApiData` | table / table / boolean | `Editorial.resolve` output; render display, structured-data write, maintenance category |
-| `hasApiError` | boolean | drives the `Pages with API errors` tracking category; the infobox never reads it, but Ports and Blueprints show an "unavailable" notice while Related falls back to its generic empty state |
+| `hasApiError` | boolean | drives the `Pages with API errors` tracking category and tells section renderers whether to show a "Couldn't load …" warning; the infobox never reads it |
 | `unresolvedReference` | boolean | a `\|uuid=` given on an editorial-mode page failed to resolve; tracking category |
 | `matchedKind` / `kind` / `family` | table\|nil / string / string\|nil | the resolved kind module, its canonical name, the leaf's family token |
 | `ctx` | `EntityHookContext` | passed straight through to every hook call by every renderer |

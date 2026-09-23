@@ -45,7 +45,8 @@ Editor overrides for the summary flags, set only when the API-derived value is w
 - **Items** render summary flags for Buy, Loot, Craft, Pledge (Rent is inserted only when `canRent` is set explicitly), plus one Shops card of UEX purchase terminals.
 - **Vehicles** render Buy, Rent, Pledge, plus a Shops card and a Rentals card.
 - **Commodities** render Mine, Harvest, Buy, plus a mining-deposit card when the commodity has one, then a Trade card: a UEX terminal table when priced, otherwise link-out buttons to SC Trade Tools and UEX.
-- **Missions and locations**, and any page no kind claims (an unresolved or missing uuid), render nothing at all, not even an empty grid.
+- **Missions and locations** render nothing: no grid, and no warning when the fetch failed.
+- **A page no kind claims** shows the placeholder "No availability details." when it has no uuid, or the warning "Couldn't load availability details." when its uuid matches no kind.
 
 ### Cards and flags
 

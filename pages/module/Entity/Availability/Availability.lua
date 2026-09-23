@@ -14,6 +14,7 @@ local collapsibleCard = require('Module:CollapsibleCard')
 local cardLua = require('Module:CardLua')
 local tableLua = require('Module:TableLua')
 local uec = require('Module:UEC')
+local emptyState = require('Module:Entity/EmptyState')
 
 local p = {}
 
@@ -295,7 +296,7 @@ local function renderCard(card)
 end
 
 --- The acquisition payload for a Data.get result: the most specific chain link's
---- getAcquisition (leaf-first), or nil. A page no kind claimed renders nothing —
+--- getAcquisition (leaf-first), or nil. A page no kind claimed gets no payload:
 --- its chain is only the Item fallback, whose hook would otherwise fabricate an
 --- all-"No" block; the editorial fork's declared kind still counts as claimed.
 --- @param result table Module:Entity/Data.get result
@@ -308,8 +309,10 @@ local function acquisitionFor(result)
 end
 
 --- Main entry point. Renders the acquisition payload acquisitionFor resolves
---- (leaf-first over the chain); returns just the styles tag when nothing
---- resolves.
+--- (leaf-first over the chain); a claimed kind whose chain has no acquisition
+--- hook gets just the styles tag, regardless of hasApiError. Only when no
+--- kind claimed the page does this show the Module:Entity/EmptyState box:
+--- the warning when the fetch failed, else the placeholder.
 ---
 --- @param frame table
 --- @return string
@@ -324,7 +327,14 @@ function p.main(frame)
 
 	local a = acquisitionFor(result)
 	if not a then
-		return styles
+		if result.matchedKind ~= nil then
+			-- A claimed kind whose chain has no acquisition hook.
+			return styles
+		end
+		if result.hasApiError then
+			return emptyState.failed("Couldn't load availability details.")
+		end
+		return emptyState.none('No availability details.')
 	end
 
 	local cards = {}

@@ -15,7 +15,7 @@ Payload: `{ summary, cards }`.
 - `summary`: array of `{ label, icon, value }`; `value` (`true`/`false`/`nil`) drives the Yes/No/Unknown icon, the `data-state` attribute, and the BEM state modifier.
 - `cards`: array dispatched by `card.type`: `terminals` (a [Module:CollapsibleCard](https://starcitizen.tools/Module:CollapsibleCard) wrapping a UEX price table + attribution footer, via `renderTerminalTable`), `links` (a [Module:CardLua](https://starcitizen.tools/Module:CardLua) link-out), or `html` (passed through verbatim, e.g. Commodity's pre-rendered Mining card).
 
-A page no kind matched still builds its chain from the Item fallback leaf, which does define `getAcquisition`; but `acquisitionFor`'s `result.matchedKind == nil` guard returns nil before the chain is ever consulted, so an unmatched page renders nothing rather than an all-"No" block built from Item's own logic.
+A page no kind claimed still builds its chain from the Item fallback leaf, whose `getAcquisition` would fabricate an all-"No" block, so `acquisitionFor` returns nil for it and `p.main` shows a [Module:Entity/EmptyState](https://starcitizen.tools/Module:Entity/EmptyState) box instead. A claimed kind with no `getAcquisition` renders only the styles tag, even when `hasApiError` is set.
 
 ### Extending
 

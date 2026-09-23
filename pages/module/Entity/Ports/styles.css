@@ -2,11 +2,6 @@
 	color: var(--color-base);
 }
 
-.t-entity-ports-empty {
-	color: var(--color-subtle);
-	font-style: italic;
-}
-
 /* Visually-hidden text for AT consumers. Used inside the row head
  * to surface state the visual stripe overlay can't convey ("hardware-
  * locked"). Standard recipe — clip the element to a 1x1 box so sighted

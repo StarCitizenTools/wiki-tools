@@ -48,8 +48,8 @@ end
 -- proves the `selected` class actually paints differently (that needs a
 -- computed-style check against a live/sandboxed page, out of this suite's
 -- reach). This only guards the two files staying in sync: Tiles/styles.css
--- (not Related/styles.css or any other consumer's stylesheet) must own the
--- rule for the class this module emits, compounded with the base tile
+-- (not a consumer's own stylesheet) must own the rule for the class this
+-- module emits, compounded with the base tile
 -- selector so it beats .t-tiles__tile's `border` shorthand on specificity
 -- rather than losing to it on source order.
 --

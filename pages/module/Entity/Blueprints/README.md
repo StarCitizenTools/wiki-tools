@@ -15,7 +15,7 @@ Draws `getBlueprints`, resolved leaf-first (see the Hooks table on [Module:Entit
 
 ### Extending
 
-A kind with its own blueprint concept returns either `blueprints` (reusing the two-section item view; entries need the same shape as `apiData.blueprint`) or `ingredient = { name = … }` (the used-in-crafting card). Vehicles define neither, so vehicle pages fall through to Base's default and render the item-worded empty states rather than being omitted.
+A kind with its own blueprint concept returns either `blueprints` (reusing the two-section item view; entries need the same shape as `apiData.blueprint`) or `ingredient = { name = … }` (the used-in-crafting card). Vehicles define neither, so vehicle pages fall through to Base's default and render both sections as placeholders rather than being omitted.
 
 ### Gotchas
 
@@ -24,4 +24,4 @@ A kind with its own blueprint concept returns either `blueprints` (reusing the t
 - A modifier's `%` suffix is glued onto the raw fractional delta with no ×100 multiply: `at_min_quality = 0.85` on a `better_when = 'lower'` modifier computes `0.85 - 1 = -0.15` and prints as `-0.15 %`, not `-15 %`.
 - A modifier delta of exactly zero renders an empty cell, not `0 %`: `style()` only wraps values below or above zero, so an unchanged value falls through both branches and returns nothing.
 - An unrecognised `better_when` (neither `'higher'` nor `'lower'`) prints the bare delta as plain text: no color, and no ` %` suffix at all.
-- `result.hasApiError` produces wording distinct from a genuine no-data page ("… unavailable." vs "No … found/returns…"), and `usedInBlueprintCount`'s live Wiki API fetch distinguishes a fetch failure from a genuine zero the same way, so an outage never reads as "not used in crafting."
+- The ingredient card ignores `result.hasApiError`: `usedInBlueprintCount` makes its own live Wiki API fetch and returns `nil` on failure, which shows the warning rather than the zero-recipes placeholder.

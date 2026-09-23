@@ -9,6 +9,7 @@ require('strict')
 local data = require('Module:Entity/Data')
 local format = require('Module:Entity/Format')
 local tabbedCard = require('Module:TabbedCard')
+local emptyState = require('Module:Entity/EmptyState')
 
 local p = {}
 
@@ -138,9 +139,8 @@ local function variantsHtml(variants, version)
 	})
 end
 
---- Main entry point. Always renders the container so the layout is stable
---- whether or not the API has a description; falls back to an empty-state
---- message when the description is missing.
+--- Main entry point. Renders the quote (or the variant list), or the
+--- Module:Entity/EmptyState box when there is neither.
 ---
 --- @param frame table
 --- @return string
@@ -160,20 +160,14 @@ function p.main(frame)
 		if #variants > 0 then
 			return styles .. variantsHtml(variants, version)
 		end
+		if result.hasApiError then
+			return emptyState.failed("Couldn't load the description.")
+		end
+		return emptyState.none('No description.')
 	end
 
 	local root = mw.html.create('div'):addClass('t-entity-description')
-	if description then
-		root:node(quoteHtml(description))
-	else
-		-- No quote to render, so fall back to <p> rather than an empty
-		-- <blockquote> that would mislead semantic parsers.
-		root:tag('p')
-			:addClass('t-entity-description-text')
-			:addClass('t-entity-description-text--empty')
-			:wikitext('No description available from the API.')
-	end
-
+	root:node(quoteHtml(description))
 	if version then
 		root:tag('p'):addClass('t-entity-description-source'):wikitext(version)
 	end

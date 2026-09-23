@@ -1,8 +1,10 @@
-.mbox {
-	position: relative;
-	display: flex;
-	flex-direction: column;
+/* Markup comes from Module:Mbox; nothing outside it should target these classes. */
+
+.t-mbox {
+	/* flow-root keeps the box beside a floated infobox instead of running underneath it. */
+	display: flow-root;
 	margin-block: var(--space-md);
+	color: var(--color-base);
 	background-color: var(--color-surface-1);
 	border: var(--border-base);
 	border-radius: var(--border-radius-medium);
@@ -10,75 +12,98 @@
 	line-height: var(--line-height-xx-small);
 }
 
-.mbox.mbox-high {
-	color: var(--color-destructive);
-	background-color: var(--background-color-destructive-subtle);
-	border-color: var(--border-color-destructive);
+.t-mbox__header {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--space-xs);
+	padding: var(--space-sm) var(--space-md);
+	border-radius: var(--border-radius-medium);
 }
 
-.mbox.mbox-med {
+.t-mbox__title {
+	flex-grow: 1;
+	min-width: 0;
+}
+
+/* Both are 1em boxes; the margin centres them on the first line of a title that wraps. */
+.t-mbox__icon,
+.t-mbox__indicator {
+	flex-shrink: 0;
+	margin-block: calc( ( var(--line-height-xx-small) - 1 ) * 0.5em );
+}
+
+.t-mbox--notice > .t-mbox__header > .t-mbox__icon {
+	color: var(--color-subtle);
+}
+
+.t-mbox--warning {
 	color: var(--color-warning);
 	background-color: var(--background-color-warning-subtle);
 	border-color: var(--border-color-warning);
 }
 
-.mbox-title,
-.mbox-text {
-	padding: var(--space-sm) var(--space-md);
+.t-mbox--error {
+	color: var(--color-destructive);
+	background-color: var(--background-color-destructive-subtle);
+	border-color: var(--border-color-destructive);
 }
 
-.mbox-title {
-	display: flex;
-	align-items: center;
+.t-mbox--placeholder {
+	color: var(--color-subtle);
+	border-style: dashed;
 }
 
-.mbox-icon img {
-	display: block;
-	width: var(--font-size-small);
-	height: auto;
-	margin-right: var(--space-xs);
-	opacity: var(--opacity-icon-base);
-	filter: var(--filter-invert);
+/* Disclosure: the body opens in place and pushes the page down. */
+summary.t-mbox__header {
+	cursor: pointer;
+	list-style: none;
+	user-select: none;
+	-webkit-user-select: none;
 }
 
-.mbox-text {
-	position: absolute;
-	top: 100%;
-	left: 0;
-	right: 0;
-	z-index: 10;
-	margin-inline: -1px;
-	box-sizing: border-box;
-	color: var(--color-base);
-	background-color: var(--color-surface-1);
-	border-inline: var(--border-base);
-	border-bottom: var(--border-base);
-	border-bottom-left-radius: var(--border-radius-medium);
-	border-bottom-right-radius: var(--border-radius-medium);
-	box-shadow: var(--box-shadow-drop-xx-large);
-	opacity: 0;
-	visibility: hidden;
+summary.t-mbox__header:hover {
+	background-color: var(--background-color-button-quiet--hover);
 }
 
-.mbox-text::before {
-	content: '';
-	display: block;
-	position: absolute;
-	top: 0;
-	left: var(--space-md);
-	right: var(--space-md);
-	height: var(--border-width-base);
-	background: var(--border-color-subtle);
+summary.t-mbox__header:focus-visible {
+	outline: 2px solid var(--outline-color-progressive--focus);
+	outline-offset: -2px;
 }
 
-.mbox:hover {
-	/* Merge with popup */
+.t-mbox[open] > .t-mbox__header {
 	border-bottom-left-radius: 0;
 	border-bottom-right-radius: 0;
-	box-shadow: var(--box-shadow-drop-xx-large);
 }
 
-.mbox:hover .mbox-text {
-	opacity: 1;
-	visibility: visible;
+.t-mbox__indicator {
+	--size-icon: var(--font-size-small);
+	transition: var(--transition-hover);
+	transition-property: transform;
+	transform: rotate3d( 1, 0, 0, 180deg );
+}
+
+.t-mbox[open] > .t-mbox__header > .t-mbox__indicator {
+	transform: none;
+}
+
+.t-mbox__text {
+	padding: var(--space-sm) var(--space-md);
+	border-top: var(--border-subtle);
+	color: var(--color-base);
+}
+
+.t-mbox__text > :first-child {
+	margin-top: 0;
+}
+
+.t-mbox__text > :last-child {
+	margin-bottom: 0;
+}
+
+.t-mbox--warning > .t-mbox__text {
+	border-top-color: var(--border-color-warning);
+}
+
+.t-mbox--error > .t-mbox__text {
+	border-top-color: var(--border-color-destructive);
 }

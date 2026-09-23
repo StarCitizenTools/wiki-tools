@@ -1,15 +1,19 @@
+require('strict')
+
 --------------------------------------------------------------------------------
 --                              Module:Hatnote                                --
 --                                                                            --
 -- This module produces hatnote links and links to related articles. It       --
 -- implements the {{hatnote}} and {{format link}} meta-templates and includes --
--- helper functions for other Lua hatnote modules.                            --
+-- helper functions for other Lua hatnote modules. The box is drawn by        --
+-- [[Module:Mbox]].                                                           --
 --------------------------------------------------------------------------------
 
 local libraryUtil = require('libraryUtil')
 local checkType = libraryUtil.checkType
 local mArguments -- lazily initialise [[Module:Arguments]]
 local yesno -- lazily initialise [[Module:Yesno]]
+local mbox = require('Module:Mbox')
 
 local p = {}
 
@@ -30,9 +34,9 @@ local function removeInitialColon(s)
 end
 
 function p.defaultClasses(inline)
-	-- Provides the default hatnote classes as a space-separated string; useful
-	-- for hatnote-manipulation modules like [[Module:Hatnote group]].
-	return (inline == 1 and 'hatnote-inline' or 'hatnote') .. ' ' .. 'navigation-not-searchable'
+	-- The classes every hatnote carries, for hatnote-manipulation modules.
+	-- `inline` is accepted for signature compatibility; both shapes share them.
+	return 'navigation-not-searchable'
 end
 
 function p.disambiguate(page, disambiguator)
@@ -131,22 +135,6 @@ end
 -- Produces standard hatnote text. Implements the {{hatnote}} template.
 --------------------------------------------------------------------------------
 
-local function decorateHatnote(hatnote, options)
-	local function getIcon(filename)
-		local html = ''
-		if type(filename) == 'string' then
-			local icon = mw.html.create('span')
-			icon:addClass('hatnote-icon'):addClass('metadata'):wikitext('[[File:' .. filename .. '|14px|link=]]'):done()
-			html = tostring(icon)
-		end
-		return html
-	end
-
-	local container = mw.html.create('div')
-	container:addClass('hatnote-container'):wikitext(getIcon(options.icon)):wikitext(tostring(hatnote)):done()
-	return container
-end
-
 function p.hatnote(frame)
 	local args = getArgs(frame)
 	local s = args[1]
@@ -163,27 +151,28 @@ function p._hatnote(s, options)
 	checkType('_hatnote', 1, s, 'string')
 	checkType('_hatnote', 2, options, 'table', true)
 	options = options or {}
-	local inline = options.inline
-	local hatnote = mw.html.create(inline == 1 and 'span' or 'div')
-	local extraclasses
-	if type(options.extraclasses) == 'string' then
-		extraclasses = options.extraclasses
+	local classes = {}
+	if type(options.extraclasses) == 'string' and options.extraclasses ~= '' then
+		classes[#classes + 1] = options.extraclasses
 	end
-
-	hatnote
-		:attr('role', 'note')
-		:addClass(p.defaultClasses(inline))
-		:addClass(extraclasses)
-		:addClass(options.selfref and 'selfref' or nil)
-		:wikitext(s)
-
-	-- Decorate WP hatnote to SCW standard
-	hatnote = decorateHatnote(hatnote, options)
-
-	return mw.getCurrentFrame():extensionTag({
-		name = 'templatestyles',
-		args = { src = 'Module:Hatnote/styles.css' },
-	}) .. tostring(hatnote)
+	if options.selfref then
+		classes[#classes + 1] = 'selfref'
+	end
+	if options.inline == 1 then
+		-- An inline hatnote sits inside running text, so it gets no box.
+		local span = mw.html
+			.create('span')
+			:attr('role', 'note')
+			:addClass(p.defaultClasses(1))
+			:addClass(#classes > 0 and table.concat(classes, ' ') or nil)
+			:wikitext(s)
+		return tostring(span)
+	end
+	return mbox.render({
+		title = s,
+		icon = options.icon,
+		class = #classes > 0 and table.concat(classes, ' ') or nil,
+	})
 end
 
 return p

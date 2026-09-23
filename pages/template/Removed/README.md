@@ -1,6 +1,6 @@
 # Template:Removed
 
-Hatnote marking a page or section that describes content removed from ''Star Citizen'', and the categoriser that tracks it. Put it at the top of an article the game no longer backs, so a reader knows before reading that none of it is currently in the game.
+Notice marking a page or section that describes content removed from ''Star Citizen'', and the categoriser that tracks it. Put it at the top of an article the game no longer backs, so a reader knows before reading that none of it is currently in the game.
 
 ## Usage
 
@@ -20,12 +20,10 @@ An infobox template for a kind of removed content transcludes this rather than r
 | Name | Label | Type | Required | Default | Description | Example | Aliases |
 |------|-------|------|----------|---------|-------------|---------|---------|
 | `what` | What | string | No | `page or section` | What is being marked, in the singular, so the banner reads as a sentence. | `contract` | `Subject` |
-| `why` | Reason | string | No |  | Why the content was removed, or what replaced it. Shown when the banner is hovered. | `Reworked into the Contract Manager in Alpha 3.15` | `Reason` |
+| `why` | Reason | string | No |  | Why the content was removed, or what replaced it. Shown when the banner is opened. | `Reworked into the Contract Manager in Alpha 3.15` | `Reason` |
 | `category` | Category | string | No | `Removed content` | Tracking category to file the page in, without the `Category:` prefix. Pass a subcategory to track one kind of removed content. | `Removed contracts` |  |
 
 ## Behavior
-
-The banner states the removal; the detail, including `why`, appears when it is hovered, which is how the other [mbox](https://starcitizen.tools/Module:Mbox/styles.css) banners behave.
 
 Removed content is marked rather than deleted because the game data no longer carries it, so the article is the only surviving description. That is also why nothing here is recorded as queryable data: a page in this category must not appear in a list of things a player can go and do.
 

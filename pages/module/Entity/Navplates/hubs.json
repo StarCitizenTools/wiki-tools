@@ -1,5 +1,5 @@
 {
-	"//": "Type hubs carrying a #list anchor, mapped to the plural the hub's own heading uses. Module:Entity/Navplates matches a type string against the keys by singular and plural, and says \"More <value>\". `overrides` covers the cases pluralisation cannot reach. `roles` is a separate, exact-match map from a vehicle's Role to its hub: role values are generic words (Medical, Mining, Cargo), so matching them against the shared `hubs` keyspace would let an item hub of the same name capture them. Each entry names the vehicle family its hub lists, because most of these hubs are spacecraft: a ground vehicle's Medical role must not link Medical ships, which does not list it.",
+	"//": "Type hubs carrying a #list anchor, mapped to the plural the hub's own heading uses. Module:Entity/Navplates matches a type string against the keys by singular and plural, and says \"More <value>\". `overrides` covers the cases pluralisation cannot reach. `roles` is a separate, exact-match map from a vehicle's Role to its hub: role values are generic words (Medical, Mining, Cargo), so matching them against the shared `hubs` keyspace would let an item hub of the same name capture them. Each entry names the vehicle family its hub lists, because most of these hubs are spacecraft: a ground vehicle's Medical role must not link Medical ships, which does not list it. `kinds` is an exact-match map from a resolved entity kind to the one hub all its pages browse to; a kind listed there skips every type lookup, because its type strings are a different vocabulary (commodity substances) that collides with item hubs (Food). `selects` names the Bucket selector a hub's own #list grid uses, and a hub listed there is counted by it instead of by Subject type.",
 	"hubs": {
 		"A-type main-sequence star": "A-type main-sequence stars",
 		"Alien vehicles": "alien vehicles",
@@ -175,7 +175,18 @@
 	"overrides": {
 		"Arm armor": "Arms armor",
 		"Leg armor": "Legs armor",
-		"Optic": "Optics attachment"
+		"Optic": "Optics attachment",
+		"Single star system": "Planetary system",
+		"Binary star system": "Planetary system",
+		"Trinary star system": "Planetary system",
+		"Star system": "Planetary system"
+	},
+	"kinds": {
+		"Commodity": "Commodity"
+	},
+	"selects": {
+		"Commodity": "Category:Commodities",
+		"Planetary system": "Category:Systems"
 	},
 	"roles": {
 		"Anti-air": {

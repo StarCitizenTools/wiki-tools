@@ -2,15 +2,13 @@
 
 Renders the browse row at the foot of an entity page: a bar with a link out to the manufacturer's catalogue and one to the type hub, each showing how much is on the other side.
 
-Editors use this through `{{Entity/Navplates}}`; see [Template:Entity/Navplates](https://starcitizen.tools/Template:Entity/Navplates). It also renders wherever `{{Navplate manufacturers}}` is still called, because that template is now a shim onto this module.
+Editors use this through `{{Entity/Navplates}}`; see [Template:Entity/Navplates](https://starcitizen.tools/Template:Entity/Navplates). `{{Navplate manufacturers}}` is a shim onto this module, so it renders this bar too.
 
 ## For module editors
 
-### What it replaces
+### Links out, not lists
 
-`{{Navplate manufacturers}}` and the per-type navplates listed a whole set on every page in that set, so a manufacturer with n products rendered n² links across the wiki. Clark Defense Systems alone accounted for roughly 337,000 of 828,792, and 741 of the 844 links on `ADP Arms Grey` were its two footer navplates. This renders two links per page whatever the catalogue grows to.
-
-The swap was made by rewriting `{{Navplate manufacturers}}` into a shim onto this module rather than by editing its 6,335 transclusions; the shim passes nothing through, since the module resolves the manufacturer itself. `{{Navplate manufacturer}}` is a redirect to it and needed nothing. The per-type navplates for personal armor, personal weapons, vehicle weapons, vehicle ordnances and computers are gone. `{{Navplate commodities}}` and `{{Navplate systems}}` are gone as well. Both were [DynamicPageList4](https://www.mediawiki.org/wiki/Extension:DynamicPageList4) lists of every commodity or every system, and their pages carry `{{Entity/Navplates}}`, which links `Commodity#list` or `Planetary system#list`. `{{Navplate vehicles}}` is kept.
+A footer that lists a whole set on every page in that set renders n² links across the wiki. The bar renders a fixed number of links per page instead, whatever the catalogue grows to, so a new destination belongs here as a hub link, not as a list. `{{Navplate manufacturers}}` passes nothing through: the module resolves the manufacturer itself.
 
 ### API
 

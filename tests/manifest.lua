@@ -291,17 +291,16 @@ local itemLua = readFile(ITEM_LUA_PATH)
 if itemLua and types and classes then
 	-- Extract the itemSubtypeMapping block and parse keys.
 	-- The block is:   local itemSubtypeMapping = { ... }
-	-- Keys are identifiers (possibly with underscores) = '...'.
+	-- Keys are identifiers (possibly with underscores) whose value is a loader:
+	--   Key = function() return require('Module:Entity/Item/X') end.
 	local mapBlock = itemLua:match('local itemSubtypeMapping%s*=%s*(%b{})')
 	if not mapBlock then
 		fail(ITEM_LUA_PATH, 'could not locate itemSubtypeMapping table in source')
 	else
 		local orphans = {}
-		-- Match bare identifier keys: Key = '...' or Key = "..."
-		-- NOTE: this naive scan also matches "Key =" inside Lua comments within the
-		-- table, so do NOT add commented-out "-- Key = ..." placeholders to
-		-- itemSubtypeMapping or this cross-check will report a spurious orphan.
-		for key in mapBlock:gmatch('([%a_][%a%d_]*)%s*=') do
+		-- Match identifier keys whose value starts `function`, so a `key =`
+		-- inside a loader body is not mistaken for another entry.
+		for key in mapBlock:gmatch('([%a_][%w_]*)%s*=%s*function') do
 			-- Skip if types.json has this key directly
 			if types[key] == nil then
 				-- Check classifications.json for Ship.<key>

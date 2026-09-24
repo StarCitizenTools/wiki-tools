@@ -171,8 +171,8 @@ end
 -- get it here.
 function suite:testSubtypeLeavesConformToChainLinkContract()
 	local Contract = require('Module:Entity/Contract')
-	for token, path in pairs(Location._internal.LOCATION_SUBTYPE_MAP) do
-		local leaf = require('Module:' .. path)
+	for token, loader in pairs(Location._internal.LOCATION_SUBTYPE_MAP) do
+		local leaf = loader()
 		local ok, errors = Contract.validate(leaf, Contract.CHAIN_LINK, { strict = true })
 		self:assertTrue(ok, token .. ' leaf fails the chain contract: ' .. table.concat(errors or {}, '; '))
 		self:assertEquals('Entity/Location', leaf.parent, token .. ' leaf parent')
@@ -180,14 +180,11 @@ function suite:testSubtypeLeavesConformToChainLinkContract()
 end
 
 function suite:testSubtypeMapTargetsStarSystem()
-	self:assertEquals('Entity/Location/StarSystem', Location._internal.LOCATION_SUBTYPE_MAP.starsystem)
+	self:assertEquals(StarSystem, Location._internal.LOCATION_SUBTYPE_MAP.starsystem())
 end
 
--- Pins the leaf PATH Task 3's module must occupy (Module: prefix added by the
--- SubtypeResolver); the identity assertion lives in
--- testResolveSubtypeJumpPointRecord.
 function suite:testSubtypeMapTargetsJumpPoint()
-	self:assertEquals('Entity/Location/JumpPoint', Location._internal.LOCATION_SUBTYPE_MAP.jumppoint)
+	self:assertEquals(JumpPoint, Location._internal.LOCATION_SUBTYPE_MAP.jumppoint())
 end
 
 function suite:testGetCategoriesFullRecord()
@@ -1332,7 +1329,7 @@ end
 -- Every star page but three is record-less, so |family=star IS the entry path.
 function suite:testFamilyArgResolvesStarLeaf()
 	self:assertEquals(Star, Location.resolveSubtype({}, { kind = 'Location', family = 'star' }))
-	self:assertEquals('Entity/Location/Star', Location._internal.LOCATION_SUBTYPE_MAP.star)
+	self:assertEquals(Star, Location._internal.LOCATION_SUBTYPE_MAP.star())
 end
 
 -- The starmap serves star sizes in km, and the surveyed values are sound.

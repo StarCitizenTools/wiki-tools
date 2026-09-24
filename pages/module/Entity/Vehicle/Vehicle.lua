@@ -96,12 +96,18 @@ function p.matches(apiData)
 	return apiData ~= nil and apiData.is_vehicle ~= nil
 end
 
---- Vehicle family → subtype leaf module path. The keys are the family tokens
+--- Vehicle family → subtype leaf loader. The keys are the family tokens
 --- (also each leaf's p.family tag and the curated |family= arg value).
 local VEHICLE_FAMILY_MAP = {
-	gravlev = 'Entity/Vehicle/Gravlev',
-	ship = 'Entity/Vehicle/Ship',
-	ground = 'Entity/Vehicle/GroundVehicle',
+	gravlev = function()
+		return require('Module:Entity/Vehicle/Gravlev')
+	end,
+	ship = function()
+		return require('Module:Entity/Vehicle/Ship')
+	end,
+	ground = function()
+		return require('Module:Entity/Vehicle/GroundVehicle')
+	end,
 }
 
 --- Derive the family token: a genuine record's boolean flags (ordered

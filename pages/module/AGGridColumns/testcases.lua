@@ -132,6 +132,18 @@ function suite:testCardColDefCarriesSort()
 	self:assertEquals('desc', colDefOf(spec).sort)
 end
 
+-- `sortIndex` is set on every kind's colDef by buildColumnDefs, nil when unset.
+function suite:testColumnDefsCarrySortIndex()
+	local defs = AGGridColumns.buildColumnDefs({
+		{ kind = 'text', field = 'a', header = 'A', label = 'A', sort = 'desc', sortIndex = 1 },
+		{ kind = 'link', field = 'b', header = 'B', label = 'B', sort = 'asc', sortIndex = 0 },
+		{ kind = 'number', field = 'c', header = 'C', label = 'C' },
+	})
+	self:assertEquals(1, defs[1].sortIndex)
+	self:assertEquals(0, defs[2].sortIndex)
+	self:assertEquals(nil, defs[3].sortIndex)
+end
+
 function suite:testUnknownKindErrors()
 	self:assertThrows(function()
 		AGGridColumns.buildColumnDefs({ { kind = 'nope', field = 'c' } })

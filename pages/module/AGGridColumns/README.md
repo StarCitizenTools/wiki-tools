@@ -8,7 +8,7 @@ Required by [Module:DataGrid](https://starcitizen.tools/Module:DataGrid) and [Mo
 
 ### API
 
-- `buildColumnDefs(specs)` → AG Grid `columnDefs`, one per spec.
+- `buildColumnDefs(specs)` → AG Grid `columnDefs`, one per spec. A spec's `sortIndex` is copied onto its def whatever the kind; `sort` is forwarded by each kind's `buildColDef`.
 - `buildRowData(results, specs)` → AG Grid `rowData`, one row per result the consumer fetched (a `Module:BucketQuery` row, for both current consumers).
 - Each kind (`Module:AGGridColumns/Kind/<Name>`) exposes `p.type` (the JS colDef `type` string, or `false` for a type-less column), `p.buildColDef(spec)`, and `p.buildCellValue(spec, result)`, registered by name in [Module:AGGridColumns/Registry](https://starcitizen.tools/Module:AGGridColumns/Registry). [Module:AGGridColumns/Contract](https://starcitizen.tools/Module:AGGridColumns/Contract) validates the shape; `testcases` loops every kind through it, so a kind missing a piece fails a unit test, not a render.
 

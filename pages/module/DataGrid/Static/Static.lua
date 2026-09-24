@@ -183,35 +183,43 @@ local function imageCell(value, page)
 	return '[[File:' .. file .. '|' .. IMAGE_WIDTH .. '|link=' .. page .. ']]'
 end
 
---- Order rows by the `sort` column, the static equivalent of the grid's initial
+--- Order rows by the `sort` keys, the static equivalent of the grid's initial
 --- sort: a wikitable is served in row order, and the sortable-table script leaves
---- that order alone until a reader clicks a header. Keys are precomputed and
---- compared as numbers only when every present value is one, since a comparator
---- that switches between number and string ordering raises "invalid order
---- function". Ties keep page-title order, which table.sort would otherwise shuffle.
+--- that order alone until a reader clicks a header. Each key's values are
+--- precomputed and compared as numbers only when every present value is one, since
+--- a comparator that switches between number and string ordering raises "invalid
+--- order function". Rows tied on every key keep page-title order, which table.sort
+--- would otherwise shuffle.
 --- @param results table[]
---- @param sort DataGridSort
+--- @param sort DataGridSort[]
 --- @return table[] results  the same table, sorted in place
 local function applySort(results, sort)
-	local numeric = true
-	for _, row in ipairs(results) do
-		local value = row[sort.alias]
-		if value ~= nil and Util.toNumber(value) == nil then
-			numeric = false
-			break
-		end
-	end
 	local keys = {}
-	for _, row in ipairs(results) do
-		local value = row[sort.alias]
-		keys[row] = numeric and (Util.toNumber(value) or -math.huge) or (Util.toText(value) or '')
+	for n, key in ipairs(sort) do
+		local numeric = true
+		for _, row in ipairs(results) do
+			local value = row[key.alias]
+			if value ~= nil and Util.toNumber(value) == nil then
+				numeric = false
+				break
+			end
+		end
+		local values = {}
+		for _, row in ipairs(results) do
+			local value = row[key.alias]
+			values[row] = numeric and (Util.toNumber(value) or -math.huge) or (Util.toText(value) or '')
+		end
+		keys[n] = { values = values, desc = key.direction == 'desc' }
 	end
 	table.sort(results, function(a, b)
-		if keys[a] ~= keys[b] then
-			if sort.direction == 'desc' then
-				return keys[b] < keys[a]
+		for _, key in ipairs(keys) do
+			local va, vb = key.values[a], key.values[b]
+			if va ~= vb then
+				if key.desc then
+					return vb < va
+				end
+				return va < vb
 			end
-			return keys[a] < keys[b]
 		end
 		return (a[NAME_ALIAS] or '') < (b[NAME_ALIAS] or '')
 	end)

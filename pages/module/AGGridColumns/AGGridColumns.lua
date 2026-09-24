@@ -19,13 +19,17 @@ local function resolve(colKind)
 	return kind
 end
 
---- Build AG Grid columnDefs from an ordered list of column specs.
+--- Build AG Grid columnDefs from an ordered list of column specs. Each kind
+--- forwards `sort` itself; `sortIndex`, AG Grid's precedence among initially
+--- sorted columns, is set here for every kind.
 --- @param specs table[]
 --- @return table[]
 function p.buildColumnDefs(specs)
 	local defs = {}
 	for _, spec in ipairs(specs) do
-		defs[#defs + 1] = resolve(spec.kind).buildColDef(spec)
+		local def = resolve(spec.kind).buildColDef(spec)
+		def.sortIndex = spec.sortIndex
+		defs[#defs + 1] = def
 	end
 	return defs
 end

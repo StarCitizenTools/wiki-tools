@@ -233,10 +233,13 @@ end
 
 function suite:testKindsAndSelectsNameAnchoredHubs()
 	-- A target missing from `hubs` has no heading plural to borrow, and a
-	-- selector that is not a category is not what the hub grids select by.
+	-- selector that is not a category is not what the hub grids select by. A
+	-- kind candidate carries no count value of its own, so a `kinds` hub
+	-- missing from `selects` would silently show no count.
 	local doc = mw.loadJsonData('Module:Entity/Navplates/hubs.json')
 	for kind, hub in pairs(doc.kinds) do
 		self:assertEquals('string', type(doc.hubs[hub]), kind)
+		self:assertEquals('string', type(doc.selects[hub]), kind)
 	end
 	for hub, selector in pairs(doc.selects) do
 		self:assertEquals('string', type(doc.hubs[hub]), hub)

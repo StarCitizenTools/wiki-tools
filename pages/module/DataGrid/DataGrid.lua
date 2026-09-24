@@ -203,7 +203,8 @@ end
 
 --- Parse one sort key: `<label or property> [asc|desc]`, direction defaulting to
 --- `asc`. The name matches a column's alias (`columnAlias`) or its raw `property`,
---- so `sort=Subtype` still finds a column relabelled `label=Type`. A name may
+--- so `sort=Subtype` still finds a column relabelled `label=Type`, or `Name` for
+--- the lead card, which no editor column may be named (`duplicateAlias`). A name may
 --- itself contain spaces (e.g. "Weapon class"), so the whole string is tried as a
 --- bare name first; only when that fails is the trailing word split off as the
 --- direction. An `eyebrow` column is excluded from matching: it is folded into the
@@ -215,6 +216,9 @@ end
 --- @return string|nil error  ready to display as-is
 local function parseSortKey(raw, columns)
 	local function findAlias(name)
+		if name == NAME_ALIAS then
+			return NAME_ALIAS
+		end
 		for _, column in ipairs(columns) do
 			if not column.eyebrow then
 				local alias = p.columnAlias(column)
@@ -721,12 +725,13 @@ local function buildSpecs(results, columns, eyebrowColumns, pinLead, kind, sort)
 	-- Every kind's buildColDef passes `sort` through to AG Grid's initial-sort key,
 	-- so setting it on the matching spec is enough regardless of column kind.
 	-- `sortIndex` (0-based precedence among the sorted columns) reaches the column
-	-- def through AGGridColumns.buildColumnDefs.
+	-- def through AGGridColumns.buildColumnDefs. The lead card, specs[1], answers
+	-- to NAME_ALIAS.
 	for n, key in ipairs(sort or {}) do
-		for i = 2, #specs do
-			if specs[i].label == key.alias then
-				specs[i].sort = key.direction
-				specs[i].sortIndex = n - 1
+		for i, spec in ipairs(specs) do
+			if (i == 1 and NAME_ALIAS or spec.label) == key.alias then
+				spec.sort = key.direction
+				spec.sortIndex = n - 1
 				break
 			end
 		end

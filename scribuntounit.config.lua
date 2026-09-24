@@ -31,7 +31,7 @@ return {
 		-- Module:Yesno — boolean conversion (not in this repo).
 		api.stub('Yesno', function(v, default)
 			if v == nil then
-				return default
+				return nil
 			end
 			if type(v) == 'boolean' then
 				return v

@@ -1,0 +1,5 @@
+<includeonly><!--
+-->{{#invoke:Entity/Rewards|main}}<!--
+--></includeonly><noinclude>
+{{/doc}}
+</noinclude>

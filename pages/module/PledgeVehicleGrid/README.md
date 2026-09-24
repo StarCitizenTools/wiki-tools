@@ -4,7 +4,7 @@ Renders the [List of pledge vehicles](https://starcitizen.tools/List_of_pledge_v
 
 ## For editors
 
-Place `{{#invoke:PledgeVehicleGrid|main}}` directly on a page; it takes no parameters and isn't wrapped in a template. The only page currently doing so is [List of pledge vehicles](https://starcitizen.tools/List_of_pledge_vehicles) (not mirrored in this repository).
+[Template:PledgeVehicleGrid](https://starcitizen.tools/Template:PledgeVehicleGrid) calls this module; place `{{PledgeVehicleGrid}}` on a page. It takes no parameters. The only page currently doing so is [List of pledge vehicles](https://starcitizen.tools/List_of_pledge_vehicles) (not mirrored in this repository).
 
 Every row comes from one [Module:BucketQuery](https://starcitizen.tools/Module:BucketQuery) query over `Category:Pledge ships` / `Category:Pledge vehicles`: tagging a vehicle into either category and filling its infobox (manufacturer, type, size, prices, physical stats, and so on) is enough for it to appear, with no edit to this module. The query does not run on every view: the grid is built from the categories' state as of this page's last save or forced reparse, so a vehicle just tagged in may not show until this page is next saved or purged with `forcelinkupdate`.
 

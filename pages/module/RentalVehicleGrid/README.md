@@ -4,7 +4,7 @@ Renders the [Ship renting](https://starcitizen.tools/Ship_renting) rental price 
 
 ## For editors
 
-Invoke `{{#invoke:RentalVehicleGrid|main}}` directly on a page; it takes no parameters (`p.main` never reads `frame.args`, so [Ship renting](https://starcitizen.tools/Ship_renting)'s `type=availability` on the call has no effect). [Ship renting](https://starcitizen.tools/Ship_renting) is the only page currently doing so (not mirrored in this repository).
+[Template:RentalVehicleGrid](https://starcitizen.tools/Template:RentalVehicleGrid) calls this module; place `{{RentalVehicleGrid}}` on a page. It takes no parameters (`p.main` never reads `frame.args`). [Ship renting](https://starcitizen.tools/Ship_renting) is the only page currently doing so (not mirrored in this repository).
 
 Every row's price, vehicle and terminal data comes from [UEX](https://uexcorp.space) via [Extension:Apiunto](https://www.mediawiki.org/wiki/Extension:Apiunto); manufacturer, role and thumbnail come from [Module:Entity/Store](https://starcitizen.tools/Module:Entity/Store) (Bucket), keyed by the ship's page title after redirect resolution. A ship UEX reports that has no matching Store row still shows, with a blank manufacturer/role/image.
 

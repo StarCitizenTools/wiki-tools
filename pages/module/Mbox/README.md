@@ -2,7 +2,7 @@
 
 The box behind page notices, hatnotes and empty sections: a title, an optional body that opens in place, a colour for the notice type, and an optional icon.
 
-Editors reach it through the notice templates (such as [Template:Outdated](https://starcitizen.tools/Template:Outdated), [Template:Stub](https://starcitizen.tools/Template:Stub) and [Template:Removed](https://starcitizen.tools/Template:Removed)), every hatnote template through [Module:Hatnote](https://starcitizen.tools/Module:Hatnote), the Entity section templates through [Module:Entity/EmptyState](https://starcitizen.tools/Module:Entity/EmptyState), and module and template documentation pages through [Module:Documentation](https://starcitizen.tools/Module:Documentation) and [Module:DependencyList](https://starcitizen.tools/Module:DependencyList).
+Editors reach it through the notice templates (such as [Template:Outdated](https://starcitizen.tools/Template:Outdated), [Template:Stub](https://starcitizen.tools/Template:Stub) and [Template:Removed](https://starcitizen.tools/Template:Removed)), every hatnote template through [Module:Hatnote](https://starcitizen.tools/Module:Hatnote), the Entity section templates through [Module:Entity/EmptyState](https://starcitizen.tools/Module:Entity/EmptyState), and module and template documentation pages through [Module:Documentation](https://starcitizen.tools/Module:Documentation) and [Module:Dependencies](https://starcitizen.tools/Module:Dependencies).
 
 ## For module editors
 
@@ -22,7 +22,7 @@ Editors reach it through the notice templates (such as [Template:Outdated](https
   | `class` | string | none | Extra classes on the root, such as `metadata` or `plainlinks`. |
 
 - `p.main(frame)`: the `#invoke` entry. Reads `title` (or `1`), `text` (or `2`), `type`, `icon`, `iconmask`, `placeholder`, `open` and `class` from the invocation only, so a calling template's own `type` parameter never reaches the box.
-- `p._mbox(title, text, options)`: the Lua entry Module:Documentation and Module:DependencyList call. Takes `options.icon` and `options.extraclasses`, whose `mbox-low`, `mbox-med` and `mbox-high` tokens become `notice`, `warning` and `error`; other tokens pass through as classes.
+- `p._mbox(title, text, options)`: the Lua entry Module:Documentation calls. Takes `options.icon` and `options.extraclasses`, whose `mbox-low`, `mbox-med` and `mbox-high` tokens become `notice`, `warning` and `error`; other tokens pass through as classes.
 
 ### Gotchas
 

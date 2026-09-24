@@ -27,7 +27,7 @@ The 167-page standardisation pass that established this layout is done; see the 
 ## Prerequisites
 
 - Public reads via `curl`. No credentials, no API key.
-- Dry-run renders go through the MediaWiki MCP's `parse-wikitext`. A `POST` to `starcitizen.tools/api.php` is answered by a Cloudflare interstitial, so `action=parse` over `curl` returns an HTML challenge page rather than JSON. `GET` requests to `api.php` and `action=raw` are unaffected.
+- Dry-run renders go through the MediaWiki MCP's `parse-wikitext`. A burst of anonymous `POST`s to `starcitizen.tools/api.php` gets throttled (HTTP 403 or a Cloudflare challenge), so render dry runs through the MCP's `parse-wikitext` rather than `action=parse` over `curl`; a single `POST` with a browser User-Agent, such as the purge in step 9, goes through. `GET` requests to `api.php` and `action=raw` are unaffected.
 - Writes through the MediaWiki MCP with `bot: true`.
 
 ## The starting state is a pre-release stub, not a blank page
@@ -36,30 +36,30 @@ Read this before step 1. The page almost always exists already, written months e
 
 ```
 {{stub}}
-{{PatchData
-| buildnumber =
-| Prev = Star Citizen Alpha 4.9.0
-| Next = Star Citizen Alpha 4.11.0
-| futurerelease = yes
-| publishdate =
+{{Patch
+| build =
+| prev = Star Citizen Alpha 4.9.0
+| next = Star Citizen Alpha 4.11.0
+| upcoming = yes
+| date =
 ...
 ```
 
-`Template:PatchData` keys three visible behaviours off `futurerelease`: the category (`Upcoming Patches` vs `Patch Notes`), the status badge (**Upcoming** vs **Released**), and the short description ("scheduled for" vs "released on"). **Leaving it set publishes a shipped patch as upcoming.** The release transitions:
+`Template:Patch` keys three visible behaviours off `upcoming`: the category (`Upcoming patches` vs `Patch notes`), the status badge (**Upcoming** vs **Released**), and the short description ("scheduled for" vs "released on"). **Leaving it set publishes a shipped patch as upcoming.** The release transitions:
 
 | Field / section | Pre-release | After import |
 |---|---|---|
-| `futurerelease` | `yes` | **empty** |
-| `buildnumber` | empty | from the release line, e.g. `4.9.0-LIVE.12232306` |
-| `publishdate` | empty | the LIVE date |
+| `upcoming` | `yes` | **empty** |
+| `build` | empty | from the release line, e.g. `4.9.0-LIVE.12232306` |
+| `date` | empty | the LIVE date |
 | `{{stub}}` | present | removed |
 | lead | "is a **planned** major update … **expected to bring**" | past tense, what shipped |
 | `== Official links ==` | roadmap link only | the real link set (step 7) |
 | `== Roadmap deliverables ==` | already populated from the roadmap | reconcile against what actually shipped; deliverables get cut |
 
-Everything else - `Prev`, `Next`, `image`, categories, `DEFAULTSORT` - carries over verbatim. Never synthesise those (`feedback_carry_metadata_verbatim`). Check the neighbouring pages' `| Next =` and `| Prev =` chain to the new page.
+Everything else - `prev`, `next`, `image`, categories, `DEFAULTSORT` - carries over verbatim. Never synthesise those (`feedback_carry_metadata_verbatim`). Check the neighbouring pages' `| next =` and `| prev =` chain to the new page.
 
-**Another editor may have started the page on release day**, with `futurerelease` already cleared and `buildnumber`, `publishdate` and a lead already filled from the launcher rather than the comm-link. Treat their values as claims to check, not as given: on 4.10.1 the stub's `buildnumber` was `12660092` while CIG's release line said `12650677`, and the two must agree because the page prints both. The corpus keys `buildnumber` to CIG's release line, so that is the default, but a genuine post-notes rebuild is possible - surface the mismatch to the owner rather than picking silently.
+**Another editor may have started the page on release day**, with `upcoming` already cleared and `build`, `date` and a lead already filled from the launcher rather than the comm-link. Treat their values as claims to check, not as given: on 4.10.1 the stub's `build` was `12660092` while CIG's release line said `12650677`, and the two must agree because the page prints both. The corpus keys `build` to CIG's release line, so that is the default, but a genuine post-notes rebuild is possible - surface the mismatch to the owner rather than picking silently.
 
 ## Steps
 
@@ -189,7 +189,7 @@ Emitting the whole string ships CIG's typos as headings (`Frieght` above). Headi
 The settled skeleton, in this order. Omit a section only when it genuinely has no content.
 
 ```
-{{PatchData}}
+{{Patch}}
 [[File:<banner>|thumb]]              (when one exists)
 <lead prose> + <ref>{{Cite RSI|…}}</ref>
 
@@ -202,7 +202,7 @@ The settled skeleton, in this order. Omit a section only when it genuinely has n
 <references />
 
 {{DEFAULTSORT:<n.nn.n>, Alpha}}
-[[Category:Major Patches]]          or [[Category:Minor Patches]]
+[[Category:Major patches]]          or [[Category:Minor patches]]
 ```
 
 Rules the whole namespace follows:
@@ -250,7 +250,7 @@ Order: full patch notes, the Spectrum release-notes thread when one exists, the 
 
 The announcement trailer first, then the patch report. The announcement transmission usually embeds both - pull the video ids from it rather than searching YouTube. Recent announcements sometimes embed none: 4.10.1's carries only store copy, so its page has no `== Media ==`. Grep the fragment for `youtube`/`youtu.be`/`vimeo` and ignore the template boilerplate that holds a literal `{$video_id}` placeholder; real ids are the only reason to emit the section.
 
-The wiki's comm-link mirror finds announcements and reports faster than probing ids, and it now carries the Patch-Notes series too (21330 is there as series `Release Info`), so it also answers "has CIG published the notes yet" and gives a `created_at` that settles `publishdate`:
+The wiki's comm-link mirror finds announcements and reports faster than probing ids, and it now carries the Patch-Notes series too (21330 is there as series `Release Info`), so it also answers "has CIG published the notes yet" and gives a `created_at` that settles `date`:
 
 ```bash
 curl -s 'https://api.star-citizen.wiki/api/comm-links/21330'                                  # -> title, rsi_url, created_at, images
@@ -285,6 +285,16 @@ Then run both gates. Neither is optional - a successful `update-page` proves onl
 **Byte-diff gate - did the wiki store what you sent?** Fetch `index.php?title=<title>&action=raw` and diff against your source. Use `action=raw`, not `get-page`, which truncates at 50k. Tolerate only a trailing-newline difference. Hand-pasting a long page has already introduced a stray blank line once; this is what catches it.
 
 Fix and redeploy until both are clean.
+
+**Purge after the final save.** Bucket reads register no page dependency, so each update page shows its neighbours' release dates, and `Patch notes` shows its list, as of that page's last parse. That lasts up to three days for `Patch notes` and for an undated upcoming page. After the last save, purge the neighbours and the list in one call. A single purge like this goes through with a browser User-Agent:
+
+```bash
+curl -s -A 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36' \
+  -X POST https://starcitizen.tools/api.php \
+  -d 'action=purge&format=json&formatversion=2&titles=Update:<prev>|Update:<next>|Patch notes'
+```
+
+Check that each title comes back with `"purged": true`.
 
 ## Gotchas
 

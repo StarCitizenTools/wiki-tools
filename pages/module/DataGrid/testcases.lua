@@ -640,6 +640,14 @@ function suite:testParseSortColumnNamedTwice()
 	self:assertEquals('sort "Size": column named twice', err)
 end
 
+-- `Name` is the lead card, sortable though it is not an editor column.
+function suite:testParseSortNamesTheLeadCard()
+	self:assertDeepEquals(
+		{ { alias = 'Size', direction = 'desc' }, { alias = 'Name', direction = 'desc' } },
+		dg.parseSort('Size desc, Name desc', dg.parseColumns('Size'))
+	)
+end
+
 -- Named twice counts by the resolved column, so a label and the property it
 -- relabels are the same column.
 function suite:testParseSortColumnNamedTwiceByLabelAndProperty()
@@ -776,6 +784,24 @@ function suite:testBuildSpecsAppliesEachSortKeyWithItsIndex()
 		self:assertEquals(1, specs[2].sortIndex)
 		self:assertEquals('desc', specs[3].sort)
 		self:assertEquals(0, specs[3].sortIndex)
+	end)
+end
+
+function suite:testBuildSpecsSortsTheLeadCardByName()
+	withManifest(function()
+		local columns = dg.parseColumns('Size')
+		local specs = dg._internal.buildSpecs(
+			{},
+			columns,
+			{},
+			false,
+			nil,
+			dg.parseSort('Size desc, Name desc', columns)
+		)
+		self:assertEquals('card', specs[1].kind)
+		self:assertEquals('desc', specs[1].sort)
+		self:assertEquals(1, specs[1].sortIndex)
+		self:assertEquals(0, specs[2].sortIndex)
 	end)
 end
 

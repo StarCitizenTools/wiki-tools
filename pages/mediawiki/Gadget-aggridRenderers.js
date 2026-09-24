@@ -475,9 +475,10 @@
 			filterParams: {
 				itemRenderer: eyebrowFilterItem
 			},
+			// Numeric-aware, so "Alpha 4.9.0" sorts before "Alpha 4.10.0".
 			comparator: function ( a, b ) {
 				return String( ( a && a.title ) || '' )
-					.localeCompare( String( ( b && b.title ) || '' ) );
+					.localeCompare( String( ( b && b.title ) || '' ), undefined, { numeric: true } );
 			}
 		};
 

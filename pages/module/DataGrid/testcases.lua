@@ -724,6 +724,36 @@ function suite:testColumnKindsFromManifestTypes()
 	end)
 end
 
+-- `variants` maps each cell value to a badge variant, split at the last colon.
+function suite:testParseVariants()
+	self:assertDeepEquals(
+		{ Upcoming = 'warning', Released = 'success', ['Ratio 1:2'] = 'error' },
+		dg.parseVariants('Upcoming:warning, Released : success,, Ratio 1:2:error, Bare')
+	)
+end
+
+function suite:testParseColumnsReadsVariants()
+	local columns = dg.parseColumns('Patch status ; kind=badge ; variants=Upcoming:warning, Released:success')
+	self:assertEquals('badge', columns[1].kind)
+	self:assertDeepEquals({ Upcoming = 'warning', Released = 'success' }, columns[1].variants)
+end
+
+-- `kind=badge` and `kind=date` pick the matching Module:AGGridColumns kinds
+-- whatever the property's stored type.
+function suite:testBuildSpecsBadgeAndDateKinds()
+	withManifest(function()
+		local columns = dg.parseColumns(
+			'Size ; kind=badge ; variants=3:success\nManufacturer ; kind=date\nWeapon class ; kind=date ; filter'
+		)
+		local specs = dg._internal.buildSpecs({}, columns, {}, false, nil)
+		self:assertEquals('badge', specs[2].kind)
+		self:assertDeepEquals({ ['3'] = 'success' }, specs[2].variants)
+		self:assertEquals('date', specs[3].kind)
+		self:assertEquals(nil, specs[3].filter)
+		self:assertEquals('aggridSet', specs[4].filter)
+	end)
+end
+
 -- A single key lands on the ONE spec whose alias matches, leaving every other
 -- spec's `sort` unset.
 function suite:testBuildSpecsAppliesSortToMatchingSpec()

@@ -8,7 +8,7 @@ Editors use this through `{{Data table}}`; see [Template:Data table](https://sta
 
 ### API
 
-- `p.parseColumns(raw)`: the multi-line `columns` argument into `DataGridColumn[]` (`property`, `label`, `filter`, `eyebrow`, `kind`, `good`, `group`, `prefix`, `suffix`, `suffix1`).
+- `p.parseColumns(raw)`: the multi-line `columns` argument into `DataGridColumn[]` (`property`, `label`, `filter`, `eyebrow`, `kind`, `good`, `group`, `prefix`, `suffix`, `suffix1`, and `variants` through `p.parseVariants`, which maps each `Value:variant` pair split at the last colon).
 - `p.columnAlias(column)`: a column's result-row key: `label`, else the property name.
 - `p.duplicateAlias(columns, options)`: the first alias colliding with another column or a lead key (`Image`/`Name`/`DisplayName`), or `nil`.
 - `p.parseFilters(raw)`: the multi-line `filter` argument into Store filter entries, or `nil` plus the first line that does not parse. `Property = A; B` is the Or form (`||` is also accepted, from an editor's `{{!}}{{!}}`); the property name and every value are entity-decoded.
@@ -20,7 +20,7 @@ Editors use this through `{{Data table}}`; see [Template:Data table](https://sta
 - `p.sortRows(results)`: orders results by the `Name` alias, in place.
 - `p.main(frame)`: wikitext entry point; reads `category`/`filter`/`kind`/`columns`/`pinlead`/`sort`, runs the query, and returns the rendered grid.
 
-Column kinds come from `Store.resolve(property, kind).type`, not from the fetched values: PAGE becomes `link` (`linkList` when repeated); a repeated non-PAGE property becomes `valueList`; INTEGER/DOUBLE becomes `number`; BOOLEAN becomes `boolean`; anything else is `smart`. `kind=effect`/`bar`/`boolean` on a column overrides this with a [Module:DietaryEffect](https://starcitizen.tools/Module:DietaryEffect) badge list, a signed bar, or a [Module:Boolean](https://starcitizen.tools/Module:Boolean) icon; any other `kind` value is silently ignored.
+Column kinds come from `Store.resolve(property, kind).type`, not from the fetched values: PAGE becomes `link` (`linkList` when repeated); a repeated non-PAGE property becomes `valueList`; INTEGER/DOUBLE becomes `number`; BOOLEAN becomes `boolean`; anything else is `smart`. `kind=effect`/`bar`/`boolean`/`badge`/`date` on a column overrides this with a [Module:DietaryEffect](https://starcitizen.tools/Module:DietaryEffect) badge list, a signed bar, a [Module:Boolean](https://starcitizen.tools/Module:Boolean) icon, a badge coloured by the column's `variants`, or an ISO date column; any other `kind` value is silently ignored.
 
 ### Gotchas
 

@@ -13,6 +13,7 @@ local BUCKET = 'patch'
 local DEFAULT_PRODUCT = 'Star Citizen'
 local NAMESPACE = 'Update:'
 local UNKNOWN = 'Unknown'
+local HUB = 'Patch notes'
 local STYLES = 'Module:Patch/styles.css'
 
 --- The plain-text parameters of {{Patch}}. `upcoming` is read separately as a
@@ -72,6 +73,18 @@ function p.status(args)
 		return 'Released', 'released'
 	end
 	return UNKNOWN, nil
+end
+
+--- The status label's wikitext. For Star Citizen it links to the hub page that
+--- lists every update; other products have no hub.
+--- @param args PatchArgs
+--- @return string
+function p.statusText(args)
+	local label = p.status(args)
+	if args.product == DEFAULT_PRODUCT then
+		return '[[' .. HUB .. '|' .. label .. ']]'
+	end
+	return label
 end
 
 --- The line under the status: the date, prefixed "est." while upcoming, then
@@ -206,8 +219,8 @@ function p.main(frame)
 	end
 	local dates = p.neighbourDates(wanted)
 
-	local label, modifier = p.status(args)
-	local status = mw.html.create('span'):addClass('t-patch-status'):wikitext(label)
+	local _, modifier = p.status(args)
+	local status = mw.html.create('span'):addClass('t-patch-status'):wikitext(p.statusText(args))
 	if modifier then
 		status:addClass('t-patch-status--' .. modifier)
 	end

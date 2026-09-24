@@ -29,6 +29,7 @@ Shows a game update's release status and links to the previous and next update. 
 
 ## Behavior
 
+- The status links to [Patch notes](https://starcitizen.tools/Patch_notes), the list of every Star Citizen update; an update for another product has no such link.
 - A released Star Citizen update is filed in [Category:Patch notes](https://starcitizen.tools/Category:Patch_notes), an upcoming one in [Category:Upcoming patches](https://starcitizen.tools/Category:Upcoming_patches), and an update for any other product in `Category:<product> patch notes`.
 - The previous and next links show the release date recorded on each neighbour's page, or "Unknown" when it has none. A neighbour's changed date appears here once this page is saved or purged.
 - The short description reads "`<product>` build released on `<date>`" once a date is recorded, "scheduled for" instead while upcoming, or plain "`<product>` build" without a date.

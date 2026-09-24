@@ -5,3 +5,7 @@
 .t-patch-status--released {
 	color: var( --color-success );
 }
+
+.t-patch-status a {
+	color: inherit;
+}

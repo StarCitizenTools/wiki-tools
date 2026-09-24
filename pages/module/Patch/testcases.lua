@@ -51,6 +51,13 @@ function suite:testStatus()
 	self:assertEquals(nil, modifier)
 end
 
+-- Only Star Citizen has a hub page to link back to.
+function suite:testStatusTextLinksStarCitizenToTheHub()
+	self:assertEquals('[[Patch notes|Released]]', patch.statusText(patch.readArgs({ date = '2026-08-26' })))
+	self:assertEquals('[[Patch notes|Upcoming]]', patch.statusText(patch.readArgs({ upcoming = 'yes' })))
+	self:assertEquals('Released', patch.statusText(patch.readArgs({ date = '2016-01-01', product = 'Spectrum' })))
+end
+
 -- {{Patch list}} sorts `Status desc` to put upcoming updates first.
 function suite:testUpcomingStatusSortsLast()
 	local upcoming = patch.status(patch.readArgs({ upcoming = 'yes' }))

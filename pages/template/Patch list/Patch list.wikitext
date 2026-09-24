@@ -1,8 +1,8 @@
 <includeonly>{{#invoke:Patch|list
 |filter = Patch product = Star Citizen
 |columns =
-    Patch status ; label=Status ; filter
+    Patch status ; label=Status ; kind=badge ; variants=Upcoming:warning, Released:success
     Patch build ; label=Build
-    Patch release date ; label=Release date
+    Patch release date ; label=Release date ; kind=date
 |sort = Status desc, Release date desc
 }}</includeonly><noinclude>{{/doc}}</noinclude>

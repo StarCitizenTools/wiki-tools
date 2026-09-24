@@ -10,7 +10,7 @@ Editors use it through [Template:Patch](https://starcitizen.tools/Template:Patch
 
 - `p.main(frame)`: `{{Patch}}`'s entry point. Reads the parent frame's arguments, stores the row, sets the short description and SEO metadata, and returns the previous/next bar followed by the category link, interlanguage links and styles tag.
 - `p.list(frame)`: `{{Patch list}}`'s entry point, [Module:DataGrid](https://starcitizen.tools/Module:DataGrid) rooted on `patch`.
-- `p.readArgs`, `p.status`, `p.description`, `p.shortDescription`, `p.category`, `p.row`, `p.neighbourTitle`, `p.neighbourDates`, `p.dateFor` and `p.store` are the pieces `main` is built from, exported for the ScribuntoUnit suite.
+- `p.readArgs`, `p.status`, `p.statusText`, `p.description`, `p.shortDescription`, `p.category`, `p.row`, `p.neighbourTitle`, `p.neighbourDates`, `p.dateFor` and `p.store` are the pieces `main` is built from, exported for the ScribuntoUnit suite.
 
 ### Gotchas
 

@@ -5,6 +5,7 @@
 		"Module:Company/properties.json",
 		"Module:WearableSet/properties.json",
 		"Module:Maintenance/properties.json",
-		"Module:JumpPointMagazine/properties.json"
+		"Module:JumpPointMagazine/properties.json",
+		"Module:Dependencies/properties.json"
 	]
 }

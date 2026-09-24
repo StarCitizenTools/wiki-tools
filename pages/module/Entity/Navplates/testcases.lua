@@ -6,6 +6,8 @@ local suite = ScribuntoUnit:new()
 local navplates = require('Module:Entity/Navplates')
 local countLine = navplates._internal.countLine
 local resolveHub = navplates._internal.resolveHub
+local kindHub = navplates._internal.kindHub
+local countFilter = navplates._internal.countFilter
 
 --- Most of the suite asks only "does this string reach this hub", so the
 --- candidate records appear only in the tests that are about the count.
@@ -179,6 +181,67 @@ function suite:testEveryRoleEntryNamesAHubAndAFamily()
 		families[entry.family] = true
 	end
 	self:assertEquals(true, families.ship)
+end
+
+function suite:testKindHubSendsACommodityToTheCommodityHub()
+	local candidate = kindHub('Commodity')
+	self:assertEquals('Commodity', candidate.hub)
+	self:assertEquals('commodities', candidate.label)
+end
+
+function suite:testKindHubIgnoresKindsOutsideTheMap()
+	-- Item and Location keep resolving through their types, where their hubs
+	-- are keyed.
+	self:assertEquals(nil, kindHub('Item'))
+	self:assertEquals(nil, kindHub('Location'))
+	self:assertEquals(nil, kindHub(nil))
+end
+
+function suite:testKindHubMatchesTheKindNameExactly()
+	self:assertEquals(nil, kindHub('commodity'))
+	self:assertEquals(nil, kindHub('Commodities'))
+end
+
+function suite:testSystemTypesReachThePlanetarySystemHub()
+	-- A record-less system page is reachable only through its stored Subject
+	-- type, which is one of these four labels.
+	for _, systemType in ipairs({ 'Single star system', 'Binary star system', 'Trinary star system', 'Star system' }) do
+		local hub, label = hubFor(systemType)
+		self:assertEquals('Planetary system', hub, systemType)
+		self:assertEquals('planetary systems', label, systemType)
+	end
+end
+
+function suite:testCountFilterUsesTheSelectorTheHubsGridUses()
+	-- The hub lists every commodity, so the count must too, whatever the page's
+	-- own substance is.
+	self:assertEquals('Category:Commodities', countFilter('Commodity', 'Metal'))
+	self:assertEquals('Category:Commodities', countFilter('Commodity', nil))
+	self:assertEquals('Category:Systems', countFilter('Planetary system', 'Single star system'))
+end
+
+function suite:testCountFilterFallsBackToTheCandidatesSubjectType()
+	self:assertDeepEquals({ 'Subject type', 'Gun' }, countFilter('Gun', 'Gun'))
+end
+
+function suite:testCountFilterIsNilWhenNothingCountsTheHub()
+	-- A browse-category or role hub carries no count value and is not in
+	-- `selects`, so its cell shows no number.
+	self:assertEquals(nil, countFilter('Medium ships', nil))
+	self:assertEquals(nil, countFilter('Gun', ''))
+end
+
+function suite:testKindsAndSelectsNameAnchoredHubs()
+	-- A target missing from `hubs` has no heading plural to borrow, and a
+	-- selector that is not a category is not what the hub grids select by.
+	local doc = mw.loadJsonData('Module:Entity/Navplates/hubs.json')
+	for kind, hub in pairs(doc.kinds) do
+		self:assertEquals('string', type(doc.hubs[hub]), kind)
+	end
+	for hub, selector in pairs(doc.selects) do
+		self:assertEquals('string', type(doc.hubs[hub]), hub)
+		self:assertEquals(true, mw.ustring.find(selector, '^Category:.') ~= nil, hub)
+	end
 end
 
 return suite

@@ -1,0 +1,8 @@
+<includeonly>{{#invoke:Patch|list
+|filter = Patch product = Star Citizen
+|columns =
+    Patch status ; label=Status ; filter
+    Patch build ; label=Build
+    Patch release date ; label=Release date
+|sort = Status desc, Release date desc
+}}</includeonly><noinclude>{{/doc}}</noinclude>

@@ -1,0 +1,7 @@
+.t-patch-status--upcoming {
+	color: var( --color-warning );
+}
+
+.t-patch-status--released {
+	color: var( --color-success );
+}

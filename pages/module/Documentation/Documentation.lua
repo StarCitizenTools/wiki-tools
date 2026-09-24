@@ -1,5 +1,4 @@
 -- <nowiki>
-local dependencyList = require('Module:DependencyList')
 local hatnote = require('Module:Hatnote')._hatnote
 local mbox = require('Module:Mbox')._mbox
 local i18n = require('Module:i18n'):new()
@@ -30,6 +29,21 @@ local function translate(key, ...)
 	return translation
 end
 
+--- A failure in Module:Dependencies, or a module it requires, must not break
+--- every documentation page: require and render it inside a pcall.
+--- @param pageName string|nil
+--- @param addCategories boolean|string|nil
+--- @return string
+local function dependencyNotices(pageName, addCategories)
+	local ok, result = pcall(function()
+		return require('Module:Dependencies')._main(pageName, addCategories)
+	end)
+	if ok then
+		return result
+	end
+	return '<strong class="error">' .. mw.text.nowiki(tostring(result)) .. '</strong>'
+end
+
 function p.doc(frame)
 	local title = mw.title.getCurrentTitle()
 	local args = frame:getParent().args
@@ -51,14 +65,14 @@ function p.doc(frame)
 				.. '|'
 				.. title.baseText
 				.. ']]'
-			ret2 = dependencyList._main()
+			ret2 = dependencyNotices()
 		elseif title.namespace == 828 then -- Module namespace
 			cats = '[[Category:'
 				.. string.format(t('category_documentation'), t('category_' .. pageType))
 				.. '|'
 				.. title.baseText
 				.. ']]'
-			ret2 = dependencyList._main()
+			ret2 = dependencyNotices()
 			ret2 = ret2 .. require('Module:Module toc').main()
 		else
 			cats = ''
@@ -144,30 +158,6 @@ function p.doc(frame)
 	end
 
 	if title.namespace == 828 then
-		-- Has config
-		if mw.title.new(title.fullText .. '/config.json', 'Module').exists then
-			table.insert(
-				ret3,
-				mbox(
-					translate('message_module_configuration', title.fullText, title.fullText),
-					translate('message_module_configuration_subtext'),
-					{ icon = 'WikimediaUI-Settings.svg' }
-				)
-			)
-		end
-
-		-- Has localization
-		if mw.title.new(title.fullText .. '/i18n.json', 'Module').exists then
-			table.insert(
-				ret3,
-				mbox(
-					translate('message_module_i18n', title.fullText, title.fullText),
-					translate('message_module_i18n_subtext'),
-					{ icon = 'WikimediaUI-Language.svg' }
-				)
-			)
-		end
-
 		-- Testcase page
 		if title.subpageText == 'testcases' then
 			table.insert(
@@ -180,15 +170,7 @@ function p.doc(frame)
 	end
 
 	--- Dependency list
-	table.insert(ret3, dependencyList._main(nil, args.category, args.isUsed))
-
-	-- Has templatestyles
-	if mw.title.new(title.fullText .. '/styles.css').exists then
-		table.insert(
-			ret3,
-			hatnote(translate('message_styles', title.fullText, title.fullText), { icon = 'WikimediaUI-Palette.svg' })
-		)
-	end
+	table.insert(ret3, dependencyNotices(nil, args.category))
 
 	--- Module stats bar
 	if title.namespace == 828 then

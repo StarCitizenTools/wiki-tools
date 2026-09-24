@@ -105,17 +105,35 @@ end
 --- @field filter? boolean
 --- @field eyebrow? boolean Promote this column into the lead card's eyebrow.
 --- @field kind? string  Override the auto-classified column kind (e.g. `effect`, `bar`).
+--- @field variants? table<string, string>  For `kind=badge`: value -> badge variant.
 --- @field good? string  For `kind=bar`: 'higher' | 'lower', the direction that helps.
 --- @field group? string  Header this column sits under; consecutive matches nest together.
 --- @field prefix? string  For `eyebrow`: joined before the value, no space ("1" -> "S1").
 --- @field suffix? string  For `eyebrow`: unit appended after a space ("5" -> "5 charges").
 --- @field suffix1? string  The `suffix` to use when the value is exactly 1 ("1 charge").
 
+--- Parse a `variants` modifier, `Value:variant, Value:variant`, into a map from
+--- cell value to badge variant (`success`, `warning` or `error`; the gadget
+--- renders any other name as a neutral pill). The value is split from its variant
+--- at the last colon, so a value may itself contain one.
+--- @param raw string
+--- @return table<string, string>
+function p.parseVariants(raw)
+	local variants = {}
+	for pair in mw.text.gsplit(raw, ',', true) do
+		local value, variant = mw.text.trim(pair):match('^(.-)%s*:%s*([^:]-)$')
+		if value and value ~= '' and variant ~= '' then
+			variants[value] = variant
+		end
+	end
+	return variants
+end
+
 --- Parse the multi-line `columns` value. Carried over from Module:DataTableLua:
 --- one column per non-blank line; within a line, `;`-separated clauses where the
 --- first is the property and the rest are modifiers (`label=X`, `size=X`,
 --- `kind=X`, `good=higher|lower`, `group=X`, `prefix=X`, `suffix=X`, `suffix1=X`,
---- or the bare flags `filter` / `eyebrow`).
+--- `variants=Value:variant, ...`, or the bare flags `filter` / `eyebrow`).
 --- `eyebrow` promotes the column into the lead card instead of rendering it as its
 --- own column. `good` applies to `kind=bar` only, naming the direction that helps
 --- the reader. Unknown clauses are ignored. Empty-property lines drop.
@@ -151,6 +169,8 @@ function p.parseColumns(raw)
 						column.suffix = value
 					elseif key == 'suffix1' then
 						column.suffix1 = value
+					elseif key == 'variants' then
+						column.variants = p.parseVariants(value)
 					elseif clause == 'filter' then
 						column.filter = true
 					elseif clause == 'eyebrow' then
@@ -653,6 +673,25 @@ local function buildSpecs(results, columns, eyebrowColumns, pinLead, kind, sort)
 					header = header,
 					label = alias,
 					filter = 'aggridSet',
+				}
+			elseif column.kind == 'badge' then
+				-- A pill per value, coloured by the column's `variants`; the kind's
+				-- set filter and sort key on the text.
+				specs[#specs + 1] = {
+					kind = 'badge',
+					field = 'c' .. i,
+					header = header,
+					label = alias,
+					variants = column.variants,
+				}
+			elseif column.kind == 'date' then
+				-- An ISO date: the kind brings AG Grid's date filter and date type.
+				specs[#specs + 1] = {
+					kind = 'date',
+					field = 'c' .. i,
+					header = header,
+					label = alias,
+					filter = column.filter and 'aggridSet' or nil,
 				}
 			else
 				local entry = BucketQuery.resolve(column.property, kind)

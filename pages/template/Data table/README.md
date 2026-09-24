@@ -24,7 +24,7 @@ Each non-blank line in `columns` is one column. The first `;`-separated clause i
 | `label=X` | Column header and result-row key (default: the property name). |
 | `filter` | Checkbox set filter for the column. |
 | `eyebrow` | Show the value as a secondary label on the lead card instead of its own column; several compose into one `·`-joined line, in order. |
-| `kind=effect\|bar\|boolean` | Force a rendering: [Module:DietaryEffect](https://starcitizen.tools/Module:DietaryEffect) badges, a magnitude bar, or a [Module:Boolean](https://starcitizen.tools/Module:Boolean) icon; other values ignored. `good=higher\|lower` sets a bar's better direction. |
+| `kind=effect\|bar\|boolean\|badge\|date` | Force a rendering: [Module:DietaryEffect](https://starcitizen.tools/Module:DietaryEffect) badges, a magnitude bar, a [Module:Boolean](https://starcitizen.tools/Module:Boolean) icon, a badge, or a date (`YYYY-MM-DD`, with a date filter); other values ignored. `good=higher\|lower` sets a bar's better direction. `variants=Value:variant, …` colours a badge by value: `success`, `warning` or `error`. |
 | `group=X` | Header this column nests under; only consecutive same-group columns nest together. |
 | `prefix=X` / `suffix=X` / `suffix1=X` | For `eyebrow`: prefix text (`S1`), suffix unit (`5 charges`), singular suffix for `1` (`1 charge`). |
 

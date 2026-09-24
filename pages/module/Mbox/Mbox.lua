@@ -3,8 +3,9 @@ require('strict')
 --- @module Mbox
 --- The box behind page notices, hatnotes and Entity empty states: a title, an
 --- optional body that opens in place as a <details> disclosure, a type colour
---- and an optional icon. Module:Hatnote and Module:Entity/EmptyState draw
---- through render(); the notice templates call main() via #invoke.
+--- and an optional icon. Module:Hatnote, Module:Entity/EmptyState and
+--- Module:Dependencies draw through render(); the notice templates call main()
+--- via #invoke.
 
 local libraryUtil = require('libraryUtil')
 local checkType = libraryUtil.checkType
@@ -58,7 +59,9 @@ end
 --- @param props MboxProps
 --- @return string
 local function rootClass(props)
-	-- <details>/<summary>/<span> survive TextExtracts (it strips only div and listed classes); noexcerpt is in that list, keeping notice text out of the meta description and Page Previews.
+	-- TextExtracts drops div elements and the classes in $wgExtractsRemoveClasses but keeps
+	-- <details>, so only noexcerpt (one of those classes) keeps a disclosure box's text out of
+	-- the meta description and Page Previews; a static box's div root is dropped either way.
 	local classes = { 't-mbox', 't-mbox--' .. props.type, 'navigation-not-searchable', 'noexcerpt' }
 	if props.placeholder then
 		classes[#classes + 1] = 't-mbox--placeholder'
@@ -169,7 +172,7 @@ end
 --- Alias for `{{#invoke:Mbox|mbox}}` invocations.
 p.mbox = p.main
 
---- Lua entry kept for Module:Documentation and Module:DependencyList.
+--- Lua entry kept for Module:Documentation.
 --- @param title string
 --- @param text string|nil
 --- @param options { icon: string|nil, extraclasses: string|nil }|nil

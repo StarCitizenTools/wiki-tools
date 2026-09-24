@@ -52,11 +52,11 @@ Editors never invoke this module directly; it runs inside [Template:Entity](http
 
 ### Extending
 
-A new subtype: write `pages/module/Entity/Item/<Subtype>.lua` with `p.parent = 'Entity/Item'` and its rendering hooks (`getTypeInfo` and/or `getShortDescription` and/or `getSections`, as needed), then add one `type key = 'Entity/Item/<Subtype>'` entry to `itemSubtypeMapping`. A stat block that can appear on more than one API `type`, or on an FPS item of a different type entirely, belongs in a facet keyed on the block's presence instead of in a subtype; see [Module:Entity/Registry](https://starcitizen.tools/Module:Entity/Registry).
+A new subtype: write `pages/module/Entity/Item/<Subtype>.lua` with `p.parent = 'Entity/Item'` and its rendering hooks (`getTypeInfo` and/or `getShortDescription` and/or `getSections`, as needed), then add one entry to `itemSubtypeMapping` whose value is a loader, `function() return require('Module:Entity/Item/<Subtype>') end`: the literal `require` keeps the leaf lazily loaded and visible to [Module:Dependencies](https://starcitizen.tools/Module:Dependencies). A stat block that can appear on more than one API `type`, or on an FPS item of a different type entirely, belongs in a facet keyed on the block's presence instead of in a subtype; see [Module:Entity/Registry](https://starcitizen.tools/Module:Entity/Registry).
 
 ### Gotchas
 
 - The `class_name` discriminator: items and vehicles both carry `class_name`, so `matches` also excludes `apiData.is_vehicle`, the one field vehicles carry and items never do. A bare "has a uuid" test would claim both kinds.
-- The subtype `require` is unguarded: a misspelled path in `itemSubtypeMapping` throws a module-not-found error for every page of that API type, live, with no fallback.
+- The subtype `require` is unguarded: a misspelled module name in an `itemSubtypeMapping` loader throws a module-not-found error for every page of that API type, live, with no fallback.
 - The lookup is an exact, case-sensitive match on `apiData.type`; a renamed or differently-cased API type silently resolves to `nil`, and Item itself renders as the leaf with no subtype stats.
 - `WeaponMissile` and `Missile` both resolve to the same module; either key can be dropped once no item carries that API type string.

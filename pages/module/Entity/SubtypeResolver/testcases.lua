@@ -5,8 +5,15 @@ local SubtypeResolver = require('Module:Entity/SubtypeResolver')
 
 local suite = ScribuntoUnit:new()
 
--- A map whose values are real, requirable modules keeps the test offline-safe.
-local MAP = { ship = 'Entity/Vehicle/Ship', ground = 'Entity/Vehicle/GroundVehicle' }
+-- Loaders around real, requirable modules keep the test offline-safe.
+local MAP = {
+	ship = function()
+		return require('Module:Entity/Vehicle/Ship')
+	end,
+	ground = function()
+		return require('Module:Entity/Vehicle/GroundVehicle')
+	end,
+}
 
 function suite:testResolvesMappedToken()
 	self:assertEquals(require('Module:Entity/Vehicle/Ship'), SubtypeResolver.resolve('ship', MAP))
@@ -19,6 +26,22 @@ end
 function suite:testNilWhenTokenNilOrEmpty()
 	self:assertEquals(nil, SubtypeResolver.resolve(nil, MAP))
 	self:assertEquals(nil, SubtypeResolver.resolve('', MAP))
+end
+
+function suite:testLoadsOnlyTheSelectedLeaf()
+	local loaded = {}
+	local map = {
+		a = function()
+			loaded[#loaded + 1] = 'a'
+			return {}
+		end,
+		b = function()
+			loaded[#loaded + 1] = 'b'
+			return {}
+		end,
+	}
+	SubtypeResolver.resolve('a', map)
+	self:assertDeepEquals({ 'a' }, loaded)
 end
 
 function suite:testFamilyArgNormalizes()

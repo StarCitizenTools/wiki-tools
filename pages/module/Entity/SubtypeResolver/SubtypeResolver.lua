@@ -2,25 +2,27 @@ require('strict')
 
 --- @module Entity/SubtypeResolver
 --- The mechanical half of subtype dispatch shared by kinds whose resolveSubtype
---- selects a leaf by a string token: a `token → module path` lookup that requires
---- and returns the leaf module. The *derivation* of the token (a record field, a flag ladder) stays per-kind; the lookup and the curated-arg normalisation (familyArg) are shared.
+--- selects a leaf by a string token: a `token → loader` lookup that returns the
+--- leaf module. The *derivation* of the token (a record field, a flag ladder) stays per-kind; the lookup and the curated-arg normalisation (familyArg) are shared.
 --- Sibling of Module:Entity/TypeResolver (which resolves display metadata, not
 --- behavior modules).
 
 local p = {}
 
 --- @param token string|nil  the dispatch token (e.g. apiData.type, or a vehicle family)
---- @param map table<string, string>  token → module path WITHOUT the 'Module:' prefix
---- @return table|nil  the required leaf module, or nil for nil/empty/unmapped token
+--- @param map table<string, fun(): table>  token → loader. Each loader wraps a literal
+---   `require('Module:…')`: the leaf loads only when selected, and Module:Dependencies
+---   reads the dependency from the kind's source.
+--- @return table|nil  the leaf module, or nil for nil/empty/unmapped token
 function p.resolve(token, map)
 	if type(token) ~= 'string' or token == '' then
 		return nil
 	end
-	local path = map[token]
-	if path == nil then
+	local loader = map[token]
+	if loader == nil then
 		return nil
 	end
-	return require('Module:' .. path)
+	return loader()
 end
 
 --- The curated `|family=` arg as a dispatch token: trimmed and lowercased so

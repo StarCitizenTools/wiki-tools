@@ -30,15 +30,25 @@ p.editorialMode = true
 --- @type string
 p.parent = 'Entity/Base'
 
---- Family token → leaf module path (SubtypeResolver adds 'Module:'). The
+--- Family token → leaf loader (see Module:Entity/SubtypeResolver). The
 --- tokens are the leaves' p.family tags and the values a curated |family=
 --- may name on a record-less page.
 local LOCATION_SUBTYPE_MAP = {
-	starsystem = 'Entity/Location/StarSystem',
-	jumppoint = 'Entity/Location/JumpPoint',
-	star = 'Entity/Location/Star',
-	body = 'Entity/Location/Body',
-	belt = 'Entity/Location/Belt',
+	starsystem = function()
+		return require('Module:Entity/Location/StarSystem')
+	end,
+	jumppoint = function()
+		return require('Module:Entity/Location/JumpPoint')
+	end,
+	star = function()
+		return require('Module:Entity/Location/Star')
+	end,
+	body = function()
+		return require('Module:Entity/Location/Body')
+	end,
+	belt = function()
+		return require('Module:Entity/Location/Belt')
+	end,
 }
 
 --- The leaf a kind-declared page with no typed record resolves to: the lore

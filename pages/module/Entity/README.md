@@ -154,7 +154,7 @@ A property lives in `entity` when `Base` or `Entity` emits it, when one module e
 ### Adding a subtype
 
 1. Create a leaf with `parent = 'Entity/<Kind>'` and its rendering hooks.
-2. Wire it through that kind's own `resolveSubtype`, a token → module map: Item's `itemSubtypeMapping`, Vehicle's `VEHICLE_FAMILY_MAP`, Location's family-token map.
+2. Wire it through that kind's own `resolveSubtype`, a token → leaf loader map: Item's `itemSubtypeMapping`, Vehicle's `VEHICLE_FAMILY_MAP`, Location's family-token map.
 3. See [Module:Entity/Item](https://starcitizen.tools/Module:Entity/Item), [Module:Entity/Vehicle](https://starcitizen.tools/Module:Entity/Vehicle), and [Module:Entity/SubtypeResolver](https://starcitizen.tools/Module:Entity/SubtypeResolver) for the shared token-lookup mechanics.
 
 ### Gotchas

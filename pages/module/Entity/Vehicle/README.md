@@ -51,7 +51,7 @@ Every sub-builder exposes one `build(apiData, args, ed)` returning an `EntitySec
 
 ### Extending
 
-A fourth family: write `pages/module/Entity/Vehicle/<Name>.lua` with `p.parent = 'Entity/Vehicle'`, `p.family` (the token the map dispatches on, and the value editors write to `|family=`, trimmed and lowercased before lookup so casing is free), `getTypeInfo`, `getShortDescription`, and its own `getCategories`; add one `token = 'Entity/Vehicle/<Name>'` entry to `VEHICLE_FAMILY_MAP` in `Vehicle.lua`, plus the matching flag check in `deriveFamily`. No sub-builder changes are needed: every section is data-gated and renders only when the relevant API or editorial fields are populated.
+A fourth family: write `pages/module/Entity/Vehicle/<Name>.lua` with `p.parent = 'Entity/Vehicle'`, `p.family` (the token the map dispatches on, and the value editors write to `|family=`, trimmed and lowercased before lookup so casing is free), `getTypeInfo`, `getShortDescription`, and its own `getCategories`; add one entry to `VEHICLE_FAMILY_MAP` in `Vehicle.lua` whose value is a loader, `function() return require('Module:Entity/Vehicle/<Name>') end`, plus the matching flag check in `deriveFamily`. No sub-builder changes are needed: every section is data-gated and renders only when the relevant API or editorial fields are populated.
 
 ### Gotchas
 

@@ -19,7 +19,7 @@ p.name = 'Item'
 --- @type string
 p.parent = 'Entity/Base'
 
---- Maps API type strings to item subtype module paths. Lives in Item
+--- Maps API type strings to item subtype leaf loaders (see Module:Entity/SubtypeResolver). Lives in Item
 --- (not in Data.lua) because subtype dispatch is an item-internal
 --- concern — Data.lua only needs to know "ask the kind to resolve its
 --- own subtype". Add new entries here when creating new item subtypes.
@@ -28,33 +28,87 @@ p.parent = 'Entity/Base'
 --- data-driven consumable facet (Module:Entity/Facet/Consumable), not a
 --- subtype leaf. Their subtitle + category still resolve via types.json.
 local itemSubtypeMapping = {
-	Module = 'Entity/Item/Module',
-	Turret = 'Entity/Item/Turret',
-	WeaponPersonal = 'Entity/Item/WeaponPersonal',
-	WeaponAttachment = 'Entity/Item/WeaponAttachment',
-	FPS_Consumable = 'Entity/Item/FPSConsumable',
-	Misc = 'Entity/Item/Misc',
-	WeaponGun = 'Entity/Item/WeaponGun',
-	PowerPlant = 'Entity/Item/PowerPlant',
-	Cooler = 'Entity/Item/Cooler',
-	Shield = 'Entity/Item/Shield',
-	QuantumDrive = 'Entity/Item/QuantumDrive',
-	JumpDrive = 'Entity/Item/JumpModule',
-	Radar = 'Entity/Item/Radar',
-	EMP = 'Entity/Item/EMP',
-	QuantumInterdictionGenerator = 'Entity/Item/QuantumInterdictionGenerator',
-	FlightController = 'Entity/Item/FlightController',
-	Missile = 'Entity/Item/Missile',
-	WeaponMissile = 'Entity/Item/Missile',
-	Bomb = 'Entity/Item/Bomb',
-	MissileLauncher = 'Entity/Item/Rack',
-	BombLauncher = 'Entity/Item/Rack',
-	TractorBeam = 'Entity/Item/Beam',
-	TowingBeam = 'Entity/Item/Beam',
-	MiningModifier = 'Entity/Item/MiningModule',
-	WeaponMining = 'Entity/Item/WeaponMining',
-	SalvageModifier = 'Entity/Item/Scraper',
-	SalvageHead = 'Entity/Item/SalvageHead',
+	Module = function()
+		return require('Module:Entity/Item/Module')
+	end,
+	Turret = function()
+		return require('Module:Entity/Item/Turret')
+	end,
+	WeaponPersonal = function()
+		return require('Module:Entity/Item/WeaponPersonal')
+	end,
+	WeaponAttachment = function()
+		return require('Module:Entity/Item/WeaponAttachment')
+	end,
+	FPS_Consumable = function()
+		return require('Module:Entity/Item/FPSConsumable')
+	end,
+	Misc = function()
+		return require('Module:Entity/Item/Misc')
+	end,
+	WeaponGun = function()
+		return require('Module:Entity/Item/WeaponGun')
+	end,
+	PowerPlant = function()
+		return require('Module:Entity/Item/PowerPlant')
+	end,
+	Cooler = function()
+		return require('Module:Entity/Item/Cooler')
+	end,
+	Shield = function()
+		return require('Module:Entity/Item/Shield')
+	end,
+	QuantumDrive = function()
+		return require('Module:Entity/Item/QuantumDrive')
+	end,
+	JumpDrive = function()
+		return require('Module:Entity/Item/JumpModule')
+	end,
+	Radar = function()
+		return require('Module:Entity/Item/Radar')
+	end,
+	EMP = function()
+		return require('Module:Entity/Item/EMP')
+	end,
+	QuantumInterdictionGenerator = function()
+		return require('Module:Entity/Item/QuantumInterdictionGenerator')
+	end,
+	FlightController = function()
+		return require('Module:Entity/Item/FlightController')
+	end,
+	Missile = function()
+		return require('Module:Entity/Item/Missile')
+	end,
+	WeaponMissile = function()
+		return require('Module:Entity/Item/Missile')
+	end,
+	Bomb = function()
+		return require('Module:Entity/Item/Bomb')
+	end,
+	MissileLauncher = function()
+		return require('Module:Entity/Item/Rack')
+	end,
+	BombLauncher = function()
+		return require('Module:Entity/Item/Rack')
+	end,
+	TractorBeam = function()
+		return require('Module:Entity/Item/Beam')
+	end,
+	TowingBeam = function()
+		return require('Module:Entity/Item/Beam')
+	end,
+	MiningModifier = function()
+		return require('Module:Entity/Item/MiningModule')
+	end,
+	WeaponMining = function()
+		return require('Module:Entity/Item/WeaponMining')
+	end,
+	SalvageModifier = function()
+		return require('Module:Entity/Item/Scraper')
+	end,
+	SalvageHead = function()
+		return require('Module:Entity/Item/SalvageHead')
+	end,
 }
 
 --- Formats a short description using the item-family template:

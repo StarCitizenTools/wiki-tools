@@ -4,5 +4,5 @@
     Patch status ; label=Status ; kind=badge ; variants=Upcoming:warning, Released:success
     Patch build ; label=Build
     Patch release date ; label=Release date ; kind=date
-|sort = Status desc, Release date desc
+|sort = Status desc, Release date desc, Name desc
 }}</includeonly><noinclude>{{/doc}}</noinclude>

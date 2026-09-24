@@ -18,7 +18,7 @@ This template takes no parameters.
 ## Behavior
 
 - Each row comes from an update page's `{{Patch}}` call, with the build and date it records. A newly saved update appears once this page is next parsed; purge it to list the update at once.
-- Upcoming updates list first, then released updates newest first.
+- Upcoming updates list first, then released updates newest first. Updates with the same date, or with none, list by name, highest version first.
 - Updates for other products are left out.
 
 ## See also

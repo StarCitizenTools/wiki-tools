@@ -12,6 +12,19 @@ local p = {}
 --- @type string|nil
 p.parent = nil
 
+--- Manufacturer codes that name no company: the generic food and drink markers
+--- (GENF, GEND), NONE and TBD. A page may still record NONE as its
+--- manufacturer; these codes mean only that there is no maker to link or list.
+--- UNKN is not one of them: "Unknown manufacturer" is a real record with its own
+--- catalogue page.
+local NO_MAKER = { GENF = true, GEND = true, NONE = true, TBD = true }
+
+--- @param code string|nil
+--- @return boolean
+function p.namesNoMaker(code)
+	return NO_MAKER[code] == true
+end
+
 --- Resolves the manufacturer for the current entity.
 --- Prefers the wikitext arg (which may be a code like "AEGS" or a name);
 --- falls back to API data, filtering placeholder codes.
@@ -32,17 +45,11 @@ function p.resolveManufacturer(apiData, args)
 			}
 	end
 
-	-- UNKN ("Unknown manufacturer") is a legitimate in-game manufacturer code,
-	-- so it resolves like any other (see Module:Manufacturers). GENF/GEND/NONE/TBD
-	-- are placeholder sentinels for "no manufacturer" and stay filtered out.
+	-- UNKN ("Unknown manufacturer") is a legitimate in-game manufacturer code, so
+	-- it resolves like any other (see Module:Manufacturers). The namesNoMaker
+	-- codes are placeholders for "no manufacturer" and stay filtered out.
 	local apiMfr = apiData.manufacturer
-	if
-		not apiMfr
-		or apiMfr.code == 'GENF'
-		or apiMfr.code == 'GEND'
-		or apiMfr.code == 'NONE'
-		or apiMfr.code == 'TBD'
-	then
+	if not apiMfr or p.namesNoMaker(apiMfr.code) then
 		return nil
 	end
 

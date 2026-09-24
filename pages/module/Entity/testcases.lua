@@ -161,4 +161,27 @@ function suite:testShortDescriptionFallsBackToTheTypeName()
 	self:assertEquals('Spacecraft', captured[1].value)
 end
 
+function suite:testNamesNoMakerCoversTheFourSentinels()
+	local Base = require('Module:Entity/Base')
+	for _, code in ipairs({ 'GENF', 'GEND', 'NONE', 'TBD' }) do
+		self:assertEquals(true, Base.namesNoMaker(code), code)
+	end
+	-- UNKN is a real record with its own catalogue page.
+	self:assertEquals(false, Base.namesNoMaker('UNKN'))
+	self:assertEquals(false, Base.namesNoMaker('AEGS'))
+	self:assertEquals(false, Base.namesNoMaker(''))
+	self:assertEquals(false, Base.namesNoMaker(nil))
+end
+
+function suite:testResolveManufacturerDropsAnApiSentinel()
+	local Base = require('Module:Entity/Base')
+	self:assertEquals(nil, Base.resolveManufacturer({ manufacturer = { code = 'NONE', name = 'None' } }, {}))
+end
+
+function suite:testResolveManufacturerKeepsAnEditorialSentinel()
+	-- NONE is recorded as the page's classification; only link targets drop it.
+	local Base = require('Module:Entity/Base')
+	self:assertEquals('NONE', Base.resolveManufacturer({}, { manufacturer = 'NONE' }).code)
+end
+
 return suite

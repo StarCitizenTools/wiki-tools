@@ -284,10 +284,43 @@ function suite:testSortOrdersRowsAndKeepsTitleOrderOnTies()
 		{ Name = 'Bravo', Uec = 40 },
 		{ Name = 'Alpha', Uec = 5 },
 	}
-	static._internal.applySort(results, { alias = 'Uec', direction = 'desc' })
+	static._internal.applySort(results, { { alias = 'Uec', direction = 'desc' } })
 	self:assertEquals('Bravo', results[1].Name)
 	self:assertEquals('Alpha', results[2].Name)
 	self:assertEquals('Charlie', results[3].Name)
+end
+
+-- Numeric comparison is decided per key: a text first key does not make a
+-- numeric second key compare as text ("40" before "5").
+function suite:testSortDecidesNumericPerKey()
+	local results = {
+		{ Name = 'Alpha', Kind = 'Ship', Uec = 5 },
+		{ Name = 'Bravo', Kind = 'Ship', Uec = 40 },
+		{ Name = 'Charlie', Kind = 'Car', Uec = 1 },
+	}
+	static._internal.applySort(results, {
+		{ alias = 'Kind', direction = 'desc' },
+		{ alias = 'Uec', direction = 'asc' },
+	})
+	self:assertEquals('Alpha', results[1].Name)
+	self:assertEquals('Bravo', results[2].Name)
+	self:assertEquals('Charlie', results[3].Name)
+end
+
+-- A later key orders only the rows tied on every earlier key.
+function suite:testSortAppliesKeysInPrecedence()
+	local results = {
+		{ Name = 'Alpha', Status = 'Released', Date = '2026-01-01' },
+		{ Name = 'Bravo', Status = 'Upcoming', Date = '' },
+		{ Name = 'Charlie', Status = 'Released', Date = '2026-08-26' },
+	}
+	static._internal.applySort(results, {
+		{ alias = 'Status', direction = 'desc' },
+		{ alias = 'Date', direction = 'desc' },
+	})
+	self:assertEquals('Bravo', results[1].Name)
+	self:assertEquals('Charlie', results[2].Name)
+	self:assertEquals('Alpha', results[3].Name)
 end
 
 return suite

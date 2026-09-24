@@ -508,8 +508,7 @@ function suite:testResolveArgsBuildsSpecColumnsKindAndSort()
 		self:assertDeepEquals({ 'Category:Guns', { 'Size', '>=', 3 } }, request.spec.filters)
 		self:assertEquals(2, #request.columns)
 		self:assertEquals(nil, request.kind)
-		self:assertEquals('S', request.sort.alias)
-		self:assertEquals('desc', request.sort.direction)
+		self:assertDeepEquals({ { alias = 'S', direction = 'desc' } }, request.sort)
 	end)
 end
 
@@ -614,34 +613,68 @@ function suite:testParseSortEmpty()
 end
 
 function suite:testParseSortDefaultsToAsc()
-	local sort = dg.parseSort('Size', dg.parseColumns('Size'))
-	self:assertEquals('Size', sort.alias)
-	self:assertEquals('asc', sort.direction)
+	self:assertDeepEquals({ { alias = 'Size', direction = 'asc' } }, dg.parseSort('Size', dg.parseColumns('Size')))
 end
 
 function suite:testParseSortExplicitDirection()
 	local columns = dg.parseColumns('Size')
-	self:assertEquals('asc', dg.parseSort('Size asc', columns).direction)
-	self:assertEquals('desc', dg.parseSort('Size desc', columns).direction)
+	self:assertEquals('asc', dg.parseSort('Size asc', columns)[1].direction)
+	self:assertEquals('desc', dg.parseSort('Size desc', columns)[1].direction)
+end
+
+-- Keys are comma-separated and kept in the order written, which is their
+-- precedence; blank keys (a trailing comma) are skipped.
+function suite:testParseSortMultipleKeysInOrder()
+	local columns = dg.parseColumns('Status\nRelease date')
+	self:assertDeepEquals({
+		{ alias = 'Status', direction = 'desc' },
+		{ alias = 'Release date', direction = 'asc' },
+	}, dg.parseSort('Status desc, Release date,', columns))
+end
+
+-- AG Grid keeps one sort per column, so a column named twice is an error rather
+-- than a key that silently loses to the other.
+function suite:testParseSortColumnNamedTwice()
+	local sort, err = dg.parseSort('Size desc, Size', dg.parseColumns('Size'))
+	self:assertEquals(nil, sort)
+	self:assertEquals('sort "Size": column named twice', err)
+end
+
+-- Named twice counts by the resolved column, so a label and the property it
+-- relabels are the same column.
+function suite:testParseSortColumnNamedTwiceByLabelAndProperty()
+	local _, err = dg.parseSort('Subtype desc, Type', dg.parseColumns('Subtype ; label=Type'))
+	self:assertEquals('sort "Type": column named twice', err)
+end
+
+function suite:testParseSortOnlySeparators()
+	local sort, err = dg.parseSort(' , ,', dg.parseColumns('Size'))
+	self:assertEquals(nil, sort)
+	self:assertEquals(nil, err)
+end
+
+-- A bad key anywhere in the list fails the whole argument.
+function suite:testParseSortReportsBadSecondKey()
+	local _, err = dg.parseSort('Size desc, Bogus', dg.parseColumns('Size'))
+	self:assertEquals('sort "Bogus": no column named Bogus', err)
 end
 
 -- A name may itself contain spaces, so the whole string is tried as a bare name
 -- before the trailing word is split off as a direction.
 function suite:testParseSortMultiWordName()
 	local columns = dg.parseColumns('Weapon class')
-	self:assertEquals('asc', dg.parseSort('Weapon class', columns).direction)
-	local sort = dg.parseSort('Weapon class desc', columns)
-	self:assertEquals('Weapon class', sort.alias)
-	self:assertEquals('desc', sort.direction)
+	self:assertEquals('asc', dg.parseSort('Weapon class', columns)[1].direction)
+	self:assertDeepEquals(
+		{ { alias = 'Weapon class', direction = 'desc' } },
+		dg.parseSort('Weapon class desc', columns)
+	)
 end
 
 -- The name matches a relabelled column's raw property too, but resolves to the
 -- ALIAS (the result-row key buildSpecs' specs carry as `label`).
 function suite:testParseSortMatchesPropertyOfRelabelledColumn()
 	local columns = dg.parseColumns('Subtype ; label=Type')
-	local sort = dg.parseSort('Subtype desc', columns)
-	self:assertEquals('Type', sort.alias)
-	self:assertEquals('desc', sort.direction)
+	self:assertDeepEquals({ { alias = 'Type', direction = 'desc' } }, dg.parseSort('Subtype desc', columns))
 end
 
 function suite:testParseSortUnknownColumn()
@@ -691,8 +724,8 @@ function suite:testColumnKindsFromManifestTypes()
 	end)
 end
 
--- `sort` lands on the ONE spec whose alias matches, leaving every other spec's
--- `sort` unset so AG Grid's initial sort applies to a single column.
+-- A single key lands on the ONE spec whose alias matches, leaving every other
+-- spec's `sort` unset.
 function suite:testBuildSpecsAppliesSortToMatchingSpec()
 	withManifest(function()
 		local columns = dg.parseColumns('Manufacturer\nSize')
@@ -700,6 +733,19 @@ function suite:testBuildSpecsAppliesSortToMatchingSpec()
 		local specs = dg._internal.buildSpecs({}, columns, {}, false, nil, sort)
 		self:assertEquals(nil, specs[2].sort)
 		self:assertEquals('desc', specs[3].sort)
+	end)
+end
+
+-- Each key lands on its own spec with its 0-based precedence as `sortIndex`.
+function suite:testBuildSpecsAppliesEachSortKeyWithItsIndex()
+	withManifest(function()
+		local columns = dg.parseColumns('Manufacturer\nSize')
+		local sort = dg.parseSort('Size desc, Manufacturer', columns)
+		local specs = dg._internal.buildSpecs({}, columns, {}, false, nil, sort)
+		self:assertEquals('asc', specs[2].sort)
+		self:assertEquals(1, specs[2].sortIndex)
+		self:assertEquals('desc', specs[3].sort)
+		self:assertEquals(0, specs[3].sortIndex)
 	end)
 end
 

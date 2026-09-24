@@ -181,26 +181,19 @@ end
 --- @field alias string  The matching column's result-row key (`columnAlias`).
 --- @field direction 'asc'|'desc'
 
---- Parse the `sort` argument: `<label or property> [asc|desc]`, direction
---- defaulting to `asc`. The name matches a column's alias (`columnAlias`) or its
---- raw `property`, so `sort=Subtype` still finds a column relabelled `label=Type`.
---- A name may itself contain spaces (e.g. "Weapon class"), so the whole string is
---- tried as a bare name first; only when that fails is the trailing word split off
---- as the direction. An `eyebrow` column is excluded from matching: it is folded
---- into the lead card rather than getting its own spec, so naming one is an error
+--- Parse one sort key: `<label or property> [asc|desc]`, direction defaulting to
+--- `asc`. The name matches a column's alias (`columnAlias`) or its raw `property`,
+--- so `sort=Subtype` still finds a column relabelled `label=Type`. A name may
+--- itself contain spaces (e.g. "Weapon class"), so the whole string is tried as a
+--- bare name first; only when that fails is the trailing word split off as the
+--- direction. An `eyebrow` column is excluded from matching: it is folded into the
+--- lead card rather than getting its own spec, so naming one is an error
 --- (`no column named`), not a silent no-op.
---- @param raw string|nil
+--- @param raw string  trimmed, non-empty
 --- @param columns DataGridColumn[]
---- @return DataGridSort|nil sort  nil for an empty (or absent) `raw`
+--- @return DataGridSort|nil key
 --- @return string|nil error  ready to display as-is
-function p.parseSort(raw, columns)
-	raw = mw.text.trim(tostring(raw or ''))
-	if raw == '' then
-		return nil, nil
-	end
-	-- An `eyebrow` column is folded into the lead card and never gets its own spec,
-	-- so it has nothing for AG Grid to sort; skip it here rather than resolve to an
-	-- alias that then matches no spec and silently does nothing.
+local function parseSortKey(raw, columns)
 	local function findAlias(name)
 		for _, column in ipairs(columns) do
 			if not column.eyebrow then
@@ -228,6 +221,37 @@ function p.parseSort(raw, columns)
 		return nil, 'sort "' .. word .. '": direction must be asc or desc'
 	end
 	return { alias = alias, direction = word }, nil
+end
+
+--- Parse the `sort` argument: comma-separated keys in priority order, each
+--- `<label or property> [asc|desc]` (see `parseSortKey`). Blank keys are skipped.
+--- A column named twice is an error: AG Grid would keep only one of its keys. A
+--- label containing a comma is not expressible: the separator wins, so such a
+--- column is named by its property.
+--- @param raw string|nil
+--- @param columns DataGridColumn[]
+--- @return DataGridSort[]|nil sort  nil for an empty (or absent) `raw`
+--- @return string|nil error  ready to display as-is
+function p.parseSort(raw, columns)
+	local keys, seen = {}, {}
+	for part in mw.text.gsplit(tostring(raw or ''), ',', true) do
+		part = mw.text.trim(part)
+		if part ~= '' then
+			local key, err = parseSortKey(part, columns)
+			if err then
+				return nil, err
+			end
+			if seen[key.alias] then
+				return nil, 'sort "' .. key.alias .. '": column named twice'
+			end
+			seen[key.alias] = true
+			keys[#keys + 1] = key
+		end
+	end
+	if #keys == 0 then
+		return nil, nil
+	end
+	return keys, nil
 end
 
 --- The first editor column whose alias collides with another column or with a lead
@@ -528,7 +552,7 @@ end
 --- @param eyebrowColumns DataGridColumn[]
 --- @param pinLead boolean
 --- @param kind string|nil
---- @param sort DataGridSort|nil  Applied to the spec whose `label` matches `sort.alias`.
+--- @param sort DataGridSort[]|nil  Each key applied to the spec whose `label` matches its `alias`.
 --- @return table[]
 local function buildSpecs(results, columns, eyebrowColumns, pinLead, kind, sort)
 	local leadSpec = {
@@ -657,10 +681,13 @@ local function buildSpecs(results, columns, eyebrowColumns, pinLead, kind, sort)
 	end
 	-- Every kind's buildColDef passes `sort` through to AG Grid's initial-sort key,
 	-- so setting it on the matching spec is enough regardless of column kind.
-	if sort then
+	-- `sortIndex` (0-based precedence among the sorted columns) reaches the column
+	-- def through AGGridColumns.buildColumnDefs.
+	for n, key in ipairs(sort or {}) do
 		for i = 2, #specs do
-			if specs[i].label == sort.alias then
-				specs[i].sort = sort.direction
+			if specs[i].label == key.alias then
+				specs[i].sort = key.direction
+				specs[i].sortIndex = n - 1
 				break
 			end
 		end
@@ -734,7 +761,7 @@ end
 --- @field spec table  the Module:BucketQuery query spec
 --- @field columns DataGridColumn[]  the editor's columns, in order
 --- @field kind string|nil
---- @field sort DataGridSort|nil
+--- @field sort DataGridSort[]|nil
 
 --- Resolve a {{Data table}} argument table into the Store spec and the parsed
 --- columns. Every contract violation comes back as a ready-to-display message,

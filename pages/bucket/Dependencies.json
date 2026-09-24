@@ -1,0 +1,27 @@
+{
+	"invoke_calls": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": true
+	},
+	"invokes": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": true
+	},
+	"loads": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": true
+	},
+	"requires": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": true
+	},
+	"styles": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": true
+	}
+}

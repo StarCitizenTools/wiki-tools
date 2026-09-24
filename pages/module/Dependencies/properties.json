@@ -1,0 +1,43 @@
+{
+	"%doc": "Source-of-truth manifest for the `dependencies` Bucket table: one row per module or template page, written by Module:Dependencies while the page renders itself, naming the wiki modules it requires, loads and invokes and the stylesheets it loads. A page reads the rows that name it, or its /styles.css, to list its dependents. The names say `modules`, `functions` and `Stylesheets` because every registered manifest shares one flat property namespace. type/bucket/field/index/repeated are the Bucket keys; desc is documentation only.",
+	"Required modules": {
+		"type": "TEXT",
+		"bucket": "dependencies",
+		"field": "requires",
+		"index": true,
+		"repeated": true,
+		"desc": "Wiki modules the page require()s, as Module:Name. Literal names only."
+	},
+	"Loaded modules": {
+		"type": "TEXT",
+		"bucket": "dependencies",
+		"field": "loads",
+		"index": true,
+		"repeated": true,
+		"desc": "Modules the page reads with mw.loadData or mw.loadJsonData."
+	},
+	"Invoked modules": {
+		"type": "TEXT",
+		"bucket": "dependencies",
+		"field": "invokes",
+		"index": true,
+		"repeated": true,
+		"desc": "Modules the page calls with {{#invoke}}."
+	},
+	"Invoked functions": {
+		"type": "TEXT",
+		"bucket": "dependencies",
+		"field": "invoke_calls",
+		"index": true,
+		"repeated": true,
+		"desc": "Module:Name|function for each {{#invoke}}, so the invoked module can name the function."
+	},
+	"Stylesheets": {
+		"type": "TEXT",
+		"bucket": "dependencies",
+		"field": "styles",
+		"index": true,
+		"repeated": true,
+		"desc": "TemplateStyles pages the page loads, as full titles (Module:Icon/styles.css)."
+	}
+}

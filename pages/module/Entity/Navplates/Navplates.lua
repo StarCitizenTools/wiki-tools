@@ -313,6 +313,12 @@ function p.main(frame)
 				or { code = stored, name = stored, short = stored, page = stored }
 		end
 	end
+	-- A sentinel names no company to link, whichever path produced it: an
+	-- editorial |manufacturer=NONE is stored as written, so the page's row can
+	-- carry one although the API path filters them.
+	if manufacturer and base.namesNoMaker(manufacturer.code) then
+		manufacturer = nil
+	end
 	if manufacturer and manufacturer.page then
 		table.insert(
 			cells,

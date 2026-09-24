@@ -1,0 +1,32 @@
+{
+	"build": {
+		"type": "TEXT",
+		"index": false,
+		"repeated": false
+	},
+	"product": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": false
+	},
+	"release_date": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": false
+	},
+	"status": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": false
+	},
+	"upcoming": {
+		"type": "BOOLEAN",
+		"index": true,
+		"repeated": false
+	},
+	"version": {
+		"type": "TEXT",
+		"index": false,
+		"repeated": false
+	}
+}

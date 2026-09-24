@@ -1,0 +1,43 @@
+{
+	"%doc": "Source-of-truth manifest for the `patch` Bucket table: one row per game update page, written by Module:Patch from {{Patch}}. Property names carry the `Patch ` prefix because Module:BucketQuery resolves every registered manifest from one flat namespace. type/bucket/field/index are the Bucket keys; desc is documentation only.",
+	"Patch version": {
+		"type": "TEXT",
+		"bucket": "patch",
+		"field": "version",
+		"desc": "The update's version number, from {{Patch}}'s `version`."
+	},
+	"Patch build": {
+		"type": "TEXT",
+		"bucket": "patch",
+		"field": "build",
+		"desc": "The build number from the release notes, from `build`."
+	},
+	"Patch release date": {
+		"type": "TEXT",
+		"bucket": "patch",
+		"field": "release_date",
+		"index": true,
+		"desc": "ISO YYYY-MM-DD from `date`; the estimated date while upcoming. TEXT because ISO dates sort chronologically as strings. Neighbouring update pages read it for their previous/next line."
+	},
+	"Patch upcoming": {
+		"type": "BOOLEAN",
+		"bucket": "patch",
+		"field": "upcoming",
+		"index": true,
+		"desc": "True while the update is unreleased, from `upcoming`."
+	},
+	"Patch status": {
+		"type": "TEXT",
+		"bucket": "patch",
+		"field": "status",
+		"index": true,
+		"desc": "Upcoming, Released, or Unknown when neither `upcoming` nor `date` is set: the label on the page's status bar. {{Patch list}} shows it and sorts on it, so upcoming updates list first."
+	},
+	"Patch product": {
+		"type": "TEXT",
+		"bucket": "patch",
+		"field": "product",
+		"index": true,
+		"desc": "What the update is for, from `product`; Star Citizen when unset. {{Patch list}} filters on it."
+	}
+}

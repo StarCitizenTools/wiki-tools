@@ -1,0 +1,10 @@
+<includeonly>{{#invoke:CommLink|list
+|category = Comm-Link
+|filter = {{#if:{{{series|}}}|Comm-Link series = {{{series}}}}}
+{{#if:{{{type|}}}|Comm-Link type = {{{type}}}}}
+|columns =
+    Comm-Link series ; label=Series ; filter
+    Comm-Link type ; label=Type ; filter
+    Comm-Link published ; label=Published ; kind=date
+|sort = Published desc
+}}</includeonly><noinclude>{{/doc}}</noinclude>

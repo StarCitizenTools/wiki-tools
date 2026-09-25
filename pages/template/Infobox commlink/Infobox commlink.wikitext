@@ -1,0 +1,58 @@
+<!--
+
+Message box
+
+-->{{#invoke:Mbox|main
+|icon=WikimediaUI-Notice.svg
+|title=This page is rehosted content from the Roberts Space Industries website.
+|text=[https://robertsspaceindustries.com/comm-link Comm-Links] are official communications of [https://cloudimperiumgames.com/ Cloud Imperium Games Corporation] regarding [[Star Citizen]] & [[Squadron 42 (video game)|Squadron 42]]. The Comm-Link is reproduced here with minimal changes (format & wikilinking), as well as translations when available. The original source for this specific Comm-Link can be found at {{nbsp}}{{Cite RSI|url={{{url}}}|text={{{title}}}}}
+}}<!--
+
+Infobox 
+
+--><includeonly>{{#invoke:CommLink|series}}{{Infobox|
+|bodyclass		= mw-collapsible floatright
+|image1			= {{#if:{{{image|}}}|[[File:{{{image}}}|400px]]|[[File:Placeholderv2.png|400px]]}}
+|imagerowclass1 = infobox-image
+
+|header1		= {{{title|}}}
+|rowclass1		= infobox-title
+
+|label2			= Series
+|data2			= {{#if:{{{series|}}}|[[Special:MyLanguage/Category:{{{series}}}|{{{series}}}]]}}
+|rowclass2		= data-series infobox-data infobox-col2
+
+|label3			= Type
+|data3			= {{#if:{{{type|}}}|[[Special:MyLanguage/Category:{{{type}}}|{{{type}}}]]}}
+|rowclass3		= data-type infobox-data infobox-col2
+
+|label4			= ID
+|data4			= {{#invoke:String|match|{{{url|}}}|%/(%d%d%d%d%d)%-|44|1|false|Unknown}}
+|rowclass4		= data-id infobox-data infobox-col2
+
+|label5			= Published
+|data5			= {{{publicationdate|}}}
+|rowclass5		= data-published infobox-data infobox-col2
+
+|label6			= Source
+|data6			= {{#if:{{{url|}}}|{{Link RSI|url={{{url}}}|text={{{title}}}}}}}
+|rowclass6		= data-source infobox-data
+}}</includeonly><!-- 
+
+Categorization 
+
+--><includeonly>[[Category:Comm-Link]]{{#if:{{{type|}}}|[[Category:{{{type}}}]]}}{{#if:{{{series|}}}|[[Category:{{{series}}}]]}}{{#invoke:CommLink|store}}</includeonly><!-- 
+
+SEO tags 
+
+--><includeonly>{{#seo:
+|title 			= {{{title}}} - Comm-Link Archive - Star Citizen Wiki
+|site_name		= Star Citizen Wiki
+|type			= article
+|description			= {{{title|This}}} is part of the Comm-Link Archive on the Star Citizen Wiki.
+|locale			= {{PAGELANGUAGE}}
+|image 			= {{#if:{{{image|}}}|{{{image}}}|Placeholderv2.png}}
+}}</includeonly><noinclude>
+{{/doc}}
+<!-- Categories go in the /doc subpage, and interwikis go in Wikidata. -->
+</noinclude>

@@ -7,6 +7,7 @@
 		"Module:Maintenance/properties.json",
 		"Module:JumpPointMagazine/properties.json",
 		"Module:Dependencies/properties.json",
-		"Module:Patch/properties.json"
+		"Module:Patch/properties.json",
+		"Module:CommLink/properties.json"
 	]
 }

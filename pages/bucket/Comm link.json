@@ -1,0 +1,27 @@
+{
+	"published": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": false
+	},
+	"rsi_id": {
+		"type": "INTEGER",
+		"index": true,
+		"repeated": false
+	},
+	"series": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": false
+	},
+	"title": {
+		"type": "TEXT",
+		"index": false,
+		"repeated": false
+	},
+	"type": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": false
+	}
+}

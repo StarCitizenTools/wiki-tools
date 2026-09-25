@@ -1,0 +1,37 @@
+{
+	"%doc": "Source-of-truth manifest for the `comm_link` Bucket table: one row per Comm-Link page, written by Module:CommLink from the {{Infobox commlink}} arguments. Comm-Link pages hold no Entity row, so {{Comm-Link list}} roots its query on this bucket (DataGrid `primary`). Property names carry the `Comm-Link ` prefix because Module:BucketQuery resolves every registered manifest from one flat namespace. type/bucket/field/index are the Bucket keys; desc is documentation only.",
+	"Comm-Link title": {
+		"type": "TEXT",
+		"bucket": "comm_link",
+		"field": "title",
+		"desc": "The Comm-Link's title as the infobox shows it, from `title`."
+	},
+	"Comm-Link series": {
+		"type": "TEXT",
+		"bucket": "comm_link",
+		"field": "series",
+		"index": true,
+		"desc": "The series, from `series`. The previous/next bar that {{Infobox commlink}} renders reads every row of the page's series."
+	},
+	"Comm-Link type": {
+		"type": "TEXT",
+		"bucket": "comm_link",
+		"field": "type",
+		"index": true,
+		"desc": "The Comm-Link type (Spectrum Dispatch, Transmission, ...), from `type`."
+	},
+	"Comm-Link published": {
+		"type": "TEXT",
+		"bucket": "comm_link",
+		"field": "published",
+		"index": true,
+		"desc": "Publication date as ISO YYYY-MM-DD: the first date in `publicationdate`, zero-padded; empty when it holds none. TEXT because ISO dates sort chronologically as strings."
+	},
+	"Comm-Link ID": {
+		"type": "INTEGER",
+		"bucket": "comm_link",
+		"field": "rsi_id",
+		"index": true,
+		"desc": "The RSI Comm-Link number from `url`; orders Comm-Links published on the same day."
+	}
+}

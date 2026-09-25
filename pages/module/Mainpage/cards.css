@@ -691,8 +691,14 @@
 	color: var( --color-emphasized );
 }
 
-/* DPL emits one of these per change: page, who, when. Three things a reader
-   scans left to right without stopping. */
+/* The mainpage gadget emits one of these per change: page, who, when. Three
+   things a reader scans left to right without stopping. Rendered empty until
+   it does; .home-act__list's min-height below reserves the space so filling
+   it doesn't reflow the card. */
+.home-act__list {
+	min-height: calc( 10 * ( var( --line-height-x-small ) + 2 * var( --space-xxs ) ) + 9 * 1px );
+}
+
 .home-act__row {
 	display: flex;
 	align-items: baseline;

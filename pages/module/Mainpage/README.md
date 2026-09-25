@@ -18,7 +18,7 @@ Editors use this through `{{Mainpage}}`; see [Template:Mainpage](https://starcit
 | `Mainpage/Event/Legacy` | The event card built on an ordinary photograph. |
 | `Mainpage/Featured` | The featured card: a whole-card link over the featured page's own artwork. |
 | `Mainpage/OnThisDay` | Today's date page, transcluded as a two-panel tabber. |
-| `Mainpage/Editing` | The editing invitation plus a [DPL](https://www.mediawiki.org/wiki/Extension:DynamicPageList4)-backed recent-changes list. |
+| `Mainpage/Editing` | The editing invitation; the recent-changes list beneath it is built entirely by the mainpage gadget. |
 | `Mainpage/Community` | The funding card and the Discord/follow card. |
 | `Mainpage/Directory` | The grouped text directory at the foot. |
 
@@ -47,7 +47,7 @@ The page runs full bleed: `MediaWiki:Citizen.css` drops the body container's gut
 
 ### Gadget
 
-`MediaWiki:Gadget-mainpage.js` enhances the rendered page: it loads the hero artwork after page load, rolls the stat digits and search-label tail, drives the clock, manages the two scrolling cards' fade cues, and refreshes the activity list, reading its context from `data-gadget-mainpage-*` attributes (so `grep gadget-mainpage-` finds every emitter). The page renders and reads correctly with the gadget absent.
+`MediaWiki:Gadget-mainpage.js` enhances the rendered page: it loads the hero artwork after page load, rolls the stat digits and search-label tail, drives the clock, manages the two scrolling cards' fade cues, and builds the activity list, reading its context from `data-gadget-mainpage-*` attributes (so `grep gadget-mainpage-` finds every emitter). The page renders and reads correctly with the gadget absent, except the activity list: without the gadget it stays empty and the card offers its "See all changes" link instead.
 
 ### Previewing
 
@@ -64,7 +64,7 @@ The page runs full bleed: `MediaWiki:Citizen.css` drops the body container's gut
 - The split event card's clock is restyled from the page for one viewport range (640-899.98px, `Mainpage/styles.css:541-603`), duplicating [Module:Countdown](https://starcitizen.tools/Module:Countdown)'s stacked/flat declarations by hand, since a CSS class can't be conditional on viewport width. The banner card avoids this by asking Countdown for `t-countdown--flat` at every width instead.
 - `band()` takes varargs, not a table, since `ipairs` stops at the first `nil` and would let one declined card drop every card listed after it (`Mainpage.lua:87-105`).
 - The foot row's edit link and `Mainpage/OnThisDay`'s "Add an event" link both use `mw.uri.fullUrl`, not `callParserFunction`: `fullurl` is a colon magic word (`fullurl:`) that `callParserFunction` cannot resolve (`Mainpage.lua:107-130`, `OnThisDay.lua:94-104`).
-- `Mainpage/Editing`'s recent-changes list is built from DPL, which forces a one-hour parser cache on any page that calls it: those rows are first paint and the no-JS reading, never the freshness mechanism; `MediaWiki:Gadget-mainpage.js` polls the API to keep the list live (`Editing.lua:10-19`).
+- `Mainpage/Editing`'s recent-changes list is built entirely by `MediaWiki:Gadget-mainpage.js` from `list=recentchanges`: without JS the container renders empty and the card falls back to its "See all changes" link (`Editing.lua:10-12`).
 - The directory's column count isn't set in Lua: `.home-dir` is `repeat(auto-fit, minmax(125px, 1fr))`, so the groups reflow on their own and `Mainpage/Directory` just emits them (`Directory.lua:10-13`).
 
 ### Extending

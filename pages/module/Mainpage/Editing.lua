@@ -7,51 +7,24 @@ require('strict')
 --- card. Usernames are shown for editor recognition, which is what earns this
 --- card the wide column rather than a narrow aside.
 ---
---- DPL is a parser function with no Lua interface, so its call is built as
---- wikitext and preprocessed. Two of its parameters are unforgiving:
----  * `userdateformat` is lowercased before use, so only lowercase format
----    letters survive — `c` (ISO 8601) is the one that does what is wanted here.
----  * `listseparators` needs a literal `\n` before the row markup, or the row's
----    opening `<div>` runs onto the end of the previous line.
----
---- DPL also forces a one-hour parser cache on any page that calls it, so these
---- rows are FIRST PAINT and the no-JS reading, never the freshness mechanism.
---- The gadget polls the API to keep the list live.
+--- The rows are built entirely by the mainpage gadget, from `list=recentchanges`
+--- against the API. Without JS the container renders empty and the card falls
+--- back to its "See all changes" link.
 
 local buttonLua = require('Module:ButtonLua')
 
-local ROW = '<div class="home-act__row">[[%PAGE%]]'
-	.. '<span class="home-act__by">%USER%</span>'
-	.. '<time class="home-act__when" datetime="%DATE%">%DATE%</time></div>'
-
+--- Rows to show, published to the gadget as its display cap
+--- (`data-gadget-mainpage-activity-limit`). The gadget fetches from a larger
+--- pool of its own (`ACTIVITY_POOL`) to survive per-page de-duplication.
 local LIMIT = 10
 
---- The deploying account, dropped from both halves of the card. Published to
---- the gadget rather than written down twice, because the two filter by
---- different mechanisms: DPL takes a username, the API takes `rcshow=!bot`,
---- and that only excludes a row whose SAVE carried the flag — 94 of this
---- account's rows in the API's own pool did not.
+--- The deploying account, published to the gadget rather than hardcoded a
+--- second time. `rcshow=!bot` alone doesn't exclude it: that only drops a row
+--- whose SAVE carried the flag, and 94 of this account's rows in the API's own
+--- pool did not.
 local EXCLUDE_USER = 'Alistar Bot'
 
 local p = {}
-
---- @return string
-local function recentChanges()
-	local args = {
-		'namespace=',
-		'ordermethod=lastedit',
-		'order=descending',
-		'notlastmodifiedby=' .. EXCLUDE_USER,
-		'count=' .. LIMIT,
-		'addeditdate=true',
-		'adduser=true',
-		'userdateformat=c',
-		'mode=userformat',
-		'listseparators=,\\n' .. ROW .. ',,',
-	}
-
-	return mw.getCurrentFrame():preprocess('{{#dpl:\n|' .. table.concat(args, '\n|') .. '\n}}')
-end
 
 --- @return string
 function p.render()
@@ -95,7 +68,6 @@ function p.render()
 		:attr('data-gadget-mainpage-activity-limit', tostring(LIMIT))
 		:attr('data-gadget-mainpage-activity-namespace', '0')
 		:attr('data-gadget-mainpage-activity-exclude', EXCLUDE_USER)
-		:wikitext(recentChanges())
 
 	pad:tag('div'):addClass('home-more'):wikitext('[[Special:RecentChanges|See all changes]]')
 

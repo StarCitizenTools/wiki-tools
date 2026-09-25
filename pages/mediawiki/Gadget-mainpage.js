@@ -86,20 +86,17 @@
  *     with the rows it is covering; the offset between them is published as
  *     --home-fade-top / --home-fade-bottom so one CSS rule serves both cards.
  *
- *   recentActivity — keeps the recent-changes list current and turns its
- *     absolute timestamps into ages. Contract: a container carrying
+ *   recentActivity — builds the recent-changes list and keeps it current,
+ *     turning its timestamps into ages. Contract: a container carrying
  *       data-gadget-mainpage-activity
  *       data-gadget-mainpage-activity-limit="<rows>"
  *       data-gadget-mainpage-activity-namespace="<ns id>"
  *       data-gadget-mainpage-activity-exclude="<username to drop>"
- *     holding .home-act__row children, each with an <a>, a .home-act__by and a
- *     <time class="home-act__when" datetime="<ISO 8601>">. The server renders
- *     the rows with DPL and they stand on their own without JS, but they are
- *     FIRST PAINT and never the freshness mechanism: DPL pins the page's parser
- *     cache to an hour, so this polls list=recentchanges off a CDN-cacheable
- *     URL and keeps the list live while the reader is on the page. As with the
- *     countdown the server ships instants and never durations, because a
- *     duration in a parser cache stops being true without saying so.
+ *     and rendered empty. This fills it, on init and on every poll after, with
+ *     .home-act__row children (an <a>, a .home-act__by and a
+ *     <time class="home-act__when" datetime="<ISO 8601>">) built from
+ *     list=recentchanges off a CDN-cacheable URL. Without JS the container
+ *     stays empty and the card falls back to its "See all changes" link.
  */
 ( function () {
 	'use strict';
@@ -773,16 +770,12 @@
 	 * The recent-activity list: what the wiki has been doing, in the last few
 	 * minutes rather than the last hour.
 	 *
-	 * The rows are server-rendered by DPL and are the entire feature with JS off.
-	 * What this adds is the two things a parser cache cannot do:
-	 *
-	 *   Freshness. DPL renders inside the page's parser cache and the CDN sits
-	 *   on top of that, so the rows are FIRST PAINT and never the freshness
-	 *   mechanism. Polling list=recentchanges is what keeps them true.
-	 *
-	 *   Relative time. The server ships an absolute ISO instant and never a
-	 *   duration, for the reason the countdown does: a duration computed at
-	 *   parse time is frozen in the cache and goes quietly wrong.
+	 * The container renders empty; every row is built here, from
+	 * list=recentchanges. Without JS the list stays empty and the card falls
+	 * back to its "See all changes" link. The API gives an absolute ISO instant
+	 * and never a duration, for the reason the countdown does: a duration
+	 * computed once and left standing goes quietly wrong. So stamp() converts
+	 * each to a relative age and recomputes it on the minute.
 	 *
 	 * It POLLS because of the edit pattern, not as a preference: this wiki
 	 * averages an edit an hour, but the median gap between consecutive edits is
@@ -809,10 +802,10 @@
 	 *
 	 * Contract: a container carrying
 	 *   data-gadget-mainpage-activity           (marks the list)
-	 *   data-gadget-mainpage-activity-limit     (rows to show; matches DPL count)
+	 *   data-gadget-mainpage-activity-limit     (rows to build)
 	 *   data-gadget-mainpage-activity-namespace (namespace id to read)
 	 *   data-gadget-mainpage-activity-exclude   (username to drop; see load())
-	 * holding rows of
+	 * and rendered empty. This fills it with rows of
 	 *   <div class="home-act__row"><a>Page</a>
 	 *     <span class="home-act__by">User</span>
 	 *     <time class="home-act__when" datetime="<ISO 8601>">…</time></div>
@@ -941,8 +934,8 @@
 		}
 
 		// What is on screen now, as page|instant pairs. Compared by parsed
-		// instant and not by string: DPL writes `+00:00` where the API writes
-		// `Z`, and two spellings of the same moment must not read as a change.
+		// instant rather than by string, so two equivalent ISO 8601 spellings of
+		// the same moment never read as a change.
 		function signature( rows ) {
 			return rows.map( ( row ) => {
 				const link = row.querySelector( 'a' );
@@ -1047,10 +1040,10 @@
 			list.querySelectorAll( 'time[datetime]' ).forEach( ( node ) => stamp( node, now ) );
 		}
 
-		// `rcshow=!bot` is NOT the filter DPL uses: it only excludes a row whose
-		// SAVE carried the flag, and 94 of the deploying account's rows in this
-		// pool did not. Hence the by-name exclusion, with the name taken from
-		// the markup so the two halves cannot drift.
+		// `rcshow=!bot` alone is not enough: it only excludes a row whose SAVE
+		// carried the flag, and 94 of the deploying account's rows in this pool
+		// did not. Hence the by-name exclusion, with the name taken from the
+		// markup so the two halves cannot drift.
 		function load() {
 			const api = mw.config.get( 'wgScriptPath' ) +
 				'/api.php?action=query&list=recentchanges&format=json&formatversion=2' +
@@ -1115,12 +1108,8 @@
 			pollTimer = setTimeout( poll, ms );
 		}
 
-		// The server's own rows get the same treatment before anything is
-		// fetched, so the raw ISO stamps and any temporary account names are
-		// gone by first paint whether or not the read ever lands.
-		list.querySelectorAll( '.home-act__by' ).forEach(
-			( node ) => credit( node, node.textContent.trim() )
-		);
+		// age()'s recurring timer has to start now, since it also relabels every
+		// row load() builds once its first fetch lands.
 		age();
 
 		// Returning to the tab asks immediately rather than waiting out the rest
@@ -1155,7 +1144,11 @@
 			onScreen = true;
 		}
 
-		schedule( 0 );
+		// Unconditional, not schedule( 0 ): the container starts empty and
+		// poll()'s off-screen skip would otherwise leave it that way until the
+		// reader scrolls down to it, since `onScreen` stays false until the
+		// IntersectionObserver's first (async) callback fires.
+		load();
 	}
 
 	/**
@@ -1242,10 +1235,16 @@
 	// Two boot points. Anything that only rewrites text the server already
 	// rendered runs at DOM ready, so a reader is never left looking at the raw
 	// value it is there to replace; anything that fetches, animates or pulls an
-	// image waits for window load and stays off the critical path. The activity
-	// list is in the first group and still costs nothing early — its one read is
-	// gated on the list coming into view, not on this. The fade is there for the
-	// same reason: an absent cue at first paint is as wrong as a stale number.
+	// image waits for window load and stays off the critical path. The fade is
+	// in the first group for that reason: an absent cue at first paint is as
+	// wrong as a stale number.
+	//
+	// The activity list is EARLY for a different reason: the container renders
+	// empty, and window load would leave a below-the-fold card looking abandoned
+	// for however long the slowest image on the page takes — the hero art, the
+	// event photograph, the featured plate. Its first fetch runs unconditionally
+	// rather than waiting for the card to come into view; only the RECURRING
+	// poll after it is gated that way (see recentActivity()).
 	//
 	// The countdown is EARLY for that rule and not as an exception to it: it
 	// swaps a date range for a duration and fetches nothing, and its one

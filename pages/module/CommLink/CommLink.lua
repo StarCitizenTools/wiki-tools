@@ -1,16 +1,24 @@
 require('strict')
 
 --- @module CommLink
---- Stores each Comm-Link from {{Infobox commlink}} in the `comm_link` Bucket
---- table, renders the previous/next bar of its series from it, and lists it
---- through {{Comm-Link list}}.
+--- Renders a Comm-Link page's rehosting notice, previous/next bar, infobox,
+--- categories and SEO metadata for {{Infobox commlink}}, stores the page in
+--- the `comm_link` Bucket table, and lists it through {{Comm-Link list}}.
+
+local mbox = require('Module:Mbox')
+local infobox = require('Module:InfoboxLua')
 
 local p = {}
 
 local BUCKET = 'comm_link'
 --- Bucket's per-query row cap.
 local SERIES_LIMIT = 5000
-local TEXT_PARAMS = { 'title', 'series', 'type', 'publicationdate', 'url' }
+local TEXT_PARAMS = { 'title', 'series', 'type', 'publicationdate', 'url', 'image' }
+local NOTICE_TITLE = 'This page is rehosted content from the Roberts Space Industries website.'
+local NOTICE_TEXT = '[https://robertsspaceindustries.com/comm-link Comm-Links] are official communications of '
+	.. '[https://cloudimperiumgames.com/ Cloud Imperium Games Corporation] regarding [[Star Citizen]] & '
+	.. '[[Squadron 42 (video game)|Squadron 42]]. The Comm-Link is reproduced here with minimal changes '
+	.. '(format & wikilinking), as well as translations when available.'
 
 --- @class CommLinkArgs
 --- @field title string|nil
@@ -18,6 +26,7 @@ local TEXT_PARAMS = { 'title', 'series', 'type', 'publicationdate', 'url' }
 --- @field type string|nil
 --- @field publicationdate string|nil
 --- @field url string|nil
+--- @field image string|nil
 
 --- @class CommLinkRow
 --- @field page_name string|nil  Set on rows read back from Bucket and on the page's own row.
@@ -218,26 +227,134 @@ function p.prevnextArgs(before, after, series)
 	return args
 end
 
---- {{Infobox commlink}}'s store call: writes the page's row.
---- @param frame frame
+--- The rehosting notice text placed above the infobox. `citation` (the
+--- {{Cite RSI}} expansion) is nil on a page with no `url`, which drops the
+--- "original source" sentence rather than linking a blank URL.
+--- @param citation string|nil
 --- @return string
-function p.store(frame)
-	p.put(p.readArgs(frame:getParent().args))
-	return ''
+function p.noticeText(citation)
+	if citation == nil then
+		return NOTICE_TEXT
+	end
+	return NOTICE_TEXT .. ' The original source for this specific Comm-Link can be found at &nbsp;' .. citation
+end
+
+--- The InfoboxLua data for {{Infobox commlink}}. `source` (the {{Link RSI}}
+--- expansion) is nil on a page with no `url`, which drops the Source item
+--- rather than linking a blank URL. Empty fields are omitted rather than
+--- shown as "Unknown", unlike the legacy template's ID field.
+--- @param args CommLinkArgs
+--- @param pageText string  the current page's title, without namespace
+--- @param source string|nil
+--- @return table  Module:InfoboxLua's `data` (see its README)
+function p.infoboxData(args, pageText, source)
+	local items = {}
+	if args.series then
+		items[#items + 1] = { label = 'Series', content = '[[:Category:' .. args.series .. '|' .. args.series .. ']]' }
+	end
+	if args.type then
+		items[#items + 1] = { label = 'Type', content = '[[:Category:' .. args.type .. '|' .. args.type .. ']]' }
+	end
+	local rsiId = p.rsiId(args.url)
+	if rsiId ~= nil then
+		items[#items + 1] = { label = 'ID', content = tostring(rsiId) }
+	end
+	if args.publicationdate then
+		items[#items + 1] = { label = 'Published', content = args.publicationdate }
+	end
+
+	local sections = {}
+	if #items > 0 then
+		sections[#sections + 1] = { columns = 2, items = items }
+	end
+	if source ~= nil then
+		sections[#sections + 1] = { items = { { label = 'Source', content = source } } }
+	end
+
+	return {
+		title = args.title or pageText,
+		subtitle = 'Comm-Link',
+		image = args.image,
+		sections = sections,
+	}
+end
+
+--- The category wikitext {{Infobox commlink}} places on the page.
+--- @param args CommLinkArgs
+--- @return string
+function p.categories(args)
+	local categories = '[[Category:Comm-Link]]'
+	if args.type then
+		categories = categories .. '[[Category:' .. args.type .. ']]'
+	end
+	if args.series then
+		categories = categories .. '[[Category:' .. args.series .. ']]'
+	end
+	return categories
+end
+
+--- The `#seo` parser function's arguments for a Comm-Link page. The title
+--- falls back to `pageText` without a `title` argument, so a page missing the
+--- (required) parameter still renders instead of erroring on a nil
+--- concatenation; the description keeps its own "This" fallback, matching the
+--- legacy template's `{{{title|This}}}`.
+--- @param args CommLinkArgs
+--- @param locale string  {{PAGELANGUAGE}}, expanded by the caller
+--- @param pageText string  the current page's title, without namespace
+--- @return table
+function p.seoArgs(args, locale, pageText)
+	return {
+		-- A positional argument is the Lua form of {{#seo:|…}}; callParserFunction throws without one.
+		'',
+		title = (args.title or pageText) .. ' - Comm-Link Archive - Star Citizen Wiki',
+		site_name = 'Star Citizen Wiki',
+		type = 'article',
+		description = (args.title or 'This') .. ' is part of the Comm-Link Archive on the Star Citizen Wiki.',
+		locale = locale,
+		image = args.image or 'Placeholderv2.png',
+	}
 end
 
 --- {{Infobox commlink}}'s previous/next bar, placed before the infobox. Empty
 --- without a series.
 --- @param frame frame
+--- @param args CommLinkArgs
 --- @return string
-function p.series(frame)
-	local args = p.readArgs(frame:getParent().args)
+local function seriesBar(frame, args)
 	if args.series == nil then
 		return ''
 	end
 	local pageName = mw.title.getCurrentTitle().prefixedText
 	local before, after = p.neighbours(p.orderSeries(p.seriesRows(args, pageName)), pageName)
 	return frame:expandTemplate({ title = 'Prevnext', args = p.prevnextArgs(before, after, args.series) })
+end
+
+--- {{Infobox commlink}}'s entry point: the rehosting notice, the
+--- previous/next bar, the infobox, the categories and the page's SEO
+--- metadata, and stores the page's row.
+--- @param frame frame
+--- @return string
+function p.main(frame)
+	local args = p.readArgs(frame:getParent().args)
+	p.put(args)
+	local pageText = mw.title.getCurrentTitle().text
+	local linkText = args.title or pageText
+	local citation, source
+	if args.url then
+		citation = frame:expandTemplate({ title = 'Cite RSI', args = { url = args.url, text = linkText } })
+		source = frame:expandTemplate({ title = 'Link RSI', args = { url = args.url, text = linkText } })
+	end
+	local notice = mbox.render({
+		title = NOTICE_TITLE,
+		text = p.noticeText(citation),
+		icon = 'WikimediaUI-Notice.svg',
+		iconMask = true,
+	})
+	frame:callParserFunction('#seo', p.seoArgs(args, frame:preprocess('{{PAGELANGUAGE}}'), pageText))
+	return notice
+		.. seriesBar(frame, args)
+		.. infobox.render(p.infoboxData(args, pageText, source))
+		.. p.categories(args)
 end
 
 --- {{Comm-Link list}}'s entry point.

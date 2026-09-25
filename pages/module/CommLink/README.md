@@ -1,6 +1,6 @@
 # Module:CommLink
 
-Stores each Comm-Link in the `comm_link` [Bucket](https://www.mediawiki.org/wiki/Extension:Bucket) table and reads it back for the previous and next Comm-Link of a series and for Comm-Link lists.
+Renders a Comm-Link page's rehosting notice, previous/next bar, infobox, categories and SEO metadata, and stores each Comm-Link in the `comm_link` [Bucket](https://www.mediawiki.org/wiki/Extension:Bucket) table for the previous and next Comm-Link of a series and for Comm-Link lists.
 
 Editors use it through [Template:Infobox commlink](https://starcitizen.tools/Template:Infobox_commlink) on every Comm-Link page and [Template:Comm-Link list](https://starcitizen.tools/Template:Comm-Link_list).
 
@@ -8,10 +8,9 @@ Editors use it through [Template:Infobox commlink](https://starcitizen.tools/Tem
 
 ### API
 
-- `p.store(frame)`: `{{Infobox commlink}}`'s store call. Reads the parent frame's arguments, puts one row, and returns an empty string.
-- `p.series(frame)`: the previous/next bar `{{Infobox commlink}}` places before the infobox: [Template:Prevnext](https://starcitizen.tools/Template:Prevnext) with the previous and next Comm-Link of the page's series around the series name, linked to its category. Empty without a `series`.
+- `p.main(frame)`: `{{Infobox commlink}}`'s entry point. Stores the page's row, sets its `#seo` metadata, and renders the rehosting notice ([Module:Mbox](https://starcitizen.tools/Module:Mbox)), the previous/next bar, the infobox ([Module:InfoboxLua](https://starcitizen.tools/Module:InfoboxLua)) and the categories; the page shows them in that order.
 - `p.list(frame)`: `{{Comm-Link list}}`'s entry point, [Module:DataGrid](https://starcitizen.tools/Module:DataGrid) rooted on `comm_link`.
-- `p.readArgs`, `p.normaliseDate`, `p.rsiId`, `p.row`, `p.put`, `p.seriesRows`, `p.orderSeries`, `p.neighbours` and `p.prevnextArgs` are the pieces those are built from, exported for the ScribuntoUnit suite.
+- `p.readArgs`, `p.normaliseDate`, `p.rsiId`, `p.row`, `p.put`, `p.seriesRows`, `p.orderSeries`, `p.neighbours`, `p.prevnextArgs`, `p.noticeText`, `p.infoboxData`, `p.categories` and `p.seoArgs` are the pieces those are built from, exported for the ScribuntoUnit suite.
 
 ### Extending
 

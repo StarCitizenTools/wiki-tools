@@ -130,15 +130,115 @@ function suite:testPutWritesOneRow()
 	self:assertEquals('Galactic Guide', bucketLib._puts[1].data.series)
 end
 
-function suite:testStoreReadsTheTemplateArguments()
-	bucketLib._reset()
-	local frame = {
-		getParent = function()
-			return { args = { series = 'Tracker', title = 'T' } }
-		end,
-	}
-	self:assertEquals('', commLink.store(frame))
-	self:assertEquals('Tracker', bucketLib._puts[1].data.series)
+function suite:testNoticeTextWithoutACitation()
+	self:assertEquals(
+		'[https://robertsspaceindustries.com/comm-link Comm-Links] are official communications of '
+			.. '[https://cloudimperiumgames.com/ Cloud Imperium Games Corporation] regarding [[Star Citizen]] & '
+			.. '[[Squadron 42 (video game)|Squadron 42]]. The Comm-Link is reproduced here with minimal changes '
+			.. '(format & wikilinking), as well as translations when available.',
+		commLink.noticeText(nil)
+	)
+end
+
+function suite:testNoticeTextWithACitation()
+	self:assertEquals(
+		'[https://robertsspaceindustries.com/comm-link Comm-Links] are official communications of '
+			.. '[https://cloudimperiumgames.com/ Cloud Imperium Games Corporation] regarding [[Star Citizen]] & '
+			.. '[[Squadron 42 (video game)|Squadron 42]]. The Comm-Link is reproduced here with minimal changes '
+			.. '(format & wikilinking), as well as translations when available. The original source for this '
+			.. 'specific Comm-Link can be found at &nbsp;[https://example.com/16835 cite]',
+		commLink.noticeText('[https://example.com/16835 cite]')
+	)
+end
+
+function suite:testInfoboxDataAllFields()
+	local args = commLink.readArgs({
+		title = 'Far From Home: Best Laid Plans',
+		series = 'Far From Home',
+		type = 'Spectrum Dispatch',
+		publicationdate = '2018-11-07',
+		url = FAR_FROM_HOME_URL,
+		image = 'Comm-Link-FarFromHomeFI4.jpg',
+	})
+	local data = commLink.infoboxData(args, 'Far From Home: Best Laid Plans', '[https://example.com/16835 source]')
+	self:assertEquals('Far From Home: Best Laid Plans', data.title)
+	self:assertEquals('Comm-Link', data.subtitle)
+	self:assertEquals('Comm-Link-FarFromHomeFI4.jpg', data.image)
+	self:assertEquals(2, #data.sections)
+	self:assertEquals(2, data.sections[1].columns)
+	self:assertDeepEquals({
+		{ label = 'Series', content = '[[:Category:Far From Home|Far From Home]]' },
+		{ label = 'Type', content = '[[:Category:Spectrum Dispatch|Spectrum Dispatch]]' },
+		{ label = 'ID', content = '16835' },
+		{ label = 'Published', content = '2018-11-07' },
+	}, data.sections[1].items)
+	self:assertDeepEquals(
+		{ { label = 'Source', content = '[https://example.com/16835 source]' } },
+		data.sections[2].items
+	)
+end
+
+function suite:testInfoboxDataWithoutAUrl()
+	local args = commLink.readArgs({ title = 'T', series = 'S', type = 'Ty', publicationdate = '2020-01-01' })
+	local data = commLink.infoboxData(args, 'T', nil)
+	self:assertEquals(1, #data.sections)
+	local labels = {}
+	for _, item in ipairs(data.sections[1].items) do
+		labels[#labels + 1] = item.label
+	end
+	self:assertDeepEquals({ 'Series', 'Type', 'Published' }, labels)
+end
+
+function suite:testInfoboxDataFallsBackToThePageName()
+	local data = commLink.infoboxData(commLink.readArgs({}), 'Comm-Link:Untitled', nil)
+	self:assertEquals('Comm-Link:Untitled', data.title)
+	self:assertEquals(0, #data.sections)
+end
+
+function suite:testInfoboxDataWithoutAnImage()
+	local data = commLink.infoboxData(commLink.readArgs({ title = 'T' }), 'T', nil)
+	self:assertEquals(nil, data.image)
+end
+
+function suite:testCategoriesWithTypeAndSeries()
+	self:assertEquals(
+		'[[Category:Comm-Link]][[Category:Spectrum Dispatch]][[Category:Far From Home]]',
+		commLink.categories(commLink.readArgs({ type = 'Spectrum Dispatch', series = 'Far From Home' }))
+	)
+end
+
+function suite:testCategoriesWithNeitherTypeNorSeries()
+	self:assertEquals('[[Category:Comm-Link]]', commLink.categories(commLink.readArgs({})))
+end
+
+function suite:testSeoArgs()
+	local args = commLink.readArgs({ title = 'Far From Home: Best Laid Plans' })
+	local seo = commLink.seoArgs(args, 'en', 'Far From Home: Best Laid Plans')
+	self:assertEquals('', seo[1])
+	self:assertEquals('Far From Home: Best Laid Plans - Comm-Link Archive - Star Citizen Wiki', seo.title)
+	self:assertEquals('Star Citizen Wiki', seo.site_name)
+	self:assertEquals('article', seo.type)
+	self:assertEquals(
+		'Far From Home: Best Laid Plans is part of the Comm-Link Archive on the Star Citizen Wiki.',
+		seo.description
+	)
+	self:assertEquals('en', seo.locale)
+	self:assertEquals('Placeholderv2.png', seo.image)
+end
+
+function suite:testSeoArgsImageFallsBackToThePlaceholder()
+	local withImage = commLink.seoArgs(commLink.readArgs({ title = 'T', image = 'Foo.jpg' }), 'en', 'T')
+	self:assertEquals('Foo.jpg', withImage.image)
+	local withoutImage = commLink.seoArgs(commLink.readArgs({ title = 'T' }), 'en', 'T')
+	self:assertEquals('Placeholderv2.png', withoutImage.image)
+end
+
+-- Without a `title`, the SEO title falls back to the page name rather than
+-- concatenating a nil; the description keeps its own "This" fallback.
+function suite:testSeoArgsTitleFallsBackToThePageNameWithoutATitle()
+	local seo = commLink.seoArgs(commLink.readArgs({}), 'en', 'Galactic Guide - Nyx')
+	self:assertEquals('Galactic Guide - Nyx - Comm-Link Archive - Star Citizen Wiki', seo.title)
+	self:assertEquals('This is part of the Comm-Link Archive on the Star Citizen Wiki.', seo.description)
 end
 
 function suite:testSeriesRowsReadsTheSeriesOnce()
@@ -150,15 +250,6 @@ function suite:testSeriesRowsReadsTheSeriesOnce()
 	self:assertDeepEquals({ 'page_name', 'title', 'published', 'rsi_id' }, chain.select)
 	self:assertDeepEquals({ 'series', 'Galactic Guide' }, chain.where)
 	self:assertEquals(5000, chain.limit)
-end
-
-function suite:testSeriesIsEmptyWithoutASeries()
-	local frame = {
-		getParent = function()
-			return { args = { title = 'T' } }
-		end,
-	}
-	self:assertEquals('', commLink.series(frame))
 end
 
 -- The page's own stored row is replaced by one built from its arguments, so an

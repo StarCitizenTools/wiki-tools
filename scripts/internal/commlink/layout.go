@@ -64,6 +64,3 @@ func FetchBlocks(ctx context.Context, web *httpx.Client, c Candidate) ([]Block, 
 	}
 	return ParseFragment(frag)
 }
-
-// ParseFragment is implemented in Task 9.
-func ParseFragment(frag []byte) ([]Block, error) { return nil, errors.New("not implemented") }

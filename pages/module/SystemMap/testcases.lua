@@ -58,8 +58,7 @@ end
 --- top-level body — with no subtype, because only planets and stars have one.
 ---
 --- The marker is what stops the omission being read as "planet": without it the
---- card header counted Odin's three planets as four, the disc was scaled against
---- the planet range, and glyphKind('planet', nil) returned 'unknown', painting a
+--- disc was scaled against the planet range, and glyphKind('planet', nil) returned 'unknown', painting a
 --- 1,789 km moon as a neutral grey disc. This list pins the one body that has it,
 --- so a SECOND such body arrives as a failing test rather than as a quiet change
 --- of tier on a live page.
@@ -766,14 +765,6 @@ function suite:testBuildModelKeepsAStarParentedMoonAtTheMoonTier()
 	self:assertTrue(gainey.disc ~= Data.discSize('planet', 1789), 'not the planet range')
 end
 
--- The header is a sentence about what the system contains, and Odin contains
--- three planets and two moons — Gainey and Vili. Counted by rail position it read
--- "4 planets, 1 moon", contradicting both the system article and Gainey's own,
--- which opens "a former natural satellite of the destroyed Odin I".
-function suite:testSummariseCountsAStarParentedMoonAsAMoon()
-	self:assertEquals('3 planets, 2 moons, 1 belt', Data.summarise(Data.buildModel('Odin', '')))
-end
-
 --- Count bodies flagged current, and return the count plus the last one seen.
 --- @param model table
 --- @return number, table|nil
@@ -1149,10 +1140,13 @@ function suite:testRenderWrapsTheRailInTheCollapsibleBody()
 	self:assertTrue(html:find('%[%[Cellin|Cellin%]%]') ~= nil, 'body links survive into the wrapped output')
 end
 
-function suite:testRenderPutsTheBodyCountInTheCardDescription()
+--- The header is the eyebrow over the system: no count of its contents, and no
+--- label restating the obvious.
+function suite:testRenderHeaderCarriesNoCountOrLabel()
 	local html = SystemMap.render('Stanton', '')
-	self:assertTrue(html:find('4 planets, 12 moons') ~= nil, 'header describes the system by its contents')
-	self:assertEquals(nil, html:find('System map'), 'and not by a label restating the obvious')
+	self:assertEquals(nil, html:find('t-card__description', 1, true), 'no count of the contents')
+	self:assertEquals(nil, html:find('planets', 1, true), 'no count of the contents')
+	self:assertEquals(nil, html:find('System map'), 'no label restating the obvious')
 end
 
 function suite:testRenderPutsTheSystemTitleInTheCardHeader()
@@ -1278,49 +1272,6 @@ function suite:testRenderKeepsABeltDesignationThatIsNotJustTheNameRecased()
 	})
 	self:assertTrue(html:find('t%-system%-map__desig') ~= nil, 'a designation that adds something is printed')
 	self:assertTrue(html:find('Stanton belt alpha') ~= nil, 'and reads as house style intends')
-end
-
--- ---------------------------------------------------------------------------
--- Data: body-count summary (the card header's description line)
--- ---------------------------------------------------------------------------
-
-function suite:testSummariseCountsPlanetsAndMoons()
-	self:assertEquals('4 planets, 12 moons, 1 belt', Data.summarise(Data.buildModel('Stanton', '')))
-	self:assertEquals('5 planets, 7 moons, 1 belt', Data.summarise(Data.buildModel('Pyro', '')))
-end
-
--- Nyx has no moons at all; the clause is dropped rather than reading "0 moons".
-function suite:testSummariseOmitsMoonsWhenThereAreNone()
-	self:assertEquals('4 planets, 2 belts', Data.summarise(Data.buildModel('Nyx', '')))
-end
-
--- The same rule on the leading clause. Cathcart and Gurzil are a star and one
--- belt, so the header names the belt and says nothing about planets.
-function suite:testSummariseOmitsPlanetsWhenThereAreNone()
-	self:assertEquals('1 belt', Data.summarise(Data.buildModel('Cathcart', '')))
-	self:assertEquals('1 belt', Data.summarise(Data.buildModel('Gurzil', '')))
-end
-
--- Vanguard is a star and nothing else, so every clause drops. The empty string
--- is what Module:CardLua reads as "no description", leaving the header as the
--- system link alone.
-function suite:testSummariseIsEmptyWhenTheRailIsAStarAlone()
-	self:assertEquals('', Data.summarise(Data.buildModel('Vanguard', '')))
-	self:assertEquals(nil, SystemMap.render('Vanguard', '', nil, false, false):find('t-card__description', 1, true))
-end
-
-function suite:testSummarisePluralisesSingletons()
-	local model = { bodies = { { moons = {} } } }
-	self:assertEquals('1 planet', Data.summarise(model))
-	model.bodies[1].moons = { {} }
-	self:assertEquals('1 planet, 1 moon', Data.summarise(model))
-	model.bodies[2] = { tier = 'belt', moons = {} }
-	self:assertEquals('1 planet, 1 moon, 1 belt', Data.summarise(model))
-end
-
--- The star is deliberately uncounted: there is exactly one per system.
-function suite:testSummariseDoesNotCountTheStar()
-	self:assertEquals(nil, Data.summarise(Data.buildModel('Stanton', '')):find('star'))
 end
 
 -- ---------------------------------------------------------------------------
@@ -1741,12 +1692,6 @@ function suite:testRenderMarksRingsWithTheirOwnKindAndTier()
 	self:assertTrue(html:find('width:15%.0px;height:5%.0px') ~= nil, 'the ring band is inline-sized')
 end
 
--- Counted apart from moons. Folding four rings into Sol's moon count would both
--- overstate the moons and hide something the system is known for.
-function suite:testSummariseCountsRingsSeparately()
-	self:assertEquals('9 planets, 19 moons, 4 rings, 2 belts', Data.summarise(Data.buildModel('Sol', '')))
-end
-
 -- ---------------------------------------------------------------------------
 -- Body icons
 -- ---------------------------------------------------------------------------
@@ -1985,14 +1930,6 @@ function suite:testRenderMarksANestedCompanion()
 	self:assertTrue(markerAt > starAt and markerAt < companionAt, 'marked on the companion, not on the primary')
 end
 
--- Stars are not counted in the header, whether there are two or one: how many a
--- system has is the first thing the picture says.
-function suite:testSummariseCountsNeitherStar()
-	self:assertEquals('7 planets, 1 moon, 1 belt', Data.summarise(Data.buildModel('Tyrol', '')))
-	self:assertEquals('3 planets, 1 belt', Data.summarise(Data.buildModel('Bacchus', '')))
-	self:assertEquals(nil, Data.summarise(Data.buildModel('Goss', '')):find('star'))
-end
-
 -- Both stars are probed for existence, so a moved or deleted star article trips
 -- the tracking category. A nested companion is reachable through the primary's
 -- moon list and a paired one is not reachable from `bodies` at all, so the walk
@@ -2050,7 +1987,6 @@ function suite:testAHeadlessSystemStillRendersItsPlanets()
 		return true
 	end)
 	self:assertEquals('', category)
-	self:assertEquals('1 planet', Data.summarise(model))
 end
 
 function suite:testModelCarriesAffiliation()

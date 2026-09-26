@@ -105,8 +105,8 @@ local BANDS = { belt = BELT_BAND, ring = RING_BAND }
 --- `rail-moon` is the mirror case: a moon that holds a top-level slot on the
 --- planet rail, because upstream parents it to the star and there is no planet
 --- under which to nest it. Odin's Gainey is the only one in all 90 systems. It is
---- laid out as a rail column like its neighbours and measured, coloured and
---- counted as the moon it is.
+--- laid out as a rail column like its neighbours and measured and coloured as
+--- the moon it is.
 ---
 --- Without this the lookup would miss twice over, and both misses are silent:
 --- glyphKind would fall through to the planet branch and return 'unknown', and
@@ -548,7 +548,7 @@ function p.buildModel(input, currentTitle)
 				-- A planet's rings share this array with its moons, because the
 				-- rail nests exactly one level and a ring wants that level. The
 				-- `tier: ring` marker is what keeps them apart from there on: it
-				-- picks the ring glyph, the band, and the ring row in the summary.
+				-- picks the ring glyph, the band and the ring row.
 				local moonTier = sourceMoon.tier == 'ring' and 'ring' or 'moon'
 				body.moons[#body.moons + 1] = toBody(sourceMoon, moonTier, currentTitle)
 			end
@@ -557,77 +557,6 @@ function p.buildModel(input, currentTitle)
 	end
 
 	return model
-end
-
---- @param count number
---- @param noun string
---- @return string
-local function pluralise(count, noun)
-	if count == 1 then
-		return '1 ' .. noun
-	end
-	return count .. ' ' .. noun .. 's'
-end
-
---- One-line body count for the card header, e.g. "4 planets, 12 moons".
----
---- Stars are not counted, whether there are two, one or none. The header exists
---- to say what the picture cannot, and how many stars a system has is the first
---- thing the picture says — they are the leftmost glyphs on the rail. A system
---- with no moons (Nyx) drops that clause rather than printing "0 moons".
----
---- The planets clause is dropped on the same rule, and it is not hypothetical:
---- Cathcart and Gurzil hold a belt and nothing else, and Vanguard holds nothing
---- at all. Every clause dropping leaves an empty string, which Module:CardLua
---- treats as no description and omits — the right header for a rail that is one
---- star, since a line reading "0 planets" would be counting an absence the
---- picture already shows.
----
---- Rings are counted apart from moons even though they share the moons array. A
---- ring is not a moon, and folding Sol's four into its moon count would overstate
---- the moons by a fifth while hiding a thing the system is known for.
----
---- A rail moon counts as a moon, for the same reason: the header is a sentence
---- about what the system contains, and Odin holds three planets and two moons
---- whatever slot the second moon is drawn in. Counted as a planet it made the
---- header contradict both the article it sits on and Gainey's own.
---- @param model SystemMapModel
---- @return string
-function p.summarise(model)
-	local planets, moons, rings, belts = 0, 0, 0, 0
-
-	for _, body in ipairs(model.bodies) do
-		if body.tier == 'belt' then
-			belts = belts + 1
-		elseif body.tier == 'rail-moon' then
-			moons = moons + 1
-		else
-			planets = planets + 1
-		end
-		for _, moon in ipairs(body.moons) do
-			if moon.tier == 'ring' then
-				rings = rings + 1
-			else
-				moons = moons + 1
-			end
-		end
-	end
-
-	local parts = {}
-	if planets > 0 then
-		parts[#parts + 1] = pluralise(planets, 'planet')
-	end
-	if moons > 0 then
-		parts[#parts + 1] = pluralise(moons, 'moon')
-	end
-	if rings > 0 then
-		parts[#parts + 1] = pluralise(rings, 'ring')
-	end
-	if belts > 0 then
-		parts[#parts + 1] = pluralise(belts, 'belt')
-	end
-
-	return table.concat(parts, ', ')
 end
 
 --- page → where it sits, built once per parse.

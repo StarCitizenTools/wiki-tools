@@ -10,7 +10,6 @@ Editors use this through `{{System map}}`; see [Template:System map](https://sta
 
 - `Data.resolveKey(input)` / `Data.buildModel(input, currentTitle)`: resolve the system name and build the `SystemMapModel` (bodies, tiers, current-page flag).
 - `Data.discSize(tier, km)`: a body's diameter mapped to a rendered disc size, logarithmic within its tier.
-- `Data.summarise(model)`: the header's body-count string.
 - `Data.findBody(page)`: where a page sits in the system data, or nil for a belt, ring, place, or unknown title: `{ system = { key, page, affiliation }, kind = 'star'|'planet'|'moon', entry, planet? }` (`planet` is set only for a moon, its own planet's entry).
 - `Renderer.renderRail(model)`: the model turned into rail markup.
 - `p.render(input, currentTitle, exists, collapsed, track)`: the testable core: everything parser-dependent (title, page existence, tracking) arrives as an argument.

@@ -111,7 +111,10 @@ func normalizeInvisibles(s string) string {
 	}, s)
 }
 
-// PlainText is an element's text with markup dropped and whitespace collapsed.
+// PlainText is an element's text with markup dropped, invisible characters
+// normalized (see normalizeInvisibles), and whitespace collapsed. A Heading
+// block stores this result directly, ahead of the escapeText call that
+// renders it, so this is where that text is normalized.
 func PlainText(n *html.Node) string {
 	var b strings.Builder
 	var walk func(*html.Node)
@@ -124,7 +127,7 @@ func PlainText(n *html.Node) string {
 		}
 	}
 	walk(n)
-	return strings.TrimSpace(wsRun.ReplaceAllString(strings.ReplaceAll(b.String(), " ", " "), " "))
+	return strings.TrimSpace(wsRun.ReplaceAllString(normalizeInvisibles(b.String()), " "))
 }
 
 // urlUnsafe percent-encodes the characters that would end or break a URL

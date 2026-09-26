@@ -120,6 +120,17 @@ func TestPlainText(t *testing.T) {
 	}
 }
 
+// PlainText normalizes invisible characters at construction time: a Heading
+// block stores its result directly, ahead of the escapeText call that
+// eventually renders it.
+func TestPlainTextNormalizesInvisibles(t *testing.T) {
+	nnbsp, softHyphen := string(rune(0x202F)), string(rune(0x00AD))
+	src := "<h3>AI" + nnbsp + "(Co" + softHyphen + "ntent)</h3>"
+	if got, want := PlainText(fragmentNode(t, src)), "AI (Content)"; got != want {
+		t.Errorf("PlainText(%q) = %q, want %q", src, got, want)
+	}
+}
+
 func TestLineSafe(t *testing.T) {
 	for in, want := range map[string]string{
 		"* not a list": "<nowiki />* not a list",

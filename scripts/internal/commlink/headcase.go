@@ -42,30 +42,67 @@ func NewHeadCaser(headings []string, corpus string) *HeadCaser {
 		h.labels[l] = best
 	}
 
-	type counts struct {
-		lower, capital, upper int
-		capForm               string
+	stats := map[string]*wordCounts{}
+	for _, line := range strings.Split(corpus, "\n") {
+		// A line in capitals is a heading; its capitals say nothing about
+		// how the text writes a word.
+		if !shouted(line) {
+			learnLine(line, stats)
+		}
 	}
-	stats := map[string]*counts{}
-	for _, m := range headWord.FindAllStringIndex(corpus, -1) {
-		if sentenceStart(corpus, m[0]) {
+	for l, c := range stats {
+		if (c.upper > 0 && c.upper >= c.capital+c.lower) || (c.isolated >= minIsolated && c.isolated > c.capital) {
+			h.acronyms[strings.ToUpper(l)] = true
+		}
+		if c.capital > 0 && c.capital > c.lower && c.capital >= c.upper {
+			h.proper[l] = c.capForm
+		}
+	}
+	return h
+}
+
+// wordCounts tallies how the text writes one word away from a sentence start.
+// isolated counts the upper-case uses between words that are not upper case.
+type wordCounts struct {
+	lower, capital, upper, isolated int
+	capForm                         string
+}
+
+// minIsolated is how often a word must stand alone in capitals to count as an
+// acronym when the same letters are also a lower-case word (IT beside it); a
+// word capitalised for emphasis (AND) stays below it.
+const minIsolated = 5
+
+func learnLine(line string, stats map[string]*wordCounts) {
+	spans := headWord.FindAllStringIndex(line, -1)
+	upperAt := func(i int) bool {
+		if i < 0 || i >= len(spans) {
+			return false
+		}
+		w := line[spans[i][0]:spans[i][1]]
+		return w == strings.ToUpper(w) && w != strings.ToLower(w) && utf8.RuneCountInString(w) > 1
+	}
+	for i, m := range spans {
+		if sentenceStart(line, m[0]) {
 			continue
 		}
-		w := corpus[m[0]:m[1]]
-		lw := strings.ToLower(w)
+		w := line[m[0]:m[1]]
 		key := foldWord(w)
 		c := stats[key]
 		if c == nil {
-			c = &counts{}
+			c = &wordCounts{}
 			stats[key] = c
 		}
 		switch {
-		case w == lw:
+		case w == strings.ToLower(w):
 			c.lower++
-		case w == strings.ToUpper(w) && utf8.RuneCountInString(w) > 1:
+		case upperAt(i):
 			// A lone upper-case letter reads the same regardless of the
 			// corpus's sentence case, so it is not evidence of an acronym.
 			c.upper++
+			if !upperAt(i-1) && !upperAt(i+1) {
+				c.isolated++
+			}
 		default:
 			r, _ := utf8.DecodeRuneInString(w)
 			if unicode.IsUpper(r) {
@@ -74,15 +111,6 @@ func NewHeadCaser(headings []string, corpus string) *HeadCaser {
 			}
 		}
 	}
-	for l, c := range stats {
-		if c.upper > 0 && c.upper >= c.capital+c.lower {
-			h.acronyms[strings.ToUpper(l)] = true
-		}
-		if c.capital > 0 && c.capital > c.lower && c.capital >= c.upper {
-			h.proper[l] = c.capForm
-		}
-	}
-	return h
 }
 
 // Case returns heading unchanged unless it is shouted (letters, none lower

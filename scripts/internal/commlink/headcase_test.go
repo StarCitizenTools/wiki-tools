@@ -54,3 +54,31 @@ func TestSentenceStart(t *testing.T) {
 		t.Errorf("Case(%q) = %q, want %q", "CIG", got, want)
 	}
 }
+
+// A line in capitals is a heading, not evidence of how the text writes its
+// words: the API text carries every shouted studio and team title.
+func TestHeadCaserIgnoresShoutedLines(t *testing.T) {
+	corpus := "CIG COMMUNICATIONS\nThe CIG communications team met.\nCIG COMMUNICATIONS\n"
+	h := NewHeadCaser(nil, corpus)
+	if got, want := h.Case("CIG COMMUNICATIONS"), "CIG communications"; got != want {
+		t.Errorf("Case(%q) = %q, want %q", "CIG COMMUNICATIONS", got, want)
+	}
+}
+
+// IT is an acronym the text writes in capitals on its own, though the same
+// letters as a lower-case word far outnumber it; a word capitalised only for
+// emphasis a few times is not.
+func TestHeadCaserAcronymAmongLowerCase(t *testing.T) {
+	corpus := strings.Repeat("It said it was done, and it was. ", 20) +
+		"The IT team met. We asked IT for help. Then IT staff left. The DevOps and IT teams met. Ask IT now. " +
+		"A demo AND a release. Maps AND more. Ships AND more."
+	h := NewHeadCaser(nil, corpus)
+	for in, want := range map[string]string{
+		"DEVOPS & IT":    "DevOps & IT",
+		"SHIPS AND MAPS": "Ships and maps",
+	} {
+		if got := h.Case(in); got != want {
+			t.Errorf("Case(%q) = %q, want %q", in, got, want)
+		}
+	}
+}

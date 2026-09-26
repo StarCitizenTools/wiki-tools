@@ -18,6 +18,7 @@ local p = {}
 --- @class CollapsibleCardProps
 --- @field title string        Header title (required).
 --- @field description? string Secondary summary text rendered under the title.
+--- @field eyebrow? string     One line above the title naming the level above.
 --- @field content? string     Body content.
 --- @field footer? string      Attribution / metadata line. Always visible.
 --- @field open? boolean       Starts expanded when true. Defaults to false.
@@ -52,7 +53,7 @@ local function renderCollapsible(props, rootClass)
 			open = props.open == true,
 		},
 		summary = {
-			content = card.renderHeaderContent(props.title, props.description) .. chevronHtml(),
+			content = card.renderHeaderContent(props.title, props.description, props.eyebrow) .. chevronHtml(),
 			class = 't-card__header t-collapsible-card__header',
 		},
 	})
@@ -64,7 +65,7 @@ end
 --- @param rootClass string
 --- @return string
 local function renderStatic(props, rootClass)
-	local content = card.renderHeader({ title = props.title, description = props.description })
+	local content = card.renderHeader({ title = props.title, description = props.description, eyebrow = props.eyebrow })
 	if props.content and tostring(props.content) ~= '' then
 		content = content
 			.. tostring(mw.html.create('div'):addClass('t-card__content'):wikitext(tostring(props.content)))

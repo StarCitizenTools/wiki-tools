@@ -22,15 +22,20 @@ local button = require('Module:ButtonLua')
 
 local p = {}
 
---- Builds the inner title/description block (no wrapper header row). Exposed so
---- interactive consumers (CollapsibleCard's <summary>) can place it inside their
---- own header element alongside a trailing control.
+--- Builds the inner eyebrow/title/description block (no wrapper header row).
+--- Exposed so interactive consumers (CollapsibleCard's <summary>) can place it
+--- inside their own header element alongside a trailing control.
 ---
 --- @param title string
 --- @param description string|nil
+--- @param eyebrow string|nil  One line above the title naming the level above.
 --- @return string
-function p.renderHeaderContent(title, description)
+function p.renderHeaderContent(title, description, eyebrow)
 	local root = mw.html.create('div'):addClass('t-card__header-content')
+	if eyebrow and eyebrow ~= '' then
+		root:addClass('t-card__header-content--eyebrow')
+		root:tag('div'):addClass('t-card__eyebrow'):wikitext(eyebrow)
+	end
 	root:tag('div'):addClass('t-card__title'):wikitext(title)
 	if description and description ~= '' then
 		root:tag('div'):addClass('t-card__description'):wikitext(description)
@@ -41,16 +46,17 @@ end
 --- @class CardHeaderProps
 --- @field title string
 --- @field description? string
+--- @field eyebrow? string  One line above the title naming the level above.
 --- @field trailing? string  HTML rendered on the right of the header (button, icon, …)
 
---- Builds a full static header row: title + description on the left, optional
+--- Builds a full static header row: eyebrow (optional), title + description on the left, optional
 --- `trailing` element on the right.
 ---
 --- @param props CardHeaderProps
 --- @return string
 function p.renderHeader(props)
 	local root = mw.html.create('div'):addClass('t-card__header')
-	root:wikitext(p.renderHeaderContent(props.title, props.description))
+	root:wikitext(p.renderHeaderContent(props.title, props.description, props.eyebrow))
 	if props.trailing and props.trailing ~= '' then
 		root:tag('div'):addClass('t-card__trailing'):wikitext(tostring(props.trailing))
 	end

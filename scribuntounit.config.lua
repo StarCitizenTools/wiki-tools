@@ -72,10 +72,14 @@ return {
 		-- and a suite could not tell a correct card from one that dropped its
 		-- content or inverted the open flag. Mirrors the real module's contract:
 		-- the caller's `class` lands on the CardLua root, `open` gates the
-		-- <details>, and title/description render in the card header.
+		-- <details>, and eyebrow/title/description render in the card header.
 		api.stub('CollapsibleCard', {
 			render = function(props)
 				props = props or {}
+				local eyebrow = ''
+				if props.eyebrow and props.eyebrow ~= '' then
+					eyebrow = '<div class="t-card__eyebrow">' .. tostring(props.eyebrow) .. '</div>'
+				end
 				local description = ''
 				if props.description and props.description ~= '' then
 					description = '<div class="t-card__description">' .. tostring(props.description) .. '</div>'
@@ -86,7 +90,11 @@ return {
 					'"><details class="t-collapsible-card__body" open="',
 					props.open == true and 'yes' or 'no',
 					'"><summary class="t-card__header t-collapsible-card__header">',
-					'<div class="t-card__header-content"><div class="t-card__title">',
+					'<div class="t-card__header-content'
+						.. (eyebrow ~= '' and ' t-card__header-content--eyebrow' or '')
+						.. '">',
+					eyebrow,
+					'<div class="t-card__title">',
 					tostring(props.title or ''),
 					'</div>',
 					description,

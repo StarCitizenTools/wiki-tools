@@ -2,17 +2,16 @@ require('strict')
 
 --- @module Entity/Location
 --- Location kind: entities backed by the game-data /api/locations endpoint
---- (star systems, planets, moons, stations, …). Five classifications are
---- modelled: SolarSystem (the StarSystem leaf), jump points (the JumpPoint
---- leaf), stars (the Star leaf), planets and moons (the Body leaf, which serves
---- both) and asteroid formations (the Belt leaf, which has no record and is
---- reached only through |family=). matches() claims exactly the records a leaf renders:
---- SolarSystem, Star, Planet and Moon records, and jump-point gates (the
---- locations API types gates as 'Anomaly', a token shared with wreck sites, so
---- a gate is recognised by name — see isJumpPointRecord). Every other location
---- stays unclaimed until its leaf exists. This module is kind identity only;
---- the starmap vocabulary and the starmap bridges the leaves' enrich hooks call
---- live in Module:Entity/Location/Util.
+--- (star systems, planets, moons, stations, …). Six leaves render it:
+--- SolarSystem (StarSystem), jump points (JumpPoint), stars (Star), planets
+--- and moons (Body), asteroid formations (Belt, reached only through
+--- |family=) and places (Place: stations, outposts, landing zones and the
+--- venues inside them). matches() claims exactly the records a leaf renders.
+--- Jump-point gates are recognised by name, because the locations API types
+--- them 'Anomaly', a token shared with wreck sites (see isJumpPointRecord).
+--- Wreck sites and plain Asteroid records stay unclaimed. This module is kind
+--- identity only; the starmap vocabulary and the starmap bridges the leaves'
+--- enrich hooks call live in Module:Entity/Location/Util.
 
 local subtypeResolver = require('Module:Entity/SubtypeResolver')
 
@@ -48,6 +47,9 @@ local LOCATION_SUBTYPE_MAP = {
 	end,
 	belt = function()
 		return require('Module:Entity/Location/Belt')
+	end,
+	place = function()
+		return require('Module:Entity/Location/Place')
 	end,
 }
 
@@ -106,10 +108,24 @@ local function isJumpPointRecord(apiData)
 		or apiData.name:sub(1, #JUMP_POINT_SUFFIX + 1) == JUMP_POINT_SUFFIX .. ' '
 end
 
+--- Record types the Place leaf renders. Plain 'Asteroid' is absent on purpose:
+--- those records are formation clusters, not places anyone travels to.
+local PLACE_TYPES = {
+	Outpost = true,
+	Outpost_InvalidQT = true,
+	Manmade = true,
+	Manmade_VisibleOnInteraction = true,
+	LandingZone = true,
+	PointOfInterest = true,
+	NavPoint = true,
+	Asteroid_ValidQT = true,
+}
+
 --- Family token of a typed location record: 'jumppoint' for a gate,
 --- 'starsystem' for a SolarSystem record, 'star' for a Star record, 'body' for a
---- Planet or Moon record, false for a typed record no leaf models (wreck sites,
---- stations), nil when the record carries no type table at all (no record, or
+--- Planet or Moon record, 'place' for a station, outpost, landing zone or
+--- venue, false for a typed record no leaf models (wreck sites, plain
+--- asteroids), nil when the record carries no type table at all (no record, or
 --- the editorial fork's empty apiData).
 --- @param apiData table|nil
 --- @return string|false|nil
@@ -132,6 +148,9 @@ local function recordFamily(apiData)
 	-- parent is, which is a value rather than a shape.
 	if apiData.type.name == 'Planet' or apiData.type.name == 'Moon' then
 		return 'body'
+	end
+	if PLACE_TYPES[apiData.type.name] then
+		return 'place'
 	end
 	return false
 end

@@ -93,7 +93,8 @@ function suite:testCohortQueryShape()
 	self:assertDeepEquals({ { 'subject_type', '=', 'Spacecraft' }, { 'size', '=', 3 } }, chain.where)
 	self:assertDeepEquals({ { 'vehicle_stats', 'vehicle_stats.page_name', 'entity.page_name' } }, chain.join)
 	self:assertEquals(500, chain.limit)
-	self:assertEquals(29, #chain.select)
+	-- 29 columns plus BucketQuery's two join-case guards (page_name, vehicle_stats.page_name).
+	self:assertEquals(31, #chain.select)
 end
 
 function suite:testCohortFoldsSignatureModifiers()

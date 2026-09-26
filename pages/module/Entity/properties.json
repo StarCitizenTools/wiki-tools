@@ -64,6 +64,17 @@
 		],
 		"desc": "Per-shot (alpha) damage of a weapon."
 	},
+	"Amenities": {
+		"type": "TEXT",
+		"bucket": "location",
+		"field": "amenities",
+		"index": true,
+		"repeated": true,
+		"modules": [
+			"Location/Place"
+		],
+		"desc": "The game's map-legend amenities at a place, as the API's display names ('Hangar (XL)', 'Landing Pad (M)', 'Vehicle Services', 'Clinic'…), unmodified, so a query matches the game's own vocabulary. The infobox groups and relabels them; the store keeps the raw names."
+	},
 	"Ammo": {
 		"type": "INTEGER",
 		"bucket": "item_weapon",
@@ -294,9 +305,10 @@
 		"modules": [
 			"Location/Star",
 			"Location/Body",
-			"Location/Belt"
+			"Location/Belt",
+			"Location/Place"
 		],
-		"desc": "Sub-kind of a location within its leaf, worded as that leaf's infobox subtitle words it: a star's spectral class ('K-type main-sequence star', 'White dwarf'; hyphenated to match the wiki's article titles), a body's type ('Super-Earth', 'Gas giant') or a formation's ('Asteroid belt', 'Planetary ring system'). Editorial text wins over the starmap sub_type, so lore-only classes ('K-type main-sequence flare star') store faithfully, delinked. Duplicates the kind-generic Subject type; it earns its place by letting a location query filter on class without joining the entity bucket."
+		"desc": "Sub-kind of a location within its leaf, worded as that leaf's infobox subtitle words it: a star's spectral class ('K-type main-sequence star', 'White dwarf'; hyphenated to match the wiki's article titles), a body's type ('Super-Earth', 'Gas giant'), a formation's ('Asteroid belt', 'Planetary ring system'), or a place's curated class ('Landing zone', 'Rest stop'). Editorial text wins over the starmap sub_type, so lore-only classes ('K-type main-sequence flare star') store faithfully, delinked. Duplicates the kind-generic Subject type; it earns its place by letting a location query filter on class without joining the entity bucket."
 	},
 	"Commodity group": {
 		"type": "TEXT",
@@ -918,6 +930,25 @@
 		],
 		"desc": "Quantum tuning rate of a jump module."
 	},
+	"Jurisdiction": {
+		"type": "TEXT",
+		"bucket": "location",
+		"field": "jurisdiction",
+		"modules": [
+			"Location/Place",
+			"Location/Body"
+		],
+		"desc": "The legal jurisdiction a location falls under, as the API names it ('Hurston Dynamics', 'UEE', 'Ungoverned', 'Rough & Ready'). An editor's |jurisdiction= wins outright, for zone-defined jurisdictions the tree misses (Grim HEX: Green Imperial). Otherwise it is the record's own value, else the first ancestor's in the GAME parent chain: a moon inherits its planet's, and a Lagrange station, parented to the star, gets the system's. A place with no record stores its curated parent page's value."
+	},
+	"Lagrange point": {
+		"type": "TEXT",
+		"bucket": "location",
+		"field": "lagrange_point",
+		"modules": [
+			"Location/Place"
+		],
+		"desc": "L1 to L5, for a station at a Lagrange point of its Parent. Curated: the API parents these stations to the star and names no point."
+	},
 	"Laser range": {
 		"type": "DOUBLE",
 		"bucket": "item_weapon",
@@ -1336,6 +1367,15 @@
 		],
 		"desc": "Nutritional Density Rating of a consumable."
 	},
+	"Operator": {
+		"type": "PAGE",
+		"bucket": "location",
+		"field": "operator",
+		"modules": [
+			"Location/Place"
+		],
+		"desc": "The company or faction that runs the place, as its wiki page name (Rest & Relax, Shubin Interstellar, Nine Tails). Curated; distinct from Jurisdiction, which is whose law applies."
+	},
 	"Optimal range": {
 		"type": "DOUBLE",
 		"bucket": "item_tool",
@@ -1389,9 +1429,10 @@
 		"field": "parent",
 		"modules": [
 			"Location/Body",
-			"Location/Belt"
+			"Location/Belt",
+			"Location/Place"
 		],
-		"desc": "Astronomical body a location directly orbits or sits on, as the wiki page name. ONE hop only: a record names its immediate parent and nothing above it, so this is not an ancestry. Absent for the eleven planets in multi-star or star-less systems, whose starmap parent_id is null because the ARK does not record which sun they orbit."
+		"desc": "The location a page sits on, orbits, or is physically inside, as the wiki page name. Bodies and belts store the ONE astronomical body they directly orbit or sit on: a record names its immediate parent and nothing above it, so this is not an ancestry. Places store the record's parent (a landing zone, station, outpost or base the place is inside, or the body it is on or orbits), or a curated override such as a Lagrange station's planet. Absent for the eleven planets in multi-star or star-less systems, whose starmap parent_id is null because the ARK does not record which sun they orbit."
 	},
 	"Physical damage modifier": {
 		"type": "DOUBLE",
@@ -2189,9 +2230,10 @@
 			"Location/JumpPoint",
 			"Location/Star",
 			"Location/Body",
-			"Location/Belt"
+			"Location/Belt",
+			"Location/Place"
 		],
-		"desc": "Star system a location resides in, stored as the wiki page name ('Pyro system'). Written by the JumpPoint leaf (the gate's entry system) and the Star leaf; the vocabulary is kind-wide for future Location leaves."
+		"desc": "Star system a location resides in, stored as the wiki page name ('Pyro system'). Every Location leaf but StarSystem writes it: JumpPoint stores the gate's entry system, parsed from the page title; Star, Body, Belt and Place each store their own record's system, falling back to a curated |system= for a page with no record."
 	},
 	"System size": {
 		"type": "DOUBLE",
@@ -2399,6 +2441,15 @@
 			"Vehicle"
 		],
 		"desc": "Time in seconds to accelerate from a standstill to maximum speed."
+	},
+	"Zone": {
+		"type": "TEXT",
+		"bucket": "location",
+		"field": "zone",
+		"modules": [
+			"Location/Place"
+		],
+		"desc": "Where the place sits relative to its Parent: surface, orbit, lagrange, inside (a venue in a landing zone or station) or star (around the star, with no body). Derived from the record's type and parent type; a curated value is set where the record cannot say (nav points, pages with no record) or says wrong (a record parented to the star while the place is on or around a body), and wins over the record."
 	},
 	"Image": {
 		"type": "TEXT",

@@ -24,10 +24,32 @@
 	line-height: var(--line-height-small);
 }
 
+.t-card__header-content {
+	flex-grow: 1;
+	min-width: 0;
+	display: flex;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	align-items: center;
+	column-gap: var(--space-sm);
+}
+
+.t-card__title {
+	font-weight: var(--font-weight-medium);
+	color: var(--color-emphasized);
+}
+
+.t-card__description {
+	color: var(--color-subtle);
+	font-size: var(--font-size-small);
+	line-height: var(--line-height-small);
+}
+
 /* A header with an eyebrow is the navplate header, the same as
  * .t-entity-navplates__cell in Module:Entity/Navplates: a small subtle line
  * naming the level above, then the title at the footer-headline size. It
- * stacks the two instead of sharing the row a plain header lays out. */
+ * stacks the two instead of sharing the row a plain header lays out, so it
+ * comes after the plain header rules it overrides. */
 .t-card__eyebrow {
 	font-size: var(--font-size-x-small);
 	line-height: var(--line-height-x-small);
@@ -56,27 +78,6 @@
 
 .t-card__header-content--eyebrow .t-card__title a:hover {
 	text-decoration: underline;
-}
-
-.t-card__header-content {
-	flex-grow: 1;
-	min-width: 0;
-	display: flex;
-	justify-content: space-between;
-	flex-wrap: wrap;
-	align-items: center;
-	column-gap: var(--space-sm);
-}
-
-.t-card__title {
-	font-weight: var(--font-weight-medium);
-	color: var(--color-emphasized);
-}
-
-.t-card__description {
-	color: var(--color-subtle);
-	font-size: var(--font-size-small);
-	line-height: var(--line-height-small);
 }
 
 /* Right-aligned trailing slot (chevron, one or more buttons, …). */

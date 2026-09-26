@@ -79,8 +79,14 @@ func retryable(status int) bool {
 
 // Do issues a request, waiting for a rate-limiter tick before each attempt and
 // backing off between retries. The response body is read fully and returned, so
-// callers do not need to close anything.
+// callers do not need to close anything. A body is sent as form data.
 func (c *Client) Do(ctx context.Context, method, url string, body string) ([]byte, error) {
+	return c.DoContentType(ctx, method, url, body, "application/x-www-form-urlencoded")
+}
+
+// DoContentType is Do with an explicit request Content-Type, for endpoints that
+// take a JSON body rather than form data.
+func (c *Client) DoContentType(ctx context.Context, method, url, body, contentType string) ([]byte, error) {
 	var lastErr error
 
 	for attempt := 1; attempt <= c.maxTries; attempt++ {
@@ -101,7 +107,7 @@ func (c *Client) Do(ctx context.Context, method, url string, body string) ([]byt
 		}
 		req.Header.Set("User-Agent", c.userAgent)
 		if body != "" {
-			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+			req.Header.Set("Content-Type", contentType)
 		}
 
 		resp, err := c.http.Do(req)

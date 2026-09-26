@@ -88,10 +88,18 @@ func (p *Plan) Report() []string {
 		fmt.Sprintf("review: %d", len(p.Review)),
 	}
 	for _, r := range p.Review {
-		lines = append(lines, fmt.Sprintf("  %d %s: %s", r.ID, r.Page, r.Reason))
+		lines = append(lines, fmt.Sprintf("  %d %s: %s", r.ID, orUnknown(r.Page), r.Reason))
 	}
 	for _, d := range p.Disagreements {
-		lines = append(lines, fmt.Sprintf("found only by %s: %d %s", d.FoundBy, d.ID, d.Title))
+		lines = append(lines, fmt.Sprintf("found only by %s: %d %s", d.FoundBy, d.ID, orUnknown(d.Title)))
 	}
 	return lines
+}
+
+// orUnknown stands in for the title of a report the API has no record of.
+func orUnknown(s string) string {
+	if s == "" {
+		return "(title unknown)"
+	}
+	return s
 }

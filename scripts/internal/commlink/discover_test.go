@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -97,7 +98,11 @@ func TestFetchSeries(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []SeriesItem{{ID: 21307}, {ID: 18251, Posted: "2021-08-04"}, {ID: 15833, Posted: "2017-04-14"}}
+	want := []SeriesItem{
+		{ID: 21307, URL: srv.URL + "/comm-link/transmission/21307-Star-Citizen-Monthly-Report-August-2026"},
+		{ID: 18251, URL: srv.URL + "/comm-link/transmission/18251-Star-Citizen-Monthly-Report-July-2021", Posted: "2021-08-04"},
+		{ID: 15833, URL: srv.URL + "/comm-link/transmission/15833-Monthly-Studio-Report-March-2017", Posted: "2017-04-14"},
+	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("items = %+v, want %+v", got, want)
 	}
@@ -113,9 +118,9 @@ func TestUnion(t *testing.T) {
 		fetched++
 		return Candidate{ID: id, Title: "E"}, nil
 	}
-	got, dis, err := Union(context.Background(), titled, []SeriesItem{{ID: 2, Posted: "2021-06-02"}, {ID: 5}}, fetch)
-	if err != nil {
-		t.Fatal(err)
+	got, dis, review, err := Union(context.Background(), titled, []SeriesItem{{ID: 2, Posted: "2021-06-02"}, {ID: 5}}, fetch)
+	if err != nil || len(review) != 0 {
+		t.Fatal(review, err)
 	}
 	var ids []int
 	for _, c := range got {
@@ -133,5 +138,42 @@ func TestUnion(t *testing.T) {
 	want := []Disagreement{{ID: 1, Title: "A", FoundBy: FoundByTitle}, {ID: 5, Title: "E", FoundBy: FoundBySeries}}
 	if !reflect.DeepEqual(dis, want) {
 		t.Errorf("disagreements = %+v", dis)
+	}
+}
+
+// A report only the series lists, which the API answers with 404 for, goes to
+// review and the union carries on; any other fetch error ends it.
+func TestUnionAPINotFound(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/7":
+			io.WriteString(w, `{"data":{"id":7,"title":"G","rsi_url":"u7","translations":{"en_EN":"Text"}}}`)
+		case "/9":
+			http.Error(w, "down", http.StatusForbidden)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+	fetch := func(ctx context.Context, id int) (Candidate, error) {
+		return FetchRecord(ctx, testWeb(t), Endpoints{API: srv.URL}, id)
+	}
+	series := []SeriesItem{{ID: 8, URL: "https://rsi.test/comm-link/transmission/8-X"}, {ID: 7}}
+	got, dis, review, err := Union(context.Background(), nil, series, fetch)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 1 || got[0].ID != 7 {
+		t.Errorf("candidates = %+v, want only 7", got)
+	}
+	if len(review) != 1 || review[0].ID != 8 || review[0].Reason != ReasonFetch ||
+		!strings.Contains(review[0].Detail[0], "404") || !strings.Contains(review[0].Detail[0], "https://rsi.test/comm-link/transmission/8-X") {
+		t.Errorf("review = %+v", review)
+	}
+	if want := []Disagreement{{ID: 7, Title: "G", FoundBy: FoundBySeries}, {ID: 8, FoundBy: FoundBySeries}}; !reflect.DeepEqual(dis, want) {
+		t.Errorf("disagreements = %+v, want %+v", dis, want)
+	}
+	if _, _, _, err := Union(context.Background(), nil, []SeriesItem{{ID: 9}}, fetch); err == nil {
+		t.Error("a 403 from the API did not end the union")
 	}
 }

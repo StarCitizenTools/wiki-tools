@@ -110,7 +110,7 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	candidates, disagreements, err := commlink.Union(ctx, titled, series, func(ctx context.Context, id int) (commlink.Candidate, error) {
+	candidates, disagreements, unfetched, err := commlink.Union(ctx, titled, series, func(ctx context.Context, id int) (commlink.Candidate, error) {
 		return commlink.FetchRecord(ctx, web, ep, id)
 	})
 	if err != nil {
@@ -135,6 +135,12 @@ func run() error {
 	plan := &commlink.Plan{Generated: time.Now().UTC(), Disagreements: disagreements}
 	review := func(c commlink.Candidate, page, reason string, detail ...string) {
 		plan.Review = append(plan.Review, commlink.ReviewEntry{ID: c.ID, RSITitle: c.Title, Page: page, Reason: reason, Detail: detail})
+	}
+	for _, r := range unfetched {
+		if _, ok := existing[r.ID]; ok || (len(onlyIDs) > 0 && !onlyIDs[r.ID]) {
+			continue
+		}
+		plan.Review = append(plan.Review, r)
 	}
 
 	// --- convert --------------------------------------------------------------

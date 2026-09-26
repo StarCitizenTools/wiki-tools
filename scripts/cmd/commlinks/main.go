@@ -2,9 +2,9 @@
 // is missing: a wikitext file per page, and a plan listing each page's images,
 // publication date, added links and fidelity result.
 //
-//	commlinks                          # write out/commlinks/plan.json and pages/
-//	commlinks -diff                    # same; exit 1 if a page is missing or a review entry is new
-//	commlinks -only 16000,17712,19956  # plan only these RSI ids
+//	commlinks                                             # write out/commlinks/plan.json and pages/
+//	commlinks -diff                                       # same; exit 1 if a page is missing or a review entry is new
+//	commlinks -only 16000,17712,19956 -out out/commlinks-scratch  # plan only these RSI ids, into a scratch dir
 //
 // It does not write to the wiki. Publishing goes through the MediaWiki MCP
 // server, uploads first, then pages.
@@ -64,6 +64,10 @@ func run() error {
 		quiet      = flag.Bool("quiet", false, "suppress progress output")
 	)
 	flag.Parse()
+
+	if *only != "" && *out == defaultOut {
+		return fmt.Errorf("-only needs -out: a partial run would replace the full plan in %s", defaultOut)
+	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -191,7 +195,8 @@ func run() error {
 		}
 		capture, err := firstCapture(ctx, web, ep, cache, p.c.RSIURL)
 		if err != nil {
-			return err
+			review(p.c, p.page, commlink.ReasonNoDate, "wayback lookup failed: "+err.Error())
+			continue
 		}
 		date, dateSource, ok := commlink.ResolveDate(p.c.Created, capture)
 		if !ok {

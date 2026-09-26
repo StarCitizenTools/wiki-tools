@@ -14,6 +14,7 @@ Required by [Module:SystemMap](https://starcitizen.tools/Module:SystemMap), [Mod
 |---|---|---|---|---|
 | `title` | `string` | Yes | | Header title. Wikitext allowed. |
 | `description` | `string` | No | | Secondary line under the title. |
+| `eyebrow` | `string` | No | | One line above the title naming the level above (e.g. "UEE space"). |
 | `content` | `string` | No | | Body content. Nil/empty forces the static variant regardless of `collapsible`. |
 | `footer` | `string` | No | | Attribution/metadata line, always visible, outside the `<details>` body. |
 | `open` | `boolean` | No | `false` | Starts expanded. |

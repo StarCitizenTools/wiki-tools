@@ -1,6 +1,7 @@
 package commlink
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 )
@@ -41,6 +42,31 @@ type PageEntry struct {
 	MissingImages []string `json:"missingImages,omitempty"`
 }
 
+// MarshalJSON writes an empty list, never null, for a plan with no entries of
+// a kind.
+func (p Plan) MarshalJSON() ([]byte, error) {
+	type plain Plan
+	q := plain(p)
+	q.Create, q.Review, q.Disagreements = orEmpty(q.Create), orEmpty(q.Review), orEmpty(q.Disagreements)
+	return json.Marshal(q)
+}
+
+// MarshalJSON writes an empty list, never null, for a page with no images or
+// no links.
+func (e PageEntry) MarshalJSON() ([]byte, error) {
+	type plain PageEntry
+	q := plain(e)
+	q.Images, q.Links = orEmpty(q.Images), orEmpty(q.Links)
+	return json.Marshal(q)
+}
+
+func orEmpty[T any](s []T) []T {
+	if s == nil {
+		return []T{}
+	}
+	return s
+}
+
 // ReviewEntry is a report held back, with the reason and its evidence.
 type ReviewEntry struct {
 	ID       int      `json:"id"`
@@ -66,6 +92,15 @@ func (p *Plan) Drift(known []int) bool {
 		}
 	}
 	return false
+}
+
+// CreateLines lists the pages the plan creates, one "id page" line each.
+func (p *Plan) CreateLines() []string {
+	lines := make([]string, len(p.Create))
+	for i, e := range p.Create {
+		lines[i] = fmt.Sprintf("%d %s", e.ID, e.Page)
+	}
+	return lines
 }
 
 // Report summarises the plan for the terminal.

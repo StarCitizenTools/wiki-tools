@@ -64,10 +64,15 @@ func tiles(s string, parts []string) bool {
 	return reach[len(s)]
 }
 
+// minGlueHead is the fewest words the opening piece of a glued line may have,
+// so a dropped short heading cannot pass on one-word block edges.
+const minGlueHead = 2
+
 // spansBlocks reports whether a normalized line runs across the page's blocks
-// in page order: it opens with the end of one block, may pass through whole
-// later blocks, and closes with the start of a later one. Each piece is on the
-// page, aligned to a block edge, so only the blocks' adjacency goes unchecked.
+// in page order: it opens with the end of one block (at least minGlueHead
+// words), may pass through whole later blocks, and closes with the start of a
+// later one. Each piece is on the page, aligned to a block edge, so only the
+// blocks' adjacency goes unchecked.
 func spansBlocks(n string, blocks []string) bool {
 	// n is " w1 w2 ... wk "; cut[i] is the space after word i, so n[:cut[i]+1]
 	// holds words 1..i and n[cut[i]:] the rest, each with its outer spaces.
@@ -84,7 +89,7 @@ func spansBlocks(n string, blocks []string) bool {
 	from := make([]int, words+1)
 	for i := range from {
 		from[i] = -1
-		if i == 0 || i == words {
+		if i < minGlueHead || i == words {
 			continue
 		}
 		for bi, b := range blocks {

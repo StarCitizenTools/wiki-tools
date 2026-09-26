@@ -64,6 +64,18 @@ func TestMissingGluedAcrossBlocks(t *testing.T) {
 	}
 }
 
+// A dropped short heading must not pass as a glue of one-word block edges: a
+// block that ends with the heading's first word and a later one that starts
+// with its last.
+func TestMissingHeadingOnOneWordEdges(t *testing.T) {
+	page := "The team shipped new features\n\n== Audio ==\n\nGameplay sounds were recorded.\n"
+	api := "Features (Gameplay)\nThe team shipped new features\n"
+	got := Missing(api, page, func(string) bool { return false })
+	if want := []string{"Features (Gameplay)"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("Missing = %q, want %q", got, want)
+	}
+}
+
 // The API collects illustration credits into lines of their own, the name and
 // the intro of one credit, or the names of several, glued with no space
 // (19317, 20220, 20620).

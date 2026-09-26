@@ -5,6 +5,7 @@
 //	commlinks                                             # write out/commlinks/plan.json and pages/
 //	commlinks -diff                                       # same, listing each page to create; exit 1 if one is missing or a review entry is new
 //	commlinks -only 16000,17712,19956 -out out/commlinks-scratch  # plan only these RSI ids, into a scratch dir
+//	commlinks -only 16000 -refresh -out out/commlinks-scratch     # re-plan an id the wiki already has, marked "refresh": true
 //
 // It does not write to the wiki. Publishing goes through the MediaWiki MCP
 // server, uploads first, then pages.
@@ -62,14 +63,15 @@ func run() error {
 		configPath = flag.String("config", defaultConfig, "path to the importer config")
 		doDiff     = flag.Bool("diff", false, "list each page to create; exit 1 if a page is missing or a review entry is not in knownReview")
 		only       = flag.String("only", "", "comma-separated RSI ids to plan; every other report is skipped")
+		refresh    = flag.Bool("refresh", false, "re-plan a -only id even when a wiki page already stores it, marking its entry \"refresh\": true")
 		interval   = flag.Duration("interval", 500*time.Millisecond, "minimum spacing between upstream requests")
 		maxCreate  = flag.Int("max-create", 200, "refuse to plan more page creations than this")
 		quiet      = flag.Bool("quiet", false, "suppress progress output")
 	)
 	flag.Parse()
 
-	if *only != "" && *out == defaultOut {
-		return fmt.Errorf("-only needs -out: a partial run would replace the full plan in %s", defaultOut)
+	if err := validateOnlyRefresh(*only, *refresh, *out); err != nil {
+		return err
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -128,7 +130,7 @@ func run() error {
 	}
 	var missing []commlink.Candidate
 	for _, c := range candidates {
-		if _, ok := existing[c.ID]; ok {
+		if _, ok := existing[c.ID]; ok && !*refresh {
 			continue
 		}
 		if len(onlyIDs) > 0 && !onlyIDs[c.ID] {
@@ -143,7 +145,7 @@ func run() error {
 		plan.Review = append(plan.Review, commlink.ReviewEntry{ID: c.ID, RSITitle: c.Title, Page: page, Reason: reason, Detail: detail})
 	}
 	for _, r := range unfetched {
-		if _, ok := existing[r.ID]; ok || (len(onlyIDs) > 0 && !onlyIDs[r.ID]) {
+		if _, ok := existing[r.ID]; (ok && !*refresh) || (len(onlyIDs) > 0 && !onlyIDs[r.ID]) {
 			continue
 		}
 		plan.Review = append(plan.Review, r)
@@ -196,7 +198,10 @@ func run() error {
 	planned := map[string]string{}
 	for i, p := range pages {
 		progress(fmt.Sprintf("[%d/%d] planning %s", i+1, len(pages), p.page))
-		if taken[namespacePrefix+p.page] {
+		// Under -refresh, existing[p.c.ID] already names this exact title: the
+		// page taken there is the report's own, not a title collision.
+		refreshing := *refresh && existing[p.c.ID] == namespacePrefix+p.page
+		if taken[namespacePrefix+p.page] && !refreshing {
 			review(p.c, p.page, commlink.ReasonTitleExists, "a page has this title, but no page stores RSI number "+strconv.Itoa(p.c.ID))
 			continue
 		}
@@ -239,7 +244,7 @@ func run() error {
 		plan.Create = append(plan.Create, commlink.PageEntry{
 			ID: p.c.ID, RSITitle: p.c.Title, Page: p.page, URL: commlink.InfoboxURL(p.c.RSIURL),
 			Date: date, DateSource: dateSource, Wikitext: filepath.Join("pages", file),
-			Images: imgs.Plans, Links: links, MissingImages: imgs.Missing,
+			Images: imgs.Plans, Links: links, MissingImages: imgs.Missing, Refresh: refreshing,
 		})
 		maps.Copy(planned, imgs.Added)
 	}
@@ -326,6 +331,20 @@ func noDateDetail(c commlink.Candidate) string {
 		}
 	}
 	return "RSI's listing has no posted date, " + api + ", and the Wayback Machine has no capture of " + c.RSIURL
+}
+
+// validateOnlyRefresh checks the -only/-refresh/-out combination: -only needs
+// a scratch -out, since a partial run would otherwise replace the full plan,
+// and -refresh needs -only, since without it every existing report would be
+// replanned.
+func validateOnlyRefresh(only string, refresh bool, out string) error {
+	if only != "" && out == defaultOut {
+		return fmt.Errorf("-only needs -out: a partial run would replace the full plan in %s", defaultOut)
+	}
+	if refresh && only == "" {
+		return fmt.Errorf("-refresh needs -only: it re-plans specific ids, not a full run")
+	}
+	return nil
 }
 
 func parseIDs(s string) (map[int]bool, error) {

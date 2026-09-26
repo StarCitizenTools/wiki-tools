@@ -26,3 +26,5 @@ Accept a review entry for good by adding its id to `knownReview`, which keeps it
 ## Output
 
 `-diff` lists each page it would create (RSI number and page name), then the counts, and exits 1 while a page is missing or a review entry is not in `knownReview`. A plan with more creations than `-max-create` is written to `plan.rejected.json` only, leaving `plan.json` and `pages/` as the last run within the cap wrote them; the run exits 2.
+
+`-refresh` re-plans a report the wiki already has, so its page can be regenerated with the current converter. It is only valid with `-only` and a non-default `-out`, the same rule `-only` alone already has. A listed id plans even though a wiki page already stores its RSI number; the `title-exists` check still runs, but does not send the report to review when the page holding that title is the one that already stores this id. Its `create` entry carries `"refresh": true`, so a publisher updates the existing page instead of creating a new one. Image planning is unchanged: files the page already holds resolve as reuse by SHA1, same as any other run.

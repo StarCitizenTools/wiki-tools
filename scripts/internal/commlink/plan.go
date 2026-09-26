@@ -40,6 +40,10 @@ type PageEntry struct {
 	// MissingImages are body image sources RSI answers with 404, left out
 	// of the page.
 	MissingImages []string `json:"missingImages,omitempty"`
+	// Refresh marks an entry planned by -refresh: the wiki already has this
+	// page, under this title, storing this RSI number, so a publisher should
+	// update it rather than create it.
+	Refresh bool `json:"refresh,omitempty"`
 }
 
 // MarshalJSON writes an empty list, never null, for a plan with no entries of

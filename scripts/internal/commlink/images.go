@@ -12,6 +12,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/StarCitizenTools/wiki-tools/scripts/internal/httpx"
@@ -120,14 +121,31 @@ func ExtForType(contentType string) string {
 }
 
 // FilePage is the description page of an imported image, in the form the 2021
-// monthly-report import used. description is expected to have already passed
-// through escapeText (a block's Caption does); a literal pipe survives that,
-// so it is escaped here to stop it opening a spurious {{Information}} parameter.
+// monthly-report import used. description and author are expected to have
+// already passed through escapeText (a block's Caption does); a literal pipe
+// survives that, so both are escaped here to stop it opening a spurious
+// {{Information}} parameter.
 func FilePage(description, date, source, author, category string) string {
 	description = strings.ReplaceAll(description, "|", "&#124;")
+	author = strings.ReplaceAll(author, "|", "&#124;")
 	return "=={{int:filedesc}}==\n{{Information\n|description=" + description +
 		"\n|date=" + date + "\n|source=" + source + "\n|author=" + author +
 		"\n|permission=\n|other versions=\n}}\n\n=={{int:license-header}}==\n{{RSIlicense}}\n\n[[Category:" + category + "]]\n"
+}
+
+// creditPattern matches a caption that is wholly a community-art credit. RSI's
+// own captions use only this "image by" phrasing; no other intro ("art by",
+// "screenshot by", ...) appears in the data, so that is all this matches.
+var creditPattern = regexp.MustCompile(`(?i)^image by (.+)$`)
+
+// creditAuthor returns a whole-caption credit's subject, kept as wikitext (so
+// a linked name stays an external link), and whether caption was one.
+func creditAuthor(caption string) (string, bool) {
+	m := creditPattern.FindStringSubmatch(caption)
+	if m == nil {
+		return "", false
+	}
+	return m[1], true
 }
 
 // Hash is what the importer keeps of a downloaded file: never the bytes.
@@ -262,7 +280,11 @@ func PlanImages(ctx context.Context, web *httpx.Client, wiki *mediawiki.Client, 
 			if desc == "" {
 				desc = fmt.Sprintf("%s, image %02d", escapeText(rsiTitle), n)
 			}
-			p.FilePage = FilePage(desc, date, src, cfg.ImageAuthor, cfg.ImageCategory)
+			author := cfg.ImageAuthor
+			if a, ok := creditAuthor(captions[src]); ok {
+				author = a
+			}
+			p.FilePage = FilePage(desc, date, src, author, cfg.ImageCategory)
 			uploads = append(uploads, "File:"+p.File)
 		}
 		res.Added[h.SHA1] = p.File

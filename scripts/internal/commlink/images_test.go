@@ -107,6 +107,59 @@ func TestFilePageEscapesPipe(t *testing.T) {
 	}
 }
 
+func TestFilePageEscapesPipeInAuthor(t *testing.T) {
+	got := FilePage("A report, image 01", "2021-06-02", "https://x/a.png", "[https://y John | Doe]", "Monthly Report images")
+	if !strings.Contains(got, "|author=[https://y John &#124; Doe]\n") {
+		t.Errorf("FilePage did not escape a literal pipe in the author:\n%s", got)
+	}
+}
+
+func TestCreditAuthor(t *testing.T) {
+	for caption, want := range map[string]string{
+		"Image by Barao":                      "Barao",
+		"image by [https://y Name]":           "[https://y Name]",
+		"Bar Citizen Beijing":                 "",
+		"Winners of Show Us Your Colors 2024": "",
+		"A crowd credits image by Barao":      "", // "image by" not at the start: not a whole-caption credit
+	} {
+		got, ok := creditAuthor(caption)
+		wantOK := want != ""
+		if ok != wantOK || got != want {
+			t.Errorf("creditAuthor(%q) = %q, %v; want %q, %v", caption, got, ok, want, wantOK)
+		}
+	}
+}
+
+// A caption that is wholly an "image by" credit sets the upload's author=; a
+// caption that is not keeps cfg.ImageAuthor.
+func TestPlanImagesCreditsCaptionAuthor(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/credited.jpg":
+			w.Write(jpegBytes)
+		case "/uncredited.jpg":
+			w.Write(pngBytes)
+		}
+	}))
+	defer srv.Close()
+	wiki := testWiki(t, func(url.Values) string { return `{"query":{"allimages":[]}}` })
+	cache, _ := LoadCache(filepath.Join(t.TempDir(), "cache.json"))
+	blocks := []Block{
+		{Kind: Image, Src: srv.URL + "/credited.jpg", Caption: "Image by [https://y John | Doe]"},
+		{Kind: Image, Src: srv.URL + "/uncredited.jpg", Caption: "Bar Citizen Beijing"},
+	}
+	res, err := PlanImages(context.Background(), testWeb(t), wiki, cache, map[string]string{}, testConfig(t), "R", "A page", "2021-06-02", blocks)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(res.Plans[0].FilePage, "|author=[https://y John &#124; Doe]\n") {
+		t.Errorf("image 1 (credited) FilePage:\n%s", res.Plans[0].FilePage)
+	}
+	if !strings.Contains(res.Plans[1].FilePage, "|author=Cloud Imperium Games\n") {
+		t.Errorf("image 2 (uncredited) FilePage:\n%s", res.Plans[1].FilePage)
+	}
+}
+
 func TestCache(t *testing.T) {
 	hits := 0
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { hits++; w.Write(pngBytes) }))

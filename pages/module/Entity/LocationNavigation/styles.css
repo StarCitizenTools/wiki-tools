@@ -1,0 +1,293 @@
+/* Body panel: one grid per row (gauge | label | content), so rows grow freely
+ * and the gauge column stays continuous. Below 640 px the label moves into the
+ * row above its content and the gauge becomes a 56 px strip. */
+.t-location-nav__row {
+	display: grid;
+	grid-template-columns: 160px 150px minmax(0, 1fr);
+}
+
+.t-location-nav__gauge {
+	position: relative;
+	overflow: hidden;
+	min-height: 44px;
+	border-right: var(--border-base);
+}
+
+/* 75px = Gauge.GEOMETRY.wide.disc / 2: clears the disc's lower half when the
+ * cap row carries no orbit arc. min-height, not height: the base rule's own
+ * min-height wins over a plain height when the two conflict. Keep in sync
+ * with Gauge.lua. */
+.t-location-nav__row--cap .t-location-nav__gauge {
+	min-height: 75px;
+}
+
+.t-location-nav__label {
+	padding: var(--space-sm) var(--space-md);
+	border-right: var(--border-base);
+	border-bottom: var(--border-subtle);
+	font-weight: var(--font-weight-medium);
+	color: var(--color-emphasized);
+}
+
+.t-location-nav__content {
+	min-width: 0;
+	padding: var(--space-sm) var(--space-md);
+	border-bottom: var(--border-subtle);
+	font-size: var(--font-size-small);
+	line-height: var(--line-height-small);
+}
+
+.t-location-nav__row:last-child .t-location-nav__label,
+.t-location-nav__row:last-child .t-location-nav__content {
+	border-bottom: 0;
+}
+
+/* This --space-xxs offset is baked into Gauge.GEOMETRY's `line` value for the
+ * moons/lagrange rows; keep in sync with Gauge.lua. */
+.t-location-nav__row--moons .t-location-nav__content,
+.t-location-nav__row--lagrange .t-location-nav__content {
+	padding-top: var(--space-xxs);
+}
+
+.t-location-nav__line {
+	display: flex;
+	align-items: center;
+	gap: var(--space-sm);
+	height: 36px;
+}
+
+.t-location-nav__points {
+	gap: var(--space-md);
+	font-family: var(--font-family-monospace);
+}
+
+.t-location-nav__desig {
+	font-family: var(--font-family-monospace);
+	font-size: var(--font-size-x-small);
+	line-height: var(--line-height-x-small);
+	color: var(--color-subtle);
+}
+
+/* Gauge decoration. Gauge.lua sets each element's geometry inline (left/top
+ * always, plus width, height or bottom wherever it computes one); the
+ * stylesheet owns borders and colours. Its 8px diamond and 16px break sizes
+ * must match Gauge.lua's DIAMOND and BREAK constants. */
+.t-location-nav__axis,
+.t-location-nav__arc,
+.t-location-nav__disc,
+.t-location-nav__glyph,
+.t-location-nav__dot,
+.t-location-nav__diamond,
+.t-location-nav__break {
+	position: absolute;
+}
+
+.t-location-nav__axis {
+	border-left: 1px dashed var(--border-color-base);
+}
+
+.t-location-nav__arc {
+	box-sizing: border-box;
+	border: 1px solid var(--border-color-base);
+	border-radius: 50%;
+}
+
+.t-location-nav__disc,
+.t-location-nav__glyph {
+	line-height: 0;
+}
+
+.t-location-nav__disc--star,
+.t-location-nav__disc--plain,
+.t-location-nav__dot {
+	box-sizing: border-box;
+	border: 1px solid var(--border-color-base);
+	border-radius: 50%;
+	background-color: var(--color-surface-2);
+}
+
+.t-location-nav__glyph img {
+	border-radius: 50%;
+	box-shadow: 0 0 0 3px var(--color-surface-0);
+}
+
+.t-location-nav__diamond {
+	box-sizing: border-box;
+	width: 8px;
+	height: 8px;
+	border: 1.5px solid var(--color-progressive);
+	background-color: var(--color-surface-0);
+	box-shadow: 0 0 0 3px var(--color-surface-0);
+	transform: rotate(45deg);
+}
+
+.t-location-nav__break {
+	width: 16px;
+	font-size: var(--font-size-x-small);
+	line-height: 16px;
+	text-align: center;
+	color: var(--color-subtle);
+	background-color: var(--color-surface-0);
+}
+
+.t-location-nav__g--narrow {
+	display: none;
+}
+
+/* Surface and In orbit: class groups in flowing columns. */
+.t-location-nav__cards {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-sm);
+	margin-bottom: var(--space-sm);
+}
+
+.t-location-nav__card {
+	display: flex;
+	align-items: center;
+	gap: var(--space-sm);
+	max-width: 340px;
+	padding: var(--space-xs);
+	border: var(--border-base);
+	border-radius: var(--border-radius-medium);
+}
+
+.t-location-nav__card-image img {
+	width: 112px;
+	height: 63px;
+	object-fit: cover;
+	border-radius: var(--border-radius-base);
+}
+
+.t-location-nav__card-class,
+.t-location-nav__card-meta {
+	font-size: var(--font-size-x-small);
+	line-height: var(--line-height-x-small);
+	color: var(--color-subtle);
+}
+
+.t-location-nav__card-title {
+	font-size: var(--font-size-medium);
+	line-height: var(--line-height-medium);
+	font-weight: var(--font-weight-semi-bold);
+}
+
+.t-location-nav__groups {
+	column-count: 3;
+	column-gap: var(--space-lg);
+}
+
+.t-location-nav__group {
+	break-inside: avoid;
+	padding-bottom: var(--space-sm);
+}
+
+.t-location-nav__group-heading {
+	margin-bottom: var(--space-xxs);
+	font-weight: var(--font-weight-medium);
+	color: var(--color-emphasized);
+}
+
+.t-location-nav__list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.t-location-nav__list li {
+	margin: 0 0 var(--space-xxs);
+}
+
+.t-location-nav__family-name {
+	display: block;
+}
+
+.t-location-nav__codes {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1px var(--space-sm);
+	font-family: var(--font-family-monospace);
+	font-size: var(--font-size-x-small);
+	line-height: var(--line-height-x-small);
+}
+
+/* Inside panel: a label column of plural class names, then plain links. */
+.t-location-nav__inside-row {
+	display: grid;
+	grid-template-columns: 150px minmax(0, 1fr);
+}
+
+.t-location-nav__inside-label {
+	padding: var(--space-xs) var(--space-md);
+	font-weight: var(--font-weight-medium);
+	color: var(--color-emphasized);
+}
+
+.t-location-nav__inside-list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-xxs) var(--space-lg);
+	margin: 0;
+	padding: var(--space-xs) var(--space-md);
+	list-style: none;
+	font-size: var(--font-size-small);
+	line-height: var(--line-height-small);
+}
+
+@media (max-width: 640px) {
+	.t-location-nav__row {
+		grid-template-columns: 56px minmax(0, 1fr);
+	}
+
+	.t-location-nav__gauge {
+		grid-row: 1 / span 2;
+	}
+
+	/* 26px = Gauge.GEOMETRY.narrow.disc / 2. min-height, not height: see the
+	 * wide rule above. Keep in sync with Gauge.lua. */
+	.t-location-nav__row--cap .t-location-nav__gauge {
+		min-height: 26px;
+	}
+
+	/* A fixed 32px box (padding-top var(--space-sm) [12px] + a 20px line-height)
+	 * rather than an inherited line-height, so the first Moons/Lagrange line
+	 * centre lands at a predictable offset whatever the reader's font-size
+	 * preference. This 32px box and the 36px .t-location-nav__line height are
+	 * mirrored in Gauge.GEOMETRY's narrow `line` and `step` — keep in sync with
+	 * Gauge.lua. */
+	.t-location-nav__label {
+		grid-column: 2;
+		height: 32px;
+		box-sizing: border-box;
+		padding: var(--space-sm) var(--space-sm) 0 var(--space-xxs);
+		border-right: 0;
+		border-bottom: 0;
+		font-size: var(--font-size-small);
+		line-height: 20px;
+	}
+
+	.t-location-nav__content {
+		grid-column: 2;
+		padding: var(--space-xs) var(--space-sm) var(--space-sm) var(--space-xxs);
+	}
+
+	.t-location-nav__g--wide {
+		display: none;
+	}
+
+	.t-location-nav__g--narrow {
+		display: block;
+	}
+
+	.t-location-nav__groups {
+		column-count: 2;
+	}
+
+	.t-location-nav__inside-row {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.t-location-nav__inside-label {
+		padding-bottom: 0;
+	}
+}

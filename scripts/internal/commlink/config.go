@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 )
@@ -37,6 +38,9 @@ type Config struct {
 	NoLink         []string `json:"noLink"`
 	FidelityIgnore []string `json:"fidelityIgnore"`
 	KnownReview    []int    `json:"knownReview"`
+	// APITextAccepted are reports whose short API text a person has read
+	// against RSI's page; the api-text check passes them.
+	APITextAccepted []int `json:"apiTextAccepted"`
 	// APIIngestDates are YYYY-MM-DD days the API imported reports in bulk; a
 	// created_at on one of them is not a publication date.
 	APIIngestDates []string `json:"apiIngestDates"`
@@ -121,6 +125,9 @@ func (c *Config) IgnoredLine(line string) bool {
 	}
 	return false
 }
+
+// AcceptsAPIText reports whether id is in apiTextAccepted.
+func (c *Config) AcceptsAPIText(id int) bool { return slices.Contains(c.APITextAccepted, id) }
 
 // InfoboxURL drops RSI's locale segment, matching the url the existing pages
 // carry.

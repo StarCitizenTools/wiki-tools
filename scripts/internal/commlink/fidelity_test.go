@@ -103,3 +103,27 @@ func TestMissingMarkupInLinkText(t *testing.T) {
 		t.Errorf("Missing = %q, want none", got)
 	}
 }
+
+// An API text under half the body's words is short: the API has not finished
+// scraping the report. Media lines are not body words.
+func TestAPITextWords(t *testing.T) {
+	body := "One two three four five six seven eight.\n\n[[File:A - 01.png|thumb|center|a long caption of many words here]]\n\n{{#ev:youtube|abc}}\n"
+	for _, c := range []struct {
+		api         string
+		apiN, pageN int
+		short       bool
+	}{
+		{"", 0, 8, true},
+		{"One two three", 3, 8, true},
+		{"One two three four", 4, 8, false},
+		{"One two three four five six seven eight.", 8, 8, false},
+	} {
+		api, page, short := APITextWords(c.api, body)
+		if api != c.apiN || page != c.pageN || short != c.short {
+			t.Errorf("APITextWords(%q) = %d, %d, %v; want %d, %d, %v", c.api, api, page, short, c.apiN, c.pageN, c.short)
+		}
+	}
+	if _, _, short := APITextWords("", ""); short {
+		t.Error("an empty page with empty API text is short")
+	}
+}

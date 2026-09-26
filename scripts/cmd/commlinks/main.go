@@ -218,6 +218,11 @@ func run() error {
 			RSITitle: p.c.Title, URL: commlink.InfoboxURL(p.c.RSIURL),
 			Series: cfg.InfoboxSeries, Type: cfg.InfoboxType, Date: date,
 		}) + "\n" + body
+		if api, words, short := commlink.APITextWords(p.c.Text, body); short && !cfg.AcceptsAPIText(p.c.ID) {
+			review(p.c, p.page, commlink.ReasonAPIText, fmt.Sprintf(
+				"the API text has %d words, under half the page body's %d: the API may not have finished scraping the report", api, words))
+			continue
+		}
 		if lost := commlink.Missing(p.c.Text, text, cfg.IgnoredLine); len(lost) > 0 {
 			review(p.c, p.page, commlink.ReasonFidelity, lost...)
 			continue

@@ -11,6 +11,7 @@ const (
 	ReasonTitleExists = "title-exists"
 	ReasonNoDate      = "no-date"
 	ReasonImages      = "images"
+	ReasonAPIText     = "api-text"
 	ReasonFidelity    = "fidelity"
 )
 

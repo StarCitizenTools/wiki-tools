@@ -119,6 +119,19 @@ func spansBlocks(n string, blocks []string) bool {
 	return false
 }
 
+// mediaLine is a file line or a template call (a video embed): no body words.
+var mediaLine = regexp.MustCompile(`(?m)^(?:\[\[File:|\{\{).*$`)
+
+// APITextWords counts the words of the API text and of the page body, leaving
+// out the body's media lines. short is true when the API text has fewer than
+// half as many: the API has not finished scraping the report, so its lines
+// check only part of the page. Empty API text is the limiting case.
+func APITextWords(apiText, body string) (api, page int, short bool) {
+	api = len(strings.Fields(normalize(apiText)))
+	page = len(strings.Fields(normalize(mediaLine.ReplaceAllString(body, ""))))
+	return api, page, 2*api < page
+}
+
 // Missing lists the lines of the API's plain text that the page does not
 // contain. The check runs one way, API into page, so an API text that stops
 // short of RSI's body cannot fail it. Two API artefacts pass: a line glued

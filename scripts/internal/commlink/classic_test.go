@@ -197,3 +197,60 @@ func TestDetect(t *testing.T) {
 		t.Error("an unknown page was accepted")
 	}
 }
+
+// A bold subsection title becomes a heading below the section's, whether it
+// stands between breaks before an image or in a div of its own. A bold line
+// that ends in punctuation, carries a link, or is followed by no text before
+// the next heading stays bold.
+func TestParseClassicPseudoHeadings(t *testing.T) {
+	img := func(name string) string {
+		return `<a class="image  js-open-in-slideshow" data-source_url="/media/x/source/` + name + `" rel="post"><img src="/media/x/tavern_upload_square/` + name + `" alt="" /></a>`
+	}
+	shell := []byte(`<html><body><div id="contentbody"><div id="post"><div class="wrapper">
+<div class="content-block1 rsi-markup"><div class="segment"><div class="content">
+<div class="no-margin"><strong>Attention Recruits,</strong></div><br />
+<div class="no-margin">Read on.</div><br />
+<div class="no-margin"><strong>UEE Naval High Command</strong></div>
+` + img("Banner.jpg") + `
+<h2 class="no-margin"><span class="caps">SHIPS</span></h2><hr/>
+  <strong>Hammerhead</strong>
+  <br />
+` + img("Hammerhead.jpg") + `
+  The Hammerhead made progress.
+  <br />
+<br />
+  <strong>600i</strong>
+  <br />
+` + img("600i.jpg") + img("600i_2.jpg") + `
+  The 600i got corridors.
+<br /><br />
+<strong><a href="/x">Linked</a></strong><br />Linked text.
+<h2 class="no-margin">AI</h2><hr/>
+<div class="no-margin"><strong>AI (Ships)</strong></div>
+<br />
+<div class="no-margin">Ship AI flew.</div>
+</div></div></div>
+</div><div class="two-line-separator"></div></div></div></body></html>`)
+	blocks, err := ParseClassic(shell, "Star Citizen Monthly Report: November 2017")
+	if err != nil {
+		t.Fatal(err)
+	}
+	check(t, dump(blocks), []string{
+		"P '''Attention Recruits,'''",
+		"P Read on.",
+		"P '''UEE Naval High Command'''",
+		"IMG https://robertsspaceindustries.com/media/x/source/Banner.jpg",
+		"H2 SHIPS",
+		"H3 Hammerhead",
+		"IMG https://robertsspaceindustries.com/media/x/source/Hammerhead.jpg",
+		"P The Hammerhead made progress.",
+		"H3 600i",
+		"IMG https://robertsspaceindustries.com/media/x/source/600i.jpg",
+		"IMG https://robertsspaceindustries.com/media/x/source/600i_2.jpg",
+		"P The 600i got corridors.",
+		"P '''[https://robertsspaceindustries.com/x Linked]'''<br />Linked text.",
+		"H2 AI",
+		"H3 AI (Ships)",
+		"P Ship AI flew.",
+	})
+}

@@ -3,6 +3,8 @@ package commlink
 import (
 	"regexp"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"golang.org/x/net/html"
 )
@@ -198,19 +200,56 @@ func youtubeID(src string) string {
 	return ""
 }
 
-var pseudoHeading = regexp.MustCompile(`^'''([^'<\n]{1,60})'''$`)
+// pseudoHeading is a line that is only one short bold run. A link or tag
+// inside it rules it out: a heading never carries one.
+var pseudoHeading = regexp.MustCompile(`^'''([^'<\[\n]{1,60})'''$`)
 
-// splitPseudoHeadings turns a bold run standing alone between line breaks
-// (<br/><strong>600i</strong><br/>) into a heading one level below the section
-// it sits in. A paragraph that is only a bold run, with no break, stays bold.
+// pseudoHeadingText is the text of a line that reads as a subsection title:
+// one short bold run that opens with a letter or digit, ends without terminal
+// punctuation, and is not a greeting or sign-off.
+func pseudoHeadingText(line string) (string, bool) {
+	m := pseudoHeading.FindStringSubmatch(strings.TrimSpace(line))
+	if m == nil {
+		return "", false
+	}
+	t := m[1]
+	first, _ := utf8.DecodeRuneInString(t)
+	if (!unicode.IsLetter(first) && !unicode.IsDigit(first)) || strings.ContainsAny(t[len(t)-1:], ".,!?:;") ||
+		greeting.MatchString(t) || signOff.MatchString(t) {
+		return "", false
+	}
+	return t, true
+}
+
+// textFollows reports whether the first block from blocks[i] on that is not an
+// image or video is text.
+func textFollows(blocks []Block, i int) bool {
+	for ; i < len(blocks); i++ {
+		switch blocks[i].Kind {
+		case Image, Video:
+			continue
+		case Paragraph, List, Quote:
+			return true
+		}
+		return false
+	}
+	return false
+}
+
+// splitPseudoHeadings turns a bold subsection title into a heading one level
+// below the latest real heading, the level its siblings get. The title is a
+// paragraph of its own (<div><strong>AI (Ships)</strong></div>) or a line of
+// one between breaks (<br/><strong>600i</strong><br/>), and text must follow
+// it, past any images: a bold line before the next heading is a signature
+// (UEE Naval High Command), not a title.
 func splitPseudoHeadings(blocks []Block) []Block {
 	var out []Block
 	level := 2
-	for _, b := range blocks {
+	for i, b := range blocks {
 		if b.Kind == Heading {
 			level = b.Level
 		}
-		if b.Kind != Paragraph || !strings.Contains(b.Text, "<br />") {
+		if b.Kind != Paragraph {
 			out = append(out, b)
 			continue
 		}
@@ -222,11 +261,11 @@ func splitPseudoHeadings(blocks []Block) []Block {
 			}
 			cur = nil
 		}
-		for _, part := range parts {
-			m := pseudoHeading.FindStringSubmatch(strings.TrimSpace(part))
-			if m != nil && !strings.ContainsAny(m[1][len(m[1])-1:], ".!?:") {
+		for j, part := range parts {
+			if t, ok := pseudoHeadingText(part); ok &&
+				(strings.TrimSpace(strings.Join(parts[j+1:], "")) != "" || textFollows(blocks, i+1)) {
 				flushCur()
-				out = append(out, Block{Kind: Heading, Level: level + 1, Text: m[1]})
+				out = append(out, Block{Kind: Heading, Level: level + 1, Text: t})
 				continue
 			}
 			cur = append(cur, part)

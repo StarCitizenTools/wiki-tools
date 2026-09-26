@@ -37,21 +37,19 @@ p.resolve = BucketQuery.resolve
 p.needsKind = BucketQuery.needsKind
 p.query = BucketQuery.query
 
---- The current page's own row from `bucket`, or nil off the main namespace: Bucket
---- rows exist only for main-namespace pages (see resolveUuids), so without this
---- guard a same-titled Talk:/Template:/... page would match the mainspace
---- entity's row. `title.text` is provably equal to `page_name` for namespace 0
---- (no prefix to strip, so text/prefixedText/fullText coincide). Wrapped in
+--- One page's row from `bucket`, or nil for a page off the main namespace:
+--- Bucket rows exist only for main-namespace pages, so without this guard a
+--- same-titled Talk:/Template:/... page would match the mainspace entity's
+--- row, and `title.text` equals `page_name` only for namespace 0. Wrapped in
 --- `pcall`: a Bucket infrastructure failure (rate limit, timeout) degrades to
---- nil rather than red-erroring the page, the documented answer for "no row
---- yet" besides. Shared by selfUuid and selfValue so the two do not duplicate
---- the query.
+--- nil rather than red-erroring the page, which is also the documented answer
+--- for "no row yet".
+--- @param title table|nil a mw.title
 --- @param bucket string
 --- @param field string
 --- @return table|nil
-local function selfRow(bucket, field)
-	local title = mw.title.getCurrentTitle()
-	if title.namespace ~= 0 then
+local function rowFor(title, bucket, field)
+	if not title or title.namespace ~= 0 then
 		return nil
 	end
 	local ok, raw = pcall(function()
@@ -61,6 +59,15 @@ local function selfRow(bucket, field)
 		return nil
 	end
 	return type(raw) == 'table' and raw[1] or nil
+end
+
+--- The current page's own row from `bucket`; shared by selfUuid, selfValue and
+--- selfValues so they do not duplicate the query.
+--- @param bucket string
+--- @param field string
+--- @return table|nil
+local function selfRow(bucket, field)
+	return rowFor(mw.title.getCurrentTitle(), bucket, field)
 end
 
 --- The uuid stored for the current page, available after its first link
@@ -122,6 +129,42 @@ function p.selfValues(displayName, kind)
 		end
 	end
 	return out[1] and out or nil
+end
+
+--- Another page's stored value of `displayName` (resolved through resolve(),
+--- so a per-kind property needs `kind`), nil when the page is not in the main
+--- namespace, has no row, or holds neither a non-empty string nor a number.
+--- @param page string|nil
+--- @param displayName string
+--- @param kind string|nil
+--- @return string|number|nil
+function p.pageValue(page, displayName, kind)
+	if type(page) ~= 'string' or page == '' then
+		return nil
+	end
+	local entry = p.resolve(displayName, kind)
+	if entry == nil then
+		return nil
+	end
+	-- Rows are keyed by the page a redirect lands on: StructuredData stores a
+	-- PAGE value as its redirect target. Reading `redirectTarget` loads the
+	-- page and records a templatelinks edge to it, so editing the target page
+	-- queues a refresh of every page naming it here (for the CURRENT page,
+	-- Scribunto instead varies the cached render by that page's revision
+	-- SHA1, rather than adding that edge).
+	local title = mw.title.new(page)
+	if title and title.redirectTarget then
+		title = title.redirectTarget
+	end
+	local row = rowFor(title, entry.bucket, entry.field)
+	local value = row and row[entry.field]
+	if type(value) == 'string' and value ~= '' then
+		return value
+	end
+	if type(value) == 'number' then
+		return value
+	end
+	return nil
 end
 
 --- Maps uuids to their page and infobox image. Bucket rows exist only for

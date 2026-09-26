@@ -196,22 +196,15 @@ function p.resolve(apiData, args, manifest)
 	return resolved
 end
 
---- Stored values are queried, not rendered: strip parser strip-markers (a ref
---- inside an editor arg has become a UNIQ…QINU token by the time Lua sees it),
---- rendered HTML (an arg holding a template — `{{SDA|2578}}` — arrives expanded,
---- so `<span>`s and `&nbsp;` would otherwise be stored verbatim) and wiki-link
---- markup, keeping display text. Non-strings (numbers from
---- `transform = 'number'`) pass through untouched. Display paths keep the
---- original value — only the stored projection is sanitized. The marker
+--- `value` without strip markers, HTML tags, entities or non-breaking spaces,
+--- trimmed; wiki links are left intact. The first half of toStoredValue, for a
+--- caller that must read a link's target before it is delinked. The marker
 --- pattern is Parser::MARKER_PREFIX/SUFFIX inlined rather than
 --- mw.text.killMarkers, which delegates to a PHP callback the offline test
---- runner cannot provide. Public because leaves that store a field themselves
---- (no `property` manifest key, so display and storage cannot disagree) need the
---- same projection for the stored copy — StarSystem's affiliation is the
---- first: the editor may write `[[Kr'Thak]]`, the store keeps `Kr'Thak`.
+--- runner cannot provide.
 --- @param value any
 --- @return any
-function p.toStoredValue(value)
+function p.stripMarkup(value)
 	if type(value) ~= 'string' then
 		return value
 	end
@@ -221,7 +214,27 @@ function p.toStoredValue(value)
 	-- Entity-decoding leaves real non-breaking spaces; collapse them so the stored
 	-- value compares equal to the same text typed with ordinary spaces.
 	value = value:gsub('\194\160', ' ')
-	return mw.text.trim(delink(value))
+	return mw.text.trim(value)
+end
+
+--- Stored values are queried, not rendered: strip parser strip-markers (a ref
+--- inside an editor arg has become a UNIQ…QINU token by the time Lua sees it),
+--- rendered HTML (an arg holding a template — `{{SDA|2578}}` — arrives expanded,
+--- so `<span>`s and `&nbsp;` would otherwise be stored verbatim) and wiki-link
+--- markup, keeping display text. Non-strings (numbers from
+--- `transform = 'number'`) pass through untouched. Display paths keep the
+--- original value — only the stored projection is sanitized. Public because
+--- leaves that store a field themselves (no `property` manifest key, so
+--- display and storage cannot disagree) need the same projection for the
+--- stored copy — StarSystem's affiliation is the first: the editor may write
+--- `[[Kr'Thak]]`, the store keeps `Kr'Thak`.
+--- @param value any
+--- @return any
+function p.toStoredValue(value)
+	if type(value) ~= 'string' then
+		return value
+	end
+	return mw.text.trim(delink(p.stripMarkup(value)))
 end
 
 --- Project resolved fields onto their manifest property names, and append the

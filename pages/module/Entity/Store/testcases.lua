@@ -317,4 +317,64 @@ function suite:testUsesMwExtBucketNotRequire()
 	end
 end
 
+--- pageValue reads ANOTHER page's row: a place with no location record
+--- inherits its curated parent's stored Jurisdiction through it.
+function suite:testPageValueReadsTheNamedPage()
+	withManifest(function()
+		bucketLib._setRows('wearable_set', { { classification = 'Heavy armor' } })
+		self:assertEquals('Heavy armor', Store.pageValue('Area18', 'Classification'))
+		local chain = bucketLib._chains[1]
+		self:assertDeepEquals({ { 'page_name', '=', 'Area18' } }, chain.where)
+		self:assertEquals(1, chain.limit)
+	end)
+end
+
+function suite:testPageValueIgnoresEmptyPage()
+	withManifest(function()
+		bucketLib._setRows('wearable_set', { { classification = 'Heavy armor' } })
+		self:assertEquals(nil, Store.pageValue('', 'Classification'))
+		self:assertEquals(nil, Store.pageValue(nil, 'Classification'))
+	end)
+end
+
+--- The runner's mw.title.new always answers namespace 0, so the guard is
+--- exercised through a title that reports another namespace.
+function suite:testPageValueIgnoresNonMainspace()
+	withManifest(function()
+		bucketLib._setRows('wearable_set', { { classification = 'Heavy armor' } })
+		local saved = mw.title.new
+		mw.title.new = function(text)
+			return { text = text, namespace = 10 }
+		end
+		local ok, value = pcall(Store.pageValue, 'Template:Area18', 'Classification')
+		mw.title.new = saved
+		self:assertTrue(ok, tostring(value))
+		self:assertEquals(nil, value)
+	end)
+end
+
+function suite:testPageValueContainsBucketFailure()
+	withManifest(function()
+		bucketLib._failNext = true
+		self:assertEquals(nil, Store.pageValue('Area18', 'Classification'))
+	end)
+end
+
+--- StructuredData stores a PAGE value as its redirect target, so a lookup by
+--- a redirect's own title must follow it or it finds no row.
+function suite:testPageValueFollowsARedirect()
+	withManifest(function()
+		bucketLib._setRows('wearable_set', { { classification = 'Heavy armor' } })
+		local saved = mw.title.new
+		mw.title.new = function(text)
+			return { text = text, namespace = 0, redirectTarget = { text = 'Area18', namespace = 0 } }
+		end
+		local ok, value = pcall(Store.pageValue, 'Area 18', 'Classification')
+		mw.title.new = saved
+		self:assertTrue(ok, tostring(value))
+		self:assertEquals('Heavy armor', value)
+		self:assertDeepEquals({ { 'page_name', '=', 'Area18' } }, bucketLib._chains[1].where)
+	end)
+end
+
 return suite

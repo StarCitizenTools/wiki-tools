@@ -24,6 +24,16 @@
 	line-height: var(--line-height-small);
 }
 
+/* `.t-card__header-content` is a wrapping flex row: without this the eyebrow
+ * is a third item on the title's line instead of a line of its own, with the
+ * title and description sharing the next. */
+.t-card__eyebrow {
+	flex-basis: 100%;
+	font-size: var(--font-size-x-small);
+	line-height: var(--line-height-x-small);
+	color: var(--color-subtle);
+}
+
 .t-card__header-content {
 	flex-grow: 1;
 	min-width: 0;

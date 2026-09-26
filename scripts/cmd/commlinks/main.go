@@ -203,7 +203,7 @@ func run() error {
 			review(p.c, p.page, commlink.ReasonNoDate, "the Wayback Machine has no capture of "+p.c.RSIURL)
 			continue
 		}
-		images, fileFor, err := commlink.PlanImages(ctx, web, wiki, cache, planned, cfg, p.c.Title, p.page, date, p.blocks)
+		images, missingImages, fileFor, err := commlink.PlanImages(ctx, web, wiki, cache, planned, cfg, p.c.Title, p.page, date, p.blocks)
 		if saveErr := cache.Save(); saveErr != nil {
 			return saveErr
 		}
@@ -227,7 +227,7 @@ func run() error {
 		plan.Create = append(plan.Create, commlink.PageEntry{
 			ID: p.c.ID, RSITitle: p.c.Title, Page: p.page, URL: commlink.InfoboxURL(p.c.RSIURL),
 			Date: date, DateSource: dateSource, Wikitext: filepath.Join("pages", file),
-			Images: images, Links: links,
+			Images: images, Links: links, MissingImages: missingImages,
 		})
 	}
 	if err := cache.Save(); err != nil {

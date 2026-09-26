@@ -2,6 +2,7 @@ package httpx
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -34,5 +35,23 @@ func TestDoContentType(t *testing.T) {
 	}
 	if gotType != "application/x-www-form-urlencoded" {
 		t.Errorf("Do sent type %q, want form encoding", gotType)
+	}
+}
+
+func TestDoStatusError(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "gone", http.StatusNotFound)
+	}))
+	defer srv.Close()
+	c := New(Options{Interval: time.Millisecond, UserAgent: "test", MaxTries: 1})
+	defer c.Close()
+
+	_, err := c.Do(context.Background(), http.MethodGet, srv.URL, "")
+	var se *StatusError
+	if !errors.As(err, &se) || se.Code != http.StatusNotFound {
+		t.Fatalf("Do error = %v, want a *StatusError with code 404", err)
+	}
+	if want := "http 404 404 Not Found: gone"; err.Error() != want {
+		t.Errorf("error text = %q, want %q", err.Error(), want)
 	}
 }

@@ -62,6 +62,18 @@ func New(opts Options) *Client {
 // Close releases the rate limiter.
 func (c *Client) Close() { c.ticker.Stop() }
 
+// StatusError is an answer the client did not retry: a 4xx, or any other
+// status that is neither 200 nor transient. Body is a trimmed snippet.
+type StatusError struct {
+	Code   int
+	Status string
+	Body   string
+}
+
+func (e *StatusError) Error() string {
+	return fmt.Sprintf("http %d %s: %s", e.Code, e.Status, e.Body)
+}
+
 // retryable reports whether a status code is worth another attempt. These are
 // the codes that indicate a transient upstream or edge problem rather than a
 // request we got wrong.
@@ -125,7 +137,7 @@ func (c *Client) DoContentType(ctx context.Context, method, url, body, contentTy
 				lastErr = fmt.Errorf("http %d %s", resp.StatusCode, resp.Status)
 			default:
 				// 4xx and anything else: the request itself is wrong, so stop.
-				return nil, fmt.Errorf("http %d %s: %s", resp.StatusCode, resp.Status, snippet(data))
+				return nil, &StatusError{Code: resp.StatusCode, Status: resp.Status, Body: snippet(data)}
 			}
 		}
 

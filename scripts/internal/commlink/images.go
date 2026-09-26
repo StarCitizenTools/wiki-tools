@@ -166,9 +166,11 @@ func (c *Cache) Hash(ctx context.Context, web *httpx.Client, src string) (Hash, 
 
 // PlanImages plans a page's images in body order and returns the source-to-file
 // mapping the renderer needs. planned maps SHA1 to the file name already chosen
-// for it this run, so a picture two reports share is uploaded once.
+// for it this run, so a picture two reports share is uploaded once. A source
+// RSI answers with 404 is left out of the page and returned in missing; any
+// other download failure is an error.
 func PlanImages(ctx context.Context, web *httpx.Client, wiki *mediawiki.Client, cache *Cache, planned map[string]string,
-	cfg *Config, rsiTitle, page, date string, blocks []Block) ([]ImagePlan, func(string) string, error) {
+	cfg *Config, rsiTitle, page, date string, blocks []Block) (plans []ImagePlan, missing []string, file func(string) string, err error) {
 	captions := map[string]string{}
 	for _, b := range blocks {
 		if b.Kind == Image && b.Caption != "" && captions[b.Src] == "" {
@@ -176,22 +178,26 @@ func PlanImages(ctx context.Context, web *httpx.Client, wiki *mediawiki.Client, 
 		}
 	}
 	names := map[string]string{}
-	var plans []ImagePlan
 	for i, src := range ImageSources(blocks) {
 		n := i + 1
 		h, err := cache.Hash(ctx, web, src)
+		var status *httpx.StatusError
+		if errors.As(err, &status) && status.Code == http.StatusNotFound {
+			missing = append(missing, src)
+			continue
+		}
 		if err != nil {
-			return nil, nil, fmt.Errorf("image %d (%s): %w", n, src, err)
+			return nil, nil, nil, fmt.Errorf("image %d (%s): %w", n, src, err)
 		}
 		ext := ExtForType(h.Type)
 		if ext == "" {
-			return nil, nil, fmt.Errorf("image %d (%s) is %s, not an image", n, src, h.Type)
+			return nil, nil, nil, fmt.Errorf("image %d (%s) is %s, not an image", n, src, h.Type)
 		}
 		p := ImagePlan{N: n, Source: src, SHA1: h.SHA1, Size: h.Size}
 		if name, ok := planned[h.SHA1]; ok {
 			p.Action, p.File = "reuse", name
 		} else if existing, err := FileBySHA1(ctx, wiki, h.SHA1); err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		} else if existing != "" {
 			p.Action, p.File = "reuse", existing
 		} else {
@@ -207,5 +213,5 @@ func PlanImages(ctx context.Context, web *httpx.Client, wiki *mediawiki.Client, 
 		names[src] = p.File
 		plans = append(plans, p)
 	}
-	return plans, func(src string) string { return names[src] }, nil
+	return plans, missing, func(src string) string { return names[src] }, nil
 }

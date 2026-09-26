@@ -35,6 +35,9 @@ type PageEntry struct {
 	Wikitext   string      `json:"wikitext"`
 	Images     []ImagePlan `json:"images"`
 	Links      []LinkEntry `json:"links"`
+	// MissingImages are body image sources RSI answers with 404, left out
+	// of the page.
+	MissingImages []string `json:"missingImages,omitempty"`
 }
 
 // ReviewEntry is a report held back, with the reason and its evidence.

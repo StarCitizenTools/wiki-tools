@@ -102,7 +102,7 @@ func TestPlanImages(t *testing.T) {
 		{Kind: Image, Src: srv.URL + "/copy.jpg"},
 	}
 	planned := map[string]string{}
-	plans, fileFor, err := PlanImages(context.Background(), testWeb(t), wiki, cache, planned, testConfig(t), "A report", "A page", "2021-06-02", blocks)
+	plans, _, fileFor, err := PlanImages(context.Background(), testWeb(t), wiki, cache, planned, testConfig(t), "A report", "A page", "2021-06-02", blocks)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -121,8 +121,46 @@ func TestPlanImages(t *testing.T) {
 	if fileFor(srv.URL+"/copy.jpg") != "A page - 02.jpg" || planned[sum(jpegBytes)] != "A page - 02.jpg" {
 		t.Errorf("fileFor / planned not updated")
 	}
-	if _, _, err := PlanImages(context.Background(), testWeb(t), wiki, cache, planned, testConfig(t), "A report", "A page", "2021-06-02",
+	if _, _, _, err := PlanImages(context.Background(), testWeb(t), wiki, cache, planned, testConfig(t), "A report", "A page", "2021-06-02",
 		[]Block{{Kind: Image, Src: srv.URL + "/page.html"}}); err == nil {
 		t.Error("a non-image source was accepted")
+	}
+}
+
+func TestPlanImagesLeavesOutA404(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/a.png":
+			w.Write(pngBytes)
+		case "/forbidden.png":
+			http.Error(w, "no", http.StatusForbidden)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+	wiki := testWiki(t, func(url.Values) string { return `{"query":{"allimages":[]}}` })
+	cache, _ := LoadCache(filepath.Join(t.TempDir(), "cache.json"))
+	gone := srv.URL + "/gone.jpg"
+	blocks := []Block{{Kind: Image, Src: gone}, {Kind: Image, Src: srv.URL + "/a.png"}}
+	plans, missing, fileFor, err := PlanImages(context.Background(), testWeb(t), wiki, cache, map[string]string{}, testConfig(t), "A report", "A page", "2021-06-02", blocks)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(plans) != 1 || plans[0].N != 2 || plans[0].File != "A page - 02.png" {
+		t.Errorf("plans = %+v, want only image 2", plans)
+	}
+	if !reflect.DeepEqual(missing, []string{gone}) {
+		t.Errorf("missing = %q, want %q", missing, gone)
+	}
+	if fileFor(gone) != "" {
+		t.Errorf("fileFor(404 source) = %q, want none", fileFor(gone))
+	}
+	if _, ok := cache.Hashes[gone]; ok {
+		t.Error("a 404 was cached")
+	}
+	if _, _, _, err := PlanImages(context.Background(), testWeb(t), wiki, cache, map[string]string{}, testConfig(t), "A report", "A page", "2021-06-02",
+		[]Block{{Kind: Image, Src: srv.URL + "/forbidden.png"}}); err == nil {
+		t.Error("a 403 was left out instead of sent to review")
 	}
 }

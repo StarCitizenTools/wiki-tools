@@ -146,7 +146,7 @@ function p.render(props)
 end
 
 --- #invoke entry. Reads only the invocation's own arguments, so the calling
---- template's parameters (Infobox commlink's `type`, TranscriptNotice's
+--- template's parameters (CommLink's `type`, TranscriptNotice's
 --- `type`) never reach the box.
 --- @param frame mw.frame
 --- @return string

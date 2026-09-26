@@ -25,9 +25,17 @@
     "Austin": "Cloud Imperium Games Texas, LLC",
     "Frankfurt": "Cloud Imperium Games Frankfurt Office",
     "Manchester": "Cloud Imperium Games Ltd.",
-    "Turbulent": "Turbulent"
+    "Turbulent": "Turbulent",
+    "Hurston Dynamics": "Hurston Dynamics",
+    "Constantine Hurston": "Constantine Hurston",
+    "Terra Mills": "Terra Mills"
   },
-  "stoplist": [],
-  "fidelityIgnore": [],
+  "stoplist": ["Centurion", "Cologne", "Guardian", "Odin", "Odyssey", "Shanghai", "Titus"],
+  "fidelityIgnore": [
+    "^(?:Embark onLanding bay iron Hades IIISmuggling)+PU Monthly Reports?$",
+    "^Ai system Puffy PlanetVanduul civilization captain transponderEradicate ennoblingPU Monthly Report$",
+    "^PU Monthly Report$",
+    "^The Character Art team progressed with projects for Alpha 4\\.8 alongside in-game assets\\. They also continued to work on new gang outfits and support Star Wear\\.$"
+  ],
   "knownReview": [18078]
 }

@@ -86,7 +86,7 @@ func TestDedupeImagesNoStrayBlankLines(t *testing.T) {
 	files := map[string]string{"https://x/a.jpg": "R - 01.jpg", "https://x/a-again.jpg": "R - 01.jpg"}
 	file := func(src string) string { return files[src] }
 	got := RenderBody(DedupeImages(blocks, file), NewHeadCaser(nil, ""), file)
-	want := "Before.\n\n[[File:R - 01.jpg|thumb|center|800px]]\n\nAfter.\n"
+	want := "Before.\n\n[[File:R - 01.jpg|thumb|center]]\n\nAfter.\n"
 	if got != want {
 		t.Errorf("RenderBody(DedupeImages(...)):\n%s\nwant:\n%s", got, want)
 	}

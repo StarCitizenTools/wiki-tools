@@ -33,7 +33,7 @@ func normalize(s string) string {
 
 // thumbCaption matches a captioned image line; the caption may hold one
 // external link.
-var thumbCaption = regexp.MustCompile(`(?m)^\[\[File:[^|\]]*\|thumb\|center\|800px\|((?:[^\[\]]|\[[^\[\]]*\])*)\]\]$`)
+var thumbCaption = regexp.MustCompile(`(?m)^\[\[File:[^|\]]*\|thumb\|center\|((?:[^\[\]]|\[[^\[\]]*\])*)\]\]$`)
 
 // creditParts lists, spaces removed, every word-boundary prefix and suffix of
 // each image caption: the pieces of an intro-and-name credit the API glues

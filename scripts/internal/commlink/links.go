@@ -22,7 +22,10 @@ type term struct {
 // Vocabulary is the set of names the importer may link.
 type Vocabulary struct{ terms []term }
 
-var corpusWord = regexp.MustCompile(`\pL[\pL\pN'’-]*`)
+// corpusWord tokenizes on letters and digits only, so a trailing possessive or
+// hyphenated suffix doesn't hide a bare word from the lower-case check below
+// (e.g. "reliant's" still records "reliant").
+var corpusWord = regexp.MustCompile(`\pL[\pL\pN]*`)
 
 // BuildVocabulary turns page titles and curated aliases into link terms. A title
 // is dropped when it is a disambiguation page, is stoplisted, carries a
@@ -45,7 +48,11 @@ func BuildVocabulary(titles []string, aliases map[string]string, disambiguation,
 	add := func(text, target string) {
 		seen[text] = true
 		v.terms = append(v.terms, term{text: text, target: target,
-			re: regexp.MustCompile(`(?:^|[^\pL\pN])(` + regexp.QuoteMeta(text) + `)(?:$|[^\pL\pN])`)})
+			// A hyphen counts as a word character on both sides, so a term
+			// isn't matched as a prefix/suffix of a distinct hyphenated name
+			// (e.g. "Idris" in "Idris-M"). An apostrophe still breaks the
+			// word, so a possessive links the bare term.
+			re: regexp.MustCompile(`(?:^|[^\pL\pN-])(` + regexp.QuoteMeta(text) + `)(?:$|[^\pL\pN-])`)})
 	}
 	for _, t := range titles {
 		if seen[t] || skip[t] || strings.ContainsAny(t, "()") || utf8.RuneCountInString(t) < 4 {
@@ -78,7 +85,8 @@ func BuildVocabulary(titles []string, aliases map[string]string, disambiguation,
 var (
 	sectionLine = regexp.MustCompile(`(?m)^==[^=].*==[ \t]*$`)
 	// protected spans: a file line, a heading line, internal and external links,
-	// templates and tags.
+	// templates and tags. <...> shields one tag at a time, not the text between
+	// an opening and closing tag pair (e.g. a <blockquote> body stays linkable).
 	protected = regexp.MustCompile(`(?m)^\[\[File:.*$|^=.*=[ \t]*$|\[\[[^\]]*\]\]|\[[a-z]+://[^\]]*\]|\{\{[^}]*\}\}|<[^>]*>`)
 )
 
@@ -113,21 +121,37 @@ func (v *Vocabulary) Apply(body string) (string, []LinkEntry) {
 	return out.String(), links
 }
 
+// linkSection tries each term against s, longest first, in place. Most terms
+// never appear in a given section, so a plain Contains check skips the regex
+// and the protected-span scan entirely for them. spans is computed once and
+// only recomputed after a replacement changes s (a just-added [[...]] must
+// shield its own text from a shorter term that follows).
 func (v *Vocabulary) linkSection(s string) (string, []LinkEntry) {
 	var added []LinkEntry
+	spans := protected.FindAllStringIndex(s, -1)
 	for _, t := range v.terms {
-		spans := protected.FindAllStringIndex(s, -1)
-		for _, m := range t.re.FindAllStringSubmatchIndex(s, -1) {
-			start, end := m[2], m[3]
+		if !strings.Contains(s, t.text) {
+			continue
+		}
+		offset := 0
+		for offset <= len(s) {
+			m := t.re.FindStringSubmatchIndex(s[offset:])
+			if m == nil {
+				break
+			}
+			start, end := offset+m[2], offset+m[3]
 			if inSpan(spans, start, end) {
+				offset += m[1]
 				continue
 			}
-			link := "[[" + t.target + "|" + s[start:end] + "]]"
-			if t.target == s[start:end] {
+			matched := s[start:end]
+			link := "[[" + t.target + "|" + matched + "]]"
+			if t.target == matched {
 				link = "[[" + t.target + "]]"
 			}
 			s = s[:start] + link + s[end:]
 			added = append(added, LinkEntry{Term: t.text, Target: t.target})
+			spans = protected.FindAllStringIndex(s, -1)
 			break
 		}
 	}

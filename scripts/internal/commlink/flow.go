@@ -69,7 +69,7 @@ func (f *flow) node(n *html.Node) {
 		if strings.TrimSpace(n.Data) != "" {
 			f.brs = 0
 		}
-		f.buf.WriteString(escapeText(n.Data))
+		appendMarkup(&f.buf, escapeText(n.Data))
 		return
 	case html.ElementNode:
 	default:
@@ -125,7 +125,7 @@ func (f *flow) node(n *html.Node) {
 		if PlainText(n) != "" {
 			f.brs = 0
 		}
-		f.buf.WriteString(b.String())
+		appendMarkup(&f.buf, b.String())
 	default:
 		// p, div, and anything unrecognised (dic, no-marin): a block container.
 		f.flush()

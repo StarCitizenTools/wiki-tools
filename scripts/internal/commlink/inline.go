@@ -44,7 +44,7 @@ func inlineChildren(b *strings.Builder, n *html.Node) {
 func inlineNode(b *strings.Builder, n *html.Node) {
 	switch n.Type {
 	case html.TextNode:
-		b.WriteString(escapeText(n.Data))
+		appendMarkup(b, escapeText(n.Data))
 	case html.ElementNode:
 		switch n.Data {
 		case "strong", "b":
@@ -80,11 +80,43 @@ func wrap(b *strings.Builder, n *html.Node, open, close string) {
 	s := inner.String()
 	core := strings.TrimSpace(s)
 	if core == "" {
-		b.WriteString(s)
+		appendMarkup(b, s)
 		return
 	}
 	i := strings.Index(s, core)
-	b.WriteString(s[:i] + open + core + close + s[i+len(core):])
+	for _, part := range []string{s[:i], open, core, close, s[i+len(core):]} {
+		appendMarkup(b, part)
+	}
+}
+
+// quoteSep is what must go between left and right so that the apostrophes
+// where they meet are not read as one run of quote marks: a nowiki tag, unless
+// one side has none there, or the two are an italic and a bold marker (two
+// marks and three), a run of five that MediaWiki reads as both. Escaped text
+// ends in at most one apostrophe (escapeText entity-encodes a doubled one), so
+// a single apostrophe of text meeting a marker is separated too.
+func quoteSep(left, right string) string {
+	l := len(left) - len(strings.TrimRight(left, "'"))
+	r := len(right) - len(strings.TrimLeft(right, "'"))
+	if l == 0 || r == 0 || (l == 2 && r == 3) || (l == 3 && r == 2) {
+		return ""
+	}
+	return "<nowiki />"
+}
+
+// appendMarkup appends s to b, separated by quoteSep.
+func appendMarkup(b *strings.Builder, s string) {
+	b.WriteString(quoteSep(b.String(), s))
+	b.WriteString(s)
+}
+
+// joinMarkup concatenates parts, each separated from the next by quoteSep.
+func joinMarkup(parts ...string) string {
+	var b strings.Builder
+	for _, p := range parts {
+		appendMarkup(&b, p)
+	}
+	return b.String()
 }
 
 // link renders an anchor as an external link, keeping any space at the edges
@@ -100,7 +132,7 @@ func link(b *strings.Builder, n *html.Node) {
 	href := strings.TrimSpace(attr(n, "href"))
 	lower := strings.ToLower(href)
 	if href == "" || strings.HasPrefix(href, "#") || strings.HasPrefix(lower, "javascript:") || strings.HasPrefix(lower, "mailto:") {
-		b.WriteString(s)
+		appendMarkup(b, s)
 		return
 	}
 	i := strings.Index(s, text)

@@ -92,7 +92,7 @@ func (p *fragment) flowHTML(src string, emphasis bool) {
 		}
 		closing = closing || signOff.MatchString(t)
 		if closing {
-			f.emit(Block{Kind: Paragraph, Text: "'''" + escapeText(t) + "'''"})
+			f.emit(Block{Kind: Paragraph, Text: joinMarkup("'''", escapeText(t), "'''")})
 			return
 		}
 		f.emit(Block{Kind: Heading, Level: 2, Text: t})
@@ -102,7 +102,7 @@ func (p *fragment) flowHTML(src string, emphasis bool) {
 	if emphasis {
 		for i := range f.blocks {
 			if f.blocks[i].Kind == Paragraph {
-				f.blocks[i].Text = "'''" + strings.ReplaceAll(f.blocks[i].Text, "'''", "") + "'''"
+				f.blocks[i].Text = joinMarkup("'''", strings.ReplaceAll(f.blocks[i].Text, "'''", ""), "'''")
 			}
 		}
 	}

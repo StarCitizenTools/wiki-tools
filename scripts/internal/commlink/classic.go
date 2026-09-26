@@ -138,7 +138,7 @@ func (c *classic) heading(f *flow, n *html.Node) {
 	if n.Data == "h1" || hasAncestorClass(n, "variant-block") {
 		switch {
 		case greeting.MatchString(text) || signOff.MatchString(text):
-			f.emit(Block{Kind: Paragraph, Text: "'''" + Inline(n) + "'''"})
+			f.emit(Block{Kind: Paragraph, Text: joinMarkup("'''", Inline(n), "'''")})
 		case n.Data == "h1" && (c.studios || fold(text) == c.lastTitle):
 			// The studio name, repeated in capitals under its title block.
 			// A repeat naming the same studio more fully (CLOUD IMPERIUM: LOS

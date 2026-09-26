@@ -1,381 +1,761 @@
 {
 	"systems": [
 		{
+			"affiliation": [
+				{
+					"code": "XIAN"
+				}
+			],
 			"code": "AYR'KA",
 			"id": 398,
 			"name": "Ail'ka"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "BANU"
+				}
+			],
 			"code": "BACCHUS",
 			"id": 384,
 			"name": "Bacchus"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "uee"
+				}
+			],
 			"code": "BAKER",
 			"id": 342,
 			"name": "Baker"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "uee"
+				}
+			],
 			"code": "BANSHEE",
 			"id": 346,
 			"name": "Banshee"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "UNC"
+				}
+			],
 			"code": "BRANAUGH",
 			"id": 416,
 			"name": "Branaugh"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "uee"
+				}
+			],
 			"code": "BREMEN",
 			"id": 331,
 			"name": "Bremen"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "VNCL"
+				}
+			],
 			"code": "CALIBAN",
 			"id": 339,
 			"name": "Caliban"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "uee"
+				}
+			],
 			"code": "CANO",
 			"id": 418,
 			"name": "Cano"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "uee"
+				}
+			],
 			"code": "CASTRA",
 			"id": 337,
 			"name": "Castra"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "UNC"
+				}
+			],
 			"code": "CATHCART",
 			"id": 372,
 			"name": "Cathcart"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "uee"
+				}
+			],
 			"code": "CENTAURI",
 			"id": 362,
 			"name": "Centauri"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "uee"
+				}
+			],
 			"code": "CHARON",
 			"id": 407,
 			"name": "Charon"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "uee"
+				}
+			],
 			"code": "CHRONOS",
 			"id": 334,
 			"name": "Chronos"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "uee"
+				}
+			],
 			"code": "COREL",
 			"id": 370,
 			"name": "Corel"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "uee"
+				}
+			],
 			"code": "CROSHAW",
 			"id": 369,
 			"name": "Croshaw"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "uee"
+				}
+			],
 			"code": "DAVIEN",
 			"id": 340,
 			"name": "Davien"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "uee"
+				}
+			],
 			"code": "ELLIS",
 			"id": 323,
 			"name": "Ellis"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "uee"
+				}
+			],
 			"code": "ELYSIUM",
 			"id": 363,
 			"name": "Elysium"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "uee"
+				}
+			],
 			"code": "FERRON",
 			"id": 367,
 			"name": "Ferron"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "uee"
+				}
+			],
 			"code": "FORA",
 			"id": 329,
 			"name": "Fora"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "DEV"
+				}
+			],
 			"code": "GARRON",
 			"id": 412,
 			"name": "Garron"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "BANU"
+				}
+			],
 			"code": "GEDDON",
 			"id": 390,
 			"name": "Geddon"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "DEV"
+				}
+			],
 			"code": "GENESIS",
 			"id": 414,
 			"name": "Genesis"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "BANU"
+				}
+			],
 			"code": "GLIESE",
 			"id": 386,
 			"name": "Gliese"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "uee"
+				}
+			],
 			"code": "GOSS",
 			"id": 356,
 			"name": "Goss"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "uee"
+				}
+			],
 			"code": "GURZIL",
 			"id": 408,
 			"name": "Gurzil"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "UNC"
+				}
+			],
 			"code": "HADES",
 			"id": 338,
 			"name": "Hades"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "uee"
+				}
+			],
 			"code": "HADRIAN",
 			"id": 411,
 			"name": "Hadrian"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "uee"
+				}
+			],
 			"code": "HELIOS",
 			"id": 325,
 			"name": "Helios"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "uee"
+				}
+			],
 			"code": "HORUS",
 			"id": 413,
 			"name": "Horus"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "uee"
+				}
+			],
 			"code": "IDRIS",
 			"id": 364,
 			"name": "Idris"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "uee"
+				}
+			],
 			"code": "KABAL",
 			"id": 419,
 			"name": "Kabal"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "XIAN"
+				}
+			],
 			"code": "KAYFA",
 			"id": 382,
 			"name": "Kai'pua (Kayfa)"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "DEV"
+				}
+			],
 			"code": "KALLIS",
 			"id": 336,
 			"name": "Kallis"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "DEV"
+				}
+			],
 			"code": "KELLOG",
 			"id": 326,
 			"name": "Kellog"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "uee"
+				}
+			],
 			"code": "KIEL",
 			"id": 415,
 			"name": "Kiel"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "uee"
+				}
+			],
 			"code": "KILIAN",
 			"id": 344,
 			"name": "Kilian"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "BANU"
+				}
+			],
 			"code": "KINS",
 			"id": 381,
 			"name": "Kins"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "XIAN"
+				}
+			],
 			"code": "INDRA",
 			"id": 399,
 			"name": "Kyuk'ya (Indra)"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "XIAN"
+				}
+			],
 			"code": "VIRTUS",
 			"id": 376,
 			"name": "La'uo (Virtus)"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "UNC"
+				}
+			],
 			"code": "LEIR",
 			"id": 410,
 			"name": "Leir"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "uee"
+				}
+			],
 			"code": "MAGNUS",
 			"id": 319,
 			"name": "Magnus"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "UNC"
+				}
+			],
 			"code": "MIN",
 			"id": 335,
 			"name": "Min"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "uee"
+				}
+			],
 			"code": "NEMO",
 			"id": 361,
 			"name": "Nemo"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "uee"
+				}
+			],
 			"code": "NEXUS",
 			"id": 357,
 			"name": "Nexus"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "UNC"
+				}
+			],
 			"code": "NUL",
 			"id": 320,
 			"name": "Nul"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "UNC"
+				}
+			],
 			"code": "NYX",
 			"id": 315,
 			"name": "Nyx"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "UNC"
+				}
+			],
 			"code": "OBERON",
 			"id": 348,
 			"name": "Oberon"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "uee"
+				}
+			],
 			"code": "ODIN",
 			"id": 324,
 			"name": "Odin"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "UNC"
+				}
+			],
 			"code": "ORETANI",
 			"id": 421,
 			"name": "Oretani"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "VNCL"
+				}
+			],
 			"code": "ORION",
 			"id": 360,
 			"name": "Orion"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "DEV"
+				}
+			],
 			"code": "OSIRIS",
 			"id": 328,
 			"name": "Osiris"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "DEV"
+				}
+			],
 			"code": "OSO",
 			"id": 332,
 			"name": "Oso"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "uee"
+				}
+			],
 			"code": "OYA",
 			"id": 409,
 			"name": "Oya"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "UNC"
+				}
+			],
 			"code": "PYRO",
 			"id": 318,
 			"name": "Pyro"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "XIAN"
+				}
+			],
 			"code": "RIHLAH",
 			"id": 401,
 			"name": "R.il'a (Rihlah)"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "uee"
+				}
+			],
 			"code": "RHETOR",
 			"id": 349,
 			"name": "Rhetor"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "uee"
+				}
+			],
 			"code": "SOL",
 			"id": 355,
 			"name": "Sol"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "uee"
+				}
+			],
 			"code": "STANTON",
 			"id": 314,
 			"name": "Stanton"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "XIAN"
+				}
+			],
 			"code": "TAL",
 			"id": 385,
 			"name": "T.āl"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "uee"
+				}
+			],
 			"code": "TAMSA",
 			"id": 422,
 			"name": "Tamsa"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "UNC"
+				}
+			],
 			"code": "TANGA",
 			"id": 420,
 			"name": "Tanga"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "UNC"
+				}
+			],
 			"code": "TARANIS",
 			"id": 321,
 			"name": "Taranis"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "uee"
+				}
+			],
 			"code": "TAYAC",
 			"id": 333,
 			"name": "Tayac"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "uee"
+				}
+			],
 			"code": "TERRA",
 			"id": 316,
 			"name": "Terra"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "XIAN"
+				}
+			],
 			"code": "PALLAS",
 			"id": 397,
 			"name": "Th.us'ūng (Pallas)"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "VNCL"
+				}
+			],
 			"code": "TIBER",
 			"id": 327,
 			"name": "Tiber"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "uee"
+				}
+			],
 			"code": "TOHIL",
 			"id": 417,
 			"name": "Tohil"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "BANU"
+				}
+			],
 			"code": "TRISE",
 			"id": 400,
 			"name": "Trise"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "UNC"
+				}
+			],
 			"code": "TYROL",
 			"id": 347,
 			"name": "Tyrol"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "VNCL"
+				}
+			],
 			"code": "VANGUARD",
 			"id": 391,
 			"name": "Vanguard"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "uee"
+				}
+			],
 			"code": "VEGA",
 			"id": 322,
 			"name": "Vega"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "VNCL"
+				}
+			],
 			"code": "VIRGIL",
 			"id": 317,
 			"name": "Virgil"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "BANU"
+				}
+			],
 			"code": "YULIN",
 			"id": 402,
 			"name": "Yulin"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "XIAN"
+				}
+			],
 			"code": "HADUR",
 			"id": 377,
 			"name": "Yā'mon (Hadur)"
 		},
 		{
+			"affiliation": [
+				{
+					"code": "XIAN"
+				}
+			],
 			"code": "EEALUS",
 			"id": 388,
 			"name": "Ē'aluth (Eealus)"

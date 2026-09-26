@@ -96,7 +96,11 @@ const (
 // reaches this type: see typeBlackHole.)
 type System struct {
 	Page string `json:"page"`
-	Star *Body  `json:"star,omitempty"`
+	// Affiliation is the lower-cased code of the system's first upstream
+	// affiliation (uee, unc, banu, xian, vncl, dev): the key of the AFFILIATIONS
+	// table in Module:Entity/Location/Util. Omitted when upstream files none.
+	Affiliation string `json:"affiliation,omitempty"`
+	Star        *Body  `json:"star,omitempty"`
 	// Companion is the system's second star. Five systems have one; none has a
 	// third. It is a sibling key rather than an entry in Bodies because it is
 	// not on the planet rail, and rather than an array of stars because turning

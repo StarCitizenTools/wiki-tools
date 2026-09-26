@@ -14,6 +14,7 @@ local Data = require('Module:SystemMap/Data')
 local Renderer = require('Module:SystemMap/Renderer')
 local CollapsibleCard = require('Module:CollapsibleCard')
 local yesno = require('Module:Yesno')
+local locationUtil = require('Module:Entity/Location/Util')
 
 local p = {}
 
@@ -94,6 +95,18 @@ function p.annotateExistence(model, exists)
 	return ''
 end
 
+--- "UEE space" over the system: the compact form the Location breadcrumb's first
+--- tier shows, linking the category StarSystem files systems under.
+--- @param model table
+--- @return string|nil
+local function eyebrowFor(model)
+	local entry = locationUtil.affiliationEntry({ affiliation = { { code = model.affiliation } } })
+	if not entry then
+		return nil
+	end
+	return string.format('[[:Category:%s systems|%s space]]', entry.label, entry.short or entry.label)
+end
+
 --- Testable core. Everything parser-dependent arrives as an argument.
 --- @param input string|nil        System name as written in the template call
 --- @param currentTitle string     Page title being rendered
@@ -130,6 +143,7 @@ function p.render(input, currentTitle, exists, collapsed, track)
 	local card = CollapsibleCard.render({
 		title = string.format('[[%s|%s]]', model.page, model.page),
 		description = Data.summarise(model),
+		eyebrow = eyebrowFor(model),
 		content = tostring(Renderer.renderRail(model)),
 		open = not collapsed,
 		class = 't-system-map',

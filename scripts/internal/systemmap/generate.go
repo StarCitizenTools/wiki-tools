@@ -465,6 +465,9 @@ func buildSystem(name string, sys *starmap.System, objects []*starmap.Object, ov
 	// scale the discs. One null there does not break one map; it raises "table
 	// expected, got nil" on every page the component renders.
 	out := &System{Page: name + " system", Bodies: make([]Body, 0, len(ordered))}
+	if len(sys.Affiliation) > 0 {
+		out.Affiliation = strings.ToLower(sys.Affiliation[0].Code)
+	}
 	if corrections.Page != "" {
 		out.Page = corrections.Page
 	}

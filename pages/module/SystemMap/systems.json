@@ -17,6 +17,7 @@
 	"systems": {
 		"Stanton": {
 			"page": "Stanton system",
+			"affiliation": "uee",
 			"star": {
 				"page": "Stanton (star)",
 				"label": "Stanton",
@@ -159,6 +160,7 @@
 		},
 		"Pyro": {
 			"page": "Pyro system",
+			"affiliation": "unc",
 			"star": {
 				"page": "Pyro (star)",
 				"label": "Pyro",
@@ -275,6 +277,7 @@
 		},
 		"Nyx": {
 			"page": "Nyx system",
+			"affiliation": "unc",
 			"star": {
 				"page": "Nyx (star)",
 				"label": "Nyx",
@@ -334,6 +337,7 @@
 		},
 		"Terra": {
 			"page": "Terra system",
+			"affiliation": "uee",
 			"star": {
 				"page": "Terra Nova",
 				"label": "Terra Nova",
@@ -417,6 +421,7 @@
 		},
 		"Castra": {
 			"page": "Castra system",
+			"affiliation": "uee",
 			"star": {
 				"page": "Castra (star)",
 				"label": "Castra",
@@ -445,6 +450,7 @@
 		},
 		"Sol": {
 			"page": "Sol system",
+			"affiliation": "uee",
 			"star": {
 				"page": "Sol (star)",
 				"label": "Sol",
@@ -686,6 +692,7 @@
 		},
 		"Ellis": {
 			"page": "Ellis system",
+			"affiliation": "uee",
 			"star": {
 				"page": "Ellis (star)",
 				"label": "Ellis",
@@ -826,6 +833,7 @@
 		},
 		"Kilian": {
 			"page": "Kilian system",
+			"affiliation": "uee",
 			"star": {
 				"page": "Kilian (star)",
 				"label": "Kilian",
@@ -950,6 +958,7 @@
 		},
 		"Taranis": {
 			"page": "Taranis system",
+			"affiliation": "unc",
 			"star": {
 				"page": "Taranis (star)",
 				"label": "Taranis",
@@ -1019,6 +1028,7 @@
 		},
 		"Oberon": {
 			"page": "Oberon system",
+			"affiliation": "unc",
 			"star": {
 				"page": "Oberon (star)",
 				"label": "Oberon",
@@ -1087,6 +1097,7 @@
 		},
 		"Tyrol": {
 			"page": "Tyrol system",
+			"affiliation": "unc",
 			"star": {
 				"page": "Tyrol A",
 				"label": "Tyrol A",
@@ -1174,6 +1185,7 @@
 		},
 		"Kyuk'ya (Indra)": {
 			"page": "Kyuk'ya system",
+			"affiliation": "xian",
 			"star": {
 				"page": "Kyuk'ya A",
 				"label": "Kyuk'ya A",
@@ -1229,6 +1241,7 @@
 		},
 		"Bacchus": {
 			"page": "Bacchus system",
+			"affiliation": "banu",
 			"star": {
 				"page": "Bacchus A",
 				"label": "Bacchus A",
@@ -1279,6 +1292,7 @@
 		},
 		"Baker": {
 			"page": "Baker system",
+			"affiliation": "uee",
 			"star": {
 				"page": "Baker A",
 				"label": "Baker A",
@@ -1331,6 +1345,7 @@
 		},
 		"Goss": {
 			"page": "Goss system",
+			"affiliation": "uee",
 			"star": {
 				"page": "Goss A",
 				"label": "Goss A",
@@ -1375,6 +1390,7 @@
 		},
 		"Banshee": {
 			"page": "Banshee system",
+			"affiliation": "uee",
 			"star": {
 				"page": "Banshee (star)",
 				"label": "Banshee",
@@ -1419,6 +1435,7 @@
 		},
 		"Bremen": {
 			"page": "Bremen system",
+			"affiliation": "uee",
 			"star": {
 				"page": "Bremen (star)",
 				"label": "Bremen",
@@ -1463,6 +1480,7 @@
 		},
 		"Chronos": {
 			"page": "Chronos system",
+			"affiliation": "uee",
 			"star": {
 				"page": "Chronos (star)",
 				"label": "Chronos",
@@ -1499,6 +1517,7 @@
 		},
 		"Corel": {
 			"page": "Corel system",
+			"affiliation": "uee",
 			"star": {
 				"page": "Corel (star)",
 				"label": "Corel",
@@ -1559,6 +1578,7 @@
 		},
 		"Davien": {
 			"page": "Davien system",
+			"affiliation": "uee",
 			"star": {
 				"page": "Davien (star)",
 				"label": "Davien",
@@ -1610,6 +1630,7 @@
 		},
 		"Elysium": {
 			"page": "Elysium system",
+			"affiliation": "uee",
 			"star": {
 				"page": "Elysium (star)",
 				"label": "Elysium",
@@ -1662,6 +1683,7 @@
 		},
 		"Ferron": {
 			"page": "Ferron system",
+			"affiliation": "uee",
 			"star": {
 				"page": "Ferron (star)",
 				"label": "Ferron",
@@ -1706,6 +1728,7 @@
 		},
 		"Garron": {
 			"page": "Garron system",
+			"affiliation": "dev",
 			"star": {
 				"page": "Garron (star)",
 				"label": "Garron",
@@ -1750,6 +1773,7 @@
 		},
 		"Geddon": {
 			"page": "Geddon system",
+			"affiliation": "banu",
 			"star": {
 				"page": "Geddon (star)",
 				"label": "Geddon",
@@ -1770,6 +1794,7 @@
 		},
 		"Helios": {
 			"page": "Helios system",
+			"affiliation": "uee",
 			"star": {
 				"page": "Helios (star)",
 				"label": "Helios",
@@ -1821,6 +1846,7 @@
 		},
 		"Idris": {
 			"page": "Idris system",
+			"affiliation": "uee",
 			"star": {
 				"page": "Idris (star)",
 				"label": "Idris",
@@ -1873,6 +1899,7 @@
 		},
 		"Kai'pua (Kayfa)": {
 			"page": "Kai'pua system",
+			"affiliation": "xian",
 			"star": {
 				"page": "Kai’pua (star)",
 				"label": "Kai'pua",
@@ -1917,6 +1944,7 @@
 		},
 		"Kellog": {
 			"page": "Kellog system",
+			"affiliation": "dev",
 			"star": {
 				"page": "Kellog (star)",
 				"label": "Kellog",
@@ -1977,6 +2005,7 @@
 		},
 		"Leir": {
 			"page": "Leir system",
+			"affiliation": "unc",
 			"star": {
 				"page": "Leir (star)",
 				"label": "Leir",
@@ -2013,6 +2042,7 @@
 		},
 		"Magnus": {
 			"page": "Magnus system",
+			"affiliation": "uee",
 			"star": {
 				"page": "Magnus (star)",
 				"label": "Magnus",
@@ -2049,6 +2079,7 @@
 		},
 		"Min": {
 			"page": "Min system",
+			"affiliation": "unc",
 			"bodies": [
 				{
 					"page": "Min I",
@@ -2087,6 +2118,7 @@
 		},
 		"Nemo": {
 			"page": "Nemo system",
+			"affiliation": "uee",
 			"star": {
 				"page": "Nemo (star)",
 				"label": "Nemo",
@@ -2123,6 +2155,7 @@
 		},
 		"Nul": {
 			"page": "Nul system",
+			"affiliation": "unc",
 			"star": {
 				"page": "Nul (star)",
 				"label": "Nul",
@@ -2174,6 +2207,7 @@
 		},
 		"Odin": {
 			"page": "Odin system",
+			"affiliation": "uee",
 			"star": {
 				"page": "Odin (star)",
 				"label": "Odin",
@@ -2230,6 +2264,7 @@
 		},
 		"Oso": {
 			"page": "Oso system",
+			"affiliation": "dev",
 			"star": {
 				"page": "Oso (star)",
 				"label": "Oso",
@@ -2290,6 +2325,7 @@
 		},
 		"Oya": {
 			"page": "Oya system",
+			"affiliation": "uee",
 			"star": {
 				"page": "Oya (star)",
 				"label": "Oya",
@@ -2334,6 +2370,7 @@
 		},
 		"R.il'a (Rihlah)": {
 			"page": "R.il'a system",
+			"affiliation": "xian",
 			"star": {
 				"page": "R.il'a (star)",
 				"label": "R.il'a",
@@ -2394,6 +2431,7 @@
 		},
 		"Rhetor": {
 			"page": "Rhetor system",
+			"affiliation": "uee",
 			"star": {
 				"page": "Rhetor (star)",
 				"label": "Rhetor",
@@ -2446,6 +2484,7 @@
 		},
 		"T.āl": {
 			"page": "T.āl system",
+			"affiliation": "xian",
 			"star": {
 				"page": "T.āl (star)",
 				"label": "T.āl",
@@ -2514,6 +2553,7 @@
 		},
 		"Trise": {
 			"page": "Trise system",
+			"affiliation": "banu",
 			"star": {
 				"page": "Trise (star)",
 				"label": "Trise",
@@ -2534,6 +2574,7 @@
 		},
 		"Gliese": {
 			"page": "Gliese system",
+			"affiliation": "banu",
 			"star": {
 				"page": "Gliese (star)",
 				"label": "Gliese",
@@ -2612,6 +2653,7 @@
 		},
 		"Kallis": {
 			"page": "Kallis system",
+			"affiliation": "dev",
 			"star": {
 				"page": "Kallis (star)",
 				"label": "Kallis",
@@ -2714,6 +2756,7 @@
 		},
 		"Ail'ka": {
 			"page": "Ail'ka system",
+			"affiliation": "xian",
 			"star": {
 				"page": "Ail'ka (star)",
 				"label": "Ail'ka",
@@ -2778,6 +2821,7 @@
 		},
 		"Croshaw": {
 			"page": "Croshaw system",
+			"affiliation": "uee",
 			"star": {
 				"page": "Croshaw (star)",
 				"label": "Croshaw",
@@ -2834,6 +2878,7 @@
 		},
 		"Horus": {
 			"page": "Horus system",
+			"affiliation": "uee",
 			"star": {
 				"page": "Horus (star)",
 				"label": "Horus",
@@ -2882,6 +2927,7 @@
 		},
 		"Kins": {
 			"page": "Kins system",
+			"affiliation": "banu",
 			"star": {
 				"page": "Kins (star)",
 				"label": "Kins",
@@ -2946,6 +2992,7 @@
 		},
 		"La'uo (Virtus)": {
 			"page": "La'uo system",
+			"affiliation": "xian",
 			"star": {
 				"page": "La'uo (star)",
 				"label": "La'uo",
@@ -3002,6 +3049,7 @@
 		},
 		"Branaugh": {
 			"page": "Branaugh system",
+			"affiliation": "unc",
 			"star": {
 				"page": "Branaugh (star)",
 				"label": "Branaugh",
@@ -3051,6 +3099,7 @@
 		},
 		"Caliban": {
 			"page": "Caliban system",
+			"affiliation": "vncl",
 			"star": {
 				"page": "Caliban (star)",
 				"label": "Caliban",
@@ -3166,6 +3215,7 @@
 		},
 		"Cano": {
 			"page": "Cano system",
+			"affiliation": "uee",
 			"star": {
 				"page": "Cano (star)",
 				"label": "Cano",
@@ -3216,6 +3266,7 @@
 		},
 		"Cathcart": {
 			"page": "Cathcart system",
+			"affiliation": "unc",
 			"star": {
 				"page": "Cathcart (star)",
 				"label": "Cathcart",
@@ -3234,6 +3285,7 @@
 		},
 		"Centauri": {
 			"page": "Centauri system",
+			"affiliation": "uee",
 			"star": {
 				"page": "Centauri (star)",
 				"label": "Centauri",
@@ -3292,6 +3344,7 @@
 		},
 		"Charon": {
 			"page": "Charon system",
+			"affiliation": "uee",
 			"star": {
 				"page": "Charon (star)",
 				"label": "Charon",
@@ -3370,6 +3423,7 @@
 		},
 		"Ē'aluth (Eealus)": {
 			"page": "Ē'aluth system",
+			"affiliation": "xian",
 			"star": {
 				"page": "Ē'aluth (star)",
 				"label": "Ē'aluth",
@@ -3428,6 +3482,7 @@
 		},
 		"Fora": {
 			"page": "Fora system",
+			"affiliation": "uee",
 			"star": {
 				"page": "Fora (star)",
 				"label": "Fora",
@@ -3486,6 +3541,7 @@
 		},
 		"Genesis": {
 			"page": "Genesis system",
+			"affiliation": "dev",
 			"star": {
 				"page": "Genesis (star)",
 				"label": "Genesis",
@@ -3528,6 +3584,7 @@
 		},
 		"Gurzil": {
 			"page": "Gurzil system",
+			"affiliation": "uee",
 			"star": {
 				"page": "Gurzil (star)",
 				"label": "Gurzil",
@@ -3546,6 +3603,7 @@
 		},
 		"Hades": {
 			"page": "Hades system",
+			"affiliation": "unc",
 			"star": {
 				"page": "Hades (star)",
 				"label": "Hades",
@@ -3596,6 +3654,7 @@
 		},
 		"Hadrian": {
 			"page": "Hadrian system",
+			"affiliation": "uee",
 			"star": {
 				"page": "Hadrian (star)",
 				"label": "Hadrian",
@@ -3638,6 +3697,7 @@
 		},
 		"Yā'mon (Hadur)": {
 			"page": "Yā'mon system",
+			"affiliation": "xian",
 			"star": {
 				"page": "Yā'mon (star)",
 				"label": "Yā'mon",
@@ -3688,6 +3748,7 @@
 		},
 		"Kabal": {
 			"page": "Kabal system",
+			"affiliation": "uee",
 			"star": {
 				"page": "Kabal (star)",
 				"label": "Kabal",
@@ -3730,6 +3791,7 @@
 		},
 		"Kiel": {
 			"page": "Kiel system",
+			"affiliation": "uee",
 			"star": {
 				"page": "Kiel (star)",
 				"label": "Kiel",
@@ -3810,6 +3872,7 @@
 		},
 		"Nexus": {
 			"page": "Nexus system",
+			"affiliation": "uee",
 			"star": {
 				"page": "Nexus (star)",
 				"label": "Nexus",
@@ -3868,6 +3931,7 @@
 		},
 		"Oretani": {
 			"page": "Oretani system",
+			"affiliation": "unc",
 			"star": {
 				"page": "Oretani (star)",
 				"label": "Oretani",
@@ -3934,6 +3998,7 @@
 		},
 		"Orion": {
 			"page": "Orion system",
+			"affiliation": "vncl",
 			"star": {
 				"page": "Orion (star)",
 				"label": "Orion",
@@ -3984,6 +4049,7 @@
 		},
 		"Osiris": {
 			"page": "Osiris system",
+			"affiliation": "dev",
 			"star": {
 				"page": "Osiris (star)",
 				"label": "Osiris",
@@ -4018,6 +4084,7 @@
 		},
 		"Th.us'ūng (Pallas)": {
 			"page": "Th.us'ūng system",
+			"affiliation": "xian",
 			"star": {
 				"page": "Th.us'ūng (star)",
 				"label": "Th.us'ūng",
@@ -4076,6 +4143,7 @@
 		},
 		"Tanga": {
 			"page": "Tanga system",
+			"affiliation": "unc",
 			"star": {
 				"page": "Tanga (star)",
 				"label": "Tanga",
@@ -4110,6 +4178,7 @@
 		},
 		"Tayac": {
 			"page": "Tayac system",
+			"affiliation": "uee",
 			"star": {
 				"page": "Tayac (star)",
 				"label": "Tayac",
@@ -4159,6 +4228,7 @@
 		},
 		"Tiber": {
 			"page": "Tiber system",
+			"affiliation": "vncl",
 			"star": {
 				"page": "Tiber (star)",
 				"label": "Tiber",
@@ -4193,6 +4263,7 @@
 		},
 		"Tohil": {
 			"page": "Tohil system",
+			"affiliation": "uee",
 			"star": {
 				"page": "Tohil (star)",
 				"label": "Tohil",
@@ -4243,6 +4314,7 @@
 		},
 		"Vega": {
 			"page": "Vega system",
+			"affiliation": "uee",
 			"star": {
 				"page": "Vega (star)",
 				"label": "Vega",
@@ -4312,6 +4384,7 @@
 		},
 		"Virgil": {
 			"page": "Virgil system",
+			"affiliation": "vncl",
 			"star": {
 				"page": "Virgil (star)",
 				"label": "Virgil",
@@ -4386,6 +4459,7 @@
 		},
 		"Yulin": {
 			"page": "Yulin system",
+			"affiliation": "banu",
 			"star": {
 				"page": "Yulin (star)",
 				"label": "Yulin",
@@ -4452,6 +4526,7 @@
 		},
 		"Vanguard": {
 			"page": "Vanguard system",
+			"affiliation": "vncl",
 			"star": {
 				"page": "Vanguard (star)",
 				"label": "Vanguard",

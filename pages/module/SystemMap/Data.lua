@@ -8,6 +8,7 @@ require('strict')
 --- parser-dependent work (page existence, categories) out of this file.
 
 local p = {}
+p._internal = {}
 
 local DATA = mw.loadJsonData('Module:SystemMap/systems.json')
 
@@ -149,6 +150,7 @@ end
 --- @class SystemMapModel
 --- @field key string
 --- @field page string
+--- @field affiliation string|nil     Lower-cased AFFILIATIONS code; absent when upstream files none
 --- @field star SystemMapBody|nil      Absent for a system upstream files no star for
 --- @field companion SystemMapBody|nil Second star; absent for the 85 systems with one
 --- @field companionShape string|nil   'nested' | 'paired'; set only alongside `companion`
@@ -492,6 +494,7 @@ function p.buildModel(input, currentTitle)
 	local model = {
 		key = key,
 		page = system.page,
+		affiliation = system.affiliation,
 		bodies = {},
 	}
 
@@ -625,6 +628,50 @@ function p.summarise(model)
 	end
 
 	return table.concat(parts, ', ')
+end
+
+--- page → where it sits, built once per parse.
+--- @type table<string, table>|nil
+local bodyIndex
+
+--- Build the page-to-body index from a systems table. Exposed for testing.
+--- @param systems table<string, table> Systems keyed by name, shaped like DATA.systems
+--- @return table<string, table>
+function p._internal.buildBodyIndex(systems)
+	local index = {}
+	for key, system in pairs(systems) do
+		local where = { key = key, page = system.page, affiliation = system.affiliation }
+		if system.star and type(system.star.page) == 'string' and system.star.page ~= '' then
+			index[system.star.page] = { system = where, kind = 'star', entry = system.star }
+		end
+		if system.companion and type(system.companion.page) == 'string' and system.companion.page ~= '' then
+			index[system.companion.page] = { system = where, kind = 'star', entry = system.companion }
+		end
+		for _, body in ipairs(system.bodies) do
+			if body.tier ~= 'belt' and type(body.page) == 'string' and body.page ~= '' then
+				index[body.page] = { system = where, kind = body.tier == 'moon' and 'moon' or 'planet', entry = body }
+			end
+			for _, moon in ipairs(body.moons or {}) do
+				if moon.tier ~= 'ring' and type(moon.page) == 'string' and moon.page ~= '' then
+					index[moon.page] = { system = where, kind = 'moon', entry = moon, planet = body }
+				end
+			end
+		end
+	end
+	return index
+end
+
+--- Where a page sits in the system data: its system (key, page, affiliation
+--- code), whether it is a star, planet or moon, its own entry, and a moon's
+--- planet. nil for anything else (belts, rings, places, unknown titles).
+--- @param page string|nil
+--- @return table|nil
+function p.findBody(page)
+	if type(page) ~= 'string' or page == '' then
+		return nil
+	end
+	bodyIndex = bodyIndex or p._internal.buildBodyIndex(DATA.systems)
+	return bodyIndex[page]
 end
 
 return p

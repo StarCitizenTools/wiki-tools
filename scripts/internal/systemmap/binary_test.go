@@ -104,8 +104,8 @@ func TestSingleStarSystemsWriteNoCompanionKeys(t *testing.T) {
 			t.Errorf("a single-star system emitted %s; the key must be absent, not empty", key)
 		}
 	}
-	if !strings.Contains(out, "\"page\": \"Castra system\",\n\t\t\t\"star\": {") {
-		t.Errorf("the key order changed; page must still be followed directly by star:\n%s", out)
+	if !strings.Contains(out, "\"page\": \"Castra system\",\n\t\t\t\"affiliation\": \"uee\",\n\t\t\t\"star\": {") {
+		t.Errorf("the key order changed; page must still be followed directly by affiliation, then star:\n%s", out)
 	}
 }
 

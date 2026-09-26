@@ -2053,4 +2053,84 @@ function suite:testAHeadlessSystemStillRendersItsPlanets()
 	self:assertEquals('1 planet', Data.summarise(model))
 end
 
+function suite:testModelCarriesAffiliation()
+	self:assertEquals('uee', Data.buildModel('Stanton').affiliation)
+	self:assertEquals('unc', Data.buildModel('Pyro').affiliation)
+end
+
+--- The header names the system's political space over the system, the same
+--- compact "UEE space" the Location breadcrumb's first tier shows.
+function suite:testRenderShowsTheAffiliationEyebrow()
+	local html = SystemMap.render('Stanton', 'Stanton system', nil, false, false)
+	self:assertStringContains(
+		'<div class="t-card__eyebrow">[[:Category:United Empire of Earth systems|UEE space]]</div>',
+		html,
+		true
+	)
+	html = SystemMap.render('Pyro', 'Pyro system', nil, false, false)
+	self:assertStringContains('[[:Category:Unclaimed systems|Unclaimed space]]', html, true)
+end
+
+-- ---------------------------------------------------------------------------
+-- findBody
+-- ---------------------------------------------------------------------------
+
+function suite:testFindBodyPlanet()
+	local found = Data.findBody('MicroTech (planet)')
+	self:assertEquals('planet', found.kind)
+	self:assertEquals('Stanton system', found.system.page)
+	self:assertEquals('uee', found.system.affiliation)
+	self:assertEquals('Stanton IV', found.entry.designation)
+	self:assertEquals('Super-Earth', found.entry.subtype)
+end
+
+function suite:testFindBodyMoonCarriesItsPlanet()
+	local found = Data.findBody('Calliope')
+	self:assertEquals('moon', found.kind)
+	self:assertEquals('4a', found.entry.designation)
+	self:assertEquals('microTech', found.planet.label)
+end
+
+function suite:testFindBodyStar()
+	self:assertEquals('star', Data.findBody('Stanton (star)').kind)
+end
+
+--- Belts, rings and places are not bodies a panel is drawn for.
+function suite:testFindBodyIgnoresBeltsAndPlaces()
+	self:assertEquals(nil, Data.findBody('Aaron Halo'))
+	self:assertEquals(nil, Data.findBody('New Babbage'))
+	self:assertEquals(nil, Data.findBody(''))
+	self:assertEquals(nil, Data.findBody(nil))
+end
+
+--- buildBodyIndex guards against missing or nil page fields, so an entry
+--- without a page is skipped silently and does not throw or corrupt the index.
+function suite:testBuildBodyIndexGuardsNilPages()
+	local testData = {
+		systems = {
+			['Test'] = {
+				page = 'Test system',
+				affiliation = 'test',
+				star = { page = nil, label = 'Star' },
+				companion = nil,
+				bodies = {
+					{ page = '', tier = 'planet', moons = { { page = 'Moon1', tier = 'moon', label = 'Moon1' } } },
+					{
+						page = 'Body2',
+						tier = 'planet',
+						moons = { { page = nil, tier = 'moon', label = 'NoPageMoon' } },
+					},
+				},
+			},
+		},
+	}
+	local index = Data._internal.buildBodyIndex(testData.systems)
+	-- Only the valid page entries are indexed
+	self:assertEquals(nil, index[nil])
+	self:assertEquals(nil, index[''])
+	self:assertEquals('moon', index['Moon1'].kind)
+	self:assertEquals('planet', index['Body2'].kind)
+	self:assertEquals(nil, index['NoPageMoon'])
+end
+
 return suite

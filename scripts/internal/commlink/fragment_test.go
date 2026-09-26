@@ -53,6 +53,17 @@ func TestParseFragmentSignOff(t *testing.T) {
 		t.Fatal(err)
 	}
 	check(t, dump(blocks), []string{"P '''We'll see you next month!'''"})
+
+	// 19283 to 19584 close without emphasis; the heading after the sign-off
+	// is still part of it.
+	blocks, err = ParseFragment([]byte(`<g-article :show-emphasis="false" body="<h3><strong>WE'LL SEE YOU NEXT MONTH...</strong></h3><h3><strong>// END TRANSMISSION</strong></h3>"></g-article>`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	check(t, dump(blocks), []string{
+		"P '''WE'LL SEE YOU NEXT MONTH...'''",
+		"P '''// END TRANSMISSION'''",
+	})
 }
 
 func TestFetchBlocks(t *testing.T) {

@@ -82,12 +82,16 @@ func (p *fragment) flowHTML(src string, emphasis bool) {
 		ctx.AppendChild(n)
 	}
 	mergeSplitLinks(ctx)
+	// closing: the article is the sign-off, or reached it; every heading
+	// from there on (// END TRANSMISSION) belongs to it.
+	closing := emphasis
 	f := &flow{heading: func(f *flow, h *html.Node) {
 		t := PlainText(h)
 		if t == "" {
 			return
 		}
-		if emphasis || signOff.MatchString(t) {
+		closing = closing || signOff.MatchString(t)
+		if closing {
 			f.emit(Block{Kind: Paragraph, Text: "'''" + escapeText(t) + "'''"})
 			return
 		}

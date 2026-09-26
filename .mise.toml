@@ -67,6 +67,16 @@ dir = "scripts"
 run = "go run ./cmd/itemstubs -diff"
 description = "Report pending item-stub creations/conflicts (exit 1 if any). Read-only; changes go through the MediaWiki MCP server."
 
+[tasks.commlinks]
+dir = "scripts"
+run = "go run ./cmd/commlinks"
+description = "Plan the Comm-Links of one RSI series (the monthly reports) missing from the wiki: pages and images into scripts/out/commlinks/ (gitignored); publish via the MediaWiki MCP server"
+
+[tasks."commlinks:diff"]
+dir = "scripts"
+run = "go run ./cmd/commlinks -diff"
+description = "Report missing Comm-Links of the configured series (exit 1 if any, or if a review entry is new). Read-only; changes go through the MediaWiki MCP server."
+
 [tasks.test]
 depends = ["test:lua", "test:go", "test:js"]
 description = "Run all local tests"

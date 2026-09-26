@@ -2,7 +2,13 @@ package commlink
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
+)
+
+var (
+	youtubeIDPattern = regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
+	vimeoIDPattern   = regexp.MustCompile(`^[0-9]+$`)
 )
 
 // PageMeta is what the infobox shows.
@@ -11,10 +17,11 @@ type PageMeta struct {
 }
 
 // Infobox is the page's {{CommLink}} call, in the parameter order of the
-// template's documentation.
+// template's documentation. RSITitle is escaped; other fields are passed as-is.
 func Infobox(m PageMeta) string {
+	title := strings.ReplaceAll(escapeText(m.RSITitle), "|", "&#124;")
 	return fmt.Sprintf("{{CommLink\n| title = %s\n| url = %s\n| image =\n| series = %s\n| type = %s\n| publicationdate = %s\n}}\n",
-		m.RSITitle, m.URL, m.Series, m.Type, m.Date)
+		title, m.URL, m.Series, m.Type, m.Date)
 }
 
 // RenderBody writes blocks as wikitext, one blank line apart. file maps an
@@ -53,9 +60,13 @@ func RenderBody(blocks []Block, caser *HeadCaser, file func(src string) string) 
 		case Video:
 			switch b.VideoKind {
 			case "youtube":
-				parts = append(parts, "{{#ev:youtube|"+b.VideoID+"}}")
+				if youtubeIDPattern.MatchString(b.VideoID) {
+					parts = append(parts, "{{#ev:youtube|"+b.VideoID+"}}")
+				}
 			case "vimeo":
-				parts = append(parts, "{{#ev:vimeo|"+b.VideoID+"}}")
+				if vimeoIDPattern.MatchString(b.VideoID) {
+					parts = append(parts, "{{#ev:vimeo|"+b.VideoID+"}}")
+				}
 			case "file":
 				parts = append(parts, "["+b.Src+" Watch the video]")
 			}

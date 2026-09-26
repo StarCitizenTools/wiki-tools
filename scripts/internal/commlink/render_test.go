@@ -44,3 +44,38 @@ func TestRenderBody(t *testing.T) {
 		t.Errorf("RenderBody:\n%s\nwant:\n%s", got, want)
 	}
 }
+
+func TestInfoboxEscaping(t *testing.T) {
+	got := Infobox(PageMeta{
+		RSITitle: "A | B {{x}}",
+		URL:      "https://example.com",
+		Series:   "Series", Type: "Type", Date: "2021-01-01",
+	})
+	want := "{{CommLink\n| title = A &#124; B &#123;&#123;x&#125;&#125;\n| url = https://example.com\n| image =\n| series = Series\n| type = Type\n| publicationdate = 2021-01-01\n}}\n"
+	if got != want {
+		t.Errorf("Infobox with special chars:\n%s\nwant:\n%s", got, want)
+	}
+}
+
+func TestRenderBodyInvalidVideoIDs(t *testing.T) {
+	blocks := []Block{
+		{Kind: Video, VideoKind: "vimeo", VideoID: "12a|b}}"},
+		{Kind: Video, VideoKind: "youtube", VideoID: "invalid|id"},
+	}
+	got := RenderBody(blocks, NewHeadCaser(nil, ""), func(src string) string { return "" })
+	want := "\n"
+	if got != want {
+		t.Errorf("RenderBody with invalid video IDs should render nothing:\n%s\nwant:\n%s", got, want)
+	}
+}
+
+func TestRenderBodyUnorderedList(t *testing.T) {
+	blocks := []Block{
+		{Kind: List, Items: []string{"one", "two"}, Ordered: false},
+	}
+	got := RenderBody(blocks, NewHeadCaser(nil, ""), func(src string) string { return "" })
+	want := "* one\n* two\n"
+	if got != want {
+		t.Errorf("RenderBody unordered list:\n%s\nwant:\n%s", got, want)
+	}
+}

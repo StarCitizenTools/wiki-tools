@@ -3,7 +3,7 @@
 // publication date, added links and fidelity result.
 //
 //	commlinks                                             # write out/commlinks/plan.json and pages/
-//	commlinks -diff                                       # same; exit 1 if a page is missing or a review entry is new
+//	commlinks -diff                                       # same, listing each page to create; exit 1 if one is missing or a review entry is new
 //	commlinks -only 16000,17712,19956 -out out/commlinks-scratch  # plan only these RSI ids, into a scratch dir
 //
 // It does not write to the wiki. Publishing goes through the MediaWiki MCP
@@ -13,12 +13,14 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"maps"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -58,7 +60,7 @@ func run() error {
 	var (
 		out        = flag.String("out", defaultOut, "directory for plan.json, pages/ and the download cache")
 		configPath = flag.String("config", defaultConfig, "path to the importer config")
-		doDiff     = flag.Bool("diff", false, "exit 1 if a page is missing or a review entry is not in knownReview")
+		doDiff     = flag.Bool("diff", false, "list each page to create; exit 1 if a page is missing or a review entry is not in knownReview")
 		only       = flag.String("only", "", "comma-separated RSI ids to plan; every other report is skipped")
 		interval   = flag.Duration("interval", 500*time.Millisecond, "minimum spacing between upstream requests")
 		maxCreate  = flag.Int("max-create", 200, "refuse to plan more page creations than this")
@@ -109,6 +111,10 @@ func run() error {
 	series, err := commlink.FetchSeries(ctx, web, ep, cfg.Series)
 	if err != nil {
 		return err
+	}
+	if len(series) > 0 && !slices.ContainsFunc(series, func(it commlink.SeriesItem) bool { return it.Posted != "" }) {
+		fmt.Fprintf(os.Stderr, "warning: RSI's series listing gives no absolute Posted date for any of its %d reports; "+
+			"if its span.value markup changed, every date falls back to the API or the Wayback Machine\n", len(series))
 	}
 	candidates, disagreements, unfetched, err := commlink.Union(ctx, titled, series, func(ctx context.Context, id int) (commlink.Candidate, error) {
 		return commlink.FetchRecord(ctx, web, ep, id)
@@ -186,13 +192,7 @@ func run() error {
 	}
 
 	// --- plan each page -------------------------------------------------------
-	pagesDir := filepath.Join(*out, "pages")
-	if err := os.RemoveAll(pagesDir); err != nil {
-		return err
-	}
-	if err := os.MkdirAll(pagesDir, 0o755); err != nil {
-		return err
-	}
+	var files []pageFile
 	planned := map[string]string{}
 	for i, p := range pages {
 		progress(fmt.Sprintf("[%d/%d] planning %s", i+1, len(pages), p.page))
@@ -208,7 +208,7 @@ func run() error {
 			continue
 		}
 		if date == "" {
-			review(p.c, p.page, commlink.ReasonNoDate, "RSI's listing has no posted date, the API date is an ingest date, and the Wayback Machine has no capture of "+p.c.RSIURL)
+			review(p.c, p.page, commlink.ReasonNoDate, noDateDetail(p.c))
 			continue
 		}
 		imgs, err := commlink.PlanImages(ctx, web, wiki, cache, planned, cfg, p.c.Title, p.page, date, p.blocks)
@@ -234,9 +234,7 @@ func run() error {
 			continue
 		}
 		file := commlink.PageFileName(p.page)
-		if err := os.WriteFile(filepath.Join(pagesDir, file), []byte(text), 0o644); err != nil {
-			return err
-		}
+		files = append(files, pageFile{name: file, text: text})
 		plan.Create = append(plan.Create, commlink.PageEntry{
 			ID: p.c.ID, RSITitle: p.c.Title, Page: p.page, URL: commlink.InfoboxURL(p.c.RSIURL),
 			Date: date, DateSource: dateSource, Wikitext: filepath.Join("pages", file),
@@ -250,18 +248,36 @@ func run() error {
 	sort.Slice(plan.Create, func(i, j int) bool { return plan.Create[i].ID < plan.Create[j].ID })
 	sort.Slice(plan.Review, func(i, j int) bool { return plan.Review[i].ID < plan.Review[j].ID })
 
-	// The cap is checked after writing, so a tripped rail leaves the plan to read.
+	// The cap is checked before pages/ and plan.json are touched, so a tripped
+	// rail leaves the last plan and its pages in step; the rejected plan is
+	// written beside them to read.
 	rejected := len(plan.Create) > *maxCreate
 	dest := filepath.Join(*out, "plan.json")
+	rejectedDest := filepath.Join(*out, "plan.rejected.json")
 	if rejected {
-		dest = filepath.Join(*out, "plan.rejected.json")
-	}
-	if err := writeJSON(dest, plan); err != nil {
-		return err
+		dest = rejectedDest
+		if err := writeJSON(dest, plan); err != nil {
+			return err
+		}
+	} else {
+		if err := writePages(filepath.Join(*out, "pages"), files); err != nil {
+			return err
+		}
+		if err := writeJSON(dest, plan); err != nil {
+			return err
+		}
+		if err := os.Remove(rejectedDest); err != nil && !errors.Is(err, os.ErrNotExist) {
+			return err
+		}
 	}
 	progress("wrote " + dest)
 
 	fmt.Fprintf(os.Stderr, "\n%s series against %s\n", cfg.Series, wikiEndpoint)
+	if *doDiff {
+		for _, line := range plan.CreateLines() {
+			fmt.Fprintf(os.Stderr, "  create %s\n", line)
+		}
+	}
 	for _, line := range plan.Report() {
 		fmt.Fprintf(os.Stderr, "  %s\n", line)
 	}
@@ -274,6 +290,41 @@ func run() error {
 		os.Exit(exitDrift)
 	}
 	return nil
+}
+
+// pageFile is one page's wikitext, held until the plan passes the creation cap.
+type pageFile struct{ name, text string }
+
+// writePages replaces dir's contents with files.
+func writePages(dir string, files []pageFile) error {
+	if err := os.RemoveAll(dir); err != nil {
+		return err
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return err
+	}
+	for _, f := range files {
+		if err := os.WriteFile(filepath.Join(dir, f.name), []byte(f.text), 0o644); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// noDateDetail says why nothing dates a report: ResolveDate returns no date
+// only when RSI's listing has no absolute date, the API's created_at is
+// missing, does not parse or falls on an ingest day, and the Wayback Machine
+// has no capture.
+func noDateDetail(c commlink.Candidate) string {
+	api := "the API has no created_at"
+	if c.Created != "" {
+		if t, err := time.Parse(time.RFC3339, c.Created); err != nil {
+			api = fmt.Sprintf("the API's created_at %q does not parse", c.Created)
+		} else {
+			api = "the API's created_at falls on the ingest date " + t.UTC().Format("2006-01-02")
+		}
+	}
+	return "RSI's listing has no posted date, " + api + ", and the Wayback Machine has no capture of " + c.RSIURL
 }
 
 func parseIDs(s string) (map[int]bool, error) {

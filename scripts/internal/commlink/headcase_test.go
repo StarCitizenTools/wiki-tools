@@ -82,3 +82,24 @@ func TestHeadCaserAcronymAmongLowerCase(t *testing.T) {
 		}
 	}
 }
+
+// A word the text capitalises in more than one way takes its most frequent
+// spelling, and a spelling with a capital inside it is kept exactly, even at
+// the start of a heading.
+func TestHeadCaserDominantForm(t *testing.T) {
+	corpus := strings.Repeat("The new VoIP and FoIP code. ", 3) + "A VoiP and FoiP typo. " +
+		strings.Repeat("The team used an iPhone. ", 2)
+	h := NewHeadCaser(nil, corpus)
+	for in, want := range map[string]string{
+		"VOIP/FOIP":     "VoIP/FoIP",
+		"IPHONE UPDATE": "iPhone update",
+	} {
+		if got := h.Case(in); got != want {
+			t.Errorf("Case(%q) = %q, want %q", in, got, want)
+		}
+	}
+	tied := NewHeadCaser(nil, "The VoiP code. The VoIP code.")
+	if got, want := tied.Case("VOIP"), "VoIP"; got != want {
+		t.Errorf("tied Case(%q) = %q, want %q", "VOIP", got, want)
+	}
+}

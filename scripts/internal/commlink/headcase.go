@@ -13,7 +13,7 @@ var headWord = regexp.MustCompile(`\pL[\pL\pN'’]*(?:&\pL[\pL\pN'’]*)*`)
 // department titles are upper case in the HTML itself, not through CSS).
 type HeadCaser struct {
 	labels   map[string]string // lower-case label -> the casing the corpus uses
-	proper   map[string]string // lower-case word -> its capitalised mid-sentence form
+	proper   map[string]string // lower-case word -> its most frequent capitalised mid-sentence form
 	acronyms map[string]bool   // upper-case words the corpus writes in capitals mid-sentence
 }
 
@@ -33,13 +33,7 @@ func NewHeadCaser(headings []string, corpus string) *HeadCaser {
 		forms[l][t]++
 	}
 	for l, f := range forms {
-		best, n := "", 0
-		for form, c := range f {
-			if c > n || (c == n && form < best) {
-				best, n = form, c
-			}
-		}
-		h.labels[l] = best
+		h.labels[l] = dominant(f)
 	}
 
 	stats := map[string]*wordCounts{}
@@ -55,17 +49,39 @@ func NewHeadCaser(headings []string, corpus string) *HeadCaser {
 			h.acronyms[strings.ToUpper(l)] = true
 		}
 		if c.capital > 0 && c.capital > c.lower && c.capital >= c.upper {
-			h.proper[l] = c.capForm
+			h.proper[l] = dominant(c.capForms)
 		}
 	}
 	return h
 }
 
 // wordCounts tallies how the text writes one word away from a sentence start.
-// isolated counts the upper-case uses between words that are not upper case.
+// isolated counts the upper-case uses between words that are not upper case;
+// capForms counts each capitalised spelling.
 type wordCounts struct {
 	lower, capital, upper, isolated int
-	capForm                         string
+	capForms                        map[string]int
+}
+
+// dominant is the most frequent form, the lexically first on a tie.
+func dominant(forms map[string]int) string {
+	best, n := "", 0
+	for form, c := range forms {
+		if c > n || (c == n && form < best) {
+			best, n = form, c
+		}
+	}
+	return best
+}
+
+// innerCapital reports whether a mixed-case word has a capital after its
+// first letter (VoIP, iPhone): a spelling to keep exactly, never re-cased.
+func innerCapital(w string) bool {
+	if w == strings.ToUpper(w) {
+		return false
+	}
+	_, size := utf8.DecodeRuneInString(w)
+	return strings.IndexFunc(w[size:], unicode.IsUpper) >= 0
 }
 
 // minIsolated is how often a word must stand alone in capitals to count as an
@@ -105,9 +121,12 @@ func learnLine(line string, stats map[string]*wordCounts) {
 			}
 		default:
 			r, _ := utf8.DecodeRuneInString(w)
-			if unicode.IsUpper(r) {
+			if unicode.IsUpper(r) || innerCapital(w) {
 				c.capital++
-				c.capForm = w
+				if c.capForms == nil {
+					c.capForms = map[string]int{}
+				}
+				c.capForms[w]++
 			}
 		}
 	}
@@ -151,8 +170,10 @@ func (h *HeadCaser) Case(heading string) string {
 		}
 		if first {
 			first = false
-			r, size := utf8.DecodeRuneInString(out)
-			out = string(unicode.ToUpper(r)) + out[size:]
+			if !innerCapital(out) {
+				r, size := utf8.DecodeRuneInString(out)
+				out = string(unicode.ToUpper(r)) + out[size:]
+			}
 		}
 		return out
 	})

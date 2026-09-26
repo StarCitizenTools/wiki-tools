@@ -37,12 +37,14 @@ func ParseClassic(shell []byte, rsiTitle string) ([]Block, error) {
 }
 
 type classic struct {
-	title     string // folded page title
-	studios   bool   // one title block per studio (2014 to August 2018)
-	sawTitle  bool
-	lastTitle string // folded text of the latest section-title block
-	stopped   bool
-	blocks    []Block
+	title      string // folded page title
+	studios    bool   // one title block per studio (2014 to August 2018)
+	sawTitle   bool
+	lastTitle  string // folded text of the latest section-title block
+	titleAt    int    // index in blocks of that block's heading
+	repeatOpen bool   // no h1 has followed that block yet
+	stopped    bool
+	blocks     []Block
 }
 
 func (c *classic) walk(n *html.Node) {
@@ -91,6 +93,7 @@ func (c *classic) titleBlock(n *html.Node) {
 		}
 	}
 	c.lastTitle = fold(text)
+	c.titleAt, c.repeatOpen = len(c.blocks), true
 	c.blocks = append(c.blocks, Block{Kind: Heading, Level: 2, Text: text})
 }
 
@@ -128,6 +131,13 @@ func (c *classic) heading(f *flow, n *html.Node) {
 			f.emit(Block{Kind: Paragraph, Text: "'''" + Inline(n) + "'''"})
 		case n.Data == "h1" && (c.studios || fold(text) == c.lastTitle):
 			// The studio name, repeated in capitals under its title block.
+			// A repeat naming the studio more fully (CLOUD IMPERIUM: LOS
+			// ANGELES under CIG Los Angeles) replaces the title's text.
+			if c.repeatOpen && len(fold(text)) > len(c.lastTitle) {
+				c.blocks[c.titleAt].Text = text
+				c.lastTitle = fold(text)
+			}
+			c.repeatOpen = false
 		default:
 			// An intro h3.no-margin can hold several paragraphs split by <br><br>.
 			f.run(n)

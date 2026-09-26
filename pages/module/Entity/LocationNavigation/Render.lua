@@ -143,19 +143,11 @@ end
 --- @param panel table Model.insidePanel result
 --- @return string
 function p.insidePanel(panel)
-	local rows = mw.html.create('div'):addClass(PREFIX .. 'inside')
-	for _, group in ipairs(panel.groups) do
-		local row = rows:tag('div'):addClass(PREFIX .. 'inside-row')
-		row:tag('div'):addClass(PREFIX .. 'inside-label'):wikitext(group.heading)
-		local list = row:tag('ul'):addClass(PREFIX .. 'inside-list')
-		for _, entry in ipairs(group.entries) do
-			list:tag('li'):wikitext(model.link(entry.page, entry.label))
-		end
-	end
+	local inside = mw.html.create('div'):addClass(PREFIX .. 'inside'):node(groupsNode(panel.groups))
 	return collapsibleCard.render({
 		eyebrow = panel.eyebrow,
 		title = panel.title,
-		content = tostring(rows),
+		content = tostring(inside),
 		open = true,
 		class = 't-location-nav t-location-nav--inside',
 	})

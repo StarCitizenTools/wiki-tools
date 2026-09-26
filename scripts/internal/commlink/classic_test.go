@@ -119,9 +119,9 @@ func TestParseClassicIntroBreaks(t *testing.T) {
 }
 
 // A studio-era section title is repeated in capitals as the first h1 of its
-// prose. Where the repeat names the studio more fully (15900 to 16492: "CIG
-// Los Angeles" over "CLOUD IMPERIUM: LOS ANGELES") it becomes the heading;
-// a repeat that only differs in case, or says less, is dropped (16696).
+// prose. Where the repeat names the studio more fully ("CLOUD IMPERIUM: LOS
+// ANGELES" under "CIG Los Angeles") it becomes the heading; a repeat that only
+// differs in case, says less, or names something else is dropped.
 func TestParseClassicStudioRepeat(t *testing.T) {
 	section := func(title, repeat, rest string) string {
 		return `<div class="wrapper"><div class="content-block4"><div class="content"><h1>` + title + `</h1></div></div>
@@ -133,6 +133,7 @@ func TestParseClassicStudioRepeat(t *testing.T) {
 		section("CIG Los Angeles", `<span class="caps">CLOUD</span> <span class="caps">IMPERIUM</span>: <span class="caps">LOS</span> <span class="caps">ANGELES</span>`, `<p>LA text.</p>`) +
 		section("Foundry 42 UK", `<span class="caps">FOUNDRY</span> 42: <span class="caps">UK</span>`, `<p>UK text.</p>`) +
 		section("Platform: Turbulent", `<span class="caps">SPECTRUM</span>`, `<h2 class="no-margin"><span class="caps">SPECTRUM</span></h2><hr/><p>Spectrum text.</p>`) +
+		section("Community", `<span class="caps">CITIZENCON AND GAMESCOM</span>`, `<p>Community text.</p>`) +
 		`<div class="two-line-separator"></div></div></div></body></html>`)
 	blocks, err := ParseClassic(shell, "Monthly Studio Report: April 2017")
 	if err != nil {
@@ -146,6 +147,8 @@ func TestParseClassicStudioRepeat(t *testing.T) {
 		"H2 Platform: Turbulent",
 		"H3 SPECTRUM",
 		"P Spectrum text.",
+		"H2 Community",
+		"P Community text.",
 	})
 }
 

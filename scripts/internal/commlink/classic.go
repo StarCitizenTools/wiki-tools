@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"errors"
 	"regexp"
+	"slices"
+	"strings"
 
 	"golang.org/x/net/html"
 )
@@ -139,9 +141,9 @@ func (c *classic) heading(f *flow, n *html.Node) {
 			f.emit(Block{Kind: Paragraph, Text: "'''" + Inline(n) + "'''"})
 		case n.Data == "h1" && (c.studios || fold(text) == c.lastTitle):
 			// The studio name, repeated in capitals under its title block.
-			// A repeat naming the studio more fully (CLOUD IMPERIUM: LOS
+			// A repeat naming the same studio more fully (CLOUD IMPERIUM: LOS
 			// ANGELES under CIG Los Angeles) replaces the title's text.
-			if c.repeatOpen && len(fold(text)) > len(c.lastTitle) {
+			if c.repeatOpen && len(fold(text)) > len(c.lastTitle) && namesSame(fold(text), c.lastTitle) {
 				c.blocks[c.titleAt].Text = text
 				c.lastTitle = fold(text)
 			}
@@ -161,6 +163,13 @@ func (c *classic) heading(f *flow, n *html.Node) {
 		level++
 	}
 	f.emit(Block{Kind: Heading, Level: level, Text: text})
+}
+
+// namesSame reports whether a folded repeat holds the folded title's last
+// word, the part of a studio's name both spellings share.
+func namesSame(repeat, title string) bool {
+	words := strings.Fields(title)
+	return len(words) > 0 && slices.Contains(strings.Fields(repeat), words[len(words)-1])
 }
 
 // countStudioBlocks counts the section-title blocks other than the page title

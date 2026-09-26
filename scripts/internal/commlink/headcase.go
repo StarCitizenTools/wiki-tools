@@ -7,7 +7,7 @@ import (
 	"unicode/utf8"
 )
 
-var headWord = regexp.MustCompile(`\pL[\pL\pN'’]*`)
+var headWord = regexp.MustCompile(`\pL[\pL\pN'’]*(?:&\pL[\pL\pN'’]*)*`)
 
 // HeadCaser recases headings RSI wrote in capitals (classic studio and
 // department titles are upper case in the HTML itself, not through CSS).
@@ -52,16 +52,19 @@ func NewHeadCaser(headings []string, corpus string) *HeadCaser {
 			continue
 		}
 		w := corpus[m[0]:m[1]]
-		l := strings.ToLower(w)
-		c := stats[l]
+		lw := strings.ToLower(w)
+		key := foldWord(w)
+		c := stats[key]
 		if c == nil {
 			c = &counts{}
-			stats[l] = c
+			stats[key] = c
 		}
 		switch {
-		case w == l:
+		case w == lw:
 			c.lower++
 		case w == strings.ToUpper(w) && utf8.RuneCountInString(w) > 1:
+			// A lone upper-case letter reads the same regardless of the
+			// corpus's sentence case, so it is not evidence of an acronym.
 			c.upper++
 		default:
 			r, _ := utf8.DecodeRuneInString(w)
@@ -96,7 +99,7 @@ func (h *HeadCaser) Case(heading string) string {
 	words := headWord.FindAllString(heading, -1)
 	all := len(words) > 0
 	for _, w := range words {
-		if !h.acronyms[w] {
+		if !h.acronyms[dequoteWord(w)] {
 			all = false
 			break
 		}
@@ -106,10 +109,14 @@ func (h *HeadCaser) Case(heading string) string {
 	}
 	first := true
 	return headWord.ReplaceAllStringFunc(heading, func(w string) string {
-		l := strings.ToLower(w)
+		l := foldWord(w)
 		out := l
 		switch {
-		case h.acronyms[w]:
+		case strings.Contains(w, "&"):
+			// A letter joined by & (Q&A, R&D) is an abbreviation, not a
+			// sentence-case word; keep it exactly as RSI wrote it.
+			out = w
+		case h.acronyms[dequoteWord(w)]:
 			out = w
 		case h.proper[l] != "":
 			out = h.proper[l]
@@ -121,6 +128,18 @@ func (h *HeadCaser) Case(heading string) string {
 		}
 		return out
 	})
+}
+
+// dequoteWord maps a typographic apostrophe to the straight form, so a word
+// learned under one spelling matches a heading spelled with the other.
+func dequoteWord(w string) string {
+	return strings.ReplaceAll(w, "’", "'")
+}
+
+// foldWord is dequoteWord lower-cased, used as the map key for a learned word
+// (case varies; the apostrophe glyph is incidental to which word it is).
+func foldWord(w string) string {
+	return strings.ToLower(dequoteWord(w))
 }
 
 func shouted(s string) bool {
@@ -136,14 +155,18 @@ func shouted(s string) bool {
 	return letters >= 2
 }
 
-// sentenceStart reports whether the word at i begins a sentence: nothing but
-// spaces and quotes lie between it and the text's start or a . ! ? : or newline.
+// sentenceStart reports whether the word starting at byte offset i begins a
+// sentence: nothing but spaces, quote or bracket marks, and dashes lie between
+// it and the text's start or a sentence-ending mark. It decodes runes, not
+// bytes, so a multi-byte typographic quote next to the boundary is not
+// mistaken for ordinary text.
 func sentenceStart(s string, i int) bool {
-	for j := i - 1; j >= 0; j-- {
-		switch s[j] {
-		case ' ', '\t', '"', '\'':
-			continue
-		case '.', '!', '?', ':', '\n':
+	for i > 0 {
+		r, size := utf8.DecodeLastRuneInString(s[:i])
+		switch r {
+		case ' ', '\t', '"', '\'', '“', '”', '‘', '’', '«', '»', '(', ')', '[', ']', '–', '—':
+			i -= size
+		case '.', '!', '?', ':', '…', '\n':
 			return true
 		default:
 			return false

@@ -7,6 +7,7 @@ require('strict')
 --- locationUtil.attachStarsystem; may be absent — every consumer nil-guards and
 --- degrades to location-only rows).
 
+local jurisdiction = require('Module:Entity/Location/Jurisdiction')
 local locationUtil = require('Module:Entity/Location/Util')
 local sectionBuilder = require('Module:Entity/SectionBuilder')
 local statTiles = require('Module:StatTiles')
@@ -280,8 +281,8 @@ function p.getSections(ctx)
 
 	local general = {}
 	sectionBuilder.push(general, 'Affiliation', affiliationDisplay(starsystem, resolved))
-	local jurisdiction = type(apiData.jurisdiction) == 'table' and apiData.jurisdiction.name or nil
-	sectionBuilder.push(general, 'Jurisdiction', jurisdiction and ('[[' .. jurisdiction .. ']]'))
+	local jurisdictionName = type(apiData.jurisdiction) == 'table' and apiData.jurisdiction.name or nil
+	sectionBuilder.push(general, 'Jurisdiction', jurisdiction.display(jurisdictionName))
 	local size = ed:value('size', aggregated.size)
 	sectionBuilder.push(general, 'Size', size and (tostring(size) .. ' AU'))
 	local starTypes = ed:value('startypes', starTypeList(starsystem))

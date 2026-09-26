@@ -13,6 +13,7 @@ require('strict')
 
 local Editorial = require('Module:Entity/Editorial')
 local format = require('Module:Entity/Format')
+local jurisdiction = require('Module:Entity/Location/Jurisdiction')
 local locationUtil = require('Module:Entity/Location/Util')
 local sectionBuilder = require('Module:Entity/SectionBuilder')
 
@@ -259,8 +260,8 @@ function p.getSections(ctx)
 	-- formatNum, not the raw value: InfoboxLua's item schema requires STRING
 	-- content, and validateAndConstruct drops a number without a word.
 	sectionBuilder.push(general, 'Satellites', format.formatNum(ed:value('satellites')))
-	local jurisdiction = type(apiData.jurisdiction) == 'table' and apiData.jurisdiction.name or nil
-	sectionBuilder.push(general, 'Jurisdiction', jurisdiction and ('[[' .. jurisdiction .. ']]'))
+	local jurisdictionName = type(apiData.jurisdiction) == 'table' and apiData.jurisdiction.name or nil
+	sectionBuilder.push(general, 'Jurisdiction', jurisdiction.display(jurisdictionName))
 
 	local lore = {}
 	sectionBuilder.push(lore, 'Discovered in', ed:value('discoveredin'))

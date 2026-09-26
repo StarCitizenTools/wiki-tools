@@ -12,6 +12,7 @@ require('strict')
 --- mutually exclusive by construction.
 
 local boolean = require('Module:Boolean')
+local jurisdiction = require('Module:Entity/Location/Jurisdiction')
 local locationUtil = require('Module:Entity/Location/Util')
 local sectionBuilder = require('Module:Entity/SectionBuilder')
 local Editorial = require('Module:Entity/Editorial')
@@ -252,8 +253,8 @@ function p.getSections(ctx)
 	sectionBuilder.push(general, 'Destination', destination and ('[[' .. destination .. ' system]]'))
 	sectionBuilder.push(general, 'Parent', parentDisplay(apiData, args))
 	sectionBuilder.push(general, 'Size', sizeLabel(celestial))
-	local jurisdiction = type(apiData.jurisdiction) == 'table' and apiData.jurisdiction.name or nil
-	sectionBuilder.push(general, 'Jurisdiction', jurisdiction and ('[[' .. jurisdiction .. ']]'))
+	local jurisdictionName = type(apiData.jurisdiction) == 'table' and apiData.jurisdiction.name or nil
+	sectionBuilder.push(general, 'Jurisdiction', jurisdiction.display(jurisdictionName))
 
 	local travel = {}
 	local radii = type(apiData.quantum_travel) == 'table' and apiData.quantum_travel or {}

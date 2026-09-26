@@ -4,6 +4,11 @@
 		"index": false,
 		"repeated": false
 	},
+	"amenities": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": true
+	},
 	"classification": {
 		"type": "TEXT",
 		"index": false,
@@ -49,6 +54,16 @@
 		"index": false,
 		"repeated": false
 	},
+	"jurisdiction": {
+		"type": "TEXT",
+		"index": false,
+		"repeated": false
+	},
+	"lagrange_point": {
+		"type": "TEXT",
+		"index": false,
+		"repeated": false
+	},
 	"manual_api_field": {
 		"type": "TEXT",
 		"index": true,
@@ -56,6 +71,11 @@
 	},
 	"moon_count": {
 		"type": "INTEGER",
+		"index": false,
+		"repeated": false
+	},
+	"operator": {
+		"type": "PAGE",
 		"index": false,
 		"repeated": false
 	},
@@ -100,6 +120,11 @@
 		"repeated": false
 	},
 	"system_type": {
+		"type": "TEXT",
+		"index": false,
+		"repeated": false
+	},
+	"zone": {
 		"type": "TEXT",
 		"index": false,
 		"repeated": false

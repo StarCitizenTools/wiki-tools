@@ -10,6 +10,7 @@ local JumpPoint = require('Module:Entity/Location/JumpPoint')
 local Star = require('Module:Entity/Location/Star')
 local Body = require('Module:Entity/Location/Body')
 local Belt = require('Module:Entity/Location/Belt')
+local Jurisdiction = require('Module:Entity/Location/Jurisdiction')
 
 --- Hook context for direct hook calls (Module:Entity/Types EntityHookContext).
 local function ctx(apiData, args, resolved)
@@ -86,13 +87,12 @@ function suite:testMatchesSolarSystem()
 	self:assertTrue(Location.matches(solarSystemFixture()))
 end
 
--- Outpost stands in for "a location type no leaf models yet"; it is the most
--- numerous one (902 records). Planet and Moon were this test's example until
--- the Body leaf claimed them.
+-- A plain Asteroid record is a formation cluster, not a place anyone travels
+-- to, so it must not match.
 function suite:testMatchesRejectsOtherLocationClassifications()
-	local outpost = solarSystemFixture()
-	outpost.type = { name = 'Outpost', classification = 'Outpost' }
-	self:assertFalse(Location.matches(outpost))
+	local asteroid = solarSystemFixture()
+	asteroid.type = { name = 'Asteroid', classification = 'Asteroid' }
+	self:assertFalse(Location.matches(asteroid))
 end
 
 function suite:testMatchesRejectsNonLocationPayloads()
@@ -246,9 +246,9 @@ function suite:testResolveSubtypeReturnsStarSystem()
 end
 
 function suite:testResolveSubtypeUnknownClassification()
-	local outpost = solarSystemFixture()
-	outpost.type = { name = 'Outpost' }
-	self:assertEquals(nil, Location.resolveSubtype(outpost, {}))
+	local asteroid = solarSystemFixture()
+	asteroid.type = { name = 'Asteroid' }
+	self:assertEquals(nil, Location.resolveSubtype(asteroid, {}))
 end
 
 function suite:testResolveSubtypeKindDeclaredDefaultsToStarSystem()
@@ -587,7 +587,7 @@ function suite:testGetSectionsGeneralRows()
 	apiData.starsystem = starsystemFixture()
 	local general = findSection(StarSystem.getSections(ctx(apiData, {}, nil)), 'general')
 	self:assertEquals('[[United Empire of Earth]]', findItem(general, 'Affiliation'))
-	self:assertEquals('[[UEE]]', findItem(general, 'Jurisdiction'))
+	self:assertEquals('[[United Empire of Earth#Jurisdiction|UEE]]', findItem(general, 'Jurisdiction'))
 	self:assertEquals('4.85 AU', findItem(general, 'Size'))
 	self:assertEquals('[[G-type main-sequence star|G-type main-sequence]]', findItem(general, 'Star type'))
 	-- Demoted from a header badge: RSI workflow state renders as a plain,
@@ -803,7 +803,7 @@ end
 -- A record no leaf models resolves no leaf, so no link on its chain fetches
 -- anything.
 function suite:testUnclaimedPayloadResolvesNoLeaf()
-	self:assertEquals(nil, Location.resolveSubtype({ type = { name = 'Outpost' } }, nil))
+	self:assertEquals(nil, Location.resolveSubtype({ type = { name = 'Asteroid' } }, nil))
 	self:assertEquals(nil, Location.enrich)
 end
 
@@ -997,7 +997,7 @@ function suite:testJumpPointGeneralRows()
 	self:assertEquals('[[Nyx system]]', findItem(general, 'Destination'))
 	self:assertEquals('Zzyzx Test Star', findItem(general, 'Parent'))
 	self:assertEquals('Medium', findItem(general, 'Size'))
-	self:assertEquals('[[UEE]]', findItem(general, 'Jurisdiction'))
+	self:assertEquals('[[United Empire of Earth#Jurisdiction|UEE]]', findItem(general, 'Jurisdiction'))
 	-- Distance from star was dropped by design review: not a row.
 	self:assertEquals(nil, findItem(general, 'Distance from star'))
 end
@@ -1522,7 +1522,16 @@ function suite:testStarSections()
 	-- word, so asserting the section table alone passes while the live row
 	-- disappears.
 	self:assertEquals('4', findItem(general, 'Satellites'))
-	self:assertEquals('[[UEE]]', findItem(general, 'Jurisdiction'))
+	self:assertEquals('[[United Empire of Earth#Jurisdiction|UEE]]', findItem(general, 'Jurisdiction'))
+end
+
+-- Pyro and Nyx's stars carry Ungoverned as their own jurisdiction; it links
+-- the wiki's Jurisdictions page, which has no matching section.
+function suite:testStarSectionsUngoverned()
+	local apiData = starApiData()
+	apiData.jurisdiction = { name = 'Ungoverned' }
+	local general = findSection(Star.getSections(ctx(apiData, {}, starResolved({}))), 'general')
+	self:assertEquals('[[Jurisdictions|Ungoverned]]', findItem(general, 'Jurisdiction'))
 end
 
 -- A star's satellites are its planets, so they store as Planet count rather
@@ -2258,6 +2267,107 @@ function suite:testLeavesDispatchThroughContext()
 		'Medium jump point from Pyro to Nyx',
 		assembly.callHook(JumpPoint, 'getShortDescription', { apiData = jumpPointApiData(), args = {}, resolved = {} })
 	)
+end
+
+--- Every record type a place leaf renders dispatches to it.
+function suite:testRecordFamilyClaimsPlaceTypes()
+	for _, typeName in ipairs({
+		'Outpost',
+		'Outpost_InvalidQT',
+		'Manmade',
+		'Manmade_VisibleOnInteraction',
+		'LandingZone',
+		'PointOfInterest',
+		'NavPoint',
+		'Asteroid_ValidQT',
+	}) do
+		self:assertEquals(
+			'place',
+			Location._internal.recordFamily({ name = 'X', type = { name = typeName } }),
+			typeName
+		)
+	end
+end
+
+--- Plain Asteroid records are formation clusters, not places, and wreck
+--- sites stay unclaimed; neither may fall into the place leaf.
+function suite:testRecordFamilyLeavesAsteroidsAndWrecksUnclaimed()
+	self:assertEquals(false, Location._internal.recordFamily({ name = 'X', type = { name = 'Asteroid' } }))
+	self:assertEquals(
+		false,
+		Location._internal.recordFamily({
+			name = 'Stanton-Pyro Jump Point Wreck Site',
+			type = { name = 'Anomaly' },
+		})
+	)
+end
+
+function suite:testSubtypeMapTargetsPlace()
+	self:assertEquals(require('Module:Entity/Location/Place'), Location._internal.LOCATION_SUBTYPE_MAP.place())
+end
+
+-- ── Body: jurisdiction inheritance ─────────────────────────────────────────
+
+--- Swap Jurisdiction.fetch for a fixed table for the duration of fn. The
+--- runner never reloads modules, so this is the instance Body required.
+local function withLocationRecords(records, fn)
+	local saved = Jurisdiction.fetch
+	Jurisdiction.fetch = function(uuid)
+		return records[uuid]
+	end
+	local ok, err = pcall(fn)
+	Jurisdiction.fetch = saved
+	if not ok then
+		error(err, 0)
+	end
+end
+
+local function aberdeenRecord()
+	return {
+		uuid = 'aberdeen',
+		name = 'Aberdeen',
+		respawn_location_type = 'None',
+		type = { name = 'Moon' },
+		parent = { uuid = 'hurston', name = 'Hurston', type_name = 'Planet' },
+	}
+end
+
+function suite:testBodyMoonInheritsItsPlanetsJurisdiction()
+	withLocationRecords({ hurston = { uuid = 'hurston', jurisdiction = { name = 'Hurston Dynamics' } } }, function()
+		local apiData = Body.enrich(ctx(aberdeenRecord(), {}, nil))
+		self:assertEquals('Hurston Dynamics', apiData.inheritedJurisdiction)
+		self:assertEquals('Hurston Dynamics', Body.getStructuredData(ctx(apiData, {}, nil)).jurisdiction)
+		local general = Body.getSections(ctx(apiData, {}, nil))[1].items
+		local row
+		for _, item in ipairs(general) do
+			if item.label == 'Jurisdiction' then
+				row = item.content
+			end
+		end
+		self:assertEquals('[[Hurston Dynamics#Jurisdiction|Hurston Dynamics]]', row)
+	end)
+end
+
+function suite:testBodyPlanetKeepsItsOwnJurisdiction()
+	withLocationRecords({}, function()
+		local apiData = Body.enrich(ctx({
+			uuid = 'microtech',
+			name = 'microTech',
+			respawn_location_type = 'None',
+			type = { name = 'Planet' },
+			jurisdiction = { name = 'microTech' },
+			parent = { uuid = 'stanton', name = 'Stanton', type_name = 'Star' },
+		}, {}, nil))
+		self:assertEquals('microTech', apiData.inheritedJurisdiction)
+		local general = Body.getSections(ctx(apiData, {}, nil))[1].items
+		local row
+		for _, item in ipairs(general) do
+			if item.label == 'Jurisdiction' then
+				row = item.content
+			end
+		end
+		self:assertEquals('[[MicroTech (company)#Jurisdiction|microTech]]', row)
+	end)
 end
 
 return suite

@@ -14,6 +14,7 @@ require('strict')
 
 local Editorial = require('Module:Entity/Editorial')
 local format = require('Module:Entity/Format')
+local jurisdiction = require('Module:Entity/Location/Jurisdiction')
 local locationUtil = require('Module:Entity/Location/Util')
 local sectionBuilder = require('Module:Entity/SectionBuilder')
 
@@ -259,12 +260,16 @@ local function systemName(apiData, args)
 	return locationUtil.systemNameFrom(apiData, args, p.getEditorialManifest())
 end
 
---- Bridges by the SYSTEM name, explicitly: a body's own `apiData.name` is the
---- body, so attachStarsystem's default lookup chain would search for a system
---- called "Hurston" and attach nothing.
+--- Resolves the jurisdiction by walking the record's GAME parent chain, then
+--- bridges the starmap system by the SYSTEM name, explicitly: a body's own
+--- `apiData.name` is the body, so attachStarsystem's default lookup chain
+--- would search for a system called "Hurston" and attach nothing.
 --- @param ctx EntityHookContext
 --- @return table apiData
 function p.enrich(ctx)
+	if type(ctx.apiData.uuid) == 'string' and ctx.apiData.uuid ~= '' then
+		ctx.apiData.inheritedJurisdiction = jurisdiction.resolve(ctx.apiData)
+	end
 	local system = systemName(ctx.apiData, ctx.args)
 	if not system then
 		-- No bridge rather than attachStarsystem's own fallback, which would
@@ -392,8 +397,7 @@ function p.getSections(ctx)
 	local general = {}
 	sectionBuilder.push(general, 'Location', locationChain(apiData, args))
 	sectionBuilder.push(general, 'Affiliation', affiliationText(apiData, resolved))
-	local jurisdiction = type(apiData.jurisdiction) == 'table' and apiData.jurisdiction.name or nil
-	sectionBuilder.push(general, 'Jurisdiction', locationUtil.tier(jurisdiction, jurisdiction))
+	sectionBuilder.push(general, 'Jurisdiction', jurisdiction.display(apiData.inheritedJurisdiction))
 	sectionBuilder.push(general, 'Habitable', ed:value('habitable'))
 	sectionBuilder.push(general, 'Satellites', format.formatNum(ed:value('satellites')))
 	sectionBuilder.push(general, 'Landing zones', format.formatNum(ed:value('landingzones')))
@@ -471,6 +475,7 @@ function p.getStructuredData(ctx)
 		parent = parentTarget,
 		classification = classification(apiData, args),
 		designation = designation(apiData, args, resolved),
+		jurisdiction = type(apiData.inheritedJurisdiction) == 'string' and apiData.inheritedJurisdiction or nil,
 		moon_count = tonumber(ed:value('satellites')),
 		radius = radiusKm(apiData, resolved),
 		population_rating = rating(readings.population),

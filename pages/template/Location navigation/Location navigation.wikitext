@@ -1,0 +1,5 @@
+<includeonly><!--
+-->{{#invoke:Entity/LocationNavigation|main}}<!--
+--></includeonly><noinclude>
+{{/doc}}
+</noinclude>

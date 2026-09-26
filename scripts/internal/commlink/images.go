@@ -85,8 +85,11 @@ func ExtForType(contentType string) string {
 }
 
 // FilePage is the description page of an imported image, in the form the 2021
-// monthly-report import used.
+// monthly-report import used. description is expected to have already passed
+// through escapeText (a block's Caption does); a literal pipe survives that,
+// so it is escaped here to stop it opening a spurious {{Information}} parameter.
 func FilePage(description, date, source, author, category string) string {
+	description = strings.ReplaceAll(description, "|", "&#124;")
 	return "=={{int:filedesc}}==\n{{Information\n|description=" + description +
 		"\n|date=" + date + "\n|source=" + source + "\n|author=" + author +
 		"\n|permission=\n|other versions=\n}}\n\n=={{int:license-header}}==\n{{RSIlicense}}\n\n[[Category:" + category + "]]\n"
@@ -196,7 +199,7 @@ func PlanImages(ctx context.Context, web *httpx.Client, wiki *mediawiki.Client, 
 			p.File = fmt.Sprintf("%s - %02d%s", page, n, ext)
 			desc := captions[src]
 			if desc == "" {
-				desc = fmt.Sprintf("%s, image %02d", rsiTitle, n)
+				desc = fmt.Sprintf("%s, image %02d", escapeText(rsiTitle), n)
 			}
 			p.FilePage = FilePage(desc, date, src, cfg.ImageAuthor, cfg.ImageCategory)
 		}

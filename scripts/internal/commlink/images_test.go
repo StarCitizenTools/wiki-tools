@@ -42,6 +42,13 @@ func TestFilePage(t *testing.T) {
 	}
 }
 
+func TestFilePageEscapesPipe(t *testing.T) {
+	got := FilePage("Concept art | Squadron 42", "2021-06-02", "https://x/a.png", "Cloud Imperium Games", "Monthly Report images")
+	if !strings.Contains(got, "|description=Concept art &#124; Squadron 42\n") {
+		t.Errorf("FilePage did not escape a literal pipe in the description:\n%s", got)
+	}
+}
+
 func TestCache(t *testing.T) {
 	hits := 0
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { hits++; w.Write(pngBytes) }))

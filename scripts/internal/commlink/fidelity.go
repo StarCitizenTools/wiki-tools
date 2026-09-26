@@ -9,7 +9,7 @@ import (
 // links leaves a template call's text in place for nonWord to fold: the
 // infobox title is the page's only copy of the report title, which the API
 // repeats as lines of its own (a fragment introduction's title and subtitle).
-// Tags go first, since a link's text can hold one (<u> in 19950).
+// Tags go first, since a link's text can hold one (<u>).
 var (
 	tags    = regexp.MustCompile(`<[^>]+>|'{2,}|={2,}`)
 	links   = regexp.MustCompile(`\[\[(?:[^|\]]*\|)?([^\]]*)\]\]|\[[a-z]+://\S+ ([^\]]*)\]`)
@@ -120,9 +120,9 @@ func spansBlocks(n string, blocks []string) bool {
 }
 
 // Missing lists the lines of the API's plain text that the page does not
-// contain. The check runs one way, API into page, so an API text RSI truncated
-// (17080, 17105) cannot fail it. Two API artefacts pass: a line glued across
-// page blocks, and illustration credits glued in the API's own order.
+// contain. The check runs one way, API into page, so an API text that stops
+// short of RSI's body cannot fail it. Two API artefacts pass: a line glued
+// across page blocks, and illustration credits glued together.
 func Missing(apiText, page string, ignored func(string) bool) []string {
 	have := normalize(page)
 	var blocks []string

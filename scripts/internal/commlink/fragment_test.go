@@ -35,9 +35,9 @@ func TestParseFragment(t *testing.T) {
 	})
 }
 
-// A closing sign-off sent as headings, not paragraphs (19956): an
-// emphasis article turns every heading bold, and a heading matching the
-// "see you next month" sign-off turns bold even without emphasis.
+// A closing sign-off sent as headings, not paragraphs: an emphasis article
+// turns every heading bold, and a heading matching the "see you next month"
+// sign-off turns bold even without emphasis.
 func TestParseFragmentSignOff(t *testing.T) {
 	blocks, err := ParseFragment([]byte(`<g-article :show-emphasis="true" body="<h3>WE'LL SEE YOU NEXT MONTH...</h3><h3>// END TRANSMISSION</h3>"></g-article>`))
 	if err != nil {
@@ -54,8 +54,7 @@ func TestParseFragmentSignOff(t *testing.T) {
 	}
 	check(t, dump(blocks), []string{"P '''We'll see you next month!'''"})
 
-	// 19283 to 19584 close without emphasis; the heading after the sign-off
-	// is still part of it.
+	// Without emphasis, a heading after the sign-off is still part of it.
 	blocks, err = ParseFragment([]byte(`<g-article :show-emphasis="false" body="<h3><strong>WE'LL SEE YOU NEXT MONTH...</strong></h3><h3><strong>// END TRANSMISSION</strong></h3>"></g-article>`))
 	if err != nil {
 		t.Fatal(err)
@@ -86,7 +85,7 @@ func TestFetchBlocks(t *testing.T) {
 	check(t, dump(blocks), []string{"H2 Tech", "P Text."})
 }
 
-// 19317 splits one link into three anchors with the same href, the last one
+// RSI can split one link into anchors with the same href, the last one
 // starting with the space between two words.
 func TestParseFragmentSplitLink(t *testing.T) {
 	blocks, err := ParseFragment([]byte(`<g-article :show-emphasis="false" body="<p>An episode of <a href=&quot;https://youtu.be/x&quot;>Insid</a><a href=&quot;https://youtu.be/x&quot; target=&quot;_blank&quot;>e</a><a href=&quot;https://youtu.be/x&quot;> Star Citizen</a>. Then <a href=&quot;https://a.test/1&quot;>one</a><a href=&quot;https://a.test/2&quot;>two</a>.</p>"></g-article>`))

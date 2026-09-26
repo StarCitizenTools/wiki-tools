@@ -48,8 +48,8 @@ func TestMissingCountsTemplateText(t *testing.T) {
 }
 
 // The API glues a paragraph to the text after it when RSI has an element in
-// between that the API leaves out: the "Conclusion" title before the sign-off
-// (16999), or an image and a studio title (16551).
+// between that the API leaves out: the "Conclusion" title before the sign-off,
+// or an image and a studio title.
 func TestMissingGluedAcrossBlocks(t *testing.T) {
 	page := "Weapons got nose guns.\n\n[[File:X - 15.png|center|frameless|800px]]\n\n== Conclusion ==\n\n'''WE’LL SEE YOU NEXT MONTH…'''\n\n" +
 		"Seen in the future.\n\n[[File:X - 16.png|center|frameless|800px]]\n\n== Austin ==\n\n[[File:X - 17.png|center|frameless|800px]]\n\n=== Design ===\n\nThe design team met.\n"
@@ -77,8 +77,7 @@ func TestMissingHeadingOnOneWordEdges(t *testing.T) {
 }
 
 // The API collects illustration credits into lines of their own, the name and
-// the intro of one credit, or the names of several, glued with no space
-// (19317, 20220, 20620).
+// the intro of one credit, or the names of several, glued with no space.
 func TestMissingGluedCredits(t *testing.T) {
 	page := "Text.\n\n[[File:A.png|thumb|center|Image by [https://x/1 MaKizaR]]]\n\n" +
 		"[[File:B.png|thumb|center|Overall graph view]]\n\n[[File:C.png|thumb|center|Image by yoyoMeg]]\n\n" +
@@ -96,7 +95,7 @@ func TestMissingGluedCredits(t *testing.T) {
 	}
 }
 
-// A link's text keeps its own markup (19950: an underlined link).
+// A link's text keeps its own markup (an underlined link).
 func TestMissingMarkupInLinkText(t *testing.T) {
 	page := "Planning for this year's [https://x <u>CitizenCon</u>] in Manchester is underway.\n"
 	api := "Planning for this year's CitizenCon in Manchester is underway.\n"

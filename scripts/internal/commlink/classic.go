@@ -14,7 +14,7 @@ var (
 	greeting = regexp.MustCompile(`(?i)^greetings`)
 	signOff  = regexp.MustCompile(`(?i)see you next month`)
 	// reportTitle matches a first title block that names the report, though
-	// not always as the RSI title does (16963 names two months).
+	// not always as the RSI title does (it can name two months).
 	reportTitle = regexp.MustCompile(`(?i)\bmonthly (studio )?report\b`)
 )
 

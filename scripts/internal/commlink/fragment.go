@@ -69,8 +69,8 @@ func (p *fragment) walk(n *html.Node) {
 }
 
 // flowHTML converts one article body or intro entry. Its single heading level
-// (h2 to 18820, then h4 for Star Citizen and h3 for Squadron 42) is a
-// top-level section.
+// is a top-level section: h2 in the earliest fragments, then, from a change
+// during 2022, h4 for Star Citizen and h3 for Squadron 42.
 func (p *fragment) flowHTML(src string, emphasis bool) {
 	ctx := &html.Node{Type: html.ElementNode, Data: "div", DataAtom: atom.Div}
 	nodes, err := html.ParseFragment(strings.NewReader(src), ctx)

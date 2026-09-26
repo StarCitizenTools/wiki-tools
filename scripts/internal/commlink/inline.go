@@ -108,7 +108,7 @@ func link(b *strings.Builder, n *html.Node) {
 }
 
 // mergeSplitLinks moves each anchor's run of directly following anchors with
-// the same href into it, so a link RSI split mid-word (19317) renders as one.
+// the same href into it, so a link RSI split mid-word renders as one.
 func mergeSplitLinks(n *html.Node) {
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
 		if isPlainLink(c) {

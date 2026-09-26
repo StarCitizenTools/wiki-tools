@@ -147,11 +147,11 @@ func (v *Vocabulary) Apply(body string) (string, []LinkEntry) {
 	return out.String(), links
 }
 
-// linkSection tries each term against s, longest first, in place. A term
-// never links inside a mention of a longer term (Hurston in Hurston Dynamics). Most terms
-// never appear in a given section, so a plain Contains check skips the regex
-// and the protected-span scan entirely for them. spans is computed once and
-// only recomputed after a replacement changes s (a just-added [[...]] must
+// linkSection tries each term against s, longest first, in place. A term never
+// links inside a mention of a longer term (Hurston in Hurston Dynamics). Most
+// terms never appear in a given section, so a plain Contains check skips the
+// regex and the protected-span scan entirely for them. spans is computed once
+// and only recomputed after a replacement changes s (a just-added [[...]] must
 // shield its own text from a shorter term that follows).
 func (v *Vocabulary) linkSection(s string) (string, []LinkEntry) {
 	var added []LinkEntry

@@ -96,3 +96,13 @@ func TestParseFragmentSplitLink(t *testing.T) {
 		"P An episode of [https://youtu.be/x Inside Star Citizen]. Then [https://a.test/1 one][https://a.test/2 two].",
 	})
 }
+
+// A break at the end of a list item is dropped: the list marker already ends
+// the line.
+func TestParseFragmentListItemBreaks(t *testing.T) {
+	blocks, err := ParseFragment([]byte(`<g-article :show-emphasis="false" body="<ul><li>One<br></li><li>Two<br><br></li><li>Three<br>four</li></ul>"></g-article>`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	check(t, dump(blocks), []string{"LIST One / Two / Three<br />four"})
+}

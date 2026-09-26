@@ -164,7 +164,7 @@ func (f *flow) list(n *html.Node) {
 	var items []string
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
 		if c.Type == html.ElementNode && c.Data == "li" {
-			if t := Inline(c); t != "" {
+			if t := trimBreaks(Inline(c)); t != "" {
 				items = append(items, t)
 			}
 		}

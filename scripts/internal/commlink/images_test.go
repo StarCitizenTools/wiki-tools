@@ -35,6 +35,63 @@ func TestImageSources(t *testing.T) {
 	}
 }
 
+func TestDedupeImagesDropsAPlainRepeat(t *testing.T) {
+	blocks := []Block{
+		{Kind: Image, Src: "https://x/a.jpg"},
+		{Kind: Paragraph, Text: "Between."},
+		{Kind: Image, Src: "https://x/a-resized.jpg"}, // same resolved file as a.jpg
+	}
+	files := map[string]string{"https://x/a.jpg": "R - 01.jpg", "https://x/a-resized.jpg": "R - 01.jpg"}
+	got := DedupeImages(blocks, func(src string) string { return files[src] })
+	want := []Block{blocks[0], blocks[1]}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("DedupeImages = %+v, want %+v", got, want)
+	}
+}
+
+func TestDedupeImagesMovesACaptionToTheKeptAppearance(t *testing.T) {
+	blocks := []Block{
+		{Kind: Image, Src: "https://x/a.jpg"},
+		{Kind: Image, Src: "https://x/a-again.jpg", Caption: "Image by Someone"},
+	}
+	files := map[string]string{"https://x/a.jpg": "R - 01.jpg", "https://x/a-again.jpg": "R - 01.jpg"}
+	got := DedupeImages(blocks, func(src string) string { return files[src] })
+	want := []Block{{Kind: Image, Src: "https://x/a.jpg", Caption: "Image by Someone"}}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("DedupeImages = %+v, want %+v", got, want)
+	}
+}
+
+func TestDedupeImagesKeepsBothOnDifferingCaptions(t *testing.T) {
+	blocks := []Block{
+		{Kind: Image, Src: "https://x/a.jpg", Caption: "First caption"},
+		{Kind: Image, Src: "https://x/a-again.jpg", Caption: "Second caption"},
+	}
+	files := map[string]string{"https://x/a.jpg": "R - 01.jpg", "https://x/a-again.jpg": "R - 01.jpg"}
+	got := DedupeImages(blocks, func(src string) string { return files[src] })
+	if !reflect.DeepEqual(got, blocks) {
+		t.Errorf("DedupeImages = %+v, want both appearances kept: %+v", got, blocks)
+	}
+}
+
+// A dropped repeat must not leave an empty paragraph or a doubled blank line:
+// the block is gone before RenderBody joins what is left.
+func TestDedupeImagesNoStrayBlankLines(t *testing.T) {
+	blocks := []Block{
+		{Kind: Paragraph, Text: "Before."},
+		{Kind: Image, Src: "https://x/a.jpg"},
+		{Kind: Image, Src: "https://x/a-again.jpg"},
+		{Kind: Paragraph, Text: "After."},
+	}
+	files := map[string]string{"https://x/a.jpg": "R - 01.jpg", "https://x/a-again.jpg": "R - 01.jpg"}
+	file := func(src string) string { return files[src] }
+	got := RenderBody(DedupeImages(blocks, file), NewHeadCaser(nil, ""), file)
+	want := "Before.\n\n[[File:R - 01.jpg|thumb|center|800px]]\n\nAfter.\n"
+	if got != want {
+		t.Errorf("RenderBody(DedupeImages(...)):\n%s\nwant:\n%s", got, want)
+	}
+}
+
 func TestFilePage(t *testing.T) {
 	got := FilePage("A report, image 01", "2021-06-02", "https://x/a.png", "Cloud Imperium Games", "Monthly Report images")
 	want := "=={{int:filedesc}}==\n{{Information\n|description=A report, image 01\n|date=2021-06-02\n|source=https://x/a.png\n|author=Cloud Imperium Games\n|permission=\n|other versions=\n}}\n\n=={{int:license-header}}==\n{{RSIlicense}}\n\n[[Category:Monthly Report images]]\n"

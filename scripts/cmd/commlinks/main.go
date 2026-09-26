@@ -219,7 +219,8 @@ func run() error {
 			review(p.c, p.page, commlink.ReasonImages, err.Error())
 			continue
 		}
-		body, links := vocab.Apply(commlink.RenderBody(p.blocks, caser, imgs.File))
+		deduped := commlink.DedupeImages(p.blocks, imgs.File)
+		body, links := vocab.Apply(commlink.RenderBody(deduped, caser, imgs.File))
 		text := commlink.Infobox(commlink.PageMeta{
 			RSITitle: p.c.Title, URL: commlink.InfoboxURL(p.c.RSIURL),
 			Series: cfg.InfoboxSeries, Type: cfg.InfoboxType, Date: date,

@@ -67,6 +67,41 @@ func ImageSources(blocks []Block) []string {
 	return out
 }
 
+// DedupeImages drops an image block that repeats an earlier one's resolved
+// file name (RSI sometimes shows a section's header image again further
+// down), keeping the first appearance. A dropped repeat's caption moves to the
+// kept appearance when that one has none; two appearances whose captions both
+// hold text and differ are both kept, since collapsing them would lose one.
+func DedupeImages(blocks []Block, file func(src string) string) []Block {
+	first := map[string]int{} // resolved file name -> its index in out
+	out := make([]Block, 0, len(blocks))
+	for _, b := range blocks {
+		name := ""
+		if b.Kind == Image {
+			name = file(b.Src)
+		}
+		if name == "" {
+			out = append(out, b)
+			continue
+		}
+		i, seen := first[name]
+		if !seen {
+			first[name] = len(out)
+			out = append(out, b)
+			continue
+		}
+		kept := &out[i]
+		switch {
+		case b.Caption == "" || b.Caption == kept.Caption:
+		case kept.Caption == "":
+			kept.Caption = b.Caption
+		default:
+			out = append(out, b)
+		}
+	}
+	return out
+}
+
 // ExtForType is the file extension for a sniffed image type, or "" for anything
 // that is not an image the wiki accepts. MediaWiki rejects an extension that
 // does not match the content, so the name follows the bytes, not the URL.

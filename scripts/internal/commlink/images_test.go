@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha1"
 	"encoding/hex"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -102,10 +103,11 @@ func TestPlanImages(t *testing.T) {
 		{Kind: Image, Src: srv.URL + "/copy.jpg"},
 	}
 	planned := map[string]string{}
-	plans, _, fileFor, err := PlanImages(context.Background(), testWeb(t), wiki, cache, planned, testConfig(t), "A report", "A page", "2021-06-02", blocks)
+	res, err := PlanImages(context.Background(), testWeb(t), wiki, cache, planned, testConfig(t), "A report", "A page", "2021-06-02", blocks)
 	if err != nil {
 		t.Fatal(err)
 	}
+	plans := res.Plans
 	if len(plans) != 3 {
 		t.Fatalf("plans = %+v", plans)
 	}
@@ -118,10 +120,13 @@ func TestPlanImages(t *testing.T) {
 	if plans[2].Action != "reuse" || plans[2].File != "A page - 02.jpg" {
 		t.Errorf("image 3 (same bytes as 2) = %+v", plans[2])
 	}
-	if fileFor(srv.URL+"/copy.jpg") != "A page - 02.jpg" || planned[sum(jpegBytes)] != "A page - 02.jpg" {
-		t.Errorf("fileFor / planned not updated")
+	if res.File(srv.URL+"/copy.jpg") != "A page - 02.jpg" || res.Added[sum(jpegBytes)] != "A page - 02.jpg" {
+		t.Errorf("File / Added not updated")
 	}
-	if _, _, _, err := PlanImages(context.Background(), testWeb(t), wiki, cache, planned, testConfig(t), "A report", "A page", "2021-06-02",
+	if len(planned) != 0 {
+		t.Errorf("PlanImages wrote to planned: %v", planned)
+	}
+	if _, err := PlanImages(context.Background(), testWeb(t), wiki, cache, planned, testConfig(t), "A report", "A page", "2021-06-02",
 		[]Block{{Kind: Image, Src: srv.URL + "/page.html"}}); err == nil {
 		t.Error("a non-image source was accepted")
 	}
@@ -143,24 +148,77 @@ func TestPlanImagesLeavesOutA404(t *testing.T) {
 	cache, _ := LoadCache(filepath.Join(t.TempDir(), "cache.json"))
 	gone := srv.URL + "/gone.jpg"
 	blocks := []Block{{Kind: Image, Src: gone}, {Kind: Image, Src: srv.URL + "/a.png"}}
-	plans, missing, fileFor, err := PlanImages(context.Background(), testWeb(t), wiki, cache, map[string]string{}, testConfig(t), "A report", "A page", "2021-06-02", blocks)
+	res, err := PlanImages(context.Background(), testWeb(t), wiki, cache, map[string]string{}, testConfig(t), "A report", "A page", "2021-06-02", blocks)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(plans) != 1 || plans[0].N != 2 || plans[0].File != "A page - 02.png" {
-		t.Errorf("plans = %+v, want only image 2", plans)
+	if len(res.Plans) != 1 || res.Plans[0].N != 2 || res.Plans[0].File != "A page - 02.png" {
+		t.Errorf("plans = %+v, want only image 2", res.Plans)
 	}
-	if !reflect.DeepEqual(missing, []string{gone}) {
-		t.Errorf("missing = %q, want %q", missing, gone)
+	if !reflect.DeepEqual(res.Missing, []string{gone}) {
+		t.Errorf("missing = %q, want %q", res.Missing, gone)
 	}
-	if fileFor(gone) != "" {
-		t.Errorf("fileFor(404 source) = %q, want none", fileFor(gone))
+	if res.File(gone) != "" {
+		t.Errorf("File(404 source) = %q, want none", res.File(gone))
 	}
 	if _, ok := cache.Hashes[gone]; ok {
 		t.Error("a 404 was cached")
 	}
-	if _, _, _, err := PlanImages(context.Background(), testWeb(t), wiki, cache, map[string]string{}, testConfig(t), "A report", "A page", "2021-06-02",
+	if _, err := PlanImages(context.Background(), testWeb(t), wiki, cache, map[string]string{}, testConfig(t), "A report", "A page", "2021-06-02",
 		[]Block{{Kind: Image, Src: srv.URL + "/forbidden.png"}}); err == nil {
 		t.Error("a 403 was left out instead of sent to review")
+	}
+}
+
+// A page's images join the run's planned map only once the caller writes the
+// page: a page held back must not leave a later page reusing an upload that
+// never happens.
+func TestPlanImagesCrossPageReuse(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.Write(pngBytes) }))
+	defer srv.Close()
+	wiki := testWiki(t, func(url.Values) string { return `{"query":{"allimages":[],"pages":[]}}` })
+	cache, _ := LoadCache(filepath.Join(t.TempDir(), "cache.json"))
+	planned := map[string]string{}
+	plan := func(page string) *PageImages {
+		t.Helper()
+		res, err := PlanImages(context.Background(), testWeb(t), wiki, cache, planned, testConfig(t), "R", page, "2021-06-02",
+			[]Block{{Kind: Image, Src: srv.URL + "/" + page + ".png"}})
+		if err != nil || len(res.Plans) != 1 {
+			t.Fatalf("PlanImages(%s) = %+v, %v", page, res, err)
+		}
+		return res
+	}
+
+	a := plan("A")
+	if got := plan("B").Plans[0]; got.Action != "upload" || got.File != "B - 01.png" {
+		t.Errorf("with page A held back, page B's image = %+v, want its own upload", got)
+	}
+	maps.Copy(planned, a.Added)
+	if got := plan("B").Plans[0]; got.Action != "reuse" || got.File != "A - 01.png" {
+		t.Errorf("with page A written, page B's image = %+v, want a reuse of A - 01.png", got)
+	}
+}
+
+// An upload whose name the wiki already holds sends the page to review: the
+// file there has other bytes, or the SHA1 lookup would have reused it.
+func TestPlanImagesNameTaken(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.Write(pngBytes) }))
+	defer srv.Close()
+	var asked []string
+	wiki := testWiki(t, func(form url.Values) string {
+		if form.Get("titles") != "" {
+			asked = append(asked, form.Get("titles"))
+			return `{"query":{"pages":[{"title":"File:A page - 01.png"}]}}`
+		}
+		return `{"query":{"allimages":[]}}`
+	})
+	cache, _ := LoadCache(filepath.Join(t.TempDir(), "cache.json"))
+	_, err := PlanImages(context.Background(), testWeb(t), wiki, cache, map[string]string{}, testConfig(t), "R", "A page", "2021-06-02",
+		[]Block{{Kind: Image, Src: srv.URL + "/a.png"}})
+	if err == nil || !strings.Contains(err.Error(), "File:A page - 01.png") {
+		t.Errorf("err = %v, want one naming File:A page - 01.png", err)
+	}
+	if !reflect.DeepEqual(asked, []string{"File:A page - 01.png"}) {
+		t.Errorf("existence queries = %q", asked)
 	}
 }

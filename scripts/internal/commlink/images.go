@@ -164,40 +164,60 @@ func (c *Cache) Hash(ctx context.Context, web *httpx.Client, src string) (Hash, 
 	return h, nil
 }
 
-// PlanImages plans a page's images in body order and returns the source-to-file
-// mapping the renderer needs. planned maps SHA1 to the file name already chosen
-// for it this run, so a picture two reports share is uploaded once. A source
-// RSI answers with 404 is left out of the page and returned in missing; any
-// other download failure is an error.
+// PageImages is one page's image plan.
+type PageImages struct {
+	Plans []ImagePlan
+	// Missing are body sources RSI answers with 404, left out of the page.
+	Missing []string
+	// Added maps the SHA1 of each image this page names to that name. The
+	// caller adds it to the run's planned map only once the page is in the
+	// plan, so no later page reuses an upload that never happens.
+	Added map[string]string
+	files map[string]string // source -> file name
+}
+
+// File is the wiki file name for an image source, or "" for a source the page
+// leaves out.
+func (p *PageImages) File(src string) string { return p.files[src] }
+
+// PlanImages plans a page's images in body order. planned maps SHA1 to the
+// file name chosen for it by pages already in the plan, so a picture two
+// reports share is uploaded once; PlanImages only reads it. A source RSI
+// answers with 404 is left out of the page; any other download failure is an
+// error, and so is an upload whose name the wiki already holds (a file with
+// the same bytes would have been found by SHA1 and reused).
 func PlanImages(ctx context.Context, web *httpx.Client, wiki *mediawiki.Client, cache *Cache, planned map[string]string,
-	cfg *Config, rsiTitle, page, date string, blocks []Block) (plans []ImagePlan, missing []string, file func(string) string, err error) {
+	cfg *Config, rsiTitle, page, date string, blocks []Block) (*PageImages, error) {
 	captions := map[string]string{}
 	for _, b := range blocks {
 		if b.Kind == Image && b.Caption != "" && captions[b.Src] == "" {
 			captions[b.Src] = b.Caption
 		}
 	}
-	names := map[string]string{}
+	res := &PageImages{Plans: []ImagePlan{}, Added: map[string]string{}, files: map[string]string{}}
+	var uploads []string
 	for i, src := range ImageSources(blocks) {
 		n := i + 1
 		h, err := cache.Hash(ctx, web, src)
 		var status *httpx.StatusError
 		if errors.As(err, &status) && status.Code == http.StatusNotFound {
-			missing = append(missing, src)
+			res.Missing = append(res.Missing, src)
 			continue
 		}
 		if err != nil {
-			return nil, nil, nil, fmt.Errorf("image %d (%s): %w", n, src, err)
+			return nil, fmt.Errorf("image %d (%s): %w", n, src, err)
 		}
 		ext := ExtForType(h.Type)
 		if ext == "" {
-			return nil, nil, nil, fmt.Errorf("image %d (%s) is %s, not an image", n, src, h.Type)
+			return nil, fmt.Errorf("image %d (%s) is %s, not an image", n, src, h.Type)
 		}
 		p := ImagePlan{N: n, Source: src, SHA1: h.SHA1, Size: h.Size}
 		if name, ok := planned[h.SHA1]; ok {
 			p.Action, p.File = "reuse", name
+		} else if name, ok := res.Added[h.SHA1]; ok {
+			p.Action, p.File = "reuse", name
 		} else if existing, err := FileBySHA1(ctx, wiki, h.SHA1); err != nil {
-			return nil, nil, nil, err
+			return nil, err
 		} else if existing != "" {
 			p.Action, p.File = "reuse", existing
 		} else {
@@ -208,10 +228,26 @@ func PlanImages(ctx context.Context, web *httpx.Client, wiki *mediawiki.Client, 
 				desc = fmt.Sprintf("%s, image %02d", escapeText(rsiTitle), n)
 			}
 			p.FilePage = FilePage(desc, date, src, cfg.ImageAuthor, cfg.ImageCategory)
+			uploads = append(uploads, "File:"+p.File)
 		}
-		planned[h.SHA1] = p.File
-		names[src] = p.File
-		plans = append(plans, p)
+		res.Added[h.SHA1] = p.File
+		res.files[src] = p.File
+		res.Plans = append(res.Plans, p)
 	}
-	return plans, missing, func(src string) string { return names[src] }, nil
+	if len(uploads) > 0 {
+		exists, err := PagesExist(ctx, wiki, uploads)
+		if err != nil {
+			return nil, err
+		}
+		var taken []string
+		for _, t := range uploads {
+			if exists[t] {
+				taken = append(taken, t)
+			}
+		}
+		if len(taken) > 0 {
+			return nil, fmt.Errorf("the wiki already has %s, not holding this report's image", strings.Join(taken, ", "))
+		}
+	}
+	return res, nil
 }

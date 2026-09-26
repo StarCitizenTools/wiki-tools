@@ -6,11 +6,13 @@ import (
 	"strings"
 )
 
-// markup leaves a template call's text in place for nonWord to fold: the
+// links leaves a template call's text in place for nonWord to fold: the
 // infobox title is the page's only copy of the report title, which the API
 // repeats as lines of its own (a fragment introduction's title and subtitle).
+// Tags go first, since a link's text can hold one (<u> in 19950).
 var (
-	markup  = regexp.MustCompile(`\[\[(?:[^|\]]*\|)?([^\]]*)\]\]|\[[a-z]+://\S+ ([^\]]*)\]|<[^>]+>|'{2,}|={2,}`)
+	tags    = regexp.MustCompile(`<[^>]+>|'{2,}|={2,}`)
+	links   = regexp.MustCompile(`\[\[(?:[^|\]]*\|)?([^\]]*)\]\]|\[[a-z]+://\S+ ([^\]]*)\]`)
 	nonWord = regexp.MustCompile(`[^\pL\pN]+`)
 )
 
@@ -18,7 +20,8 @@ var (
 // the first preceded by one.
 func normalize(s string) string {
 	s = stdhtml.UnescapeString(s)
-	s = markup.ReplaceAllString(s, " $1$2 ")
+	s = tags.ReplaceAllString(s, " ")
+	s = links.ReplaceAllString(s, " $1$2 ")
 	s = nonWord.ReplaceAllString(strings.ToLower(s), " ")
 	return " " + strings.TrimSpace(s) + " "
 }

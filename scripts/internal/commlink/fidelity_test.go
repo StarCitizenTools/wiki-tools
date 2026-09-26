@@ -83,3 +83,12 @@ func TestMissingGluedCredits(t *testing.T) {
 		t.Errorf("Missing = %q, want %q", got, want)
 	}
 }
+
+// A link's text keeps its own markup (19950: an underlined link).
+func TestMissingMarkupInLinkText(t *testing.T) {
+	page := "Planning for this year's [https://x <u>CitizenCon</u>] in Manchester is underway.\n"
+	api := "Planning for this year's CitizenCon in Manchester is underway.\n"
+	if got := Missing(api, page, func(string) bool { return false }); len(got) != 0 {
+		t.Errorf("Missing = %q, want none", got)
+	}
+}

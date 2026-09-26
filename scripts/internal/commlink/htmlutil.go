@@ -1,6 +1,7 @@
 package commlink
 
 import (
+	"fmt"
 	"net/url"
 	"regexp"
 	"strings"
@@ -130,12 +131,28 @@ func PlainText(n *html.Node) string {
 	return strings.TrimSpace(wsRun.ReplaceAllString(normalizeInvisibles(b.String()), " "))
 }
 
-// urlUnsafe percent-encodes the characters that would end or break a URL
-// inside a wikitext external link, or open markup there.
-var urlUnsafe = strings.NewReplacer(
-	" ", "%20", `"`, "%22", "'", "%27", "<", "%3C", ">", "%3E",
-	"[", "%5B", "]", "%5D", "{", "%7B", "|", "%7C", "}", "%7D",
-)
+// urlUnsafeASCII is the ASCII set that would break wikitext link markup: quote
+// marks, angle brackets, and the wiki-markup delimiters.
+const urlUnsafeASCII = `"'<>[]{|}`
+
+// escapeURLChars percent-encodes the characters that would end or break a URL
+// inside a wikitext external link, or open markup there: every Unicode space
+// separator (general category Zs, which includes U+0020; MediaWiki's
+// external-link syntax ends the URL at any of them, not only U+0020) and
+// urlUnsafeASCII.
+func escapeURLChars(s string) string {
+	var b strings.Builder
+	for _, r := range s {
+		if !unicode.Is(unicode.Zs, r) && !strings.ContainsRune(urlUnsafeASCII, r) {
+			b.WriteRune(r)
+			continue
+		}
+		for _, by := range []byte(string(r)) {
+			fmt.Fprintf(&b, "%%%02X", by)
+		}
+	}
+	return b.String()
+}
 
 // absURL resolves an RSI href or src to an absolute URL safe inside a wikitext
 // external link.
@@ -149,7 +166,7 @@ func absURL(ref string) string {
 		base, _ := url.Parse(RSIRoot + "/")
 		out = base.ResolveReference(u).String()
 	}
-	return urlUnsafe.Replace(out)
+	return escapeURLChars(out)
 }
 
 var foldRe = regexp.MustCompile(`[^\pL\pN]+`)

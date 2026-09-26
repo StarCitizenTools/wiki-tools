@@ -155,3 +155,14 @@ func TestAbsURL(t *testing.T) {
 		}
 	}
 }
+
+// MediaWiki's external-link syntax ends the URL at any Unicode space
+// separator, not only U+0020, so every one of them is percent-encoded.
+func TestAbsURLPercentEncodesSpaceSeparators(t *testing.T) {
+	nbsp, nnbsp := string(rune(0x00A0)), string(rune(0x202F))
+	in := "https://x.test/a" + nbsp + "b" + nnbsp + "c"
+	want := "https://x.test/a%C2%A0b%E2%80%AFc"
+	if got := absURL(in); got != want {
+		t.Errorf("absURL(%q) = %q, want %q", in, got, want)
+	}
+}

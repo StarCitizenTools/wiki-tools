@@ -1,15 +1,9 @@
-/* Body panel: one grid for all rows (gauge | label | content), each row's
- * cells placed into it through `display: contents`, so the label column hugs
- * the panel's widest label and its padding is equal on both sides. Below
- * 640 px each row is its own grid again: the label moves into the row above
- * its content and the gauge becomes a 56 px strip. */
-.t-location-nav__rows {
-	display: grid;
-	grid-template-columns: 160px max-content minmax(0, 1fr);
-}
-
+/* Body panel: one grid per row (gauge | label | content), so rows grow freely
+ * and the gauge column stays continuous. Below 640 px the label moves into the
+ * row above its content and the gauge becomes a 56 px strip. */
 .t-location-nav__row {
-	display: contents;
+	display: grid;
+	grid-template-columns: 160px 150px minmax(0, 1fr);
 }
 
 .t-location-nav__gauge {
@@ -226,12 +220,7 @@
 }
 
 @media (max-width: 640px) {
-	.t-location-nav__rows {
-		display: block;
-	}
-
 	.t-location-nav__row {
-		display: grid;
 		grid-template-columns: 56px minmax(0, 1fr);
 	}
 
@@ -255,7 +244,7 @@
 		grid-column: 2;
 		height: 32px;
 		box-sizing: border-box;
-		padding: var(--space-sm) var(--space-sm) 0 var(--space-xxs);
+		padding: var(--space-sm) var(--space-sm) 0;
 		border-right: 0;
 		border-bottom: 0;
 		font-size: var(--font-size-small);
@@ -264,7 +253,7 @@
 
 	.t-location-nav__content {
 		grid-column: 2;
-		padding: var(--space-xs) var(--space-sm) var(--space-sm) var(--space-xxs);
+		padding: var(--space-xs) var(--space-sm) var(--space-sm);
 	}
 
 	.t-location-nav__g--wide {

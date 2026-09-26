@@ -59,6 +59,8 @@ func TestLoadConfigRejects(t *testing.T) {
 	for name, body := range map[string]string{
 		"missing-series.json": `{"titleQuery":"M","titlePattern":"m"}`,
 		"bad-regex.json":      `{"series":"s","titleQuery":"M","titlePattern":"("}`,
+		"empty-alias.json":    `{"series":"s","titleQuery":"M","titlePattern":"m","aliases":{" ":"Target"}}`,
+		"empty-nolink.json":   `{"series":"s","titleQuery":"M","titlePattern":"m","noLink":["Vulcan (G12)",""]}`,
 	} {
 		p := filepath.Join(dir, name)
 		os.WriteFile(p, []byte(body), 0o644)

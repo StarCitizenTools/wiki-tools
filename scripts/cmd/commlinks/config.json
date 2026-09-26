@@ -31,6 +31,7 @@
     "Terra Mills": "Terra Mills"
   },
   "stoplist": ["Centurion", "Cologne", "Guardian", "Odin", "Odyssey", "Shanghai", "Titus"],
+  "noLink": ["Vulcan (G12)", "Eclipse Mode"],
   "fidelityIgnore": [
     "^(?:Embark onLanding bay iron Hades IIISmuggling)+PU Monthly Reports?$",
     "^Ai system Puffy PlanetVanduul civilization captain transponderEradicate ennoblingPU Monthly Report$",

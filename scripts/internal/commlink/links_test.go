@@ -13,6 +13,7 @@ func TestVocabulary(t *testing.T) {
 		map[string]string{"Los Angeles": "Cloud Imperium Games, LLC"},
 		[]string{"Nova"},
 		[]string{"Banned Ship"},
+		nil,
 		corpus)
 	body := "Intro about Gladius and Jeffrey Pease, and Nova and Banned Ship.\n\n" +
 		"== Team ==\n\n" +
@@ -40,7 +41,7 @@ func TestVocabulary(t *testing.T) {
 // A hyphen keeps a term from matching a prefix of a distinct name ("Idris-M");
 // an apostrophe still ends a term, so a possessive links the bare name.
 func TestTermBoundaryHyphenApostrophe(t *testing.T) {
-	v := BuildVocabulary([]string{"Idris"}, nil, nil, nil, "")
+	v := BuildVocabulary([]string{"Idris"}, nil, nil, nil, nil, "")
 	body := "The Idris-M arrived. The Idris’s hangar."
 	got, links := v.Apply(body)
 	want := "The Idris-M arrived. The [[Idris]]’s hangar."
@@ -55,7 +56,7 @@ func TestTermBoundaryHyphenApostrophe(t *testing.T) {
 // The corpus tokenizer must split off a trailing possessive so a bare
 // lower-case word ("reliant") is recorded and its title dropped.
 func TestLowerCaseWordExclusionHandlesPossessive(t *testing.T) {
-	v := BuildVocabulary([]string{"Reliant"}, nil, nil, nil, "the reliant's cargo bay was full")
+	v := BuildVocabulary([]string{"Reliant"}, nil, nil, nil, nil, "the reliant's cargo bay was full")
 	got, links := v.Apply("The Reliant flew.")
 	want := "The Reliant flew."
 	if got != want {
@@ -74,7 +75,7 @@ func benchmarkData() (*Vocabulary, string) {
 	for i := range titles {
 		titles[i] = fmt.Sprintf("Synthetic Term %04d", i)
 	}
-	v := BuildVocabulary(titles, nil, nil, nil, "")
+	v := BuildVocabulary(titles, nil, nil, nil, nil, "")
 
 	const filler = "The quick brown fox jumps over the lazy dog near the old station platform, and the crew filed a routine report. "
 	var body strings.Builder
@@ -102,13 +103,26 @@ func BenchmarkApply(b *testing.B) {
 // A term never links inside a longer term's mention, linked or not: the
 // section's second "Hurston Dynamics" is not the planet.
 func TestTermInsideLongerTerm(t *testing.T) {
-	v := BuildVocabulary([]string{"Hurston"}, map[string]string{"Hurston Dynamics": "Hurston Dynamics"}, nil, nil, "")
+	v := BuildVocabulary([]string{"Hurston"}, map[string]string{"Hurston Dynamics": "Hurston Dynamics"}, nil, nil, nil, "")
 	got, links := v.Apply("The Hurston Dynamics gun. Then Hurston Dynamics again, and Hurston itself.")
 	want := "The [[Hurston Dynamics]] gun. Then Hurston Dynamics again, and [[Hurston]] itself."
 	if got != want {
 		t.Errorf("Apply:\n%s\nwant:\n%s", got, want)
 	}
 	if len(links) != 2 {
+		t.Errorf("links = %+v", links)
+	}
+}
+
+// A term inside a noLink phrase is not linked there; its next mention is.
+func TestNoLinkPhrase(t *testing.T) {
+	v := BuildVocabulary([]string{"Vulcan", "Eclipse"}, nil, nil, nil, []string{"Vulcan (G12)", "Eclipse Mode"}, "")
+	got, links := v.Apply("The Vulcan (G12) render API and Eclipse Mode. Later the Vulcan flew.")
+	want := "The Vulcan (G12) render API and Eclipse Mode. Later the [[Vulcan]] flew."
+	if got != want {
+		t.Errorf("Apply:\n%s\nwant:\n%s", got, want)
+	}
+	if len(links) != 1 {
 		t.Errorf("links = %+v", links)
 	}
 }

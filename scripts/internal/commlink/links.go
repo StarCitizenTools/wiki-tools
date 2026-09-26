@@ -20,8 +20,12 @@ type term struct {
 	longer       []string // longer terms that contain text
 }
 
-// Vocabulary is the set of names the importer may link.
-type Vocabulary struct{ terms []term }
+// Vocabulary is the set of names the importer may link, and the phrases
+// whose words it never links.
+type Vocabulary struct {
+	terms  []term
+	noLink []string
+}
 
 // corpusWord tokenizes on letters and digits only, so a trailing possessive or
 // hyphenated suffix doesn't hide a bare word from the lower-case check below
@@ -32,8 +36,9 @@ var corpusWord = regexp.MustCompile(`\pL[\pL\pN]*`)
 // is dropped when it is a disambiguation page, is stoplisted, carries a
 // parenthetical, is under four characters, or is a single word the reports also
 // use in lower case (so "reliant" or "javelin" is read as a word, not a ship).
-// Aliases are curated and skip those checks.
-func BuildVocabulary(titles []string, aliases map[string]string, disambiguation, stoplist []string, corpus string) *Vocabulary {
+// Aliases are curated and skip those checks. A term inside a noLink phrase is
+// not linked there.
+func BuildVocabulary(titles []string, aliases map[string]string, disambiguation, stoplist, noLink []string, corpus string) *Vocabulary {
 	skip := map[string]bool{}
 	for _, t := range append(append([]string{}, disambiguation...), stoplist...) {
 		skip[t] = true
@@ -44,7 +49,7 @@ func BuildVocabulary(titles []string, aliases map[string]string, disambiguation,
 			lowerWords[w] = true
 		}
 	}
-	v := &Vocabulary{}
+	v := &Vocabulary{noLink: noLink}
 	seen := map[string]bool{}
 	add := func(text, target string) {
 		seen[text] = true
@@ -155,7 +160,7 @@ func (v *Vocabulary) Apply(body string) (string, []LinkEntry) {
 // shield its own text from a shorter term that follows).
 func (v *Vocabulary) linkSection(s string) (string, []LinkEntry) {
 	var added []LinkEntry
-	spans := protected.FindAllStringIndex(s, -1)
+	spans := v.protectedSpans(s)
 	for _, t := range v.terms {
 		if !strings.Contains(s, t.text) {
 			continue
@@ -178,11 +183,28 @@ func (v *Vocabulary) linkSection(s string) (string, []LinkEntry) {
 			}
 			s = s[:start] + link + s[end:]
 			added = append(added, LinkEntry{Term: t.text, Target: t.target})
-			spans = protected.FindAllStringIndex(s, -1)
+			spans = v.protectedSpans(s)
 			break
 		}
 	}
 	return s, added
+}
+
+// protectedSpans lists the spans of s no term may link inside: markup, and
+// every mention of a noLink phrase.
+func (v *Vocabulary) protectedSpans(s string) [][]int {
+	spans := protected.FindAllStringIndex(s, -1)
+	for _, p := range v.noLink {
+		for from := 0; ; {
+			i := strings.Index(s[from:], p)
+			if i < 0 {
+				break
+			}
+			spans = append(spans, []int{from + i, from + i + len(p)})
+			from += i + len(p)
+		}
+	}
+	return spans
 }
 
 func inSpan(spans [][]int, start, end int) bool {

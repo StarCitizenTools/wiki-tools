@@ -326,7 +326,7 @@ func buildVocabulary(ctx context.Context, wiki *mediawiki.Client, cfg *commlink.
 		}
 	}
 	progress(fmt.Sprintf("link vocabulary from %d category titles and %d aliases", len(titles), len(aliases)))
-	return commlink.BuildVocabulary(titles, aliases, disambiguation, cfg.Stoplist, corpus), nil
+	return commlink.BuildVocabulary(titles, aliases, disambiguation, cfg.Stoplist, cfg.NoLink, corpus), nil
 }
 
 func writeJSON(dest string, v any) error {

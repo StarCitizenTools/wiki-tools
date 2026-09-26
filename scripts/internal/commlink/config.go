@@ -32,8 +32,11 @@ type Config struct {
 	LinkCategories []string          `json:"linkCategories"`
 	Aliases        map[string]string `json:"aliases"`
 	Stoplist       []string          `json:"stoplist"`
-	FidelityIgnore []string          `json:"fidelityIgnore"`
-	KnownReview    []int             `json:"knownReview"`
+	// NoLink lists phrases inside which no term is linked: a name used in
+	// another sense.
+	NoLink         []string `json:"noLink"`
+	FidelityIgnore []string `json:"fidelityIgnore"`
+	KnownReview    []int    `json:"knownReview"`
 	// APIIngestDates are YYYY-MM-DD days the API imported reports in bulk; a
 	// created_at on one of them is not a publication date.
 	APIIngestDates []string `json:"apiIngestDates"`
@@ -65,6 +68,16 @@ func LoadConfig(path string) (*Config, error) {
 			return nil, fmt.Errorf("%s: rename %q: %w", path, r.Pattern, err)
 		}
 		c.renameRe = append(c.renameRe, re)
+	}
+	for k := range c.Aliases {
+		if strings.TrimSpace(k) == "" {
+			return nil, fmt.Errorf("%s: aliases has an empty term", path)
+		}
+	}
+	for _, p := range c.NoLink {
+		if strings.TrimSpace(p) == "" {
+			return nil, fmt.Errorf("%s: noLink has an empty phrase", path)
+		}
 	}
 	for _, d := range c.APIIngestDates {
 		if _, err := time.Parse("2006-01-02", d); err != nil {

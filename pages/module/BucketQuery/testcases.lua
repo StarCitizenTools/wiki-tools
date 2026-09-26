@@ -117,7 +117,14 @@ function suite:testQueryBuildsPrimaryPlusJoins()
 		})
 		local chain = bucketLib._chains[1]
 		self:assertEquals('entity', chain.bucket)
-		self:assertDeepEquals({ 'name', 'vehicle.mass', 'vehicle_stats.scm_speed', 'page_name' }, chain.select)
+		self:assertDeepEquals({
+			'name',
+			'vehicle.mass',
+			'vehicle_stats.scm_speed',
+			'page_name',
+			'vehicle.page_name',
+			'vehicle_stats.page_name',
+		}, chain.select)
 		self:assertDeepEquals({
 			{ 'vehicle', 'vehicle.page_name', 'entity.page_name' },
 			{ 'vehicle_stats', 'vehicle_stats.page_name', 'entity.page_name' },
@@ -139,7 +146,7 @@ function suite:testQueryRootsOnTheGivenPrimary()
 		local chain = bucketLib._chains[1]
 		self:assertEquals('vehicle', chain.bucket)
 		-- the primary's own fields stay bare; entity becomes the joined one
-		self:assertDeepEquals({ 'role', 'entity.name' }, chain.select)
+		self:assertDeepEquals({ 'role', 'entity.name', 'page_name', 'entity.page_name' }, chain.select)
 		self:assertDeepEquals({ { 'entity', 'entity.page_name', 'vehicle.page_name' } }, chain.join)
 		self:assertDeepEquals({ { 'role', '=', 'Fighter' } }, chain.where)
 	end)
@@ -150,7 +157,7 @@ function suite:testQueryDefaultsToTheEntityPrimary()
 		BucketQuery.query({ kind = 'Vehicle', filters = { { 'Role', 'Fighter' } }, columns = { 'Role', 'Name' } })
 		local chain = bucketLib._chains[1]
 		self:assertEquals('entity', chain.bucket)
-		self:assertDeepEquals({ 'vehicle.role', 'name' }, chain.select)
+		self:assertDeepEquals({ 'vehicle.role', 'name', 'page_name', 'vehicle.page_name' }, chain.select)
 		self:assertDeepEquals({ { 'vehicle', 'vehicle.page_name', 'entity.page_name' } }, chain.join)
 		self:assertDeepEquals({ { 'vehicle.role', '=', 'Fighter' } }, chain.where)
 	end)
@@ -181,6 +188,48 @@ function suite:testQueryJoinsColumnsBeforeFiltersOnce()
 			{ 'vehicle', 'vehicle.page_name', 'entity.page_name' },
 		}, chain.join)
 		self:assertDeepEquals({ { 'vehicle.mass', '>', 100 } }, chain.where)
+	end)
+end
+
+--- A cooler and a settlement whose titles differ only in case both join the
+--- settlement's vehicle row, because Bucket's join ignores case.
+local function caseTwins(extra)
+	local frostbite = { page_name = 'Frostbite', name = 'Frostbite', ['vehicle.page_name'] = 'Frostbite' }
+	local cooler = { page_name = 'FrostBite', name = 'FrostBite', ['vehicle.page_name'] = 'Frostbite' }
+	for key, value in pairs(extra or {}) do
+		frostbite[key], cooler[key] = value, value
+	end
+	return cooler, frostbite
+end
+
+function suite:testQueryDropsCaseMismatchedInnerJoin()
+	withManifest(function()
+		local cooler, frostbite = caseTwins({ ['vehicle.role'] = 'Settlement' })
+		bucketLib._setRows('entity', { cooler, frostbite })
+		local rows = BucketQuery.query({
+			filters = { { 'Role', 'Settlement' } },
+			columns = { 'Name', 'Role' },
+		})
+		self:assertDeepEquals({ { Name = 'Frostbite', Role = 'Settlement' } }, rows)
+	end)
+end
+
+function suite:testQueryKeepsCaseMismatchedLeftJoinWithoutItsFields()
+	withManifest(function()
+		local cooler = caseTwins({ ['vehicle.mass'] = 100 })
+		bucketLib._setRows('entity', { cooler })
+		local rows = BucketQuery.query({ filters = { 'Category:Coolers' }, columns = { 'Name', 'Mass' } })
+		self:assertDeepEquals({ { Name = 'FrostBite' } }, rows)
+	end)
+end
+
+function suite:testQueryDropsCaseMismatchedLeftJoinBesideTheMatchedRow()
+	withManifest(function()
+		local cooler, frostbite = caseTwins({ ['vehicle.mass'] = 100 })
+		local coolerAlone = { page_name = 'FrostBite', name = 'FrostBite' }
+		bucketLib._setRows('entity', { cooler, frostbite, coolerAlone })
+		local rows = BucketQuery.query({ columns = { 'Name', 'Mass' } })
+		self:assertDeepEquals({ { Name = 'Frostbite', Mass = 100 }, { Name = 'FrostBite' } }, rows)
 	end)
 end
 

@@ -102,7 +102,7 @@ function suite:testQuerySpecForCategoryAndFilter()
 		self:assertEquals(1000, chain.limit)
 		-- A table with no image column does not fetch the image either. Fields of the
 		-- primary bucket select unprefixed; a joined bucket's carry its name.
-		self:assertDeepEquals({ 'page_name', 'name', 'mission.orders' }, chain.select)
+		self:assertDeepEquals({ 'page_name', 'name', 'mission.orders', 'mission.page_name' }, chain.select)
 	end)
 end
 
@@ -125,7 +125,7 @@ function suite:testPrimaryRootsTheQueryOnTheWrappersBucket()
 		self:assertEquals('entity', chain.join[1][1])
 		self:assertEquals('Category:Jump Point Year One', chain.where[1][1])
 		-- The wrapper's own bucket selects unprefixed; the joined entity table does not.
-		self:assertDeepEquals({ 'page_name', 'entity.name', 'legality' }, chain.select)
+		self:assertDeepEquals({ 'page_name', 'entity.name', 'legality', 'entity.page_name' }, chain.select)
 	end)
 end
 

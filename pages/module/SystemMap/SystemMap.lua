@@ -142,7 +142,6 @@ function p.render(input, currentTitle, exists, collapsed, track)
 	-- emits itself. See the note on renderRail for why.
 	local card = CollapsibleCard.render({
 		title = string.format('[[%s|%s]]', model.page, model.page),
-		description = Data.summarise(model),
 		eyebrow = eyebrowFor(model),
 		content = tostring(Renderer.renderRail(model)),
 		open = not collapsed,

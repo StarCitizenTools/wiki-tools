@@ -1,9 +1,15 @@
-/* Body panel: one grid per row (gauge | label | content), so rows grow freely
- * and the gauge column stays continuous. Below 640 px the label moves into the
- * row above its content and the gauge becomes a 56 px strip. */
-.t-location-nav__row {
+/* Body panel: one grid for all rows (gauge | label | content), each row's
+ * cells placed into it through `display: contents`, so the label column hugs
+ * the panel's widest label and its padding is equal on both sides. Below
+ * 640 px each row is its own grid again: the label moves into the row above
+ * its content and the gauge becomes a 56 px strip. */
+.t-location-nav__rows {
 	display: grid;
-	grid-template-columns: 160px 150px minmax(0, 1fr);
+	grid-template-columns: 160px max-content minmax(0, 1fr);
+}
+
+.t-location-nav__row {
+	display: contents;
 }
 
 .t-location-nav__gauge {
@@ -211,31 +217,21 @@
 	line-height: var(--line-height-x-small);
 }
 
-/* Inside panel: a label column of plural class names, then plain links. */
-.t-location-nav__inside-row {
-	display: grid;
-	grid-template-columns: 150px minmax(0, 1fr);
-}
-
-.t-location-nav__inside-label {
-	padding: var(--space-xs) var(--space-md);
-	font-weight: var(--font-weight-medium);
-	color: var(--color-emphasized);
-}
-
-.t-location-nav__inside-list {
-	display: flex;
-	flex-wrap: wrap;
-	gap: var(--space-xxs) var(--space-lg);
-	margin: 0;
-	padding: var(--space-xs) var(--space-md);
-	list-style: none;
+/* Inside panel: the same class groups as a body row's content, with no gauge
+ * or label column. */
+.t-location-nav__inside {
+	padding: var(--space-sm) var(--space-md);
 	font-size: var(--font-size-small);
 	line-height: var(--line-height-small);
 }
 
 @media (max-width: 640px) {
+	.t-location-nav__rows {
+		display: block;
+	}
+
 	.t-location-nav__row {
+		display: grid;
 		grid-template-columns: 56px minmax(0, 1fr);
 	}
 
@@ -283,11 +279,7 @@
 		column-count: 2;
 	}
 
-	.t-location-nav__inside-row {
-		grid-template-columns: minmax(0, 1fr);
-	}
-
-	.t-location-nav__inside-label {
-		padding-bottom: 0;
+	.t-location-nav__inside {
+		padding: var(--space-sm);
 	}
 }

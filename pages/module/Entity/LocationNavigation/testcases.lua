@@ -407,7 +407,11 @@ function suite:testRenderInsidePanelComesFirst()
 		local inside = html:find('Spaceports', 1, true)
 		local surface = html:find('t-location-nav__row--surface', 1, true)
 		self:assertTrue(inside ~= nil and surface ~= nil and inside < surface)
-		self:assertStringContains('<ul class="t-location-nav__inside-list">', html, true)
+		self:assertStringContains(
+			'<div class="t-location-nav__inside"><div class="t-location-nav__groups">',
+			html,
+			true
+		)
 	end)
 end
 

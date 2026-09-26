@@ -26,6 +26,7 @@ func ParseClassic(shell []byte, rsiTitle string) ([]Block, error) {
 	if post == nil {
 		return nil, errors.New("classic page has no div#post")
 	}
+	mergeSplitLinks(post)
 	c := &classic{title: fold(rsiTitle)}
 	c.studios = countStudioBlocks(post, c.title) > 0
 	c.walk(post)

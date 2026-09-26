@@ -78,6 +78,10 @@ func (p *fragment) flowHTML(src string, emphasis bool) {
 		p.err = err
 		return
 	}
+	for _, n := range nodes {
+		ctx.AppendChild(n)
+	}
+	mergeSplitLinks(ctx)
 	f := &flow{heading: func(f *flow, h *html.Node) {
 		t := PlainText(h)
 		if t == "" {
@@ -89,9 +93,7 @@ func (p *fragment) flowHTML(src string, emphasis bool) {
 		}
 		f.emit(Block{Kind: Heading, Level: 2, Text: t})
 	}}
-	for _, n := range nodes {
-		f.node(n)
-	}
+	f.run(ctx)
 	f.flush()
 	if emphasis {
 		for i := range f.blocks {

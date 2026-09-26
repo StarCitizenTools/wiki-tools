@@ -87,20 +87,46 @@ func wrap(b *strings.Builder, n *html.Node, open, close string) {
 	b.WriteString(s[:i] + open + core + close + s[i+len(core):])
 }
 
+// link renders an anchor as an external link, keeping any space at the edges
+// of its text outside the brackets, where it still separates words.
 func link(b *strings.Builder, n *html.Node) {
 	var inner strings.Builder
 	inlineChildren(&inner, n)
-	text := strings.TrimSpace(inner.String())
+	s := inner.String()
+	text := strings.TrimSpace(s)
 	if text == "" {
 		return
 	}
 	href := strings.TrimSpace(attr(n, "href"))
 	lower := strings.ToLower(href)
 	if href == "" || strings.HasPrefix(href, "#") || strings.HasPrefix(lower, "javascript:") || strings.HasPrefix(lower, "mailto:") {
-		b.WriteString(inner.String())
+		b.WriteString(s)
 		return
 	}
-	fmt.Fprintf(b, "[%s %s]", absURL(href), text)
+	i := strings.Index(s, text)
+	fmt.Fprintf(b, "%s[%s %s]%s", s[:i], absURL(href), text, s[i+len(text):])
+}
+
+// mergeSplitLinks moves each anchor's run of directly following anchors with
+// the same href into it, so a link RSI split mid-word (19317) renders as one.
+func mergeSplitLinks(n *html.Node) {
+	for c := n.FirstChild; c != nil; c = c.NextSibling {
+		if isPlainLink(c) {
+			for next := c.NextSibling; isPlainLink(next) && attr(next, "href") == attr(c, "href"); next = c.NextSibling {
+				for ch := next.FirstChild; ch != nil; ch = next.FirstChild {
+					next.RemoveChild(ch)
+					c.AppendChild(ch)
+				}
+				n.RemoveChild(next)
+			}
+		}
+		mergeSplitLinks(c)
+	}
+}
+
+func isPlainLink(n *html.Node) bool {
+	return n != nil && n.Type == html.ElementNode && n.Data == "a" && attr(n, "href") != "" &&
+		attr(n, "data-source_url") == "" && !hasClass(n, "js-video") && !hasClass(n, "js-open-in-slideshow")
 }
 
 // lineSafe stops a paragraph's first character from being read as list,

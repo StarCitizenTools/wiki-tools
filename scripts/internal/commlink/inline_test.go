@@ -35,6 +35,7 @@ func TestInline(t *testing.T) {
 		`<a href="https://example.com"><strong>bold</strong> link</a>`:   `[https://example.com '''bold''' link]`,
 		`<img src="x.png"> text <script>alert(1)</script>`:               `text`,
 		`a ~~~~ b ~ c`: `a &#126;&#126;&#126;&#126; b &#126; c`,
+		`additional<a href="https://x"> Galactapedia Entries</a>.`: `additional [https://x Galactapedia Entries].`,
 	}
 	for src, want := range cases {
 		if got := Inline(fragmentNode(t, src)); got != want {

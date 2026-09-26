@@ -74,3 +74,15 @@ func TestFetchBlocks(t *testing.T) {
 	}
 	check(t, dump(blocks), []string{"H2 Tech", "P Text."})
 }
+
+// 19317 splits one link into three anchors with the same href, the last one
+// starting with the space between two words.
+func TestParseFragmentSplitLink(t *testing.T) {
+	blocks, err := ParseFragment([]byte(`<g-article :show-emphasis="false" body="<p>An episode of <a href=&quot;https://youtu.be/x&quot;>Insid</a><a href=&quot;https://youtu.be/x&quot; target=&quot;_blank&quot;>e</a><a href=&quot;https://youtu.be/x&quot;> Star Citizen</a>. Then <a href=&quot;https://a.test/1&quot;>one</a><a href=&quot;https://a.test/2&quot;>two</a>.</p>"></g-article>`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	check(t, dump(blocks), []string{
+		"P An episode of [https://youtu.be/x Inside Star Citizen]. Then [https://a.test/1 one][https://a.test/2 two].",
+	})
+}

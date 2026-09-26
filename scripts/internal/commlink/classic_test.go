@@ -93,7 +93,7 @@ func TestParseClassic2014(t *testing.T) {
 	})
 }
 
-// An intro heading holding several paragraphs split by <br><br> (16743, 16790).
+// An intro heading holding several paragraphs split by <br><br>.
 func TestParseClassicIntroBreaks(t *testing.T) {
 	shell := []byte(`<html><body><div id="contentbody"><div id="post"><div class="wrapper">
 <div class="content-block1 rsi-markup"><div class="segment"><div class="content"><div class="variant-block">
@@ -152,8 +152,8 @@ func TestParseClassicStudioRepeat(t *testing.T) {
 	})
 }
 
-// 16963's first title block names two months where the report's title names
-// one; it is still the page title, not a studio section.
+// A first title block that names two months where the report's title names
+// one is still the page title, not a studio section.
 func TestParseClassicPageTitleVariant(t *testing.T) {
 	shell := []byte(`<html><body><div id="contentbody"><div id="post"><div class="wrapper">
 <div class="content-block4"><div class="content"><h1>Star Citizen Monthly Report: December 2018 - January 2019</h1></div></div>
@@ -167,6 +167,20 @@ func TestParseClassicPageTitleVariant(t *testing.T) {
 		t.Fatal(err)
 	}
 	check(t, dump(blocks), []string{"H2 AI", "P AI text.", "H2 Conclusion"})
+}
+
+// Adjacent anchors with one href are one link in the classic layout too.
+func TestParseClassicSplitLink(t *testing.T) {
+	shell := []byte(`<html><body><div id="contentbody"><div id="post"><div class="wrapper">
+<div class="content-block1 rsi-markup"><div class="segment"><div class="content">
+<p>See <a href="/comm-link/x/1-Y">Insid</a><a href="/comm-link/x/1-Y" target="_blank">e</a><a href="/comm-link/x/1-Y"> Star Citizen</a> now.</p>
+</div></div></div>
+</div><div class="two-line-separator"></div></div></div></body></html>`)
+	blocks, err := ParseClassic(shell, "Star Citizen Monthly Report: July 2020")
+	if err != nil {
+		t.Fatal(err)
+	}
+	check(t, dump(blocks), []string{"P See [https://robertsspaceindustries.com/comm-link/x/1-Y Inside Star Citizen] now."})
 }
 
 func TestDetect(t *testing.T) {

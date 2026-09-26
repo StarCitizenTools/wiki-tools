@@ -17,6 +17,7 @@ type LinkEntry struct {
 type term struct {
 	text, target string
 	re           *regexp.Regexp
+	longer       []string // longer terms that contain text
 }
 
 // Vocabulary is the set of names the importer may link.
@@ -79,7 +80,32 @@ func BuildVocabulary(titles []string, aliases map[string]string, disambiguation,
 		}
 		return v.terms[i].text < v.terms[j].text
 	})
+	for i := range v.terms {
+		for _, u := range v.terms[:i] {
+			if len(u.text) > len(v.terms[i].text) && strings.Contains(u.text, v.terms[i].text) {
+				v.terms[i].longer = append(v.terms[i].longer, u.text)
+			}
+		}
+	}
 	return v
+}
+
+// insideLonger reports whether s[start:end] lies within a mention of one of
+// longer.
+func insideLonger(s string, start, end int, longer []string) bool {
+	for _, l := range longer {
+		for from := 0; ; {
+			i := strings.Index(s[from:], l)
+			if i < 0 {
+				break
+			}
+			if from+i <= start && end <= from+i+len(l) {
+				return true
+			}
+			from += i + 1
+		}
+	}
+	return false
 }
 
 var (
@@ -121,7 +147,8 @@ func (v *Vocabulary) Apply(body string) (string, []LinkEntry) {
 	return out.String(), links
 }
 
-// linkSection tries each term against s, longest first, in place. Most terms
+// linkSection tries each term against s, longest first, in place. A term
+// never links inside a mention of a longer term (Hurston in Hurston Dynamics). Most terms
 // never appear in a given section, so a plain Contains check skips the regex
 // and the protected-span scan entirely for them. spans is computed once and
 // only recomputed after a replacement changes s (a just-added [[...]] must
@@ -140,7 +167,7 @@ func (v *Vocabulary) linkSection(s string) (string, []LinkEntry) {
 				break
 			}
 			start, end := offset+m[2], offset+m[3]
-			if inSpan(spans, start, end) {
+			if inSpan(spans, start, end) || insideLonger(s, start, end, t.longer) {
 				offset += m[1]
 				continue
 			}

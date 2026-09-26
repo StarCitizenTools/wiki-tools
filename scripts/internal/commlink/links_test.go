@@ -98,3 +98,17 @@ func BenchmarkApply(b *testing.B) {
 		v.Apply(body)
 	}
 }
+
+// A term never links inside a longer term's mention, linked or not: the
+// section's second "Hurston Dynamics" is not the planet.
+func TestTermInsideLongerTerm(t *testing.T) {
+	v := BuildVocabulary([]string{"Hurston"}, map[string]string{"Hurston Dynamics": "Hurston Dynamics"}, nil, nil, "")
+	got, links := v.Apply("The Hurston Dynamics gun. Then Hurston Dynamics again, and Hurston itself.")
+	want := "The [[Hurston Dynamics]] gun. Then Hurston Dynamics again, and [[Hurston]] itself."
+	if got != want {
+		t.Errorf("Apply:\n%s\nwant:\n%s", got, want)
+	}
+	if len(links) != 2 {
+		t.Errorf("links = %+v", links)
+	}
+}

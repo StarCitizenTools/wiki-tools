@@ -34,6 +34,7 @@ func TestInline(t *testing.T) {
 		`[[not a link]] {{not a template}} <b>x</b> ''quoted'' a &lt; b`: `&#91;&#91;not a link&#93;&#93; &#123;&#123;not a template&#125;&#125; '''x''' &#39;&#39;quoted&#39;&#39; a &lt; b`,
 		`<a href="https://example.com"><strong>bold</strong> link</a>`:   `[https://example.com '''bold''' link]`,
 		`<img src="x.png"> text <script>alert(1)</script>`:               `text`,
+		`a ~~~~ b ~ c`: `a &#126;&#126;&#126;&#126; b &#126; c`,
 	}
 	for src, want := range cases {
 		if got := Inline(fragmentNode(t, src)); got != want {

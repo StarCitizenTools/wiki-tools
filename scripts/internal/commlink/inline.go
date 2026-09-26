@@ -10,12 +10,14 @@ import (
 
 var wikiEscaper = strings.NewReplacer(
 	"[", "&#91;", "]", "&#93;", "{", "&#123;", "}", "&#125;",
-	"<", "&lt;", ">", "&gt;", "''", "&#39;&#39;", "~~~", "&#126;~~",
+	"<", "&lt;", ">", "&gt;", "''", "&#39;&#39;", "~", "&#126;",
 )
 
 // escapeText makes RSI text inert as wikitext: brackets, braces, angle brackets,
-// doubled apostrophes and signature tildes become entities, NBSP becomes a
-// space, and whitespace runs collapse.
+// doubled apostrophes and tildes become entities (every tilde, not just runs of
+// three, since Replacer's single left-to-right scan would otherwise leave a
+// shorter tilde run behind a matched one, and MediaWiki reads any run of 3+ as
+// a signature), NBSP becomes a space, and whitespace runs collapse.
 func escapeText(s string) string {
 	s = strings.ReplaceAll(s, " ", " ")
 	s = wsRun.ReplaceAllString(s, " ")

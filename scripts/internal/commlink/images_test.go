@@ -160,6 +160,59 @@ func TestPlanImagesCreditsCaptionAuthor(t *testing.T) {
 	}
 }
 
+// A page can show the same picture under two different source URLs (RSI
+// sometimes reuses a header image at a different size further down). The
+// credit can land on either appearance; the upload, which happens under
+// whichever URL comes first in the body, must still carry it even when that
+// first appearance itself carries no caption. DedupeImages later merges the
+// two appearances by resolved file name, once PlanImages has already decided
+// the upload's author, so the credit has to be found here by SHA1, not by the
+// literal source URL PlanImages happens to upload under.
+func TestPlanImagesCreditsAcrossSourceURLs(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.Write(jpegBytes) }))
+	defer srv.Close()
+	wiki := testWiki(t, func(url.Values) string { return `{"query":{"allimages":[]}}` })
+	cache, _ := LoadCache(filepath.Join(t.TempDir(), "cache.json"))
+	blocks := []Block{
+		{Kind: Image, Src: srv.URL + "/a.jpg"},                                     // no caption; this appearance is the upload
+		{Kind: Image, Src: srv.URL + "/a-repeat.jpg", Caption: "Image by Someone"}, // same bytes, a different source URL
+	}
+	res, err := PlanImages(context.Background(), testWeb(t), wiki, cache, map[string]string{}, testConfig(t), "R", "A page", "2021-06-02", blocks)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Plans[0].Action != "upload" || res.Plans[1].Action != "reuse" {
+		t.Fatalf("plans = %+v, want image 1 upload, image 2 reuse of the same bytes", res.Plans)
+	}
+	if !strings.Contains(res.Plans[0].FilePage, "|author=Someone\n") {
+		t.Errorf("upload's FilePage did not credit the repeat's caption under a different source URL:\n%s", res.Plans[0].FilePage)
+	}
+}
+
+// When two appearances of the same picture carry differing non-empty
+// captions, DedupeImages keeps both rather than merging one into the other;
+// the upload still credits whichever of them is a credit.
+func TestPlanImagesCreditsFirstAmongDifferingCaptions(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.Write(jpegBytes) }))
+	defer srv.Close()
+	wiki := testWiki(t, func(url.Values) string { return `{"query":{"allimages":[]}}` })
+	cache, _ := LoadCache(filepath.Join(t.TempDir(), "cache.json"))
+	blocks := []Block{
+		{Kind: Image, Src: srv.URL + "/a.jpg", Caption: "A studio photo"},
+		{Kind: Image, Src: srv.URL + "/a-repeat.jpg", Caption: "Image by Someone"},
+	}
+	res, err := PlanImages(context.Background(), testWeb(t), wiki, cache, map[string]string{}, testConfig(t), "R", "A page", "2021-06-02", blocks)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(res.Plans[0].FilePage, "|description=A studio photo\n") {
+		t.Errorf("upload's own caption should still be its description:\n%s", res.Plans[0].FilePage)
+	}
+	if !strings.Contains(res.Plans[0].FilePage, "|author=Someone\n") {
+		t.Errorf("upload's FilePage did not use the first credit among differing captions:\n%s", res.Plans[0].FilePage)
+	}
+}
+
 func TestCache(t *testing.T) {
 	hits := 0
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { hits++; w.Write(pngBytes) }))

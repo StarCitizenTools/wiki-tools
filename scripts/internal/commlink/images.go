@@ -148,6 +148,17 @@ func creditAuthor(caption string) (string, bool) {
 	return m[1], true
 }
 
+// firstCredit returns the first whole-caption credit among captions, in body
+// order, and whether one was found.
+func firstCredit(captions []string) (string, bool) {
+	for _, c := range captions {
+		if a, ok := creditAuthor(c); ok {
+			return a, true
+		}
+	}
+	return "", false
+}
+
 // Hash is what the importer keeps of a downloaded file: never the bytes.
 type Hash struct {
 	SHA1 string `json:"sha1"`
@@ -241,16 +252,14 @@ func (p *PageImages) File(src string) string { return p.files[src] }
 // the same bytes would have been found by SHA1 and reused).
 func PlanImages(ctx context.Context, web *httpx.Client, wiki *mediawiki.Client, cache *Cache, planned map[string]string,
 	cfg *Config, rsiTitle, page, date string, blocks []Block) (*PageImages, error) {
-	captions := map[string]string{}
-	for _, b := range blocks {
-		if b.Kind == Image && b.Caption != "" && captions[b.Src] == "" {
-			captions[b.Src] = b.Caption
-		}
-	}
 	res := &PageImages{Plans: []ImagePlan{}, Added: map[string]string{}, files: map[string]string{}}
-	var uploads []string
-	for i, src := range ImageSources(blocks) {
-		n := i + 1
+	sources := ImageSources(blocks)
+
+	// hashes is every source's hash, known up front so an upload decided for
+	// one appearance of a picture can see a credit caption carried by another
+	// appearance under a different source URL (creditCaptions below).
+	hashes := make(map[string]Hash, len(sources))
+	for i, src := range sources {
 		h, err := cache.Hash(ctx, web, src)
 		var status *httpx.StatusError
 		if errors.As(err, &status) && status.Code == http.StatusNotFound {
@@ -258,7 +267,36 @@ func PlanImages(ctx context.Context, web *httpx.Client, wiki *mediawiki.Client, 
 			continue
 		}
 		if err != nil {
-			return nil, fmt.Errorf("image %d (%s): %w", n, src, err)
+			return nil, fmt.Errorf("image %d (%s): %w", i+1, src, err)
+		}
+		hashes[src] = h
+	}
+
+	// descCaptions is a source's own first caption, for the upload it becomes
+	// (unaffected by a repeat elsewhere on the page). creditCaptions groups
+	// every appearance's caption by SHA1, in body order, so a credit reaches
+	// the upload even when DedupeImages later merges it in from a repeat
+	// under a different source URL: the two share bytes, not a source URL.
+	descCaptions := map[string]string{}
+	creditCaptions := map[string][]string{}
+	for _, b := range blocks {
+		if b.Kind != Image || b.Caption == "" {
+			continue
+		}
+		if descCaptions[b.Src] == "" {
+			descCaptions[b.Src] = b.Caption
+		}
+		if h, ok := hashes[b.Src]; ok {
+			creditCaptions[h.SHA1] = append(creditCaptions[h.SHA1], b.Caption)
+		}
+	}
+
+	var uploads []string
+	for i, src := range sources {
+		n := i + 1
+		h, ok := hashes[src]
+		if !ok {
+			continue // a 404, already recorded in res.Missing
 		}
 		ext := ExtForType(h.Type)
 		if ext == "" {
@@ -276,12 +314,12 @@ func PlanImages(ctx context.Context, web *httpx.Client, wiki *mediawiki.Client, 
 		} else {
 			p.Action = "upload"
 			p.File = fmt.Sprintf("%s - %02d%s", page, n, ext)
-			desc := captions[src]
+			desc := descCaptions[src]
 			if desc == "" {
 				desc = fmt.Sprintf("%s, image %02d", escapeText(rsiTitle), n)
 			}
 			author := cfg.ImageAuthor
-			if a, ok := creditAuthor(captions[src]); ok {
+			if a, ok := firstCredit(creditCaptions[h.SHA1]); ok {
 				author = a
 			}
 			p.FilePage = FilePage(desc, date, src, author, cfg.ImageCategory)

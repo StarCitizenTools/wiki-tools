@@ -104,6 +104,13 @@ func PlainText(n *html.Node) string {
 	return strings.TrimSpace(wsRun.ReplaceAllString(strings.ReplaceAll(b.String(), " ", " "), " "))
 }
 
+// urlUnsafe percent-encodes the characters that would end or break a URL
+// inside a wikitext external link, or open markup there.
+var urlUnsafe = strings.NewReplacer(
+	" ", "%20", `"`, "%22", "'", "%27", "<", "%3C", ">", "%3E",
+	"[", "%5B", "]", "%5D", "{", "%7B", "|", "%7C", "}", "%7D",
+)
+
 // absURL resolves an RSI href or src to an absolute URL safe inside a wikitext
 // external link.
 func absURL(ref string) string {
@@ -116,7 +123,7 @@ func absURL(ref string) string {
 		base, _ := url.Parse(RSIRoot + "/")
 		out = base.ResolveReference(u).String()
 	}
-	return strings.ReplaceAll(out, " ", "%20")
+	return urlUnsafe.Replace(out)
 }
 
 var foldRe = regexp.MustCompile(`[^\pL\pN]+`)

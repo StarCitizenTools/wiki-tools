@@ -94,3 +94,16 @@ func TestLineSafe(t *testing.T) {
 		}
 	}
 }
+
+func TestAbsURL(t *testing.T) {
+	for in, want := range map[string]string{
+		"/media/x/source/a b.jpg":           "https://robertsspaceindustries.com/media/x/source/a%20b.jpg",
+		"//www.youtube.com/watch?v=x":       "https://www.youtube.com/watch?v=x",
+		`https://x.test/a[1]{2}|'3'<4>"5"`:  "https://x.test/a%5B1%5D%7B2%7D%7C%273%27%3C4%3E%225%22",
+		"https://x.test/q?a=1&b=%20already": "https://x.test/q?a=1&b=%20already",
+	} {
+		if got := absURL(in); got != want {
+			t.Errorf("absURL(%q) = %q, want %q", in, got, want)
+		}
+	}
+}

@@ -19,3 +19,22 @@ func TestMissing(t *testing.T) {
 		t.Errorf("Missing = %q", got)
 	}
 }
+
+func TestMissingShortLineNoCaption(t *testing.T) {
+	page := "Thanks for the help. Your support is great. Now we proceed.\n"
+	api := "Thanks for your support now!\n"
+	got := Missing(api, page, func(l string) bool { return false })
+	if want := []string{"Thanks for your support now!"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("Missing = %q, want %q", got, want)
+	}
+}
+
+func TestMissingShortLineNotInFileCaption(t *testing.T) {
+	page := "Image by RUSTEC_Urhu.\n\n" +
+		"[[File:Photo.png|thumb|center|Other photographer's work]]\n"
+	api := "RUSTEC_Urhu image by\n"
+	got := Missing(api, page, func(l string) bool { return false })
+	if want := []string{"RUSTEC_Urhu image by"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("Missing = %q, want %q", got, want)
+	}
+}

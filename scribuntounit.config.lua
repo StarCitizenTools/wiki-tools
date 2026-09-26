@@ -90,7 +90,9 @@ return {
 					'"><details class="t-collapsible-card__body" open="',
 					props.open == true and 'yes' or 'no',
 					'"><summary class="t-card__header t-collapsible-card__header">',
-					'<div class="t-card__header-content">',
+					'<div class="t-card__header-content'
+						.. (eyebrow ~= '' and ' t-card__header-content--eyebrow' or '')
+						.. '">',
 					eyebrow,
 					'<div class="t-card__title">',
 					tostring(props.title or ''),

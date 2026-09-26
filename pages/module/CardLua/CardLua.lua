@@ -33,6 +33,7 @@ local p = {}
 function p.renderHeaderContent(title, description, eyebrow)
 	local root = mw.html.create('div'):addClass('t-card__header-content')
 	if eyebrow and eyebrow ~= '' then
+		root:addClass('t-card__header-content--eyebrow')
 		root:tag('div'):addClass('t-card__eyebrow'):wikitext(eyebrow)
 	end
 	root:tag('div'):addClass('t-card__title'):wikitext(title)

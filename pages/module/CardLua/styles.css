@@ -24,14 +24,38 @@
 	line-height: var(--line-height-small);
 }
 
-/* `.t-card__header-content` is a wrapping flex row: without this the eyebrow
- * is a third item on the title's line instead of a line of its own, with the
- * title and description sharing the next. */
+/* A header with an eyebrow is the navplate header, the same as
+ * .t-entity-navplates__cell in Module:Entity/Navplates: a small subtle line
+ * naming the level above, then the title at the footer-headline size. It
+ * stacks the two instead of sharing the row a plain header lays out. */
 .t-card__eyebrow {
-	flex-basis: 100%;
 	font-size: var(--font-size-x-small);
 	line-height: var(--line-height-x-small);
 	color: var(--color-subtle);
+}
+
+.t-card__header-content--eyebrow {
+	flex-direction: column;
+	align-items: flex-start;
+}
+
+.t-card__header-content--eyebrow .t-card__title {
+	font-size: 1.25rem;
+	line-height: 1.2;
+	letter-spacing: -0.02em;
+	overflow-wrap: break-word;
+}
+
+/* Not painted as a link, as in the entity navplates. The title is a link
+ * inside the header that toggles the card, so only the link itself shows the
+ * hover underline. */
+.t-card__header-content--eyebrow .t-card__title a {
+	color: inherit;
+	text-decoration: none;
+}
+
+.t-card__header-content--eyebrow .t-card__title a:hover {
+	text-decoration: underline;
 }
 
 .t-card__header-content {

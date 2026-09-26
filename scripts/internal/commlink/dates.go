@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -15,15 +16,10 @@ import (
 
 // Where a page's publication date came from.
 const (
+	DateRSI     = "rsi"
 	DateAPI     = "api"
 	DateWayback = "wayback"
 )
-
-// corroboration is how far before the first capture an API date may fall and
-// still be trusted. The API's created_at is an ingest date for many reports
-// (2026-05-25 for every report from late 2021), and RSI's own Date: field shows
-// the day it is fetched, so neither is trusted alone.
-const corroboration = 3 * 24 * time.Hour
 
 var commLinkPath = regexp.MustCompile(`robertsspaceindustries\.com/(?:en/)?comm-link/([a-z0-9-]+)/(\d+)-`)
 
@@ -63,20 +59,31 @@ func FirstCapture(ctx context.Context, web *httpx.Client, ep Endpoints, rsiURL s
 	return first, nil
 }
 
-// ResolveDate picks a page's publication date: the API date when the first
-// capture corroborates it, else the capture's UTC day. ok is false when there is
-// no capture to judge by.
-func ResolveDate(apiCreated string, firstCapture time.Time) (date, source string, ok bool) {
-	if firstCapture.IsZero() {
-		return "", "", false
+// ResolveDate picks a page's publication date: RSI's own Posted date from its
+// series listing; else the API's created_at, unless it is one of ingest (days
+// the API imported reports in bulk) or falls after the first Wayback capture;
+// else the first capture's UTC day. capture is called only when there is no
+// Posted date. date is "" when nothing dates the report.
+func ResolveDate(posted, apiCreated string, ingest []string, capture func() (time.Time, error)) (date, source string, err error) {
+	if posted != "" {
+		return posted, DateRSI, nil
 	}
-	c := firstCapture.UTC()
-	captureDay := time.Date(c.Year(), c.Month(), c.Day(), 0, 0, 0, 0, time.UTC)
+	first, err := capture()
+	if err != nil {
+		return "", "", err
+	}
+	day := func(t time.Time) time.Time {
+		t = t.UTC()
+		return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)
+	}
 	if api, err := time.Parse(time.RFC3339, apiCreated); err == nil {
-		apiDay := time.Date(api.Year(), api.Month(), api.Day(), 0, 0, 0, 0, time.UTC)
-		if !apiDay.After(captureDay) && captureDay.Sub(apiDay) <= corroboration {
-			return apiDay.Format("2006-01-02"), DateAPI, true
+		apiDay := day(api).Format("2006-01-02")
+		if !slices.Contains(ingest, apiDay) && (first.IsZero() || !day(api).After(day(first))) {
+			return apiDay, DateAPI, nil
 		}
 	}
-	return captureDay.Format("2006-01-02"), DateWayback, true
+	if first.IsZero() {
+		return "", "", nil
+	}
+	return day(first).Format("2006-01-02"), DateWayback, nil
 }

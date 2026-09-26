@@ -2,6 +2,7 @@ package commlink
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -55,24 +56,31 @@ func TestFirstCaptureNone(t *testing.T) {
 
 func TestResolveDate(t *testing.T) {
 	at := func(s string) time.Time { v, _ := time.Parse("2006-01-02T15:04:05", s); return v }
+	ingest := []string{"2026-05-25"}
 	cases := []struct {
-		api     string
-		capture time.Time
-		date    string
-		source  string
-		ok      bool
+		name, posted, api string
+		capture           time.Time
+		date, source      string
+		asked             bool
 	}{
-		{"2021-06-09T00:00:00+00:00", at("2021-06-09T17:32:41"), "2021-06-09", DateAPI, true},
-		{"2021-05-05T00:00:00+00:00", at("2021-05-06T16:46:38"), "2021-05-05", DateAPI, true},
-		{"2026-05-25T00:00:00+00:00", at("2021-06-02T23:20:57"), "2021-06-02", DateWayback, true},
-		{"2021-05-01T00:00:00+00:00", at("2021-05-06T00:00:00"), "2021-05-06", DateWayback, true},
-		{"", at("2023-02-02T04:02:02"), "2023-02-02", DateWayback, true},
-		{"2021-06-09T00:00:00+00:00", time.Time{}, "", "", false},
+		{"rsi posted date wins", "2018-05-03", "2018-05-04T00:00:00+00:00", at("2019-08-22T00:00:00"), "2018-05-03", DateRSI, false},
+		{"api date before the capture", "", "2018-05-03T00:00:00+00:00", at("2019-08-22T10:00:00"), "2018-05-03", DateAPI, true},
+		{"api date on the capture day", "", "2021-06-09T00:00:00+00:00", at("2021-06-09T17:32:41"), "2021-06-09", DateAPI, true},
+		{"api date with no capture", "", "2021-06-09T00:00:00+00:00", time.Time{}, "2021-06-09", DateAPI, true},
+		{"ingest api date rejected", "", "2026-05-25T00:00:00+00:00", at("2021-06-02T23:20:57"), "2021-06-02", DateWayback, true},
+		{"api date after the capture rejected", "", "2026-03-20T00:00:00+00:00", at("2026-03-04T09:00:00"), "2026-03-04", DateWayback, true},
+		{"no api date", "", "", at("2023-02-02T04:02:02"), "2023-02-02", DateWayback, true},
+		{"nothing to date by", "", "2026-05-25T00:00:00+00:00", time.Time{}, "", "", true},
 	}
 	for _, c := range cases {
-		date, source, ok := ResolveDate(c.api, c.capture)
-		if date != c.date || source != c.source || ok != c.ok {
-			t.Errorf("ResolveDate(%q, %v) = %q %q %v, want %q %q %v", c.api, c.capture, date, source, ok, c.date, c.source, c.ok)
+		asked := false
+		capture := func() (time.Time, error) { asked = true; return c.capture, nil }
+		date, source, err := ResolveDate(c.posted, c.api, ingest, capture)
+		if err != nil || date != c.date || source != c.source || asked != c.asked {
+			t.Errorf("%s: ResolveDate = %q %q %v (wayback asked %v), want %q %q (asked %v)", c.name, date, source, err, asked, c.date, c.source, c.asked)
 		}
+	}
+	if _, _, err := ResolveDate("", "2021-06-09T00:00:00+00:00", ingest, func() (time.Time, error) { return time.Time{}, errors.New("down") }); err == nil {
+		t.Error("a failed Wayback lookup was not reported")
 	}
 }

@@ -9,7 +9,7 @@ import (
 const (
 	ReasonFetch       = "fetch-or-parse"
 	ReasonTitleExists = "title-exists"
-	ReasonNoDate      = "no-wayback-capture"
+	ReasonNoDate      = "no-date"
 	ReasonImages      = "images"
 	ReasonFidelity    = "fidelity"
 )
@@ -69,11 +69,10 @@ func (p *Plan) Drift(known []int) bool {
 
 // Report summarises the plan for the terminal.
 func (p *Plan) Report() []string {
-	uploads, reuses, wayback := 0, 0, 0
+	uploads, reuses := 0, 0
+	dated := map[string]int{}
 	for _, e := range p.Create {
-		if e.DateSource == DateWayback {
-			wayback++
-		}
+		dated[e.DateSource]++
 		for _, im := range e.Images {
 			if im.Action == "upload" {
 				uploads++
@@ -83,7 +82,8 @@ func (p *Plan) Report() []string {
 		}
 	}
 	lines := []string{
-		fmt.Sprintf("create: %d pages (%d images to upload, %d reused; %d dated by the Wayback Machine)", len(p.Create), uploads, reuses, wayback),
+		fmt.Sprintf("create: %d pages (%d images to upload, %d reused; dated by rsi %d, api %d, wayback %d)",
+			len(p.Create), uploads, reuses, dated[DateRSI], dated[DateAPI], dated[DateWayback]),
 		fmt.Sprintf("review: %d", len(p.Review)),
 	}
 	for _, r := range p.Review {

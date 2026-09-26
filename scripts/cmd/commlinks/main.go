@@ -105,11 +105,11 @@ func run() error {
 		return err
 	}
 	progress("reading RSI's " + cfg.Series + " series")
-	seriesIDs, err := commlink.FetchSeriesIDs(ctx, web, ep, cfg.Series)
+	series, err := commlink.FetchSeries(ctx, web, ep, cfg.Series)
 	if err != nil {
 		return err
 	}
-	candidates, disagreements, err := commlink.Union(ctx, titled, seriesIDs, func(ctx context.Context, id int) (commlink.Candidate, error) {
+	candidates, disagreements, err := commlink.Union(ctx, titled, series, func(ctx context.Context, id int) (commlink.Candidate, error) {
 		return commlink.FetchRecord(ctx, web, ep, id)
 	})
 	if err != nil {
@@ -193,14 +193,15 @@ func run() error {
 			review(p.c, p.page, commlink.ReasonTitleExists, "a page has this title, but no page stores RSI number "+strconv.Itoa(p.c.ID))
 			continue
 		}
-		capture, err := firstCapture(ctx, web, ep, cache, p.c.RSIURL)
+		date, dateSource, err := commlink.ResolveDate(p.c.Posted, p.c.Created, cfg.APIIngestDates, func() (time.Time, error) {
+			return firstCapture(ctx, web, ep, cache, p.c.RSIURL)
+		})
 		if err != nil {
 			review(p.c, p.page, commlink.ReasonNoDate, "wayback lookup failed: "+err.Error())
 			continue
 		}
-		date, dateSource, ok := commlink.ResolveDate(p.c.Created, capture)
-		if !ok {
-			review(p.c, p.page, commlink.ReasonNoDate, "the Wayback Machine has no capture of "+p.c.RSIURL)
+		if date == "" {
+			review(p.c, p.page, commlink.ReasonNoDate, "RSI's listing has no posted date, the API date is an ingest date, and the Wayback Machine has no capture of "+p.c.RSIURL)
 			continue
 		}
 		images, missingImages, fileFor, err := commlink.PlanImages(ctx, web, wiki, cache, planned, cfg, p.c.Title, p.page, date, p.blocks)

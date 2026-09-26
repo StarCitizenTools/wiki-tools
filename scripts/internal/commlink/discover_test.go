@@ -43,7 +43,34 @@ func TestFetchTitleMatches(t *testing.T) {
 	}
 }
 
-func TestFetchSeriesIDs(t *testing.T) {
+// hubItemMarkup is one item of RSI's series listing, trimmed from the live
+// markup; posted is what its "Posted:" value reads.
+func hubItemMarkup(href, posted string) string {
+	return `  <a class="content-block2 hub-block one_third 
+    "
+  href="` + href + `"  data-original_class="one_third"
+>
+    <div class="type post"><div class="icon"></div><span>post</span></div>
+  <div class="title-holder">
+    <div class="title trans-opacity trans-03s">Star Citizen Monthly Report</div>
+  </div>
+  <div class="text">
+    <div class="comments">24</div>
+    <div class="time_ago">Posted: <span class="value">` + posted + `</span></div>
+    <div class="section"></div>
+  </div>
+  <div class="over trans-opacity trans-02s">
+    <div class="scroller trans-03s">
+      <div class="body">
+        <p>__</p>
+      </div>
+    </div>
+  </div>
+</a>
+`
+}
+
+func TestFetchSeries(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/api/hub/getCommlinkItems" || r.Header.Get("Content-Type") != "application/json" {
 			t.Errorf("request %s %s type %q", r.Method, r.URL.Path, r.Header.Get("Content-Type"))
@@ -57,20 +84,22 @@ func TestFetchSeriesIDs(t *testing.T) {
 			t.Errorf("series = %q", body.Series)
 		}
 		data := map[int]string{
-			1: `<a class="content-block2" href="/comm-link/transmission/21307-Star-Citizen-Monthly-Report-August-2026"></a><a href="/comm-link/transmission/21281-Star-Citizen-Monthly-Report-July-2026"></a>`,
-			2: `<a href="/comm-link/transmission/15833-Monthly-Studio-Report-March-2017"></a>`,
+			1: hubItemMarkup("/comm-link/transmission/21307-Star-Citizen-Monthly-Report-August-2026", "3 weeks ago") +
+				hubItemMarkup("/comm-link/transmission/18251-Star-Citizen-Monthly-Report-July-2021", "2021-08-04 20:17:28"),
+			2: hubItemMarkup("/comm-link/transmission/15833-Monthly-Studio-Report-March-2017", "2017-04-14 17:02:11"),
 		}[body.Page]
 		enc, _ := json.Marshal(map[string]any{"success": 1, "data": data})
 		w.Write(enc)
 	}))
 	defer srv.Close()
 
-	got, err := FetchSeriesIDs(context.Background(), testWeb(t), Endpoints{RSI: srv.URL}, "monthly-report")
+	got, err := FetchSeries(context.Background(), testWeb(t), Endpoints{RSI: srv.URL}, "monthly-report")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := []int{21307, 21281, 15833}; !reflect.DeepEqual(got, want) {
-		t.Errorf("ids = %v, want %v", got, want)
+	want := []SeriesItem{{ID: 21307}, {ID: 18251, Posted: "2021-08-04"}, {ID: 15833, Posted: "2017-04-14"}}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("items = %+v, want %+v", got, want)
 	}
 }
 
@@ -84,7 +113,7 @@ func TestUnion(t *testing.T) {
 		fetched++
 		return Candidate{ID: id, Title: "E"}, nil
 	}
-	got, dis, err := Union(context.Background(), titled, []int{2, 5}, fetch)
+	got, dis, err := Union(context.Background(), titled, []SeriesItem{{ID: 2, Posted: "2021-06-02"}, {ID: 5}}, fetch)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,6 +126,9 @@ func TestUnion(t *testing.T) {
 	}
 	if !reflect.DeepEqual(got[1].FoundBy, []string{FoundByTitle, FoundBySeries}) {
 		t.Errorf("id 2 found by %v", got[1].FoundBy)
+	}
+	if got[0].Posted != "" || got[1].Posted != "2021-06-02" || got[2].Posted != "" {
+		t.Errorf("posted dates = %q %q %q", got[0].Posted, got[1].Posted, got[2].Posted)
 	}
 	want := []Disagreement{{ID: 1, Title: "A", FoundBy: FoundByTitle}, {ID: 5, Title: "E", FoundBy: FoundBySeries}}
 	if !reflect.DeepEqual(dis, want) {

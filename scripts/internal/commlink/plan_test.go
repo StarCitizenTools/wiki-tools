@@ -23,13 +23,16 @@ func TestDrift(t *testing.T) {
 
 func TestReport(t *testing.T) {
 	p := &Plan{
-		Create:        []PageEntry{{ID: 1, DateSource: DateWayback, Images: []ImagePlan{{Action: "upload"}, {Action: "reuse"}}}},
+		Create: []PageEntry{
+			{ID: 1, DateSource: DateWayback, Images: []ImagePlan{{Action: "upload"}, {Action: "reuse"}}},
+			{ID: 2, DateSource: DateRSI}, {ID: 3, DateSource: DateRSI}, {ID: 4, DateSource: DateAPI},
+		},
 		Review:        []ReviewEntry{{ID: 18078, Page: "Squadron 42 Monthly Report - March 2021", Reason: ReasonFetch}},
 		Disagreements: []Disagreement{{ID: 18078, Title: "Squadron 42 Monthly Report: March 2021", FoundBy: FoundByTitle}},
 	}
 	got := strings.Join(p.Report(), "\n")
 	for _, want := range []string{
-		"create: 1 pages (1 images to upload, 1 reused; 1 dated by the Wayback Machine)",
+		"create: 4 pages (1 images to upload, 1 reused; dated by rsi 2, api 1, wayback 1)",
 		"review: 1",
 		"18078 Squadron 42 Monthly Report - March 2021: fetch-or-parse",
 		"found only by api-title: 18078 Squadron 42 Monthly Report: March 2021",

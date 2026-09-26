@@ -9,6 +9,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"time"
 )
 
 // Rename rewrites an RSI title before the ": " to " - " rule applies.
@@ -33,6 +34,9 @@ type Config struct {
 	Stoplist       []string          `json:"stoplist"`
 	FidelityIgnore []string          `json:"fidelityIgnore"`
 	KnownReview    []int             `json:"knownReview"`
+	// APIIngestDates are YYYY-MM-DD days the API imported reports in bulk; a
+	// created_at on one of them is not a publication date.
+	APIIngestDates []string `json:"apiIngestDates"`
 
 	titleRe  *regexp.Regexp
 	renameRe []*regexp.Regexp
@@ -61,6 +65,11 @@ func LoadConfig(path string) (*Config, error) {
 			return nil, fmt.Errorf("%s: rename %q: %w", path, r.Pattern, err)
 		}
 		c.renameRe = append(c.renameRe, re)
+	}
+	for _, d := range c.APIIngestDates {
+		if _, err := time.Parse("2006-01-02", d); err != nil {
+			return nil, fmt.Errorf("%s: apiIngestDates %q: %w", path, d, err)
+		}
 	}
 	for _, p := range c.FidelityIgnore {
 		re, err := regexp.Compile(p)

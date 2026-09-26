@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/StarCitizenTools/wiki-tools/scripts/internal/httpx"
 )
@@ -43,6 +44,7 @@ type Candidate struct {
 	Title   string
 	RSIURL  string
 	Created string // API created_at, RFC 3339
+	Posted  string // RSI's series listing Posted date, YYYY-MM-DD, when it is absolute
 	Text    string // API plain text, en_EN
 	FoundBy []string
 }
@@ -119,17 +121,28 @@ func FetchRecord(ctx context.Context, web *httpx.Client, ep Endpoints, id int) (
 	return res.Data.candidate(FoundBySeries), nil
 }
 
-var hubItem = regexp.MustCompile(`href="/comm-link/[a-z0-9-]+/(\d+)-`)
+var (
+	hubItem = regexp.MustCompile(`href="/comm-link/[a-z0-9-]+/(\d+)-`)
+	// hubPosted is an item's publication time. RSI writes it as an absolute
+	// "2021-08-04 20:17:28" for older items and as "3 weeks ago" for recent ones.
+	hubPosted = regexp.MustCompile(`Posted:\s*<span class="value">\s*(\d{4}-\d{2}-\d{2})[ \d:]*</span>`)
+)
 
 // maxSeriesPages bounds the series walk. RSI answers an unknown series slug with
 // every comm-link (over 300 pages) instead of an error.
 const maxSeriesPages = 60
 
-// FetchSeriesIDs lists the comm-link ids RSI files under a series slug, newest
-// first.
-func FetchSeriesIDs(ctx context.Context, web *httpx.Client, ep Endpoints, series string) ([]int, error) {
+// SeriesItem is one comm-link of RSI's series listing. Posted is its YYYY-MM-DD
+// publication date, or "" when the listing gives only a relative age.
+type SeriesItem struct {
+	ID     int
+	Posted string
+}
+
+// FetchSeries lists the comm-links RSI files under a series slug, newest first.
+func FetchSeries(ctx context.Context, web *httpx.Client, ep Endpoints, series string) ([]SeriesItem, error) {
 	seen := map[int]bool{}
-	var ids []int
+	var items []SeriesItem
 	for page := 1; page <= maxSeriesPages; page++ {
 		payload, _ := json.Marshal(map[string]any{
 			"channel": "", "series": series, "type": "", "text": "", "sort": "publish_new", "page": page,
@@ -148,40 +161,55 @@ func FetchSeriesIDs(ctx context.Context, web *httpx.Client, ep Endpoints, series
 		if res.Success != 1 {
 			return nil, fmt.Errorf("rsi series %q page %d: success=%d", series, page, res.Success)
 		}
-		items := hubItem.FindAllStringSubmatch(res.Data, -1)
-		if len(items) == 0 {
-			return ids, nil
+		found := hubItem.FindAllStringSubmatchIndex(res.Data, -1)
+		if len(found) == 0 {
+			return items, nil
 		}
-		for _, m := range items {
-			id, _ := strconv.Atoi(m[1])
-			if !seen[id] {
-				seen[id] = true
-				ids = append(ids, id)
+		for i, m := range found {
+			id, _ := strconv.Atoi(res.Data[m[2]:m[3]])
+			if seen[id] {
+				continue
 			}
+			seen[id] = true
+			end := len(res.Data)
+			if i+1 < len(found) {
+				end = found[i+1][0]
+			}
+			item := SeriesItem{ID: id}
+			if p := hubPosted.FindStringSubmatch(res.Data[m[1]:end]); p != nil {
+				if _, err := time.Parse("2006-01-02", p[1]); err == nil {
+					item.Posted = p[1]
+				}
+			}
+			items = append(items, item)
 		}
 	}
 	return nil, fmt.Errorf("rsi series %q has more than %d pages; is the slug right?", series, maxSeriesPages)
 }
 
-// Union merges the title matches with the series ids, fetching any report only
-// the series knows, and lists the reports found by one source only.
-func Union(ctx context.Context, titled []Candidate, seriesIDs []int, fetch func(context.Context, int) (Candidate, error)) ([]Candidate, []Disagreement, error) {
+// Union merges the title matches with the series items, fetching any report
+// only the series knows, and lists the reports found by one source only. A
+// report carries the series listing's Posted date; one only the title search
+// found has none.
+func Union(ctx context.Context, titled []Candidate, series []SeriesItem, fetch func(context.Context, int) (Candidate, error)) ([]Candidate, []Disagreement, error) {
 	byID := map[int]*Candidate{}
 	for i := range titled {
 		c := titled[i]
 		byID[c.ID] = &c
 	}
-	for _, id := range seriesIDs {
-		if c, ok := byID[id]; ok {
+	for _, it := range series {
+		if c, ok := byID[it.ID]; ok {
 			c.FoundBy = append(c.FoundBy, FoundBySeries)
+			c.Posted = it.Posted
 			continue
 		}
-		c, err := fetch(ctx, id)
+		c, err := fetch(ctx, it.ID)
 		if err != nil {
 			return nil, nil, err
 		}
 		c.FoundBy = []string{FoundBySeries}
-		byID[id] = &c
+		c.Posted = it.Posted
+		byID[it.ID] = &c
 	}
 	ids := make([]int, 0, len(byID))
 	for id := range byID {

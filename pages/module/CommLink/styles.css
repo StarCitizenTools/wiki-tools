@@ -1,0 +1,32 @@
+/* The infobox footer's button row. InfoboxLua passes the section class
+   through but styles no variant; Module:Entity/styles.css holds the same
+   rules for the Entity infobox. */
+.t-infobox-section--footer {
+    padding-top: var(--space-md);
+}
+
+/* A grid rather than wrapping flex keeps every cell the same width; an odd
+   last button spans both tracks. */
+.t-infobox-footer-actions {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-xs);
+}
+
+/* Of-type, not nth-child: ButtonLua's TemplateStyles <style> tag can land
+   inside this container and would shift nth-child parity. */
+.t-infobox-footer-actions > .t-button:nth-of-type(odd):last-of-type {
+    grid-column: 1 / -1;
+}
+
+.t-infobox-footer-actions > .t-button > a {
+    display: block;
+}
+
+.t-infobox-section--footer .cdx-button {
+    display: flex;
+    width: 100%;
+    justify-content: center;
+    font-size: var(--font-size-small);
+    line-height: var(--line-height-small);
+}

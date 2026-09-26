@@ -160,7 +160,7 @@ function suite:testInfoboxDataAllFields()
 		url = FAR_FROM_HOME_URL,
 		image = 'Comm-Link-FarFromHomeFI4.jpg',
 	})
-	local data = commLink.infoboxData(args, 'Far From Home: Best Laid Plans', '[https://example.com/16835 source]')
+	local data = commLink.infoboxData(args, 'Far From Home: Best Laid Plans')
 	self:assertEquals('Far From Home: Best Laid Plans', data.title)
 	self:assertEquals('Comm-Link', data.subtitle)
 	self:assertEquals('Comm-Link-FarFromHomeFI4.jpg', data.image)
@@ -172,15 +172,12 @@ function suite:testInfoboxDataAllFields()
 		{ label = 'ID', content = '16835' },
 		{ label = 'Published', content = '2018-11-07' },
 	}, data.sections[1].items)
-	self:assertDeepEquals(
-		{ { label = 'Source', content = '[https://example.com/16835 source]' } },
-		data.sections[2].items
-	)
+	self:assertEquals('t-infobox-section--footer', data.sections[2].class)
 end
 
 function suite:testInfoboxDataWithoutAUrl()
 	local args = commLink.readArgs({ title = 'T', series = 'S', type = 'Ty', publicationdate = '2020-01-01' })
-	local data = commLink.infoboxData(args, 'T', nil)
+	local data = commLink.infoboxData(args, 'T')
 	self:assertEquals(1, #data.sections)
 	local labels = {}
 	for _, item in ipairs(data.sections[1].items) do
@@ -190,14 +187,38 @@ function suite:testInfoboxDataWithoutAUrl()
 end
 
 function suite:testInfoboxDataFallsBackToThePageName()
-	local data = commLink.infoboxData(commLink.readArgs({}), 'Comm-Link:Untitled', nil)
+	local data = commLink.infoboxData(commLink.readArgs({}), 'Comm-Link:Untitled')
 	self:assertEquals('Comm-Link:Untitled', data.title)
 	self:assertEquals(0, #data.sections)
 end
 
 function suite:testInfoboxDataWithoutAnImage()
-	local data = commLink.infoboxData(commLink.readArgs({ title = 'T' }), 'T', nil)
+	local data = commLink.infoboxData(commLink.readArgs({ title = 'T' }), 'T')
 	self:assertEquals(nil, data.image)
+end
+
+function suite:testFooterSectionLinksTheRsiSiteAndTheWikiApi()
+	local footer = commLink.footerSection(commLink.readArgs({ url = FAR_FROM_HOME_URL }))
+	self:assertEquals('t-infobox-section--footer', footer.class)
+	self:assertStringContains(
+		'[button Official site -> '
+			.. FAR_FROM_HOME_URL
+			.. ' (t-button--branded t-button--rsi)]'
+			.. '[button Wiki API -> https://api.star-citizen.wiki/comm-links/16835 (t-button--branded t-button--wiki-api)]',
+		footer.content,
+		true
+	)
+end
+
+function suite:testFooterSectionWithoutAnRsiNumber()
+	local url = 'https://web.archive.org/web/20120918143713/http://robertsspaceindustries.com/start/'
+	local footer = commLink.footerSection(commLink.readArgs({ url = url }))
+	self:assertStringContains('[button Official site -> ' .. url, footer.content, true)
+	self:assertNotStringContains('Wiki API', footer.content, true)
+end
+
+function suite:testFooterSectionWithoutAUrl()
+	self:assertEquals(nil, commLink.footerSection(commLink.readArgs({ title = 'T' })))
 end
 
 function suite:testCategoriesWithTypeAndSeries()

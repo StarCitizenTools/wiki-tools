@@ -2,15 +2,19 @@ require('strict')
 
 --- @module CommLink
 --- Renders a Comm-Link page's rehosting notice, previous/next bar, infobox,
---- categories and SEO metadata for {{Infobox commlink}}, stores the page in
---- the `comm_link` Bucket table, and lists it through {{Comm-Link list}}.
+--- categories and SEO metadata for {{CommLink}}, stores the page in the
+--- `comm_link` Bucket table, and lists it through {{Comm-Link list}}.
 
 local mbox = require('Module:Mbox')
 local infobox = require('Module:InfoboxLua')
+local button = require('Module:ButtonLua')
 
 local p = {}
 
 local BUCKET = 'comm_link'
+--- The Star Citizen Wiki API's reader page for a Comm-Link, keyed by its RSI
+--- number. `/api/comm-links/` is the same record as JSON.
+local WIKI_API_URL = 'https://api.star-citizen.wiki/comm-links/'
 --- Bucket's per-query row cap.
 local SERIES_LIMIT = 5000
 local TEXT_PARAMS = { 'title', 'series', 'type', 'publicationdate', 'url', 'image' }
@@ -239,15 +243,46 @@ function p.noticeText(citation)
 	return NOTICE_TEXT .. ' The original source for this specific Comm-Link can be found at &nbsp;' .. citation
 end
 
---- The InfoboxLua data for {{Infobox commlink}}. `source` (the {{Link RSI}}
---- expansion) is nil on a page with no `url`, which drops the Source item
---- rather than linking a blank URL. Empty fields are omitted rather than
+--- The infobox footer: a button to the Comm-Link on the RSI website when
+--- `url` is set, and one to it on the Star Citizen Wiki API when `url` holds
+--- an RSI number. `url` is linked as given: {{Link RSI}}'s normalisation
+--- prefixes the RSI domain onto a `www.` or `starcitizen.` RSI URL.
+--- @param args CommLinkArgs
+--- @return table|nil  a Module:InfoboxLua section, nil without either button
+function p.footerSection(args)
+	local buttons = {}
+	if args.url then
+		buttons[#buttons + 1] = button.render({
+			label = 'Official site',
+			url = args.url,
+			icon = 'Sc-icon-brand-rsi.svg',
+			class = 't-button--branded t-button--rsi',
+		})
+	end
+	local rsiId = p.rsiId(args.url)
+	if rsiId ~= nil then
+		buttons[#buttons + 1] = button.render({
+			label = 'Wiki API',
+			url = WIKI_API_URL .. rsiId,
+			icon = 'Star Citizen Wiki API - Logo.svg',
+			class = 't-button--branded t-button--wiki-api',
+		})
+	end
+	if #buttons == 0 then
+		return nil
+	end
+	return {
+		content = tostring(mw.html.create('div'):addClass('t-infobox-footer-actions'):wikitext(table.concat(buttons))),
+		class = 't-infobox-section--footer',
+	}
+end
+
+--- The InfoboxLua data for {{CommLink}}. Empty fields are omitted rather than
 --- shown as "Unknown", unlike the legacy template's ID field.
 --- @param args CommLinkArgs
 --- @param pageText string  the current page's title, without namespace
---- @param source string|nil
 --- @return table  Module:InfoboxLua's `data` (see its README)
-function p.infoboxData(args, pageText, source)
+function p.infoboxData(args, pageText)
 	local items = {}
 	if args.series then
 		items[#items + 1] = { label = 'Series', content = '[[:Category:' .. args.series .. '|' .. args.series .. ']]' }
@@ -267,8 +302,9 @@ function p.infoboxData(args, pageText, source)
 	if #items > 0 then
 		sections[#sections + 1] = { columns = 2, items = items }
 	end
-	if source ~= nil then
-		sections[#sections + 1] = { items = { { label = 'Source', content = source } } }
+	local footer = p.footerSection(args)
+	if footer ~= nil then
+		sections[#sections + 1] = footer
 	end
 
 	return {
@@ -279,7 +315,7 @@ function p.infoboxData(args, pageText, source)
 	}
 end
 
---- The category wikitext {{Infobox commlink}} places on the page.
+--- The category wikitext {{CommLink}} places on the page.
 --- @param args CommLinkArgs
 --- @return string
 function p.categories(args)
@@ -315,8 +351,8 @@ function p.seoArgs(args, locale, pageText)
 	}
 end
 
---- {{Infobox commlink}}'s previous/next bar, placed before the infobox. Empty
---- without a series.
+--- {{CommLink}}'s previous/next bar, placed before the infobox. Empty without
+--- a series.
 --- @param frame frame
 --- @param args CommLinkArgs
 --- @return string
@@ -329,20 +365,19 @@ local function seriesBar(frame, args)
 	return frame:expandTemplate({ title = 'Prevnext', args = p.prevnextArgs(before, after, args.series) })
 end
 
---- {{Infobox commlink}}'s entry point: the rehosting notice, the
---- previous/next bar, the infobox, the categories and the page's SEO
---- metadata, and stores the page's row.
+--- {{CommLink}}'s entry point: the rehosting notice, the previous/next bar,
+--- the infobox, the categories and the page's SEO metadata, and stores the
+--- page's row.
 --- @param frame frame
 --- @return string
 function p.main(frame)
 	local args = p.readArgs(frame:getParent().args)
 	p.put(args)
 	local pageText = mw.title.getCurrentTitle().text
-	local linkText = args.title or pageText
-	local citation, source
+	local citation
 	if args.url then
-		citation = frame:expandTemplate({ title = 'Cite RSI', args = { url = args.url, text = linkText } })
-		source = frame:expandTemplate({ title = 'Link RSI', args = { url = args.url, text = linkText } })
+		citation =
+			frame:expandTemplate({ title = 'Cite RSI', args = { url = args.url, text = args.title or pageText } })
 	end
 	local notice = mbox.render({
 		title = NOTICE_TITLE,
@@ -353,7 +388,8 @@ function p.main(frame)
 	frame:callParserFunction('#seo', p.seoArgs(args, frame:preprocess('{{PAGELANGUAGE}}'), pageText))
 	return notice
 		.. seriesBar(frame, args)
-		.. infobox.render(p.infoboxData(args, pageText, source))
+		.. frame:extensionTag({ name = 'templatestyles', args = { src = 'Module:CommLink/styles.css' } })
+		.. infobox.render(p.infoboxData(args, pageText))
 		.. p.categories(args)
 end
 

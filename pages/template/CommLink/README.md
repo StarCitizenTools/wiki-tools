@@ -1,11 +1,11 @@
-# Template:Infobox commlink
+# Template:CommLink
 
 Infobox for a page in the Comm-Link archive: the rehosting notice, a bar linking the previous and next Comm-Link of its series, and the Comm-Link's details. Use it once, at the top of every Comm-Link page.
 
 ## Usage
 
 ```wikitext
-{{Infobox commlink
+{{CommLink
 | title = Far From Home: Best Laid Plans
 | url = https://robertsspaceindustries.com/comm-link/spectrum-dispatch/16835-Far-From-Home-Best-Laid-Plans
 | image = Comm-Link-FarFromHomeFI4.jpg
@@ -33,7 +33,9 @@ Infobox for a page in the Comm-Link archive: the rehosting notice, a bar linking
 - A publication date with no year-month-day date in it (`January 2015`) places the Comm-Link after every dated one in its series.
 - After creating a Comm-Link, or changing its date or series, purge the Comm-Links on either side of it, in its old series too when the series changed, so that their links follow.
 - Empty fields are left out of the infobox. Without an image, the infobox shows a placeholder with an upload button.
-- The rehosting notice links the original Comm-Link only when `url` is set.
+- The rehosting notice and the Official site button link the original Comm-Link only when `url` is set.
+- The Official site button links the Comm-Link on the RSI website. The Wiki API button, which links it on the Star Citizen Wiki API, and the ID field appear only when a path segment of `url` starts with the Comm-Link's number and a hyphen (`16835-` above).
+- `Template:Infobox commlink` redirects here.
 
 ## See also
 

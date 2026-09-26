@@ -46,3 +46,40 @@ func TestMissingCountsTemplateText(t *testing.T) {
 		t.Errorf("Missing = %q, want none: the infobox title is on the page", got)
 	}
 }
+
+// The API glues a paragraph to the text after it when RSI has an element in
+// between that the API leaves out: the "Conclusion" title before the sign-off
+// (16999), or an image and a studio title (16551).
+func TestMissingGluedAcrossBlocks(t *testing.T) {
+	page := "Weapons got nose guns.\n\n[[File:X - 15.png|center|frameless|800px]]\n\n== Conclusion ==\n\n'''WE’LL SEE YOU NEXT MONTH…'''\n\n" +
+		"Seen in the future.\n\n[[File:X - 16.png|center|frameless|800px]]\n\n== Austin ==\n\n[[File:X - 17.png|center|frameless|800px]]\n\n=== Design ===\n\nThe design team met.\n"
+	api := "Weapons got nose guns. WE’LL SEE YOU NEXT MONTH…\n" +
+		"Seen in the future. AUSTIN DESIGN The design team\n" +
+		"Weapons got nose guns. A dropped sentence.\n" +
+		"Seen in the future. design team met.\n"
+	got := Missing(api, page, func(string) bool { return false })
+	want := []string{"Weapons got nose guns. A dropped sentence.", "Seen in the future. design team met."}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("Missing = %q, want %q", got, want)
+	}
+}
+
+// The API collects illustration credits into lines of their own, the name and
+// the intro of one credit, or the names of several, glued with no space
+// (19317, 20220, 20620).
+func TestMissingGluedCredits(t *testing.T) {
+	page := "Text.\n\n[[File:A.png|thumb|center|Image by [https://x/1 MaKizaR]]]\n\n" +
+		"[[File:B.png|thumb|center|Overall graph view]]\n\n[[File:C.png|thumb|center|Image by yoyoMeg]]\n\n" +
+		"[[File:D.png|thumb|center|Bar Citizen Beijing]]\n\n[[File:E.png|center|frameless|800px]]\n"
+	api := "MaKizaROverall graph viewImage by\n" +
+		"yoyoMegBar Citizen Beijing\n" +
+		"MaKizaR image by\n" +
+		"daftdigitImage by\n" +
+		"graphImage by\n" +
+		"800pxImage by\n"
+	got := Missing(api, page, func(string) bool { return false })
+	want := []string{"daftdigitImage by", "graphImage by", "800pxImage by"}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("Missing = %q, want %q", got, want)
+	}
+}

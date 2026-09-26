@@ -85,6 +85,15 @@
 	color: oklch(84.153% 0.007 265.754);
 }
 
+/* Roberts Space Industries: the site's black ground and white mark. Black
+ * cannot darken, so hover and active lighten instead. */
+.t-button--rsi.cdx-button {
+	--t-button-ground: #000;
+	--t-button-ground-hover: color-mix(in oklch, var(--t-button-ground) 84%, #fff);
+	--t-button-ground-active: color-mix(in oklch, var(--t-button-ground) 76%, #fff);
+	color: #fff;
+}
+
 /* Galactapedia, shared by the Starmap button (the mark is the Starmap's
  * logo, so both RSI map properties share it). */
 .t-button--galactapedia.cdx-button,

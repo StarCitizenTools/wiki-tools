@@ -19,10 +19,10 @@ Lists Comm-Links from the Comm-Link archive with their series, type and publicat
 ## Behavior
 
 - With neither parameter, every Comm-Link is listed.
-- Each row comes from a Comm-Link page's `{{Infobox commlink}}`. A new Comm-Link appears once this page is next parsed; purge it to list the Comm-Link at once.
+- Each row comes from a Comm-Link page's `{{CommLink}}`. A new Comm-Link appears once this page is next parsed; purge it to list the Comm-Link at once.
 - Series and Type have checkbox filters, and Published sorts and filters as a date.
 
 ## See also
 
-- [Template:Infobox commlink](https://starcitizen.tools/Template:Infobox_commlink), which records each Comm-Link.
+- [Template:CommLink](https://starcitizen.tools/Template:CommLink), which records each Comm-Link.
 - [Module:CommLink](https://starcitizen.tools/Module:CommLink), the implementation.

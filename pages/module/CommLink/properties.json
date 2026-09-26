@@ -1,5 +1,5 @@
 {
-	"%doc": "Source-of-truth manifest for the `comm_link` Bucket table: one row per Comm-Link page, written by Module:CommLink from the {{Infobox commlink}} arguments. Comm-Link pages hold no Entity row, so {{Comm-Link list}} roots its query on this bucket (DataGrid `primary`). Property names carry the `Comm-Link ` prefix because Module:BucketQuery resolves every registered manifest from one flat namespace. type/bucket/field/index are the Bucket keys; desc is documentation only.",
+	"%doc": "Source-of-truth manifest for the `comm_link` Bucket table: one row per Comm-Link page, written by Module:CommLink from the {{CommLink}} arguments. Comm-Link pages hold no Entity row, so {{Comm-Link list}} roots its query on this bucket (DataGrid `primary`). Property names carry the `Comm-Link ` prefix because Module:BucketQuery resolves every registered manifest from one flat namespace. type/bucket/field/index are the Bucket keys; desc is documentation only.",
 	"Comm-Link title": {
 		"type": "TEXT",
 		"bucket": "comm_link",
@@ -11,7 +11,7 @@
 		"bucket": "comm_link",
 		"field": "series",
 		"index": true,
-		"desc": "The series, from `series`. The previous/next bar that {{Infobox commlink}} renders reads every row of the page's series."
+		"desc": "The series, from `series`. The previous/next bar that {{CommLink}} renders reads every row of the page's series."
 	},
 	"Comm-Link type": {
 		"type": "TEXT",

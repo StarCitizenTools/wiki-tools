@@ -33,4 +33,4 @@ Required by [Module:CardLua](https://starcitizen.tools/Module:CardLua), [Module:
 
 ### Styles
 
-A brand button opts in with `class = 't-button--branded t-button--<brand>'`; the brand block sets `--t-button-ground` (and `color`), and hover/active shades derive from it via `color-mix`. [Module:ButtonLua/styles.css](https://starcitizen.tools/Module:ButtonLua/styles.css) currently declares seven: `wiki-api`, `galactapedia`/`starmap` (shared, same mark), `verseguide`, `patreon`, `kofi`, and `discord`; a consumer can declare its own brand block in its own stylesheet instead of adding one here.
+A brand button opts in with `class = 't-button--branded t-button--<brand>'`; the brand block sets `--t-button-ground` (and `color`), and hover/active shades derive from it via `color-mix`. [Module:ButtonLua/styles.css](https://starcitizen.tools/Module:ButtonLua/styles.css) declares `wiki-api`, `rsi`, `galactapedia`/`starmap` (shared, same mark), `verseguide`, `scmdb`, `patreon`, `kofi`, and `discord`; a consumer can declare its own brand block in its own stylesheet instead of adding one here.

@@ -17,9 +17,14 @@ var wikiEscaper = strings.NewReplacer(
 // doubled apostrophes and tildes become entities (every tilde, not just runs of
 // three, since Replacer's single left-to-right scan would otherwise leave a
 // shorter tilde run behind a matched one, and MediaWiki reads any run of 3+ as
-// a signature), NBSP becomes a space, and whitespace runs collapse.
+// a signature), stray Unicode spacing and invisible marks are normalized (see
+// normalizeInvisibles), and whitespace runs collapse. This is where every HTML
+// text node enters the pipeline (directly here, or via PlainText, whose result
+// every caller also passes through escapeText), so it is the one place this
+// normalization needs to happen: headings, list items, captions and file
+// descriptions all render through it.
 func escapeText(s string) string {
-	s = strings.ReplaceAll(s, " ", " ")
+	s = normalizeInvisibles(s)
 	s = wsRun.ReplaceAllString(s, " ")
 	return wikiEscaper.Replace(s)
 }

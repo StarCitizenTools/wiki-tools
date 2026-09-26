@@ -44,6 +44,43 @@ func TestInline(t *testing.T) {
 	}
 }
 
+// Every Unicode space separator (general category Zs) other than U+0020 maps
+// to a plain space; a run touching an existing space still collapses to one.
+func TestEscapeTextMapsSpaceSeparators(t *testing.T) {
+	for _, r := range []rune{0x00A0, 0x1680, 0x2000, 0x200A, 0x202F, 0x205F, 0x3000} {
+		in := "a" + string(r) + "b"
+		if got, want := escapeText(in), "a b"; got != want {
+			t.Errorf("escapeText(%q) [U+%04X] = %q, want %q", in, r, got, want)
+		}
+	}
+	in := "a " + string(rune(0x202F)) + "b"
+	if got, want := escapeText(in), "a b"; got != want {
+		t.Errorf("escapeText(%q) = %q, want %q (must not gain a double space)", in, got, want)
+	}
+}
+
+// Soft hyphen and the zero-width marks RSI's HTML carries are dropped, not
+// turned into a space.
+func TestEscapeTextDropsInvisibleMarks(t *testing.T) {
+	for _, r := range []rune{0x00AD, 0x200B, 0x2060, 0xFEFF} {
+		in := "a" + string(r) + "b"
+		if got, want := escapeText(in), "ab"; got != want {
+			t.Errorf("escapeText(%q) [U+%04X] = %q, want %q", in, r, got, want)
+		}
+	}
+}
+
+// A link flanked by narrow no-break spaces, as RSI's copy carries them,
+// renders with ordinary spaces outside the brackets.
+func TestInlineLinkFlankedByNarrowNoBreakSpace(t *testing.T) {
+	nnbsp := string(rune(0x202F))
+	src := "word" + nnbsp + `<a href="https://x">link</a>` + nnbsp + "word"
+	want := `word [https://x link] word`
+	if got := Inline(fragmentNode(t, src)); got != want {
+		t.Errorf("Inline(%q) = %q, want %q", src, got, want)
+	}
+}
+
 // Quote markers that meet another marker or an apostrophe of text are
 // separated, except an italic and a bold marker, which MediaWiki reads as a
 // run of five.

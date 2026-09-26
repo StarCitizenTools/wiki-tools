@@ -104,6 +104,30 @@ func TestMissingMarkupInLinkText(t *testing.T) {
 	}
 }
 
+// The API text is fetched independently of the page and never passes through
+// escapeText, so a narrow no-break space it carries must still match the
+// plain space the page rendering mapped it to.
+func TestMissingNarrowNoBreakSpaceInAPIText(t *testing.T) {
+	nnbsp := string(rune(0x202F))
+	page := "Check out the new ship on display at the show.\n"
+	api := "Check out the new ship" + nnbsp + "on display at the show.\n"
+	if got := Missing(api, page, func(string) bool { return false }); len(got) != 0 {
+		t.Errorf("Missing = %q, want none", got)
+	}
+}
+
+// escapeText drops a soft hyphen from the page rather than spacing it, so the
+// gate must drop it from the API text too, or the API's line splits into two
+// words where the page has one and reads as missing.
+func TestMissingSoftHyphenInAPIText(t *testing.T) {
+	softHyphen := string(rune(0x00AD))
+	page := "The cooperation agreement was signed today.\n"
+	api := "The co" + softHyphen + "operation agreement was signed today.\n"
+	if got := Missing(api, page, func(string) bool { return false }); len(got) != 0 {
+		t.Errorf("Missing = %q, want none", got)
+	}
+}
+
 // An API text under half the body's words is short: the API has not finished
 // scraping the report. Media lines are not body words.
 func TestAPITextWords(t *testing.T) {

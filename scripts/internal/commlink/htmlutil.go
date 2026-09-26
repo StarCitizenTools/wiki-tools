@@ -4,6 +4,7 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+	"unicode"
 
 	"golang.org/x/net/html"
 )
@@ -87,6 +88,28 @@ func isHeading(n *html.Node) bool {
 }
 
 var wsRun = regexp.MustCompile(`\s+`)
+
+// normalizeInvisibles maps every Unicode space separator (general category
+// Zs: NBSP, narrow no-break space, ideographic space, ...) other than U+0020
+// to a plain space, and drops soft hyphen (U+00AD) and the zero-width marks
+// (U+200B, U+2060, U+FEFF) RSI's HTML carries. It runs before wsRun, so a
+// mapped space landing next to a plain one is left as an ordinary run for
+// wsRun to collapse; wsRun itself is `\s+`, which Go's regexp resolves as
+// ASCII-only and so would not touch an unmapped Zs character.
+func normalizeInvisibles(s string) string {
+	return strings.Map(func(r rune) rune {
+		switch r {
+		case 0x00AD, 0x200B, 0x2060, 0xFEFF: // soft hyphen, zero width space, word joiner, BOM
+			return -1
+		case ' ':
+			return r
+		}
+		if unicode.Is(unicode.Zs, r) {
+			return ' '
+		}
+		return r
+	}, s)
+}
 
 // PlainText is an element's text with markup dropped and whitespace collapsed.
 func PlainText(n *html.Node) string {

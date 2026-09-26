@@ -79,9 +79,15 @@ func (p *fragment) flowHTML(src string, emphasis bool) {
 		return
 	}
 	f := &flow{heading: func(f *flow, h *html.Node) {
-		if t := PlainText(h); t != "" {
-			f.emit(Block{Kind: Heading, Level: 2, Text: t})
+		t := PlainText(h)
+		if t == "" {
+			return
 		}
+		if emphasis || signOff.MatchString(t) {
+			f.emit(Block{Kind: Paragraph, Text: "'''" + escapeText(t) + "'''"})
+			return
+		}
+		f.emit(Block{Kind: Heading, Level: 2, Text: t})
 	}}
 	for _, n := range nodes {
 		f.node(n)

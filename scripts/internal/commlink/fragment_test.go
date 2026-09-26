@@ -35,6 +35,26 @@ func TestParseFragment(t *testing.T) {
 	})
 }
 
+// A closing sign-off sent as headings, not paragraphs (19956): an
+// emphasis article turns every heading bold, and a heading matching the
+// "see you next month" sign-off turns bold even without emphasis.
+func TestParseFragmentSignOff(t *testing.T) {
+	blocks, err := ParseFragment([]byte(`<g-article :show-emphasis="true" body="<h3>WE'LL SEE YOU NEXT MONTH...</h3><h3>// END TRANSMISSION</h3>"></g-article>`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	check(t, dump(blocks), []string{
+		"P '''WE'LL SEE YOU NEXT MONTH...'''",
+		"P '''// END TRANSMISSION'''",
+	})
+
+	blocks, err = ParseFragment([]byte(`<g-article :show-emphasis="false" body="<h4>We'll see you next month!</h4>"></g-article>`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	check(t, dump(blocks), []string{"P '''We'll see you next month!'''"})
+}
+
 func TestFetchBlocks(t *testing.T) {
 	var srv *httptest.Server
 	srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

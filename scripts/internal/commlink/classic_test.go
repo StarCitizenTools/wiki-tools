@@ -149,6 +149,23 @@ func TestParseClassicStudioRepeat(t *testing.T) {
 	})
 }
 
+// 16963's first title block names two months where the report's title names
+// one; it is still the page title, not a studio section.
+func TestParseClassicPageTitleVariant(t *testing.T) {
+	shell := []byte(`<html><body><div id="contentbody"><div id="post"><div class="wrapper">
+<div class="content-block4"><div class="content"><h1>Star Citizen Monthly Report: December 2018 - January 2019</h1></div></div>
+<div class="content-block1 rsi-markup"><div class="segment"><div class="content">
+<h2 class="no-margin">AI</h2><hr/><p>AI text.</p>
+</div></div></div>
+<div class="content-block4"><div class="content"><h1>Conclusion</h1></div></div>
+</div><div class="two-line-separator"></div></div></div></body></html>`)
+	blocks, err := ParseClassic(shell, "Star Citizen Monthly Report: January 2019")
+	if err != nil {
+		t.Fatal(err)
+	}
+	check(t, dump(blocks), []string{"H2 AI", "P AI text.", "H2 Conclusion"})
+}
+
 func TestDetect(t *testing.T) {
 	shell := []byte(`<html><script>const s3Url = 'https://robertsspaceindustries.com/alexandria/html/fromHeap/x/19956/abc-default.html';</script></html>`)
 	layout, frag, err := Detect(shell)

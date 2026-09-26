@@ -11,7 +11,15 @@ import (
 var (
 	greeting = regexp.MustCompile(`(?i)^greetings`)
 	signOff  = regexp.MustCompile(`(?i)see you next month`)
+	// reportTitle matches a first title block that names the report, though
+	// not always as the RSI title does (16963 names two months).
+	reportTitle = regexp.MustCompile(`(?i)\bmonthly (studio )?report\b`)
 )
+
+// isPageTitle reports whether the first title block's text is the page title.
+func isPageTitle(text, foldedTitle string) bool {
+	return fold(text) == foldedTitle || reportTitle.MatchString(text)
+}
 
 // ParseClassic converts a classic-layout page into blocks. The body is the run
 // of content-block4 (section title), content-block2 (header image) and
@@ -88,7 +96,7 @@ func (c *classic) titleBlock(n *html.Node) {
 	}
 	if !c.sawTitle {
 		c.sawTitle = true
-		if fold(text) == c.title {
+		if isPageTitle(text, c.title) {
 			return
 		}
 	}
@@ -168,8 +176,9 @@ func countStudioBlocks(post *html.Node, title string) int {
 			}
 			if hasClass(ch, "content-block4") {
 				if h := findFirst(ch, tagIs("h1")); h != nil {
-					t := fold(PlainText(h))
-					if !(first && t == title) && t != "" && t != "conclusion" {
+					text := PlainText(h)
+					t := fold(text)
+					if !(first && isPageTitle(text, title)) && t != "" && t != "conclusion" {
 						count++
 					}
 					first = false

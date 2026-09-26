@@ -1,0 +1,33 @@
+{
+  "series": "monthly-report",
+  "titleQuery": "Monthly",
+  "titlePattern": "(?i)monthly (studio )?report",
+  "renames": [
+    { "pattern": "^Monthly Studio Report: (.+)$", "replace": "Monthly Report - ${1}" }
+  ],
+  "infoboxType": "Transmission",
+  "infoboxSeries": "Monthly Reports",
+  "imageCategory": "Monthly Report images",
+  "imageAuthor": "Cloud Imperium Games",
+  "linkCategories": [
+    "Developers",
+    "Ships",
+    "Ground vehicles",
+    "Planets",
+    "Moons",
+    "Landing zones",
+    "Cities",
+    "Space stations",
+    "Systems"
+  ],
+  "aliases": {
+    "Los Angeles": "Cloud Imperium Games, LLC",
+    "Austin": "Cloud Imperium Games Texas, LLC",
+    "Frankfurt": "Cloud Imperium Games Frankfurt Office",
+    "Manchester": "Cloud Imperium Games Ltd.",
+    "Turbulent": "Turbulent"
+  },
+  "stoplist": [],
+  "fidelityIgnore": [],
+  "knownReview": [18078]
+}

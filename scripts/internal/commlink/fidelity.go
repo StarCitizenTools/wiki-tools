@@ -6,8 +6,11 @@ import (
 	"strings"
 )
 
+// markup leaves a template call's text in place for nonWord to fold: the
+// infobox title is the page's only copy of the report title, which the API
+// repeats as lines of its own (a fragment introduction's title and subtitle).
 var (
-	markup  = regexp.MustCompile(`\[\[(?:[^|\]]*\|)?([^\]]*)\]\]|\[[a-z]+://\S+ ([^\]]*)\]|\{\{[^}]*\}\}|<[^>]+>|'{2,}|={2,}`)
+	markup  = regexp.MustCompile(`\[\[(?:[^|\]]*\|)?([^\]]*)\]\]|\[[a-z]+://\S+ ([^\]]*)\]|<[^>]+>|'{2,}|={2,}`)
 	nonWord = regexp.MustCompile(`[^\pL\pN]+`)
 )
 

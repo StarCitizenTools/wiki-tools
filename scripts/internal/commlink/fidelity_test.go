@@ -38,3 +38,11 @@ func TestMissingShortLineNotInFileCaption(t *testing.T) {
 		t.Errorf("Missing = %q, want %q", got, want)
 	}
 }
+
+func TestMissingCountsTemplateText(t *testing.T) {
+	page := "{{CommLink\n| title = Squadron 42 Monthly Report: April 2024\n| url = https://x\n}}\n\nBody text.\n"
+	api := "Squadron 42 Monthly Report\nApril 2024\nBody text.\n"
+	if got := Missing(api, page, func(string) bool { return false }); len(got) != 0 {
+		t.Errorf("Missing = %q, want none: the infobox title is on the page", got)
+	}
+}

@@ -69,7 +69,7 @@ function suite:testQueryVehicleVariantsBuildsStoreSpecAndSortsByName()
 		local rows = Related._internal.queryVehicleVariants('Aurora')
 		local chain = bucketLib._chains[1]
 		self:assertEquals('entity', chain.bucket)
-		self:assertDeepEquals({ 'page_name', 'name', 'vehicle.role', 'image' }, chain.select)
+		self:assertDeepEquals({ 'page_name', 'name', 'vehicle.role', 'image', 'vehicle.page_name' }, chain.select)
 		self:assertDeepEquals({ { 'vehicle', 'vehicle.page_name', 'entity.page_name' } }, chain.join)
 		self:assertDeepEquals({ { 'vehicle.series', '=', 'Aurora' } }, chain.where)
 		self:assertEquals(100, chain.limit)

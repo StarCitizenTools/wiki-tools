@@ -174,7 +174,7 @@ local function resolveOrError(spec, property, joins)
 	return entry
 end
 
-local function condition(spec, f, joins)
+local function condition(spec, f, joins, filtered)
 	if type(f) == 'string' then
 		return { f } -- category selector, table form so it can sit beside field conditions
 	end
@@ -187,7 +187,7 @@ local function condition(spec, f, joins)
 			if type(sub) == 'string' then
 				parts[i] = sub
 			else
-				parts[i] = condition(spec, sub, joins)
+				parts[i] = condition(spec, sub, joins, filtered)
 			end
 		end
 		return bucketLib().Or(unpack(parts))
@@ -197,6 +197,7 @@ local function condition(spec, f, joins)
 		op, value = '=', op
 	end
 	local entry = resolveOrError(spec, property, joins)
+	filtered[entry.bucket] = true
 	local selector = selectorFor(entry, spec.primary or PRIMARY)
 	if op == '+' then
 		return bucketLib().Not({ selector, bucketLib().Null() })
@@ -213,6 +214,44 @@ local function condition(spec, f, joins)
 		error("BucketQuery: unknown operator '" .. tostring(op) .. "'")
 	end
 	return { selector, op, value }
+end
+
+--- Bucket matches a join key through the database collation, which ignores
+--- case, so a joined row can belong to a page whose title differs from the
+--- primary's only in case (the FrostBite cooler beside the Frostbite
+--- settlement). Each joined bucket's own page_name is selected so the pair can
+--- be told apart. A mismatch on a filtered (INNER) join drops the row. On an
+--- unfiltered (LEFT) join the row stays with that bucket's fields left out,
+--- unless the same page also came back correctly matched.
+--- @return table[] { row = raw row, without = set of buckets whose fields to omit }
+local function matchJoinCase(raw, joins, filtered)
+	local matched, items = {}, {}
+	for _, r in ipairs(raw) do
+		local page, without, inner = r.page_name, nil, false
+		for _, bucket in ipairs(joins) do
+			local other = r[bucket .. '.page_name']
+			if page ~= nil and other ~= nil and other ~= page then
+				without = without or {}
+				without[bucket] = true
+				inner = inner or filtered[bucket] == true
+			end
+		end
+		if without == nil then
+			if page ~= nil then
+				matched[page] = true
+			end
+			items[#items + 1] = { row = r }
+		elseif not inner then
+			items[#items + 1] = { row = r, without = without, page = page }
+		end
+	end
+	local kept = {}
+	for _, item in ipairs(items) do
+		if item.without == nil or not matched[item.page] then
+			kept[#kept + 1] = item
+		end
+	end
+	return kept
 end
 
 --- Runs one query against the primary bucket, joining any other bucket a
@@ -241,9 +280,20 @@ function p.query(spec)
 		end
 		table.insert(keys[selector], key)
 	end
-	local conds = {}
+	local conds, filtered = {}, {}
 	for i, f in ipairs(spec.filters or {}) do
-		conds[i] = condition(spec, f, joins)
+		conds[i] = condition(spec, f, joins, filtered)
+	end
+	if joins[1] then
+		local guards = { 'page_name' }
+		for _, bucket in ipairs(joins) do
+			guards[#guards + 1] = bucket .. '.page_name'
+		end
+		for _, selector in ipairs(guards) do
+			if not keys[selector] then
+				selectors[#selectors + 1] = selector
+			end
+		end
 	end
 	local q = bucketLib()(primary).select(unpack(selectors))
 	for _, bucket in ipairs(joins) do
@@ -255,11 +305,14 @@ function p.query(spec)
 	q = q.limit(spec.limit or DEFAULT_LIMIT)
 	local raw = q.run()
 	local rows = {}
-	for _, r in ipairs(type(raw) == 'table' and raw or {}) do
+	for _, item in ipairs(matchJoinCase(type(raw) == 'table' and raw or {}, joins, filtered)) do
 		local row = {}
 		for selector, keyList in pairs(keys) do
-			for _, key in ipairs(keyList) do
-				row[key] = r[selector]
+			local bucket = selector:match('^([^.]+)%.')
+			if not (item.without and bucket and item.without[bucket]) then
+				for _, key in ipairs(keyList) do
+					row[key] = item.row[selector]
+				end
 			end
 		end
 		rows[#rows + 1] = row

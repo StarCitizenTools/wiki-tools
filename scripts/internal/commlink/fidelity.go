@@ -17,11 +17,11 @@ var (
 )
 
 // normalize folds text to its lower-case words, each followed by one space and
-// the first preceded by one. It runs the same invisible-character mapping the
-// page's own text went through (normalizeInvisibles): nonWord below folds any
-// leftover Zs character to a word break regardless, but a soft hyphen or
-// zero-width mark must be dropped here too, or it splits a word the page
-// rendering joined, and the API line reads as missing from the page.
+// the first preceded by one. Only normalizeInvisibles' dropped set (soft
+// hyphen, the zero-width marks) does real work here: nonWord below already
+// folds any Zs space character to a word break on its own, mapped or not, but
+// it does not know to drop a dropped one, and would otherwise split a word
+// the page rendering joined, reading the API's line as missing from the page.
 func normalize(s string) string {
 	s = stdhtml.UnescapeString(s)
 	s = normalizeInvisibles(s)

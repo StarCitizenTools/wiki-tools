@@ -53,9 +53,9 @@ func RenderBody(blocks []Block, caser *HeadCaser, file func(src string) string) 
 				continue
 			}
 			if b.Caption != "" {
-				parts = append(parts, fmt.Sprintf("[[File:%s|thumb|center|%s]]", name, strings.ReplaceAll(b.Caption, "|", "&#124;")))
+				parts = append(parts, fmt.Sprintf("[[File:%s|thumb|center|800px|%s]]", name, strings.ReplaceAll(b.Caption, "|", "&#124;")))
 			} else {
-				parts = append(parts, fmt.Sprintf("[[File:%s|center|frameless|800px]]", name))
+				parts = append(parts, fmt.Sprintf("[[File:%s|thumb|center|800px]]", name))
 			}
 		case Video:
 			switch b.VideoKind {

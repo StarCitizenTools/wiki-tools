@@ -8,7 +8,7 @@ import (
 func TestMissing(t *testing.T) {
 	page := "{{CommLink\n| title = X\n}}\n\n'''Greetings Citizens!'''\n\n== AI (Content) ==\n\n" +
 		"The [[Gladius]] got &#91;new&#93; ''parts'' at [https://x the studio].\n\n" +
-		"[[File:A - 01.png|thumb|center|image by [https://y RUSTEC_Urhu]]]\n"
+		"[[File:A - 01.png|thumb|center|800px|image by [https://y RUSTEC_Urhu]]]\n"
 	api := "Greetings Citizens!\n" +
 		"AI (Content)The Gladius got [new] parts at the studio.\n" +
 		"RUSTEC_Urhu image by\n" +
@@ -31,7 +31,7 @@ func TestMissingShortLineNoCaption(t *testing.T) {
 
 func TestMissingShortLineNotInFileCaption(t *testing.T) {
 	page := "Image by RUSTEC_Urhu.\n\n" +
-		"[[File:Photo.png|thumb|center|Other photographer's work]]\n"
+		"[[File:Photo.png|thumb|center|800px|Other photographer's work]]\n"
 	api := "RUSTEC_Urhu image by\n"
 	got := Missing(api, page, func(l string) bool { return false })
 	if want := []string{"RUSTEC_Urhu image by"}; !reflect.DeepEqual(got, want) {
@@ -51,8 +51,8 @@ func TestMissingCountsTemplateText(t *testing.T) {
 // between that the API leaves out: the "Conclusion" title before the sign-off,
 // or an image and a studio title.
 func TestMissingGluedAcrossBlocks(t *testing.T) {
-	page := "Weapons got nose guns.\n\n[[File:X - 15.png|center|frameless|800px]]\n\n== Conclusion ==\n\n'''WE’LL SEE YOU NEXT MONTH…'''\n\n" +
-		"Seen in the future.\n\n[[File:X - 16.png|center|frameless|800px]]\n\n== Austin ==\n\n[[File:X - 17.png|center|frameless|800px]]\n\n=== Design ===\n\nThe design team met.\n"
+	page := "Weapons got nose guns.\n\n[[File:X - 15.png|thumb|center|800px]]\n\n== Conclusion ==\n\n'''WE’LL SEE YOU NEXT MONTH…'''\n\n" +
+		"Seen in the future.\n\n[[File:X - 16.png|thumb|center|800px]]\n\n== Austin ==\n\n[[File:X - 17.png|thumb|center|800px]]\n\n=== Design ===\n\nThe design team met.\n"
 	api := "Weapons got nose guns. WE’LL SEE YOU NEXT MONTH…\n" +
 		"Seen in the future. AUSTIN DESIGN The design team\n" +
 		"Weapons got nose guns. A dropped sentence.\n" +
@@ -79,9 +79,9 @@ func TestMissingHeadingOnOneWordEdges(t *testing.T) {
 // The API collects illustration credits into lines of their own, the name and
 // the intro of one credit, or the names of several, glued with no space.
 func TestMissingGluedCredits(t *testing.T) {
-	page := "Text.\n\n[[File:A.png|thumb|center|Image by [https://x/1 MaKizaR]]]\n\n" +
-		"[[File:B.png|thumb|center|Overall graph view]]\n\n[[File:C.png|thumb|center|Image by yoyoMeg]]\n\n" +
-		"[[File:D.png|thumb|center|Bar Citizen Beijing]]\n\n[[File:E.png|center|frameless|800px]]\n"
+	page := "Text.\n\n[[File:A.png|thumb|center|800px|Image by [https://x/1 MaKizaR]]]\n\n" +
+		"[[File:B.png|thumb|center|800px|Overall graph view]]\n\n[[File:C.png|thumb|center|800px|Image by yoyoMeg]]\n\n" +
+		"[[File:D.png|thumb|center|800px|Bar Citizen Beijing]]\n\n[[File:E.png|thumb|center|800px]]\n"
 	api := "MaKizaROverall graph viewImage by\n" +
 		"yoyoMegBar Citizen Beijing\n" +
 		"MaKizaR image by\n" +
@@ -107,7 +107,7 @@ func TestMissingMarkupInLinkText(t *testing.T) {
 // An API text under half the body's words is short: the API has not finished
 // scraping the report. Media lines are not body words.
 func TestAPITextWords(t *testing.T) {
-	body := "One two three four five six seven eight.\n\n[[File:A - 01.png|thumb|center|a long caption of many words here]]\n\n{{#ev:youtube|abc}}\n"
+	body := "One two three four five six seven eight.\n\n[[File:A - 01.png|thumb|center|800px|a long caption of many words here]]\n\n{{#ev:youtube|abc}}\n"
 	for _, c := range []struct {
 		api         string
 		apiN, pageN int

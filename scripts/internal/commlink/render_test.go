@@ -32,11 +32,11 @@ func TestRenderBody(t *testing.T) {
 	got := RenderBody(blocks, NewHeadCaser(nil, ""), func(src string) string { return files[src] })
 	want := "'''Greetings Citizens!'''\n\n" +
 		"== Engineering ==\n\n" +
-		"[[File:R - 01.jpg|center|frameless|800px]]\n\n" +
+		"[[File:R - 01.jpg|thumb|center|800px]]\n\n" +
 		"<nowiki />* starts like a list\n\n" +
 		"# one\n# two\n\n" +
 		"<blockquote>Quoted</blockquote>\n\n" +
-		"[[File:R - 02.png|thumb|center|image by [https://y Name] &#124; credit]]\n\n" +
+		"[[File:R - 02.png|thumb|center|800px|image by [https://y Name] &#124; credit]]\n\n" +
 		"{{#ev:youtube|abc}}\n\n" +
 		"{{#ev:vimeo|123}}\n\n" +
 		"[https://x/v.mp4 Watch the video]\n"
@@ -66,6 +66,21 @@ func TestRenderBodyInvalidVideoIDs(t *testing.T) {
 	want := "\n"
 	if got != want {
 		t.Errorf("RenderBody with invalid video IDs should render nothing:\n%s\nwant:\n%s", got, want)
+	}
+}
+
+// Every body image is a responsive thumb, not a frameless fixed-width one, so
+// it shrinks with the page.
+func TestRenderBodyImageIsAThumb(t *testing.T) {
+	blocks := []Block{
+		{Kind: Image, Src: "https://x/plain.png"},
+		{Kind: Image, Src: "https://x/captioned.png", Caption: "A caption"},
+	}
+	files := map[string]string{"https://x/plain.png": "R - 01.png", "https://x/captioned.png": "R - 02.png"}
+	got := RenderBody(blocks, NewHeadCaser(nil, ""), func(src string) string { return files[src] })
+	want := "[[File:R - 01.png|thumb|center|800px]]\n\n[[File:R - 02.png|thumb|center|800px|A caption]]\n"
+	if got != want {
+		t.Errorf("RenderBody:\n%s\nwant:\n%s", got, want)
 	}
 }
 

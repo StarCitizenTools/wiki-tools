@@ -22,6 +22,8 @@
 		"Prison": { "category": "Prisons", "parent": "Locations", "zone": "surface" },
 		"Cave": { "category": "Caves", "parent": "Locations", "zone": "surface" },
 		"Racetrack": { "category": "Racetracks", "parent": "Locations", "zone": "surface" },
+		"Crash site": { "category": "Crash sites", "parent": "Locations", "zone": "surface" },
+		"Monument": { "category": "Monuments", "parent": "Locations", "zone": "surface" },
 		"Space station": { "category": "Space stations", "parent": "Locations", "zone": "orbit" },
 		"Orbital station": { "category": "Orbital stations", "parent": "Space stations", "zone": "orbit" },
 		"Rest stop": { "category": "Rest stops", "parent": "Space stations", "zone": "lagrange" },
@@ -37,6 +39,8 @@
 		"Shop": { "category": "Shops", "parent": "City venues", "zone": "inside" },
 		"Residences": { "category": "Residences", "parent": "City venues", "zone": "inside" },
 		"Venue": { "category": "Venues", "parent": "City venues", "zone": "inside" },
-		"City district": { "category": "City districts", "parent": "City venues", "zone": "inside" }
+		"City district": { "category": "City districts", "parent": "City venues", "zone": "inside" },
+		"Building": { "category": "Buildings", "parent": "City venues", "zone": "inside" },
+		"Business park": { "category": "Business parks", "parent": "City venues", "zone": "inside" }
 	}
 }

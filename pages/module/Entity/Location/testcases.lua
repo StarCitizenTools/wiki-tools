@@ -1230,12 +1230,10 @@ function suite:testJumpPointShortDescription()
 	)
 end
 
--- A gate files under its ENTRY system's category — functional membership:
--- {{System navplate}} builds its "Jump points" row from the per-system
--- category ∩ Jump points, so this is what keeps that row populated. The
--- star-system trees stay out, and the legacy flat 'Astronomical objects' /
--- 'Locations' memberships are deliberately not carried (the classification
--- bucket covers that taxonomy).
+-- A gate files under its ENTRY system's category. The star-system trees stay
+-- out, and the legacy flat 'Astronomical objects' / 'Locations' memberships
+-- are deliberately not carried (the classification bucket covers that
+-- taxonomy).
 function suite:testJumpPointKindCategoriesEntrySystem()
 	local categories = JumpPoint.getCategories(ctx(jumpPointApiData(), {}, nil))
 	self:assertEquals('Pyro system', categories[1])
@@ -1408,9 +1406,6 @@ function suite:testGetCategoriesUsesTheRecordClassFirst()
 	self:assertEquals('K-type main-sequence stars', Star.getCategories(elaborated)[1])
 end
 
--- FUNCTIONAL, not taxonomy: {{Navplate system}} builds its Stars row from the
--- per-system category intersected with Stars, so a star that stops filing
--- under its system empties that row on the system page.
 function suite:testGetCategoriesFilesUnderTheSystem()
 	self:assertEquals('Stanton system', Star.getCategories(ctx(starApiData(), {}))[2])
 	local recordless = ctx({ celestialobject = starCelestialFixture() }, {})
@@ -1896,8 +1891,6 @@ function suite:testBodyStoredAffiliation()
 	self:assertStringContains('Independent', Body._internal.affiliationText(apiData, bodyResolved(two)))
 end
 
--- The system category is what keeps a body on {{Navplate system}}, whose
--- Planets and Moons rows intersect the type category with it.
 function suite:testBodyCategories()
 	local hurston = { name = 'Hurston', system = 'Stanton System', starsystem = bodyStarsystemFixture() }
 	local categories = Body.getCategories(ctx(hurston, {}))

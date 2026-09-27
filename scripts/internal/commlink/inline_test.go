@@ -92,20 +92,24 @@ func TestPlainText(t *testing.T) {
 }
 
 // Every Unicode space separator (general category Zs) other than U+0020 maps
-// to a plain space; soft hyphen and the zero-width marks are dropped.
-func TestNormalizeInvisibles(t *testing.T) {
+// to a plain space; soft hyphen and the zero-width marks are dropped, and
+// ligatures are spelled out.
+func TestNormalizeChars(t *testing.T) {
 	for _, r := range []rune{0x00A0, 0x1680, 0x2000, 0x200A, 0x202F, 0x205F, 0x3000} {
-		if got := normalizeInvisibles("a" + string(r) + "b"); got != "a b" {
-			t.Errorf("normalizeInvisibles(a U+%04X b) = %q, want %q", r, got, "a b")
+		if got := normalizeChars("a" + string(r) + "b"); got != "a b" {
+			t.Errorf("normalizeChars(a U+%04X b) = %q, want %q", r, got, "a b")
 		}
 	}
 	for _, r := range []rune{0x00AD, 0x200B, 0x2060, 0xFEFF} {
-		if got := normalizeInvisibles("a" + string(r) + "b"); got != "ab" {
-			t.Errorf("normalizeInvisibles(a U+%04X b) = %q, want %q", r, got, "ab")
+		if got := normalizeChars("a" + string(r) + "b"); got != "ab" {
+			t.Errorf("normalizeChars(a U+%04X b) = %q, want %q", r, got, "ab")
 		}
 	}
-	if got := normalizeInvisibles("a  b\tc"); got != "a  b\tc" {
-		t.Errorf("normalizeInvisibles changed ASCII spacing: %q", got)
+	if got := normalizeChars("\uFB01re \uFB02ow e\uFB03cient"); got != "fire flow efficient" {
+		t.Errorf("normalizeChars left a ligature: %q", got)
+	}
+	if got := normalizeChars("a  b\tc"); got != "a  b\tc" {
+		t.Errorf("normalizeChars changed ASCII spacing: %q", got)
 	}
 }
 

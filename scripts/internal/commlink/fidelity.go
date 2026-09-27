@@ -17,11 +17,11 @@ var (
 )
 
 // normalize folds text to its lower-case words, each followed by one space and
-// the first preceded by one. normalizeInvisibles drops the soft hyphens and
+// the first preceded by one. normalizeChars drops the soft hyphens and
 // zero-width marks the page drops, which nonWord would read as word breaks.
 func normalize(s string) string {
 	s = stdhtml.UnescapeString(s)
-	s = normalizeInvisibles(s)
+	s = normalizeChars(s)
 	s = tags.ReplaceAllString(s, " ")
 	s = links.ReplaceAllString(s, " $1$2 ")
 	s = nonWord.ReplaceAllString(strings.ToLower(s), " ")

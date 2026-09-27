@@ -215,9 +215,11 @@ func run() error {
 		return err
 	}
 
+	// A name MediaWiki would reject or store differently is not sent; the
+	// wiki's own verdict on the rest is checked below as well.
 	var titles []string
 	for _, p := range pages {
-		if p.complete {
+		if p.complete && commlink.TitleProblem(p.page) == "" {
 			titles = append(titles, namespacePrefix+p.page)
 		}
 	}
@@ -237,6 +239,14 @@ func run() error {
 		stored := existing[p.c.ID]
 		// An incomplete name is no title to check: the report is undated.
 		if p.complete {
+			if problem := commlink.TitleProblem(p.page); problem != "" {
+				review(p.c, p.page, commlink.ReasonTitle, problem)
+				continue
+			}
+			if statuses[title] == mediawiki.TitleInvalid {
+				review(p.c, p.page, commlink.ReasonTitle, "the wiki rejects "+title+" as a title")
+				continue
+			}
 			if detail := titleConflict(p.c.ID, title, stored, statuses[title] == mediawiki.TitleExists, claimed[title]); detail != "" {
 				review(p.c, p.page, commlink.ReasonTitleExists, detail)
 				continue

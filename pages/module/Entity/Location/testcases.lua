@@ -179,6 +179,18 @@ function suite:testSubtypeLeavesConformToChainLinkContract()
 	end
 end
 
+-- A leaf that redeclares a kind-level manifest field replaces the whole entry,
+-- so it must repeat every key the kind set; Belt once dropped `property` from
+-- `discoveredin`, and Discovered in was never stored on any belt page.
+function suite:testSubtypeLeavesKeepInheritedManifestKeys()
+	local Contract = require('Module:Entity/Contract')
+	local assembly = require('Module:Entity/Assembly')
+	for token, loader in pairs(Location._internal.LOCATION_SUBTYPE_MAP) do
+		local ok, errors = Contract.validateEditorialChain(assembly.buildChain(loader()))
+		self:assertTrue(ok, token .. ': ' .. table.concat(errors, '; '))
+	end
+end
+
 function suite:testSubtypeMapTargetsStarSystem()
 	self:assertEquals(StarSystem, Location._internal.LOCATION_SUBTYPE_MAP.starsystem())
 end

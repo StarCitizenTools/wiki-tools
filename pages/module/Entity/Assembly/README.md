@@ -15,7 +15,7 @@ Editors never invoke this module directly; it runs inside [Template:Entity](http
 - `p.resolveMostSpecific(chain, hookName, accept, ctx) → any`: walks the chain leaf-first and returns the first link's result `accept` admits. `accept = nil` (default) takes the first *defining* link's result unconditionally, even a `nil` one.
 - `p.acceptNonEmpty(result) → boolean`: rejects `nil`/`''`, the standard `accept` predicate for optional override-style hooks (subtitle, header badge).
 - `p.collect(chain, hookName, ctx) → any[]`: additive counterpart to `resolveMostSpecific`. Calls every defining link root to leaf and concatenates each table result; a link without the hook, or whose result isn't a table, contributes nothing.
-- `p.mergeEditorialManifests(chain) → table|nil`: folds every link's `getEditorialManifest()` fragment root to leaf, leaf field winning on collision. Fragments are copied shallowly, since a `mw.loadJsonData` fragment (Vehicle's) is read-only and nothing writes into it. Returns `nil`, not `{}`, when no link defines a manifest, the signal that a page has no editorial layer at all.
+- `p.mergeEditorialManifests(chain) → table|nil`: folds every link's `getEditorialManifest()` fragment root to leaf, leaf field winning on collision. A redeclared field's entry is replaced whole, not merged key by key, so a leaf redeclares an inherited field only to add to it and repeats every key the parent set; `Contract.validateEditorialChain` fails a test when one is left out. Fragments are copied shallowly, since a `mw.loadJsonData` fragment (Vehicle's) is read-only and nothing writes into it. Returns `nil`, not `{}`, when no link defines a manifest, the signal that a page has no editorial layer at all.
 
 ### Gotchas
 

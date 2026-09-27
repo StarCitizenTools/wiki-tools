@@ -164,4 +164,45 @@ function suite:testKindIsIdentityPlusContributor()
 	self:assertEquals(Contract.CONTRIBUTOR, Contract.CHAIN_LINK)
 end
 
+--- A chain link carrying only an editorial manifest fragment.
+--- @param fragment table
+--- @return table
+local function linkWith(fragment)
+	return {
+		getEditorialManifest = function()
+			return fragment
+		end,
+	}
+end
+
+function suite:testEditorialChainWithDisjointFragmentsPasses()
+	local ok = Contract.validateEditorialChain({
+		linkWith({ discoveredin = { arg = 'discoveredin', property = 'Discovered in' } }),
+		linkWith({ size = { arg = 'size', transform = 'number' } }),
+	})
+	self:assertTrue(ok)
+end
+
+-- The Belt defect: a leaf redeclaring an inherited field with a shorter entry
+-- drops the parent's `property`, so the value renders but is never stored.
+function suite:testEditorialRedeclarationDroppingAKeyFails()
+	local ok, errors = Contract.validateEditorialChain({
+		{},
+		linkWith({ discoveredin = { arg = 'discoveredin', property = 'Discovered in' } }),
+		linkWith({ discoveredin = { arg = 'discoveredin' } }),
+	})
+	self:assertFalse(ok)
+	self:assertEquals(1, #errors)
+	self:assertTrue(errors[1]:find("'discoveredin'", 1, true) ~= nil)
+	self:assertTrue(errors[1]:find("'property'", 1, true) ~= nil)
+end
+
+function suite:testEditorialRedeclarationKeepingEveryKeyPasses()
+	local ok = Contract.validateEditorialChain({
+		linkWith({ discoveredin = { arg = 'discoveredin', property = 'Discovered in' } }),
+		linkWith({ discoveredin = { arg = { 'discoveredin', 'discovered' }, property = 'Discovered in' } }),
+	})
+	self:assertTrue(ok)
+end
+
 return suite

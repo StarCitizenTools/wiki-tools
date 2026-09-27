@@ -16,11 +16,13 @@ local p = {}
 --- structured data, external sites, metadata rows, footer buttons and
 --- categories are additive root-to-leaf; enrich runs root-to-leaf, each link
 --- receiving the previous link's apiData; the editorial manifest merges
---- root-to-leaf with leaf keys winning; type info, short description,
---- acquisition and the sibling payloads getBlueprints and getPorts are
---- leaf-first-wins (even a nil answer stands); subtitle, title annotation,
---- header badge and getRelated are leaf-first but SKIP a nil or empty answer
---- and keep walking, because their resolvers pass assembly.acceptNonEmpty.
+--- root-to-leaf with leaf keys winning; type info comes from the leaf alone
+--- (Module:Entity/Data calls only the leaf's getTypeInfo, never an ancestor's);
+--- short description, acquisition and the sibling payloads getBlueprints and
+--- getPorts are leaf-first-wins (even a nil answer stands); subtitle, title
+--- annotation, header badge and getRelated are leaf-first but SKIP a nil or
+--- empty answer and keep walking, because their resolvers pass
+--- assembly.acceptNonEmpty.
 --- @type table<string, boolean>
 p.CONTRIBUTOR = {
 	getSections = false,
@@ -137,6 +139,41 @@ function p.validate(component, spec, options)
 				and (key:find('^get') or key == 'matches' or key == 'resolveSubtype' or key == 'enrich')
 			then
 				table.insert(errors, 'unknown hook (typo?): ' .. key)
+			end
+		end
+	end
+	return #errors == 0, errors
+end
+
+--- Validates a chain's editorial manifest fragments against the merge policy.
+--- Module:Entity/Assembly.mergeEditorialManifests replaces a whole field entry
+--- when a later link redeclares the field, so a redeclaration that leaves out a
+--- key an earlier link set drops that key: a missing `property` still renders
+--- the value but never stores it, and no render or unit test of the leaf alone
+--- notices. A link redeclares an inherited field only to add to it, repeating
+--- every key the earlier entry set.
+---
+--- @param chain table[] Root-first chain (Module:Entity/Assembly.buildChain)
+--- @return boolean ok True when no redeclaration drops a key
+--- @return string[] errors Human-readable messages (empty when ok)
+function p.validateEditorialChain(chain)
+	local seen, errors = {}, {}
+	for i, link in ipairs(chain) do
+		local fragment = link.getEditorialManifest and link.getEditorialManifest()
+		if type(fragment) == 'table' then
+			for field, def in pairs(fragment) do
+				local prior = seen[field]
+				if type(prior) == 'table' and type(def) == 'table' then
+					for key in pairs(prior) do
+						if def[key] == nil then
+							table.insert(
+								errors,
+								'link #' .. i .. " redeclares '" .. field .. "' without the inherited '" .. key .. "'"
+							)
+						end
+					end
+				end
+				seen[field] = def
 			end
 		end
 	end

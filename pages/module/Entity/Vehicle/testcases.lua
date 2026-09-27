@@ -1303,4 +1303,17 @@ function suite:testContextHooksDispatchViaAssemblyCallHook()
 	self:assertEquals('Pledge vehicles', gravlevCats[1])
 end
 
+-- A family leaf that redeclares a field of Vehicle's editorial.json replaces
+-- the whole entry, so it must repeat every key the kind set.
+function suite:testFamilyLeavesKeepInheritedManifestKeys()
+	local Contract = require('Module:Entity/Contract')
+	local assembly = require('Module:Entity/Assembly')
+	for _, family in ipairs({ 'ship', 'ground', 'gravlev' }) do
+		local leaf = Vehicle.resolveSubtype({}, { family = family })
+		self:assertTrue(leaf ~= nil and leaf ~= Vehicle, family .. ' resolves no leaf')
+		local ok, errors = Contract.validateEditorialChain(assembly.buildChain(leaf))
+		self:assertTrue(ok, family .. ': ' .. table.concat(errors, '; '))
+	end
+end
+
 return suite

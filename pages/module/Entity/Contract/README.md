@@ -10,6 +10,7 @@ Editors never invoke this module directly; it runs inside [Template:Entity](http
 
 - `p.validate(component, spec, options) → ok: boolean, errors: string[]`: checks each hook in `spec`. A required hook that's missing is an error; a present hook that isn't a function is an error. With `options.strict = true`, also flags any function-valued key on `component` that looks hook-shaped (`get*`, or exactly `matches`/`resolveSubtype`/`enrich`) but is in neither `spec` nor `p.ALL_HOOKS`, catching a misspelled optional hook.
 - `p.validateFields(component, fieldSpec) → ok, errors`: the same shape for non-function scalar fields (`p.KIND_FIELDS`: `name`, `editorialMode`). Missing-when-required and a wrong `type()` are both errors.
+- `p.validateEditorialChain(chain) → ok, errors`: walks a root-first chain's `getEditorialManifest()` fragments and flags every link that redeclares an inherited field while leaving out a key an earlier link set. `Assembly.mergeEditorialManifests` replaces the whole entry, so a dropped `property` still renders the value but never stores it.
 - `p.CONTRIBUTOR` (alias `p.CHAIN_LINK`): the hook set any chain link may implement, all optional.
 - `p.KIND_IDENTITY`: the hooks that make a component a kind. `matches` and `getApiConfigs` required, `resolveSubtype` optional.
 - `p.KIND`: `CONTRIBUTOR` plus `KIND_IDENTITY` layered on top, so `getApiConfigs` is promoted from optional to required.
@@ -20,7 +21,7 @@ Editors never invoke this module directly; it runs inside [Template:Entity](http
 
 A new **kind** must implement `matches(apiData) → boolean` (nil-safe, and must stand alone: the declared-`kind` gate can hand it a record belonging to a different kind) and `getApiConfigs() → EntityApiConfig[]` (`[1]` is the identity endpoint), plus a `name` string field; it may also implement `resolveSubtype(apiData, args) → module|nil`. A **facet** must implement `matches` and `getSections`. Any chain link, kind, subtype leaf, or Base, may additionally implement any `CONTRIBUTOR` hook (`getSections`, `getStructuredData`, `enrich`, `getCategories`, and [the rest](https://starcitizen.tools/Module:Entity#Hooks)), all optional.
 
-Conformance is enforced only at test time, by [Module:Entity/Registry/testcases](https://starcitizen.tools/Module:Entity/Registry/testcases): `p.validate(component, spec, { strict = true })` runs over every kind and every facet in the registry, but `p.validateFields` runs over kinds only (facets have no scalar-field check). That suite runs under the merge-blocking `mise run test` gate.
+Conformance is enforced only at test time, by [Module:Entity/Registry/testcases](https://starcitizen.tools/Module:Entity/Registry/testcases): `p.validate(component, spec, { strict = true })` runs over every kind and every facet in the registry, but `p.validateFields` runs over kinds only (facets have no scalar-field check). `p.validateEditorialChain` runs over every Location leaf's chain in the Location suite and every Vehicle family leaf's in the Vehicle suite. These suites run under the merge-blocking `mise run test` gate.
 
 ### Gotchas
 

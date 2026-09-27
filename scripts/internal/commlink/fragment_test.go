@@ -85,11 +85,14 @@ func TestFetchBlocks(t *testing.T) {
 		}
 	}))
 	defer srv.Close()
-	blocks, err := FetchBlocks(context.Background(), testWeb(t), testConfig(t), Candidate{ID: 19956, Title: "X", RSIURL: srv.URL + "/en/comm-link/transmission/19956-X"})
+	blocks, title, err := FetchBlocks(context.Background(), testWeb(t), testConfig(t), Candidate{ID: 19956, Title: "X", RSIURL: srv.URL + "/en/comm-link/transmission/19956-X"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	check(t, dump(blocks), []string{"H2 Tech", "P Text."})
+	if title != "" {
+		t.Errorf("FetchBlocks title = %q, want none from a fragment", title)
+	}
 }
 
 // RSI can split one link into anchors with the same href, the last one

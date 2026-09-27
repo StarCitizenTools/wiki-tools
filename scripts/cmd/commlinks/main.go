@@ -160,13 +160,15 @@ func run() error {
 	var headings []string
 	for i, c := range missing {
 		progress(fmt.Sprintf("[%d/%d] converting %d %s", i+1, len(missing), c.ID, c.Title))
-		// The date comes before the name, which can take it; every title check
-		// and file name below uses the name.
+		// The name can take the date and the page's own title, so both come
+		// first; every title check and file name below uses the name. From
+		// here on the report's title is the one its infobox shows.
 		date, dateSource, dateErr := commlink.ResolveDate(c.Posted, c.Created, cfg.APIIngestDates, func() (time.Time, error) {
 			return cache.FirstCapture(ctx, web, ep, c.RSIURL)
 		})
+		blocks, titleBlock, err := commlink.FetchBlocks(ctx, web, cfg, c)
+		c.Title = cfg.ReportTitle(c.Title, titleBlock)
 		page, complete := cfg.PageName(c.Title, date)
-		blocks, err := commlink.FetchBlocks(ctx, web, cfg, c)
 		if err != nil {
 			review(c, page, commlink.ReasonFetch, err.Error())
 			continue

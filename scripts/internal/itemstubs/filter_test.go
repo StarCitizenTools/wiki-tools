@@ -9,7 +9,7 @@ func testConfig() *Config {
 			"consumable": {Sections: []string{"Description", "Acquisition", "Related"}},
 		},
 		Types: map[string]TypeRule{
-			"WeaponGun.Gun":   {Kind: "component", Label: "vehicle weapon", Navplate: "Vehicle weapons"},
+			"WeaponGun.Gun":   {Kind: "component", Label: "vehicle weapon"},
 			"Drink.UNDEFINED": {Kind: "consumable", Label: "drink"},
 			"Cargo.Cargo":     {Skip: true},
 		},

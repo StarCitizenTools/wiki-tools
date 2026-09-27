@@ -100,93 +100,72 @@
     },
     "Char_Armor_Arms.Heavy": {
       "kind": "wearable",
-      "labelLink": "Arms armor",
-      "navplate": "personal armor"
+      "labelLink": "Arms armor"
     },
     "Char_Armor_Arms.Light": {
       "kind": "wearable",
-      "labelLink": "Arms armor",
-      "navplate": "personal armor"
+      "labelLink": "Arms armor"
     },
     "Char_Armor_Arms.Medium": {
       "kind": "wearable",
-      "labelLink": "Arms armor",
-      "navplate": "personal armor"
+      "labelLink": "Arms armor"
     },
     "Char_Armor_Backpack.LightArmor": {
-      "kind": "wearable",
-      "navplate": "personal armor"
+      "kind": "wearable"
     },
     "Char_Armor_Backpack.Medium": {
-      "kind": "wearable",
-      "navplate": "personal armor"
+      "kind": "wearable"
     },
     "Char_Armor_Backpack.Personal": {
-      "kind": "wearable",
-      "navplate": "personal armor"
+      "kind": "wearable"
     },
     "Char_Armor_Backpack.UNDEFINED": {
-      "kind": "wearable",
-      "navplate": "personal armor"
+      "kind": "wearable"
     },
     "Char_Armor_Helmet.Heavy": {
-      "kind": "wearable",
-      "navplate": "helmets"
+      "kind": "wearable"
     },
     "Char_Armor_Helmet.Helmet": {
-      "kind": "wearable",
-      "navplate": "helmets"
+      "kind": "wearable"
     },
     "Char_Armor_Helmet.Light": {
-      "kind": "wearable",
-      "navplate": "helmets"
+      "kind": "wearable"
     },
     "Char_Armor_Helmet.Medium": {
-      "kind": "wearable",
-      "navplate": "helmets"
+      "kind": "wearable"
     },
     "Char_Armor_Helmet.UNDEFINED": {
-      "kind": "wearable",
-      "navplate": "helmets"
+      "kind": "wearable"
     },
     "Char_Armor_Legs.Heavy": {
       "kind": "wearable",
-      "labelLink": "Legs armor",
-      "navplate": "personal armor"
+      "labelLink": "Legs armor"
     },
     "Char_Armor_Legs.Light": {
       "kind": "wearable",
-      "labelLink": "Legs armor",
-      "navplate": "personal armor"
+      "labelLink": "Legs armor"
     },
     "Char_Armor_Legs.Medium": {
       "kind": "wearable",
-      "labelLink": "Legs armor",
-      "navplate": "personal armor"
+      "labelLink": "Legs armor"
     },
     "Char_Armor_Torso.Heavy": {
-      "kind": "wearable",
-      "navplate": "personal armor"
+      "kind": "wearable"
     },
     "Char_Armor_Torso.Light": {
-      "kind": "wearable",
-      "navplate": "personal armor"
+      "kind": "wearable"
     },
     "Char_Armor_Torso.Medium": {
-      "kind": "wearable",
-      "navplate": "personal armor"
+      "kind": "wearable"
     },
     "Char_Armor_Torso.UNDEFINED": {
-      "kind": "wearable",
-      "navplate": "personal armor"
+      "kind": "wearable"
     },
     "Char_Armor_Undersuit.Heavy": {
-      "kind": "wearable",
-      "navplate": "personal armor"
+      "kind": "wearable"
     },
     "Char_Armor_Undersuit.UNDEFINED": {
-      "kind": "wearable",
-      "navplate": "personal armor"
+      "kind": "wearable"
     },
     "Char_Clothing_Backpack.UNDEFINED": {
       "kind": "wearable"
@@ -248,8 +227,7 @@
       "skip": true
     },
     "Cooler.UNDEFINED": {
-      "kind": "component",
-      "navplate": "coolers"
+      "kind": "component"
     },
     "Decal.DoorPart": {
       "skip": true
@@ -264,12 +242,10 @@
       "skip": true
     },
     "Drink.Bottle": {
-      "kind": "consumable",
-      "navplate": "food and drinks"
+      "kind": "consumable"
     },
     "Drink.Can": {
-      "kind": "consumable",
-      "navplate": "food and drinks"
+      "kind": "consumable"
     },
     "FPS_Consumable.Hacking": {
       "kind": "item",
@@ -312,28 +288,22 @@
       "kind": "component"
     },
     "Food.Bar": {
-      "kind": "consumable",
-      "navplate": "food and drinks"
+      "kind": "consumable"
     },
     "Food.Box": {
-      "kind": "consumable",
-      "navplate": "food and drinks"
+      "kind": "consumable"
     },
     "Food.Consumable": {
-      "kind": "consumable",
-      "navplate": "food and drinks"
+      "kind": "consumable"
     },
     "Food.Junk": {
-      "kind": "consumable",
-      "navplate": "food and drinks"
+      "kind": "consumable"
     },
     "Food.Sachet": {
-      "kind": "consumable",
-      "navplate": "food and drinks"
+      "kind": "consumable"
     },
     "Food.Tin": {
-      "kind": "consumable",
-      "navplate": "food and drinks"
+      "kind": "consumable"
     },
     "FuelIntake.Fuel": {
       "skip": true
@@ -349,12 +319,10 @@
       "noLabelLink": true
     },
     "JumpDrive.UNDEFINED": {
-      "kind": "component",
-      "navplate": "jump modules"
+      "kind": "component"
     },
     "LifeSupportGenerator.UNDEFINED": {
-      "kind": "component",
-      "navplate": "life support generators"
+      "kind": "component"
     },
     "MainThruster.FixedThruster": {
       "skip": true
@@ -381,13 +349,11 @@
       "kind": "component"
     },
     "Missile.Missile": {
-      "kind": "component",
-      "navplate": "vehicle ordnances"
+      "kind": "component"
     },
     "Missile.Torpedo": {
       "kind": "component",
-      "label": "torpedo",
-      "navplate": "vehicle ordnances"
+      "label": "torpedo"
     },
     "MissileLauncher.MissileRack": {
       "skip": true
@@ -407,12 +373,10 @@
       "skip": true
     },
     "PowerPlant.Power": {
-      "kind": "component",
-      "navplate": "power plants"
+      "kind": "component"
     },
     "QuantumDrive.UNDEFINED": {
-      "kind": "component",
-      "navplate": "quantum drives"
+      "kind": "component"
     },
     "QuantumFuelTank.QuantumFuel": {
       "skip": true
@@ -421,8 +385,7 @@
       "kind": "component"
     },
     "Radar.MidRangeRadar": {
-      "kind": "component",
-      "navplate": "radars"
+      "kind": "component"
     },
     "SalvageHead.UNDEFINED": {
       "kind": "component"
@@ -440,8 +403,7 @@
       "skip": true
     },
     "Shield.UNDEFINED": {
-      "kind": "component",
-      "navplate": "shield generators"
+      "kind": "component"
     },
     "ShieldController.UNDEFINED": {
       "skip": true
@@ -453,8 +415,7 @@
       "skip": true
     },
     "TractorBeam.UNDEFINED": {
-      "kind": "component",
-      "navplate": "tractor beams"
+      "kind": "component"
     },
     "Turret.MannedTurret": {
       "skip": true
@@ -504,17 +465,14 @@
     "WeaponGun.Gun": {
       "kind": "component",
       "label": "vehicle weapon",
-      "labelLink": "Gun",
-      "navplate": "vehicle weapons"
+      "labelLink": "Gun"
     },
     "WeaponGun.Rocket": {
       "kind": "component",
-      "label": "rocket pod",
-      "navplate": "vehicle weapons"
+      "label": "rocket pod"
     },
     "WeaponGun.UNDEFINED": {
-      "kind": "component",
-      "navplate": "vehicle weapons"
+      "kind": "component"
     },
     "WeaponMining.Gun": {
       "kind": "component",
@@ -522,42 +480,34 @@
     },
     "WeaponPersonal.Gadget": {
       "kind": "item",
-      "label": "gadget",
-      "navplate": "personal weapons"
+      "label": "gadget"
     },
     "WeaponPersonal.Grenade": {
       "kind": "item",
-      "label": "grenade",
-      "navplate": "personal weapons"
+      "label": "grenade"
     },
     "WeaponPersonal.Knife": {
       "kind": "item",
-      "label": "knife",
-      "navplate": "personal weapons"
+      "label": "knife"
     },
     "WeaponPersonal.Large": {
       "kind": "item",
       "label": "heavy weapon",
-      "labelLink": "Personal weapon",
-      "navplate": "personal weapons"
+      "labelLink": "Personal weapon"
     },
     "WeaponPersonal.Medium": {
       "kind": "item",
-      "label": "stocked weapon",
-      "navplate": "personal weapons"
+      "label": "stocked weapon"
     },
     "WeaponPersonal.Small": {
       "kind": "item",
-      "label": "sidearm weapon",
-      "navplate": "personal weapons"
+      "label": "sidearm weapon"
     },
     "WeaponPersonal.UNDEFINED": {
-      "kind": "item",
-      "navplate": "personal weapons"
+      "kind": "item"
     },
     "WeaponPersonal.Weapon": {
-      "kind": "item",
-      "navplate": "personal weapons"
+      "kind": "item"
     }
   },
   "blocklist": [

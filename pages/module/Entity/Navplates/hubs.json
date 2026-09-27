@@ -25,6 +25,7 @@
 		"Carbon planet": "carbon planets",
 		"Cargo pod": "cargo pods",
 		"Chthonian planet": "chthonian planets",
+		"City venues": "city venues",
 		"Cockpit flair": "cockpit flairs",
 		"Cognitive boosting": "cognitive boosting items",
 		"Cognitive impairing": "cognitive impairing items",
@@ -123,6 +124,7 @@
 		"Ocean planet": "ocean planets",
 		"Optics attachment": "optics attachments",
 		"Outerwear": "outerwear",
+		"Outposts": "outposts",
 		"Personal weapon": "personal weapons",
 		"Pistol": "pistols",
 		"Planet": "planets",
@@ -144,6 +146,7 @@
 		"Salvage ships": "salvage ships",
 		"Scattergun": "scatterguns",
 		"Scraper module": "scraper modules",
+		"Settlements": "settlements",
 		"Shield generator": "shield generators",
 		"Shirt": "shirts",
 		"Shotgun": "shotguns",
@@ -189,7 +192,34 @@
 		"Military station": "Space station",
 		"Orbital station": "Space station",
 		"Rest stop": "Space station",
-		"Racetrack": "Racing"
+		"Racetrack": "Racing",
+		"Data center": "Outposts",
+		"Distribution centre": "Outposts",
+		"Drug lab": "Outposts",
+		"Emergency shelter": "Outposts",
+		"Farm": "Outposts",
+		"Forward operating base": "Outposts",
+		"Mining site": "Outposts",
+		"Processing facility": "Outposts",
+		"Research outpost": "Outposts",
+		"Salvage yard": "Outposts",
+		"Security post": "Outposts",
+		"Stash": "Outposts",
+		"Underground facility": "Outposts",
+		"City": "Settlements",
+		"Derelict settlement": "Settlements",
+		"Homestead": "Settlements",
+		"Landing zone": "Settlements",
+		"Trading post": "Settlements",
+		"Building": "City venues",
+		"City district": "City venues",
+		"Food & drink": "City venues",
+		"Hospital": "City venues",
+		"Residences": "City venues",
+		"Shop": "City venues",
+		"Spaceport": "City venues",
+		"Venue": "City venues",
+		"Asteroid cluster": "Asteroid formation"
 	},
 	"kinds": {
 		"Commodity": "Commodity"
@@ -207,6 +237,53 @@
 				"Category:Military stations",
 				"Category:Orbital stations",
 				"Category:Rest stops"
+			]
+		},
+		"Outposts": {
+			"any": [
+				"Category:Data centers",
+				"Category:Distribution centres",
+				"Category:Drug labs",
+				"Category:Emergency shelters",
+				"Category:Farms",
+				"Category:Forward operating bases",
+				"Category:Mining sites",
+				"Category:Processing facilities",
+				"Category:Research outposts",
+				"Category:Salvage yards",
+				"Category:Security posts",
+				"Category:Stashes",
+				"Category:Underground facilities"
+			]
+		},
+		"Settlements": {
+			"any": [
+				"Category:Cities",
+				"Category:Derelict settlements",
+				"Category:Homesteads",
+				"Category:Landing zones",
+				"Category:Settlements",
+				"Category:Trading posts"
+			]
+		},
+		"City venues": {
+			"any": [
+				"Category:Buildings",
+				"Category:City districts",
+				"Category:Food & drink venues",
+				"Category:Hospitals",
+				"Category:Residences",
+				"Category:Shops",
+				"Category:Spaceports",
+				"Category:Venues"
+			]
+		},
+		"Asteroid formation": {
+			"any": [
+				"Category:Asteroid belts",
+				"Category:Asteroid clusters",
+				"Category:Planetary ring systems",
+				"Category:Asteroid Formations"
 			]
 		}
 	},

@@ -26,7 +26,8 @@ func Infobox(m PageMeta) string {
 
 // RenderBody writes blocks as wikitext, one blank line apart. file maps an
 // image source to its wiki file name; an image without one is left out. An
-// image alone is a centred thumb; a slideshow is one <gallery>.
+// image alone is a centred thumb; a slideshow is one <gallery>, or a thumb when
+// it shows one image.
 func RenderBody(blocks []Block, caser *HeadCaser, file func(src string) string) string {
 	var parts []string
 	for _, b := range blocks {
@@ -53,11 +54,7 @@ func RenderBody(blocks []Block, caser *HeadCaser, file func(src string) string) 
 			if name == "" {
 				continue
 			}
-			if b.Caption != "" {
-				parts = append(parts, fmt.Sprintf("[[File:%s|thumb|center|%s]]", name, strings.ReplaceAll(b.Caption, "|", "&#124;")))
-			} else {
-				parts = append(parts, fmt.Sprintf("[[File:%s|thumb|center]]", name))
-			}
+			parts = append(parts, thumb(name, b.Caption))
 		case Gallery:
 			if g := gallery(b.Images, file); g != "" {
 				parts = append(parts, g)
@@ -80,19 +77,34 @@ func RenderBody(blocks []Block, caser *HeadCaser, file func(src string) string) 
 	return strings.Join(parts, "\n\n") + "\n"
 }
 
+// thumb renders an image alone: a centred thumb with its caption, if any.
+func thumb(name, caption string) string {
+	if caption == "" {
+		return fmt.Sprintf("[[File:%s|thumb|center]]", name)
+	}
+	return fmt.Sprintf("[[File:%s|thumb|center|%s]]", name, strings.ReplaceAll(caption, "|", "&#124;"))
+}
+
 // gallery renders a slideshow's slides as one <gallery>, leaving out a slide
-// without a file name. A caption every slide shares is the gallery's caption,
-// given once; otherwise each slide keeps its own.
+// without a file name; a slideshow left with one image is a thumb. A caption
+// every slide shares is the gallery's caption, given once; otherwise each
+// slide keeps its own.
 func gallery(slides []Block, file func(src string) string) string {
 	var names, captions []string
 	for _, s := range slides {
 		if name := file(s.Src); name != "" {
 			names = append(names, name)
-			captions = append(captions, strings.ReplaceAll(s.Caption, "|", "&#124;"))
+			captions = append(captions, s.Caption)
 		}
 	}
-	if len(names) == 0 {
+	switch len(names) {
+	case 0:
 		return ""
+	case 1:
+		return thumb(names[0], captions[0])
+	}
+	for i, c := range captions {
+		captions[i] = strings.ReplaceAll(c, "|", "&#124;")
 	}
 	shared := captions[0]
 	for _, c := range captions[1:] {

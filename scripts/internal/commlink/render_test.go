@@ -83,6 +83,22 @@ func TestRenderGallery(t *testing.T) {
 	}
 }
 
+// A slideshow that shows one image, alone or after its other slides are left
+// out, is a thumb with that slide's caption, never a one-image gallery.
+func TestRenderGallerySingleSlide(t *testing.T) {
+	slide := func(src, caption string) Block { return Block{Kind: Image, Src: "https://x/" + src, Caption: caption} }
+	files := map[string]string{"https://x/a.jpg": "R - 01.jpg", "https://x/b.jpg": "R - 02.jpg"}
+	blocks := []Block{
+		{Kind: Gallery, Images: []Block{slide("a.jpg", "")}},
+		{Kind: Gallery, Images: []Block{slide("unplanned.jpg", "Gone"), slide("b.jpg", "Road | to PES")}},
+	}
+	got := RenderBody(blocks, NewHeadCaser(nil, ""), func(src string) string { return files[src] })
+	want := "[[File:R - 01.jpg|thumb|center]]\n\n[[File:R - 02.jpg|thumb|center|Road &#124; to PES]]\n"
+	if got != want {
+		t.Errorf("RenderBody:\n%s\nwant:\n%s", got, want)
+	}
+}
+
 func TestRenderBodyInvalidVideoIDs(t *testing.T) {
 	blocks := []Block{
 		{Kind: Video, VideoKind: "vimeo", VideoID: "12a|b}}"},

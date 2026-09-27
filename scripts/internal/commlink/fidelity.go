@@ -10,11 +10,14 @@ import (
 // links leaves a template call's text in place for nonWord to fold: the
 // infobox title is the page's only copy of the report title, which the API
 // repeats as lines of its own (a fragment introduction's title and subtitle).
-// Tags go first, since a link's text can hold one (<u>).
+// Tags go first, since a link's text can hold one (<u>). tableMarkup is a
+// wikitable's opening line and a spanning cell's attributes, which are no text
+// of the page, so a table's cells read in row order.
 var (
-	tags    = regexp.MustCompile(`<[^>]+>|'{2,}|={2,}`)
-	links   = regexp.MustCompile(`\[\[(?:[^|\]]*\|)?([^\]]*)\]\]|\[[a-z]+://\S+ ([^\]]*)\]`)
-	nonWord = regexp.MustCompile(`[^\pL\pN]+`)
+	tableMarkup = regexp.MustCompile(`(?m)^\{\|.*$|^([!|])[ \t]*(?:(?:colspan|rowspan)="\d+"[ \t]*)+\|`)
+	tags        = regexp.MustCompile(`<[^>]+>|'{2,}|={2,}`)
+	links       = regexp.MustCompile(`\[\[(?:[^|\]]*\|)?([^\]]*)\]\]|\[[a-z]+://\S+ ([^\]]*)\]`)
+	nonWord     = regexp.MustCompile(`[^\pL\pN]+`)
 )
 
 // normalize folds text to its lower-case words, each followed by one space and
@@ -23,6 +26,7 @@ var (
 func normalize(s string) string {
 	s = stdhtml.UnescapeString(s)
 	s = normalizeChars(s)
+	s = tableMarkup.ReplaceAllString(s, "$1")
 	s = tags.ReplaceAllString(s, " ")
 	s = links.ReplaceAllString(s, " $1$2 ")
 	s = nonWord.ReplaceAllString(strings.ToLower(s), " ")

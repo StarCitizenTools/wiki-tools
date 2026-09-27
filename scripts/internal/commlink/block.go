@@ -32,10 +32,12 @@ type Block struct {
 	Rows      [][]Cell // Table: its rows, each a run of cells.
 }
 
-// Cell is one table cell: inline wikitext, and whether it is a header cell.
+// Cell is one table cell: inline wikitext, whether it is a header cell, and
+// the columns and rows it spans past its own (0 for one).
 type Cell struct {
-	Text   string
-	Header bool
+	Text             string
+	Header           bool
+	Colspan, Rowspan int
 }
 
 // imageBlocks lists every image of blocks in body order, a gallery's slides in

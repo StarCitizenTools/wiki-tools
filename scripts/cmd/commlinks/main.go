@@ -152,11 +152,7 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	for id, page := range cfg.Covered() {
-		if _, ok := existing[id]; !ok {
-			existing[id] = page
-		}
-	}
+	addCovered(existing, cfg.Covered())
 	var missing []commlink.Candidate
 	for _, c := range candidates {
 		if wanted(c.ID, existing, onlyIDs, *refresh) {
@@ -221,7 +217,7 @@ func run() error {
 	// wiki's own verdict on the rest is checked below as well.
 	var titles []string
 	for _, p := range pages {
-		if p.complete && commlink.TitleProblem(p.page) == "" {
+		if p.complete && titleProblem(p.page, "") == "" {
 			titles = append(titles, namespacePrefix+p.page)
 		}
 	}
@@ -241,12 +237,8 @@ func run() error {
 		stored := existing[p.c.ID]
 		// An incomplete name is no title to check: the report is undated.
 		if p.complete {
-			if problem := commlink.TitleProblem(p.page); problem != "" {
+			if problem := titleProblem(p.page, statuses[title]); problem != "" {
 				review(p.c, p.page, commlink.ReasonTitle, problem)
-				continue
-			}
-			if statuses[title] == mediawiki.TitleInvalid {
-				review(p.c, p.page, commlink.ReasonTitle, "the wiki rejects "+title+" as a title")
 				continue
 			}
 			if detail := titleConflict(p.c.ID, title, stored, statuses[title] == mediawiki.TitleExists, claimed[title]); detail != "" {
@@ -370,6 +362,30 @@ func writePages(dir string, files []pageFile) error {
 func wanted(id int, existing map[int]string, only map[int]bool, refresh bool) bool {
 	_, stored := existing[id]
 	return (!stored || refresh) && (len(only) == 0 || only[id])
+}
+
+// addCovered adds to existing each report coveredElsewhere names, with the
+// page outside the Comm-Link namespace that holds it, unless a Comm-Link page
+// already stores it.
+func addCovered(existing, covered map[int]string) {
+	for id, page := range covered {
+		if _, ok := existing[id]; !ok {
+			existing[id] = page
+		}
+	}
+}
+
+// titleProblem is why a page name cannot be used, or "" when it can: a name
+// MediaWiki would reject or store differently (commlink.TitleProblem), or one
+// the wiki answers as invalid (status, "" when the name was not sent).
+func titleProblem(page string, status mediawiki.TitleStatus) string {
+	if problem := commlink.TitleProblem(page); problem != "" {
+		return problem
+	}
+	if status == mediawiki.TitleInvalid {
+		return "the wiki rejects " + namespacePrefix + page + " as a title"
+	}
+	return ""
 }
 
 // titleConflict is why report id cannot be planned at title, or "" when it

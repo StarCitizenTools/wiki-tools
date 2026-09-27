@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 )
 
@@ -20,11 +21,18 @@ var titleInvalidSeq = regexp.MustCompile(`%[0-9A-Fa-f]{2}|&[A-Za-z0-9\x{80}-\x{1
 // namespace, as given, or "" when it would: what Title::newFromText rejects
 // (a character outside $wgLegalTitleChars, a percent-encoded byte or HTML
 // entity, a relative path, three tildes, more than 255 bytes, a leading
-// colon, invalid UTF-8) and the bidirectional marks it strips silently.
+// colon, invalid UTF-8), and what it rewrites (a bidirectional mark it
+// strips, an underscore it stores as a space, and a lower-case first letter,
+// which the Comm-Link namespace's first-letter case capitalises).
 func TitleProblem(name string) string {
+	first, _ := utf8.DecodeRuneInString(name)
 	switch {
 	case strings.TrimSpace(name) == "":
 		return "the page name is empty"
+	case unicode.IsLower(first):
+		return "the page name starts with a lower-case letter, which MediaWiki capitalises"
+	case strings.Contains(name, "_"):
+		return "the page name holds an underscore, which MediaWiki stores as a space"
 	case !utf8.ValidString(name) || strings.ContainsRune(name, utf8.RuneError):
 		return "the page name is not valid UTF-8"
 	case strings.HasPrefix(name, ":"):

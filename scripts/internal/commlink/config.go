@@ -79,6 +79,9 @@ type Config struct {
 	// heading, one level below the section's; without it (and without
 	// StudioSections) such an h1 is text.
 	H1Headings bool `json:"h1Headings"`
+	// BannerImages renders a fragment's advanced banner that shows no text as
+	// its background picture, in place; without it such a banner is dropped.
+	BannerImages bool `json:"bannerImages"`
 	// Tables converts an HTML table into a wikitable; without it each cell
 	// is a paragraph of its own.
 	Tables  bool     `json:"tables"`

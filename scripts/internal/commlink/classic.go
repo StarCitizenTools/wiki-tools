@@ -17,8 +17,9 @@ import (
 // div.title-section and up to the next div.two-line-separator; the channel
 // banner and comments follow it. Some pages (the Engineering channel's Q&As
 // and The Shipyard, 2017 to 2020) set their prose in div.segment blocks
-// standing in div#post instead (see segment), and draw a ship's stat widget
-// (div.ship-spec), which is left out. title is the text of the page's own
+// standing in div#post instead (see segment), and carry the ship's stat
+// widget from its store page (div.ship-spec), store furniture the API text
+// omits, which is left out. title is the text of the page's own
 // title block, which can name the report more fully than rsiTitle does, or ""
 // when the first title block is a section.
 func ParseClassic(shell []byte, rsiTitle string, cfg *Config) (blocks []Block, title string, err error) {
@@ -34,6 +35,9 @@ func ParseClassic(shell []byte, rsiTitle string, cfg *Config) (blocks []Block, t
 	c := &classic{cfg: cfg, title: fold(rsiTitle), shared: cfg.sharedName(rsiTitle)}
 	c.studios = cfg.StudioSections && c.hasStudioBlocks(post)
 	c.walk(post)
+	if c.err != nil {
+		return nil, "", c.err
+	}
 	if len(c.blocks) == 0 {
 		return nil, "", errors.New("classic page has no body blocks")
 	}
@@ -52,6 +56,7 @@ type classic struct {
 	repeatOpen bool   // no h1 has followed that block yet
 	h1Level    int    // level of the open h1 subsection (h1Headings), 0 for none
 	stopped    bool
+	err        error // the first a flow met (see flow.table)
 	blocks     []Block
 	// Segment headings (see segmentHeading): the level of the latest one
 	// other than an h8, whether a section heading has opened, and the index in
@@ -87,11 +92,20 @@ func (c *classic) visit(n *html.Node) {
 	case hasClass(n, "content-block1"):
 		c.prose(n)
 	case hasClass(n, "ship-spec"):
-		// The ship's stat widget from its store page, filled in by script.
+		// The ship's stat widget from its store page: store furniture, which
+		// the API text omits.
 	case isPostSegment(n) && findFirst(n, classicBlock) == nil:
 		c.segment(n)
 	default:
 		c.walk(n)
+	}
+}
+
+// keep adds a flow's blocks, and the first error any flow met.
+func (c *classic) keep(f *flow) {
+	c.blocks = append(c.blocks, f.blocks...)
+	if c.err == nil {
+		c.err = f.err
 	}
 }
 
@@ -126,7 +140,7 @@ func (c *classic) segment(n *html.Node) {
 	f := &flow{heading: c.segmentHeading, headingTag: segmentHeadingTag, rules: c.cfg.SceneBreaks, tables: c.cfg.Tables}
 	f.run(content)
 	f.flush()
-	c.blocks = append(c.blocks, f.blocks...)
+	c.keep(f)
 }
 
 // segmentHeadingTag is a heading element of a segment: h1 to h6, and the h7
@@ -278,7 +292,7 @@ func (c *classic) poll(n *html.Node) {
 // titleBlock turns a content-block4 into a section heading, or bold text with
 // noSections. The first one is the page title when its text matches the
 // report's title. One beside a ship's stat widget (#store-wrapper) titles
-// that widget, which is filled in by script, and is left out with it.
+// that widget, store furniture the API text omits, and is left out with it.
 func (c *classic) titleBlock(n *html.Node) {
 	h := findFirst(n, tagIs("h1"))
 	if h == nil || storeWidget(n) {
@@ -322,7 +336,7 @@ func (c *classic) prose(n *html.Node) {
 				f := &flow{heading: c.heading, rules: c.cfg.SceneBreaks, tables: c.cfg.Tables}
 				f.run(content)
 				f.flush()
-				c.blocks = append(c.blocks, f.blocks...)
+				c.keep(f)
 			}
 		}
 	}

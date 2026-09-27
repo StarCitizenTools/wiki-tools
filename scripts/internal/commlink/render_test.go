@@ -146,3 +146,12 @@ func TestRenderNameHeading(t *testing.T) {
 		t.Errorf("RenderBody = %q, want %q", got, want)
 	}
 }
+
+// A spanning cell renders its span as an attribute before its text.
+func TestRenderTableSpans(t *testing.T) {
+	blocks := []Block{{Kind: Table, Rows: [][]Cell{{{Text: "Missiles", Header: true, Colspan: 2}, {Text: "A", Rowspan: 3}}}}}
+	got := RenderBody(blocks, NewHeadCaser(nil, ""), func(string) string { return "" })
+	if want := "{| class=\"wikitable\"\n|-\n! colspan=\"2\" | Missiles\n| rowspan=\"3\" | A\n|}\n"; got != want {
+		t.Errorf("RenderBody = %q, want %q", got, want)
+	}
+}

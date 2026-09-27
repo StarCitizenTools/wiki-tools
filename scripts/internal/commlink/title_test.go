@@ -36,7 +36,9 @@ func TestTitleProblem(t *testing.T) {
 		"../Up":                  "relative path",
 		"A/./B":                  "relative path",
 		":Leading":               "colon",
-		strings.Repeat("x", 256): "256 bytes",
+		strings.Repeat("X", 256): "256 bytes",
+		"iPhone Tips":            "lower-case",
+		"Snake_case":             "underscore",
 		"Bad \xff byte":          "UTF-8",
 	} {
 		if p := TitleProblem(name); !strings.Contains(p, want) {

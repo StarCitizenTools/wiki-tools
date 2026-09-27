@@ -299,3 +299,50 @@ func TestParseFragmentBylineDate(t *testing.T) {
 		}
 	}
 }
+
+// With bannerImages an advanced banner that shows no text is its background
+// picture, in place; one showing a paragraph stays text. Without it a
+// text-less banner is dropped.
+func TestParseFragmentBannerImages(t *testing.T) {
+	media := func(name string) string {
+		return html.EscapeString(`{"background":{"picture":{"originalFormat":{"desktop":"/i/a/resize(3000)/` + name + `","max":"/i/b/key/` + name + `"}},"video":{}}}`)
+	}
+	frag := `<g-banner-advanced :content="{&quot;displayed&quot;:false}" :media="` + media("hero.jpg") + `"></g-banner-advanced>
+<g-introduction :info="{&quot;title&quot;:&quot;Golem&quot;,&quot;contents&quot;:[&quot;<p>We asked.</p>&quot;]}"></g-introduction>
+<g-banner-advanced :content="{&quot;displayed&quot;:true,&quot;text&quot;:{&quot;displayed&quot;:true,&quot;paragraph&quot;:&quot;<p>A quote.</p>&quot;}}" :media="` + media("quote.jpg") + `"></g-banner-advanced>
+<g-platform-client-component :properties="` + html.EscapeString(`{"componentId":"ArtemisBannerAdvanced","componentProps":{"content":{"displayed":true,"text":{"displayed":false}},"media":{"background":{"picture":{"originalFormat":{"max":"/i/c/key/section.jpg"}}}}}}`) + `"></g-platform-client-component>`
+	body, err := ParseFragment([]byte(frag), engineeringConfig(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	check(t, dump(body.Blocks), []string{
+		"IMG https://robertsspaceindustries.com/i/b/key/hero.jpg",
+		"P We asked.",
+		"P A quote.",
+		"IMG https://robertsspaceindustries.com/i/c/key/section.jpg",
+	})
+	body, err = ParseFragment([]byte(frag), chairmanConfig(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	check(t, dump(body.Blocks), []string{"P We asked.", "P A quote."})
+	if _, err := ParseFragment([]byte(`<g-banner-advanced :content="{}" :media="{bad"></g-banner-advanced><g-article body="<p>x</p>"></g-article>`), engineeringConfig(t)); err == nil || !strings.Contains(err.Error(), ":media") {
+		t.Errorf("a banner whose media does not parse = %v, want an error", err)
+	}
+}
+
+// An unknown platform component sends the report to review; a separator and
+// a page background are decoration.
+func TestParseFragmentUnknownComponent(t *testing.T) {
+	prop := func(id string) string {
+		return `<g-platform-client-component :properties="` + html.EscapeString(`{"componentId":"`+id+`","componentProps":{}}`) + `"></g-platform-client-component>`
+	}
+	body, err := ParseFragment([]byte(prop("Separator")+prop("Background")+`<g-article body="<p>Text.</p>"></g-article>`), engineeringConfig(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	check(t, dump(body.Blocks), []string{"P Text."})
+	if _, err := ParseFragment([]byte(prop("ArtemisCarousel")+`<g-article body="<p>Text.</p>"></g-article>`), engineeringConfig(t)); err == nil || !strings.Contains(err.Error(), `"ArtemisCarousel"`) {
+		t.Errorf("an unknown component = %v, want an error naming it", err)
+	}
+}

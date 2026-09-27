@@ -24,10 +24,11 @@ import (
 //
 // The body's Labels are the page furniture the API's text carries as lines of
 // their own or runs into a neighbouring line without a space: the
-// introduction's overline, title and subtitle and a header's first title,
-// which restate the report's title the infobox shows; a legacy banner's text
-// slots; a disclaimer's title; and each question of a list as the API numbers
-// it. Its Date is the day the page's header article shows in its byline
+// introduction's overline and title and a first header's title, which restate
+// the report's title the infobox shows; the introduction's subtitle, a tagline
+// or the maker's byline ("by RSI"), which the body leaves out; a legacy
+// banner's text slots; a disclaimer's title; and each question of a list as
+// the API numbers it. Its Date is the day the page's header article shows in its byline
 // ("05/18/2022 - 1:00 PM"), as written: the byline names no time zone, and
 // read as Pacific time one letter's would fall after its first Wayback
 // capture.
@@ -119,7 +120,14 @@ func (p *fragment) walk(n *html.Node) {
 				p.err = fmt.Errorf("g-banner-advanced :content: %w", err)
 				return
 			}
-			p.banner(content)
+			var media bannerMedia
+			if p.cfg.BannerImages {
+				if err := json.Unmarshal([]byte(attr(c, ":media")), &media); err != nil {
+					p.err = fmt.Errorf("g-banner-advanced :media: %w", err)
+					return
+				}
+			}
+			p.banner(content, media)
 		case c.Data == "g-banner":
 			// Decoration; its text slots can hold placeholder copy.
 			for _, t := range findAll(c, tagIs("template")) {
@@ -252,6 +260,9 @@ func (p *fragment) flowNode(ctx *html.Node, emphasis bool) {
 	}}
 	f.run(ctx)
 	f.flush()
+	if f.err != nil && p.err == nil {
+		p.err = f.err
+	}
 	if emphasis {
 		for i := range f.blocks {
 			if f.blocks[i].Kind == Paragraph {
@@ -273,11 +284,29 @@ type bannerContent struct {
 	} `json:"text"`
 }
 
+// bannerMedia is an advanced banner's background: g-banner-advanced's :media,
+// or an ArtemisBannerAdvanced's media. Max is the original of its picture.
+type bannerMedia struct {
+	Background struct {
+		Picture struct {
+			OriginalFormat struct {
+				Max string `json:"max"`
+			} `json:"originalFormat"`
+		} `json:"picture"`
+	} `json:"background"`
+}
+
 // banner converts an advanced banner's paragraph, when it shows one (a
-// pull-quote). Its title is decoration, such as the report's name.
-func (p *fragment) banner(content bannerContent) {
+// pull-quote). Its title is decoration, such as the report's name. With
+// bannerImages a banner that shows no paragraph is its background picture (a
+// Q&A's full-width ship renders), in place, the first one heading the body.
+func (p *fragment) banner(content bannerContent, media bannerMedia) {
 	if content.Displayed && content.Text.Displayed && strings.TrimSpace(content.Text.Paragraph) != "" {
 		p.flowHTML(content.Text.Paragraph, false)
+		return
+	}
+	if src := strings.TrimSpace(media.Background.Picture.OriginalFormat.Max); p.cfg.BannerImages && src != "" {
+		p.blocks = append(p.blocks, Block{Kind: Image, Src: absURL(src)})
 	}
 }
 
@@ -308,8 +337,9 @@ func (p *fragment) faq(list []faqItem) {
 
 // component converts a g-platform-client-component by its componentId: a
 // header (a section title, level 2, and its text), a question list, an
-// advanced banner or a trailer. Any other (a separator, a page background) is
-// decoration.
+// advanced banner or a trailer. A separator or a page background is
+// decoration; any other component sends the report to review, since what it
+// holds is unknown.
 func (p *fragment) component(n *html.Node) {
 	var props struct {
 		ComponentID    string          `json:"componentId"`
@@ -356,9 +386,10 @@ func (p *fragment) component(n *html.Node) {
 	case "ArtemisBannerAdvanced":
 		var b struct {
 			Content bannerContent `json:"content"`
+			Media   bannerMedia   `json:"media"`
 		}
 		if decode(&b) {
-			p.banner(b.Content)
+			p.banner(b.Content, b.Media)
 		}
 	case "ArtemisTrailer":
 		var t struct {
@@ -367,6 +398,9 @@ func (p *fragment) component(n *html.Node) {
 		if decode(&t) && strings.TrimSpace(t.VideoID) != "" {
 			p.blocks = append(p.blocks, Block{Kind: Video, VideoKind: "youtube", VideoID: strings.TrimSpace(t.VideoID)})
 		}
+	case "Separator", "Background":
+	default:
+		p.err = fmt.Errorf("unknown platform component %q", props.ComponentID)
 	}
 }
 

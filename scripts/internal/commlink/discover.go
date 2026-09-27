@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	stdhtml "html"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -149,7 +150,13 @@ var (
 	// hubPosted is an item's publication time. RSI writes it as an absolute
 	// "2021-08-04 20:17:28" for older items and as "3 weeks ago" for recent ones.
 	hubPosted = regexp.MustCompile(`Posted:\s*<span class="value">\s*(\d{4}-\d{2}-\d{2})[ \d:]*</span>`)
+	// hubTitle is an item's title as the listing shows it.
+	hubTitle = regexp.MustCompile(`<div class="title[^"]*">([^<]*)</div>`)
 )
+
+// siteSuffix ends an API title the API took from the page's og:title
+// ("DefenseCon 2956 Ship Q&A | Star Citizen") rather than from the post.
+const siteSuffix = " | Star Citizen"
 
 // maxSeriesPages bounds the listing walk. RSI answers an unknown series slug
 // with every comm-link (over 300 pages) instead of an error.
@@ -157,11 +164,12 @@ const maxSeriesPages = 60
 
 // SeriesItem is one comm-link of RSI's series or channel listing. Posted is its
 // YYYY-MM-DD publication date, or "" when the listing gives only a relative
-// age.
+// age; Title is its title as the listing shows it.
 type SeriesItem struct {
 	ID     int
 	URL    string
 	Posted string
+	Title  string
 }
 
 // FetchSeries lists the comm-links RSI files under a series slug, newest first.
@@ -219,6 +227,9 @@ func fetchHub(ctx context.Context, web *httpx.Client, ep Endpoints, field, slug 
 				end = found[i+1][0]
 			}
 			item := SeriesItem{ID: id, URL: ep.RSI + res.Data[m[2]:m[3]]}
+			if t := hubTitle.FindStringSubmatch(res.Data[m[1]:end]); t != nil {
+				item.Title = strings.TrimSpace(stdhtml.UnescapeString(t[1]))
+			}
 			if p := hubPosted.FindStringSubmatch(res.Data[m[1]:end]); p != nil {
 				if _, err := time.Parse("2006-01-02", p[1]); err == nil {
 					item.Posted = p[1]
@@ -233,7 +244,9 @@ func fetchHub(ctx context.Context, web *httpx.Client, ep Endpoints, field, slug 
 // Union merges the API's matches with RSI's listing, fetching any report only
 // the listing knows, and lists the reports found by one source only. listedBy
 // labels the listing (FoundBySeries or FoundByChannel). A report carries the
-// listing's Posted date; one only the API found has none. A listed report the
+// listing's Posted date; one only the API found has none. An API title that
+// ends in siteSuffix is the page's og:title, so the listing's title replaces
+// it. A listed report the
 // API answers with 404 for has no record there yet: it is returned for review,
 // not as a candidate, and any other fetch error ends the union.
 func Union(ctx context.Context, found []Candidate, listed []SeriesItem, listedBy string, fetch func(context.Context, int) (Candidate, error)) ([]Candidate, []Disagreement, []ReviewEntry, error) {
@@ -248,6 +261,7 @@ func Union(ctx context.Context, found []Candidate, listed []SeriesItem, listedBy
 		if c, ok := byID[it.ID]; ok {
 			c.FoundBy = append(c.FoundBy, listedBy)
 			c.Posted = it.Posted
+			c.Title = listedTitle(c.Title, it.Title)
 			continue
 		}
 		c, err := fetch(ctx, it.ID)
@@ -263,6 +277,7 @@ func Union(ctx context.Context, found []Candidate, listed []SeriesItem, listedBy
 		}
 		c.FoundBy = []string{listedBy}
 		c.Posted = it.Posted
+		c.Title = listedTitle(c.Title, it.Title)
 		byID[it.ID] = &c
 	}
 	ids := make([]int, 0, len(byID)+len(unfetched))
@@ -288,4 +303,13 @@ func Union(ctx context.Context, found []Candidate, listed []SeriesItem, listedBy
 		}
 	}
 	return out, dis, review, nil
+}
+
+// listedTitle is the API's title, or the listing's when the API's is the
+// page's og:title (see Union).
+func listedTitle(api, listed string) string {
+	if listed != "" && strings.HasSuffix(api, siteSuffix) {
+		return listed
+	}
+	return api
 }

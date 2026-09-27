@@ -182,11 +182,13 @@ func run() error {
 		progress(fmt.Sprintf("[%d/%d] converting %d %s", i+1, len(missing), c.ID, c.Title))
 		// The name can take the date and the page's own title, so both come
 		// first; every title check and file name below uses the name. From
-		// here on the report's title is the one its infobox shows.
-		date, dateSource, dateErr := commlink.ResolveDate(c.Posted, c.Created, cfg.APIIngestDates, func() (time.Time, error) {
+		// here on the report's title is the one its infobox shows. The page
+		// can carry its own date, so it is fetched before the date is
+		// resolved; a page that fails to convert has none.
+		body, err := commlink.FetchBlocks(ctx, web, cfg, c)
+		date, dateSource, dateErr := commlink.ResolveDate(c.Posted, body.Date, c.Created, cfg.APIIngestDates, func() (time.Time, error) {
 			return cache.FirstCapture(ctx, web, ep, c.RSIURL)
 		})
-		body, err := commlink.FetchBlocks(ctx, web, cfg, c)
 		c.Title = cfg.ReportTitle(c.Title, body.Title)
 		page, complete := cfg.PageName(c.Title, date)
 		if err != nil {

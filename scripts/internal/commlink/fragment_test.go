@@ -23,11 +23,11 @@ const fragmentFixture = `<div class="turbo-anchor" data-plugin_key="plugin_trblt
 </g-narrative-group><style>.x{}</style><div id="aria-skin-info">skin</div>`
 
 func TestParseFragment(t *testing.T) {
-	blocks, _, err := ParseFragment([]byte(fragmentFixture), testConfig(t))
+	body, err := ParseFragment([]byte(fragmentFixture), testConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
-	check(t, dump(blocks), []string{
+	check(t, dump(body.Blocks), []string{
 		"P '''TO: SQUADRON 42 RECRUITS'''",
 		"P Welcome to April’s report.",
 		"H2 AI (Content)",
@@ -42,34 +42,34 @@ func TestParseFragment(t *testing.T) {
 // turns every heading bold, and a heading matching the "see you next month"
 // sign-off turns bold even without emphasis.
 func TestParseFragmentSignOff(t *testing.T) {
-	blocks, _, err := ParseFragment([]byte(`<g-article :show-emphasis="true" body="<h3>WE'LL SEE YOU NEXT MONTH...</h3><h3>// END TRANSMISSION</h3>"></g-article>`), testConfig(t))
+	body, err := ParseFragment([]byte(`<g-article :show-emphasis="true" body="<h3>WE'LL SEE YOU NEXT MONTH...</h3><h3>// END TRANSMISSION</h3>"></g-article>`), testConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
-	check(t, dump(blocks), []string{
+	check(t, dump(body.Blocks), []string{
 		"P '''WE'LL SEE YOU NEXT MONTH...'''",
 		"P '''// END TRANSMISSION'''",
 	})
 
-	blocks, _, err = ParseFragment([]byte(`<g-article :show-emphasis="false" body="<h4>We'll see you next month!</h4>"></g-article>`), testConfig(t))
+	body, err = ParseFragment([]byte(`<g-article :show-emphasis="false" body="<h4>We'll see you next month!</h4>"></g-article>`), testConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
-	check(t, dump(blocks), []string{"P '''We'll see you next month!'''"})
+	check(t, dump(body.Blocks), []string{"P '''We'll see you next month!'''"})
 
 	// An emphasis article's lines are never read as bold subsection titles.
-	blocks, _, err = ParseFragment([]byte(`<g-article :show-emphasis="true" body="<p>Thanks for reading</p><p>// END TRANSMISSION</p>"></g-article>`), testConfig(t))
+	body, err = ParseFragment([]byte(`<g-article :show-emphasis="true" body="<p>Thanks for reading</p><p>// END TRANSMISSION</p>"></g-article>`), testConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
-	check(t, dump(blocks), []string{"P '''Thanks for reading'''", "P '''// END TRANSMISSION'''"})
+	check(t, dump(body.Blocks), []string{"P '''Thanks for reading'''", "P '''// END TRANSMISSION'''"})
 
 	// Without emphasis, a heading after the sign-off is still part of it.
-	blocks, _, err = ParseFragment([]byte(`<g-article :show-emphasis="false" body="<h3><strong>WE'LL SEE YOU NEXT MONTH...</strong></h3><h3><strong>// END TRANSMISSION</strong></h3>"></g-article>`), testConfig(t))
+	body, err = ParseFragment([]byte(`<g-article :show-emphasis="false" body="<h3><strong>WE'LL SEE YOU NEXT MONTH...</strong></h3><h3><strong>// END TRANSMISSION</strong></h3>"></g-article>`), testConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
-	check(t, dump(blocks), []string{
+	check(t, dump(body.Blocks), []string{
 		"P '''WE'LL SEE YOU NEXT MONTH...'''",
 		"P '''// END TRANSMISSION'''",
 	})
@@ -101,11 +101,11 @@ func TestFetchBlocks(t *testing.T) {
 // RSI can split one link into anchors with the same href, the last one
 // starting with the space between two words.
 func TestParseFragmentSplitLink(t *testing.T) {
-	blocks, _, err := ParseFragment([]byte(`<g-article :show-emphasis="false" body="<p>An episode of <a href=&quot;https://youtu.be/x&quot;>Insid</a><a href=&quot;https://youtu.be/x&quot; target=&quot;_blank&quot;>e</a><a href=&quot;https://youtu.be/x&quot;> Star Citizen</a>. Then <a href=&quot;https://a.test/1&quot;>one</a><a href=&quot;https://a.test/2&quot;>two</a>.</p>"></g-article>`), testConfig(t))
+	body, err := ParseFragment([]byte(`<g-article :show-emphasis="false" body="<p>An episode of <a href=&quot;https://youtu.be/x&quot;>Insid</a><a href=&quot;https://youtu.be/x&quot; target=&quot;_blank&quot;>e</a><a href=&quot;https://youtu.be/x&quot;> Star Citizen</a>. Then <a href=&quot;https://a.test/1&quot;>one</a><a href=&quot;https://a.test/2&quot;>two</a>.</p>"></g-article>`), testConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
-	check(t, dump(blocks), []string{
+	check(t, dump(body.Blocks), []string{
 		"P An episode of [https://youtu.be/x Inside Star Citizen]. Then [https://a.test/1 one][https://a.test/2 two].",
 	})
 }
@@ -113,18 +113,18 @@ func TestParseFragmentSplitLink(t *testing.T) {
 // A break at the end of a list item is dropped: the list marker already ends
 // the line.
 func TestParseFragmentListItemBreaks(t *testing.T) {
-	blocks, _, err := ParseFragment([]byte(`<g-article :show-emphasis="false" body="<ul><li>One<br></li><li>Two<br><br></li><li>Three<br>four</li></ul>"></g-article>`), testConfig(t))
+	body, err := ParseFragment([]byte(`<g-article :show-emphasis="false" body="<ul><li>One<br></li><li>Two<br><br></li><li>Three<br>four</li></ul>"></g-article>`), testConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
-	check(t, dump(blocks), []string{"LIST One / Two / Three<br />four"})
+	check(t, dump(body.Blocks), []string{"LIST One / Two / Three<br />four"})
 }
 
 // A letter's fragment: a banner's pull-quote paragraph, a slideshow captioned
 // with its title, a trailer and the signature. A banner that shows only a
 // title is decoration.
 func TestParseFragmentLetterComponents(t *testing.T) {
-	blocks, _, err := ParseFragment([]byte(`<g-banner-advanced :content="{&quot;displayed&quot;:true,&quot;text&quot;:{&quot;displayed&quot;:true,&quot;title&quot;:&quot;LETTER FROM THE CHAIRMAN&quot;,&quot;paragraph&quot;:&quot;&quot;}}"></g-banner-advanced>
+	body, err := ParseFragment([]byte(`<g-banner-advanced :content="{&quot;displayed&quot;:true,&quot;text&quot;:{&quot;displayed&quot;:true,&quot;title&quot;:&quot;LETTER FROM THE CHAIRMAN&quot;,&quot;paragraph&quot;:&quot;&quot;}}"></g-banner-advanced>
 <g-article :show-emphasis="false" body="<p>Opening.</p>"></g-article>
 <g-banner-advanced :content="{&quot;displayed&quot;:true,&quot;text&quot;:{&quot;displayed&quot;:true,&quot;paragraph&quot;:&quot;<p>“<em>A quote.</em></p><p>- Benoit Beausejour, CTO</p>&quot;}}"></g-banner-advanced>
 <g-banner-advanced :content="{&quot;displayed&quot;:false,&quot;text&quot;:{&quot;displayed&quot;:true,&quot;paragraph&quot;:&quot;<p>Hidden.</p>&quot;}}"></g-banner-advanced>
@@ -134,7 +134,7 @@ func TestParseFragmentLetterComponents(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	check(t, dump(blocks), []string{
+	check(t, dump(body.Blocks), []string{
 		"P Opening.",
 		"P “''A quote.''",
 		"P - Benoit Beausejour, CTO",
@@ -152,28 +152,28 @@ func TestParseFragmentBadComponentJSON(t *testing.T) {
 		{`<g-slideshow :images="[&quot;/media/a/source/A.jpg&quot;"></g-slideshow>`, "g-slideshow :images"},
 		{`<g-slideshow :images="[&quot;/media/a/source/A.jpg&quot;]" :title="Manchester"></g-slideshow>`, "g-slideshow :title"},
 	} {
-		if _, _, err := ParseFragment([]byte(c.frag), chairmanConfig(t)); err == nil || !strings.Contains(err.Error(), c.want) {
+		if _, err := ParseFragment([]byte(c.frag), chairmanConfig(t)); err == nil || !strings.Contains(err.Error(), c.want) {
 			t.Errorf("ParseFragment(%s) = %v, want an error naming %q", c.frag, err, c.want)
 		}
 	}
-	blocks, _, err := ParseFragment([]byte(`<g-slideshow :images="[&quot;/media/a/source/A.jpg&quot;]"></g-slideshow>`), chairmanConfig(t))
+	body, err := ParseFragment([]byte(`<g-slideshow :images="[&quot;/media/a/source/A.jpg&quot;]"></g-slideshow>`), chairmanConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
-	check(t, dump(blocks), []string{"GALLERY https://robertsspaceindustries.com/media/a/source/A.jpg"})
+	check(t, dump(body.Blocks), []string{"GALLERY https://robertsspaceindustries.com/media/a/source/A.jpg"})
 }
 
 // Only the last article is a closing block when emphasised; an emphasised
 // article before it is a boxed section, converted as any other.
 func TestParseFragmentEmphasisBeforeLastArticle(t *testing.T) {
-	blocks, _, err := ParseFragment([]byte(`<g-article :show-emphasis="true" body="<h2><strong>Building for Longevity</strong></h2><p>We are building offices.</p>"></g-article>
+	body, err := ParseFragment([]byte(`<g-article :show-emphasis="true" body="<h2><strong>Building for Longevity</strong></h2><p>We are building offices.</p>"></g-article>
 <g-article :show-emphasis="false" body="<h2>Final Thoughts</h2><p>Thank you.</p>"></g-article>
 <g-article :show-emphasis="true" body="<p>See you in the verse.</p>"></g-article>
 <g-article :show-emphasis="false" body=""></g-article>`), chairmanConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
-	check(t, dump(blocks), []string{
+	check(t, dump(body.Blocks), []string{
 		"H2 Building for Longevity",
 		"P We are building offices.",
 		"H2 Final Thoughts",
@@ -185,14 +185,14 @@ func TestParseFragmentEmphasisBeforeLastArticle(t *testing.T) {
 // A fragment story's headings are bold text, links and italics kept, and its
 // bold byline stays a paragraph.
 func TestParseFragmentStory(t *testing.T) {
-	blocks, _, err := ParseFragment([]byte(`<g-article v-cloak="" headline="A Gift for Baba" byline="04/13/2021 - 5:00 PM"></g-article>`+
+	body, err := ParseFragment([]byte(`<g-article v-cloak="" headline="A Gift for Baba" byline="04/13/2021 - 5:00 PM"></g-article>`+
 		`<g-article :show-emphasis="false" body="<p><i><strong>By: Will Weissbaum</strong></i></p>`+
 		`<h2>Writer's Note: <em>A Gift for Baba</em>. Read <a href=&quot;https://robertsspaceindustries.com/x&quot;>Part One</a>.</h2>`+
 		`<h2>Part Two</h2><p>Text.</p><hr><p>More.</p><h2>To be continued<br><br></h2>"></g-article>`), storyConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
-	check(t, dump(blocks), []string{
+	check(t, dump(body.Blocks), []string{
 		"P '''''By: Will Weissbaum'''''",
 		"P '''Writer's Note: ''A Gift for Baba''. Read [https://robertsspaceindustries.com/x Part One].'''",
 		"P '''Part Two'''",
@@ -210,7 +210,7 @@ func TestParseFragmentStory(t *testing.T) {
 // numbered questions and a legacy banner's text slots are labels, a separator
 // is decoration, and a title's markup is read as text.
 func TestParseFragmentQandA(t *testing.T) {
-	blocks, labels, err := ParseFragment([]byte(`<g-banner><template slot="main-pretitle">Magnificent deepening</template><template slot="main-title">Jeffrey's tube</template></g-banner>
+	body, err := ParseFragment([]byte(`<g-banner><template slot="main-pretitle">Magnificent deepening</template><template slot="main-title">Jeffrey's tube</template></g-banner>
 <g-introduction :info="{&quot;overline&quot;:&quot;Q&amp;A&quot;,&quot;title&quot;:&quot;Golem&quot;,&quot;subtitle&quot;:&quot;By Drake&quot;,&quot;contents&quot;:[&quot;<p>We asked the team.</p>&quot;]}"></g-introduction>
 <g-faq :question-list="[{&quot;title&quot;:&quot;<font size=5>Is it tough?</font>&quot;,&quot;content&quot;:&quot;<p>Yes.</p>&quot;,&quot;visual&quot;:{&quot;displayed&quot;:true}},{&quot;title&quot;:&quot; &quot;,&quot;content&quot;:&quot;<p>Orphan.</p>&quot;}]"></g-faq>
 <g-introduction :info="{&quot;overline&quot;:&quot;About the&quot;,&quot;title&quot;:&quot;Golem OX&quot;,&quot;subtitle&quot;:&quot;By Drake&quot;,&quot;contents&quot;:[&quot;<p>The OX.</p>&quot;]}"></g-introduction>
@@ -220,7 +220,7 @@ func TestParseFragmentQandA(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	check(t, dump(blocks), []string{
+	check(t, dump(body.Blocks), []string{
 		"P We asked the team.",
 		"H2 Is it tough?",
 		"P Yes.",
@@ -232,8 +232,8 @@ func TestParseFragmentQandA(t *testing.T) {
 		"P Answers may change.",
 	})
 	want := []string{"Magnificent deepening", "Jeffrey's tube", "Q&A", "By Drake", "Golem", "1. Is it tough?", "About the", "By Drake", "1. Does it fit?", "DISCLAIMER"}
-	if !reflect.DeepEqual(labels, want) {
-		t.Errorf("labels = %q, want %q", labels, want)
+	if !reflect.DeepEqual(body.Labels, want) {
+		t.Errorf("labels = %q, want %q", body.Labels, want)
 	}
 }
 
@@ -246,7 +246,7 @@ func TestParseFragmentPlatformComponents(t *testing.T) {
 	prop := func(id, props string) string {
 		return `<g-platform-client-component :properties="` + html.EscapeString(`{"componentId":"`+id+`","componentProps":`+props+`}`) + `"></g-platform-client-component>`
 	}
-	blocks, labels, err := ParseFragment([]byte(`<g-header><template slot="title"><p>Q&amp;A: Paladin</p></template><template slot="content"><p>Intro.</p></template></g-header>
+	body, err := ParseFragment([]byte(`<g-header><template slot="title"><p>Q&amp;A: Paladin</p></template><template slot="content"><p>Intro.</p></template></g-header>
 <g-header><template slot="title"><p>Anvil Paladin</p></template></g-header>`+
 		prop("ArtemisHeader", `{"overline":"","title":"ORIGIN M80","subtitle":"","content":"<p>A fighter.</p>"}`)+
 		prop("ArtemisFaq", `{"questionList":[{"title":"Why?","content":"<p>Because.</p>","visual":{"displayed":false}}]}`)+
@@ -256,7 +256,7 @@ func TestParseFragmentPlatformComponents(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	check(t, dump(blocks), []string{
+	check(t, dump(body.Blocks), []string{
 		"P Intro.",
 		"H2 Anvil Paladin",
 		"H2 ORIGIN M80",
@@ -266,16 +266,36 @@ func TestParseFragmentPlatformComponents(t *testing.T) {
 		"P A quote.",
 		"VID youtube CFoQp6wRjPo",
 	})
-	if want := []string{"Q&A: Paladin", "1. Why?"}; !reflect.DeepEqual(labels, want) {
-		t.Errorf("labels = %q, want %q", labels, want)
+	if want := []string{"Q&A: Paladin", "1. Why?"}; !reflect.DeepEqual(body.Labels, want) {
+		t.Errorf("labels = %q, want %q", body.Labels, want)
 	}
 	for _, frag := range []string{
 		`<g-faq :question-list="[{"></g-faq>`,
 		`<g-platform-client-component :properties="{"></g-platform-client-component>`,
 		prop("ArtemisFaq", `{"questionList":"x"}`),
 	} {
-		if _, _, err := ParseFragment([]byte(frag), engineeringConfig(t)); err == nil {
+		if _, err := ParseFragment([]byte(frag), engineeringConfig(t)); err == nil {
 			t.Errorf("ParseFragment(%s) accepted bad JSON", frag)
+		}
+	}
+}
+
+// A header article's byline dates the page by the day it shows; a byline in
+// any other form, or a later one, is ignored.
+func TestParseFragmentBylineDate(t *testing.T) {
+	for frag, want := range map[string]string{
+		`<g-article byline="12/30/2022 - 12:57 AM" headline="Letter From the Chairman" v-cloak=""></g-article><g-article body="<p>Text.</p>"></g-article>`:                     "2022-12-30",
+		`<g-article v-cloak="" headline="A Gift for Baba" byline="04/13/2021 - 5:00 PM"></g-article><g-article byline="05/11/2021 - 5:00 PM" body="<p>Text.</p>"></g-article>`: "2021-04-13",
+		`<g-article byline="Yesterday" headline="X"></g-article><g-article body="<p>Text.</p>"></g-article>`:                                                                   "",
+		`<g-article byline="13/45/2022 - 1:00 PM" headline="X"></g-article><g-article body="<p>Text.</p>"></g-article>`:                                                        "",
+		`<g-article body="<p>Text.</p>"></g-article>`: "",
+	} {
+		body, err := ParseFragment([]byte(frag), chairmanConfig(t))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if body.Date != want {
+			t.Errorf("ParseFragment(%s).Date = %q, want %q", frag, body.Date, want)
 		}
 	}
 }

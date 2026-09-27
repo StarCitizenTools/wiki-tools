@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
+	"time"
 
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
@@ -20,15 +22,19 @@ import (
 // 2021 on add question lists (g-faq), section headers and a disclaimer (see
 // faq, component and slotted).
 //
-// labels are the page furniture the API's text carries as lines of their own
-// or runs into a neighbouring line without a space: the introduction's
-// overline, title and subtitle and a header's first title, which restate the
-// report's title the infobox shows; a legacy banner's text slots; a
-// disclaimer's title; and each question of a list as the API numbers it.
-func ParseFragment(frag []byte, cfg *Config) (blocks []Block, labels []string, err error) {
+// The body's Labels are the page furniture the API's text carries as lines of
+// their own or runs into a neighbouring line without a space: the
+// introduction's overline, title and subtitle and a header's first title,
+// which restate the report's title the infobox shows; a legacy banner's text
+// slots; a disclaimer's title; and each question of a list as the API numbers
+// it. Its Date is the day the page's header article shows in its byline
+// ("05/18/2022 - 1:00 PM"), as written: the byline names no time zone, and
+// read as Pacific time one letter's would fall after its first Wayback
+// capture.
+func ParseFragment(frag []byte, cfg *Config) (Body, error) {
 	doc, err := html.Parse(bytes.NewReader(frag))
 	if err != nil {
-		return nil, nil, err
+		return Body{}, err
 	}
 	p := &fragment{cfg: cfg}
 	for _, a := range findAll(doc, tagIs("g-article")) {
@@ -38,18 +44,35 @@ func ParseFragment(frag []byte, cfg *Config) (blocks []Block, labels []string, e
 	}
 	p.walk(doc)
 	if p.err != nil {
-		return nil, nil, p.err
+		return Body{}, p.err
 	}
 	if len(p.blocks) == 0 {
-		return nil, nil, errors.New("fragment has no content")
+		return Body{}, errors.New("fragment has no content")
 	}
-	return splitPseudoHeadings(tidyRules(p.blocks), cfg), p.labels, nil
+	return Body{Blocks: splitPseudoHeadings(tidyRules(p.blocks), cfg), Labels: p.labels, Date: p.date}, nil
+}
+
+// bylineDate is the day a byline shows ("05/18/2022 - 1:00 PM" is
+// 2022-05-18), or "" for any other text.
+var bylineDate = regexp.MustCompile(`^(\d{2}/\d{2}/\d{4})\s*-\s*\d{1,2}:\d{2}\s*[AP]M$`)
+
+func parseByline(s string) string {
+	m := bylineDate.FindStringSubmatch(strings.TrimSpace(s))
+	if m == nil {
+		return ""
+	}
+	t, err := time.Parse("01/02/2006", m[1])
+	if err != nil {
+		return ""
+	}
+	return t.Format("2006-01-02")
 }
 
 type fragment struct {
 	cfg    *Config
 	blocks []Block
 	labels []string
+	date   string // the first byline's day
 	err    error
 	// last is the last article with a body. An emphasis article there is the
 	// report's closing block; an earlier one is a section RSI draws in a box
@@ -160,6 +183,9 @@ func (p *fragment) walk(n *html.Node) {
 				p.flowNode(content, false)
 			}
 		case c.Data == "g-article":
+			if p.date == "" {
+				p.date = parseByline(attr(c, "byline"))
+			}
 			if body := attr(c, "body"); strings.TrimSpace(body) != "" {
 				p.flowHTML(body, attr(c, ":show-emphasis") == "true" && c == p.last)
 			}

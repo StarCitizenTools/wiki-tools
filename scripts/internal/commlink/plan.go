@@ -126,8 +126,8 @@ func (p *Plan) Report() []string {
 		}
 	}
 	lines := []string{
-		fmt.Sprintf("create: %d pages (%d images to upload, %d reused; dated by rsi %d, api %d, wayback %d)",
-			len(p.Create), uploads, reuses, dated[DateRSI], dated[DateAPI], dated[DateWayback]),
+		fmt.Sprintf("create: %d pages (%d images to upload, %d reused; dated by rsi %d, page %d, api %d, wayback %d)",
+			len(p.Create), uploads, reuses, dated[DateRSI], dated[DatePage], dated[DateAPI], dated[DateWayback]),
 		fmt.Sprintf("review: %d", len(p.Review)),
 	}
 	for _, r := range p.Review {

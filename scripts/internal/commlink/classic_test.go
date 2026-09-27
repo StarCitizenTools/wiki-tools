@@ -31,6 +31,20 @@ func dump(blocks []Block) []string {
 			out = append(out, fmt.Sprintf("VID %s %s%s", b.VideoKind, b.VideoID, b.Src))
 		case Rule:
 			out = append(out, "RULE")
+		case Table:
+			var rows []string
+			for _, r := range b.Rows {
+				var cells []string
+				for _, c := range r {
+					if c.Header {
+						cells = append(cells, "!"+c.Text)
+					} else {
+						cells = append(cells, c.Text)
+					}
+				}
+				rows = append(rows, strings.Join(cells, " | "))
+			}
+			out = append(out, "TABLE "+strings.Join(rows, " / "))
 		case Gallery:
 			var slides []string
 			for _, s := range b.Images {
@@ -204,6 +218,175 @@ func TestDetect(t *testing.T) {
 	if _, err := Detect([]byte(`<html><body><p>x</p></body></html>`)); err == nil {
 		t.Error("an unknown page was accepted")
 	}
+	for name, shell := range map[string]string{
+		"gallery post": `<html><body><div id="contentbody"><div id="post"><div class="wrapper"><div class="content-block2"><div class="atom-slideshow"></div></div></div></div></div></body></html>`,
+		"segments":     `<html><body><div id="contentbody"><div id="post"><div class="intro segment"><div class="content"><p>x</p></div></div></div></div></body></html>`,
+	} {
+		if frag, err := Detect([]byte(shell)); err != nil || frag != "" {
+			t.Errorf("%s: %q %v, want a classic body", name, frag, err)
+		}
+	}
+	// A segment outside div#post is page chrome, not a body.
+	if _, err := Detect([]byte(`<html><body><div id="contentbody"><div><div class="segment"><div class="content"><p>x</p></div></div></div></div></body></html>`)); err == nil {
+		t.Error("a segment outside div#post was accepted")
+	}
+}
+
+// A post RSI keeps for Subscribers answers with its restricted area page; the
+// error carries RSI's message.
+func TestDetectRestricted(t *testing.T) {
+	shell := []byte(`<html><body id="access-denied"><div id="contentbody"><div class="l-error-page">
+<div class="c-error-tech c-error-tech--403"><h1>Restricted Area</h1></div>
+<div class="c-error-messages"><p>You lack the proper access level to reach this area.</p><p>It is restricted to holders of the <a href="/pledge">Subscriber</a> status.</p></div>
+</div></div></body></html>`)
+	_, err := Detect(shell)
+	if err == nil || !strings.Contains(err.Error(), "restricted area") || !strings.Contains(err.Error(), "holders of the Subscriber status") {
+		t.Errorf("Detect = %v, want the restricted area message", err)
+	}
+}
+
+// A slideshow is a whole post: a gallery with no prose is a body.
+func TestParseClassicGalleryOnly(t *testing.T) {
+	shell := []byte(`<html><body><div id="contentbody"><div id="post"><div class="title-section"><div class="two-line-separator"></div></div>
+<div class="wrapper"><div class="content-block2"><div class="atom-special-block"><div id="slideshow" class="atom-slideshow"><div class="carousel">
+<div data-source_url="/media/a/source/One.jpg"><div class="text"><div class="caption"></div></div></div>
+<div data-source_url="/media/b/source/Two.jpg"><div class="text"><div class="caption"></div></div></div>
+</div></div></div></div></div>
+<div class="two-line-separator"></div></div></div></body></html>`)
+	blocks, _, err := ParseClassic(shell, "WIP: Star Citizen Hangars", engineeringConfig(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	check(t, dump(blocks), []string{"GALLERY https://robertsspaceindustries.com/media/a/source/One.jpg / https://robertsspaceindustries.com/media/b/source/Two.jpg"})
+}
+
+// The Q&A and Shipyard layout: segments standing in div#post. The slogan
+// naming the page is its title; another slogan is a section. An h7 is a
+// section title and an h1 straight after it a bold subtitle, never promoted
+// to a heading; h6 questions sit at level 2 until a section opens, then one
+// below it; an h8 sits below the latest other heading. The Further Reading
+// box is a list, the stat widget is left out, and a YouTube video link is an
+// embed.
+func TestParseClassicSegments(t *testing.T) {
+	shell := []byte(`<html><body><div id="contentbody"><div id="post"><div class="title-section"></div>
+<div class="slogan segment"><div class="content"><p><span class="initial">Q</span>&amp;A: Anvil Hawk</p></div></div>
+<div class="intro segment"><div class="content"><p>Greetings Citizens,</p><p>Below are answers.</p><hr></div></div>
+<div class="description huckaby1 segment"><div class="content">
+<a class="image js-open-in-slideshow" data-source_url="/media/x/source/Hawk.jpg"><img src="/media/x/tavern_upload_small/Hawk.jpg"></a>
+<h6>Can we swap the holding cell?</h6><p class="qanda">No.<br><br></p>
+</div></div>
+<div class="slogan segment"><div class="content"><p>Recommended Viewing</p></div></div>
+<div class="wrapper"><div class="content-block1 rsi-markup"><div class="segment"><div class="content">
+<p><a class="image js-video start-video" href="#" data-distant-id="4RLYch3lxVk" data-distant-source="youtube"><img src="/media/y/post/Poster.jpg"></a></p>
+</div></div></div></div>
+<div class="description huckaby1 segment"><div class="content">
+<div align="center"><h7>Fuel Mechanics</h7></div><div><h1>How It Works Today</h1></div>
+<p>Intro.</p>
+<div><span><h6>Main Thrusters</h6></span></div>
+<p class="qanda2"><h8>Main {M}</h8></p><p>Main text.</p>
+<p class="qanda2"><h8>Retro {R}</h8></p><p>Retro text.</p>
+<div><h1>Further Reading</h1></div><hr>
+<div id="starfarer-advertise-magazine"><div class="wrapper"><div class="f-right"><a href="/comm-link/engineering/16170-Ship-Mass">Ship Mass<span></span></a></div><a href="/comm-link/engineering/16163-Careers">Careers and Roles<span></span></a><span class="clear"></span></div></div>
+</div></div>
+<div class="ship-spec"><div class="wrapper"><div class="content-block4"><div class="content"><h1>Technical Overview</h1></div></div><p>Length 25.5m</p></div></div>
+<div class="wrapper"><div class="end-transmission-container"><h1>End Transmission</h1></div></div>
+<div class="two-line-separator"></div></div></div></body></html>`)
+	blocks, title, err := ParseClassic(shell, "Q&A: Anvil Hawk", engineeringConfig(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	check(t, dump(blocks), []string{
+		"P Greetings Citizens,",
+		"P Below are answers.",
+		"IMG https://robertsspaceindustries.com/media/x/source/Hawk.jpg",
+		"H2 Can we swap the holding cell?",
+		"P No.",
+		"H2 Recommended Viewing",
+		"VID youtube 4RLYch3lxVk",
+		"H2 Fuel Mechanics",
+		"P '''How It Works Today'''",
+		"P Intro.",
+		"H3 Main Thrusters",
+		"H4 Main {M}",
+		"P Main text.",
+		"H4 Retro {R}",
+		"P Retro text.",
+		"H2 Further Reading",
+		"LIST [https://robertsspaceindustries.com/comm-link/engineering/16170-Ship-Mass Ship Mass] / [https://robertsspaceindustries.com/comm-link/engineering/16163-Careers Careers and Roles]",
+	})
+	if title != "" {
+		t.Errorf("title = %q, want none: a slogan is not a title block", title)
+	}
+}
+
+// A segment in div#post that holds the page's next blocks is an unclosed
+// wrapper: its blocks convert as they do elsewhere.
+func TestParseClassicWrapperSegment(t *testing.T) {
+	shell := []byte(`<html><body><div id="contentbody"><div id="post">
+<div class="segment"><div class="content"><div class="wrapper"><div class="content-block1 rsi-markup"><div class="segment"><div class="content">
+<h2>Studio text</h2><p>Body.</p>
+</div></div></div></div></div></div>
+<div class="two-line-separator"></div></div></div></body></html>`)
+	blocks, _, err := ParseClassic(shell, "Letter from the Chairman", chairmanConfig(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	check(t, dump(blocks), []string{"H2 Studio text", "P Body."})
+}
+
+// Under a name several reports share, a first title block that adds a subject
+// is the page's title; under any other name it is a section.
+func TestParseClassicSharedNameTitleBlock(t *testing.T) {
+	shell := []byte(`<html><body><div id="contentbody"><div id="post"><div class="wrapper">
+<div class="content-block4"><div class="content"><h1>Round Table: Programming</h1></div></div>
+<div class="content-block1 rsi-markup"><div class="segment"><div class="content"><p>Sandi Gardiner sat down.</p></div></div></div>
+</div><div class="two-line-separator"></div></div></div></body></html>`)
+	blocks, title, err := ParseClassic(shell, "Round Table", engineeringConfig(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	check(t, dump(blocks), []string{"P Sandi Gardiner sat down."})
+	if title != "Round Table: Programming" {
+		t.Errorf("title = %q, want the title block", title)
+	}
+	blocks, title, err = ParseClassic(shell, "Round", engineeringConfig(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	check(t, dump(blocks), []string{"H2 Round Table: Programming", "P Sandi Gardiner sat down."})
+	if title != "" {
+		t.Errorf("title = %q, want none", title)
+	}
+}
+
+// With tables a table is a Table block, a th cell a header; without, each
+// cell is a paragraph of its own. An embedded Scribd document is a link to
+// it.
+func TestParseClassicTableAndScribd(t *testing.T) {
+	shell := []byte(`<html><body><div id="contentbody"><div id="post"><div class="wrapper">
+<div class="content-block1 rsi-markup"><div class="segment"><div class="content">
+<table><thead><tr><th></th><th>Hornet</th></tr></thead><tbody><tr><td><em>Mass</em></td><td>22,000</td></tr><tr></tr></tbody></table>
+<p><iframe class="scribd_iframe_embed" src="https://www.scribd.com/embeds/143430340/content?start_page=1&amp;view_mode=scroll"></iframe></p>
+</div></div></div>
+</div><div class="two-line-separator"></div></div></div></body></html>`)
+	blocks, _, err := ParseClassic(shell, "Design Notes", engineeringConfig(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	check(t, dump(blocks), []string{
+		"TABLE ! | !Hornet / ''Mass'' | 22,000",
+		"P [https://www.scribd.com/document/143430340 Read the document on Scribd]",
+	})
+	blocks, _, err = ParseClassic(shell, "Design Notes", testConfig(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	check(t, dump(blocks), []string{
+		"P Hornet",
+		"P ''Mass''",
+		"P 22,000",
+		"P [https://www.scribd.com/document/143430340 Read the document on Scribd]",
+	})
 }
 
 // A bold subsection title becomes a heading below the section's, whether it
@@ -427,4 +610,55 @@ func TestTidyRules(t *testing.T) {
 	if got := tidyRules([]Block{r}); len(got) != 0 {
 		t.Errorf("tidyRules of a lone rule = %q", dump(got))
 	}
+}
+
+// With h1Headings a prose h1 is a subsection heading one level below its
+// section's, or a section before any title block, and h3 to h6 sit one level
+// below it until an h2; a repeat of the section's title is dropped and an h1
+// set as a sentence stays text. Without it every such h1 is text. A title
+// block beside the ship stat widget goes with the widget.
+func TestParseClassicH1Headings(t *testing.T) {
+	shell := []byte(`<html><body><div id="contentbody"><div id="post"><div class="wrapper">
+<div class="content-block1 rsi-markup"><div class="segment"><div class="content"><h1>Before Any Title</h1><p>Lead.</p></div></div></div>
+<div class="content-block4"><div class="content"><h1>The MISC Hull A</h1></div></div>
+<div class="content-block1 rsi-markup"><div class="segment"><div class="content">
+<h1>THE MISC HULL A</h1><h1>About the MISC Hull A</h1><p>Brochure.</p><h1>Choose wisely.</h1><h3>“A question?” – Spacehobo</h3><p>Yes!</p>
+<h2>Question &amp; Answer</h2><h3>Another?</h3><p>No.</p>
+</div></div></div></div>
+<div class="wrapper"><div class="content-block4"><div class="content"><h1>Technical Overview</h1></div></div><div id="store-wrapper"><h2>Hull A</h2></div></div>
+<div class="two-line-separator"></div></div></div></body></html>`)
+	blocks, _, err := ParseClassic(shell, "Q&A: MISC Hull A", engineeringConfig(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	check(t, dump(blocks), []string{
+		"H2 Before Any Title",
+		"P Lead.",
+		"H2 The MISC Hull A",
+		"H3 About the MISC Hull A",
+		"P Brochure.",
+		"P Choose wisely.",
+		"H4 “A question?” – Spacehobo",
+		"P Yes!",
+		"H2 Question & Answer",
+		"H3 Another?",
+		"P No.",
+	})
+	blocks, _, err = ParseClassic(shell, "Letter from the Chairman", chairmanConfig(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	check(t, dump(blocks), []string{
+		"P Before Any Title",
+		"P Lead.",
+		"H2 The MISC Hull A",
+		"P About the MISC Hull A",
+		"P Brochure.",
+		"P Choose wisely.",
+		"H3 “A question?” – Spacehobo",
+		"P Yes!",
+		"H2 Question & Answer",
+		"H3 Another?",
+		"P No.",
+	})
 }

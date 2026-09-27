@@ -12,6 +12,7 @@ const (
 	Video
 	Gallery
 	Rule
+	Table
 )
 
 // Block is one unit of a report body, independent of RSI's layout.
@@ -19,7 +20,7 @@ type Block struct {
 	Kind      BlockKind
 	Level     int      // Heading: 2 for "==", 3 for "===".
 	Text      string   // Heading: plain text. Paragraph, Quote: inline wikitext.
-	Emphasis  bool     // Paragraph: from the closing emphasis article, so never a pseudo-heading.
+	Emphasis  bool     // Paragraph: bold by RSI's styling (the closing emphasis article, a segment title's subtitle), so never a pseudo-heading.
 	Items     []string // List: inline wikitext per item.
 	Ordered   bool     // List: numbered.
 	Src       string   // Image: absolute URL of the original. Video "file": its URL.
@@ -27,6 +28,13 @@ type Block struct {
 	VideoKind string   // Video: "youtube", "vimeo" or "file".
 	VideoID   string   // Video: the YouTube or Vimeo id.
 	Images    []Block  // Gallery: a slideshow's slides, each an Image block.
+	Rows      [][]Cell // Table: its rows, each a run of cells.
+}
+
+// Cell is one table cell: inline wikitext, and whether it is a header cell.
+type Cell struct {
+	Text   string
+	Header bool
 }
 
 // imageBlocks lists every image of blocks in body order, a gallery's slides in

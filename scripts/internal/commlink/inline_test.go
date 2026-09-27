@@ -73,7 +73,7 @@ func TestInlineQuoteJoins(t *testing.T) {
 // A paragraph's inline elements join in the flow's buffer, not through
 // Inline, so the separation applies there too.
 func TestParseFragmentQuoteJoins(t *testing.T) {
-	blocks, err := ParseFragment([]byte(`<g-article :show-emphasis="false" body="<p><em>with you on</em> <strong><em>October 21 and 22</em></strong><em>! Keep</em></p>"></g-article>`), testConfig(t))
+	blocks, _, err := ParseFragment([]byte(`<g-article :show-emphasis="false" body="<p><em>with you on</em> <strong><em>October 21 and 22</em></strong><em>! Keep</em></p>"></g-article>`), testConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -61,6 +61,8 @@ func RenderBody(blocks []Block, caser *HeadCaser, file func(src string) string) 
 			}
 		case Rule:
 			parts = append(parts, "----")
+		case Table:
+			parts = append(parts, table(b.Rows))
 		case Video:
 			switch b.VideoKind {
 			case "youtube":
@@ -77,6 +79,25 @@ func RenderBody(blocks []Block, caser *HeadCaser, file func(src string) string) 
 		}
 	}
 	return strings.Join(parts, "\n\n") + "\n"
+}
+
+// table renders rows as a wikitable, one cell to a line. A pipe in a cell is
+// escaped, since it would end the cell.
+func table(rows [][]Cell) string {
+	var b strings.Builder
+	b.WriteString(`{| class="wikitable"`)
+	for _, row := range rows {
+		b.WriteString("\n|-")
+		for _, c := range row {
+			marker := "|"
+			if c.Header {
+				marker = "!"
+			}
+			b.WriteString("\n" + strings.TrimRight(marker+" "+strings.ReplaceAll(c.Text, "|", "&#124;"), " "))
+		}
+	}
+	b.WriteString("\n|}")
+	return b.String()
 }
 
 // thumb renders an image alone: a centred thumb with its caption, if any.

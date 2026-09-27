@@ -3,6 +3,7 @@ package commlink
 import (
 	stdhtml "html"
 	"regexp"
+	"slices"
 	"strings"
 )
 
@@ -180,8 +181,10 @@ var apiDollar = regexp.MustCompile(`\$\d{1,2}`)
 // short of RSI's body cannot fail it. A gallery's text is its captions. Three
 // API artefacts pass: a line glued across page blocks, where a captioned
 // image's block is its caption; illustration credits glued together; and a
-// line missing the dollar amounts the page holds.
-func Missing(apiText, page string, ignored func(string) bool) []string {
+// line missing the dollar amounts the page holds. A line that fails is checked
+// again without the page's labels (see ParseFragment), which the API runs into
+// its neighbours without a space; one made up only of labels passes.
+func Missing(apiText, page string, labels []string, ignored func(string) bool) []string {
 	credits := creditParts(page)
 	page = galleryText(page)
 	have := normalize(page)
@@ -196,18 +199,36 @@ func Missing(apiText, page string, ignored func(string) bool) []string {
 		}
 	}
 
+	present := func(line string) bool {
+		n := normalize(line)
+		return strings.TrimSpace(n) == "" || strings.Contains(have, n) || spansBlocks(n, blocks) ||
+			tiles(strings.ReplaceAll(n, " ", ""), credits) || strings.Contains(haveDollarless, n)
+	}
+	labels = slices.Clone(labels)
+	slices.SortStableFunc(labels, func(a, b string) int { return len(b) - len(a) })
 	var missing []string
 	for _, line := range strings.Split(apiText, "\n") {
 		line = strings.TrimSpace(line)
-		if line == "" || ignored(line) {
+		if line == "" || ignored(line) || present(line) {
 			continue
 		}
-		n := normalize(line)
-		if strings.TrimSpace(n) == "" || strings.Contains(have, n) || spansBlocks(n, blocks) ||
-			tiles(strings.ReplaceAll(n, " ", ""), credits) || strings.Contains(haveDollarless, n) {
+		if len(labels) > 0 && present(withoutLabels(line, labels)) {
 			continue
 		}
 		missing = append(missing, line)
 	}
 	return missing
+}
+
+// withoutLabels is line with each of labels, longest first, cut out and a
+// space left in its place; line and labels are compared with their characters
+// normalized and spacing collapsed.
+func withoutLabels(line string, labels []string) string {
+	line = wsRun.ReplaceAllString(normalizeChars(line), " ")
+	for _, l := range labels {
+		if l != "" {
+			line = strings.ReplaceAll(line, l, " ")
+		}
+	}
+	return line
 }

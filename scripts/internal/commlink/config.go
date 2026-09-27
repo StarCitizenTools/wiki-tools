@@ -73,7 +73,15 @@ type Config struct {
 	// Byline opens a classic body with its page header's subtitle when that
 	// names the author ("By: Autumn Kalquist"); a fragment carries its byline
 	// in the body.
-	Byline  bool     `json:"byline"`
+	Byline bool `json:"byline"`
+	// H1Headings reads a classic page's prose h1 that does not repeat its
+	// section's title, and does not end as a sentence does, as a subsection
+	// heading, one level below the section's; without it (and without
+	// StudioSections) such an h1 is text.
+	H1Headings bool `json:"h1Headings"`
+	// Tables converts an HTML table into a wikitable; without it each cell
+	// is a paragraph of its own.
+	Tables  bool     `json:"tables"`
 	Renames []Rename `json:"renames"`
 	// DatedTitlePattern matches a page name, after renames, that several
 	// reports share (a bare "Letter from the Chairman"); such a name takes
@@ -232,7 +240,8 @@ func (c *Config) MatchesSignOff(text string) bool { return matches(c.signOffRe, 
 func matches(re *regexp.Regexp, s string) bool { return re != nil && re.MatchString(s) }
 
 // renamed is an RSI title after the first matching rename, with ": " turned
-// into " - ".
+// into " - " and each run of spaces made one, as MediaWiki stores a title
+// ("Orion Vault : A Loan" is "Orion Vault - A Loan").
 func (c *Config) renamed(rsiTitle string) string {
 	name := strings.TrimSpace(rsiTitle)
 	for i, re := range c.renameRe {
@@ -241,7 +250,7 @@ func (c *Config) renamed(rsiTitle string) string {
 			break
 		}
 	}
-	return strings.ReplaceAll(name, ": ", " - ")
+	return strings.Join(strings.Fields(strings.ReplaceAll(name, ": ", " - ")), " ")
 }
 
 // PageName is the page title, without namespace, for an RSI title published
@@ -260,6 +269,12 @@ func (c *Config) PageName(rsiTitle, date string) (name string, complete bool) {
 	return name + " - " + date, true
 }
 
+// sharedName reports whether an RSI title's name is one datedTitlePattern
+// matches, a name several reports share.
+func (c *Config) sharedName(rsiTitle string) bool {
+	return c.datedRe != nil && c.datedRe.MatchString(c.renamed(rsiTitle))
+}
+
 // ReportTitle is a report's title: the page's own title block when it names a
 // subject the listed title lacks, that is when datedTitlePattern matches the
 // listed title's name but not the block's ("Note from the Chairman: Dual
@@ -269,7 +284,7 @@ func (c *Config) ReportTitle(listed, titleBlock string) string {
 	if c.datedRe == nil || titleBlock == "" {
 		return listed
 	}
-	if !c.datedRe.MatchString(c.renamed(listed)) || c.datedRe.MatchString(c.renamed(titleBlock)) {
+	if !c.sharedName(listed) || c.sharedName(titleBlock) {
 		return listed
 	}
 	return titleBlock

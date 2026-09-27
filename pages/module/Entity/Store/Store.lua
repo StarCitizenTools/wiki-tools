@@ -31,6 +31,10 @@ local PRIMARY = 'entity'
 -- rather than by the caller's list length.
 local UUID_BATCH = 50
 
+-- Room for every title that differs from one page's only in case, all of which
+-- a case-insensitive `page_name` match returns.
+local CASE_VARIANTS = 10
+
 -- Re-exported from Module:BucketQuery; see the note above on which module a
 -- consumer should require.
 p.resolve = BucketQuery.resolve
@@ -43,7 +47,10 @@ p.query = BucketQuery.query
 --- row, and `title.text` equals `page_name` only for namespace 0. Wrapped in
 --- `pcall`: a Bucket infrastructure failure (rate limit, timeout) degrades to
 --- nil rather than red-erroring the page, which is also the documented answer
---- for "no row yet".
+--- for "no row yet". Bucket compares `page_name` case-insensitively, so the
+--- `where` also returns the rows of titles that differ only in case (the
+--- FrostBite cooler answers for the Frostbite settlement); only the row whose
+--- `page_name` is exactly this title is the page's own.
 --- @param title table|nil a mw.title
 --- @param bucket string
 --- @param field string
@@ -53,12 +60,21 @@ local function rowFor(title, bucket, field)
 		return nil
 	end
 	local ok, raw = pcall(function()
-		return bucketLib()(bucket).select(field).where({ 'page_name', '=', title.text }).limit(1).run()
+		return bucketLib()(bucket)
+			.select('page_name', field)
+			.where({ 'page_name', '=', title.text })
+			.limit(CASE_VARIANTS)
+			.run()
 	end)
-	if not ok then
+	if not ok or type(raw) ~= 'table' then
 		return nil
 	end
-	return type(raw) == 'table' and raw[1] or nil
+	for _, row in ipairs(raw) do
+		if row.page_name == title.text then
+			return row
+		end
+	end
+	return nil
 end
 
 --- The current page's own row from `bucket`; shared by selfUuid, selfValue and

@@ -23,5 +23,6 @@ The generic layer, which table and column a property lives in and how a query is
 ### Gotchas
 
 - Every read here is guarded on the main namespace, or relies on the write-side rule that Bucket rows exist only for main-namespace pages. Without that guard a same-titled `Talk:`/`Template:` page would match the mainspace entity's row: `title.text` equals `page_name` only for namespace 0.
+- Bucket matches `page_name` case-insensitively, so a page's own-row read (`selfUuid()`, `selfValue()`, `selfValues()`, `pageValue()`) also gets the rows of titles that differ only in case, and keeps the one whose `page_name` is exactly the title. Without that the Frostbite settlement read the FrostBite cooler's uuid and rendered the cooler's browse row.
 - `selfUuid()`, `selfValue()` and `resolvePages()` query Bucket directly rather than through `query()`, and each contains its own failure at the call site, since nil (or an empty map) is already its documented answer. `resolveUuids()` stays loud like `query()`; `Module:Entity/PageResolver.resolve()` contains it instead, returning an empty map.
 - Resolves `mw.ext.bucket` when a query runs, because requiring the Bucket library returns a fresh, non-callable copy of it on the wiki.

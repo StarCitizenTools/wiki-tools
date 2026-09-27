@@ -13,29 +13,32 @@ import (
 // of content-block4 (section title), content-block2 (header image, slideshow
 // or poll) and content-block1 (prose) blocks inside div#post, after its
 // div.title-section and up to the next div.two-line-separator; the channel
-// banner and comments follow it.
-func ParseClassic(shell []byte, rsiTitle string, cfg *Config) ([]Block, error) {
+// banner and comments follow it. title is the text of the page's own title
+// block, which can name the report more fully than rsiTitle does, or "" when
+// the first title block is a section.
+func ParseClassic(shell []byte, rsiTitle string, cfg *Config) (blocks []Block, title string, err error) {
 	doc, err := html.Parse(bytes.NewReader(shell))
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	post := findByID(doc, "post")
 	if post == nil {
-		return nil, errors.New("classic page has no div#post")
+		return nil, "", errors.New("classic page has no div#post")
 	}
 	mergeSplitLinks(post)
 	c := &classic{cfg: cfg, title: fold(rsiTitle)}
 	c.studios = cfg.StudioSections && c.hasStudioBlocks(post)
 	c.walk(post)
 	if len(c.blocks) == 0 {
-		return nil, errors.New("classic page has no body blocks")
+		return nil, "", errors.New("classic page has no body blocks")
 	}
-	return splitPseudoHeadings(c.blocks, cfg), nil
+	return splitPseudoHeadings(c.blocks, cfg), c.pageTitle, nil
 }
 
 type classic struct {
 	cfg        *Config
 	title      string // folded page title
+	pageTitle  string // text of the page's own title block
 	studios    bool   // one title block per studio (2014 to August 2018)
 	sawTitle   bool
 	lastTitle  string // folded text of the latest section-title block
@@ -142,6 +145,7 @@ func (c *classic) titleBlock(n *html.Node) {
 	if !c.sawTitle {
 		c.sawTitle = true
 		if c.isPageTitle(text) {
+			c.pageTitle = text
 			return
 		}
 	}

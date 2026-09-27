@@ -141,20 +141,26 @@ func (c *Config) MatchesGreeting(text string) bool { return c.greetingRe.MatchSt
 // MatchesSignOff reports whether text is a report's sign-off.
 func (c *Config) MatchesSignOff(text string) bool { return c.signOffRe.MatchString(text) }
 
-// PageName is the page title, without namespace, for an RSI title published
-// on date (YYYY-MM-DD): the first matching rename, then ": " becomes " - ",
-// the rule existing Comm-Link pages follow, then " - " and date when
-// datedTitlePattern matches the result. complete is false when the name takes
-// the date and date is "": the name is not final.
-func (c *Config) PageName(rsiTitle, date string) (name string, complete bool) {
-	name = strings.TrimSpace(rsiTitle)
+// renamed is an RSI title after the first matching rename, with ": " turned
+// into " - ".
+func (c *Config) renamed(rsiTitle string) string {
+	name := strings.TrimSpace(rsiTitle)
 	for i, re := range c.renameRe {
 		if re.MatchString(name) {
 			name = re.ReplaceAllString(name, c.Renames[i].Replace)
 			break
 		}
 	}
-	name = strings.ReplaceAll(name, ": ", " - ")
+	return strings.ReplaceAll(name, ": ", " - ")
+}
+
+// PageName is the page title, without namespace, for an RSI title published
+// on date (YYYY-MM-DD): the first matching rename, then ": " becomes " - ",
+// the rule existing Comm-Link pages follow, then " - " and date when
+// datedTitlePattern matches the result. complete is false when the name takes
+// the date and date is "": the name is not final.
+func (c *Config) PageName(rsiTitle, date string) (name string, complete bool) {
+	name = c.renamed(rsiTitle)
 	if c.datedRe == nil || !c.datedRe.MatchString(name) {
 		return name, true
 	}
@@ -162,6 +168,21 @@ func (c *Config) PageName(rsiTitle, date string) (name string, complete bool) {
 		return name, false
 	}
 	return name + " - " + date, true
+}
+
+// ReportTitle is a report's title: the page's own title block when it names a
+// subject the listed title lacks, that is when datedTitlePattern matches the
+// listed title's name but not the block's ("Note from the Chairman: Dual
+// Universe" over "Note from the Chairman"), else the listed title.
+func (c *Config) ReportTitle(listed, titleBlock string) string {
+	titleBlock = strings.TrimSpace(titleBlock)
+	if c.datedRe == nil || titleBlock == "" {
+		return listed
+	}
+	if !c.datedRe.MatchString(c.renamed(listed)) || c.datedRe.MatchString(c.renamed(titleBlock)) {
+		return listed
+	}
+	return titleBlock
 }
 
 // IgnoredLine reports whether an API text line is a known artefact that the

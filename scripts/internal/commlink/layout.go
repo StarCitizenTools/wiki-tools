@@ -38,22 +38,24 @@ func Detect(shell []byte) (fragURL string, err error) {
 }
 
 // FetchBlocks downloads a comm-link's page, and its fragment for the newer
-// layout, and converts the body into blocks.
-func FetchBlocks(ctx context.Context, web *httpx.Client, cfg *Config, c Candidate) ([]Block, error) {
+// layout, and converts the body into blocks. title is a classic page's own
+// title block (see ParseClassic); a fragment gives none.
+func FetchBlocks(ctx context.Context, web *httpx.Client, cfg *Config, c Candidate) (blocks []Block, title string, err error) {
 	shell, err := web.Do(ctx, http.MethodGet, c.RSIURL, "")
 	if err != nil {
-		return nil, fmt.Errorf("fetching %s: %w", c.RSIURL, err)
+		return nil, "", fmt.Errorf("fetching %s: %w", c.RSIURL, err)
 	}
 	fragURL, err := Detect(shell)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	if fragURL == "" {
 		return ParseClassic(shell, c.Title, cfg)
 	}
 	frag, err := web.Do(ctx, http.MethodGet, fragURL, "")
 	if err != nil {
-		return nil, fmt.Errorf("fetching fragment %s: %w", fragURL, err)
+		return nil, "", fmt.Errorf("fetching fragment %s: %w", fragURL, err)
 	}
-	return ParseFragment(frag, cfg)
+	blocks, err = ParseFragment(frag, cfg)
+	return blocks, "", err
 }

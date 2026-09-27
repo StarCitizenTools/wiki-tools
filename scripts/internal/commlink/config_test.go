@@ -64,6 +64,31 @@ func TestPageNameDated(t *testing.T) {
 	}
 }
 
+// A bare letter takes its title block's subject; a titled letter, a bare
+// block, a missing block and every monthly report keep the listed title.
+func TestReportTitle(t *testing.T) {
+	chairman, monthly := chairmanConfig(t), testConfig(t)
+	for _, tc := range []struct {
+		cfg                 *Config
+		listed, block, want string
+	}{
+		{chairman, "Note from the Chairman", "Note from the Chairman: Dual Universe", "Note from the Chairman: Dual Universe"},
+		{chairman, "Letter From The Chairman", "Letter from the Chairman: Happy New Year", "Letter from the Chairman: Happy New Year"},
+		{chairman, "Letter from the Chairman", "Letter from the Chairman", "Letter from the Chairman"},
+		{chairman, "Letter from the Chairman", "", "Letter from the Chairman"},
+		{chairman, "Letter from the Chairman: $29 Million! Squadron 42!", "Letter from the Chairman", "Letter from the Chairman: $29 Million! Squadron 42!"},
+		{chairman, "Note from the Chairman: EVERSPACE", "Note from the Chairman: EVERSPACE", "Note from the Chairman: EVERSPACE"},
+		{monthly, "Star Citizen Monthly Report: January 2019", "Star Citizen Monthly Report: December 2018 - January 2019", "Star Citizen Monthly Report: January 2019"},
+	} {
+		if got := tc.cfg.ReportTitle(tc.listed, tc.block); got != tc.want {
+			t.Errorf("ReportTitle(%q, %q) = %q, want %q", tc.listed, tc.block, got, tc.want)
+		}
+	}
+	if got, complete := chairman.PageName(chairman.ReportTitle("Note from the Chairman", "Note from the Chairman: Dual Universe"), "2016-09-15"); got != "Note from the Chairman - Dual Universe" || !complete {
+		t.Errorf("PageName of a subject title = %q, %v; want it undated", got, complete)
+	}
+}
+
 func TestMatchesTitleChairman(t *testing.T) {
 	c := chairmanConfig(t)
 	for title, want := range map[string]bool{

@@ -40,7 +40,7 @@ func parseFixture(t *testing.T, name, title string) []string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	blocks, err := ParseClassic(shell, title, testConfig(t))
+	blocks, _, err := ParseClassic(shell, title, testConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -108,7 +108,7 @@ func TestParseClassicIntroBreaks(t *testing.T) {
 </h3></div></div></div></div>
 <div class="content-block4"><div class="content"><h1>Star Citizen Monthly Report: September 2018</h1></div></div>
 </div><div class="two-line-separator"></div></div></div></body></html>`)
-	blocks, err := ParseClassic(shell, "Star Citizen Monthly Report: September 2018", testConfig(t))
+	blocks, _, err := ParseClassic(shell, "Star Citizen Monthly Report: September 2018", testConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -135,7 +135,7 @@ func TestParseClassicStudioRepeat(t *testing.T) {
 		section("Platform: Turbulent", `<span class="caps">SPECTRUM</span>`, `<h2 class="no-margin"><span class="caps">SPECTRUM</span></h2><hr/><p>Spectrum text.</p>`) +
 		section("Community", `<span class="caps">CITIZENCON AND GAMESCOM</span>`, `<p>Community text.</p>`) +
 		`<div class="two-line-separator"></div></div></div></body></html>`)
-	blocks, err := ParseClassic(shell, "Monthly Studio Report: April 2017", testConfig(t))
+	blocks, _, err := ParseClassic(shell, "Monthly Studio Report: April 2017", testConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -162,7 +162,7 @@ func TestParseClassicPageTitleVariant(t *testing.T) {
 </div></div></div>
 <div class="content-block4"><div class="content"><h1>Conclusion</h1></div></div>
 </div><div class="two-line-separator"></div></div></div></body></html>`)
-	blocks, err := ParseClassic(shell, "Star Citizen Monthly Report: January 2019", testConfig(t))
+	blocks, _, err := ParseClassic(shell, "Star Citizen Monthly Report: January 2019", testConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -176,7 +176,7 @@ func TestParseClassicSplitLink(t *testing.T) {
 <p>See <a href="/comm-link/x/1-Y">Insid</a><a href="/comm-link/x/1-Y" target="_blank">e</a><a href="/comm-link/x/1-Y"> Star Citizen</a> now.</p>
 </div></div></div>
 </div><div class="two-line-separator"></div></div></div></body></html>`)
-	blocks, err := ParseClassic(shell, "Star Citizen Monthly Report: July 2020", testConfig(t))
+	blocks, _, err := ParseClassic(shell, "Star Citizen Monthly Report: July 2020", testConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -231,7 +231,7 @@ func TestParseClassicPseudoHeadings(t *testing.T) {
 <div class="no-margin">Ship AI flew.</div>
 </div></div></div>
 </div><div class="two-line-separator"></div></div></div></body></html>`)
-	blocks, err := ParseClassic(shell, "Star Citizen Monthly Report: November 2017", testConfig(t))
+	blocks, _, err := ParseClassic(shell, "Star Citizen Monthly Report: November 2017", testConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -257,7 +257,7 @@ func TestParseClassicPseudoHeadings(t *testing.T) {
 
 func parseLetter(t *testing.T, shell, title string) []string {
 	t.Helper()
-	blocks, err := ParseClassic([]byte(shell), title, chairmanConfig(t))
+	blocks, _, err := ParseClassic([]byte(shell), title, chairmanConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -332,4 +332,32 @@ func TestParseClassicSlideshowAndPoll(t *testing.T) {
 		"LIST Combat (5%) / Mining (28%)",
 		"P Total Votes: 27857",
 	})
+}
+
+// The page's own title block comes back as the title, even when it names more
+// than the listed title; a first title block that is a section gives none.
+func TestParseClassicTitleBlock(t *testing.T) {
+	page := func(first string) []byte {
+		return []byte(`<html><body><div id="contentbody"><div id="post"><div class="wrapper">
+<div class="content-block4"><div class="content"><h1>` + first + `</h1></div></div>
+<div class="content-block1 rsi-markup"><div class="segment"><div class="content"><p>Body.</p></div></div></div>
+</div><div class="two-line-separator"></div></div></div></body></html>`)
+	}
+	for _, c := range []struct {
+		listed, first, want string
+		blocks              []string
+	}{
+		{"Note from the Chairman", "Note from the Chairman: Dual Universe", "Note from the Chairman: Dual Universe", []string{"P Body."}},
+		{"Letter from the Chairman", "Letter from the Chairman", "Letter from the Chairman", []string{"P Body."}},
+		{"Letter from the Chairman", "The Best of Times, the Worst of Times", "", []string{"H2 The Best of Times, the Worst of Times", "P Body."}},
+	} {
+		blocks, title, err := ParseClassic(page(c.first), c.listed, chairmanConfig(t))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if title != c.want {
+			t.Errorf("ParseClassic(%q) title = %q, want %q", c.first, title, c.want)
+		}
+		check(t, dump(blocks), c.blocks)
+	}
 }

@@ -132,3 +132,17 @@ func TestRenderTable(t *testing.T) {
 		t.Errorf("RenderBody = %q, want %q", got, want)
 	}
 }
+
+// A name heading is title-cased; any other shouted heading is in sentence
+// case.
+func TestRenderNameHeading(t *testing.T) {
+	caser := NewHeadCaser(nil, "The new contracts arrived.")
+	blocks := []Block{
+		{Kind: Heading, Level: 2, Text: "NEW CONTRACTS", Name: true},
+		{Kind: Heading, Level: 2, Text: "NEW CONTRACTS"},
+	}
+	got := RenderBody(blocks, caser, func(string) string { return "" })
+	if want := "== New Contracts ==\n\n== New contracts ==\n"; got != want {
+		t.Errorf("RenderBody = %q, want %q", got, want)
+	}
+}

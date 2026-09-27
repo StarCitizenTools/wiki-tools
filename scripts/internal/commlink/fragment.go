@@ -143,7 +143,7 @@ func (p *fragment) walk(n *html.Node) {
 			p.label(info.Overline)
 			p.label(info.Subtitle)
 			if title := htmlText(info.Title); p.introduced && title != "" {
-				p.blocks = append(p.blocks, Block{Kind: Heading, Level: 2, Text: title})
+				p.blocks = append(p.blocks, Block{Kind: Heading, Level: 2, Text: title, Name: true})
 				p.section = true
 			} else {
 				p.label(info.Title)
@@ -167,7 +167,7 @@ func (p *fragment) walk(n *html.Node) {
 			if len(p.blocks) == 0 {
 				p.label(title)
 			} else if title != "" {
-				p.blocks = append(p.blocks, Block{Kind: Heading, Level: 2, Text: title})
+				p.blocks = append(p.blocks, Block{Kind: Heading, Level: 2, Text: title, Name: true})
 				p.section = true
 			}
 			if content != nil {
@@ -340,7 +340,7 @@ func (p *fragment) component(n *html.Node) {
 		p.label(h.Overline)
 		p.label(h.Subtitle)
 		if title := htmlText(h.Title); title != "" {
-			p.blocks = append(p.blocks, Block{Kind: Heading, Level: 2, Text: title})
+			p.blocks = append(p.blocks, Block{Kind: Heading, Level: 2, Text: title, Name: true})
 			p.section = true
 		}
 		if strings.TrimSpace(h.Content) != "" {

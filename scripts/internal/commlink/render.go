@@ -34,7 +34,11 @@ func RenderBody(blocks []Block, caser *HeadCaser, file func(src string) string) 
 		switch b.Kind {
 		case Heading:
 			eq := strings.Repeat("=", b.Level)
-			parts = append(parts, fmt.Sprintf("%s %s %s", eq, escapeText(caser.Case(b.Text)), eq))
+			text := caser.Case(b.Text)
+			if b.Name {
+				text = caser.Name(b.Text)
+			}
+			parts = append(parts, fmt.Sprintf("%s %s %s", eq, escapeText(text), eq))
 		case Paragraph:
 			parts = append(parts, lineSafe(b.Text))
 		case Quote:

@@ -77,6 +77,16 @@ dir = "scripts"
 run = "go run ./cmd/commlinks -diff"
 description = "Report missing Comm-Links of the configured series (exit 1 if any, or if a review entry is new). Read-only; changes go through the MediaWiki MCP server."
 
+[tasks."commlinks:chairman"]
+dir = "scripts"
+run = "go run ./cmd/commlinks -config cmd/commlinks/config.chairman.json"
+description = "Plan the From the Chairman letters missing from the wiki: pages and images into scripts/out/commlinks-chairman/ (gitignored); publish via the MediaWiki MCP server"
+
+[tasks."commlinks:chairman:diff"]
+dir = "scripts"
+run = "go run ./cmd/commlinks -config cmd/commlinks/config.chairman.json -diff"
+description = "Report missing From the Chairman letters (exit 1 if any, or if a review entry is new). Read-only; changes go through the MediaWiki MCP server."
+
 [tasks.test]
 depends = ["test:lua", "test:go", "test:js"]
 description = "Run all local tests"

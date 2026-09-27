@@ -5,7 +5,20 @@ import (
 	"testing"
 )
 
+func TestDefaultOut(t *testing.T) {
+	for config, want := range map[string]string{
+		"cmd/commlinks/config.json":          "out/commlinks",
+		"cmd/commlinks/config.chairman.json": "out/commlinks-chairman",
+		"chairman.json":                      "out/commlinks-chairman",
+	} {
+		if got := defaultOut(config); got != want {
+			t.Errorf("defaultOut(%q) = %q, want %q", config, got, want)
+		}
+	}
+}
+
 func TestValidateOnlyRefresh(t *testing.T) {
+	const defaultOut = "out/commlinks"
 	for _, c := range []struct {
 		name    string
 		only    string
@@ -19,8 +32,9 @@ func TestValidateOnlyRefresh(t *testing.T) {
 		{"refresh needs only", "", true, "out/scratch", true},
 		{"refresh with only and a scratch out", "16000", true, "out/scratch", false},
 		{"refresh with only but the default out", "16000", true, defaultOut, true},
+		{"only with the default out, spelled differently", "16000", false, "out/commlinks/", true},
 	} {
-		err := validateOnlyRefresh(c.only, c.refresh, c.out)
+		err := validateOnlyRefresh(c.only, c.refresh, c.out, defaultOut)
 		if (err != nil) != c.wantErr {
 			t.Errorf("%s: validateOnlyRefresh(%q, %v, %q) = %v, want error %v", c.name, c.only, c.refresh, c.out, err, c.wantErr)
 		}

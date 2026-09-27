@@ -27,18 +27,35 @@ type Config struct {
 	TitlePattern string `json:"titlePattern"`
 	// GreetingPattern and SignOffPattern match a report's opening greeting and
 	// closing sign-off. A bold line matching either is never a pseudo-heading,
-	// and a classic intro heading matching either, or a fragment heading
-	// matching the sign-off, renders as bold text.
-	GreetingPattern string            `json:"greetingPattern"`
-	SignOffPattern  string            `json:"signOffPattern"`
-	Renames         []Rename          `json:"renames"`
-	InfoboxType     string            `json:"infoboxType"`
-	InfoboxSeries   string            `json:"infoboxSeries"`
-	ImageCategory   string            `json:"imageCategory"`
-	ImageAuthor     string            `json:"imageAuthor"`
-	LinkCategories  []string          `json:"linkCategories"`
-	Aliases         map[string]string `json:"aliases"`
-	Stoplist        []string          `json:"stoplist"`
+	// and a classic heading matching either (only an intro heading, with
+	// introHeadings), or a fragment heading matching the sign-off, renders as
+	// bold text.
+	GreetingPattern string `json:"greetingPattern"`
+	SignOffPattern  string `json:"signOffPattern"`
+	// StudioSections reads a classic page with a section-title block other
+	// than its own title and "Conclusion" as one section per studio, whose
+	// prose opens with the studio's name as an h1 (the monthly reports, 2014 to
+	// August 2018). Without it, a prose h1 that does not repeat its section's
+	// title is text.
+	StudioSections bool `json:"studioSections"`
+	// IntroHeadings marks a classic page's intro with headings (the monthly
+	// reports): an h1 or a heading inside div.variant-block is intro text, and
+	// only such a heading is read as a greeting or sign-off. Without it,
+	// div.variant-block is only styling, and a heading at any level matching
+	// greetingPattern or signOffPattern is bold text.
+	IntroHeadings bool     `json:"introHeadings"`
+	Renames       []Rename `json:"renames"`
+	// DatedTitlePattern matches a page name, after renames, that several
+	// reports share (a bare "Letter from the Chairman"); such a name takes
+	// " - " and the report's publication date.
+	DatedTitlePattern string            `json:"datedTitlePattern"`
+	InfoboxType       string            `json:"infoboxType"`
+	InfoboxSeries     string            `json:"infoboxSeries"`
+	ImageCategory     string            `json:"imageCategory"`
+	ImageAuthor       string            `json:"imageAuthor"`
+	LinkCategories    []string          `json:"linkCategories"`
+	Aliases           map[string]string `json:"aliases"`
+	Stoplist          []string          `json:"stoplist"`
 	// NoLink lists phrases inside which no term is linked: a name used in
 	// another sense.
 	NoLink         []string `json:"noLink"`
@@ -51,8 +68,8 @@ type Config struct {
 	// created_at on one of them is not a publication date.
 	APIIngestDates []string `json:"apiIngestDates"`
 
-	titleRe, greetingRe, signOffRe *regexp.Regexp
-	renameRe, ignoreRe             []*regexp.Regexp
+	titleRe, greetingRe, signOffRe, datedRe *regexp.Regexp
+	renameRe, ignoreRe                      []*regexp.Regexp
 }
 
 // LoadConfig reads and validates the config.
@@ -76,6 +93,11 @@ func LoadConfig(path string) (*Config, error) {
 	}
 	if c.signOffRe, err = regexp.Compile(c.SignOffPattern); err != nil {
 		return nil, fmt.Errorf("%s: signOffPattern: %w", path, err)
+	}
+	if c.DatedTitlePattern != "" {
+		if c.datedRe, err = regexp.Compile(c.DatedTitlePattern); err != nil {
+			return nil, fmt.Errorf("%s: datedTitlePattern: %w", path, err)
+		}
 	}
 	for _, r := range c.Renames {
 		re, err := regexp.Compile(r.Pattern)
@@ -119,18 +141,27 @@ func (c *Config) MatchesGreeting(text string) bool { return c.greetingRe.MatchSt
 // MatchesSignOff reports whether text is a report's sign-off.
 func (c *Config) MatchesSignOff(text string) bool { return c.signOffRe.MatchString(text) }
 
-// PageName is the page title, without namespace, for an RSI title: the first
-// matching rename, then ": " becomes " - ", the rule existing Comm-Link pages
-// follow.
-func (c *Config) PageName(rsiTitle string) string {
-	name := strings.TrimSpace(rsiTitle)
+// PageName is the page title, without namespace, for an RSI title published
+// on date (YYYY-MM-DD): the first matching rename, then ": " becomes " - ",
+// the rule existing Comm-Link pages follow, then " - " and date when
+// datedTitlePattern matches the result. complete is false when the name takes
+// the date and date is "": the name is not final.
+func (c *Config) PageName(rsiTitle, date string) (name string, complete bool) {
+	name = strings.TrimSpace(rsiTitle)
 	for i, re := range c.renameRe {
 		if re.MatchString(name) {
 			name = re.ReplaceAllString(name, c.Renames[i].Replace)
 			break
 		}
 	}
-	return strings.ReplaceAll(name, ": ", " - ")
+	name = strings.ReplaceAll(name, ": ", " - ")
+	if c.datedRe == nil || !c.datedRe.MatchString(name) {
+		return name, true
+	}
+	if date == "" {
+		return name, false
+	}
+	return name + " - " + date, true
 }
 
 // IgnoredLine reports whether an API text line is a known artefact that the

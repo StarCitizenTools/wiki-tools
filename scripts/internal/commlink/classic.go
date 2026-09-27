@@ -10,9 +10,10 @@ import (
 )
 
 // ParseClassic converts a classic-layout page into blocks. The body is the run
-// of content-block4 (section title), content-block2 (header image) and
-// content-block1 (prose) blocks inside div#post, up to the first
-// div.two-line-separator; the channel banner and comments follow it.
+// of content-block4 (section title), content-block2 (header image, slideshow
+// or poll) and content-block1 (prose) blocks inside div#post, after its
+// div.title-section and up to the next div.two-line-separator; the channel
+// banner and comments follow it.
 func ParseClassic(shell []byte, rsiTitle string, cfg *Config) ([]Block, error) {
 	doc, err := html.Parse(bytes.NewReader(shell))
 	if err != nil {
@@ -24,7 +25,7 @@ func ParseClassic(shell []byte, rsiTitle string, cfg *Config) ([]Block, error) {
 	}
 	mergeSplitLinks(post)
 	c := &classic{cfg: cfg, title: fold(rsiTitle)}
-	c.studios = c.hasStudioBlocks(post)
+	c.studios = cfg.StudioSections && c.hasStudioBlocks(post)
 	c.walk(post)
 	if len(c.blocks) == 0 {
 		return nil, errors.New("classic page has no body blocks")
@@ -55,20 +56,75 @@ func (c *classic) visit(n *html.Node) {
 		return
 	}
 	switch {
+	case hasClass(n, "title-section"):
+		// The page header; some pages draw a two-line-separator inside it.
 	case hasClass(n, "two-line-separator"):
 		c.stopped = true
 	case hasClass(n, "content-block4"):
 		c.titleBlock(n)
 	case hasClass(n, "content-block2"):
-		for _, img := range findAll(n, tagIs("img")) {
-			if src := sourceURL(attr(img, "src")); src != "" {
-				c.blocks = append(c.blocks, Block{Kind: Image, Src: src})
-			}
-		}
+		c.media(n)
 	case hasClass(n, "content-block1"):
 		c.prose(n)
 	default:
 		c.walk(n)
+	}
+}
+
+// media converts a content-block2: a header image, a slideshow whose slides
+// carry their source and caption, or a poll.
+func (c *classic) media(n *html.Node) {
+	for ch := n.FirstChild; ch != nil; ch = ch.NextSibling {
+		switch {
+		case ch.Type != html.ElementNode:
+		case hasClass(ch, "poll-holder"):
+			c.poll(ch)
+		case ch.Data == "img":
+			if src := sourceURL(attr(ch, "src")); src != "" {
+				c.blocks = append(c.blocks, Block{Kind: Image, Src: src})
+			}
+		case ch.Data == "div" && attr(ch, "data-source_url") != "":
+			if src := sourceURL(attr(ch, "data-source_url")); src != "" {
+				caption := ""
+				if cn := findFirst(ch, classIs("caption")); cn != nil {
+					caption = escapeText(PlainText(cn))
+				}
+				c.blocks = append(c.blocks, Block{Kind: Image, Src: src, Caption: caption})
+			}
+		default:
+			c.media(ch)
+		}
+	}
+}
+
+// poll converts a poll into its options, each with its share of the vote, and
+// the vote count. Its question repeats its section's title and is kept only
+// when it differs.
+func (c *classic) poll(n *html.Node) {
+	if h := findFirst(n, tagIs("h1")); h != nil {
+		if q := PlainText(h); q != "" && fold(q) != c.lastTitle {
+			c.blocks = append(c.blocks, Block{Kind: Paragraph, Text: joinMarkup("'''", escapeText(q), "'''")})
+		}
+	}
+	var items []string
+	for _, opt := range findAll(n, classIs("option")) {
+		label := findFirst(opt, classIs("text"))
+		if label == nil || PlainText(label) == "" {
+			continue
+		}
+		item := escapeText(PlainText(label))
+		if bars := findFirst(opt, classIs("bars")); bars != nil {
+			if v := findFirst(bars, classIs("value")); v != nil && PlainText(v) != "" {
+				item += " (" + escapeText(PlainText(v)) + ")"
+			}
+		}
+		items = append(items, item)
+	}
+	if len(items) > 0 {
+		c.blocks = append(c.blocks, Block{Kind: List, Items: items})
+	}
+	if t := findFirst(n, classIs("total")); t != nil && PlainText(t) != "" {
+		c.blocks = append(c.blocks, Block{Kind: Paragraph, Text: escapeText(PlainText(t))})
 	}
 }
 
@@ -117,15 +173,23 @@ func (c *classic) prose(n *html.Node) {
 	}
 }
 
+// heading converts a heading inside prose. An intro heading (an h1, or with
+// introHeadings one inside div.variant-block) is a greeting or sign-off, in
+// bold; a studio's name or a repeat of the section title, dropped; or intro
+// text. Without introHeadings, a greeting or sign-off at any level is bold
+// text too. Any other heading is a section heading.
 func (c *classic) heading(f *flow, n *html.Node) {
 	text := PlainText(n)
 	if text == "" {
 		return
 	}
-	if n.Data == "h1" || hasAncestorClass(n, "variant-block") {
+	intro := n.Data == "h1" || (c.cfg.IntroHeadings && hasAncestorClass(n, "variant-block"))
+	if (intro || !c.cfg.IntroHeadings) && (c.cfg.MatchesGreeting(text) || c.cfg.MatchesSignOff(text)) {
+		f.emit(Block{Kind: Paragraph, Text: joinMarkup("'''", Inline(n), "'''")})
+		return
+	}
+	if intro {
 		switch {
-		case c.cfg.MatchesGreeting(text) || c.cfg.MatchesSignOff(text):
-			f.emit(Block{Kind: Paragraph, Text: joinMarkup("'''", Inline(n), "'''")})
 		case n.Data == "h1" && (c.studios || fold(text) == c.lastTitle):
 			// The studio name, repeated in capitals under its title block.
 			// A repeat naming the same studio more fully (CLOUD IMPERIUM: LOS
@@ -174,6 +238,9 @@ func (c *classic) hasStudioBlocks(post *html.Node) bool {
 	var walk func(*html.Node) bool
 	walk = func(n *html.Node) bool {
 		for ch := n.FirstChild; ch != nil && !stop; ch = ch.NextSibling {
+			if hasClass(ch, "title-section") {
+				continue
+			}
 			if hasClass(ch, "two-line-separator") {
 				stop = true
 				return false

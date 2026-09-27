@@ -254,3 +254,82 @@ func TestParseClassicPseudoHeadings(t *testing.T) {
 		"P Ship AI flew.",
 	})
 }
+
+func parseLetter(t *testing.T, shell, title string) []string {
+	t.Helper()
+	blocks, err := ParseClassic([]byte(shell), title, chairmanConfig(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return dump(blocks)
+}
+
+// A letter marks no intro and has no studios: a greeting is bold at any
+// heading level, a heading in div.variant-block is a section heading, and a
+// prose h1 that does not repeat its section's title is text.
+func TestParseClassicLetterHeadings(t *testing.T) {
+	check(t, parseLetter(t, `<html><body><div id="contentbody"><div id="post"><div class="wrapper">
+<div class="content-block4"><div class="content"><h1>Letter from the Chairman</h1></div></div>
+<div class="content-block1 rsi-markup"><div class="segment"><div class="content"><div class="variant-block">
+<h2>Hi everyone,</h2><p>Opening words.</p>
+<h2>A Grand Tour</h2><p>Tour text.</p>
+<h2>Greetings Citizens,</h2><p>A second greeting.</p>
+</div><p>&#8212; Chris Roberts</p></div></div></div>
+<div class="content-block4"><div class="content"><h1>Oculus &amp; Facebook</h1></div></div>
+<div class="content-block1 rsi-markup"><div class="segment"><div class="content">
+<h1>Oculus &amp; Facebook</h1><h1>Like many of you, </h1><p>I was surprised.</p>
+</div></div></div>
+</div><div class="two-line-separator"></div></div></div></body></html>`, "Letter from the Chairman"), []string{
+		"P '''Hi everyone,'''",
+		"P Opening words.",
+		"H2 A Grand Tour",
+		"P Tour text.",
+		"P '''Greetings Citizens,'''",
+		"P A second greeting.",
+		"P — Chris Roberts",
+		"H2 Oculus & Facebook",
+		"P Like many of you,",
+		"P I was surprised.",
+	})
+}
+
+// Some pages draw a two-line-separator inside div.title-section, above the
+// body; the body still runs to the separator after it.
+func TestParseClassicTitleSectionSeparator(t *testing.T) {
+	check(t, parseLetter(t, `<html><body><div id="contentbody"><div id="post">
+<div class="title-section"><h1></h1><h3>ID:</h3><p>13391</p><div class="two-line-separator"></div>
+<div class="small-title-container"><div class="title">Letter from the Chairman: $30 Million!</div></div></div>
+<div class="wrapper"><div class="content-block1 rsi-markup"><div class="segment"><div class="content"><p>Body.</p></div></div></div></div>
+<div class="two-line-separator"></div><div class="content-block1 rsi-markup"><div class="segment"><div class="content"><p>Comments.</p></div></div></div>
+</div></div></body></html>`, "Letter from the Chairman: $30 Million!"), []string{"P Body."})
+}
+
+// A header slideshow keeps each slide's source and caption; a poll keeps its
+// options with their shares and the vote count, and its question only when it
+// is not its section's title.
+func TestParseClassicSlideshowAndPoll(t *testing.T) {
+	poll := func(q string) string {
+		return `<div class="poll content-block2"><div class="voted atom-special-block poll-holder"><h1>` + q + `</h1><div class="options">
+<label class="radio option first"><div class="label"><div class="value">a</div><div class="text">Combat</div></div>
+<div class="bars"><div class="bar-item"><div class="label">a</div><div class="value">5%</div></div></div></label>
+<label class="radio option"><div class="label"><div class="value">b</div><div class="text">Mining</div></div>
+<div class="bars"><div class="bar-item"><div class="label">b</div><div class="value">28%</div></div></div></label>
+</div><div class="total">Total Votes: 27857</div></div></div>`
+	}
+	check(t, parseLetter(t, `<html><body><div id="contentbody"><div id="post"><div class="wrapper">
+<div class="content-block2"><div class="atom-special-block"><div class="atom-slideshow"><div class="carousel">
+<div data-source_url="/media/cnp6015ubsw1kr/source/Gladiator_Top.png" rel="vault-items"><div class="media"><img data-srcset="/media/cnp6015ubsw1kr/slideshow_pager/Gladiator_Top.png" alt="Gladiator - Original"></div>
+<div class="text"><a href="/media/cnp6015ubsw1kr/source/Gladiator_Top.png" class="download"></a><div class="caption">Gladiator - Original</div></div></div>
+</div></div></div></div>
+<div class="content-block4"><div class="content"><h1>What role would you like to see?</h1></div></div>
+<div class="content-block1 rsi-markup">`+poll("What role would you like to see?")+poll("Another question?")+`</div>
+</div><div class="two-line-separator"></div></div></div></body></html>`, "Letter from the Chairman"), []string{
+		"IMG https://robertsspaceindustries.com/media/cnp6015ubsw1kr/source/Gladiator_Top.png | Gladiator - Original",
+		"H2 What role would you like to see?",
+		"LIST Combat (5%) / Mining (28%)",
+		"P Total Votes: 27857",
+		"P '''Another question?'''",
+		"LIST Combat (5%) / Mining (28%)",
+		"P Total Votes: 27857",
+	})
+}

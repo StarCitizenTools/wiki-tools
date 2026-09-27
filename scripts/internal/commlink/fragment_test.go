@@ -113,3 +113,47 @@ func TestParseFragmentListItemBreaks(t *testing.T) {
 	}
 	check(t, dump(blocks), []string{"LIST One / Two / Three<br />four"})
 }
+
+// A letter's fragment: a banner's pull-quote paragraph, a slideshow captioned
+// with its title, a trailer and the signature. A banner that shows only a
+// title is decoration.
+func TestParseFragmentLetterComponents(t *testing.T) {
+	blocks, err := ParseFragment([]byte(`<g-banner-advanced :content="{&quot;displayed&quot;:true,&quot;text&quot;:{&quot;displayed&quot;:true,&quot;title&quot;:&quot;LETTER FROM THE CHAIRMAN&quot;,&quot;paragraph&quot;:&quot;&quot;}}"></g-banner-advanced>
+<g-article :show-emphasis="false" body="<p>Opening.</p>"></g-article>
+<g-banner-advanced :content="{&quot;displayed&quot;:true,&quot;text&quot;:{&quot;displayed&quot;:true,&quot;paragraph&quot;:&quot;<p>“<em>A quote.</em></p><p>- Benoit Beausejour, CTO</p>&quot;}}"></g-banner-advanced>
+<g-banner-advanced :content="{&quot;displayed&quot;:false,&quot;text&quot;:{&quot;displayed&quot;:true,&quot;paragraph&quot;:&quot;<p>Hidden.</p>&quot;}}"></g-banner-advanced>
+<g-slideshow :images="[&quot;/media/40yh807r62gyjr/source/Building_Out.png&quot;,&quot;/media/x7ywvbjfc8umgr/source/AZ8A4441.jpg&quot;]" :title="&quot;Manchester, England&quot;" :subtitle="&quot;&quot;"></g-slideshow>
+<g-trailer arrangement="arrangementB" video-id="zxlci1YJCDA"></g-trailer>
+<g-author author-desc="Founder &amp; CEO" author-name="Chris Roberts"></g-author>`), chairmanConfig(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	check(t, dump(blocks), []string{
+		"P Opening.",
+		"P “''A quote.''",
+		"P - Benoit Beausejour, CTO",
+		"IMG https://robertsspaceindustries.com/media/40yh807r62gyjr/source/Building_Out.png | Manchester, England",
+		"IMG https://robertsspaceindustries.com/media/x7ywvbjfc8umgr/source/AZ8A4441.jpg | Manchester, England",
+		"VID youtube zxlci1YJCDA",
+		"P Chris Roberts<br />Founder & CEO",
+	})
+}
+
+// Only the last article is a closing block when emphasised; an emphasised
+// article before it is a boxed section, converted as any other.
+func TestParseFragmentEmphasisBeforeLastArticle(t *testing.T) {
+	blocks, err := ParseFragment([]byte(`<g-article :show-emphasis="true" body="<h2><strong>Building for Longevity</strong></h2><p>We are building offices.</p>"></g-article>
+<g-article :show-emphasis="false" body="<h2>Final Thoughts</h2><p>Thank you.</p>"></g-article>
+<g-article :show-emphasis="true" body="<p>See you in the verse.</p>"></g-article>
+<g-article :show-emphasis="false" body=""></g-article>`), chairmanConfig(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	check(t, dump(blocks), []string{
+		"H2 Building for Longevity",
+		"P We are building offices.",
+		"H2 Final Thoughts",
+		"P Thank you.",
+		"P '''See you in the verse.'''",
+	})
+}

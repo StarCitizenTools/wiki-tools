@@ -6,6 +6,7 @@
 //	commlinks -diff                                       # same, listing each page to create; exit 1 if one is missing or a review entry is new
 //	commlinks -only 16000,17712,19956 -out out/commlinks-scratch  # plan only these RSI ids, into a scratch dir
 //	commlinks -only 16000 -refresh -out out/commlinks-scratch     # re-plan an id the wiki already has, marked "refresh": true
+//	commlinks -config cmd/commlinks/config.chairman.json  # another series, into out/commlinks-chairman
 //
 // It does not write to the wiki. Publishing goes through the MediaWiki MCP
 // server, uploads first, then pages.
@@ -34,7 +35,6 @@ import (
 )
 
 const (
-	defaultOut      = "out/commlinks"
 	defaultConfig   = "cmd/commlinks/config.json"
 	wikiEndpoint    = "https://starcitizen.tools/api.php"
 	userAgent       = "StarCitizenTools-wiki-tools/1.0 (https://github.com/StarCitizenTools/wiki-tools)"
@@ -51,15 +51,20 @@ func main() {
 	}
 }
 
+// parsed is a converted report. page is final unless complete is false: a
+// name that takes the publication date, which dateErr says could not be found.
 type parsed struct {
-	c      commlink.Candidate
-	page   string
-	blocks []commlink.Block
+	c                commlink.Candidate
+	page             string
+	complete         bool
+	date, dateSource string
+	dateErr          error
+	blocks           []commlink.Block
 }
 
 func run() error {
 	var (
-		out        = flag.String("out", defaultOut, "directory for plan.json, pages/ and the download cache")
+		out        = flag.String("out", "", "directory for plan.json, pages/ and the download cache (default out/commlinks, or out/commlinks-NAME for a config.NAME.json)")
 		configPath = flag.String("config", defaultConfig, "path to the importer config")
 		doDiff     = flag.Bool("diff", false, "list each page to create; exit 1 if a page is missing or a review entry is not in knownReview")
 		only       = flag.String("only", "", "comma-separated RSI ids to plan; every other report is skipped")
@@ -70,7 +75,11 @@ func run() error {
 	)
 	flag.Parse()
 
-	if err := validateOnlyRefresh(*only, *refresh, *out); err != nil {
+	seriesOut := defaultOut(*configPath)
+	if *out == "" {
+		*out = seriesOut
+	}
+	if err := validateOnlyRefresh(*only, *refresh, *out, seriesOut); err != nil {
 		return err
 	}
 
@@ -150,8 +159,13 @@ func run() error {
 	var pages []parsed
 	var headings []string
 	for i, c := range missing {
-		page := cfg.PageName(c.Title)
 		progress(fmt.Sprintf("[%d/%d] converting %d %s", i+1, len(missing), c.ID, c.Title))
+		// The date comes before the name, which can take it; every title check
+		// and file name below uses the name.
+		date, dateSource, dateErr := commlink.ResolveDate(c.Posted, c.Created, cfg.APIIngestDates, func() (time.Time, error) {
+			return cache.FirstCapture(ctx, web, ep, c.RSIURL)
+		})
+		page, complete := cfg.PageName(c.Title, date)
 		blocks, err := commlink.FetchBlocks(ctx, web, cfg, c)
 		if err != nil {
 			review(c, page, commlink.ReasonFetch, err.Error())
@@ -163,7 +177,7 @@ func run() error {
 				headings = append(headings, b.Text)
 			}
 		}
-		pages = append(pages, parsed{c: c, page: page, blocks: blocks})
+		pages = append(pages, parsed{c: c, page: page, complete: complete, date: date, dateSource: dateSource, dateErr: dateErr, blocks: blocks})
 	}
 
 	// Word casing and the common-word link filter learn from every report's
@@ -179,9 +193,11 @@ func run() error {
 		return err
 	}
 
-	titles := make([]string, len(pages))
-	for i, p := range pages {
-		titles[i] = namespacePrefix + p.page
+	var titles []string
+	for _, p := range pages {
+		if p.complete {
+			titles = append(titles, namespacePrefix+p.page)
+		}
 	}
 	statuses, err := wiki.TitleStatusesAnyNamespace(ctx, titles)
 	if err != nil {
@@ -197,19 +213,19 @@ func run() error {
 		title := namespacePrefix + p.page
 		// existing holds a planned report's id only under -refresh.
 		stored := existing[p.c.ID]
-		if detail := titleConflict(p.c.ID, title, stored, statuses[title] == mediawiki.TitleExists, claimed[title]); detail != "" {
-			review(p.c, p.page, commlink.ReasonTitleExists, detail)
+		// An incomplete name is no title to check: the report is undated.
+		if p.complete {
+			if detail := titleConflict(p.c.ID, title, stored, statuses[title] == mediawiki.TitleExists, claimed[title]); detail != "" {
+				review(p.c, p.page, commlink.ReasonTitleExists, detail)
+				continue
+			}
+			claimed[title] = p.c.ID
+		}
+		if p.dateErr != nil {
+			review(p.c, p.page, commlink.ReasonNoDate, p.dateErr.Error())
 			continue
 		}
-		claimed[title] = p.c.ID
-		date, dateSource, err := commlink.ResolveDate(p.c.Posted, p.c.Created, cfg.APIIngestDates, func() (time.Time, error) {
-			return cache.FirstCapture(ctx, web, ep, p.c.RSIURL)
-		})
-		if err != nil {
-			review(p.c, p.page, commlink.ReasonNoDate, err.Error())
-			continue
-		}
-		imgs, err := commlink.PlanImages(ctx, web, wiki, cache, planned, cfg, p.c.Title, p.page, date, p.blocks)
+		imgs, err := commlink.PlanImages(ctx, web, wiki, cache, planned, cfg, p.c.Title, p.page, p.date, p.blocks)
 		if saveErr := cache.Save(); saveErr != nil {
 			return saveErr
 		}
@@ -221,7 +237,7 @@ func run() error {
 		body, links := vocab.Apply(commlink.RenderBody(deduped, caser, imgs.File))
 		text := commlink.Infobox(commlink.PageMeta{
 			RSITitle: p.c.Title, URL: commlink.InfoboxURL(p.c.RSIURL),
-			Series: cfg.InfoboxSeries, Type: cfg.InfoboxType, Date: date,
+			Series: cfg.InfoboxSeries, Type: cfg.InfoboxType, Date: p.date,
 		}) + "\n" + body
 		if api, words, short := commlink.APITextWords(p.c.Text, body); short && !cfg.AcceptsAPIText(p.c.ID) {
 			review(p.c, p.page, commlink.ReasonAPIText, fmt.Sprintf(
@@ -236,7 +252,7 @@ func run() error {
 		files = append(files, pageFile{name: file, text: text})
 		plan.Create = append(plan.Create, commlink.PageEntry{
 			ID: p.c.ID, RSITitle: p.c.Title, Page: p.page, URL: commlink.InfoboxURL(p.c.RSIURL),
-			Date: date, DateSource: dateSource, Wikitext: filepath.Join("pages", file),
+			Date: p.date, DateSource: p.dateSource, Wikitext: filepath.Join("pages", file),
 			Images: imgs.Plans, Links: links, MissingImages: imgs.Missing, Refresh: stored != "",
 		})
 		maps.Copy(planned, imgs.Added)
@@ -333,13 +349,25 @@ func titleConflict(id int, title, stored string, taken bool, claimedBy int) stri
 	return ""
 }
 
+// defaultOut is the directory a config's full plan is written to, so each
+// series keeps its own: out/commlinks for config.json, out/commlinks-NAME for
+// config.NAME.json or NAME.json.
+func defaultOut(configPath string) string {
+	name := strings.TrimSuffix(filepath.Base(configPath), ".json")
+	name = strings.TrimPrefix(strings.TrimPrefix(name, "config"), ".")
+	if name == "" {
+		return "out/commlinks"
+	}
+	return "out/commlinks-" + name
+}
+
 // validateOnlyRefresh checks the -only/-refresh/-out combination: -only needs
-// a scratch -out, since a partial run would otherwise replace the full plan,
-// and -refresh needs -only, since without it every existing report would be
-// replanned.
-func validateOnlyRefresh(only string, refresh bool, out string) error {
-	if only != "" && out == defaultOut {
-		return fmt.Errorf("-only needs -out: a partial run would replace the full plan in %s", defaultOut)
+// a scratch -out other than seriesOut, where the full plan is written, since a
+// partial run would replace it; and -refresh needs -only, since without it
+// every existing report would be replanned.
+func validateOnlyRefresh(only string, refresh bool, out, seriesOut string) error {
+	if only != "" && filepath.Clean(out) == filepath.Clean(seriesOut) {
+		return fmt.Errorf("-only needs -out: a partial run would replace the full plan in %s", seriesOut)
 	}
 	if refresh && only == "" {
 		return fmt.Errorf("-refresh needs -only: it re-plans specific ids, not a full run")

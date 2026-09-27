@@ -17,7 +17,7 @@ type Block struct {
 	Kind      BlockKind
 	Level     int      // Heading: 2 for "==", 3 for "===".
 	Text      string   // Heading: plain text. Paragraph, Quote: inline wikitext.
-	Emphasis  bool     // Paragraph: from an emphasis article, so never a pseudo-heading.
+	Emphasis  bool     // Paragraph: from the closing emphasis article, so never a pseudo-heading.
 	Items     []string // List: inline wikitext per item.
 	Ordered   bool     // List: numbered.
 	Src       string   // Image: absolute URL of the original. Video "file": its URL.

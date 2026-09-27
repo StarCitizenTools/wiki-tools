@@ -4,6 +4,8 @@
   "titlePattern": "(?i)monthly (studio )?report",
   "greetingPattern": "(?i)^greetings",
   "signOffPattern": "(?i)see you next month",
+  "studioSections": true,
+  "introHeadings": true,
   "renames": [
     { "pattern": "^Monthly Studio Report: (.+)$", "replace": "Monthly Report - ${1}" }
   ],

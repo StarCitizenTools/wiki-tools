@@ -28,10 +28,14 @@ type manifestEntry struct {
 	Field    string          `json:"field"`
 	Index    bool            `json:"index"`
 	Repeated bool            `json:"repeated"`
+	// MigrateTo names the table a property is moving to; the column is built
+	// there too, since the writer fills both while readers still read Bucket.
+	MigrateTo string `json:"migrateTo"`
 }
 
 // Build reads one manifest and returns every bucket it defines. A property whose
-// bucket is an object keyed by kind is placed in each of those buckets.
+// bucket is an object keyed by kind is placed in each of those buckets, and one
+// with migrateTo in that table as well.
 func Build(manifest []byte) (map[string]Schema, error) {
 	var raw map[string]json.RawMessage
 	if err := json.Unmarshal(manifest, &raw); err != nil {
@@ -60,6 +64,11 @@ func Build(manifest []byte) (map[string]Schema, error) {
 			return nil, fmt.Errorf("%s: missing field or type", name)
 		}
 		f := Field{Type: e.Type, Index: e.Index, Repeated: e.Repeated}
+		if e.MigrateTo != "" {
+			if err := place(e.MigrateTo, e.Field, f); err != nil {
+				return nil, err
+			}
+		}
 		var single string
 		if err := json.Unmarshal(e.Bucket, &single); err == nil {
 			if err := place(single, e.Field, f); err != nil {

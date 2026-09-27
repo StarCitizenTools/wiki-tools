@@ -36,6 +36,22 @@ func TestBuildSchemas(t *testing.T) {
 	}
 }
 
+// A property moving to another table carries migrateTo while readers still read
+// its old one, so its column must exist in both tables.
+func TestBuildPlacesAMigratingPropertyInItsTargetToo(t *testing.T) {
+	schemas, err := Build([]byte(`{
+ "Scm speed": {"type": "DOUBLE", "bucket": {"Item": "item_component", "Vehicle": "vehicle_stats"}, "field": "scm_speed", "migrateTo": "entity", "modules": ["Vehicle"], "desc": "d"}
+}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, b := range []string{"item_component", "vehicle_stats", "entity"} {
+		if schemas[b]["scm_speed"].Type != "DOUBLE" {
+			t.Errorf("scm_speed missing from %s: %+v", b, schemas[b])
+		}
+	}
+}
+
 func TestRenderIsSortedAndStable(t *testing.T) {
 	schemas, _ := Build([]byte(entityManifest))
 	out, err := Render(schemas["entity"])

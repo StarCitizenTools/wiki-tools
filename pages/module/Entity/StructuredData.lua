@@ -135,16 +135,30 @@ local function splitByBucket(m, data, kind)
 		end
 	end
 	local puts, unregistered = {}, {}
+	local function put(bucket, entry, v)
+		puts[bucket] = puts[bucket] or {}
+		puts[bucket][entry.field] = bucketValue(entry, v)
+	end
 	for k, v in pairs(data) do
 		local entry = bucketEntry(m, k)
 		local bucket = entry and entry.bucket
 		if type(bucket) == 'table' then
 			bucket = kind and bucket[kind] or nil
 		end
-		if type(bucket) == 'string' and allowed[bucket] and v ~= nil then
-			puts[bucket] = puts[bucket] or {}
-			puts[bucket][entry.field] = bucketValue(entry, v)
-		else
+		-- `migrateTo` names the table a property is moving to: it is written there
+		-- as well while readers still read `bucket`, so the new column is full
+		-- before the manifest points readers at it.
+		local target = entry and entry.migrateTo
+		local routed = false
+		if v ~= nil and type(bucket) == 'string' and allowed[bucket] then
+			put(bucket, entry, v)
+			routed = true
+		end
+		if v ~= nil and type(target) == 'string' and allowed[target] then
+			put(target, entry, v)
+			routed = true
+		end
+		if not routed then
 			unregistered[#unregistered + 1] = k
 		end
 	end

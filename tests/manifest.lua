@@ -805,6 +805,11 @@ local function checkBucketLimits(path, manifest)
 					place(bucket, def.field, name .. ' (' .. kind .. ')', def)
 				end
 			end
+			-- migrateTo: the table the property is moving to, which the writer
+			-- also fills, so its column counts against that table's limits.
+			if def.migrateTo ~= nil then
+				place(def.migrateTo, def.field, name .. ' (migrating)', def)
+			end
 		end
 	end
 	for bucket, set in pairs(fields) do

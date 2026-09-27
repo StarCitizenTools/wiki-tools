@@ -4,11 +4,13 @@ require('strict')
 --- Star-system leaf of the Location kind. Renders from the merged payload the
 --- kind assembles: the location record at the top level plus the starmap
 --- record at apiData.starsystem (attached by this leaf's enrich through
---- locationUtil.attachStarsystem; may be absent — every consumer nil-guards and
+--- locationStarmap.attachStarsystem; may be absent — every consumer nil-guards and
 --- degrades to location-only rows).
 
 local jurisdiction = require('Module:Entity/Location/Jurisdiction')
-local locationUtil = require('Module:Entity/Location/Util')
+local locationDisplay = require('Module:Entity/Location/Display')
+local locationStarmap = require('Module:Entity/Location/Starmap')
+local locationVocabulary = require('Module:Entity/Location/Vocabulary')
 local sectionBuilder = require('Module:Entity/SectionBuilder')
 local statTiles = require('Module:StatTiles')
 local Editorial = require('Module:Entity/Editorial')
@@ -62,7 +64,7 @@ p.family = 'starsystem'
 --- @param ctx EntityHookContext
 --- @return table apiData
 function p.enrich(ctx)
-	return locationUtil.attachStarsystem(ctx.apiData, ctx.args)
+	return locationStarmap.attachStarsystem(ctx.apiData, ctx.args)
 end
 
 --- Star-system editorial fields. size overlaps the starmap aggregated size
@@ -107,11 +109,11 @@ function p.getCategories(ctx)
 	local apiData, resolved = ctx.apiData, ctx.resolved
 	local categories = {}
 	local starsystem = getStarsystem(apiData)
-	local _, typeEntry = locationUtil.resolveSystemType(starsystem, resolved)
+	local _, typeEntry = locationVocabulary.resolveSystemType(starsystem, resolved)
 	if typeEntry then
 		categories[#categories + 1] = typeEntry.category
 	end
-	local affiliation = locationUtil.resolveAffiliation(starsystem, resolved)
+	local affiliation = locationVocabulary.resolveAffiliation(starsystem, resolved)
 	if affiliation then
 		categories[#categories + 1] = affiliation.label .. ' systems'
 	end
@@ -198,10 +200,11 @@ local function starTypeList(starsystem)
 	local names, seen = {}, {}
 	for _, obj in ipairs(objects) do
 		if type(obj) == 'table' and obj.type == 'STAR' and type(obj.sub_type) == 'table' then
-			local name = locationUtil.starTypeLabel(obj.sub_type)
+			local name = locationVocabulary.starTypeLabel(obj.sub_type)
 			if type(name) == 'string' and not seen[name] then
 				seen[name] = true
-				names[#names + 1] = locationUtil.starTypeLink(locationUtil.starTypeEntry(obj.sub_type), name)
+				names[#names + 1] =
+					locationVocabulary.starTypeLink(locationVocabulary.starTypeEntry(obj.sub_type), name)
 			end
 		end
 	end
@@ -219,7 +222,7 @@ end
 --- @param resolved table|nil
 --- @return string|nil
 local function affiliationDisplay(starsystem, resolved)
-	local affiliation = locationUtil.resolveAffiliation(starsystem, resolved)
+	local affiliation = locationVocabulary.resolveAffiliation(starsystem, resolved)
 	if not affiliation then
 		return nil
 	end
@@ -254,7 +257,7 @@ end
 --- Type info runs before editorial resolution in Data.get, so the editorial
 --- system type is read from the raw args through Editorial.rawArg with this
 --- leaf's own manifest entry; everything downstream of resolution goes
---- through locationUtil.resolveSystemType instead.
+--- through locationVocabulary.resolveSystemType instead.
 --- This leaf declares the systemtype entry itself, so its own
 --- getEditorialManifest fragment is the merged chain manifest's value for
 --- the field — reading its own entry here is correct only because of that.
@@ -262,9 +265,10 @@ end
 --- @return { name: string, category: string }
 function p.getTypeInfo(ctx)
 	local apiData, args = ctx.apiData, ctx.args
-	local _, editorialEntry = locationUtil.systemTypeEntry(Editorial.rawArg(args, p.getEditorialManifest().systemtype))
+	local _, editorialEntry =
+		locationVocabulary.systemTypeEntry(Editorial.rawArg(args, p.getEditorialManifest().systemtype))
 	local starsystem = getStarsystem(apiData)
-	local typeInfo = editorialEntry or (starsystem and locationUtil.SYSTEM_TYPES[starsystem.type] or nil)
+	local typeInfo = editorialEntry or (starsystem and locationVocabulary.SYSTEM_TYPES[starsystem.type] or nil)
 	return {
 		name = typeInfo and typeInfo.label or 'Star system',
 		category = 'Systems',
@@ -292,8 +296,8 @@ function p.getSections(ctx)
 	sectionBuilder.push(general, 'Starmap status', starsystem and STATUS_LABELS[starsystem.status] or nil)
 
 	local sensor = {}
-	locationUtil.appendSensorMeter(sensor, 'Economy', aggregated.economy)
-	locationUtil.appendSensorMeter(sensor, 'Population', aggregated.population)
+	locationDisplay.appendSensorMeter(sensor, 'Economy', aggregated.economy)
+	locationDisplay.appendSensorMeter(sensor, 'Population', aggregated.population)
 
 	local objects = {}
 	local tiles = buildObjectTiles(starsystem, ed)
@@ -349,8 +353,8 @@ function p.getStructuredData(ctx)
 	-- free text for affiliations only lore knows (Kr'Thak). Counts go through
 	-- the editorial view so the stored numbers always equal the displayed
 	-- tiles (hand counts beat the starmap tallies).
-	local typeCode, typeEntry = locationUtil.resolveSystemType(starsystem, resolved)
-	local affiliation = locationUtil.resolveAffiliation(starsystem, resolved)
+	local typeCode, typeEntry = locationVocabulary.resolveSystemType(starsystem, resolved)
+	local affiliation = locationVocabulary.resolveAffiliation(starsystem, resolved)
 	return {
 		system_type = typeEntry and typeEntry.label or typeCode,
 		affiliation = affiliation and (affiliation.short or affiliation.label) or nil,
@@ -373,13 +377,13 @@ end
 function p.getShortDescription(ctx)
 	local apiData, typeInfo, resolved = ctx.apiData, ctx.typeInfo, ctx.resolved
 	local starsystem = getStarsystem(apiData)
-	local _, typeEntry = locationUtil.resolveSystemType(starsystem, resolved)
+	local _, typeEntry = locationVocabulary.resolveSystemType(starsystem, resolved)
 	local planets = tonumber(Editorial.view(resolved):value('planets', countObjects(starsystem).PLANET)) or 0
 	local countClause = planets == 1 and ' with 1 planet' or (' with ' .. planets .. ' planets')
 
 	if typeEntry then
 		local label = typeInfo and typeInfo.name or 'Star system'
-		local affiliation = locationUtil.resolveAffiliation(starsystem, resolved)
+		local affiliation = locationVocabulary.resolveAffiliation(starsystem, resolved)
 		-- Only canonical affiliations join the prefix: a free-text one reads
 		-- wrong there ("Unknown trinary star system" says the wrong thing
 		-- entirely), and free text is unbounded — the row and category carry
@@ -406,7 +410,7 @@ end
 --- @param ctx EntityHookContext
 --- @return table[]
 function p.getFooterButtons(ctx)
-	return locationUtil.starmapFooterButtons(starmapCode(ctx.apiData))
+	return locationDisplay.starmapFooterButtons(starmapCode(ctx.apiData))
 end
 
 --- Chain-contributed Metadata rows: the ARK starmap code, through the same
@@ -414,7 +418,7 @@ end
 --- @param ctx EntityHookContext
 --- @return EntityItemData[]
 function p.getMetadataItems(ctx)
-	return locationUtil.starmapMetadataItems(starmapCode(ctx.apiData))
+	return locationDisplay.starmapMetadataItems(starmapCode(ctx.apiData))
 end
 
 -- Test-only exports. Not part of the public API.

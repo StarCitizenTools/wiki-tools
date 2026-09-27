@@ -17,7 +17,7 @@ Editors use this through `{{System map}}`; see [Template:System map](https://sta
 
 ### Gotchas
 
-- The header's eyebrow is the system's affiliation (`systems.json` `affiliation`, a code) in the Location breadcrumb's compact form, e.g. "UEE space", linking `Category:<label> systems`. Rendering it requires `Module:Entity/Location/Util`, so an edit to that module, or to one of its own requires, re-renders every page carrying a system map.
+- The header's eyebrow is the system's affiliation (`systems.json` `affiliation`, a code) in the Location breadcrumb's compact form, e.g. "UEE space", linking `Category:<label> systems`. Rendering it requires `Module:Entity/Location/Vocabulary`, so an edit to that module, or to one of its own requires, re-renders every page carrying a system map.
 - Disc size is logarithmic and rank-preserving only, not proportional: Pyro V's diameter is 6.6× Hurston's but renders about 1.3× its width. An unsized body, or one whose tier has no valid extents, draws at its tier's floor; a body whose diameter *exceeds* the tier's recorded maximum clamps to the tier's cap instead, so it reads as "at least as big as anything here" rather than overstating or erroring.
 - `p.annotateExistence` calls `mw.title.new(page).exists` once per body, an expensive parser function capped at 100 calls on this wiki; Sol (36 probes) is the worst case among the 75 systems in `systems.json`. A larger rollout to location pages is not covered by that budget and needs a different approach.
 - A companion star is measured at the star tier regardless of which column it renders in: its own diameter, not the column, determines its size.

@@ -26,7 +26,7 @@ Sibling templates share Apiunto's cached data; place them further down the page:
 
 - [Module:Entity/Item](https://starcitizen.tools/Module:Entity/Item): the Item kind + subtype dispatch (24 leaves under Item/)
 - [Module:Entity/Vehicle](https://starcitizen.tools/Module:Entity/Vehicle): the Vehicle kind + family dispatch (Ship/GroundVehicle/Gravlev leaves; sub-builders under Vehicle/)
-- [Module:Entity/Location](https://starcitizen.tools/Module:Entity/Location): the Location kind (StarSystem/JumpPoint leaves; helpers in Location/Util)
+- [Module:Entity/Location](https://starcitizen.tools/Module:Entity/Location): the Location kind (StarSystem/JumpPoint leaves; shared pieces in Location/Vocabulary, Location/Starmap and Location/Display)
 - [Module:Entity/Commodity](https://starcitizen.tools/Module:Entity/Commodity): the Commodity kind (raw/refined records via `enrich`; Mining/Records helpers)
 - [Module:Entity/Mission](https://starcitizen.tools/Module:Entity/Mission): the Mission kind (WIP)
 

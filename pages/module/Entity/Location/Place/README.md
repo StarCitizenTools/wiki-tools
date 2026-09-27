@@ -9,7 +9,7 @@ Place leaf of the Location kind: stations, outposts, landing zones and the venue
 - `p.family = 'place'`. [Module:Entity/Location](https://starcitizen.tools/Module:Entity/Location) dispatches `Outpost`, `Outpost_InvalidQT`, `Manmade`, `Manmade_VisibleOnInteraction`, `LandingZone`, `PointOfInterest`, `NavPoint` and `Asteroid_ValidQT` records here.
 - Editorial args: `classification` (a class in [classes.json](https://starcitizen.tools/Module:Entity/Location/Place/classes.json)), `parent`, `lagrange` (L1 to L5), `zone`, `operator`, `jurisdiction`, `system`, `starmapcode` (aliases `starmapcode`/`code`), and the lore fields `founder`, `founded`, `population`.
 - Stores `Classification`, `Zone`, `Lagrange point`, `Parent`, `System`, `Operator`, `Jurisdiction` and `Amenities` in the `location` bucket.
-- `starmapcode` is not stored; it feeds the Starmap footer button and the "Starmap code" metadata row (`locationUtil.starmapFooterButtons`/`starmapMetadataItems`), the same pair every Location leaf with a starmap code uses.
+- `starmapcode` is not stored; it feeds the Starmap footer button and the "Starmap code" metadata row (`starmapFooterButtons`/`starmapMetadataItems` in [Module:Entity/Location/Display](https://starcitizen.tools/Module:Entity/Location/Display)), the same pair every Location leaf with a starmap code uses.
 
 ### Gotchas
 

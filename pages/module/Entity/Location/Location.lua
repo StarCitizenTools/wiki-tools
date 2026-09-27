@@ -10,8 +10,9 @@ require('strict')
 --- Jump-point gates are recognised by name, because the locations API types
 --- them 'Anomaly', a token shared with wreck sites (see isJumpPointRecord).
 --- Wreck sites and plain Asteroid records stay unclaimed. This module is kind
---- identity only; the starmap vocabulary and the starmap bridges the leaves'
---- enrich hooks call live in Module:Entity/Location/Util.
+--- identity only; the starmap vocabulary, the starmap bridges the leaves'
+--- enrich hooks call, and the rows they share live in
+--- Module:Entity/Location/Vocabulary, /Starmap and /Display.
 
 local subtypeResolver = require('Module:Entity/SubtypeResolver')
 

@@ -50,10 +50,8 @@ function p.getEditorialManifest()
 	}
 end
 
---- Jump-point gates file under their entry system's category ("Pyro
---- system") — a FUNCTIONAL membership, not just browse taxonomy:
---- {{System navplate}} builds its "Jump points" row from the per-system
---- category intersected with Jump points. The legacy pages' flat
+--- Jump-point gates file under their ENTRY system's category ("Pyro
+--- system"), not the destination's. The legacy pages' flat
 --- 'Astronomical objects'/'Locations' memberships are deliberately NOT
 --- carried over: the classification bucket (typeInfo's 'Jump points', under
 --- Astronomy) covers that taxonomy.

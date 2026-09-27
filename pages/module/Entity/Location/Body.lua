@@ -368,10 +368,7 @@ function p.getSubtitle(ctx)
 	return text
 end
 
---- The type facet plus the system category. The system one is not decoration:
---- {{Navplate system}} builds its Planets and Moons rows from
---- Category:Planets (or Moons) intersected with Category:<System> system, so a
---- body without it disappears from its own system's navplate.
+--- The type facet plus the system category.
 --- @param ctx EntityHookContext
 --- @return string[]
 function p.getCategories(ctx)

@@ -230,10 +230,6 @@ end
 --- matched back only where the record classes nothing, the record-less pages'
 --- one route to a category; a star nothing classes is genuinely of unknown
 --- spectral type, itself a live category.
----
---- The system category is FUNCTIONAL: {{Navplate system}} builds its Stars row
---- from it intersected with Stars, so dropping it empties that row on every
---- system page. JumpPoint files its gates the same way.
 --- @param ctx EntityHookContext
 --- @return string[]
 function p.getCategories(ctx)

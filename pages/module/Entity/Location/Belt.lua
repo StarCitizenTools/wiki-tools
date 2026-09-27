@@ -197,9 +197,7 @@ function p.getSubtitle(ctx)
 end
 
 --- Only the system category: the type category is structural and comes from
---- getTypeInfo. {{Navplate system}} intersects `Asteroid belts` with
---- `<System> system` to build its Asteroids row, so a belt without this
---- disappears from its own system's navplate.
+--- getTypeInfo.
 --- @param ctx EntityHookContext
 --- @return string[]
 function p.getCategories(ctx)

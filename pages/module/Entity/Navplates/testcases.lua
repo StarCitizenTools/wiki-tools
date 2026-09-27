@@ -285,6 +285,69 @@ function suite:testSpaceStationHubCountsEveryStationClass()
 	self:assertEquals(true, categories['Category:Orbital stations'])
 end
 
+-- Where each place class browses to, by its parent in classes.json. A class
+-- whose group has no list of its own and too few pages for one has no hub.
+local PLACE_GROUP_HUBS = {
+	['Outposts'] = 'Outposts',
+	['Settlements'] = 'Settlements',
+	['City venues'] = 'City venues',
+	['Space stations'] = 'Space station',
+}
+local PLACE_CLASS_HUBS = {
+	['Space station'] = 'Space station',
+	['Settlement'] = 'Settlements',
+	['Racetrack'] = 'Racing',
+	['Asteroid cluster'] = 'Asteroid formation',
+}
+local HUBLESS_CLASSES = { Cave = true, ['Crash site'] = true, Monument = true, Prison = true }
+
+function suite:testEveryPlaceClassReachesItsGroupHub()
+	local classes = mw.loadJsonData('Module:Entity/Location/Place/classes.json').classes
+	for name, class in pairs(classes) do
+		local want = PLACE_CLASS_HUBS[name] or PLACE_GROUP_HUBS[class.parent]
+		if HUBLESS_CLASSES[name] then
+			self:assertEquals(nil, hubFor(name), name)
+		else
+			self:assertEquals(want, hubFor(name), name)
+		end
+	end
+end
+
+function suite:testPlaceOverridesNameAPlaceClass()
+	-- The class names reach their hubs through the shared overrides, because a
+	-- record-less place resolves as an Item in a sibling call. An override into a
+	-- place hub that names no class is a typo or a class that was renamed.
+	local classes = mw.loadJsonData('Module:Entity/Location/Place/classes.json').classes
+	local placeHubs = {}
+	for _, hub in pairs(PLACE_GROUP_HUBS) do
+		placeHubs[hub] = true
+	end
+	for _, hub in pairs(PLACE_CLASS_HUBS) do
+		placeHubs[hub] = true
+	end
+	local overrides = mw.loadJsonData('Module:Entity/Navplates/hubs.json').overrides
+	for from, to in pairs(overrides) do
+		if placeHubs[to] then
+			self:assertEquals('table', type(classes[from]), from)
+		end
+	end
+end
+
+function suite:testGroupHubsCountEveryClassTheirGridLists()
+	local classes = mw.loadJsonData('Module:Entity/Location/Place/classes.json').classes
+	for group, hub in pairs(PLACE_GROUP_HUBS) do
+		local selected = {}
+		for _, category in ipairs(countFilter(hub, nil).any) do
+			selected[category] = true
+		end
+		for name, class in pairs(classes) do
+			if class.parent == group then
+				self:assertEquals(true, selected['Category:' .. class.category], name)
+			end
+		end
+	end
+end
+
 function suite:testRacetrackReachesTheRacingHub()
 	local hub, label, countOn =
 		resolveHub({ { value = 'Racetracks', countOn = 'Racetrack' }, { value = 'Racetrack', countOn = 'Racetrack' } })

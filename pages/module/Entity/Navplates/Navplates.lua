@@ -250,8 +250,10 @@ local function countLine(n, noun, line)
 		return nil
 	end
 	local formatted = mw.language.getContentLanguage():formatNum(n)
+	-- Both sides lowered: a proper-noun label keeps its capitals ("Super-Earths").
 	local lower = mw.ustring.lower(line)
-	if noun ~= '' and mw.ustring.sub(lower, -mw.ustring.len(noun)) == noun then
+	local lowerNoun = mw.ustring.lower(noun)
+	if noun ~= '' and mw.ustring.sub(lower, -mw.ustring.len(lowerNoun)) == lowerNoun then
 		return formatted .. ' in total'
 	end
 	return formatted .. ' ' .. noun

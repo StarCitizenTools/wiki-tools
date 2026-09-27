@@ -34,6 +34,9 @@ end
 
 function suite:testCountLineMatchesNounCaseInsensitively()
 	self:assertEquals('12 in total', countLine(12, 'coolers', 'Coolers'))
+	-- A label that keeps its own capitals still matches the title it heads.
+	self:assertEquals('16 in total', countLine(16, 'Super-Earths', 'Super-Earths'))
+	self:assertEquals('5 in total', countLine(5, 'A-type main-sequence stars', 'A-type main-sequence stars'))
 end
 
 function suite:testCountLineMatchesOnlyTheTail()

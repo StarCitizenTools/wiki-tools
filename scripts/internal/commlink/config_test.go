@@ -50,11 +50,23 @@ func TestPageNameEngineering(t *testing.T) {
 		{"Q&A: ARGO SRV", "2019-02-28", "Q&A - ARGO SRV - 2019-02-28"},
 		{"Q&A: Argo SRV", "2026-05-24", "Q&A - Argo SRV - 2026-05-24"},
 		{"Q&A: MISC Hull A", "2015-04-28", "Q&A - MISC Hull A"},
-		{"DefenseCon 2956 Ship Q&A | Star Citizen", "2026-05-14", "DefenseCon 2956 Ship Q&A"},
+		{"Q&A: DefenseCon 2956 New Ships", "2026-05-14", "Q&A - DefenseCon 2956 New Ships"},
 		{"Orion Vault : A Loan in the 'Verse", "2015-02-26", "Orion Vault - A Loan in the 'Verse"},
 	} {
 		if got, complete := c.PageName(tc.in, tc.date); got != tc.want || !complete {
 			t.Errorf("PageName(%q, %q) = %q, %v, want %q, true", tc.in, tc.date, got, complete, tc.want)
+		}
+	}
+	for title, want := range map[string]string{
+		"Making the 300i":           "Behind the Scenes",
+		"Video: Mocap Update":       "Behind the Scenes",
+		"Inside CIG: Foundry 42":    "Behind the Scenes",
+		"Q&A: Anvil Hawk":           "Q&A",
+		"Test Drive the Origin 300": "One-off",
+		"Videogame Night":           "One-off",
+	} {
+		if got := c.ReportSeries(title, "None"); got != want {
+			t.Errorf("ReportSeries(%q) = %q, want %q", title, got, want)
 		}
 	}
 	title := c.ReportTitle("Round Table", "Round Table: Programming")

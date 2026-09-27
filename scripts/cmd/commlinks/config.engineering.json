@@ -5,12 +5,7 @@
   "signOffPattern": "(?i)^(?:[-—–=]+\\s*)?chris(?: roberts)?$",
   "h1Headings": true,
   "tables": true,
-  "renames": [
-    {
-      "pattern": "^(.+) \\| Star Citizen$",
-      "replace": "${1}"
-    }
-  ],
+  "bannerImages": true,
   "datedTitlePattern": "^(?:Round Table|Test Drive the Origin Jumpworks 300 Series!|WIP - Retaliator|Q&A - MISC Hull [BC]|Q&A - RSI (?:Apollo|Perseus)|Q&A - (?i:Argo SRV))$",
   "infoboxType": "Engineering",
   "seriesFromReport": true,
@@ -56,6 +51,10 @@
       "series": "Concept Art"
     },
     {
+      "title": "^(?:Making|Video)\\b",
+      "series": "Behind the Scenes"
+    },
+    {
       "title": ".",
       "series": "One-off"
     }
@@ -96,7 +95,10 @@
     "Turbulent": "Turbulent",
     "Hurston Dynamics": "Hurston Dynamics",
     "Constantine Hurston": "Constantine Hurston",
-    "Terra Mills": "Terra Mills"
+    "Terra Mills": "Terra Mills",
+    "Matt Sherman": "Matthew Sherman",
+    "Crusader Industries": "Crusader Industries",
+    "Zeus CL": "Zeus Mk II CL"
   },
   "stoplist": [
     "Centurion",
@@ -109,17 +111,34 @@
   ],
   "noLink": [
     "Vulcan (G12)",
-    "Eclipse Mode"
+    "Eclipse Mode",
+    "Crusader Ares",
+    "Crusader C2",
+    "Crusader Hercules",
+    "Crusader Intrepid",
+    "Crusader Mercury",
+    "Crusader Spirit",
+    "Crusader family",
+    "Crusader line",
+    "Crusader ships",
+    "Crusader is seeing",
+    "capabilities of Crusader",
+    "Jupiter Ascending",
+    "Aurora Clipper",
+    "Titan/Stalker",
+    "Orison Relief Support",
+    "Zeus Mk II",
+    "Zeus variants",
+    "the Zeus or Spirit",
+    "“Marauder,”",
+    "gathering in Austin",
+    "downtown Austin"
   ],
   "fidelityIgnore": [
-    "^(?:Embark onLanding bay iron Hades IIISmuggling)+PU Monthly Reports?$",
-    "^Ai system Puffy PlanetVanduul civilization captain transponderEradicate ennoblingPU Monthly Report$",
-    "^PU Monthly Report$",
-    "^The Character Art team progressed with projects for Alpha 4\\.8 alongside in-game assets\\. They also continued to work on new gang outfits and support Star Wear\\.$",
     "^The RSI Aurora Mk II and Aurora Mk I SE will be flyable in-game when Alpha 4\\.7 goes live\\.$",
     "^This promotion starts a ‘sunset’ window for the Aurora Mk I from both the Pledge Store \\(including any unretrieved standalone ships, upgrades, or CCUs that specifically involve the Aurora Mk I in your account's buyback queues\\) as well as in-game shops\\. This window begins on March 25, 2026, and is scheduled to end on September 30, 2026\\. After September 30, 2026, the Aurora Mk I will still be fully supported in gameplay, including repairs, refueling, maintenance, and components, but the chassis will no longer be obtainable from standard in-game vendors\\.$"
   ],
-  "knownReview": [],
+  "knownReview": [16320, 16354, 16468],
   "apiTextAccepted": [13058, 21086, 21143],
   "apiIngestDates": [
     "2026-05-25"

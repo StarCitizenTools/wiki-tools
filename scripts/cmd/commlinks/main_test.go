@@ -8,6 +8,8 @@ import (
 	"sort"
 	"strings"
 	"testing"
+
+	"github.com/StarCitizenTools/wiki-tools/scripts/internal/mediawiki"
 )
 
 func TestDefaultOut(t *testing.T) {
@@ -114,6 +116,47 @@ func TestTitleConflict(t *testing.T) {
 		got := titleConflict(7, title, c.stored, c.taken, c.claimedBy)
 		if (c.want == "") != (got == "") || !strings.Contains(got, c.want) {
 			t.Errorf("%s: titleConflict = %q, want %q", c.name, got, c.want)
+		}
+	}
+}
+
+// A report coveredElsewhere counts as present unless a Comm-Link page already
+// stores it, so it is planned only when -refresh and -only name it, and its
+// title check then names the page that holds it.
+func TestAddCovered(t *testing.T) {
+	existing := map[int]string{13239: "Comm-Link:Star Citizen Patch 1"}
+	addCovered(existing, map[int]string{13239: "Update:Star Citizen Patch 1", 13246: "Update:Star Citizen Patch 2"})
+	want := map[int]string{13239: "Comm-Link:Star Citizen Patch 1", 13246: "Update:Star Citizen Patch 2"}
+	if !reflect.DeepEqual(existing, want) {
+		t.Errorf("existing = %v, want %v", existing, want)
+	}
+	if wanted(13246, existing, nil, false) {
+		t.Error("a covered report is planned")
+	}
+	if !wanted(13246, existing, map[int]bool{13246: true}, true) {
+		t.Error("a covered report named by -only under -refresh is not planned")
+	}
+	if got := titleConflict(13246, "Comm-Link:Star Citizen Patch 2", existing[13246], false, 0); !strings.Contains(got, "Update:Star Citizen Patch 2") {
+		t.Errorf("titleConflict = %q, want one naming the page that holds the report", got)
+	}
+}
+
+// A page name MediaWiki would reject goes to review whatever the wiki says,
+// and so does one the wiki answers as invalid.
+func TestTitleProblem(t *testing.T) {
+	for _, c := range []struct {
+		page   string
+		status mediawiki.TitleStatus
+		want   string
+	}{
+		{"Q&A - DefenseCon 2956 New Ships", mediawiki.TitleMissing, ""},
+		{"Q&A - DefenseCon 2956 New Ships", "", ""},
+		{"DefenseCon 2956 Ship Q&A | Star Citizen", "", `"|"`},
+		{"Q&A - Odd", mediawiki.TitleInvalid, "the wiki rejects Comm-Link:Q&A - Odd"},
+	} {
+		got := titleProblem(c.page, c.status)
+		if (c.want == "") != (got == "") || !strings.Contains(got, c.want) {
+			t.Errorf("titleProblem(%q, %q) = %q, want %q", c.page, c.status, got, c.want)
 		}
 	}
 }

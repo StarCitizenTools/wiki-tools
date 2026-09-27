@@ -662,3 +662,56 @@ func TestParseClassicH1Headings(t *testing.T) {
 		"P No.",
 	})
 }
+
+// A spanning cell keeps its span; a nested table or an image in a cell sends
+// the report to review.
+func TestParseClassicTableGuard(t *testing.T) {
+	page := func(table string) []byte {
+		return []byte(`<html><body><div id="contentbody"><div id="post"><div class="wrapper">
+<div class="content-block1 rsi-markup"><div class="segment"><div class="content">` + table + `</div></div></div>
+</div><div class="two-line-separator"></div></div></div></body></html>`)
+	}
+	blocks, _, err := ParseClassic(page(`<table><tr><th colspan="2">Missiles</th><th>x</th></tr><tr><td rowspan="2">A</td><td>1</td><td colspan="1">2</td></tr></table>`), "Design Notes", engineeringConfig(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := blocks[0].Rows; got[0][0].Colspan != 2 || got[1][0].Rowspan != 2 || got[1][2].Colspan != 0 {
+		t.Errorf("spans = %+v", got)
+	}
+	for table, want := range map[string]string{
+		`<table><tr><td><table><tr><td>x</td></tr></table></td></tr></table>`: "nested table",
+		`<table><tr><td><img src="/media/a/post/A.jpg"></td></tr></table>`:    "image",
+	} {
+		if _, _, err := ParseClassic(page(table), "Design Notes", engineeringConfig(t)); err == nil || !strings.Contains(err.Error(), want) {
+			t.Errorf("ParseClassic(%s) = %v, want an error naming %q", table, err, want)
+		}
+	}
+	if _, _, err := ParseClassic(page(`<table><tr><td><img src="/media/a/post/A.jpg"></td></tr></table><p>x</p>`), "Monthly Report: May 2014", testConfig(t)); err != nil {
+		t.Errorf("without tables an image in a cell = %v, want it read as an image", err)
+	}
+}
+
+// The Shipyard's div-drawn table: its header block and footer are paragraphs,
+// its top row header cells, an empty header cell widening the one before it,
+// and each left cell opens a row.
+func TestParseClassicDivTable(t *testing.T) {
+	shell := []byte(`<html><body><div id="contentbody"><div id="post"><div class="description huckaby1 segment"><div class="content">
+<div id="jaredtable-table2"><div id="jaredtable-header2"><span class="jaredtable-bold2">Soon Parted</span><br><span>Both.</span></div>
+<div id="jaredtable-top2"><div class="jaredtable-top-cell2">Ship Type</div><div class="jaredtable-top-cell2">Missiles</div><div class="jaredtable-top-cell2"></div><div class="jaredtable-top-cell2">Torpedoes</div></div>
+<div id="jaredtable-middle2"><div class="jaredtable-left2">Gladius</div><div class="jaredtable-right2">4x S2</div><div class="jaredtable-right2">2x S3</div><div class="jaredtable-right2"></div>
+<div class="jaredtable-left2">Javelin</div><div class="jaredtable-right2"></div><div class="jaredtable-right2"></div><div class="jaredtable-right2">32x S12</div></div>
+<div id="jaredtable-footer2"><br>* A partial listing.</div></div>
+</div></div></div></div></body></html>`)
+	blocks, _, err := ParseClassic(shell, "The Shipyard: Ordnance Hardpoints", engineeringConfig(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	check(t, dump(blocks), []string{
+		"P Soon Parted<br />Both.",
+		"TABLE !Ship Type | !Missiles | !Torpedoes / Gladius | 4x S2 | 2x S3 |  / Javelin |  |  | 32x S12",
+		"P * A partial listing.",
+	})
+	if blocks[1].Rows[0][1].Colspan != 2 {
+		t.Errorf("header cells = %+v, want Missiles spanning two columns", blocks[1].Rows[0])
+	}
+}

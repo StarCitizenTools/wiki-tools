@@ -99,9 +99,9 @@ func TestFetchSeries(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := []SeriesItem{
-		{ID: 21307, URL: srv.URL + "/comm-link/transmission/21307-Star-Citizen-Monthly-Report-August-2026"},
-		{ID: 18251, URL: srv.URL + "/comm-link/transmission/18251-Star-Citizen-Monthly-Report-July-2021", Posted: "2021-08-04"},
-		{ID: 15833, URL: srv.URL + "/comm-link/transmission/15833-Monthly-Studio-Report-March-2017", Posted: "2017-04-14"},
+		{ID: 21307, URL: srv.URL + "/comm-link/transmission/21307-Star-Citizen-Monthly-Report-August-2026", Title: "Star Citizen Monthly Report"},
+		{ID: 18251, URL: srv.URL + "/comm-link/transmission/18251-Star-Citizen-Monthly-Report-July-2021", Posted: "2021-08-04", Title: "Star Citizen Monthly Report"},
+		{ID: 15833, URL: srv.URL + "/comm-link/transmission/15833-Monthly-Studio-Report-March-2017", Posted: "2017-04-14", Title: "Star Citizen Monthly Report"},
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("items = %+v, want %+v", got, want)
@@ -129,7 +129,7 @@ func TestUnion(t *testing.T) {
 		fetched++
 		return Candidate{ID: id, Title: "E"}, nil
 	}
-	got, dis, review, err := Union(context.Background(), titled, []SeriesItem{{ID: 2, Posted: "2021-06-02"}, {ID: 5}}, FoundBySeries, fetch)
+	got, dis, review, err := Union(context.Background(), titled, []SeriesItem{{ID: 2, Posted: "2021-06-02", Title: "B, as listed"}, {ID: 5}}, FoundBySeries, fetch)
 	if err != nil || len(review) != 0 {
 		t.Fatal(review, err)
 	}
@@ -145,6 +145,9 @@ func TestUnion(t *testing.T) {
 	}
 	if got[0].Posted != "" || got[1].Posted != "2021-06-02" || got[2].Posted != "" {
 		t.Errorf("posted dates = %q %q %q", got[0].Posted, got[1].Posted, got[2].Posted)
+	}
+	if got[1].Title != "B" {
+		t.Errorf("title = %q, want the API's: only a site-suffixed API title yields to the listing's", got[1].Title)
 	}
 	want := []Disagreement{{ID: 1, Title: "A", FoundBy: FoundByTitle}, {ID: 5, Title: "E", FoundBy: FoundBySeries}}
 	if !reflect.DeepEqual(dis, want) {
@@ -213,7 +216,7 @@ func TestFetchChannel(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []SeriesItem{{ID: 18080, URL: srv.URL + "/comm-link/serialized-fiction/18080-A-Gift-For-Baba-Part-1", Posted: "2021-04-14"}}
+	want := []SeriesItem{{ID: 18080, URL: srv.URL + "/comm-link/serialized-fiction/18080-A-Gift-For-Baba-Part-1", Posted: "2021-04-14", Title: "Star Citizen Monthly Report"}}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("items = %+v, want %+v", got, want)
 	}
@@ -255,5 +258,29 @@ func TestUnionChannel(t *testing.T) {
 	}
 	if want := []Disagreement{{ID: 2, Title: "Baba", FoundBy: FoundByChannel}}; !reflect.DeepEqual(dis, want) {
 		t.Errorf("disagreements = %+v, want %+v", dis, want)
+	}
+}
+
+// An API title that is the page's og:title, with RSI's site suffix, yields to
+// the listing's title, for a report either source found.
+func TestUnionListedTitle(t *testing.T) {
+	found := []Candidate{{ID: 21086, Title: "DefenseCon 2956 Ship Q&A | Star Citizen", FoundBy: []string{FoundByAPIChannel}}}
+	fetch := func(_ context.Context, id int) (Candidate, error) {
+		return Candidate{ID: id, Title: "Other | Star Citizen"}, nil
+	}
+	got, _, _, err := Union(context.Background(), found, []SeriesItem{
+		{ID: 21086, Title: "Q&A: DefenseCon 2956 New Ships"},
+		{ID: 21090, Title: "Q&A: Other"},
+		{ID: 21091},
+	}, FoundByChannel, fetch)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var titles []string
+	for _, c := range got {
+		titles = append(titles, c.Title)
+	}
+	if want := []string{"Q&A: DefenseCon 2956 New Ships", "Q&A: Other", "Other | Star Citizen"}; !reflect.DeepEqual(titles, want) {
+		t.Errorf("titles = %q, want %q", titles, want)
 	}
 }

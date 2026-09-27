@@ -85,19 +85,30 @@ func RenderBody(blocks []Block, caser *HeadCaser, file func(src string) string) 
 	return strings.Join(parts, "\n\n") + "\n"
 }
 
-// table renders rows as a wikitable, one cell to a line. A pipe in a cell is
-// escaped, since it would end the cell.
+// table renders rows as a wikitable, one cell to a line, a spanning cell with
+// its colspan or rowspan attribute. A pipe in a cell is escaped, since it
+// would end the cell.
 func table(rows [][]Cell) string {
 	var b strings.Builder
 	b.WriteString(`{| class="wikitable"`)
 	for _, row := range rows {
 		b.WriteString("\n|-")
 		for _, c := range row {
-			marker := "|"
+			line := "|"
 			if c.Header {
-				marker = "!"
+				line = "!"
 			}
-			b.WriteString("\n" + strings.TrimRight(marker+" "+strings.ReplaceAll(c.Text, "|", "&#124;"), " "))
+			var attrs []string
+			if c.Colspan > 1 {
+				attrs = append(attrs, fmt.Sprintf(`colspan="%d"`, c.Colspan))
+			}
+			if c.Rowspan > 1 {
+				attrs = append(attrs, fmt.Sprintf(`rowspan="%d"`, c.Rowspan))
+			}
+			if len(attrs) > 0 {
+				line += " " + strings.Join(attrs, " ") + " |"
+			}
+			b.WriteString("\n" + strings.TrimRight(line+" "+strings.ReplaceAll(c.Text, "|", "&#124;"), " "))
 		}
 	}
 	b.WriteString("\n|}")

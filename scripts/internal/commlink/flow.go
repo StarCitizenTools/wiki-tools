@@ -1,7 +1,9 @@
 package commlink
 
 import (
+	"errors"
 	"regexp"
+	"strconv"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -22,6 +24,7 @@ type flow struct {
 	headingTag func(n *html.Node) bool
 	rules      bool // an <hr> is a Rule block (sceneBreaks), not only a break
 	tables     bool // a <table> is a Table block (tables), not a run of paragraphs
+	err        error
 }
 
 var inlineTags = map[string]bool{
@@ -126,6 +129,8 @@ func (f *flow) node(n *html.Node) {
 		f.list(n)
 	case n.Data == "table" && f.tables:
 		f.table(n)
+	case n.Data == "div" && f.tables && divTable.MatchString(attr(n, "id")):
+		f.divTable(n)
 	case n.Data == "blockquote":
 		if t := Inline(n); t != "" {
 			f.emit(Block{Kind: Quote, Text: t})
@@ -157,15 +162,27 @@ func (f *flow) isHeading(n *html.Node) bool {
 }
 
 // table converts a table into a Table block: its rows in order, a th cell
-// marked as a header. A row with no cells is left out.
+// marked as a header and a spanning cell keeping its span. A row with no cells
+// is left out. A table inside a table, or an image in a cell, is more than a
+// wikitable of text cells holds, so it sends the report to review.
 func (f *flow) table(n *html.Node) {
+	if findFirst(n, tagIs("table")) != nil {
+		f.fail(errors.New("a table holds a nested table"))
+		return
+	}
 	var rows [][]Cell
 	for _, tr := range findAll(n, tagIs("tr")) {
 		var row []Cell
 		for c := tr.FirstChild; c != nil; c = c.NextSibling {
-			if c.Type == html.ElementNode && (c.Data == "td" || c.Data == "th") {
-				row = append(row, Cell{Text: trimBreaks(Inline(c)), Header: c.Data == "th"})
+			if c.Type != html.ElementNode || (c.Data != "td" && c.Data != "th") {
+				continue
 			}
+			if findFirst(c, func(m *html.Node) bool { return tagIs("img")(m) || attr(m, "data-source_url") != "" }) != nil {
+				f.fail(errors.New("a table cell holds an image"))
+				return
+			}
+			row = append(row, Cell{Text: trimBreaks(Inline(c)), Header: c.Data == "th",
+				Colspan: span(attr(c, "colspan")), Rowspan: span(attr(c, "rowspan"))})
 		}
 		if len(row) > 0 {
 			rows = append(rows, row)
@@ -173,6 +190,91 @@ func (f *flow) table(n *html.Node) {
 	}
 	if len(rows) > 0 {
 		f.emit(Block{Kind: Table, Rows: rows})
+	}
+}
+
+// span is a colspan or rowspan attribute's value, 0 for none or one that does
+// not parse.
+func span(v string) int {
+	n, err := strconv.Atoi(strings.TrimSpace(v))
+	if err != nil || n < 2 {
+		return 0
+	}
+	return n
+}
+
+// fail keeps the first error the flow meets.
+func (f *flow) fail(err error) {
+	if f.err == nil {
+		f.err = err
+	}
+}
+
+// divTable is the id of a table The Shipyard draws with divs
+// (#jaredtable-table2): a header block, a row of header cells, then rows each
+// opened by a left cell, and a footer.
+var (
+	divTable     = regexp.MustCompile(`^jaredtable-table\d*$`)
+	divTablePart = regexp.MustCompile(`^jaredtable-([a-z]+)\d*$`)
+)
+
+// divTable converts a div-drawn table: its header block and footer as
+// paragraphs around a Table block. An empty header cell widens the header
+// cell before it, as the drawn table does.
+func (f *flow) divTable(n *html.Node) {
+	byID := func(part string) *html.Node {
+		return findFirst(n, func(m *html.Node) bool {
+			p := divTablePart.FindStringSubmatch(attr(m, "id"))
+			return m.Type == html.ElementNode && p != nil && p[1] == part
+		})
+	}
+	cellsOf := func(parent *html.Node) []*html.Node {
+		var out []*html.Node
+		for c := parent.FirstChild; c != nil; c = c.NextSibling {
+			if c.Type == html.ElementNode && c.Data == "div" {
+				out = append(out, c)
+			}
+		}
+		return out
+	}
+	if h := byID("header"); h != nil {
+		f.flush()
+		f.run(h)
+		f.flush()
+	}
+	var rows [][]Cell
+	if top := byID("top"); top != nil {
+		var row []Cell
+		for _, c := range cellsOf(top) {
+			text := trimBreaks(Inline(c))
+			if text == "" && len(row) > 0 {
+				row[len(row)-1].Colspan = max(row[len(row)-1].Colspan, 1) + 1
+				continue
+			}
+			row = append(row, Cell{Text: text, Header: true})
+		}
+		rows = append(rows, row)
+	}
+	if mid := byID("middle"); mid != nil {
+		var row []Cell
+		for _, c := range cellsOf(mid) {
+			if strings.HasPrefix(attr(c, "class"), "jaredtable-left") && len(row) > 0 {
+				rows = append(rows, row)
+				row = nil
+			}
+			row = append(row, Cell{Text: trimBreaks(Inline(c))})
+		}
+		if len(row) > 0 {
+			rows = append(rows, row)
+		}
+	}
+	if len(rows) > 0 {
+		f.emit(Block{Kind: Table, Rows: rows})
+	}
+	if foot := byID("footer"); foot != nil {
+		f.flush()
+		f.run(foot)
+		f.flush()
 	}
 }
 

@@ -199,3 +199,14 @@ func TestMissingLabels(t *testing.T) {
 		t.Errorf("Missing = %q, want %q", got, want)
 	}
 }
+
+// A table's markup is no text: its cells read in row order, so an API line
+// that runs from the paragraph before a table into its cells is on the page.
+func TestMissingTable(t *testing.T) {
+	page := "Both, yeah?\n\n{| class=\"wikitable\"\n|-\n! Ship Type\n! colspan=\"2\" | Missiles\n|-\n| Gladius\n| rowspan=\"2\" | 4x S2\n|}\n"
+	api := "Both, yeah? Ship Type Missiles Gladius 4x S2\nShip Type colspan Missiles\n"
+	got := Missing(api, page, nil, func(string) bool { return false })
+	if want := []string{"Ship Type colspan Missiles"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("Missing = %q, want %q", got, want)
+	}
+}

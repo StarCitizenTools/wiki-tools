@@ -6,14 +6,15 @@ require('strict')
 --- assembles: the location record at the top level (name, system, jurisdiction,
 --- quantum_travel radii) plus the starmap celestial-object record at
 --- apiData.celestialobject (attached by this leaf's enrich through
---- locationUtil.attachCelestialObject from the editor's starmap code; may be
+--- locationStarmap.attachCelestialObject from the editor's starmap code; may be
 --- absent — every consumer nil-guards and degrades to location-only rows).
 --- apiData.starsystem is never present here: the two starmap bridges are
 --- mutually exclusive by construction.
 
 local boolean = require('Module:Boolean')
 local jurisdiction = require('Module:Entity/Location/Jurisdiction')
-local locationUtil = require('Module:Entity/Location/Util')
+local locationDisplay = require('Module:Entity/Location/Display')
+local locationStarmap = require('Module:Entity/Location/Starmap')
 local sectionBuilder = require('Module:Entity/SectionBuilder')
 local Editorial = require('Module:Entity/Editorial')
 
@@ -29,7 +30,7 @@ p.family = 'jumppoint'
 --- @param ctx EntityHookContext
 --- @return table apiData
 function p.enrich(ctx)
-	return locationUtil.attachCelestialObject(
+	return locationStarmap.attachCelestialObject(
 		ctx.apiData,
 		Editorial.rawArg(ctx.args, p.getEditorialManifest().starmapcode)
 	)
@@ -59,7 +60,7 @@ end
 --- @return string[]
 function p.getCategories(ctx)
 	local apiData = ctx.apiData
-	local entry = locationUtil.gateEntrySystem(apiData)
+	local entry = locationStarmap.gateEntrySystem(apiData)
 	if entry then
 		return { entry .. ' system' }
 	end
@@ -108,7 +109,7 @@ local function titleSystems(args)
 	if not a then
 		return nil, nil
 	end
-	return locationUtil.systemShortName(a), locationUtil.systemShortName(b)
+	return locationStarmap.systemShortName(a), locationStarmap.systemShortName(b)
 end
 
 --- The gate's entry system: the canonical name on the page first, then the
@@ -118,7 +119,7 @@ end
 --- @return string|nil
 local function entryFor(apiData, args)
 	local fromTitle = titleSystems(args)
-	return fromTitle or locationUtil.gateEntrySystem(apiData)
+	return fromTitle or locationStarmap.gateEntrySystem(apiData)
 end
 
 --- The system on the far side of the tunnel (short form), parsed from the
@@ -146,10 +147,10 @@ local function destinationSystem(apiData, args)
 	end
 	sideA, sideB = mw.text.trim(sideA), mw.text.trim(sideB)
 	if sideA:lower() == entry:lower() then
-		return locationUtil.systemShortName(sideB)
+		return locationStarmap.systemShortName(sideB)
 	end
 	if sideB:lower() == entry:lower() then
-		return locationUtil.systemShortName(sideA)
+		return locationStarmap.systemShortName(sideA)
 	end
 	return nil
 end
@@ -225,7 +226,7 @@ end
 --- @param args table|nil
 --- @return string|nil
 local function starmapCode(apiData, args)
-	return locationUtil.celestialStarmapCode(apiData, Editorial.rawArg(args, p.getEditorialManifest().starmapcode))
+	return locationStarmap.celestialStarmapCode(apiData, Editorial.rawArg(args, p.getEditorialManifest().starmapcode))
 end
 
 --- @param ctx EntityHookContext
@@ -317,7 +318,7 @@ end
 --- @param ctx EntityHookContext
 --- @return table[]
 function p.getFooterButtons(ctx)
-	return locationUtil.starmapFooterButtons(starmapCode(ctx.apiData, ctx.args))
+	return locationDisplay.starmapFooterButtons(starmapCode(ctx.apiData, ctx.args))
 end
 
 --- Chain-contributed Metadata rows: the ARK starmap code, through the same
@@ -325,7 +326,7 @@ end
 --- @param ctx EntityHookContext
 --- @return EntityItemData[]
 function p.getMetadataItems(ctx)
-	return locationUtil.starmapMetadataItems(starmapCode(ctx.apiData, ctx.args))
+	return locationDisplay.starmapMetadataItems(starmapCode(ctx.apiData, ctx.args))
 end
 
 -- Test-only exports. Not part of the public API.

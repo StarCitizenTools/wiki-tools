@@ -14,7 +14,7 @@ local Data = require('Module:SystemMap/Data')
 local Renderer = require('Module:SystemMap/Renderer')
 local CollapsibleCard = require('Module:CollapsibleCard')
 local yesno = require('Module:Yesno')
-local locationUtil = require('Module:Entity/Location/Util')
+local locationVocabulary = require('Module:Entity/Location/Vocabulary')
 
 local p = {}
 
@@ -100,7 +100,7 @@ end
 --- @param model table
 --- @return string|nil
 local function eyebrowFor(model)
-	local entry = locationUtil.affiliationEntry({ affiliation = { { code = model.affiliation } } })
+	local entry = locationVocabulary.affiliationEntry({ affiliation = { { code = model.affiliation } } })
 	if not entry then
 		return nil
 	end

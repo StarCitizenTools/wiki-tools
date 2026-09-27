@@ -13,7 +13,8 @@ local Store = require('Module:Entity/Store')
 local amenities = require('Module:Entity/Location/Place/Amenities')
 local classes = require('Module:Entity/Location/Place/Classes')
 local jurisdiction = require('Module:Entity/Location/Jurisdiction')
-local locationUtil = require('Module:Entity/Location/Util')
+local locationDisplay = require('Module:Entity/Location/Display')
+local locationStarmap = require('Module:Entity/Location/Starmap')
 local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
@@ -50,7 +51,7 @@ end
 --- @param key string
 --- @return string|nil
 local function arg(args, key)
-	return locationUtil.manifestArg(args, p.getEditorialManifest(), key)
+	return locationStarmap.manifestArg(args, p.getEditorialManifest(), key)
 end
 
 --- @param args table|nil
@@ -211,10 +212,10 @@ local function parentAnchor(apiData, args)
 		return nil, nil
 	end
 	if parent.type_name == 'Star' then
-		return parent.name, locationUtil.anchorTitle(parent.name, 'star')
+		return parent.name, locationDisplay.anchorTitle(parent.name, 'star')
 	end
 	if parent.type_name == 'Planet' or parent.type_name == 'Moon' then
-		return parent.name, locationUtil.anchorTitle(parent.name, 'planet')
+		return parent.name, locationDisplay.anchorTitle(parent.name, 'planet')
 	end
 	return parent.name, parent.name
 end
@@ -223,7 +224,7 @@ end
 --- @param args table|nil
 --- @return string|nil
 local function systemName(apiData, args)
-	return locationUtil.systemNameFrom(apiData, args, p.getEditorialManifest())
+	return locationStarmap.systemNameFrom(apiData, args, p.getEditorialManifest())
 end
 
 --- The jurisdiction name: an editor's override, else what enrich resolved.
@@ -288,7 +289,7 @@ function p.enrich(ctx)
 	end
 	local system = systemName(apiData, args)
 	if system then
-		return locationUtil.attachStarsystem(apiData, args, system)
+		return locationStarmap.attachStarsystem(apiData, args, system)
 	end
 	return apiData
 end
@@ -343,7 +344,7 @@ end
 local function locationChain(apiData, args)
 	local name, target = parentAnchor(apiData, args)
 	local chain =
-		locationUtil.locationChain(locationUtil.starsystemOf(apiData), systemName(apiData, args), name, target)
+		locationDisplay.locationChain(locationStarmap.starsystemOf(apiData), systemName(apiData, args), name, target)
 	local point = lagrangePoint(args)
 	if chain and point then
 		return chain .. ' › ' .. point
@@ -431,13 +432,13 @@ end
 --- @param ctx EntityHookContext
 --- @return table[]
 function p.getFooterButtons(ctx)
-	return locationUtil.starmapFooterButtons(starmapCode(ctx.args))
+	return locationDisplay.starmapFooterButtons(starmapCode(ctx.args))
 end
 
 --- @param ctx EntityHookContext
 --- @return EntityItemData[]
 function p.getMetadataItems(ctx)
-	return locationUtil.starmapMetadataItems(starmapCode(ctx.args))
+	return locationDisplay.starmapMetadataItems(starmapCode(ctx.args))
 end
 
 -- Test-only exports. Not part of the public API.

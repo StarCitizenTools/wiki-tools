@@ -16,7 +16,9 @@ require('strict')
 --- system's object list.
 
 local Editorial = require('Module:Entity/Editorial')
-local locationUtil = require('Module:Entity/Location/Util')
+local locationDisplay = require('Module:Entity/Location/Display')
+local locationStarmap = require('Module:Entity/Location/Starmap')
+local locationVocabulary = require('Module:Entity/Location/Vocabulary')
 local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
@@ -46,7 +48,7 @@ end
 --- @param args table|nil
 --- @return string|nil
 local function starmapCode(args)
-	return locationUtil.manifestArg(args, p.getEditorialManifest(), 'starmapcode')
+	return locationStarmap.manifestArg(args, p.getEditorialManifest(), 'starmapcode')
 end
 
 --- The ARK object types this leaf may resolve to. The two are one family to the
@@ -61,22 +63,22 @@ local BELT_OBJECT_TYPES = { ASTEROID_BELT = true, ASTEROID_FIELD = true }
 --- @param args table|nil
 --- @return table|nil
 local function celestial(apiData, args)
-	local starsystem = locationUtil.starsystemOf(apiData)
-	return locationUtil.celestialByCode(starsystem, starmapCode(args))
-		or locationUtil.celestialByName(starsystem, locationUtil.subjectName(apiData, args), BELT_OBJECT_TYPES)
+	local starsystem = locationStarmap.starsystemOf(apiData)
+	return locationStarmap.celestialByCode(starsystem, starmapCode(args))
+		or locationStarmap.celestialByName(starsystem, locationStarmap.subjectName(apiData, args), BELT_OBJECT_TYPES)
 end
 
 --- @param apiData table
 --- @param args table|nil
 --- @return string|nil
 local function resolvedStarmapCode(apiData, args)
-	return locationUtil.resolvedStarmapCode(args, p.getEditorialManifest(), celestial(apiData, args))
+	return locationStarmap.resolvedStarmapCode(args, p.getEditorialManifest(), celestial(apiData, args))
 end
 
 --- @param args table|nil
 --- @return string|nil
 local function editorialClassification(args)
-	return locationUtil.manifestArg(args, p.getEditorialManifest(), 'classification')
+	return locationStarmap.manifestArg(args, p.getEditorialManifest(), 'classification')
 end
 
 --- The vocabulary entry this page's starmap object resolves to.
@@ -85,7 +87,7 @@ end
 --- @return { classification: string, category: string, page: string }|nil
 local function beltEntry(apiData, args)
 	local obj = celestial(apiData, args) or {}
-	return locationUtil.beltTypeEntry(obj.sub_type, obj.type)
+	return locationVocabulary.beltTypeEntry(obj.sub_type, obj.type)
 end
 
 --- The formation's classification: the editor's text when given, delinked so it
@@ -110,7 +112,7 @@ end
 --- @param args table|nil
 --- @return string|nil
 local function systemName(apiData, args)
-	return locationUtil.systemNameFrom(apiData, args, p.getEditorialManifest())
+	return locationStarmap.systemNameFrom(apiData, args, p.getEditorialManifest())
 end
 
 --- Bridges by the SYSTEM name, explicitly, for the same reason the Body leaf
@@ -122,7 +124,7 @@ function p.enrich(ctx)
 	if not system then
 		return ctx.apiData
 	end
-	return locationUtil.attachStarsystem(ctx.apiData, ctx.args, system)
+	return locationStarmap.attachStarsystem(ctx.apiData, ctx.args, system)
 end
 
 --- What this formation orbits, as display name plus link target. A belt or
@@ -134,7 +136,7 @@ end
 --- @return string|nil name
 --- @return string|nil target
 local function parentAnchor(apiData, args)
-	return locationUtil.celestialParentAnchor(locationUtil.starsystemOf(apiData), celestial(apiData, args))
+	return locationDisplay.celestialParentAnchor(locationStarmap.starsystemOf(apiData), celestial(apiData, args))
 end
 
 --- @param apiData table
@@ -142,8 +144,8 @@ end
 --- @return string|nil
 local function locationChain(apiData, args)
 	local parentName, parentTarget = parentAnchor(apiData, args)
-	return locationUtil.locationChain(
-		locationUtil.starsystemOf(apiData),
+	return locationDisplay.locationChain(
+		locationStarmap.starsystemOf(apiData),
 		systemName(apiData, args),
 		parentName,
 		parentTarget
@@ -154,7 +156,7 @@ end
 --- @param resolved table|nil
 --- @return string|nil
 local function affiliationText(apiData, resolved)
-	return locationUtil.affiliationDisplay(locationUtil.starsystemOf(apiData), resolved)
+	return locationDisplay.affiliationDisplay(locationStarmap.starsystemOf(apiData), resolved)
 end
 
 --- The distance from what it orbits, in AU. Parent-relative, not star-relative,
@@ -176,7 +178,8 @@ end
 --- @param ctx EntityHookContext
 --- @return { name: string, category: string }
 function p.getTypeInfo(ctx)
-	local entry = beltEntry(ctx.apiData, ctx.args) or locationUtil.beltTypeFromText(editorialClassification(ctx.args))
+	local entry = beltEntry(ctx.apiData, ctx.args)
+		or locationVocabulary.beltTypeFromText(editorialClassification(ctx.args))
 	return {
 		name = classification(ctx.apiData, ctx.args) or 'Asteroid formation',
 		category = entry and entry.category or 'Asteroid Formations',
@@ -189,9 +192,9 @@ end
 --- @return string|nil
 function p.getSubtitle(ctx)
 	local text = classification(ctx.apiData, ctx.args)
-	local entry = beltEntry(ctx.apiData, ctx.args) or locationUtil.beltTypeFromText(text)
+	local entry = beltEntry(ctx.apiData, ctx.args) or locationVocabulary.beltTypeFromText(text)
 	if entry and text then
-		return locationUtil.starTypeLink(entry, text)
+		return locationVocabulary.starTypeLink(entry, text)
 	end
 	return text
 end
@@ -223,9 +226,9 @@ function p.getSections(ctx)
 	local sensor = {}
 	local readings = (celestial(apiData, args) or {}).sensor
 	if type(readings) == 'table' then
-		locationUtil.appendSensorMeter(sensor, 'Economy', readings.economy)
-		locationUtil.appendSensorMeter(sensor, 'Population', readings.population)
-		locationUtil.appendSensorMeter(sensor, 'Danger', readings.danger)
+		locationDisplay.appendSensorMeter(sensor, 'Economy', readings.economy)
+		locationDisplay.appendSensorMeter(sensor, 'Population', readings.population)
+		locationDisplay.appendSensorMeter(sensor, 'Danger', readings.danger)
 	end
 
 	local lore = {}
@@ -249,11 +252,11 @@ function p.getStructuredData(ctx)
 	local readings = (celestial(apiData, args) or {}).sensor
 	readings = type(readings) == 'table' and readings or {}
 	local function rating(value)
-		return locationUtil.formatSensor(value) and tonumber(value) or nil
+		return locationDisplay.formatSensor(value) and tonumber(value) or nil
 	end
 	return {
 		system = system and (system .. ' system') or nil,
-		affiliation = locationUtil.storedAffiliation(locationUtil.starsystemOf(apiData), resolved),
+		affiliation = locationVocabulary.storedAffiliation(locationStarmap.starsystemOf(apiData), resolved),
 		parent = parentTarget,
 		classification = classification(apiData, args),
 		designation = Editorial.view(resolved):value('designation'),
@@ -276,7 +279,7 @@ function p.getShortDescription(ctx)
 	end
 	-- Keyed on the resolved entry, not `head`: an editor's |classification= is a
 	-- display string and any variant wording would drop the parent clause.
-	if beltEntry(apiData, args) == locationUtil.BELT_TYPES['Planetary Ring'] then
+	if beltEntry(apiData, args) == locationVocabulary.BELT_TYPES['Planetary Ring'] then
 		local parentName = parentAnchor(apiData, args)
 		if parentName then
 			head = head .. ' of ' .. parentName
@@ -288,13 +291,13 @@ end
 --- @param ctx EntityHookContext
 --- @return table[]
 function p.getFooterButtons(ctx)
-	return locationUtil.starmapFooterButtons(resolvedStarmapCode(ctx.apiData, ctx.args))
+	return locationDisplay.starmapFooterButtons(resolvedStarmapCode(ctx.apiData, ctx.args))
 end
 
 --- @param ctx EntityHookContext
 --- @return EntityItemData[]
 function p.getMetadataItems(ctx)
-	return locationUtil.starmapMetadataItems(resolvedStarmapCode(ctx.apiData, ctx.args))
+	return locationDisplay.starmapMetadataItems(resolvedStarmapCode(ctx.apiData, ctx.args))
 end
 
 -- Test-only exports. Not part of the public API.

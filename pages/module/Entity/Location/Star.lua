@@ -7,14 +7,16 @@ require('strict')
 --- record at the top level, which only three stars have — Stanton, Pyro and
 --- Nyx are the only ones in the game — plus the starmap celestial-object
 --- record at apiData.celestialobject, attached by this leaf's enrich through
---- locationUtil.attachCelestialObject from the editor's starmap code. Every
+--- locationStarmap.attachCelestialObject from the editor's starmap code. Every
 --- other star page is record-less and renders from the starmap alone, so every
 --- consumer nil-guards and degrades to what it has.
 
 local Editorial = require('Module:Entity/Editorial')
 local format = require('Module:Entity/Format')
 local jurisdiction = require('Module:Entity/Location/Jurisdiction')
-local locationUtil = require('Module:Entity/Location/Util')
+local locationDisplay = require('Module:Entity/Location/Display')
+local locationStarmap = require('Module:Entity/Location/Starmap')
+local locationVocabulary = require('Module:Entity/Location/Vocabulary')
 local sectionBuilder = require('Module:Entity/SectionBuilder')
 
 local p = {}
@@ -29,7 +31,7 @@ p.family = 'star'
 --- @param ctx EntityHookContext
 --- @return table apiData
 function p.enrich(ctx)
-	return locationUtil.attachCelestialObject(
+	return locationStarmap.attachCelestialObject(
 		ctx.apiData,
 		Editorial.rawArg(ctx.args, p.getEditorialManifest().starmapcode)
 	)
@@ -76,7 +78,7 @@ end
 --- @return table|nil
 local function starTypeEntry(apiData)
 	local celestial = getCelestialObject(apiData)
-	return celestial and locationUtil.starTypeEntry(celestial.sub_type) or nil
+	return celestial and locationVocabulary.starTypeEntry(celestial.sub_type) or nil
 end
 
 --- Editorial text wins: Pyro is a flare star by lore, which the starmap does
@@ -163,16 +165,16 @@ end
 --- @param args table|nil
 --- @return string|nil
 local function systemName(apiData, args)
-	local fromRecord = locationUtil.entrySystem(apiData)
+	local fromRecord = locationStarmap.entrySystem(apiData)
 	if fromRecord then
 		return fromRecord
 	end
 	local celestial = getCelestialObject(apiData)
 	local starsystem = celestial and type(celestial.starsystem) == 'table' and celestial.starsystem or nil
 	if starsystem then
-		return locationUtil.systemShortName(starsystem.name)
+		return locationStarmap.systemShortName(starsystem.name)
 	end
-	return locationUtil.systemShortName(Editorial.rawArg(args, p.getEditorialManifest().system))
+	return locationStarmap.systemShortName(Editorial.rawArg(args, p.getEditorialManifest().system))
 end
 
 --- The ARK starmap code, from the record or the arg that would have fetched it.
@@ -180,7 +182,7 @@ end
 --- @param args table|nil
 --- @return string|nil
 local function starmapCode(apiData, args)
-	return locationUtil.celestialStarmapCode(apiData, Editorial.rawArg(args, p.getEditorialManifest().starmapcode))
+	return locationStarmap.celestialStarmapCode(apiData, Editorial.rawArg(args, p.getEditorialManifest().starmapcode))
 end
 
 --- `name` must stay PLAIN: Entity stores it as `Subject type` and falls back to
@@ -215,9 +217,9 @@ local GENERIC = {
 --- @return string|nil
 function p.getSubtitle(ctx)
 	local text = classification(ctx.apiData, ctx.args) or 'Star'
-	local entry = starTypeEntry(ctx.apiData) or locationUtil.starTypeFromText(editorialClassification(ctx.args))
+	local entry = starTypeEntry(ctx.apiData) or locationVocabulary.starTypeFromText(editorialClassification(ctx.args))
 	if entry then
-		return locationUtil.starTypeLink(entry, text)
+		return locationVocabulary.starTypeLink(entry, text)
 	end
 	local generic = GENERIC[text]
 	return generic and ('[[' .. generic.page .. ']]') or text
@@ -233,7 +235,7 @@ end
 --- @param ctx EntityHookContext
 --- @return string[]
 function p.getCategories(ctx)
-	local entry = starTypeEntry(ctx.apiData) or locationUtil.starTypeFromText(editorialClassification(ctx.args))
+	local entry = starTypeEntry(ctx.apiData) or locationVocabulary.starTypeFromText(editorialClassification(ctx.args))
 	local generic = not entry and GENERIC[classification(ctx.apiData, ctx.args) or 'Star'] or nil
 	local categories = { entry and entry.category or (generic and generic.category) or 'Unknown spectral type stars' }
 	local system = systemName(ctx.apiData, ctx.args)
@@ -308,7 +310,7 @@ end
 --- @param ctx EntityHookContext
 --- @return table[]
 function p.getFooterButtons(ctx)
-	return locationUtil.starmapFooterButtons(starmapCode(ctx.apiData, ctx.args))
+	return locationDisplay.starmapFooterButtons(starmapCode(ctx.apiData, ctx.args))
 end
 
 --- Chain-contributed Metadata rows: the ARK starmap code, through the same
@@ -316,7 +318,7 @@ end
 --- @param ctx EntityHookContext
 --- @return EntityItemData[]
 function p.getMetadataItems(ctx)
-	return locationUtil.starmapMetadataItems(starmapCode(ctx.apiData, ctx.args))
+	return locationDisplay.starmapMetadataItems(starmapCode(ctx.apiData, ctx.args))
 end
 
 -- Test-only exports. Not part of the public API.

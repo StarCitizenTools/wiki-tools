@@ -3,7 +3,9 @@ require('strict')
 local ScribuntoUnit = require('Module:ScribuntoUnit')
 local Editorial = require('Module:Entity/Editorial')
 local Location = require('Module:Entity/Location')
-local Util = require('Module:Entity/Location/Util')
+local locationDisplay = require('Module:Entity/Location/Display')
+local locationStarmap = require('Module:Entity/Location/Starmap')
+local locationVocabulary = require('Module:Entity/Location/Vocabulary')
 local assembly = require('Module:Entity/Assembly')
 local StarSystem = require('Module:Entity/Location/StarSystem')
 local JumpPoint = require('Module:Entity/Location/JumpPoint')
@@ -342,7 +344,7 @@ function suite:testGetTypeInfoFallback()
 end
 
 function suite:testFormatSensor()
-	local f = Util.formatSensor
+	local f = locationDisplay.formatSensor
 	self:assertEquals('10/10', f(10))
 	self:assertEquals('8.1/10', f(8.13))
 	self:assertEquals('3/10', f(3.02))
@@ -664,7 +666,7 @@ function suite:testSectionsOmitSizeRowForZeroSizeSystem()
 	local record = starsystemFixture()
 	record.aggregated.size = 0
 	local apiData = solarSystemFixture()
-	apiData.starsystem = Util._internal.normalizeAggregates(record)
+	apiData.starsystem = locationStarmap._internal.normalizeAggregates(record)
 	local general = findSection(StarSystem.getSections(ctx(apiData, {}, nil)), 'general')
 	self:assertEquals(nil, findItem(general, 'Size'))
 	self:assertEquals('Published', findItem(general, 'Starmap status'))
@@ -673,7 +675,7 @@ end
 -- End to end: a withheld stub renders neither a Size row nor a sensor section.
 function suite:testSectionsDropSizeAndSensorsForWithheldStub()
 	local apiData = solarSystemFixture()
-	apiData.starsystem = Util._internal.normalizeAggregates(withheldStubFixture('M', 7))
+	apiData.starsystem = locationStarmap._internal.normalizeAggregates(withheldStubFixture('M', 7))
 	local sections = StarSystem.getSections(ctx(apiData, {}, nil))
 	self:assertEquals(nil, findItem(findSection(sections, 'general'), 'Size'))
 	self:assertEquals(nil, findSection(sections, 'sensor'))
@@ -862,8 +864,8 @@ end
 
 function suite:testNoRecordPageResolvesIdentityThroughManifest()
 	local resolved = resolveEditorially({ type = 'TRINARY', affiliation = 'Unknown' })
-	self:assertEquals('TRINARY', (Util.resolveSystemType(nil, resolved)))
-	self:assertEquals('Unknown', Util.resolveAffiliation(nil, resolved).label)
+	self:assertEquals('TRINARY', (locationVocabulary.resolveSystemType(nil, resolved)))
+	self:assertEquals('Unknown', locationVocabulary.resolveAffiliation(nil, resolved).label)
 end
 
 function suite:testGetCategoriesFromEditorialIdentity()
@@ -961,7 +963,7 @@ end
 -- (StarSystem's short description, JumpPoint's title parsing), and Util's own
 -- gateEntrySystem/entrySystem call it internally.
 function suite:testJumpPointSystemShortName()
-	local f = Util.systemShortName
+	local f = locationStarmap.systemShortName
 	self:assertEquals('Pyro', f('Pyro System'))
 	self:assertEquals('Terra', f('Terra system'))
 	self:assertEquals('Nyx', f('Nyx'))
@@ -2079,37 +2081,40 @@ local function beltApiData()
 end
 
 function suite:testBeltVocabulary()
-	self:assertEquals('Asteroid belts', Util.beltTypeEntry({ name = 'System Belt' }).category)
-	self:assertEquals('Asteroid clusters', Util.beltTypeEntry('System Cluster').category)
+	self:assertEquals('Asteroid belts', locationVocabulary.beltTypeEntry({ name = 'System Belt' }).category)
+	self:assertEquals('Asteroid clusters', locationVocabulary.beltTypeEntry('System Cluster').category)
 	-- The ring category is NOT 'Planetary rings', which exists but is empty.
-	self:assertEquals('Planetary ring systems', Util.beltTypeEntry('Planetary Ring').category)
+	self:assertEquals('Planetary ring systems', locationVocabulary.beltTypeEntry('Planetary Ring').category)
 	-- The wording the ten ring pages already carry, and the singular of their
 	-- category. 'Planetary ring' would be an invention.
-	self:assertEquals('Planetary ring system', Util.beltTypeEntry('Planetary Ring').classification)
+	self:assertEquals('Planetary ring system', locationVocabulary.beltTypeEntry('Planetary Ring').classification)
 	-- One concept page for the whole family: the per-type titles are redlinks.
 	for _, k in ipairs({ 'System Belt', 'System Cluster', 'Planetary Ring' }) do
-		self:assertEquals('Asteroid formation', Util.beltTypeEntry(k).page)
+		self:assertEquals('Asteroid formation', locationVocabulary.beltTypeEntry(k).page)
 	end
-	self:assertEquals(nil, Util.beltTypeEntry(nil))
+	self:assertEquals(nil, locationVocabulary.beltTypeEntry(nil))
 	-- Three ARK belts carry no sub_type, so the bare type token names the class.
-	self:assertEquals('Asteroid belts', Util.beltTypeEntry(nil, 'ASTEROID_BELT').category)
+	self:assertEquals('Asteroid belts', locationVocabulary.beltTypeEntry(nil, 'ASTEROID_BELT').category)
 	-- And that is how they REALLY arrive: the key present, every field null.
-	self:assertEquals('Asteroid belts', Util.beltTypeEntry({}, 'ASTEROID_BELT').category)
+	self:assertEquals('Asteroid belts', locationVocabulary.beltTypeEntry({}, 'ASTEROID_BELT').category)
 	-- A sub_type the vocabulary does not map does NOT fall through to the token:
 	-- it is a real classification this leaf has no word for, not a missing one.
-	self:assertEquals(nil, Util.beltTypeEntry('System Ring', 'ASTEROID_BELT'))
+	self:assertEquals(nil, locationVocabulary.beltTypeEntry('System Ring', 'ASTEROID_BELT'))
 	-- The sub_type still decides where there is one: 11 ASTEROID_BELT objects
 	-- are rings, and the token alone would file them as belts.
-	self:assertEquals('Planetary ring systems', Util.beltTypeEntry('Planetary Ring', 'ASTEROID_BELT').category)
+	self:assertEquals(
+		'Planetary ring systems',
+		locationVocabulary.beltTypeEntry('Planetary Ring', 'ASTEROID_BELT').category
+	)
 	-- Every ASTEROID_FIELD names a sub_type, so the token maps to nothing.
-	self:assertEquals(nil, Util.beltTypeEntry(nil, 'ASTEROID_FIELD'))
+	self:assertEquals(nil, locationVocabulary.beltTypeEntry(nil, 'ASTEROID_FIELD'))
 	-- An editor's wording resolves in any of the three forms.
 	for _, wording in ipairs({ 'Asteroid belt', 'System Belt', '[[Asteroid belt]]' }) do
-		self:assertEquals('Asteroid belts', Util.beltTypeFromText(wording).category)
+		self:assertEquals('Asteroid belts', locationVocabulary.beltTypeFromText(wording).category)
 	end
-	self:assertEquals('Planetary ring systems', Util.beltTypeFromText('Planetary ring system').category)
-	self:assertEquals('Planetary ring systems', Util.beltTypeFromText('Planetary Ring').category)
-	self:assertEquals(nil, Util.beltTypeFromText('Gas giant'))
+	self:assertEquals('Planetary ring systems', locationVocabulary.beltTypeFromText('Planetary ring system').category)
+	self:assertEquals('Planetary ring systems', locationVocabulary.beltTypeFromText('Planetary Ring').category)
+	self:assertEquals(nil, locationVocabulary.beltTypeFromText('Gas giant'))
 end
 
 function suite:testBeltResolvesAndClassifies()

@@ -368,6 +368,16 @@ function suite:testBeltTypesReachTheAsteroidFormationHub()
 	end
 end
 
+function suite:testBodyTypeSpellingsReachTheirHub()
+	-- Some moons store "Natural satellite" and some subgiants "Subgiant star";
+	-- both are in the category the hub's grid lists, so they browse to it and
+	-- are counted by that category rather than by their own spelling.
+	self:assertEquals('Moon', hubFor('Natural satellite'))
+	self:assertEquals('Subgiant', hubFor('Subgiant star'))
+	self:assertEquals('Category:Moons', countFilter('Moon', 'Natural satellite'))
+	self:assertEquals('Category:Subgiants', countFilter('Subgiant', 'Subgiant star'))
+end
+
 function suite:testRacetrackReachesTheRacingHub()
 	local hub, label, countOn =
 		resolveHub({ { value = 'Racetracks', countOn = 'Racetrack' }, { value = 'Racetrack', countOn = 'Racetrack' } })

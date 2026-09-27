@@ -222,7 +222,9 @@
 		"Asteroid cluster": "Asteroid formation",
 		"Asteroid belt": "Asteroid formation",
 		"Planetary ring system": "Asteroid formation",
-		"Debris field": "Asteroid formation"
+		"Debris field": "Asteroid formation",
+		"Natural satellite": "Moon",
+		"Subgiant star": "Subgiant"
 	},
 	"kinds": {
 		"Commodity": "Commodity"
@@ -288,7 +290,9 @@
 				"Category:Planetary ring systems",
 				"Category:Asteroid Formations"
 			]
-		}
+		},
+		"Moon": "Category:Moons",
+		"Subgiant": "Category:Subgiants"
 	},
 	"roles": {
 		"Anti-air": {

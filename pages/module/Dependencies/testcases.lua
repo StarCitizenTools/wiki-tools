@@ -283,4 +283,39 @@ function suite:testDynamicRequireIsListedNotStored()
 	end)
 end
 
+--- The Bucket fields `title`'s manifest declares, as a set.
+--- @param title string
+--- @return table<string, boolean>
+local function manifestFields(title)
+	local fields = {}
+	for _, def in pairs(mw.loadJsonData(title)) do
+		if type(def) == 'table' and def.field then
+			fields[def.field] = true
+		end
+	end
+	return fields
+end
+
+-- The row's keys are written by hand, not read from the manifest, and write() puts
+-- it inside pcall: a key the manifest (and so the generated Bucket schema) lacks
+-- would fail without any error on the page.
+function suite:testRowKeysAreManifestFields()
+	local fields = manifestFields('Module:Dependencies/properties.json')
+	local row = dependencies._internal.rowFor({
+		requires = { 'Module:A' },
+		loads = { 'Module:A/data.json' },
+		invokes = { { module = 'Module:B', func = 'main' } },
+		styles = { 'Module:B/styles.css' },
+	})
+	local keys = 0
+	for key in pairs(row) do
+		keys = keys + 1
+		self:assertTrue(
+			fields[key] == true,
+			"row key '" .. key .. "' is not a field of Module:Dependencies/properties.json"
+		)
+	end
+	self:assertTrue(keys > 0)
+end
+
 return suite

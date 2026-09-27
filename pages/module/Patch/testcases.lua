@@ -178,4 +178,31 @@ function suite:testStoreWithoutADateStoresNoReleaseDate()
 	self:assertEquals(true, bucketLib._puts[1].data.upcoming)
 end
 
+--- The Bucket fields `title`'s manifest declares, as a set.
+--- @param title string
+--- @return table<string, boolean>
+local function manifestFields(title)
+	local fields = {}
+	for _, def in pairs(mw.loadJsonData(title)) do
+		if type(def) == 'table' and def.field then
+			fields[def.field] = true
+		end
+	end
+	return fields
+end
+
+-- The row's keys are written by hand, not read from the manifest, and store()
+-- puts it inside pcall: a key the manifest (and so the generated Bucket schema)
+-- lacks would fail without any error on the page.
+function suite:testRowKeysAreManifestFields()
+	local fields = manifestFields('Module:Patch/properties.json')
+	local row = patch.row(patch.readArgs({ version = '4.10.0', build = '4.10.0-LIVE.12519617', date = '2026-08-26' }))
+	local keys = 0
+	for key in pairs(row) do
+		keys = keys + 1
+		self:assertTrue(fields[key] == true, "row key '" .. key .. "' is not a field of Module:Patch/properties.json")
+	end
+	self:assertTrue(keys > 0)
+end
+
 return suite

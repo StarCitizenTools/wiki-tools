@@ -58,4 +58,34 @@ function suite:testStatusIsTrimmed()
 	self:assertEquals('Obsolete', Maintenance.buildRow({ status = ' obsolete ' }).status)
 end
 
+--- The Bucket fields `title`'s manifest declares, as a set.
+--- @param title string
+--- @return table<string, boolean>
+local function manifestFields(title)
+	local fields = {}
+	for _, def in pairs(mw.loadJsonData(title)) do
+		if type(def) == 'table' and def.field then
+			fields[def.field] = true
+		end
+	end
+	return fields
+end
+
+-- The row's keys are written by hand, not read from the manifest, and record()
+-- puts it inside pcall: a key the manifest (and so the generated Bucket schema)
+-- lacks would fail without any error on the page.
+function suite:testRowKeysAreManifestFields()
+	local fields = manifestFields('Module:Maintenance/properties.json')
+	local row = Maintenance.buildRow({ status = 'update', why = 'New release', banner = 'Cleanup' })
+	local keys = 0
+	for key in pairs(row) do
+		keys = keys + 1
+		self:assertTrue(
+			fields[key] == true,
+			"row key '" .. key .. "' is not a field of Module:Maintenance/properties.json"
+		)
+	end
+	self:assertTrue(keys > 0)
+end
+
 return suite

@@ -322,8 +322,12 @@ function suite:testPlaceOverridesNameAPlaceClass()
 	for _, hub in pairs(PLACE_GROUP_HUBS) do
 		placeHubs[hub] = true
 	end
-	for _, hub in pairs(PLACE_CLASS_HUBS) do
-		placeHubs[hub] = true
+	for name, hub in pairs(PLACE_CLASS_HUBS) do
+		-- Asteroid formation also lists the belt family's own types, which are
+		-- not place classes.
+		if hub ~= 'Asteroid formation' then
+			placeHubs[hub] = true
+		end
 	end
 	local overrides = mw.loadJsonData('Module:Entity/Navplates/hubs.json').overrides
 	for from, to in pairs(overrides) do
@@ -345,6 +349,19 @@ function suite:testGroupHubsCountEveryClassTheirGridLists()
 				self:assertEquals(true, selected['Category:' .. class.category], name)
 			end
 		end
+	end
+end
+
+function suite:testBeltTypesReachTheAsteroidFormationHub()
+	-- Its list covers belts, rings and debris fields as well as the clusters.
+	for _, belt in ipairs({
+		'Asteroid belt',
+		'Planetary ring system',
+		'Debris field',
+		'Asteroid cluster',
+		'Asteroid formation',
+	}) do
+		self:assertEquals('Asteroid formation', hubFor(belt), belt)
 	end
 end
 

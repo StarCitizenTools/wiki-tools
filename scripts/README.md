@@ -13,7 +13,7 @@ is the wiki itself, and its output is a plan of edits rather than page content.
 
 ## Requirements
 
-Go 1.23+, provided by `mise install`. There are no other dependencies.
+Go 1.23+, provided by `mise install`. The only third-party module is `golang.org/x/net` (HTML parsing), which `go` fetches on first build.
 
 ## Tools
 
@@ -23,6 +23,7 @@ Go 1.23+, provided by `mise install`. There are no other dependencies.
 | `systemmap` | `Module:SystemMap/systems.json` | the starmap mirror + `pages/module/SystemMap/overlay.json` |
 | `uuidindex` | reconciliation plan for the `UUID:` redirect namespace | the wiki itself (Bucket `entity.uuid` vs `UUID:` pages) |
 | `itemstubs` | stub-page creation plan for datamined items missing from the wiki | [scunpacked-data](https://github.com/StarCitizenWiki/scunpacked-data) `items.json` vs Bucket `entity.uuid` |
+| `commlinks` | page and image plan for the Comm-Links of one RSI series missing from the wiki | the [Star Citizen Wiki API](https://api.star-citizen.wiki) comm-links, RSI's Comm-Link pages and series listing, the Wayback Machine, and the wiki (Bucket `comm_link`) |
 | `docindex` | the page catalog in `pages/README.md` (not wiki content; `mise run lint` fails while it is stale) | the `README.md` beside every module and template |
 | `bucketschemas` | `pages/bucket/*.json`, the Bucket schema pages (`mise run lint` fails while they are stale) | `Module:Entity/properties.json`, `Module:Company/properties.json` and `Module:WearableSet/properties.json` |
 | `datatablerows` | a row count per live `{{Data table}}` grid (no file; `-out` also writes it) | the wiki itself (rendered HTML + the AGGrid REST endpoint) |
@@ -114,4 +115,4 @@ purpose, so that a bad generation cannot become a bad edit without someone
 looking at it first.
 
 Per-tool notes live next to the tool — see [`cmd/starmap`](cmd/starmap/README.md),
-[`cmd/uuidindex`](cmd/uuidindex/README.md), and [`cmd/itemstubs`](cmd/itemstubs/README.md).
+[`cmd/uuidindex`](cmd/uuidindex/README.md), [`cmd/itemstubs`](cmd/itemstubs/README.md), and [`cmd/commlinks`](cmd/commlinks/README.md).

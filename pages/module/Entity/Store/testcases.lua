@@ -66,11 +66,11 @@ end
 
 function suite:testSelfUuid()
 	withManifest(function()
-		bucketLib._setRows('entity', { { uuid = 'abc-123' } })
+		bucketLib._setRows('entity', { { page_name = 'Test', uuid = 'abc-123' } })
 		self:assertEquals('abc-123', Store.selfUuid())
 		local chain = bucketLib._chains[1]
 		self:assertDeepEquals({ { 'page_name', '=', 'Test' } }, chain.where)
-		self:assertEquals(1, chain.limit)
+		self:assertEquals(10, chain.limit)
 	end)
 end
 
@@ -94,7 +94,7 @@ end
 --- that entity's uuid as its own.
 function suite:testSelfUuidNonMainNamespaceIsNil()
 	withManifest(function()
-		bucketLib._setRows('entity', { { uuid = 'abc-123' } })
+		bucketLib._setRows('entity', { { page_name = 'Test', uuid = 'abc-123' } })
 		local originalGetCurrentTitle = mw.title.getCurrentTitle
 		mw.title.getCurrentTitle = function()
 			return { namespace = 2, nsText = 'User', text = 'Test', fullText = 'User:Test' }
@@ -112,13 +112,32 @@ end
 
 function suite:testSelfValue()
 	withManifest(function()
-		bucketLib._setRows('wearable_set', { { classification = 'Heavy armor' } })
+		bucketLib._setRows('wearable_set', { { page_name = 'Test', classification = 'Heavy armor' } })
 		self:assertEquals('Heavy armor', Store.selfValue('Classification'))
 		local chain = bucketLib._chains[1]
 		self:assertEquals('wearable_set', chain.bucket)
-		self:assertDeepEquals({ 'classification' }, chain.select)
+		self:assertDeepEquals({ 'page_name', 'classification' }, chain.select)
 		self:assertDeepEquals({ { 'page_name', '=', 'Test' } }, chain.where)
-		self:assertEquals(1, chain.limit)
+		self:assertEquals(10, chain.limit)
+	end)
+end
+
+--- Bucket matches page_name case-insensitively, so the query returns the row
+--- of a title that differs only in case; that row is another page's.
+function suite:testSelfValueSkipsACaseVariantRow()
+	withManifest(function()
+		bucketLib._setRows('wearable_set', {
+			{ page_name = 'TEST', classification = 'Light armor' },
+			{ page_name = 'Test', classification = 'Heavy armor' },
+		})
+		self:assertEquals('Heavy armor', Store.selfValue('Classification'))
+	end)
+end
+
+function suite:testSelfUuidIsNilWhenOnlyACaseVariantHasARow()
+	withManifest(function()
+		bucketLib._setRows('entity', { { page_name = 'TEST', uuid = 'abc-123' } })
+		self:assertEquals(nil, Store.selfUuid())
 	end)
 end
 
@@ -141,7 +160,10 @@ end
 --- as an array, which selfValue rejects, so a caller that wants one needs this.
 function suite:testSelfValuesReturnsTheList()
 	withManifest(function()
-		bucketLib._setRows('wearable_set', { { classification = { 'Heavy armor', 'Light armor' } } })
+		bucketLib._setRows(
+			'wearable_set',
+			{ { page_name = 'Test', classification = { 'Heavy armor', 'Light armor' } } }
+		)
 		self:assertDeepEquals({ 'Heavy armor', 'Light armor' }, Store.selfValues('Classification'))
 	end)
 end
@@ -150,18 +172,21 @@ end
 --- wrapping it: the two accessors must not silently cover for each other.
 function suite:testSelfValuesRejectsAScalar()
 	withManifest(function()
-		bucketLib._setRows('wearable_set', { { classification = 'Heavy armor' } })
+		bucketLib._setRows('wearable_set', { { page_name = 'Test', classification = 'Heavy armor' } })
 		self:assertEquals(nil, Store.selfValues('Classification'))
 	end)
 end
 
 function suite:testSelfValuesDropsEmptyEntriesAndNilsAnEmptyList()
 	withManifest(function()
-		bucketLib._setRows('wearable_set', { { classification = { 'Heavy armor', '', 'Light armor' } } })
+		bucketLib._setRows(
+			'wearable_set',
+			{ { page_name = 'Test', classification = { 'Heavy armor', '', 'Light armor' } } }
+		)
 		self:assertDeepEquals({ 'Heavy armor', 'Light armor' }, Store.selfValues('Classification'))
 	end)
 	withManifest(function()
-		bucketLib._setRows('wearable_set', { { classification = {} } })
+		bucketLib._setRows('wearable_set', { { page_name = 'Test', classification = {} } })
 		self:assertEquals(nil, Store.selfValues('Classification'))
 	end)
 end
@@ -321,17 +346,17 @@ end
 --- inherits its curated parent's stored Jurisdiction through it.
 function suite:testPageValueReadsTheNamedPage()
 	withManifest(function()
-		bucketLib._setRows('wearable_set', { { classification = 'Heavy armor' } })
+		bucketLib._setRows('wearable_set', { { page_name = 'Area18', classification = 'Heavy armor' } })
 		self:assertEquals('Heavy armor', Store.pageValue('Area18', 'Classification'))
 		local chain = bucketLib._chains[1]
 		self:assertDeepEquals({ { 'page_name', '=', 'Area18' } }, chain.where)
-		self:assertEquals(1, chain.limit)
+		self:assertEquals(10, chain.limit)
 	end)
 end
 
 function suite:testPageValueIgnoresEmptyPage()
 	withManifest(function()
-		bucketLib._setRows('wearable_set', { { classification = 'Heavy armor' } })
+		bucketLib._setRows('wearable_set', { { page_name = 'Area18', classification = 'Heavy armor' } })
 		self:assertEquals(nil, Store.pageValue('', 'Classification'))
 		self:assertEquals(nil, Store.pageValue(nil, 'Classification'))
 	end)
@@ -341,7 +366,7 @@ end
 --- exercised through a title that reports another namespace.
 function suite:testPageValueIgnoresNonMainspace()
 	withManifest(function()
-		bucketLib._setRows('wearable_set', { { classification = 'Heavy armor' } })
+		bucketLib._setRows('wearable_set', { { page_name = 'Area18', classification = 'Heavy armor' } })
 		local saved = mw.title.new
 		mw.title.new = function(text)
 			return { text = text, namespace = 10 }
@@ -364,7 +389,7 @@ end
 --- a redirect's own title must follow it or it finds no row.
 function suite:testPageValueFollowsARedirect()
 	withManifest(function()
-		bucketLib._setRows('wearable_set', { { classification = 'Heavy armor' } })
+		bucketLib._setRows('wearable_set', { { page_name = 'Area18', classification = 'Heavy armor' } })
 		local saved = mw.title.new
 		mw.title.new = function(text)
 			return { text = text, namespace = 0, redirectTarget = { text = 'Area18', namespace = 0 } }

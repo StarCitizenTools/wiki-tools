@@ -240,7 +240,7 @@ function suite:testParseArgsNoKindReadsStoredUuid()
 	-- No |kind= and no wikitext uuid: fall back to the uuid the page stored in Bucket.
 	local bucketLib = require('mw.ext.bucket')
 	bucketLib._reset()
-	bucketLib._setRows('entity', { { uuid = 'stored-uuid-1' } })
+	bucketLib._setRows('entity', { { page_name = 'Test', uuid = 'stored-uuid-1' } })
 	local frame = makeFrame({ name = 'InGame' })
 	frame.callParserFunction = function()
 		error('parseArgs must not call #show any more')

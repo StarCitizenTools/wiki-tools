@@ -1,6 +1,6 @@
 # Template:System map
 
-Renders the star, planet, and moon hierarchy of one star system as a horizontal orbit rail. Wraps [Module:SystemMap](https://starcitizen.tools/Module:SystemMap); place it above `{{System navplate}}` at the foot of a body or system article.
+Renders the star, planet, and moon hierarchy of one star system as a horizontal orbit rail. Wraps [Module:SystemMap](https://starcitizen.tools/Module:SystemMap); place it at the foot of a body, location or system article, below `{{Location navigation}}` where the page has one.
 
 ## Usage
 

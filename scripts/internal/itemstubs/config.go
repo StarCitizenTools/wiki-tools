@@ -31,8 +31,6 @@ type TypeRule struct {
 	// article to link ("deployable"), and a red link on every page of a type
 	// is worse than an unlinked noun.
 	NoLabelLink bool `json:"noLabelLink,omitempty"`
-	// Navplate names the type navplate ({{Navplate <value>}}); empty omits it.
-	Navplate string `json:"navplate,omitempty"`
 }
 
 // PatternRule matches items by name or class name. NameContains and
@@ -131,7 +129,7 @@ type Manufacturers struct {
 	ByPrefix map[string]string `json:"byPrefix,omitempty"`
 	ByName   map[string]string `json:"byName,omitempty"`
 	// OmitInLead lists codes with no company to name: the lead's "manufactured
-	// by" clause and the manufacturer navplate are dropped, but the code still
+	// by" clause is dropped, but the code still
 	// fills the infobox because it is real data. NONE tags an item as
 	// hand-made or without a proper maker, and UNKN as unidentified; both
 	// categorise the page, and 221 pages already sit in Category:Unknown.

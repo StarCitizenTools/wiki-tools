@@ -10,7 +10,7 @@ func TestRenderComponentStub(t *testing.T) {
 	got := RenderStub(StubData{
 		Name: "Dominance-1 Scattergun", UUID: "beabe016-3fb4-4e3f-b464-374076d91f04",
 		MfrCode: "HRST", MfrPage: "Hurston Dynamics",
-		Label: "vehicle weapon", Navplate: "Vehicle weapons",
+		Label:    "vehicle weapon",
 		Sections: []string{"Description", "Ports", "Acquisition", "Crafting", "Related", "Used by"},
 		LeadSize: true, Size: &size,
 		Version: "4.9.0", Date: "2026-08-13",
@@ -45,8 +45,7 @@ The '''Dominance-1 Scattergun''' is a size 1 [[vehicle weapon]] manufactured by 
 == References ==
 <references />
 
-{{Navplate manufacturers|HRST}}
-{{Navplate Vehicle weapons}}
+{{Entity/Navplates}}
 `
 	if got != want {
 		t.Errorf("component stub mismatch:\n--- got ---\n%s\n--- want ---\n%s", got, want)
@@ -81,6 +80,8 @@ The '''Big Benny's Mug''' is a [[drink]].<ref name="ig490">{{Cite game|build=[[S
 
 == References ==
 <references />
+
+{{Entity/Navplates}}
 `
 	if got != want {
 		t.Errorf("consumable stub mismatch:\n--- got ---\n%s\n--- want ---\n%s", got, want)
@@ -117,8 +118,8 @@ func TestRenderUnnamedMakerStillFillsInfobox(t *testing.T) {
 	if strings.Contains(got, "manufactured by") {
 		t.Errorf("there is no company to name, so the lead clause must be dropped, got:\n%s", got)
 	}
-	if strings.Contains(got, "{{Navplate manufacturers") {
-		t.Errorf("no manufacturer navplate without a company, got:\n%s", got)
+	if strings.Contains(got, "{{Navplate") {
+		t.Errorf("the per-manufacturer and per-type navplates are deleted on the wiki, got:\n%s", got)
 	}
 }
 

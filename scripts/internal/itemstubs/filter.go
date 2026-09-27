@@ -83,8 +83,7 @@ func Classify(it Item, wiki map[string]bool, cfg *Config) Filtered {
 // ResolveManufacturer turns an item's manufacturer data into a code and the
 // wiki article to link. ok=false means no code could be determined at all —
 // a plan conflict. An empty page with ok=true means "known but not an
-// article-worthy maker": the lead's manufacturer clause and navplate are
-// omitted (OmitInLead codes, or a code with no record anywhere).
+// article-worthy maker": the lead's manufacturer clause is omitted (OmitInLead codes, or a code with no record anywhere).
 //
 // The dump's own code (after ByName/Renames) wins; ByPrefix is consulted only
 // when that yields nothing usable ("" or "UNKN") — see Manufacturers' doc

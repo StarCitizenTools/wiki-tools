@@ -19,8 +19,8 @@ var sectionBody = map[string]string{
 // StubData is everything the renderer needs for one page.
 //
 // The two manufacturer fields answer different questions. MfrPage empty means
-// there is no company to name, so the lead's "manufactured by" clause and the
-// manufacturer navplate are dropped — NONE (hand-made, no proper maker) and
+// there is no company to name, so the lead's "manufactured by" clause is
+// dropped — NONE (hand-made, no proper maker) and
 // UNKN (unidentified) are real classifications with no article behind them.
 // MfrCode empty means the code is not a manufacturer at all, only a generic
 // consumable marker, and writing it into the infobox would invent a category
@@ -32,7 +32,6 @@ type StubData struct {
 	// NoLabelLink renders Label as plain text instead of [[Label]] or
 	// [[LabelLink|Label]]. Set alongside LabelLink is a config error.
 	NoLabelLink bool
-	Navplate    string
 	Sections    []string
 	LeadSize    bool
 	Size        *int
@@ -42,7 +41,8 @@ type StubData struct {
 
 // RenderStub renders the canonical {{Entity}} stub. Layout mirrors the
 // migrate-category-to-entity skill: infobox, one-line cited lead, fixed
-// section order, references, navplates. The lead is deliberately minimal —
+// section order, references, and the {{Entity/Navplates}} browse row, which
+// resolves manufacturer and type from the page itself. The lead is deliberately minimal —
 // anything richer than name/size/label/manufacturer would be fabrication at
 // stub time; the applying agent polishes where context warrants.
 func RenderStub(d StubData) string {
@@ -86,16 +86,7 @@ func RenderStub(d StubData) string {
 	}
 	b.WriteString("\n== References ==\n<references />\n")
 
-	var navplates []string
-	if d.MfrPage != "" {
-		navplates = append(navplates, "{{Navplate manufacturers|"+d.MfrCode+"}}")
-	}
-	if d.Navplate != "" {
-		navplates = append(navplates, "{{Navplate "+d.Navplate+"}}")
-	}
-	if len(navplates) > 0 {
-		b.WriteString("\n" + strings.Join(navplates, "\n") + "\n")
-	}
+	b.WriteString("\n{{Entity/Navplates}}\n")
 	return b.String()
 }
 

@@ -231,7 +231,7 @@ func BuildPlan(ctx context.Context, items []Item, wiki map[string]bool, wikiByPa
 			wikitext := RenderStub(StubData{
 				Name: it.Name, UUID: it.UUID,
 				MfrCode: infoboxCode, MfrPage: page,
-				Label: cfg.LabelFor(it.Type, reg), LabelLink: f.Rule.LabelLink, NoLabelLink: f.Rule.NoLabelLink, Navplate: f.Rule.Navplate,
+				Label: cfg.LabelFor(it.Type, reg), LabelLink: f.Rule.LabelLink, NoLabelLink: f.Rule.NoLabelLink,
 				Sections: kind.Sections, LeadSize: kind.LeadSize, Size: it.Size,
 				Version: version, Date: date,
 			})

@@ -147,7 +147,7 @@ partly unlabelled, and useless against one whose items are mislabelled; that
 case needs `byName` or `renames`. A code with no `names` entry falls back to
 the dump's manufacturer name as the link target. `omitInLead` codes
 (generic/unknown makers like `UNKN`) resolve successfully but with an empty page, which drops the lead's "manufactured by"
-clause and the manufacturer navplate — linking `[[Consumable]]` as if it were
+clause — linking `[[Consumable]]` as if it were
 a company would be wrong.
 
 Separately, `ClassManufacturer` reads the manufacturer a class name's leading

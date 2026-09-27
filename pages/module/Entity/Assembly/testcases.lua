@@ -307,4 +307,104 @@ function suite:testMergeEditorialManifestsIgnoresNonTableFragments()
 	)
 end
 
+-- run: one entry point applying each hook's policy from assembly.POLICIES
+
+--- A link answering `hookName` with `answer` (called with the context).
+local function answering(hookName, answer)
+	return {
+		[hookName] = function(ctx)
+			if type(answer) == 'function' then
+				return answer(ctx)
+			end
+			return answer
+		end,
+	}
+end
+
+function suite:testRunCollectConcatenatesRootToLeaf()
+	local chain = { answering('getSections', { 'a' }), {}, answering('getSections', { 'b', 'c' }) }
+	self:assertDeepEquals({ 'a', 'b', 'c' }, assembly.run(chain, 'getSections', {}))
+end
+
+function suite:testRunMergeLetsTheLaterLinkWin()
+	local chain = {
+		answering('getStructuredData', { name = 'root', size = 1 }),
+		answering('getStructuredData', { name = 'leaf' }),
+	}
+	self:assertDeepEquals({ name = 'leaf', size = 1 }, assembly.run(chain, 'getStructuredData', {}))
+end
+
+function suite:testRunPipelineHandsEachLinkThePreviousApiData()
+	local chain = {
+		answering('enrich', function(ctx)
+			return { step = ctx.apiData.step .. 'root' }
+		end),
+		answering('enrich', function(ctx)
+			return { step = ctx.apiData.step .. '>leaf' }
+		end),
+	}
+	local ctx = { apiData = { step = '' } }
+	self:assertEquals('root>leaf', assembly.run(chain, 'enrich', ctx).step)
+	self:assertEquals('root>leaf', ctx.apiData.step)
+end
+
+function suite:testRunLeafAsksTheLeafAlone()
+	local chain = { answering('getTypeInfo', { name = 'Kind' }), {} }
+	self:assertEquals(nil, assembly.run(chain, 'getTypeInfo', {}))
+	chain[2] = answering('getTypeInfo', { name = 'Leaf' })
+	self:assertEquals('Leaf', assembly.run(chain, 'getTypeInfo', {}).name)
+end
+
+function suite:testRunMostSpecificKeepsANilAnswer()
+	local chain = { answering('getShortDescription', 'root'), answering('getShortDescription', nil) }
+	self:assertEquals(nil, assembly.run(chain, 'getShortDescription', {}))
+end
+
+function suite:testRunMostSpecificNonEmptySkipsAnEmptyAnswer()
+	local chain = { answering('getSubtitle', 'root'), answering('getSubtitle', '') }
+	self:assertEquals('root', assembly.run(chain, 'getSubtitle', {}))
+end
+
+function suite:testRunFirstNonNilTakesTheEarliestAnswer()
+	local facets = {
+		answering('getShortDescriptionPrefix', nil),
+		answering('getShortDescriptionPrefix', 'edible'),
+		answering('getShortDescriptionPrefix', 'wearable'),
+	}
+	self:assertEquals('edible', assembly.run(facets, 'getShortDescriptionPrefix', {}))
+end
+
+function suite:testRunFoldMergesEditorialManifests()
+	local chain = {
+		{
+			getEditorialManifest = function()
+				return { size = { arg = 'size' } }
+			end,
+		},
+	}
+	self:assertEquals('size', assembly.run(chain, 'getEditorialManifest').size.arg)
+end
+
+function suite:testRunUnknownHookErrors()
+	local ok, err = pcall(assembly.run, {}, 'getNothing', {})
+	self:assertFalse(ok)
+	self:assertTrue(tostring(err):find("no policy for hook 'getNothing'", 1, true) ~= nil)
+end
+
+-- Every hook the contract declares has a policy, and every policy names a hook
+-- the contract declares, so a new hook cannot be added without deciding how
+-- its answers combine.
+function suite:testPoliciesCoverExactlyTheContractHooks()
+	local Contract = require('Module:Entity/Contract')
+	local IDENTITY_ONLY = { matches = true, resolveSubtype = true }
+	for hook in pairs(Contract.ALL_HOOKS) do
+		if not IDENTITY_ONLY[hook] then
+			self:assertTrue(assembly.POLICIES[hook] ~= nil, "no policy for hook '" .. hook .. "'")
+		end
+	end
+	for hook in pairs(assembly.POLICIES) do
+		self:assertTrue(Contract.ALL_HOOKS[hook] == true, "policy for undeclared hook '" .. hook .. "'")
+	end
+end
+
 return suite

@@ -21,18 +21,10 @@ local p = {}
 --- @return boolean success True if the backend accepted the data
 --- @return string[]|nil unregistered Emitter keys not registered in properties.json, or nil
 local function storeStructuredData(chain, facets, ctx, editorialData, kind)
-	local dataList = {}
-	for _, mod in ipairs(chain) do
-		if mod.getStructuredData then
-			table.insert(dataList, assembly.callHook(mod, 'getStructuredData', ctx))
-		end
-	end
-	for _, facet in ipairs(facets) do
-		if facet.getStructuredData then
-			table.insert(dataList, assembly.callHook(facet, 'getStructuredData', ctx))
-		end
-	end
-	local merged = assembly.mergeStructuredData(dataList)
+	local merged = assembly.mergeStructuredData({
+		assembly.run(chain, 'getStructuredData', ctx),
+		assembly.run(facets, 'getStructuredData', ctx),
+	})
 	for k, v in pairs(editorialData or {}) do
 		merged[k] = v
 	end
@@ -48,11 +40,9 @@ local function storeStructuredData(chain, facets, ctx, editorialData, kind)
 	return success, unregistered
 end
 
---- Sets the page's short description via the SHORTDESC parser function.
---- Uses the most specific getShortDescription implementation in the chain
---- (leaf-first walk), composing in the first non-nil facet adjective. Single
---- facet today, so first-non-nil-wins is sufficient. Falls back to the type
---- display name.
+--- Sets the page's short description via the SHORTDESC parser function: the
+--- chain's getShortDescription, composing in the first facet adjective, by the
+--- policies in Module:Entity/Assembly. Falls back to the type display name.
 ---
 --- @param frame table
 --- @param chain table[]
@@ -63,19 +53,9 @@ local function setShortDescription(frame, chain, facets, ctx)
 		return
 	end
 
-	local prefix = nil
-	for _, facet in ipairs(facets) do
-		if facet.getShortDescriptionPrefix then
-			prefix = assembly.callHook(facet, 'getShortDescriptionPrefix', ctx)
-			if prefix then
-				break
-			end
-		end
-	end
-
 	-- prefix exists only for this call: set here and cleared after the resolve.
-	ctx.prefix = prefix
-	local desc = assembly.resolveMostSpecific(chain, 'getShortDescription', nil, ctx)
+	ctx.prefix = assembly.run(facets, 'getShortDescriptionPrefix', ctx)
+	local desc = assembly.run(chain, 'getShortDescription', ctx)
 	ctx.prefix = nil
 	if desc == nil then
 		desc = ctx.typeInfo.name

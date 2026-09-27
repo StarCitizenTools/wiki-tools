@@ -1,6 +1,6 @@
 # Module:Entity/Assembly
 
-The pure composition primitives that turn a resolved type chain into render-ready output: chain construction, additive merges for sections and structured data, leaf-first resolution for single-value fields, and editorial-manifest merging. Every function is stateless.
+The pure composition primitives that turn a resolved type chain into render-ready output: chain construction, the combination policy of every hook, additive merges for sections and structured data, leaf-first resolution for single-value fields, and editorial-manifest merging. Every function is stateless.
 
 Editors never invoke this module directly; it runs inside [Template:Entity](https://starcitizen.tools/Template:Entity), [Template:Vehicle](https://starcitizen.tools/Template:Vehicle) and [Template:Location](https://starcitizen.tools/Template:Location); the pipeline and the hook table are on [Module:Entity](https://starcitizen.tools/Module:Entity).
 
@@ -8,9 +8,12 @@ Editors never invoke this module directly; it runs inside [Template:Entity](http
 
 ### API
 
+- `p.POLICIES`: hook name → how its answers combine: `collect` (lists concatenated root to leaf), `merge` (tables merged, later keys winning), `pipeline` (each answer becomes the next link's `ctx.apiData`), `leaf` (the last link alone), `mostSpecific` (the most specific defining link, even a `nil` answer), `mostSpecificNonEmpty` (skipping `nil` and `''`), `firstNonNil` (first answer in list order), `fold` (`mergeEditorialManifests`). The hook table on [Module:Entity](https://starcitizen.tools/Module:Entity) lists each hook's policy; the suite fails when a hook `Module:Entity/Contract` declares has none.
+- `p.run(list, hookName, ctx) → any`: asks every link of a root-first chain, or of the facet list in registry order, and combines by the hook's policy. Every caller goes through it; it errors for a hook with no policy.
 - `p.buildChain(leafModule) → table[]`: walks `leafModule.parent` (each a `require('Module:' .. parent)` path) up to the module with no `parent`, then returns the chain root-first (Base first, leaf last).
 - `p.mergeSections(sectionsList) → table[]`: merges ordered section lists from every chain link into one list. First-seen metadata (`label`, `collapsible`, `collapsed`, `columns`, `class`, `content`, `sections`) wins per `key`, `items` arrays concatenate across links in encounter order, and a section left with no `items`, `content`, or `sections` after merging is dropped.
 - `p.mergeStructuredData(dataList) → table`: flat left-to-right fold over key-value tables; later tables override earlier ones on key collision. The merge is shallow: a nested table value is replaced wholesale, not deep-merged.
+- `p.callHook`, `p.resolveMostSpecific`, `p.acceptNonEmpty` and `p.collect` are the primitives `run` is built from.
 - `p.callHook(mod, hookName, ctx) → any`: calls `mod[hookName](ctx)` with no existence check. The caller must guard first, since a defined hook returning `nil` is a real answer.
 - `p.resolveMostSpecific(chain, hookName, accept, ctx) → any`: walks the chain leaf-first and returns the first link's result `accept` admits. `accept = nil` (default) takes the first *defining* link's result unconditionally, even a `nil` one.
 - `p.acceptNonEmpty(result) → boolean`: rejects `nil`/`''`, the standard `accept` predicate for optional override-style hooks (subtitle, header badge).

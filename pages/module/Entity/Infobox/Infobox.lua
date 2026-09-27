@@ -59,12 +59,8 @@ local function buildMetadataSection(chain, ctx)
 
 	-- Chain-contributed metadata rows (the getMetadataItems hook), root-to-leaf,
 	-- appended after the generic rows (StarSystem: the ARK starmap code).
-	for _, mod in ipairs(chain) do
-		if mod.getMetadataItems then
-			for _, item in ipairs(assembly.callHook(mod, 'getMetadataItems', ctx) or {}) do
-				table.insert(items, item)
-			end
-		end
+	for _, item in ipairs(assembly.run(chain, 'getMetadataItems', ctx)) do
+		table.insert(items, item)
 	end
 
 	for _, item in ipairs(items) do
@@ -89,17 +85,13 @@ end
 local function buildExternalSitesSection(chain, ctx)
 	local items = {}
 	local byLabel = {}
-	for _, mod in ipairs(chain) do
-		if mod.getExternalSiteItems then
-			for _, item in ipairs(assembly.callHook(mod, 'getExternalSiteItems', ctx)) do
-				local existing = byLabel[item.label]
-				if existing and type(existing.content) == 'string' and type(item.content) == 'string' then
-					existing.content = existing.content .. ' \194\183 ' .. item.content
-				elseif existing == nil then
-					byLabel[item.label] = item
-					table.insert(items, item)
-				end
-			end
+	for _, item in ipairs(assembly.run(chain, 'getExternalSiteItems', ctx)) do
+		local existing = byLabel[item.label]
+		if existing and type(existing.content) == 'string' and type(item.content) == 'string' then
+			existing.content = existing.content .. ' \194\183 ' .. item.content
+		elseif existing == nil then
+			byLabel[item.label] = item
+			table.insert(items, item)
 		end
 	end
 	if #items == 0 then
@@ -153,13 +145,9 @@ local function buildFooterSection(chain, ctx)
 	-- Chain-contributed buttons, root-to-leaf: each link may return a list of
 	-- ButtonLua-shaped defs ({ label, url, icon, class }); weight defaults to
 	-- the footer's normal.
-	for _, mod in ipairs(chain) do
-		if mod.getFooterButtons then
-			for _, def in ipairs(assembly.callHook(mod, 'getFooterButtons', ctx) or {}) do
-				def.weight = def.weight or 'normal'
-				table.insert(buttons, button.render(def))
-			end
-		end
+	for _, def in ipairs(assembly.run(chain, 'getFooterButtons', ctx)) do
+		def.weight = def.weight or 'normal'
+		table.insert(buttons, button.render(def))
 	end
 
 	-- Community-site button: page-supplied like Galactapedia (the consistent
@@ -215,21 +203,13 @@ end
 --- @param ctx EntityHookContext
 --- @return table[] sections
 local function buildSections(chain, facets, ctx)
-	local sectionsList = {}
-	for _, mod in ipairs(chain) do
-		if mod.getSections then
-			table.insert(sectionsList, assembly.callHook(mod, 'getSections', ctx))
-		end
-	end
 	-- Facet sections come after the chain so a new-key facet section (e.g.
 	-- consumable) lands after the kind's own sections; a facet reusing a chain
 	-- key merges into it via mergeSections' append-items behaviour.
-	for _, facet in ipairs(facets) do
-		if facet.getSections then
-			table.insert(sectionsList, assembly.callHook(facet, 'getSections', ctx))
-		end
-	end
-	local sections = assembly.mergeSections(sectionsList)
+	local sections = assembly.mergeSections({
+		assembly.run(chain, 'getSections', ctx),
+		assembly.run(facets, 'getSections', ctx),
+	})
 
 	-- Stat sections (the chain's and facets' labelled sections — the subtype
 	-- stat block, Dimensions, etc.) render collapsible but expanded by default,
@@ -303,18 +283,16 @@ function p.render(result, args)
 	})
 
 	-- Subtitle defaults to the display type; a chain link may override it
-	-- (vehicles show their manufacturer in the header). Leaf-first wins.
-	local subtitle = assembly.resolveMostSpecific(result.chain, 'getSubtitle', assembly.acceptNonEmpty, ctx)
-		or result.displayType
+	-- (vehicles show their manufacturer in the header).
+	local subtitle = assembly.run(result.chain, 'getSubtitle', ctx) or result.displayType
 
 	-- A second name for the same subject, shown after the title instead of
-	-- taking a row (bodies show their designation). Leaf-first wins.
-	local titleAnnotation =
-		assembly.resolveMostSpecific(result.chain, 'getTitleAnnotation', assembly.acceptNonEmpty, ctx)
+	-- taking a row (bodies show their designation).
+	local titleAnnotation = assembly.run(result.chain, 'getTitleAnnotation', ctx)
 
 	-- Header badge: a chain link (vehicles) may contribute a badge for the image
-	-- overlay (e.g. production status). Leaf-first wins.
-	local headerBadge = assembly.resolveMostSpecific(result.chain, 'getHeaderBadge', assembly.acceptNonEmpty, ctx)
+	-- overlay (e.g. production status).
+	local headerBadge = assembly.run(result.chain, 'getHeaderBadge', ctx)
 
 	local html = infobox.render({
 		-- The curated |name= wins over the API record name (which may carry an

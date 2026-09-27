@@ -90,31 +90,31 @@ Consume `Module:Entity/Data` directly:
 
 ### Hooks
 
-Identity-shaped hooks take no `ctx`; the rest take `EntityHookContext`. `*` marks a required hook ([Module:Entity/Contract](https://starcitizen.tools/Module:Entity/Contract)).
+Identity-shaped hooks take no `ctx`; the rest take `EntityHookContext`. `*` marks a required hook ([Module:Entity/Contract](https://starcitizen.tools/Module:Entity/Contract)). The Policy column is `Assembly.POLICIES`: every consumer combines a hook's answers through `Assembly.run`, so a new hook needs a policy there before anything can call it.
 
-| Hook | Role | Signature | Merge policy | Consumer |
+| Hook | Role | Signature | Policy | Consumer |
 | --- | --- | --- | --- | --- |
 | `matches` | kind*, facet* | `(apiData) → boolean` | identity | `Data` probe/facets |
 | `resolveSubtype` | kind | `(apiData, args) → module\|nil` | identity | `Data.resolveLeaf` |
-| `getApiConfigs` | kind*, link | `() → EntityApiConfig[]` | collected | `Data`/`Api.fetchAllApis` |
-| `getEditorialManifest` | link | `() → table` | root-to-leaf, leaf wins | `Assembly.mergeEditorialManifests` |
-| `enrich` | link | `(ctx) → table` | root-to-leaf | `Data.enrichChain` |
-| `getSections` | link, facet* | `(ctx) → EntitySectionEntry[]` | additive by key | `Infobox` |
-| `getStructuredData` | link, facet | `(ctx) → table` | root-to-leaf, facets, editorial; last wins | `Entity.storeStructuredData` |
-| `getShortDescription` | link | `(ctx) → string` | leaf-first wins | `Entity.setShortDescription` |
-| `getShortDescriptionPrefix` | facet | `(ctx) → string\|nil` | first non-nil wins | `Entity.setShortDescription` |
-| `getExternalSiteItems` | link | `(ctx) → EntityItemData[]` | additive | `Infobox` |
-| `getFooterButtons` | link | `(ctx) → table[]` | additive | `Infobox` |
-| `getMetadataItems` | link | `(ctx) → EntityItemData[]` | additive | `Infobox` |
-| `getCategories` | link | `(ctx) → string[]` | additive | `Data.get`/`Categories.build` |
-| `getTypeInfo` | link | `(ctx) → table\|nil` | leaf only, else `TypeResolver` | `Data.get` |
-| `getSubtitle` | link | `(ctx) → string\|nil` | leaf-first, skip empty | `Infobox` |
-| `getTitleAnnotation` | link | `(ctx) → string\|nil` | leaf-first, skip empty | `Infobox` |
-| `getHeaderBadge` | link | `(ctx) → string\|nil` | leaf-first, skip empty | `Infobox` |
-| `getAcquisition` | link | `(ctx) → {summary,cards}\|nil` | leaf-first wins | `Entity/Availability` |
-| `getRelated` | link | `(ctx) → EntityRelatedPayload\|nil` | leaf-first, skip nil | `Entity/Related` |
-| `getBlueprints` | link | `(ctx) → EntityBlueprintsPayload\|nil` | leaf-first wins | `Entity/Blueprints` |
-| `getPorts` | link | `(ctx) → EntityPortsPayload\|nil` | leaf-first wins | `Entity/Ports` |
+| `getApiConfigs` | kind*, link | `() → EntityApiConfig[]` | `collect` | `Data`/`Api.fetchAllApis` |
+| `getEditorialManifest` | link | `() → table` | `fold` | `Data.get` |
+| `enrich` | link | `(ctx) → table` | `pipeline` | `Data.enrichChain` |
+| `getSections` | link, facet* | `(ctx) → EntitySectionEntry[]` | `collect` | `Infobox` |
+| `getStructuredData` | link, facet | `(ctx) → table` | `merge` (chain, then facets, then editorial) | `Entity.storeStructuredData` |
+| `getShortDescription` | link | `(ctx) → string` | `mostSpecific` | `Entity.setShortDescription` |
+| `getShortDescriptionPrefix` | facet | `(ctx) → string\|nil` | `firstNonNil` | `Entity.setShortDescription` |
+| `getExternalSiteItems` | link | `(ctx) → EntityItemData[]` | `collect` | `Infobox` |
+| `getFooterButtons` | link | `(ctx) → table[]` | `collect` | `Infobox` |
+| `getMetadataItems` | link | `(ctx) → EntityItemData[]` | `collect` | `Infobox` |
+| `getCategories` | link | `(ctx) → string[]` | `collect` | `Data.get`/`Categories.build` |
+| `getTypeInfo` | link | `(ctx) → table\|nil` | `leaf`, else `TypeResolver` | `Data.get` |
+| `getSubtitle` | link | `(ctx) → string\|nil` | `mostSpecificNonEmpty` | `Infobox` |
+| `getTitleAnnotation` | link | `(ctx) → string\|nil` | `mostSpecificNonEmpty` | `Infobox` |
+| `getHeaderBadge` | link | `(ctx) → string\|nil` | `mostSpecificNonEmpty` | `Infobox` |
+| `getAcquisition` | link | `(ctx) → {summary,cards}\|nil` | `mostSpecific` | `Entity/Availability` |
+| `getRelated` | link | `(ctx) → EntityRelatedPayload\|nil` | `mostSpecificNonEmpty` | `Entity/Related` |
+| `getBlueprints` | link | `(ctx) → EntityBlueprintsPayload\|nil` | `mostSpecific` | `Entity/Blueprints` |
+| `getPorts` | link | `(ctx) → EntityPortsPayload\|nil` | `mostSpecific` | `Entity/Ports` |
 
 ### Hook context
 

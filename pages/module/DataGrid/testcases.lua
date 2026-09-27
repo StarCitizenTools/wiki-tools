@@ -14,7 +14,6 @@ local MANIFEST = {
 	['Effects'] = { type = 'TEXT', bucket = 'entity', field = 'effects', repeated = true },
 	['Loaner vehicle'] = { type = 'PAGE', bucket = 'vehicle', field = 'loaner_vehicle', repeated = true },
 	['Weapon class'] = { type = 'TEXT', bucket = 'item_weapon', field = 'weapon_class' },
-	['Ndr'] = { type = 'DOUBLE', bucket = { Commodity = 'commodity', Item = 'item_tool' }, field = 'ndr' },
 }
 
 -- Store never reloads between suites, so a bare setManifests would leak the fake
@@ -410,7 +409,7 @@ end
 
 -- buildSpec
 
-function suite:testBuildSpecColumnsAndKindError()
+function suite:testBuildSpecColumnsAndUnknownPropertyError()
 	withManifest(function()
 		local spec = dg.buildSpec(
 			nil,
@@ -423,10 +422,8 @@ function suite:testBuildSpecColumnsAndKindError()
 		self:assertEquals('Image', spec.columns[2].as)
 		self:assertEquals('DisplayName', spec.columns[3].as)
 		self:assertDeepEquals({ property = 'Size', as = 'S' }, spec.columns[5])
-		local _, err = dg.buildSpec(nil, nil, {}, dg.parseColumns('Ndr'))
-		self:assertTrue(err:find('Ndr', 1, true) ~= nil and err:find('kind=', 1, true) ~= nil)
-		local _, err2 = dg.buildSpec(nil, nil, {}, dg.parseColumns('Bogus'))
-		self:assertTrue(err2:find("'Bogus'", 1, true) ~= nil)
+		local _, err = dg.buildSpec(nil, nil, {}, dg.parseColumns('Bogus'))
+		self:assertEquals("unknown property 'Bogus'", err)
 	end)
 end
 
@@ -452,18 +449,6 @@ function suite:testBuildSpecLeadColumnsAndTheImageOptOut()
 	end)
 end
 
--- Locks the exact kind list the "add kind=" message advertises, so a new kind
--- (KINDS + Store's manifests) that forgets to update this string fails here.
-function suite:testBuildSpecCrossKindMessageListsAllKinds()
-	withManifest(function()
-		local _, err = dg.buildSpec(nil, nil, {}, dg.parseColumns('Ndr'))
-		self:assertEquals(
-			'"Ndr" lives in a different table per kind; add kind= (Vehicle, Item, Commodity, Location, Mission, Company or Wearable set)',
-			err
-		)
-	end)
-end
-
 -- A relational filter on a non-numeric property, or `!=` on a repeated one, is a
 -- static contract violation: catching it here (the resolved entry already carries
 -- `type`/`repeated`) means an inline error instead of a Store runtime error.
@@ -478,16 +463,6 @@ function suite:testBuildSpecRejectsNotEqualOnRepeated()
 	withManifest(function()
 		local _, err = dg.buildSpec(nil, nil, { { 'Effects', '!=', 'Toxic' } }, {})
 		self:assertEquals('"Effects" is a list; != cannot be applied', err)
-	end)
-end
-
--- BucketQuery.needsKind ignores the kind already given, so a property that is by-kind
--- but not stored for THIS kind needs its own message: "add kind=" would be wrong
--- advice when kind= is already set.
-function suite:testBuildSpecNotStoredForKindMessage()
-	withManifest(function()
-		local _, err = dg.buildSpec('Vehicle', nil, {}, dg.parseColumns('Ndr'))
-		self:assertEquals('"Ndr" is not stored for kind Vehicle', err)
 	end)
 end
 

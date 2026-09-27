@@ -89,11 +89,6 @@
 		"index": false,
 		"repeated": false
 	},
-	"max_speed": {
-		"type": "DOUBLE",
-		"index": false,
-		"repeated": false
-	},
 	"missile_damage": {
 		"type": "DOUBLE",
 		"index": false,
@@ -134,22 +129,7 @@
 		"index": false,
 		"repeated": false
 	},
-	"quantum_speed": {
-		"type": "DOUBLE",
-		"index": false,
-		"repeated": false
-	},
-	"quantum_spool_time": {
-		"type": "DOUBLE",
-		"index": false,
-		"repeated": false
-	},
 	"roll_rate": {
-		"type": "DOUBLE",
-		"index": false,
-		"repeated": false
-	},
-	"scm_speed": {
 		"type": "DOUBLE",
 		"index": false,
 		"repeated": false

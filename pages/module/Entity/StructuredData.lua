@@ -49,7 +49,7 @@ end
 --- the key is not a Bucket field.
 --- @param m table
 --- @param key string
---- @return table|nil entry { bucket = string|table, field, type, repeated }
+--- @return table|nil entry { bucket = string, field, type, repeated }
 local function bucketEntry(m, key)
 	local entry = m[autoName(key)]
 	if type(entry) == 'table' and entry.field then
@@ -142,9 +142,6 @@ local function splitByBucket(m, data, kind)
 	for k, v in pairs(data) do
 		local entry = bucketEntry(m, k)
 		local bucket = entry and entry.bucket
-		if type(bucket) == 'table' then
-			bucket = kind and bucket[kind] or nil
-		end
 		-- `migrateTo` names the table a property is moving to: it is written there
 		-- as well while readers still read `bucket`, so the new column is full
 		-- before the manifest points readers at it.

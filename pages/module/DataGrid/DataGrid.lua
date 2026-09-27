@@ -2,8 +2,8 @@ require('strict')
 
 --- Generic browse-table component on AG Grid (Extension:AGGrid). Reads through
 --- Module:BucketQuery (Bucket): `category` (direct membership, `A; B` for
---- disjunction), `filter` (one clause per line) and `kind` (only needed to
---- disambiguate a property stored per kind) become a Store spec; result rows
+--- disjunction), `filter` (one clause per line) and `kind` (which manifest
+--- answers for a name two manifests declare) become a Store spec; result rows
 --- and manifest types drive the AG Grid rowData + columnDefs.
 ---
 --- Column model: a single card lead (thumbnail + linked name, optional eyebrow
@@ -444,14 +444,6 @@ function p.buildSpec(kind, categoryFilter, filters, columns, options)
 	local function check(property, op)
 		local entry = BucketQuery.resolve(property, kind)
 		if entry == nil then
-			if BucketQuery.needsKind(property) then
-				if kind then
-					return '"' .. property .. '" is not stored for kind ' .. kind
-				end
-				return '"'
-					.. property
-					.. '" lives in a different table per kind; add kind= (Vehicle, Item, Commodity, Location, Mission, Company or Wearable set)'
-			end
 			return "unknown property '" .. property .. "'"
 		end
 		if NUMERIC_OPS[op] and entry.type ~= 'INTEGER' and entry.type ~= 'DOUBLE' then

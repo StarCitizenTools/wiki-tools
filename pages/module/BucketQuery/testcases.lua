@@ -15,11 +15,7 @@ local MANIFEST = {
 	['Effects'] = { type = 'TEXT', bucket = 'entity', field = 'effects', index = true, repeated = true },
 	['Mass'] = { type = 'INTEGER', bucket = 'vehicle', field = 'mass' },
 	['Role'] = { type = 'TEXT', bucket = 'vehicle', field = 'role', index = true },
-	['Scm speed'] = {
-		type = 'DOUBLE',
-		bucket = { Item = 'item_component', Vehicle = 'vehicle_stats' },
-		field = 'scm_speed',
-	},
+	['Hydrogen fuel capacity'] = { type = 'DOUBLE', bucket = 'vehicle_stats', field = 'hydrogen_fuel_capacity' },
 	['Maximum temperature'] = {
 		type = 'DOUBLE',
 		bucket = 'item_component',
@@ -74,11 +70,13 @@ function suite:testResolveCoreField()
 	end)
 end
 
-function suite:testResolveCrossKindNeedsKind()
+--- `kind` orders the manifest search and never filters: a property resolves to
+--- its one table whether the kind named writes that table, another, or none.
+function suite:testResolveKindNeverFilters()
 	withManifest(function()
-		self:assertEquals('vehicle_stats', BucketQuery.resolve('Scm speed', 'Vehicle').bucket)
-		self:assertEquals('item_component', BucketQuery.resolve('Scm speed', 'Item').bucket)
-		self:assertEquals(nil, BucketQuery.resolve('Scm speed'))
+		self:assertEquals('vehicle_stats', BucketQuery.resolve('Hydrogen fuel capacity').bucket)
+		self:assertEquals('vehicle_stats', BucketQuery.resolve('Hydrogen fuel capacity', 'Vehicle').bucket)
+		self:assertEquals('vehicle_stats', BucketQuery.resolve('Hydrogen fuel capacity', 'Item').bucket)
 	end)
 end
 
@@ -106,13 +104,18 @@ function suite:testQueryBuildsPrimaryPlusJoins()
 				page_name = 'Avenger Titan',
 				name = 'Avenger Titan',
 				['vehicle.mass'] = 52000,
-				['vehicle_stats.scm_speed'] = 262,
+				['vehicle_stats.hydrogen_fuel_capacity'] = 262,
 			},
 		})
 		local rows = BucketQuery.query({
 			kind = 'Vehicle',
 			filters = { 'Category:Ships', { 'Size', 3 } },
-			columns = { 'Name', 'Mass', { property = 'Scm speed', as = 'scm' }, { builtin = 'page_name', as = 'page' } },
+			columns = {
+				'Name',
+				'Mass',
+				{ property = 'Hydrogen fuel capacity', as = 'fuel' },
+				{ builtin = 'page_name', as = 'page' },
+			},
 			limit = 500,
 		})
 		local chain = bucketLib._chains[1]
@@ -120,7 +123,7 @@ function suite:testQueryBuildsPrimaryPlusJoins()
 		self:assertDeepEquals({
 			'name',
 			'vehicle.mass',
-			'vehicle_stats.scm_speed',
+			'vehicle_stats.hydrogen_fuel_capacity',
 			'page_name',
 			'vehicle.page_name',
 			'vehicle_stats.page_name',
@@ -131,7 +134,7 @@ function suite:testQueryBuildsPrimaryPlusJoins()
 		}, chain.join)
 		self:assertDeepEquals({ { 'Category:Ships' }, { 'size', '=', 3 } }, chain.where)
 		self:assertEquals(500, chain.limit)
-		self:assertDeepEquals({ { Name = 'Avenger Titan', Mass = 52000, scm = 262, page = 'Avenger Titan' } }, rows)
+		self:assertDeepEquals({ { Name = 'Avenger Titan', Mass = 52000, fuel = 262, page = 'Avenger Titan' } }, rows)
 	end)
 end
 
@@ -181,7 +184,11 @@ end
 
 function suite:testQueryJoinsColumnsBeforeFiltersOnce()
 	withManifest(function()
-		BucketQuery.query({ kind = 'Vehicle', filters = { { 'Mass', '>', 100 } }, columns = { 'Scm speed', 'Mass' } })
+		BucketQuery.query({
+			kind = 'Vehicle',
+			filters = { { 'Mass', '>', 100 } },
+			columns = { 'Hydrogen fuel capacity', 'Mass' },
+		})
 		local chain = bucketLib._chains[1]
 		self:assertDeepEquals({
 			{ 'vehicle_stats', 'vehicle_stats.page_name', 'entity.page_name' },
@@ -300,14 +307,6 @@ function suite:testResolveMaximumTemperatureByKind()
 		local e = BucketQuery.resolve('Maximum temperature', 'Wearable set')
 		self:assertEquals('wearable_set', e.bucket)
 		self:assertEquals('max_temperature', e.field)
-	end)
-end
-
-function suite:testNeedsKind()
-	withManifest(function()
-		self:assertTrue(BucketQuery.needsKind('Scm speed'))
-		self:assertFalse(BucketQuery.needsKind('Size'))
-		self:assertFalse(BucketQuery.needsKind('Bogus'))
 	end)
 end
 

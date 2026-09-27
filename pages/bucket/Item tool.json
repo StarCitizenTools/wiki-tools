@@ -79,11 +79,6 @@
 		"index": false,
 		"repeated": false
 	},
-	"hei": {
-		"type": "DOUBLE",
-		"index": false,
-		"repeated": false
-	},
 	"impact_resistance": {
 		"type": "INTEGER",
 		"index": false,
@@ -169,11 +164,6 @@
 		"index": false,
 		"repeated": false
 	},
-	"ndr": {
-		"type": "DOUBLE",
-		"index": false,
-		"repeated": false
-	},
 	"optimal_range": {
 		"type": "DOUBLE",
 		"index": false,
@@ -200,11 +190,6 @@
 		"repeated": false
 	},
 	"salvage_speed_multiplier": {
-		"type": "DOUBLE",
-		"index": false,
-		"repeated": false
-	},
-	"storage_capacity": {
 		"type": "DOUBLE",
 		"index": false,
 		"repeated": false

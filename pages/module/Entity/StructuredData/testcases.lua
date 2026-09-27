@@ -24,11 +24,7 @@ local FULL = {
 	['Manufacturer'] = { type = 'PAGE', bucket = 'entity', field = 'manufacturer', index = true },
 	['Effects'] = { type = 'TEXT', bucket = 'entity', field = 'effects', index = true, repeated = true },
 	['Health'] = { type = 'INTEGER', bucket = 'item_weapon', field = 'health' },
-	['Scm speed'] = {
-		type = 'DOUBLE',
-		bucket = { Item = 'item_component', Vehicle = 'vehicle_stats' },
-		field = 'scm_speed',
-	},
+	['Hydrogen fuel capacity'] = { type = 'DOUBLE', bucket = 'vehicle_stats', field = 'hydrogen_fuel_capacity' },
 	['Loaner vehicle'] = {
 		type = 'PAGE',
 		bucket = 'entity',
@@ -132,11 +128,11 @@ end
 function suite:testSplitRoutesByKindAndReportsForeign()
 	local puts, unregistered = SD._internal.splitByBucket(
 		FULL,
-		{ uuid = 'u', scm_speed = 262, health = 5, modifier_resistance = 3, unknown_key = 1 },
+		{ uuid = 'u', hydrogen_fuel_capacity = 262, health = 5, modifier_resistance = 3, unknown_key = 1 },
 		'Vehicle'
 	)
 	self:assertDeepEquals({ uuid = 'u' }, puts.entity)
-	self:assertDeepEquals({ scm_speed = 262 }, puts.vehicle_stats)
+	self:assertDeepEquals({ hydrogen_fuel_capacity = 262 }, puts.vehicle_stats)
 	self:assertEquals(nil, puts.item_weapon)
 	table.sort(unregistered)
 	self:assertDeepEquals({ 'health', 'modifier_resistance', 'unknown_key' }, unregistered)
@@ -149,7 +145,7 @@ function suite:testSplitWritesAMigratingPropertyToBothTables()
 		['%kinds'] = { Vehicle = { 'entity', 'vehicle_stats' } },
 		['Scm speed'] = {
 			type = 'DOUBLE',
-			bucket = { Item = 'item_component', Vehicle = 'vehicle_stats' },
+			bucket = 'vehicle_stats',
 			field = 'scm_speed',
 			migrateTo = 'entity',
 		},
@@ -158,7 +154,7 @@ function suite:testSplitWritesAMigratingPropertyToBothTables()
 	self:assertEquals(262, puts.vehicle_stats.scm_speed)
 	self:assertEquals(262, puts.entity.scm_speed)
 	self:assertEquals(0, #unregistered)
-	-- With no kind the old table cannot be chosen, but the new one needs none.
+	-- With no kind a page may write only entity, so only the new table is written.
 	local kindless = SD._internal.splitByBucket(manifest, { scm_speed = 262 }, nil)
 	self:assertEquals(nil, kindless.vehicle_stats)
 	self:assertEquals(262, kindless.entity.scm_speed)

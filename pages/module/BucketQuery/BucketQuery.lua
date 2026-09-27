@@ -96,48 +96,25 @@ end
 --- @field type string PAGE|TEXT|INTEGER|DOUBLE|BOOLEAN
 --- @field repeated boolean
 
-local function resolveIn(m, displayName, kind)
+local function resolveIn(m, displayName)
 	local entry = m[displayName]
 	if type(entry) == 'table' and entry.field then
-		local bucket = entry.bucket
-		if type(bucket) == 'table' then
-			bucket = kind and bucket[kind] or nil
-		end
-		if type(bucket) ~= 'string' then
-			return nil
-		end
-		return { bucket = bucket, field = entry.field, type = entry.type, repeated = entry.repeated == true }
+		return { bucket = entry.bucket, field = entry.field, type = entry.type, repeated = entry.repeated == true }
 	end
 	return nil
 end
 
 --- Resolves a property display name to its bucket and field, searching the
 --- registered manifests in the registry's order, the one the registry's `kinds`
---- names for `kind` first, and stopping at the first that declares it. A property whose manifest bucket is
---- keyed by kind needs `kind`; without it such a property is unresolvable
---- (nil), never guessed.
+--- names for `kind` first, and stopping at the first that declares it. `kind`
+--- only orders the search: it matters for a name two manifests declare.
 --- @param displayName string
 --- @param kind string|nil Kind name the manifests disambiguate on (Vehicle, Item, Company, ...)
 --- @return BucketQueryEntry|nil
 function p.resolve(displayName, kind)
 	return search(kind, function(m)
-		return resolveIn(m, displayName, kind)
+		return resolveIn(m, displayName)
 	end)
-end
-
---- True when the property's bucket depends on the kind, so resolve() needs one.
---- Searches every manifest, so it belongs on the path that explains a failed
---- resolve() rather than on every lookup.
---- @param displayName string
---- @return boolean
-function p.needsKind(displayName)
-	return search(nil, function(m)
-		local entry = m[displayName]
-		if type(entry) == 'table' and type(entry.bucket) == 'table' then
-			return true
-		end
-		return nil
-	end) == true
 end
 
 --- @class BucketQueryColumn

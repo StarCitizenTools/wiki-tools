@@ -27,7 +27,7 @@ Write the call exactly as a `{{Data table}}` call; renaming the template is the 
 |------|-------|------|----------|---------|-------------|---------|
 | `category` | Category | string | No |  | Category name(s) whose direct members are listed, without the `Category:` prefix; `A; B` for either. Provide this, `filter`, or both. | `Wikelo ship contracts` |
 | `filter` | Filter | content | No |  | Extra row filters, one clause per line. | `Legality = Verified` |
-| `kind` | Kind | string | No |  | Disambiguates a property stored in a different table per kind: `Vehicle`, `Item`, `Commodity`, `Location`, `Mission`, `Company` or `Wearable set`. | `Mission` |
+| `kind` | Kind | string | No |  | Only `Wearable set` changes a result: on a wearable-set table it makes Classification, Maximum temperature, Minimum temperature and Type read the set's own values. `Vehicle`, `Item`, `Commodity`, `Location`, `Mission` and `Company` are accepted and change nothing. | `Wearable set` |
 | `columns` | Columns | content | Yes |  | One column per line: the property, then `;`-separated modifiers. | `Orders` |
 | `sort` | Sort | string | No |  | Initial row order: a column's label or property, or `Name` for the page name, optionally followed by `asc` or `desc` (default `asc`); separate several with commas, first key first. | `Uec desc` |
 

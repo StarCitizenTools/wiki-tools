@@ -10,7 +10,7 @@ const entityManifest = `{
  "Modifier resistance": {"type": "DOUBLE", "bucket": "item_tool", "field": "modifier_resistance", "modules": ["Facet/Mining"], "desc": "d"},
  "Uuid": {"type": "TEXT", "bucket": "entity", "field": "uuid", "index": true, "modules": ["Base"], "desc": "d"},
  "Effects": {"type": "TEXT", "bucket": "entity", "field": "effects", "index": true, "repeated": true, "modules": ["Consumable"], "desc": "d"},
- "Scm speed": {"type": "DOUBLE", "bucket": {"Item": "item_weapon", "Vehicle": "vehicle_stats"}, "field": "scm_speed", "modules": ["Vehicle"], "desc": "d"}
+ "Hydrogen fuel capacity": {"type": "DOUBLE", "bucket": "vehicle_stats", "field": "hydrogen_fuel_capacity", "modules": ["Vehicle"], "desc": "d"}
 }`
 
 func TestBuildSchemas(t *testing.T) {
@@ -18,8 +18,8 @@ func TestBuildSchemas(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := len(schemas); got != 4 {
-		t.Fatalf("want 4 buckets (entity, item_weapon, vehicle_stats, item_tool), got %d", got)
+	if got := len(schemas); got != 3 {
+		t.Fatalf("want 3 buckets (entity, vehicle_stats, item_tool), got %d", got)
 	}
 	e := schemas["entity"]
 	if e["uuid"] != (Field{Type: "TEXT", Index: true}) {
@@ -28,11 +28,22 @@ func TestBuildSchemas(t *testing.T) {
 	if e["effects"] != (Field{Type: "TEXT", Index: true, Repeated: true}) {
 		t.Errorf("effects: %+v", e["effects"])
 	}
-	if schemas["item_weapon"]["scm_speed"].Type != "DOUBLE" || schemas["vehicle_stats"]["scm_speed"].Type != "DOUBLE" {
-		t.Errorf("cross-kind property must land in both buckets: %+v", schemas)
+	if schemas["vehicle_stats"]["hydrogen_fuel_capacity"].Type != "DOUBLE" {
+		t.Errorf("hydrogen_fuel_capacity missing: %+v", schemas["vehicle_stats"])
 	}
 	if schemas["item_tool"]["modifier_resistance"].Type != "DOUBLE" {
 		t.Errorf("mining modifier missing: %+v", schemas["item_tool"])
+	}
+}
+
+// A property lives in one table whichever kind emits it; the kind-keyed object
+// form is refused rather than fanned out to several tables.
+func TestBuildRejectsAnObjectBucket(t *testing.T) {
+	_, err := Build([]byte(`{
+ "Scm speed": {"type": "DOUBLE", "bucket": {"Item": "item_component", "Vehicle": "vehicle_stats"}, "field": "scm_speed", "modules": ["Vehicle"], "desc": "d"}
+}`))
+	if err == nil {
+		t.Fatal("want an error for an object bucket")
 	}
 }
 
@@ -40,12 +51,12 @@ func TestBuildSchemas(t *testing.T) {
 // its old one, so its column must exist in both tables.
 func TestBuildPlacesAMigratingPropertyInItsTargetToo(t *testing.T) {
 	schemas, err := Build([]byte(`{
- "Scm speed": {"type": "DOUBLE", "bucket": {"Item": "item_component", "Vehicle": "vehicle_stats"}, "field": "scm_speed", "migrateTo": "entity", "modules": ["Vehicle"], "desc": "d"}
+ "Scm speed": {"type": "DOUBLE", "bucket": "vehicle_stats", "field": "scm_speed", "migrateTo": "entity", "modules": ["Vehicle"], "desc": "d"}
 }`))
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, b := range []string{"item_component", "vehicle_stats", "entity"} {
+	for _, b := range []string{"vehicle_stats", "entity"} {
 		if schemas[b]["scm_speed"].Type != "DOUBLE" {
 			t.Errorf("scm_speed missing from %s: %+v", b, schemas[b])
 		}

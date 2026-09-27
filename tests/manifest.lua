@@ -1101,6 +1101,52 @@ if companyProps then
 	end
 end
 
+-- ── 15. BucketQuery registry kinds map ───────────────────────────────────────
+-- Module:BucketQuery reads a kind's manifest from the registry's `kinds` map so
+-- it can search that manifest first without loading the others. A kind missing
+-- from the map, or mapped to the wrong manifest, silently changes which manifest
+-- answers a collided name (Maximum temperature, Type) for that kind.
+local BQ_REGISTRY_PATH = 'pages/module/BucketQuery/manifests.json'
+local bqRegistry = readJson(BQ_REGISTRY_PATH)
+if bqRegistry then
+	local bqFailed = false
+	local declared = {}
+	for _, title in ipairs(bqRegistry.manifests or {}) do
+		local path = 'pages/module/' .. title:gsub('^Module:', '')
+		local manifest = readJson(path)
+		if manifest == nil then
+			bqFailed = true
+		else
+			for kind in pairs(type(manifest['%kinds']) == 'table' and manifest['%kinds'] or {}) do
+				if declared[kind] ~= nil then
+					fail(
+						BQ_REGISTRY_PATH,
+						"kind '" .. kind .. "' is declared by both " .. declared[kind] .. ' and ' .. title
+					)
+					bqFailed = true
+				end
+				declared[kind] = title
+			end
+		end
+	end
+	local mapped = type(bqRegistry.kinds) == 'table' and bqRegistry.kinds or {}
+	for kind, title in pairs(declared) do
+		if mapped[kind] ~= title then
+			fail(BQ_REGISTRY_PATH, "kinds['" .. kind .. "'] must be " .. title .. ', found ' .. tostring(mapped[kind]))
+			bqFailed = true
+		end
+	end
+	for kind in pairs(mapped) do
+		if declared[kind] == nil then
+			fail(BQ_REGISTRY_PATH, "kinds['" .. kind .. "'] names a kind no registered manifest declares")
+			bqFailed = true
+		end
+	end
+	if not bqFailed then
+		pass(BQ_REGISTRY_PATH .. ' (kinds vs %kinds)')
+	end
+end
+
 -- ── Summary ───────────────────────────────────────────────────────────────────
 if #failures == 0 then
 	for _, f in ipairs(ok_files) do

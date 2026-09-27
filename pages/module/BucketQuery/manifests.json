@@ -1,5 +1,5 @@
 {
-	"%doc": "The property manifests Module:BucketQuery searches, in order. A manifest declares which Bucket table and column each of its properties lives in; see Module:Entity/properties.json for the shape. Registering a domain here is what makes its properties nameable in a {{Data table}} filter or column, and the same file is read by the bucketschemas generator that writes the Bucket: schema pages, so a domain is registered once rather than in two lists that drift apart. Order matters only for a property name declared by more than one manifest, where the first wins; a kind's own manifest is searched ahead of the rest when a caller names a kind.",
+	"%doc": "The property manifests Module:BucketQuery searches, in order. A manifest declares which Bucket table and column each of its properties lives in; see Module:Entity/properties.json for the shape. Registering a domain here is what makes its properties nameable in a {{Data table}} filter or column, and the same file is read by the bucketschemas generator that writes the Bucket: schema pages, so a domain is registered once rather than in two lists that drift apart. Order matters only for a property name declared by more than one manifest, where the first wins. `kinds` maps each kind name to the manifest whose %kinds lists it: a lookup that names a kind searches that manifest first, found here without loading the others, since every manifest a page loads becomes a dependency of that page. tests/manifest.lua checks it against each manifest's %kinds.",
 	"manifests": [
 		"Module:Entity/properties.json",
 		"Module:Company/properties.json",
@@ -9,5 +9,14 @@
 		"Module:Dependencies/properties.json",
 		"Module:Patch/properties.json",
 		"Module:CommLink/properties.json"
-	]
+	],
+	"kinds": {
+		"Vehicle": "Module:Entity/properties.json",
+		"Item": "Module:Entity/properties.json",
+		"Commodity": "Module:Entity/properties.json",
+		"Location": "Module:Entity/properties.json",
+		"Mission": "Module:Entity/properties.json",
+		"Company": "Module:Company/properties.json",
+		"Wearable set": "Module:WearableSet/properties.json"
+	}
 }

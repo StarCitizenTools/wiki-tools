@@ -151,6 +151,11 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	for id, page := range cfg.Covered() {
+		if _, ok := existing[id]; !ok {
+			existing[id] = page
+		}
+	}
 	var missing []commlink.Candidate
 	for _, c := range candidates {
 		if wanted(c.ID, existing, onlyIDs, *refresh) {

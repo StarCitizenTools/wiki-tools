@@ -107,6 +107,16 @@ dir = "scripts"
 run = "go run ./cmd/commlinks -config cmd/commlinks/config.portfolio.json -diff"
 description = "Report missing Portfolio articles (exit 1 if any, or if a review entry is new). Read-only; changes go through the MediaWiki MCP server."
 
+[tasks."commlinks:engineering"]
+dir = "scripts"
+run = "go run ./cmd/commlinks -config cmd/commlinks/config.engineering.json"
+description = "Plan the Engineering posts missing from the wiki: pages and images into scripts/out/commlinks-engineering/ (gitignored); publish via the MediaWiki MCP server"
+
+[tasks."commlinks:engineering:diff"]
+dir = "scripts"
+run = "go run ./cmd/commlinks -config cmd/commlinks/config.engineering.json -diff"
+description = "Report missing Engineering posts (exit 1 if any, or if a review entry is new). Read-only; changes go through the MediaWiki MCP server."
+
 [tasks.test]
 depends = ["test:lua", "test:go", "test:js"]
 description = "Run all local tests"

@@ -137,23 +137,30 @@ func TestLoadConfigRejects(t *testing.T) {
 	dir := t.TempDir()
 	const base = `"series":"s","titleQuery":"M","titlePattern":"m","greetingPattern":"g","signOffPattern":"o"`
 	for body, want := range map[string]string{
-		`{"titleQuery":"M","titlePattern":"m","greetingPattern":"g","signOffPattern":"o"}`:              "required",
-		`{"series":"s","channel":"c","apiChannel":"C"}`:                                                 "series and channel",
-		`{"series":"s","titlePattern":"m"}`:                                                             "titleQuery",
-		`{"channel":"c","apiChannel":"C","seriesFromReport":true,"infoboxSeries":"X"}`:                  "infoboxSeries",
-		`{"channel":"c","apiChannel":"C","standaloneSeries":["None"]}`:                                  "seriesFromReport",
-		`{"channel":"c","apiChannel":"C","seriesRename":{"A":"B"}}`:                                     "seriesFromReport",
-		`{"channel":"c","apiChannel":"C","noSections":true}`:                                            "",
-		`{"channel":"c","apiChannel":"C"}`:                                                              "greetingPattern",
-		`{"series":"s","titleQuery":"M","titlePattern":"m","greetingPattern":"g"}`:                      "signOffPattern",
-		`{` + base + `,"signOffPatern":"o"}`:                                                            "signOffPatern",
-		`{"series":"s","titleQuery":"M","titlePattern":"(","greetingPattern":"g","signOffPattern":"o"}`: "titlePattern",
-		`{"series":"s","titleQuery":"M","titlePattern":"m","greetingPattern":"(","signOffPattern":"o"}`: "greetingPattern",
-		`{"series":"s","titleQuery":"M","titlePattern":"m","greetingPattern":"g","signOffPattern":"("}`: "signOffPattern",
-		`{` + base + `,"aliases":{" ":"Target"}}`:                                                       "aliases",
-		`{` + base + `,"noLink":["Vulcan (G12)",""]}`:                                                   "noLink",
-		`{` + base + `,"datedTitlePattern":"("}`:                                                        "datedTitlePattern",
-		`{` + base + `}`:                                                                                "",
+		`{"titleQuery":"M","titlePattern":"m","greetingPattern":"g","signOffPattern":"o"}`:                                                                           "required",
+		`{"series":"s","channel":"c","apiChannel":"C"}`:                                                                                                              "series and channel",
+		`{"series":"s","titlePattern":"m"}`:                                                                                                                          "titleQuery",
+		`{"channel":"c","apiChannel":"C","seriesFromReport":true,"infoboxSeries":"X"}`:                                                                               "infoboxSeries",
+		`{"channel":"c","apiChannel":"C","standaloneSeries":["None"]}`:                                                                                               "seriesFromReport",
+		`{"channel":"c","apiChannel":"C","seriesRename":{"A":"B"}}`:                                                                                                  "seriesFromReport",
+		`{"channel":"c","apiChannel":"C","noSections":true}`:                                                                                                         "",
+		`{"channel":"c","apiChannel":"C","noSections":true,"seriesRules":[{"title":"x","series":"S"}]}`:                                                              "seriesRules",
+		`{"channel":"c","apiChannel":"C","noSections":true,"seriesFromReport":true,"seriesRules":[{"title":"x"}]}`:                                                   "seriesRules",
+		`{"channel":"c","apiChannel":"C","noSections":true,"seriesFromReport":true,"seriesRules":[{"series":"S"}]}`:                                                  "seriesRules",
+		`{"channel":"c","apiChannel":"C","noSections":true,"seriesFromReport":true,"seriesRules":[{"title":"(","series":"S"}]}`:                                      "seriesRules",
+		`{"channel":"c","apiChannel":"C","noSections":true,"coveredElsewhere":{"x":"Update:P"}}`:                                                                     "coveredElsewhere",
+		`{"channel":"c","apiChannel":"C","noSections":true,"coveredElsewhere":{"12":" "}}`:                                                                           "coveredElsewhere",
+		`{"channel":"c","apiChannel":"C","noSections":true,"seriesFromReport":true,"seriesRules":[{"label":"L","series":"S"}],"coveredElsewhere":{"12":"Update:P"}}`: "",
+		`{"channel":"c","apiChannel":"C"}`:                                                                                                                           "greetingPattern",
+		`{"series":"s","titleQuery":"M","titlePattern":"m","greetingPattern":"g"}`:                                                                                   "signOffPattern",
+		`{` + base + `,"signOffPatern":"o"}`:                                                                                                                         "signOffPatern",
+		`{"series":"s","titleQuery":"M","titlePattern":"(","greetingPattern":"g","signOffPattern":"o"}`:                                                              "titlePattern",
+		`{"series":"s","titleQuery":"M","titlePattern":"m","greetingPattern":"(","signOffPattern":"o"}`:                                                              "greetingPattern",
+		`{"series":"s","titleQuery":"M","titlePattern":"m","greetingPattern":"g","signOffPattern":"("}`:                                                              "signOffPattern",
+		`{` + base + `,"aliases":{" ":"Target"}}`:                                                                                                                    "aliases",
+		`{` + base + `,"noLink":["Vulcan (G12)",""]}`:                                                                                                                "noLink",
+		`{` + base + `,"datedTitlePattern":"("}`:                                                                                                                     "datedTitlePattern",
+		`{` + base + `}`:                                                                                                                                             "",
 	} {
 		p := filepath.Join(dir, "config.json")
 		os.WriteFile(p, []byte(body), 0o644)
@@ -230,6 +237,34 @@ func TestEmptyPatternsMatchNothing(t *testing.T) {
 	for _, s := range []string{"Greetings Citizens,", "Chris", "", "THE END"} {
 		if c.MatchesGreeting(s) || c.MatchesSignOff(s) || c.MatchesTitle(s) {
 			t.Errorf("%q matched an empty pattern", s)
+		}
+	}
+}
+
+// Series rules run in order before the API label: a title pattern, an exact
+// label, or both together, with a catch-all last; a report no rule matches
+// falls back to its label.
+func TestReportSeriesRules(t *testing.T) {
+	dir := t.TempDir()
+	p := filepath.Join(dir, "config.json")
+	os.WriteFile(p, []byte(`{"channel":"c","apiChannel":"C","noSections":true,"seriesFromReport":true,"seriesRules":[
+		{"title":"^The Shipyard\\b","series":"The Shipyard"},
+		{"title":"\\bQ&A\\b","series":"Q&A"},
+		{"label":"Design Post","series":"Design"},
+		{"title":"^Hangar","label":"None","series":"Hangars"}]}`), 0o644)
+	c, err := LoadConfig(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct{ title, api, want string }{
+		{"The Shipyard: Ship Mass", "Concept Ship Q&A", "The Shipyard"},
+		{"Q&A: MISC Hull A", "Concept Ship Q&A", "Q&A"},
+		{"Healing Your Spacemen", "Design Post", "Design"},
+		{"Hangar Concept Art", "None", "Hangars"},
+		{"Hangar Module", "Work In Progress", "Work In Progress"},
+	} {
+		if got := c.ReportSeries(tc.title, tc.api); got != tc.want {
+			t.Errorf("ReportSeries(%q, %q) = %q, want %q", tc.title, tc.api, got, tc.want)
 		}
 	}
 }

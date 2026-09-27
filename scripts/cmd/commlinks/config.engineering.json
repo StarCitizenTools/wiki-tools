@@ -1,0 +1,116 @@
+{
+  "channel": "engineering",
+  "apiChannel": "Engineering",
+  "greetingPattern": "(?i)^(?:greetings|hello|hi|dear)(?:[\\s,!.]|$)",
+  "signOffPattern": "(?i)^(?:[-—–=]+\\s*)?chris(?: roberts)?$",
+  "infoboxType": "Engineering",
+  "seriesFromReport": true,
+  "seriesRules": [
+    {
+      "title": "^The Shipyard\\b",
+      "series": "The Shipyard"
+    },
+    {
+      "title": "\\bQ&A\\b",
+      "series": "Q&A"
+    },
+    {
+      "label": "Concept Ship Q&A",
+      "series": "Q&A"
+    },
+    {
+      "title": "^WIP\\b",
+      "series": "Work In Progress"
+    },
+    {
+      "label": "Work In Progress",
+      "series": "Work In Progress"
+    },
+    {
+      "title": "^Design Notes\\b",
+      "series": "Design"
+    },
+    {
+      "label": "Design Post",
+      "series": "Design"
+    },
+    {
+      "title": "^(?:BTS|Inside CIG)\\b",
+      "series": "Behind the Scenes"
+    },
+    {
+      "label": "Behind the Scenes",
+      "series": "Behind the Scenes"
+    },
+    {
+      "title": "Concept Art|Gallery|Concept Vault",
+      "series": "Concept Art"
+    },
+    {
+      "title": ".",
+      "series": "One-off"
+    }
+  ],
+  "coveredElsewhere": {
+    "13239": "Update:Star Citizen Patch 1",
+    "13246": "Update:Star Citizen Patch 2",
+    "13251": "Update:Star Citizen Patch 3",
+    "13277": "Update:Star Citizen Patch 4",
+    "13291": "Update:Star Citizen Patch 5",
+    "13300": "Update:Star Citizen Patch 6",
+    "13316": "Update:Star Citizen Patch 7",
+    "13337": "Update:Star Citizen Patch 8",
+    "13427": "Update:Star Citizen Patch 9",
+    "13444": "Update:Star Citizen Patch 10",
+    "13582": "Update:Star Citizen Patch 11",
+    "13600": "Update:Star Citizen Patch 11.1",
+    "15490": "Update:Star Citizen Alpha 2.5.0"
+  },
+  "imageCategory": "Engineering images",
+  "imageAuthor": "Cloud Imperium Games",
+  "linkCategories": [
+    "Developers",
+    "Ships",
+    "Ground vehicles",
+    "Planets",
+    "Moons",
+    "Landing zones",
+    "Cities",
+    "Space stations",
+    "Systems"
+  ],
+  "aliases": {
+    "Los Angeles": "Cloud Imperium Games, LLC",
+    "Austin": "Cloud Imperium Games Texas, LLC",
+    "Frankfurt": "Cloud Imperium Games Frankfurt Office",
+    "Manchester": "Cloud Imperium Games Ltd.",
+    "Turbulent": "Turbulent",
+    "Hurston Dynamics": "Hurston Dynamics",
+    "Constantine Hurston": "Constantine Hurston",
+    "Terra Mills": "Terra Mills"
+  },
+  "stoplist": [
+    "Centurion",
+    "Cologne",
+    "Guardian",
+    "Odin",
+    "Odyssey",
+    "Shanghai",
+    "Titus"
+  ],
+  "noLink": [
+    "Vulcan (G12)",
+    "Eclipse Mode"
+  ],
+  "fidelityIgnore": [
+    "^(?:Embark onLanding bay iron Hades IIISmuggling)+PU Monthly Reports?$",
+    "^Ai system Puffy PlanetVanduul civilization captain transponderEradicate ennoblingPU Monthly Report$",
+    "^PU Monthly Report$",
+    "^The Character Art team progressed with projects for Alpha 4\\.8 alongside in-game assets\\. They also continued to work on new gang outfits and support Star Wear\\.$"
+  ],
+  "knownReview": [],
+  "apiTextAccepted": [],
+  "apiIngestDates": [
+    "2026-05-25"
+  ]
+}

@@ -28,7 +28,7 @@ function p.main(frame)
 	end
 	-- The chain decides what "ports" means (getPorts, leaf-first; Base
 	-- supplies the record's own tree). This renderer never reads apiData.
-	local payload = assembly.resolveMostSpecific(result.chain, 'getPorts', nil, result.ctx) or {}
+	local payload = assembly.run(result.chain, 'getPorts', result.ctx) or {}
 	local rawPorts = payload.ports
 	if type(rawPorts) ~= 'table' or #rawPorts == 0 then
 		return emptyState.none('No ports.')

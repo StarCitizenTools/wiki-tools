@@ -16,8 +16,8 @@ require('strict')
 ---  3. Shape rows into the Tiles row schema and call Tiles.render.
 ---
 --- The chain decides what "related" means: getRelated resolves leaf-first,
---- skipping a nil answer (Module:Entity/Assembly.resolveMostSpecific with
---- acceptNonEmpty) so a kind's "no data" case falls through to Base rather
+--- skipping a nil answer (the mostSpecificNonEmpty policy in
+--- Module:Entity/Assembly) so a kind's "no data" case falls through to Base rather
 --- than standing as the final word, and this module draws the payload it
 --- gets. `items` (Base: the record's related_items block — set pieces +
 --- cosmetic variants) renders as tiles; `cargo` (Commodity: the cargo-box
@@ -439,7 +439,7 @@ function p.main(frame)
 		return emptyState.failed(FAILED_MESSAGE)
 	end
 
-	local payload = assembly.resolveMostSpecific(result.chain, 'getRelated', assembly.acceptNonEmpty, result.ctx) or {}
+	local payload = assembly.run(result.chain, 'getRelated', result.ctx) or {}
 	if type(payload.cargo) == 'table' then
 		return renderCargoVariants(payload.cargo)
 	end

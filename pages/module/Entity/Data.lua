@@ -222,14 +222,10 @@ end
 --- @return boolean hasError
 local function fetchChainExtras(chain, uuid, fetchedEndpoints)
 	local additionalConfigs = {}
-	for _, mod in ipairs(chain) do
-		if mod.getApiConfigs then
-			for _, config in ipairs(mod.getApiConfigs()) do
-				if not fetchedEndpoints[config.endpoint] then
-					table.insert(additionalConfigs, config)
-					fetchedEndpoints[config.endpoint] = true
-				end
-			end
+	for _, config in ipairs(assembly.run(chain, 'getApiConfigs')) do
+		if not fetchedEndpoints[config.endpoint] then
+			table.insert(additionalConfigs, config)
+			fetchedEndpoints[config.endpoint] = true
 		end
 	end
 	if #additionalConfigs == 0 then
@@ -246,12 +242,7 @@ end
 --- @param ctx EntityHookContext
 --- @return table apiData
 local function enrichChain(chain, ctx)
-	for _, mod in ipairs(chain) do
-		if mod.enrich then
-			ctx.apiData = assembly.callHook(mod, 'enrich', ctx)
-		end
-	end
-	return ctx.apiData
+	return assembly.run(chain, 'enrich', ctx)
 end
 
 --- Probes the kind, resolves the leaf, builds the chain, fetches the chain's
@@ -364,17 +355,14 @@ function p.get(args)
 
 	local leaf = chain[#chain]
 	local family = leaf and leaf.family
-	local typeInfo, displayType
-	if leaf and leaf.getTypeInfo then
-		typeInfo = assembly.callHook(leaf, 'getTypeInfo', ctx)
-		displayType = typeInfo and typeInfo.name
-	end
+	local typeInfo = assembly.run(chain, 'getTypeInfo', ctx)
+	local displayType = typeInfo and typeInfo.name
 	if not typeInfo then
 		typeInfo, displayType = typeResolver.resolve(args.type or ctx.apiData.type, ctx.apiData.classification)
 	end
 
 	local resolved, editorialData, hasManualApiData = {}, {}, false
-	local manifest = assembly.mergeEditorialManifests(chain)
+	local manifest = assembly.run(chain, 'getEditorialManifest')
 	if manifest then
 		resolved = editorial.resolve(ctx.apiData, args, manifest)
 		editorialData = editorial.toStructuredData(resolved, manifest)
@@ -387,7 +375,7 @@ function p.get(args)
 	-- resolved still contributes categories, and folding them in would hand
 	-- every `if ctx.typeInfo` guard downstream a nameless table to mistake for a
 	-- resolved type.
-	local chainCategories = assembly.collect(chain, 'getCategories', ctx)
+	local chainCategories = assembly.run(chain, 'getCategories', ctx)
 
 	ctx.typeInfo = typeInfo
 	ctx.kind = kind

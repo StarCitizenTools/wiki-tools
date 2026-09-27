@@ -305,7 +305,7 @@ local function acquisitionFor(result)
 	if result.matchedKind == nil then
 		return nil
 	end
-	return assembly.resolveMostSpecific(result.chain, 'getAcquisition', nil, result.ctx)
+	return assembly.run(result.chain, 'getAcquisition', result.ctx)
 end
 
 --- Main entry point. Renders the acquisition payload acquisitionFor resolves

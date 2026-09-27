@@ -184,4 +184,97 @@ function p.mergeEditorialManifests(chain)
 	return merged
 end
 
+--- How each hook's answers combine across a root-first chain, or across the
+--- facet list in registry order. The one place a hook's policy lives: callers
+--- go through p.run, and Module:Entity/Assembly/testcases fails when a hook
+--- Module:Entity/Contract declares has no policy here.
+---
+--- - collect: every link's list, concatenated root to leaf
+--- - merge: every link's table, merged root to leaf, later keys winning
+--- - pipeline: each link's answer becomes ctx.apiData for the next
+--- - leaf: the last link's answer alone; an ancestor's is never asked
+--- - mostSpecific: the most specific link defining the hook, even when it answers nil
+--- - mostSpecificNonEmpty: the most specific nil-or-empty-skipping answer
+--- - firstNonNil: the first answer in list order that is not nil
+--- - fold: editorial manifest fragments merged by mergeEditorialManifests
+--- @type table<string, string>
+p.POLICIES = {
+	getSections = 'collect',
+	getExternalSiteItems = 'collect',
+	getFooterButtons = 'collect',
+	getMetadataItems = 'collect',
+	getCategories = 'collect',
+	getApiConfigs = 'collect',
+	getStructuredData = 'merge',
+	enrich = 'pipeline',
+	getTypeInfo = 'leaf',
+	getShortDescription = 'mostSpecific',
+	getAcquisition = 'mostSpecific',
+	getBlueprints = 'mostSpecific',
+	getPorts = 'mostSpecific',
+	getSubtitle = 'mostSpecificNonEmpty',
+	getTitleAnnotation = 'mostSpecificNonEmpty',
+	getHeaderBadge = 'mostSpecificNonEmpty',
+	getRelated = 'mostSpecificNonEmpty',
+	getShortDescriptionPrefix = 'firstNonNil',
+	getEditorialManifest = 'fold',
+}
+
+--- Asks every link in `list` that defines `hookName` and combines the answers
+--- by the hook's policy in p.POLICIES. Errors for a hook with no policy, so a
+--- new hook fails where it is first called rather than combining by guesswork.
+--- @param list table[] Root-first chain, or the facet list
+--- @param hookName string
+--- @param ctx EntityHookContext|nil Unused by `fold`
+--- @return any
+function p.run(list, hookName, ctx)
+	local policy = p.POLICIES[hookName]
+	if policy == 'collect' then
+		return p.collect(list, hookName, ctx)
+	elseif policy == 'merge' then
+		local merged = {}
+		for _, link in ipairs(list) do
+			if link[hookName] then
+				local data = p.callHook(link, hookName, ctx)
+				if type(data) == 'table' then
+					for k, v in pairs(data) do
+						merged[k] = v
+					end
+				end
+			end
+		end
+		return merged
+	elseif policy == 'pipeline' then
+		for _, link in ipairs(list) do
+			if link[hookName] then
+				ctx.apiData = p.callHook(link, hookName, ctx)
+			end
+		end
+		return ctx.apiData
+	elseif policy == 'leaf' then
+		local leaf = list[#list]
+		if leaf and leaf[hookName] then
+			return p.callHook(leaf, hookName, ctx)
+		end
+		return nil
+	elseif policy == 'mostSpecific' then
+		return p.resolveMostSpecific(list, hookName, nil, ctx)
+	elseif policy == 'mostSpecificNonEmpty' then
+		return p.resolveMostSpecific(list, hookName, p.acceptNonEmpty, ctx)
+	elseif policy == 'firstNonNil' then
+		for _, link in ipairs(list) do
+			if link[hookName] then
+				local answer = p.callHook(link, hookName, ctx)
+				if answer ~= nil then
+					return answer
+				end
+			end
+		end
+		return nil
+	elseif policy == 'fold' then
+		return p.mergeEditorialManifests(list)
+	end
+	error("Assembly.run: no policy for hook '" .. tostring(hookName) .. "'")
+end
+
 return p

@@ -12,17 +12,9 @@ local p = {}
 
 --- Contributor: the hook set every chain link (Base, a kind, a subtype leaf)
 --- may implement. Every hook is optional — a link implements only what it
---- adds. Module:Entity/Data applies one merge policy per hook: sections,
---- structured data, external sites, metadata rows, footer buttons and
---- categories are additive root-to-leaf; enrich runs root-to-leaf, each link
---- receiving the previous link's apiData; the editorial manifest merges
---- root-to-leaf with leaf keys winning; type info comes from the leaf alone
---- (Module:Entity/Data calls only the leaf's getTypeInfo, never an ancestor's);
---- short description, acquisition and the sibling payloads getBlueprints and
---- getPorts are leaf-first-wins (even a nil answer stands); subtitle, title
---- annotation, header badge and getRelated are leaf-first but SKIP a nil or
---- empty answer and keep walking, because their resolvers pass
---- assembly.acceptNonEmpty.
+--- adds. How each hook's answers combine across the chain is
+--- Module:Entity/Assembly.POLICIES, applied by Assembly.run; its test fails
+--- when a hook declared here has no policy there.
 --- @type table<string, boolean>
 p.CONTRIBUTOR = {
 	getSections = false,

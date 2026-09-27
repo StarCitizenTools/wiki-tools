@@ -219,7 +219,10 @@
 		"Shop": "City venues",
 		"Spaceport": "City venues",
 		"Venue": "City venues",
-		"Asteroid cluster": "Asteroid formation"
+		"Asteroid cluster": "Asteroid formation",
+		"Asteroid belt": "Asteroid formation",
+		"Planetary ring system": "Asteroid formation",
+		"Debris field": "Asteroid formation"
 	},
 	"kinds": {
 		"Commodity": "Commodity"

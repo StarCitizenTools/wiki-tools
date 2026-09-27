@@ -203,3 +203,35 @@ func TestTitleStatusesAllPipeTitlesSendsNoRequest(t *testing.T) {
 		t.Errorf("requests = %d, want 0", *requests)
 	}
 }
+
+func TestTitleStatusesAnyNamespace(t *testing.T) {
+	client, _ := newTestClient(t, func(form url.Values) string {
+		resp := map[string]any{"query": map[string]any{
+			"normalized": []map[string]string{{"from": "Comm-Link:monthly Report - X", "to": "Comm-Link:Monthly Report - X"}},
+			"pages": []map[string]any{
+				{"title": "Comm-Link:Monthly Report - X", "ns": 3000},
+				{"title": "File:New.png", "ns": 6, "missing": true},
+			},
+		}}
+		b, _ := json.Marshal(resp)
+		return string(b)
+	})
+
+	got, err := client.TitleStatusesAnyNamespace(context.Background(), []string{"Comm-Link:monthly Report - X", "File:New.png", "Bad|Title"})
+	if err != nil {
+		t.Fatalf("TitleStatusesAnyNamespace: %v", err)
+	}
+	want := map[string]TitleStatus{
+		"Comm-Link:monthly Report - X": TitleExists,
+		"File:New.png":                 TitleMissing,
+		"Bad|Title":                    TitleInvalid,
+	}
+	if len(got) != len(want) {
+		t.Errorf("result = %v, want %v", got, want)
+	}
+	for title, status := range want {
+		if got[title] != status {
+			t.Errorf("%q = %q, want %q", title, got[title], status)
+		}
+	}
+}

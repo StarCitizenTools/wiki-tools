@@ -205,6 +205,17 @@ const (
 // without being sent, and a title that resolves outside the main namespace
 // (e.g. "Template: Foo") is reported TitleInvalid rather than TitleMissing.
 func (c *Client) TitleStatuses(ctx context.Context, titles []string) (map[string]TitleStatus, error) {
+	return c.titleStatuses(ctx, titles, true)
+}
+
+// TitleStatusesAnyNamespace is TitleStatuses for titles in any namespace
+// ("File:X"): a title that resolves outside the main namespace is classified
+// like any other, not reported TitleInvalid.
+func (c *Client) TitleStatusesAnyNamespace(ctx context.Context, titles []string) (map[string]TitleStatus, error) {
+	return c.titleStatuses(ctx, titles, false)
+}
+
+func (c *Client) titleStatuses(ctx context.Context, titles []string, mainOnly bool) (map[string]TitleStatus, error) {
 	const batch = 50
 	out := make(map[string]TitleStatus, len(titles))
 
@@ -274,7 +285,7 @@ func (c *Client) TitleStatuses(ctx context.Context, titles []string) (map[string
 			switch {
 			case p.Invalid:
 				status = TitleInvalid
-			case p.Ns != 0:
+			case mainOnly && p.Ns != 0:
 				// The title resolved into a namespace other than main (e.g.
 				// "Template: Foo" -> the Template namespace): free there says
 				// nothing about whether it's free as an article, so it must

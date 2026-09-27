@@ -24,6 +24,11 @@
 		"index": true,
 		"repeated": false
 	},
+	"hei": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
 	"image": {
 		"type": "TEXT",
 		"index": false,
@@ -34,13 +39,38 @@
 		"index": true,
 		"repeated": false
 	},
+	"manual_api_field": {
+		"type": "TEXT",
+		"index": true,
+		"repeated": true
+	},
 	"manufacturer": {
 		"type": "PAGE",
 		"index": true,
 		"repeated": false
 	},
+	"max_speed": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
 	"name": {
 		"type": "TEXT",
+		"index": false,
+		"repeated": false
+	},
+	"ndr": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"quantum_speed": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"quantum_spool_time": {
+		"type": "DOUBLE",
 		"index": false,
 		"repeated": false
 	},
@@ -49,9 +79,19 @@
 		"index": true,
 		"repeated": false
 	},
+	"scm_speed": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
 	"size": {
 		"type": "INTEGER",
 		"index": true,
+		"repeated": false
+	},
+	"storage_capacity": {
+		"type": "DOUBLE",
+		"index": false,
 		"repeated": false
 	},
 	"subject_type": {

@@ -142,6 +142,28 @@ function suite:testSplitRoutesByKindAndReportsForeign()
 	self:assertDeepEquals({ 'health', 'modifier_resistance', 'unknown_key' }, unregistered)
 end
 
+-- A property moving to another table is written to both while readers still
+-- read the old one, so the new column is filled before any reader switches.
+function suite:testSplitWritesAMigratingPropertyToBothTables()
+	local manifest = {
+		['%kinds'] = { Vehicle = { 'entity', 'vehicle_stats' } },
+		['Scm speed'] = {
+			type = 'DOUBLE',
+			bucket = { Item = 'item_component', Vehicle = 'vehicle_stats' },
+			field = 'scm_speed',
+			migrateTo = 'entity',
+		},
+	}
+	local puts, unregistered = SD._internal.splitByBucket(manifest, { scm_speed = 262 }, 'Vehicle')
+	self:assertEquals(262, puts.vehicle_stats.scm_speed)
+	self:assertEquals(262, puts.entity.scm_speed)
+	self:assertEquals(0, #unregistered)
+	-- With no kind the old table cannot be chosen, but the new one needs none.
+	local kindless = SD._internal.splitByBucket(manifest, { scm_speed = 262 }, nil)
+	self:assertEquals(nil, kindless.vehicle_stats)
+	self:assertEquals(262, kindless.entity.scm_speed)
+end
+
 function suite:testSplitItemGetsMiningModifierColumn()
 	local puts = SD._internal.splitByBucket(FULL, { modifier_resistance = 3, health = 5 }, 'Item')
 	self:assertDeepEquals({ modifier_resistance = 3 }, puts.item_tool)

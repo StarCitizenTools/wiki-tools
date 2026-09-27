@@ -243,8 +243,54 @@ function suite:testKindsAndSelectsNameAnchoredHubs()
 	end
 	for hub, selector in pairs(doc.selects) do
 		self:assertEquals('string', type(doc.hubs[hub]), hub)
-		self:assertEquals(true, mw.ustring.find(selector, '^Category:.') ~= nil, hub)
+		local categories = type(selector) == 'table' and selector.any or { selector }
+		self:assertEquals('table', type(categories), hub)
+		for _, category in ipairs(categories) do
+			self:assertEquals(true, mw.ustring.find(category, '^Category:.') ~= nil, hub)
+		end
 	end
+end
+
+function suite:testStationClassesReachTheSpaceStationHub()
+	-- The hub lists every station class, so a subclass page browses to it
+	-- rather than to a hub of its own that does not exist.
+	for _, class in ipairs({
+		'Space station',
+		'Space stations',
+		'Alignment facility',
+		'Asteroid base',
+		'Comm array',
+		'Gateway station',
+		'Military station',
+		'Orbital station',
+		'Rest stop',
+	}) do
+		local hub, label = hubFor(class)
+		self:assertEquals('Space station', hub, class)
+		self:assertEquals('space stations', label, class)
+	end
+end
+
+function suite:testSpaceStationHubCountsEveryStationClass()
+	-- A rest stop page must caption the hub with the size of the whole list,
+	-- not with the number of rest stops.
+	local selector = countFilter('Space station', 'Rest stop')
+	self:assertEquals('table', type(selector))
+	local categories = {}
+	for _, category in ipairs(selector.any) do
+		categories[category] = true
+	end
+	self:assertEquals(true, categories['Category:Space stations'])
+	self:assertEquals(true, categories['Category:Rest stops'])
+	self:assertEquals(true, categories['Category:Orbital stations'])
+end
+
+function suite:testRacetrackReachesTheRacingHub()
+	local hub, label, countOn =
+		resolveHub({ { value = 'Racetracks', countOn = 'Racetrack' }, { value = 'Racetrack', countOn = 'Racetrack' } })
+	self:assertEquals('Racing', hub)
+	self:assertEquals('racetracks', label)
+	self:assertEquals('Racetrack', countOn)
 end
 
 return suite

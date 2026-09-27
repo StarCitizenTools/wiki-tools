@@ -40,7 +40,6 @@
 		"Residences": { "category": "Residences", "parent": "City venues", "zone": "inside" },
 		"Venue": { "category": "Venues", "parent": "City venues", "zone": "inside" },
 		"City district": { "category": "City districts", "parent": "City venues", "zone": "inside" },
-		"Building": { "category": "Buildings", "parent": "City venues", "zone": "inside" },
-		"Business park": { "category": "Business parks", "parent": "City venues", "zone": "inside" }
+		"Building": { "category": "Buildings", "parent": "City venues", "zone": "inside" }
 	}
 }

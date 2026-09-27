@@ -18,6 +18,7 @@
 		"Salvage yard": { "category": "Salvage yards", "parent": "Outposts", "zone": "surface" },
 		"Distribution centre": { "category": "Distribution centres", "parent": "Outposts", "zone": "surface" },
 		"Security post": { "category": "Security posts", "parent": "Outposts", "zone": "surface" },
+		"Forward operating base": { "category": "Forward operating bases", "parent": "Outposts", "zone": "surface" },
 		"Prison": { "category": "Prisons", "parent": "Locations", "zone": "surface" },
 		"Cave": { "category": "Caves", "parent": "Locations", "zone": "surface" },
 		"Racetrack": { "category": "Racetracks", "parent": "Locations", "zone": "surface" },

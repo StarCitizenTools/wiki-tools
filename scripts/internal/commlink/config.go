@@ -10,6 +10,7 @@ import (
 	"os"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -18,6 +19,15 @@ import (
 type Rename struct {
 	Pattern string `json:"pattern"`
 	Replace string `json:"replace"`
+}
+
+// SeriesRule gives Series to the reports it matches: Title, a pattern over the
+// RSI title, and Label, an exact API series label, are each optional, and both
+// must match when both are given.
+type SeriesRule struct {
+	Title  string `json:"title"`
+	Label  string `json:"label"`
+	Series string `json:"series"`
 }
 
 // Config is the editorial input to the importer, read from
@@ -79,6 +89,14 @@ type Config struct {
 	// differently from the wiki.
 	StandaloneSeries []string          `json:"standaloneSeries"`
 	SeriesRename     map[string]string `json:"seriesRename"`
+	// SeriesRules, tried in order before the API label, give a series by title
+	// or label to a channel whose labels don't name its families (Engineering
+	// files most of its posts under "None").
+	SeriesRules []SeriesRule `json:"seriesRules"`
+	// CoveredElsewhere maps an RSI number to the wiki page outside the
+	// Comm-Link namespace that already holds that report (a patch note's
+	// Update: page); the report counts as present.
+	CoveredElsewhere map[string]string `json:"coveredElsewhere"`
 	ImageCategory    string            `json:"imageCategory"`
 	ImageAuthor      string            `json:"imageAuthor"`
 	LinkCategories   []string          `json:"linkCategories"`
@@ -97,7 +115,8 @@ type Config struct {
 	APIIngestDates []string `json:"apiIngestDates"`
 
 	titleRe, greetingRe, signOffRe, datedRe *regexp.Regexp
-	renameRe, ignoreRe                      []*regexp.Regexp
+	renameRe, ignoreRe, seriesRuleRe        []*regexp.Regexp
+	covered                                 map[int]string
 }
 
 // LoadConfig reads and validates the config.
@@ -121,8 +140,28 @@ func LoadConfig(path string) (*Config, error) {
 	if c.SeriesFromReport && c.InfoboxSeries != "" {
 		return nil, fmt.Errorf("%s: infoboxSeries and seriesFromReport exclude each other", path)
 	}
-	if !c.SeriesFromReport && (len(c.StandaloneSeries) > 0 || len(c.SeriesRename) > 0) {
-		return nil, fmt.Errorf("%s: standaloneSeries and seriesRename need seriesFromReport", path)
+	if !c.SeriesFromReport && (len(c.StandaloneSeries) > 0 || len(c.SeriesRename) > 0 || len(c.SeriesRules) > 0) {
+		return nil, fmt.Errorf("%s: standaloneSeries, seriesRename and seriesRules need seriesFromReport", path)
+	}
+	for _, r := range c.SeriesRules {
+		if strings.TrimSpace(r.Series) == "" || (r.Title == "" && r.Label == "") {
+			return nil, fmt.Errorf("%s: seriesRules: a rule needs a series and a title or label", path)
+		}
+		var re *regexp.Regexp
+		if r.Title != "" {
+			if re, err = regexp.Compile(r.Title); err != nil {
+				return nil, fmt.Errorf("%s: seriesRules %q: %w", path, r.Title, err)
+			}
+		}
+		c.seriesRuleRe = append(c.seriesRuleRe, re)
+	}
+	c.covered = map[int]string{}
+	for k, page := range c.CoveredElsewhere {
+		id, err := strconv.Atoi(k)
+		if err != nil || id <= 0 || strings.TrimSpace(page) == "" {
+			return nil, fmt.Errorf("%s: coveredElsewhere %q: needs an RSI number and a page", path, k)
+		}
+		c.covered[id] = page
 	}
 	if !c.NoSections && (c.GreetingPattern == "" || c.SignOffPattern == "") {
 		return nil, fmt.Errorf("%s: greetingPattern and signOffPattern are required without noSections", path)
@@ -241,7 +280,8 @@ func (c *Config) ReportTitle(listed, titleBlock string) string {
 var partMarker = regexp.MustCompile(`(?i)(?:\s*\(\s*part\s+[^()]+\)|\s*:\s*part\s+\S+|\s+act\s+\d+)\s*$`)
 
 // ReportSeries is a report's infobox series: infoboxSeries, or with
-// seriesFromReport the report's API series label after seriesRename. A label
+// seriesFromReport the first of seriesRules to match, else the report's API
+// series label after seriesRename. A label
 // in standaloneSeries names no arc, so the report takes its series from its
 // title instead: the title without a closing part marker ("A Gift for Baba
 // (Part 1)" is in "A Gift for Baba"), or the whole title for a story in one
@@ -249,6 +289,11 @@ var partMarker = regexp.MustCompile(`(?i)(?:\s*\(\s*part\s+[^()]+\)|\s*:\s*part\
 func (c *Config) ReportSeries(title, apiSeries string) string {
 	if !c.SeriesFromReport {
 		return c.InfoboxSeries
+	}
+	for i, r := range c.SeriesRules {
+		if (r.Label == "" || r.Label == apiSeries) && (c.seriesRuleRe[i] == nil || c.seriesRuleRe[i].MatchString(title)) {
+			return r.Series
+		}
 	}
 	if !slices.Contains(c.StandaloneSeries, apiSeries) {
 		if renamed, ok := c.SeriesRename[apiSeries]; ok {
@@ -282,3 +327,6 @@ func (c *Config) AcceptsAPIText(id int) bool { return slices.Contains(c.APITextA
 func InfoboxURL(rsiURL string) string {
 	return strings.Replace(rsiURL, "robertsspaceindustries.com/en/", "robertsspaceindustries.com/", 1)
 }
+
+// Covered is the RSI numbers coveredElsewhere lists, each with its page.
+func (c *Config) Covered() map[int]string { return c.covered }

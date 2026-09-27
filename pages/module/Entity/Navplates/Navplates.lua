@@ -25,9 +25,16 @@ local BucketQuery = require('Module:BucketQuery')
 local Icon = require('Module:Icon')
 local manufacturers = require('Module:Manufacturers')
 local Store = require('Module:Entity/Store')
-local vehicleUtil = require('Module:Entity/Vehicle/Util')
 
 local p = {}
+
+--- Module:Entity/Vehicle/Util, required only on the pages that reach the role
+--- branch: a module required at load time becomes a dependency of every page
+--- showing this navplate, so each edit to it would re-parse all of them.
+--- @return table
+local function loadVehicleUtil()
+	return require('Module:Entity/Vehicle/Util')
+end
 
 local HUBS_PAGE = 'Module:Entity/Navplates/hubs.json'
 -- Codex's own next-arrow, rendered as a currentColor mask so it takes the
@@ -188,7 +195,7 @@ local function roleHubs(roles, family)
 		return out
 	end
 	for _, role in ipairs(roles) do
-		local hub = vehicleUtil.roleHub(role, family)
+		local hub = loadVehicleUtil().roleHub(role, family)
 		if hub then
 			out[#out + 1] = { hub = hub, label = mw.ustring.lower(hub) }
 		end
@@ -360,8 +367,8 @@ function p.main(frame)
 		-- resolves no record, so a sibling sees kind "Item" and an empty apiData
 		-- (Cydnus, Arrastra); that is why an empty record qualifies too, rather than
 		-- kind alone. Items reach neither branch and pay nothing.
-		local family = vehicleUtil.family(result.apiData)
 		if result.kind == 'Vehicle' or next(result.apiData or {}) == nil then
+			local family = loadVehicleUtil().family(result.apiData)
 			local stored = Store.selfValues('Role', 'Vehicle')
 			if stored then
 				-- A row exists, so it is the answer, even when it names roles no hub
@@ -373,7 +380,7 @@ function p.main(frame)
 			elseif result.kind == 'Vehicle' then
 				-- No row yet, which is a page that has never had a link update. The
 				-- API record is all there is.
-				candidates = roleHubs(vehicleUtil.resolveRole(result.apiData or {}, args), family)
+				candidates = roleHubs(loadVehicleUtil().resolveRole(result.apiData or {}, args), family)
 			end
 		end
 		local typeCandidates = {

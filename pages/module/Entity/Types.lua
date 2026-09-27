@@ -101,4 +101,15 @@ local p = {}
 --- @field getStructuredData nil|fun(ctx: EntityHookContext): table<string, any> Flat key-value data
 --- @field getShortDescriptionPrefix nil|fun(ctx: EntityHookContext): string|nil Adjective composed into the kind's short description
 
+--- @class EntityKindEntry
+--- A Module:Entity/Registry kind entry.
+--- @field name string The kind module's own `name`, compared without loading it
+--- @field api EntityApiConfig The kind's own getApiConfigs()[1], fetched by the probe before loading it
+--- @field load fun(): EntityKind
+
+--- @class EntityFacetEntry
+--- A Module:Entity/Registry facet entry.
+--- @field keys string[] Top-level record fields the facet's matches() reads; the facet loads only when one is present
+--- @field load fun(): EntityFacet
+
 return p

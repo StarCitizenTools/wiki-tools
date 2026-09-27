@@ -13,7 +13,7 @@ Editors never invoke this module directly; it runs inside [Template:Entity](http
 
 ### Extending
 
-`p.get` probes for a kind (a declared `|kind=` is trusted first, behind a `matches()` gate; otherwise it walks `Registry.kinds`, fetching each kind's primary endpoint until one matches), resolves a leaf via the kind's `resolveSubtype` (or falls back to `Module:Entity/Item` with no match), builds the chain, fetches any endpoints the chain still needs, and runs every chain link's `enrich(ctx)` root to leaf. When no genuine record came back (`apiData.uuid` absent) and `args.kind` names an opted-in (`editorialMode = true`) kind, it forks: `apiData` resets to `{}`, the chain rebuilds from `args` alone, and `enrich` reruns on the empty data. That is the editorial (planned-page) path.
+`p.get` probes for a kind (a declared `|kind=` is trusted first, behind a `matches()` gate; otherwise it walks `Registry.kinds`, fetching each kind's primary endpoint until one matches and loading a kind only when its endpoint answers a non-empty record), resolves a leaf via the kind's `resolveSubtype` (or falls back to `Module:Entity/Item` with no match), builds the chain, fetches any endpoints the chain still needs, and runs every chain link's `enrich(ctx)` root to leaf. When no genuine record came back (`apiData.uuid` absent) and `args.kind` names an opted-in (`editorialMode = true`) kind, it forks: `apiData` resets to `{}`, the chain rebuilds from `args` alone, and `enrich` reruns on the empty data. That is the editorial (planned-page) path.
 
 `result` fields and what they feed:
 

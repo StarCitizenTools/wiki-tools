@@ -23,6 +23,76 @@ function suite:testDetectFacetsNilSafe()
 	self:assertEquals(0, #helpers.detectFacets(nil))
 end
 
+-- A facet module is loaded only when one of its gate keys is present: every
+-- module a page loads is recorded as a dependency of that page, so loading a
+-- facet the record cannot match would re-parse the page whenever it changes.
+function suite:testDetectFacetsLoadsOnlyGatedFacets()
+	local registry = require('Module:Entity/Registry')
+	local stubFacet = {
+		matches = function(apiData)
+			return apiData.zzz_probe ~= nil
+		end,
+	}
+	local loads = 0
+	local stubEntry = {
+		keys = { 'zzz_probe' },
+		load = function()
+			loads = loads + 1
+			return stubFacet
+		end,
+	}
+	table.insert(registry.facets, stubEntry)
+	local ok, err = pcall(function()
+		helpers.detectFacets({ food = {} })
+		self:assertEquals(0, loads)
+		local facets = helpers.detectFacets({ zzz_probe = {} })
+		self:assertEquals(1, loads)
+		self:assertEquals(stubFacet, facets[#facets])
+	end)
+	table.remove(registry.facets)
+	if not ok then
+		error(err, 0)
+	end
+end
+
+--- Runs `fn(loaded)` with every registered kind's `load` wrapped to record the
+--- kind's name in `loaded`. Always restores the real loaders.
+--- @param fn fun(loaded: table<string, boolean>)
+local function withKindLoadSpy(fn)
+	local registry = require('Module:Entity/Registry')
+	local real, loaded = {}, {}
+	for i, entry in ipairs(registry.kinds) do
+		real[i] = entry.load
+		entry.load = function()
+			loaded[entry.name] = true
+			return real[i]()
+		end
+	end
+	local ok, err = pcall(fn, loaded)
+	for i, entry in ipairs(registry.kinds) do
+		entry.load = real[i]
+	end
+	if not ok then
+		error(err, 0)
+	end
+end
+
+function suite:testKindByNameLoadsOnlyTheNamedKind()
+	withKindLoadSpy(function(loaded)
+		helpers.kindByName('Location')
+		self:assertEquals(true, loaded.Location)
+		self:assertEquals(nil, loaded.Item)
+		self:assertEquals(nil, loaded.Vehicle)
+	end)
+end
+
+function suite:testKindByNameLoadsNothingForAnUnknownName()
+	withKindLoadSpy(function(loaded)
+		self:assertEquals(nil, helpers.kindByName('Nonsense'))
+		self:assertEquals(nil, next(loaded))
+	end)
+end
+
 -- resolveLeaf (leaf-module resolution from the matched kind)
 
 function suite:testResolveLeafUsesSubtype()
@@ -76,7 +146,8 @@ end
 --- @param apiData table|nil
 --- @return table|nil
 local function claimingKind(apiData)
-	for _, mod in ipairs(require('Module:Entity/Registry').kinds) do
+	for _, entry in ipairs(require('Module:Entity/Registry').kinds) do
+		local mod = entry.load()
 		if mod.matches(apiData) then
 			return mod
 		end
@@ -334,7 +405,13 @@ function suite:testHookContextNilRulesAndPipelineOrder()
 	}
 
 	local registry = require('Module:Entity/Registry')
-	table.insert(registry.kinds, stubKind)
+	local stubEntry = {
+		name = stubKind.name,
+		load = function()
+			return stubKind
+		end,
+	}
+	table.insert(registry.kinds, stubEntry)
 	local ok, err = pcall(function()
 		local result = Data.get({ kind = 'StubHookOrder' })
 
@@ -365,8 +442,8 @@ function suite:testHookContextNilRulesAndPipelineOrder()
 		self:assertEquals('Stub type', captured.getStructuredData.typeInfo.name)
 	end)
 
-	for i, mod in ipairs(registry.kinds) do
-		if mod == stubKind then
+	for i, entry in ipairs(registry.kinds) do
+		if entry == stubEntry then
 			table.remove(registry.kinds, i)
 			break
 		end
@@ -546,6 +623,41 @@ function suite:testUuidWithoutKindStopsAtFirstClaim()
 		self:assertEquals('Item', r.kind)
 		self:assertEquals(true, seen['items/%s'])
 		self:assertEquals(nil, seen['vehicles/%s'])
+	end)
+end
+
+-- The probe loads each kind only when it reaches it: an item record, claimed by
+-- the first kind, leaves every later kind unloaded.
+function suite:testProbeLoadsNoKindAfterTheClaimingOne()
+	local itemRecord = { uuid = 'abc', class_name = 'BEHR_P4AR', type = 'WeaponPersonal' }
+	withStubbedFetch({ ['items/%s'] = itemRecord }, function()
+		withKindLoadSpy(function(loaded)
+			self:assertEquals('Item', Data.get({ uuid = 'abc' }).kind)
+			self:assertEquals(true, loaded.Item)
+			self:assertEquals(nil, loaded.Vehicle)
+			self:assertEquals(nil, loaded.Location)
+		end)
+	end)
+end
+
+-- A kind whose endpoint answers nothing, or an empty record, cannot claim the
+-- uuid, so the probe never loads it: a location page loads Location alone.
+function suite:testProbeLoadsOnlyTheKindWhoseEndpointAnswers()
+	local responses = {
+		['items/%s'] = {},
+		['vehicles/%s'] = {},
+		['locations/%s'] = solarSystemRecord(),
+	}
+	withStubbedFetch(responses, function(seen)
+		withKindLoadSpy(function(loaded)
+			self:assertEquals('Location', Data.get({ uuid = 'c9c137cf-c520-47ee-9e6d-5d653dfbe201' }).kind)
+			self:assertEquals(true, seen['items/%s'])
+			self:assertEquals(true, loaded.Location)
+			self:assertEquals(nil, loaded.Item)
+			self:assertEquals(nil, loaded.Vehicle)
+			self:assertEquals(nil, loaded.Commodity)
+			self:assertEquals(nil, loaded.Mission)
+		end)
 	end)
 end
 

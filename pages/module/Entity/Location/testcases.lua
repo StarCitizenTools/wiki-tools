@@ -306,7 +306,8 @@ end
 --- claim a location record.
 function suite:testOnlyLocationClaimsLocationPayloads()
 	local fixture = solarSystemFixture()
-	for _, kind in ipairs(Registry.kinds) do
+	for _, entry in ipairs(Registry.kinds) do
+		local kind = entry.load()
 		if kind.name == 'Location' then
 			self:assertTrue(kind.matches(fixture))
 		else

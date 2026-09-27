@@ -25,7 +25,8 @@ func Infobox(m PageMeta) string {
 }
 
 // RenderBody writes blocks as wikitext, one blank line apart. file maps an
-// image source to its wiki file name; an image without one is left out.
+// image source to its wiki file name; an image without one is left out. An
+// image alone is a centred thumb; a slideshow is one <gallery>.
 func RenderBody(blocks []Block, caser *HeadCaser, file func(src string) string) string {
 	var parts []string
 	for _, b := range blocks {
@@ -57,6 +58,10 @@ func RenderBody(blocks []Block, caser *HeadCaser, file func(src string) string) 
 			} else {
 				parts = append(parts, fmt.Sprintf("[[File:%s|thumb|center]]", name))
 			}
+		case Gallery:
+			if g := gallery(b.Images, file); g != "" {
+				parts = append(parts, g)
+			}
 		case Video:
 			switch b.VideoKind {
 			case "youtube":
@@ -73,6 +78,43 @@ func RenderBody(blocks []Block, caser *HeadCaser, file func(src string) string) 
 		}
 	}
 	return strings.Join(parts, "\n\n") + "\n"
+}
+
+// gallery renders a slideshow's slides as one <gallery>, leaving out a slide
+// without a file name. A caption every slide shares is the gallery's caption,
+// given once; otherwise each slide keeps its own.
+func gallery(slides []Block, file func(src string) string) string {
+	var names, captions []string
+	for _, s := range slides {
+		if name := file(s.Src); name != "" {
+			names = append(names, name)
+			captions = append(captions, strings.ReplaceAll(s.Caption, "|", "&#124;"))
+		}
+	}
+	if len(names) == 0 {
+		return ""
+	}
+	shared := captions[0]
+	for _, c := range captions[1:] {
+		if c != shared {
+			shared = ""
+			break
+		}
+	}
+	var b strings.Builder
+	if shared != "" {
+		b.WriteString(`<gallery caption="` + strings.ReplaceAll(shared, `"`, "&quot;") + `">`)
+	} else {
+		b.WriteString("<gallery>")
+	}
+	for i, name := range names {
+		b.WriteString("\nFile:" + name)
+		if shared == "" && captions[i] != "" {
+			b.WriteString("|" + captions[i])
+		}
+	}
+	b.WriteString("\n</gallery>")
+	return b.String()
 }
 
 // nameSafe maps each character MediaWiki forbids in a file name to a

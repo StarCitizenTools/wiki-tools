@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -135,11 +136,29 @@ func TestParseFragmentLetterComponents(t *testing.T) {
 		"P Opening.",
 		"P “''A quote.''",
 		"P - Benoit Beausejour, CTO",
-		"IMG https://robertsspaceindustries.com/media/40yh807r62gyjr/source/Building_Out.png | Manchester, England",
-		"IMG https://robertsspaceindustries.com/media/x7ywvbjfc8umgr/source/AZ8A4441.jpg | Manchester, England",
+		"GALLERY https://robertsspaceindustries.com/media/40yh807r62gyjr/source/Building_Out.png | Manchester, England / https://robertsspaceindustries.com/media/x7ywvbjfc8umgr/source/AZ8A4441.jpg | Manchester, England",
 		"VID youtube zxlci1YJCDA",
 		"P Chris Roberts<br />Founder & CEO",
 	})
+}
+
+// A banner or slideshow whose JSON does not parse sends the report to review
+// rather than losing its content; a slideshow with no title has no caption.
+func TestParseFragmentBadComponentJSON(t *testing.T) {
+	for _, c := range []struct{ frag, want string }{
+		{`<g-banner-advanced :content="{not json"></g-banner-advanced>`, "g-banner-advanced :content"},
+		{`<g-slideshow :images="[&quot;/media/a/source/A.jpg&quot;"></g-slideshow>`, "g-slideshow :images"},
+		{`<g-slideshow :images="[&quot;/media/a/source/A.jpg&quot;]" :title="Manchester"></g-slideshow>`, "g-slideshow :title"},
+	} {
+		if _, err := ParseFragment([]byte(c.frag), chairmanConfig(t)); err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("ParseFragment(%s) = %v, want an error naming %q", c.frag, err, c.want)
+		}
+	}
+	blocks, err := ParseFragment([]byte(`<g-slideshow :images="[&quot;/media/a/source/A.jpg&quot;]"></g-slideshow>`), chairmanConfig(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	check(t, dump(blocks), []string{"GALLERY https://robertsspaceindustries.com/media/a/source/A.jpg"})
 }
 
 // Only the last article is a closing block when emphasised; an emphasised

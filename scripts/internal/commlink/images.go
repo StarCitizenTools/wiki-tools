@@ -55,34 +55,61 @@ func VideoLinks(blocks []Block) []Block {
 	return out
 }
 
-// DedupeImages drops an image block that repeats an earlier one's resolved
-// file name (RSI sometimes shows a section's header image again further
-// down), keeping the first appearance. A dropped repeat's caption moves to the
-// kept appearance when that one has none; two appearances whose captions both
-// hold text and differ are both kept, since collapsing them would lose one.
+// DedupeImages drops an image, alone or a gallery's slide, that repeats an
+// earlier one's resolved file name (RSI sometimes shows a section's header
+// image again further down), keeping the first appearance. A dropped repeat's
+// caption moves to the kept appearance when that one has none; two
+// appearances whose captions both hold text and differ are both kept, since
+// collapsing them would lose one. A gallery left with no slides is dropped.
 func DedupeImages(blocks []Block, file func(src string) string) []Block {
-	first := map[string]int{} // resolved file name -> its index in out
+	type at struct{ block, slide int } // slide is -1 for an image alone
+	first := map[string]at{}
 	out := make([]Block, 0, len(blocks))
-	for _, b := range blocks {
-		name := ""
-		if b.Kind == Image {
-			name = file(b.Src)
+	kept := func(a at) *Block {
+		if a.slide < 0 {
+			return &out[a.block]
 		}
+		return &out[a.block].Images[a.slide]
+	}
+	// repeat reports whether b, found at a, repeats an earlier appearance and
+	// can be dropped, merging its caption into that appearance.
+	repeat := func(b Block, a at) bool {
+		name := file(b.Src)
 		if name == "" {
-			out = append(out, b)
-			continue
+			return false
 		}
-		i, seen := first[name]
+		prev, seen := first[name]
 		if !seen {
-			first[name] = len(out)
-			out = append(out, b)
-			continue
+			first[name] = a
+			return false
 		}
-		kept := &out[i]
+		k := kept(prev)
 		switch {
-		case b.Caption == "" || b.Caption == kept.Caption:
-		case kept.Caption == "":
-			kept.Caption = b.Caption
+		case b.Caption == "" || b.Caption == k.Caption:
+			return true
+		case k.Caption == "":
+			k.Caption = b.Caption
+			return true
+		}
+		return false
+	}
+	for _, b := range blocks {
+		switch b.Kind {
+		case Image:
+			if !repeat(b, at{len(out), -1}) {
+				out = append(out, b)
+			}
+		case Gallery:
+			i := len(out)
+			out = append(out, Block{Kind: Gallery})
+			for _, s := range b.Images {
+				if !repeat(s, at{i, len(out[i].Images)}) {
+					out[i].Images = append(out[i].Images, s)
+				}
+			}
+			if len(out[i].Images) == 0 {
+				out = out[:i]
+			}
 		default:
 			out = append(out, b)
 		}
@@ -119,10 +146,11 @@ func FilePage(description, date, source, author, category string) string {
 		"\n|permission=\n|other versions=\n}}\n\n=={{int:license-header}}==\n{{RSIlicense}}\n\n[[Category:" + category + "]]\n"
 }
 
-// creditPattern matches a caption that is wholly a community-art credit. RSI's
-// own captions use only this "image by" phrasing; no other intro ("art by",
-// "screenshot by", ...) appears in the data, so that is all this matches.
-var creditPattern = regexp.MustCompile(`(?i)^image by (.+)$`)
+// creditPattern matches a community-art credit: a whole caption, or its last
+// clause after "; " (NOW: Arena Commander 1.0 in action; screenshot by
+// PiteCZek). RSI's captions credit with "image by" and "screenshot by" only;
+// a caption such as "concept by X" names CIG's own artist.
+var creditPattern = regexp.MustCompile(`(?i)(?:^|;\s+)(?:image|screenshot) by ([^;]+)$`)
 
 // Hash is what the importer keeps of a downloaded file: never the bytes.
 type Hash struct {
@@ -218,10 +246,11 @@ func (p *PageImages) File(src string) string { return p.files[src] }
 func PlanImages(ctx context.Context, web *httpx.Client, wiki *mediawiki.Client, cache *Cache, planned map[string]string,
 	cfg *Config, rsiTitle, page, date string, blocks []Block) (*PageImages, error) {
 	res := &PageImages{Plans: []ImagePlan{}, Added: map[string]string{}, files: map[string]string{}}
+	images := imageBlocks(blocks)
 	var sources []string // distinct, in body order
 	seen := map[string]bool{}
-	for _, b := range blocks {
-		if b.Kind == Image && !seen[b.Src] {
+	for _, b := range images {
+		if !seen[b.Src] {
 			seen[b.Src] = true
 			sources = append(sources, b.Src)
 		}
@@ -251,8 +280,8 @@ func PlanImages(ctx context.Context, web *httpx.Client, wiki *mediawiki.Client, 
 	// under a different source URL: the two share bytes, not a source URL.
 	descCaptions := map[string]string{}
 	creditCaptions := map[string][]string{}
-	for _, b := range blocks {
-		if b.Kind != Image || b.Caption == "" {
+	for _, b := range images {
+		if b.Caption == "" {
 			continue
 		}
 		if descCaptions[b.Src] == "" {

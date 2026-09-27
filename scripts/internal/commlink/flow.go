@@ -223,11 +223,11 @@ func pseudoHeadingText(line string, cfg *Config) (string, bool) {
 }
 
 // textFollows reports whether the first block from blocks[i] on that is not an
-// image or video is text.
+// image, gallery or video is text.
 func textFollows(blocks []Block, i int) bool {
 	for ; i < len(blocks); i++ {
 		switch blocks[i].Kind {
-		case Image, Video:
+		case Image, Gallery, Video:
 			continue
 		case Paragraph, List, Quote:
 			return true

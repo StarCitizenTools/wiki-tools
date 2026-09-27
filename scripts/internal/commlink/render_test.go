@@ -59,6 +59,30 @@ func TestRenderBody(t *testing.T) {
 	}
 }
 
+// A slideshow is one <gallery>. A caption all its slides share is the
+// gallery's, given once and escaped for the attribute; otherwise each slide
+// keeps its own. A slide without a file is left out, and a gallery without
+// any renders nothing. A lone image stays a thumb.
+func TestRenderGallery(t *testing.T) {
+	slide := func(src, caption string) Block { return Block{Kind: Image, Src: "https://x/" + src, Caption: caption} }
+	files := map[string]string{"https://x/a.jpg": "R - 01.jpg", "https://x/b.jpg": "R - 02.jpg", "https://x/c.jpg": "R - 03.jpg"}
+	blocks := []Block{
+		{Kind: Gallery, Images: []Block{slide("a.jpg", `Manchester, "England" | UK`), slide("b.jpg", `Manchester, "England" | UK`)}},
+		{Kind: Gallery, Images: []Block{slide("a.jpg", "Gladiator - Original"), slide("b.jpg", "Turret | Variant"), slide("unplanned.jpg", "Gone"), slide("c.jpg", "")}},
+		{Kind: Gallery, Images: []Block{slide("a.jpg", ""), slide("b.jpg", "")}},
+		{Kind: Gallery, Images: []Block{slide("unplanned.jpg", "Gone")}},
+		{Kind: Image, Src: "https://x/c.jpg", Caption: "Alone"},
+	}
+	got := RenderBody(blocks, NewHeadCaser(nil, ""), func(src string) string { return files[src] })
+	want := "<gallery caption=\"Manchester, &quot;England&quot; &#124; UK\">\nFile:R - 01.jpg\nFile:R - 02.jpg\n</gallery>\n\n" +
+		"<gallery>\nFile:R - 01.jpg|Gladiator - Original\nFile:R - 02.jpg|Turret &#124; Variant\nFile:R - 03.jpg\n</gallery>\n\n" +
+		"<gallery>\nFile:R - 01.jpg\nFile:R - 02.jpg\n</gallery>\n\n" +
+		"[[File:R - 03.jpg|thumb|center|Alone]]\n"
+	if got != want {
+		t.Errorf("RenderBody:\n%s\nwant:\n%s", got, want)
+	}
+}
+
 func TestRenderBodyInvalidVideoIDs(t *testing.T) {
 	blocks := []Block{
 		{Kind: Video, VideoKind: "vimeo", VideoID: "12a|b}}"},

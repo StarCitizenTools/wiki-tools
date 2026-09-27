@@ -34,6 +34,17 @@ func TestVocabulary(t *testing.T) {
 	}
 }
 
+// Nothing inside a <gallery> links: its lines are file names.
+func TestApplyLeavesGalleriesAlone(t *testing.T) {
+	v := BuildVocabulary([]string{"Gladius"}, map[string]string{"Manchester": "Cloud Imperium Games Ltd."}, nil, nil, nil, "")
+	body := "<gallery caption=\"Manchester\">\nFile:Gladius - 01.jpg|Gladius\n</gallery>\n\nThe Gladius in Manchester.\n"
+	got, _ := v.Apply(body)
+	want := "<gallery caption=\"Manchester\">\nFile:Gladius - 01.jpg|Gladius\n</gallery>\n\nThe [[Gladius]] in [[Cloud Imperium Games Ltd.|Manchester]].\n"
+	if got != want {
+		t.Errorf("Apply:\n%s\nwant:\n%s", got, want)
+	}
+}
+
 // Each case links one vocabulary into one line.
 func TestApply(t *testing.T) {
 	for _, c := range []struct {

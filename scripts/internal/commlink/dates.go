@@ -18,6 +18,7 @@ import (
 // Where a page's publication date came from.
 const (
 	DateRSI     = "rsi"
+	DatePage    = "page"
 	DateAPI     = "api"
 	DateWayback = "wayback"
 )
@@ -76,14 +77,18 @@ func firstCapture(ctx context.Context, web *httpx.Client, ep Endpoints, rsiURL s
 }
 
 // ResolveDate picks a page's publication date: RSI's own Posted date from its
-// series listing; else the API's created_at, unless it is one of ingest (days
+// series listing; else the date the page itself shows (paged, see
+// ParseFragment); else the API's created_at, unless it is one of ingest (days
 // the API imported reports in bulk) or falls after the first Wayback capture;
-// else the first capture's UTC day. capture is called only when there is no
-// Posted date. The error says why nothing dates the report, or that the
+// else the first capture's UTC day. capture is called only when neither RSI
+// date is known. The error says why nothing dates the report, or that the
 // Wayback lookup failed.
-func ResolveDate(posted, apiCreated string, ingest []string, capture func() (time.Time, error)) (date, source string, err error) {
+func ResolveDate(posted, paged, apiCreated string, ingest []string, capture func() (time.Time, error)) (date, source string, err error) {
 	if posted != "" {
 		return posted, DateRSI, nil
+	}
+	if paged != "" {
+		return paged, DatePage, nil
 	}
 	first, err := capture()
 	if err != nil {

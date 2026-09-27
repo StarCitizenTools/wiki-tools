@@ -72,6 +72,10 @@ type Body struct {
 	// Labels are a fragment's furniture (see ParseFragment); a classic page
 	// gives none.
 	Labels []string
+	// Date is the YYYY-MM-DD day a fragment's byline shows, or "". A classic
+	// page's header Date field is not read: it can show the day the page is
+	// fetched.
+	Date string
 }
 
 // FetchBlocks downloads a comm-link's page, and its fragment for the newer
@@ -93,6 +97,5 @@ func FetchBlocks(ctx context.Context, web *httpx.Client, cfg *Config, c Candidat
 	if err != nil {
 		return Body{}, fmt.Errorf("fetching fragment %s: %w", fragURL, err)
 	}
-	blocks, labels, err := ParseFragment(frag, cfg)
-	return Body{Blocks: blocks, Labels: labels}, err
+	return ParseFragment(frag, cfg)
 }

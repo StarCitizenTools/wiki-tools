@@ -11,6 +11,7 @@ const (
 	Image
 	Video
 	Gallery
+	Rule
 )
 
 // Block is one unit of a report body, independent of RSI's layout.

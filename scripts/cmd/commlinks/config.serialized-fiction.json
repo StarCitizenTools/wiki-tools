@@ -1,0 +1,58 @@
+{
+  "channel": "serialized-fiction",
+  "apiChannel": "Serialized Fiction",
+  "noSections": true,
+  "sceneBreaks": true,
+  "byline": true,
+  "renames": [
+    { "pattern": "(?i)^(.+?)\\s*\\((part [^()]+)\\)$", "replace": "${1} - ${2}" }
+  ],
+  "infoboxType": "Serialized Fiction",
+  "seriesFromReport": true,
+  "standaloneSeries": ["News Update", "None", ""],
+  "seriesRename": { "Second Run": "The Second Run" },
+  "imageCategory": "Serialized Fiction images",
+  "imageAuthor": "Cloud Imperium Games",
+  "linkCategories": [
+    "Developers",
+    "Ships",
+    "Ground vehicles",
+    "Planets",
+    "Moons",
+    "Landing zones",
+    "Cities",
+    "Space stations",
+    "Systems"
+  ],
+  "aliases": {
+    "Los Angeles": "Cloud Imperium Games, LLC",
+    "Austin": "Cloud Imperium Games Texas, LLC",
+    "Frankfurt": "Cloud Imperium Games Frankfurt Office",
+    "Manchester": "Cloud Imperium Games Ltd.",
+    "Turbulent": "Turbulent",
+    "Hurston Dynamics": "Hurston Dynamics",
+    "Constantine Hurston": "Constantine Hurston",
+    "Terra Mills": "Terra Mills",
+    "Olympus Pool": "Olympus Pool"
+  },
+  "stoplist": [
+    "Centurion",
+    "Cologne",
+    "Guardian",
+    "Odin",
+    "Odyssey",
+    "Shanghai",
+    "Titus",
+    "Cellin",
+    "Char",
+    "Daymar",
+    "Locke",
+    "Titan",
+    "Yela"
+  ],
+  "noLink": ["Vulcan (G12)", "Eclipse Mode", "Club Olympus", "Eagle’s Talon", "Vengeance Valkyrie"],
+  "fidelityIgnore": ["^\\d{2}/\\d{2}/\\d{4} - \\d{1,2}:\\d{2} [AP]M$"],
+  "knownReview": [],
+  "apiTextAccepted": [],
+  "apiIngestDates": ["2026-05-25"]
+}

@@ -59,6 +59,8 @@ func RenderBody(blocks []Block, caser *HeadCaser, file func(src string) string) 
 			if g := gallery(b.Images, file); g != "" {
 				parts = append(parts, g)
 			}
+		case Rule:
+			parts = append(parts, "----")
 		case Video:
 			switch b.VideoKind {
 			case "youtube":

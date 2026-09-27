@@ -1,12 +1,13 @@
-// Command commlinks plans the Comm-Link pages of one RSI series that the wiki
-// is missing: a wikitext file per page, and a plan listing each page's images,
-// publication date, added links and fidelity result.
+// Command commlinks plans the Comm-Link pages of one RSI series or channel that
+// the wiki is missing: a wikitext file per page, and a plan listing each page's
+// images, publication date, added links and fidelity result.
 //
 //	commlinks                                             # write out/commlinks/plan.json and pages/
 //	commlinks -diff                                       # same, listing each page to create; exit 1 if one is missing or a review entry is new
 //	commlinks -only 16000,17712,19956 -out out/commlinks-scratch  # plan only these RSI ids, into a scratch dir
 //	commlinks -only 16000 -refresh -out out/commlinks-scratch     # re-plan an id the wiki already has, marked "refresh": true
 //	commlinks -config cmd/commlinks/config.chairman.json  # another series, into out/commlinks-chairman
+//	commlinks -config cmd/commlinks/config.serialized-fiction.json  # a channel, into out/commlinks-serialized-fiction
 //
 // It does not write to the wiki. Publishing goes through the MediaWiki MCP
 // server, uploads first, then pages.
@@ -116,21 +117,31 @@ func run() error {
 	}
 
 	// --- discover -------------------------------------------------------------
-	progress("searching the API for titles containing " + cfg.TitleQuery)
-	titled, err := commlink.FetchTitleMatches(ctx, web, ep, cfg.TitleQuery, cfg.MatchesTitle)
+	var found []commlink.Candidate
+	if cfg.APIChannel != "" {
+		progress("reading the API's " + cfg.APIChannel + " channel")
+		found, err = commlink.FetchChannelMatches(ctx, web, ep, cfg.APIChannel)
+	} else {
+		progress("searching the API for titles containing " + cfg.TitleQuery)
+		found, err = commlink.FetchTitleMatches(ctx, web, ep, cfg.TitleQuery, cfg.MatchesTitle)
+	}
 	if err != nil {
 		return err
 	}
-	progress("reading RSI's " + cfg.Series + " series")
-	series, err := commlink.FetchSeries(ctx, web, ep, cfg.Series)
+	listing, listedBy, slug, fetchListing := cfg.Series+" series", commlink.FoundBySeries, cfg.Series, commlink.FetchSeries
+	if cfg.Channel != "" {
+		listing, listedBy, slug, fetchListing = cfg.Channel+" channel", commlink.FoundByChannel, cfg.Channel, commlink.FetchChannel
+	}
+	progress("reading RSI's " + listing)
+	listed, err := fetchListing(ctx, web, ep, slug)
 	if err != nil {
 		return err
 	}
-	if !slices.ContainsFunc(series, func(it commlink.SeriesItem) bool { return it.Posted != "" }) {
-		fmt.Fprintf(os.Stderr, "warning: RSI's series listing gives no absolute Posted date for any of its %d reports; "+
-			"if its span.value markup changed, every date falls back to the API or the Wayback Machine\n", len(series))
+	if !slices.ContainsFunc(listed, func(it commlink.SeriesItem) bool { return it.Posted != "" }) {
+		fmt.Fprintf(os.Stderr, "warning: RSI's %s listing gives no absolute Posted date for any of its %d reports; "+
+			"if its span.value markup changed, every date falls back to the API or the Wayback Machine\n", listing, len(listed))
 	}
-	candidates, disagreements, unfetched, err := commlink.Union(ctx, titled, series, func(ctx context.Context, id int) (commlink.Candidate, error) {
+	candidates, disagreements, unfetched, err := commlink.Union(ctx, found, listed, listedBy, func(ctx context.Context, id int) (commlink.Candidate, error) {
 		return commlink.FetchRecord(ctx, web, ep, id)
 	})
 	if err != nil {
@@ -240,9 +251,10 @@ func run() error {
 		}
 		deduped := commlink.DedupeImages(p.blocks, imgs.File)
 		body, links := vocab.Apply(commlink.RenderBody(deduped, caser, imgs.File))
+		series := cfg.ReportSeries(p.c.Title, p.c.Series)
 		text := commlink.Infobox(commlink.PageMeta{
 			RSITitle: p.c.Title, URL: commlink.InfoboxURL(p.c.RSIURL),
-			Series: cfg.InfoboxSeries, Type: cfg.InfoboxType, Date: p.date,
+			Series: series, Type: cfg.InfoboxType, Date: p.date,
 		}) + "\n" + body
 		if api, words, short := commlink.APITextWords(p.c.Text, body); short && !cfg.AcceptsAPIText(p.c.ID) {
 			review(p.c, p.page, commlink.ReasonAPIText, fmt.Sprintf(
@@ -255,11 +267,15 @@ func run() error {
 		}
 		file := commlink.PageFileName(p.page)
 		files = append(files, pageFile{name: file, text: text})
-		plan.Create = append(plan.Create, commlink.PageEntry{
+		entry := commlink.PageEntry{
 			ID: p.c.ID, RSITitle: p.c.Title, Page: p.page, URL: commlink.InfoboxURL(p.c.RSIURL),
 			Date: p.date, DateSource: p.dateSource, Wikitext: filepath.Join("pages", file),
 			Images: imgs.Plans, Links: links, MissingImages: imgs.Missing, Refresh: stored != "",
-		})
+		}
+		if cfg.SeriesFromReport {
+			entry.Series = series
+		}
+		plan.Create = append(plan.Create, entry)
 		maps.Copy(planned, imgs.Added)
 	}
 	if err := cache.Save(); err != nil {
@@ -292,7 +308,7 @@ func run() error {
 	}
 	progress("wrote " + dest)
 
-	fmt.Fprintf(os.Stderr, "\n%s series against %s\n", cfg.Series, wikiEndpoint)
+	fmt.Fprintf(os.Stderr, "\n%s against %s\n", listing, wikiEndpoint)
 	if *doDiff {
 		for _, line := range plan.CreateLines() {
 			fmt.Fprintf(os.Stderr, "  create %s\n", line)

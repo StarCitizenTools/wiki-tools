@@ -111,6 +111,12 @@ func appendMarkup(b *strings.Builder, s string) {
 	b.WriteString(s)
 }
 
+// bold puts inline wikitext in bold. A bold run inside it is dropped: its
+// marker would close the outer bold instead of opening its own.
+func bold(s string) string {
+	return joinMarkup("'''", strings.ReplaceAll(s, "'''", ""), "'''")
+}
+
 // joinMarkup concatenates parts, each separated from the next by quoteSep.
 func joinMarkup(parts ...string) string {
 	var b strings.Builder

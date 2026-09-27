@@ -3,6 +3,7 @@ package commlink
 import (
 	"bytes"
 	"errors"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -32,7 +33,7 @@ func ParseClassic(shell []byte, rsiTitle string, cfg *Config) (blocks []Block, t
 	if len(c.blocks) == 0 {
 		return nil, "", errors.New("classic page has no body blocks")
 	}
-	return splitPseudoHeadings(c.blocks, cfg), c.pageTitle, nil
+	return splitPseudoHeadings(tidyRules(c.blocks), cfg), c.pageTitle, nil
 }
 
 type classic struct {
@@ -61,6 +62,9 @@ func (c *classic) visit(n *html.Node) {
 	switch {
 	case hasClass(n, "title-section"):
 		// The page header; some pages draw a two-line-separator inside it.
+		if c.cfg.Byline {
+			c.byline(n)
+		}
 	case hasClass(n, "two-line-separator"):
 		c.stopped = true
 	case hasClass(n, "content-block4"):
@@ -71,6 +75,19 @@ func (c *classic) visit(n *html.Node) {
 		c.prose(n)
 	default:
 		c.walk(n)
+	}
+}
+
+// bylinePattern is a header subtitle that names the author.
+var bylinePattern = regexp.MustCompile(`^By:\s*\S`)
+
+// byline keeps the page header's subtitle as a paragraph when it names the
+// author.
+func (c *classic) byline(header *html.Node) {
+	if s := findFirst(header, classIs("subtitle")); s != nil {
+		if text := PlainText(s); bylinePattern.MatchString(text) {
+			c.blocks = append(c.blocks, Block{Kind: Paragraph, Text: escapeText(text)})
+		}
 	}
 }
 
@@ -150,8 +167,9 @@ func (c *classic) poll(n *html.Node) {
 	}
 }
 
-// titleBlock turns a content-block4 into a section heading. The first one is
-// the page title when its text matches the report's title.
+// titleBlock turns a content-block4 into a section heading, or bold text with
+// noSections. The first one is the page title when its text matches the
+// report's title.
 func (c *classic) titleBlock(n *html.Node) {
 	h := findFirst(n, tagIs("h1"))
 	if h == nil {
@@ -169,6 +187,10 @@ func (c *classic) titleBlock(n *html.Node) {
 		}
 	}
 	c.lastTitle = fold(text)
+	if c.cfg.NoSections {
+		c.blocks = append(c.blocks, Block{Kind: Paragraph, Text: bold(trimBreaks(Inline(h)))})
+		return
+	}
 	c.titleAt, c.repeatOpen = len(c.blocks), true
 	c.blocks = append(c.blocks, Block{Kind: Heading, Level: 2, Text: text})
 }
@@ -187,7 +209,7 @@ func (c *classic) prose(n *html.Node) {
 		}
 		for content := ch.FirstChild; content != nil; content = content.NextSibling {
 			if hasClass(content, "content") {
-				f := &flow{heading: c.heading}
+				f := &flow{heading: c.heading, rules: c.cfg.SceneBreaks}
 				f.run(content)
 				f.flush()
 				c.blocks = append(c.blocks, f.blocks...)
@@ -196,14 +218,19 @@ func (c *classic) prose(n *html.Node) {
 	}
 }
 
-// heading converts a heading inside prose. An intro heading (an h1, or with
-// introHeadings one inside div.variant-block) is a greeting or sign-off, in
-// bold; a studio's name or a repeat of the section title, dropped; or intro
-// text. Without introHeadings, a greeting or sign-off at any level is bold
-// text too. Any other heading is a section heading.
+// heading converts a heading inside prose. With noSections it is bold text.
+// Otherwise an intro heading (an h1, or with introHeadings one inside
+// div.variant-block) is a greeting or sign-off, in bold; a studio's name or a
+// repeat of the section title, dropped; or intro text. Without introHeadings,
+// a greeting or sign-off at any level is bold text too. Any other heading is a
+// section heading.
 func (c *classic) heading(f *flow, n *html.Node) {
 	text := PlainText(n)
 	if text == "" {
+		return
+	}
+	if c.cfg.NoSections {
+		f.emit(Block{Kind: Paragraph, Text: bold(trimBreaks(Inline(n)))})
 		return
 	}
 	intro := n.Data == "h1" || (c.cfg.IntroHeadings && hasAncestorClass(n, "variant-block"))

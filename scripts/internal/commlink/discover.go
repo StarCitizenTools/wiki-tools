@@ -33,10 +33,13 @@ func DefaultEndpoints() Endpoints {
 	}
 }
 
-// The sources a candidate can be found by.
+// The sources a candidate can be found by: the API's title search or channel
+// filter, and RSI's series or channel listing.
 const (
-	FoundByTitle  = "api-title"
-	FoundBySeries = "rsi-series"
+	FoundByTitle      = "api-title"
+	FoundByAPIChannel = "api-channel"
+	FoundBySeries     = "rsi-series"
+	FoundByChannel    = "rsi-channel"
 )
 
 // Candidate is one upstream report.
@@ -45,7 +48,8 @@ type Candidate struct {
 	Title   string
 	RSIURL  string
 	Created string // API created_at, RFC 3339
-	Posted  string // RSI's series listing Posted date, YYYY-MM-DD, when it is absolute
+	Posted  string // RSI's listing Posted date, YYYY-MM-DD, when it is absolute
+	Series  string // API series label
 	Text    string // API plain text, en_EN
 	FoundBy []string
 }
@@ -62,6 +66,7 @@ type apiRecord struct {
 	Title        string            `json:"title"`
 	RSIURL       string            `json:"rsi_url"`
 	CreatedAt    string            `json:"created_at"`
+	Series       string            `json:"series"`
 	Translations map[string]string `json:"translations"`
 }
 
@@ -71,21 +76,38 @@ func (r apiRecord) candidate(foundBy string) Candidate {
 		Title:   strings.TrimSpace(r.Title),
 		RSIURL:  r.RSIURL,
 		Created: r.CreatedAt,
+		Series:  strings.TrimSpace(r.Series),
 		Text:    r.Translations["en_EN"],
 		FoundBy: []string{foundBy},
 	}
 }
 
 // FetchTitleMatches reads every API comm-link whose title contains query and
-// keeps those keep accepts. The API honours page[size] up to 200; limit and
-// per_page are ignored.
+// keeps those keep accepts.
 func FetchTitleMatches(ctx context.Context, web *httpx.Client, ep Endpoints, query string, keep func(string) bool) ([]Candidate, error) {
+	return fetchAPIList(ctx, web, ep, "filter[title]", query, keep, FoundByTitle)
+}
+
+// FetchChannelMatches reads every API comm-link the API files under channel.
+// The API answers an unknown channel with an empty list, not an error.
+func FetchChannelMatches(ctx context.Context, web *httpx.Client, ep Endpoints, channel string) ([]Candidate, error) {
+	out, err := fetchAPIList(ctx, web, ep, "filter[channel]", channel, func(string) bool { return true }, FoundByAPIChannel)
+	if err == nil && len(out) == 0 {
+		return nil, fmt.Errorf("api channel %q lists no comm-links; is the name right?", channel)
+	}
+	return out, err
+}
+
+// fetchAPIList reads every API comm-link that filter selects and keeps those
+// whose title keep accepts. The API honours page[size] up to 200; limit and
+// per_page are ignored.
+func fetchAPIList(ctx context.Context, web *httpx.Client, ep Endpoints, filter, value string, keep func(string) bool, foundBy string) ([]Candidate, error) {
 	var out []Candidate
 	for page := 1; ; page++ {
-		q := url.Values{"filter[title]": {query}, "page[size]": {"200"}, "page[number]": {strconv.Itoa(page)}}
+		q := url.Values{filter: {value}, "page[size]": {"200"}, "page[number]": {strconv.Itoa(page)}}
 		body, err := web.Do(ctx, http.MethodGet, ep.API+"?"+q.Encode(), "")
 		if err != nil {
-			return nil, fmt.Errorf("api title search page %d: %w", page, err)
+			return nil, fmt.Errorf("api %s page %d: %w", filter, page, err)
 		}
 		var res struct {
 			Data []apiRecord `json:"data"`
@@ -94,11 +116,11 @@ func FetchTitleMatches(ctx context.Context, web *httpx.Client, ep Endpoints, que
 			} `json:"meta"`
 		}
 		if err := json.Unmarshal(body, &res); err != nil {
-			return nil, fmt.Errorf("decoding api title search page %d: %w", page, err)
+			return nil, fmt.Errorf("decoding api %s page %d: %w", filter, page, err)
 		}
 		for _, r := range res.Data {
 			if keep(r.Title) {
-				out = append(out, r.candidate(FoundByTitle))
+				out = append(out, r.candidate(foundBy))
 			}
 		}
 		if len(res.Data) == 0 || page >= res.Meta.LastPage {
@@ -129,12 +151,13 @@ var (
 	hubPosted = regexp.MustCompile(`Posted:\s*<span class="value">\s*(\d{4}-\d{2}-\d{2})[ \d:]*</span>`)
 )
 
-// maxSeriesPages bounds the series walk. RSI answers an unknown series slug with
-// every comm-link (over 300 pages) instead of an error.
+// maxSeriesPages bounds the listing walk. RSI answers an unknown series slug
+// with every comm-link (over 300 pages) instead of an error.
 const maxSeriesPages = 60
 
-// SeriesItem is one comm-link of RSI's series listing. Posted is its YYYY-MM-DD
-// publication date, or "" when the listing gives only a relative age.
+// SeriesItem is one comm-link of RSI's series or channel listing. Posted is its
+// YYYY-MM-DD publication date, or "" when the listing gives only a relative
+// age.
 type SeriesItem struct {
 	ID     int
 	URL    string
@@ -145,30 +168,43 @@ type SeriesItem struct {
 // A listing with no reports is an error: RSI's markup has changed, or the
 // series is gone.
 func FetchSeries(ctx context.Context, web *httpx.Client, ep Endpoints, series string) ([]SeriesItem, error) {
+	return fetchHub(ctx, web, ep, "series", series)
+}
+
+// FetchChannel lists the comm-links RSI files under a channel slug, as
+// FetchSeries does a series.
+func FetchChannel(ctx context.Context, web *httpx.Client, ep Endpoints, channel string) ([]SeriesItem, error) {
+	return fetchHub(ctx, web, ep, "channel", channel)
+}
+
+// fetchHub walks RSI's hub listing filtered on one field, "series" or
+// "channel".
+func fetchHub(ctx context.Context, web *httpx.Client, ep Endpoints, field, slug string) ([]SeriesItem, error) {
 	seen := map[int]bool{}
 	var items []SeriesItem
+	filter := map[string]any{"channel": "", "series": "", "type": "", "text": "", "sort": "publish_new"}
+	filter[field] = slug
 	for page := 1; page <= maxSeriesPages; page++ {
-		payload, _ := json.Marshal(map[string]any{
-			"channel": "", "series": series, "type": "", "text": "", "sort": "publish_new", "page": page,
-		})
+		filter["page"] = page
+		payload, _ := json.Marshal(filter)
 		body, err := web.DoContentType(ctx, http.MethodPost, ep.RSI+"/api/hub/getCommlinkItems", string(payload), "application/json")
 		if err != nil {
-			return nil, fmt.Errorf("rsi series %q page %d: %w", series, page, err)
+			return nil, fmt.Errorf("rsi %s %q page %d: %w", field, slug, page, err)
 		}
 		var res struct {
 			Success int    `json:"success"`
 			Data    string `json:"data"`
 		}
 		if err := json.Unmarshal(body, &res); err != nil {
-			return nil, fmt.Errorf("decoding rsi series %q page %d: %w", series, page, err)
+			return nil, fmt.Errorf("decoding rsi %s %q page %d: %w", field, slug, page, err)
 		}
 		if res.Success != 1 {
-			return nil, fmt.Errorf("rsi series %q page %d: success=%d", series, page, res.Success)
+			return nil, fmt.Errorf("rsi %s %q page %d: success=%d", field, slug, page, res.Success)
 		}
 		found := hubItem.FindAllStringSubmatchIndex(res.Data, -1)
 		if len(found) == 0 {
 			if page == 1 {
-				return nil, fmt.Errorf("rsi series %q lists no reports", series)
+				return nil, fmt.Errorf("rsi %s %q lists no reports", field, slug)
 			}
 			return items, nil
 		}
@@ -191,26 +227,26 @@ func FetchSeries(ctx context.Context, web *httpx.Client, ep Endpoints, series st
 			items = append(items, item)
 		}
 	}
-	return nil, fmt.Errorf("rsi series %q has more than %d pages; is the slug right?", series, maxSeriesPages)
+	return nil, fmt.Errorf("rsi %s %q has more than %d pages; is the slug right?", field, slug, maxSeriesPages)
 }
 
-// Union merges the title matches with the series items, fetching any report
-// only the series knows, and lists the reports found by one source only. A
-// report carries the series listing's Posted date; one only the title search
-// found has none. A series report the API answers with 404 for has no record
-// there yet: it is returned for review, not as a candidate, and any other
-// fetch error ends the union.
-func Union(ctx context.Context, titled []Candidate, series []SeriesItem, fetch func(context.Context, int) (Candidate, error)) ([]Candidate, []Disagreement, []ReviewEntry, error) {
+// Union merges the API's matches with RSI's listing, fetching any report only
+// the listing knows, and lists the reports found by one source only. listedBy
+// labels the listing (FoundBySeries or FoundByChannel). A report carries the
+// listing's Posted date; one only the API found has none. A listed report the
+// API answers with 404 for has no record there yet: it is returned for review,
+// not as a candidate, and any other fetch error ends the union.
+func Union(ctx context.Context, found []Candidate, listed []SeriesItem, listedBy string, fetch func(context.Context, int) (Candidate, error)) ([]Candidate, []Disagreement, []ReviewEntry, error) {
 	byID := map[int]*Candidate{}
-	for i := range titled {
-		c := titled[i]
+	for i := range found {
+		c := found[i]
 		byID[c.ID] = &c
 	}
 	var review []ReviewEntry
 	unfetched := map[int]bool{}
-	for _, it := range series {
+	for _, it := range listed {
 		if c, ok := byID[it.ID]; ok {
-			c.FoundBy = append(c.FoundBy, FoundBySeries)
+			c.FoundBy = append(c.FoundBy, listedBy)
 			c.Posted = it.Posted
 			continue
 		}
@@ -225,7 +261,7 @@ func Union(ctx context.Context, titled []Candidate, series []SeriesItem, fetch f
 		if err != nil {
 			return nil, nil, nil, err
 		}
-		c.FoundBy = []string{FoundBySeries}
+		c.FoundBy = []string{listedBy}
 		c.Posted = it.Posted
 		byID[it.ID] = &c
 	}
@@ -243,7 +279,7 @@ func Union(ctx context.Context, titled []Candidate, series []SeriesItem, fetch f
 	for _, id := range ids {
 		c, ok := byID[id]
 		if !ok {
-			dis = append(dis, Disagreement{ID: id, FoundBy: FoundBySeries})
+			dis = append(dis, Disagreement{ID: id, FoundBy: listedBy})
 			continue
 		}
 		out = append(out, *c)

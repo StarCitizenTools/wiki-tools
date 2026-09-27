@@ -19,6 +19,7 @@ const (
 type Block struct {
 	Kind      BlockKind
 	Level     int      // Heading: 2 for "==", 3 for "===".
+	Name      bool     // Heading: names a ship or feature (a Q&A section header), so title-cased.
 	Text      string   // Heading: plain text. Paragraph, Quote: inline wikitext.
 	Emphasis  bool     // Paragraph: bold by RSI's styling (the closing emphasis article, a segment title's subtitle), so never a pseudo-heading.
 	Items     []string // List: inline wikitext per item.

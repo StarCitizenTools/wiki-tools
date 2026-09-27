@@ -15,12 +15,13 @@ type HeadCaser struct {
 	labels   map[string]string // lower-case label -> the casing the corpus uses
 	proper   map[string]string // lower-case word -> its most frequent capitalised mid-sentence form
 	acronyms map[string]bool   // upper-case words the corpus writes in capitals mid-sentence
+	seen     map[string]bool   // lower-case words the corpus uses away from a sentence start
 }
 
 // NewHeadCaser learns labels from the non-shouted headings and word casing from
 // the reports' text.
 func NewHeadCaser(headings []string, corpus string) *HeadCaser {
-	h := &HeadCaser{labels: map[string]string{}, proper: map[string]string{}, acronyms: map[string]bool{}}
+	h := &HeadCaser{labels: map[string]string{}, proper: map[string]string{}, acronyms: map[string]bool{}, seen: map[string]bool{}}
 	forms := map[string]map[string]int{}
 	for _, t := range headings {
 		if shouted(t) {
@@ -45,6 +46,7 @@ func NewHeadCaser(headings []string, corpus string) *HeadCaser {
 		}
 	}
 	for l, c := range stats {
+		h.seen[l] = true
 		if (c.upper > 0 && c.upper >= c.capital+c.lower) || (c.isolated >= minIsolated && c.isolated > c.capital) {
 			h.acronyms[strings.ToUpper(l)] = true
 		}
@@ -134,9 +136,29 @@ func learnLine(line string, stats map[string]*wordCounts) {
 
 // Case returns heading unchanged unless it is shouted (letters, none lower
 // case); a shouted heading takes the corpus's casing for that label, else stays
-// as it is when every word is an acronym, else becomes sentence case with
-// acronyms and proper nouns restored.
+// as it is when every word is an acronym or a single letter (VTOL {V}), else
+// becomes sentence case with acronyms and proper nouns restored. A word the
+// corpus never uses away from a sentence start (a new ship's name) is
+// capitalised, not lowered: nothing says it is a common word.
 func (h *HeadCaser) Case(heading string) string {
+	return h.recase(heading, false)
+}
+
+// Name recases a heading that names something (a ship, a feature) as Case
+// does, but in title case: every word capitalised unless the corpus writes it
+// otherwise, the short function words of titleSmall lower case after the
+// first.
+func (h *HeadCaser) Name(heading string) string {
+	return h.recase(heading, true)
+}
+
+// titleSmall are the words a title leaves in lower case after its first word.
+var titleSmall = map[string]bool{
+	"a": true, "an": true, "and": true, "as": true, "at": true, "by": true, "for": true, "from": true,
+	"in": true, "of": true, "on": true, "or": true, "the": true, "to": true, "with": true,
+}
+
+func (h *HeadCaser) recase(heading string, title bool) string {
 	if !shouted(heading) {
 		return heading
 	}
@@ -146,7 +168,7 @@ func (h *HeadCaser) Case(heading string) string {
 	words := headWord.FindAllString(heading, -1)
 	all := len(words) > 0
 	for _, w := range words {
-		if !h.acronyms[dequoteWord(w)] {
+		if !h.acronyms[dequoteWord(w)] && utf8.RuneCountInString(w) > 1 {
 			all = false
 			break
 		}
@@ -167,16 +189,23 @@ func (h *HeadCaser) Case(heading string) string {
 			out = w
 		case h.proper[l] != "":
 			out = h.proper[l]
+		case !h.seen[l] || (title && !titleSmall[l]):
+			out = capitalise(l)
 		}
 		if first {
 			first = false
 			if !innerCapital(out) {
-				r, size := utf8.DecodeRuneInString(out)
-				out = string(unicode.ToUpper(r)) + out[size:]
+				out = capitalise(out)
 			}
 		}
 		return out
 	})
+}
+
+// capitalise upper-cases a word's first letter.
+func capitalise(w string) string {
+	r, size := utf8.DecodeRuneInString(w)
+	return string(unicode.ToUpper(r)) + w[size:]
 }
 
 // dequoteWord maps a typographic apostrophe to the straight form, so a word

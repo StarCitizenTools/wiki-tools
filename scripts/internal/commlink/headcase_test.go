@@ -6,7 +6,8 @@ import (
 )
 
 func TestHeadCaser(t *testing.T) {
-	corpus := "The AI team in Los Angeles met. Then VFX and the QA group worked with CIG staff in Los Angeles."
+	corpus := "The AI team in Los Angeles met. Then VFX and the QA group worked with CIG staff in Los Angeles. " +
+		"The content update shipped."
 	h := NewHeadCaser([]string{"AI (Content)"}, corpus)
 	for in, want := range map[string]string{
 		"ENGINEERING":     "Engineering",
@@ -71,7 +72,7 @@ func TestHeadCaserIgnoresShoutedLines(t *testing.T) {
 func TestHeadCaserAcronymAmongLowerCase(t *testing.T) {
 	corpus := strings.Repeat("It said it was done, and it was. ", 20) +
 		"The IT team met. We asked IT for help. Then IT staff left. The DevOps and IT teams met. Ask IT now. " +
-		"A demo AND a release. Maps AND more. Ships AND more."
+		"A demo AND a release. Maps AND more. Ships AND more. The maps are done."
 	h := NewHeadCaser(nil, corpus)
 	for in, want := range map[string]string{
 		"DEVOPS & IT":    "DevOps & IT",
@@ -88,7 +89,7 @@ func TestHeadCaserAcronymAmongLowerCase(t *testing.T) {
 // the start of a heading.
 func TestHeadCaserDominantForm(t *testing.T) {
 	corpus := strings.Repeat("The new VoIP and FoIP code. ", 3) + "A VoiP and FoiP typo. " +
-		strings.Repeat("The team used an iPhone. ", 2)
+		strings.Repeat("The team used an iPhone. ", 2) + "The update shipped."
 	h := NewHeadCaser(nil, corpus)
 	for in, want := range map[string]string{
 		"VOIP/FOIP":     "VoIP/FoIP",
@@ -101,5 +102,37 @@ func TestHeadCaserDominantForm(t *testing.T) {
 	tied := NewHeadCaser(nil, "The VoiP code. The VoIP code.")
 	if got, want := tied.Case("VOIP"), "VoIP"; got != want {
 		t.Errorf("tied Case(%q) = %q, want %q", "VOIP", got, want)
+	}
+}
+
+// A word the corpus never uses away from a sentence start, a new name, is
+// capitalised rather than lowered; a heading of acronyms and single letters
+// stays as written; and a name heading is in title case, a word the corpus
+// writes otherwise keeping that spelling and a short function word lower case.
+func TestHeadCaserUnseenAndNames(t *testing.T) {
+	corpus := "The MISC team and the Aegis designers shipped new contracts and refueling improvements. " +
+		"The VTOL mode works. The Mk II flies. The arms and module and services improved."
+	h := NewHeadCaser(nil, corpus)
+	for in, want := range map[string]string{
+		"MISC STARLITE": "MISC Starlite",
+		"ORIGIN M80":    "Origin M80",
+		"VTOL {V}":      "VTOL {V}",
+		"REFUELING IMPROVEMENTS AND NEW CONTRACTS": "Refueling improvements and new contracts",
+		"KASTAK ARMS": "Kastak arms",
+	} {
+		if got := h.Case(in); got != want {
+			t.Errorf("Case(%q) = %q, want %q", in, got, want)
+		}
+	}
+	for in, want := range map[string]string{
+		"REFUELING IMPROVEMENTS AND NEW CONTRACTS": "Refueling Improvements and New Contracts",
+		"KASTAK ARMS PLASMA GRENADE":               "Kastak Arms Plasma Grenade",
+		"AURORA MK II":                             "Aurora Mk II",
+		"THE COMMAND MODULE":                       "The Command Module",
+		"Anvil Paladin":                            "Anvil Paladin",
+	} {
+		if got := h.Name(in); got != want {
+			t.Errorf("Name(%q) = %q, want %q", in, got, want)
+		}
 	}
 }

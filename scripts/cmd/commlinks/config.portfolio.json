@@ -1,0 +1,52 @@
+{
+  "series": "portfolio",
+  "titleQuery": "Portfolio",
+  "titlePattern": "(?i)^portfolio:",
+  "noSections": true,
+  "infoboxType": "Spectrum Dispatch",
+  "infoboxSeries": "Portfolio",
+  "imageCategory": "Portfolio images",
+  "imageAuthor": "Cloud Imperium Games",
+  "linkCategories": [
+    "Developers",
+    "Ships",
+    "Ground vehicles",
+    "Planets",
+    "Moons",
+    "Landing zones",
+    "Cities",
+    "Space stations",
+    "Systems"
+  ],
+  "aliases": {
+    "Los Angeles": "Cloud Imperium Games, LLC",
+    "Austin": "Cloud Imperium Games Texas, LLC",
+    "Frankfurt": "Cloud Imperium Games Frankfurt Office",
+    "Manchester": "Cloud Imperium Games Ltd.",
+    "Turbulent": "Turbulent",
+    "Hurston Dynamics": "Hurston Dynamics",
+    "Constantine Hurston": "Constantine Hurston",
+    "Terra Mills": "Terra Mills"
+  },
+  "stoplist": [
+    "Centurion",
+    "Cologne",
+    "Guardian",
+    "Odin",
+    "Odyssey",
+    "Shanghai",
+    "Titus"
+  ],
+  "noLink": [
+    "Vulcan (G12)",
+    "Eclipse Mode"
+  ],
+  "fidelityIgnore": [
+    "^\\d{2}/\\d{2}/\\d{4} - \\d{1,2}:\\d{2} [AP]M$"
+  ],
+  "knownReview": [],
+  "apiTextAccepted": [],
+  "apiIngestDates": [
+    "2026-05-25"
+  ]
+}

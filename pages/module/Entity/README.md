@@ -142,13 +142,13 @@ A property lives in `entity` when `Base` or `Entity` emits it, when one module e
 ### Adding a kind
 
 1. Create a module with `name`, `matches`, `getApiConfigs` (`[1]` = identity endpoint), `parent = 'Entity/Base'`; add `editorialMode` + `getEditorialManifest` for planned-page support.
-2. Append it to `Registry.kinds` (probe order: most-likely-first, Item first; `matches()` must stand alone).
+2. Add an entry to `Registry.kinds` (probe order: most-likely-first, Item first; `matches()` must stand alone).
 3. See [Module:Entity/Contract](https://starcitizen.tools/Module:Entity/Contract) for the hook spec and [Module:Entity/Registry](https://starcitizen.tools/Module:Entity/Registry) for the conformance test.
 
 ### Adding a facet
 
 1. Create `Module:Entity/Facet/<Name>` with a nil-safe `matches` + `getSections`.
-2. Append it to `Registry.facets`; it runs additively regardless of the page's kind.
+2. Add an entry to `Registry.facets` naming as `keys` the top-level record fields its `matches` reads; it runs additively regardless of the page's kind.
 3. See [Module:Entity/Registry](https://starcitizen.tools/Module:Entity/Registry) and [Module:Entity/SectionBuilder](https://starcitizen.tools/Module:Entity/SectionBuilder) for the row-building helpers.
 
 ### Adding a subtype

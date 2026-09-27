@@ -23,16 +23,37 @@ local typeResolver = require('Module:Entity/TypeResolver')
 
 local p = {}
 
---- Returns the list of facet modules whose matches(apiData) is true. Pure and
---- nil-safe so it is unit-testable against the real registry.
+--- True when `apiData` carries any of the entry's gate keys, the only records
+--- its facet can match.
+--- @param entry EntityFacetEntry
+--- @param apiData table
+--- @return boolean
+local function passesGate(entry, apiData)
+	for _, key in ipairs(entry.keys) do
+		if apiData[key] ~= nil then
+			return true
+		end
+	end
+	return false
+end
+
+--- Returns the list of facet modules whose matches(apiData) is true, loading
+--- only the facets whose gate keys the record carries. Pure and nil-safe so it
+--- is unit-testable against the real registry.
 ---
 --- @param apiData table|nil
 --- @return table[]
 local function detectFacets(apiData)
 	local matched = {}
-	for _, facet in ipairs(registry.facets) do
-		if facet.matches(apiData) then
-			table.insert(matched, facet)
+	if type(apiData) ~= 'table' then
+		return matched
+	end
+	for _, entry in ipairs(registry.facets) do
+		if passesGate(entry, apiData) then
+			local facet = entry.load()
+			if facet.matches(apiData) then
+				table.insert(matched, facet)
+			end
 		end
 	end
 	return matched
@@ -68,9 +89,10 @@ function p.parseArgs(frame)
 	return args
 end
 
---- Looks up a registered kind by name, case-insensitively. Returns nil when the
---- name is absent, empty, or matches no registered kind's `mod.name`. Pure
---- lookup — editorial opt-in and any other gating stay with the callers.
+--- Looks up a registered kind by name, case-insensitively, loading only that
+--- kind. Returns nil when the name is absent, empty, or matches no registered
+--- kind. Pure lookup — editorial opt-in and any other gating stay with the
+--- callers.
 ---
 --- @param name any
 --- @return table|nil
@@ -79,16 +101,19 @@ local function kindByName(name)
 		return nil
 	end
 	local wanted = mw.ustring.lower(name)
-	for _, mod in ipairs(registry.kinds) do
-		if type(mod.name) == 'string' and mw.ustring.lower(mod.name) == wanted then
-			return mod
+	for _, entry in ipairs(registry.kinds) do
+		if mw.ustring.lower(entry.name) == wanted then
+			return entry.load()
 		end
 	end
 	return nil
 end
 
 --- Endpoint-by-endpoint probe: fetches each kind's identity endpoint in registry
---- order until one matches, costing up to one request per registered kind.
+--- order until one matches, costing up to one request per registered kind. A
+--- kind is loaded only when its endpoint answers a non-empty record, since no
+--- kind's matches() accepts nil or {} and loading it would make the page depend
+--- on it.
 --- Failures on a NON-matching kind don't count toward hasApiError (the items
 --- endpoint rejecting a vehicle UUID is expected) — only the matched kind's own
 --- fetch error does.
@@ -107,12 +132,14 @@ end
 --- @return boolean hasApiError
 local function probeKindByEndpoint(uuid)
 	local fetchedEndpoints = {}
-	for _, mod in ipairs(registry.kinds) do
-		local primaryConfig = mod.getApiConfigs()[1]
-		local data, err = api.fetchApi(primaryConfig, uuid)
-		fetchedEndpoints[primaryConfig.endpoint] = true
-		if mod.matches(data) then
-			return mod, data, fetchedEndpoints, err ~= nil
+	for _, entry in ipairs(registry.kinds) do
+		local data, err = api.fetchApi(entry.api, uuid)
+		fetchedEndpoints[entry.api.endpoint] = true
+		if type(data) == 'table' and next(data) ~= nil then
+			local mod = entry.load()
+			if mod.matches(data) then
+				return mod, data, fetchedEndpoints, err ~= nil
+			end
 		end
 	end
 	return nil, {}, fetchedEndpoints, false

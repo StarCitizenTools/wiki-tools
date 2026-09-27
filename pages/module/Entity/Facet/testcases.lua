@@ -245,7 +245,8 @@ function suite:testEveryFacetDispatchesThroughContext()
 	end
 
 	local exercised = 0
-	for _, facet in ipairs(registry.facets) do
+	for _, entry in ipairs(registry.facets) do
+		local facet = entry.load()
 		local case = byModule[facet]
 		self:assertTrue(case ~= nil, 'no FACET_DISPATCH_CASES entry for a registered facet')
 		local result = assembly.callHook(facet, case.hook, case.ctx)

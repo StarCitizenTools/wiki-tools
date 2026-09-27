@@ -1,19 +1,21 @@
 # Module:BucketQuery
 
-Builds a [Bucket](https://www.mediawiki.org/wiki/Extension:Bucket) query from property names, and is the only module that knows which table and column each declared property lives in. Domain-agnostic: the manifests it searches are listed in `Module:BucketQuery/manifests.json`, so it names no domain of its own.
+Builds a [Bucket](https://www.mediawiki.org/wiki/Extension:Bucket) query from property names, resolving each to its table and column through the manifests `Module:BucketQuery/manifests.json` lists, so it names no domain of its own.
 
-Editors reach it through `{{Data table}}`. Entity's own view of the store, including the current page's uuid and the uuid-to-page lookups, is [Module:Entity/Store](https://starcitizen.tools/Module:Entity/Store), which requires this module.
+Editors reach it through `{{Data table}}` and `{{Data table/static}}`; it also serves `{{Entity}}`, `{{Vehicle}}` and `{{Location}}` (through [Module:Entity/Store](https://starcitizen.tools/Module:Entity/Store)), `{{Entity/Navplates}}`, `{{Navplate manufacturers}}`, `{{Navplate vehicles}}`, `{{PledgeVehicleGrid}}` and the maintenance report pages.
 
 ## For module editors
 
 ### API
+
+Entity's own view of the store, including the current page's uuid and the uuid-to-page lookups, is [Module:Entity/Store](https://starcitizen.tools/Module:Entity/Store), which requires this module.
 
 - `resolve(displayName, kind)`: the bucket, field, type and repeated flag for a property, searching the registered manifests in order (the one the registry's `kinds` names for `kind` first, when `kind` is given) and loading each only when the search reaches it, so a page depends only on the manifests up to the one that answered. `kind` only orders the search; it never makes a property unresolvable. The display name is the manifest key, so the underscored emitter-key spelling (`modifier_laser_instability`) does not resolve; `Modifier laser instability` does.
 - `query(spec)`: `spec.columns` is a list of display names or `{ property, as }` (or `{ builtin = 'page_name', as }`); `spec.filters` is a list of `'Category:X'`, `{ property, value }`, `{ property, op, value }` or `{ any = { ... } }`; `spec.limit` defaults to 1000; `spec.kind` is passed to `resolve`; `spec.primary` names the base table, defaulting to `entity`. Operators: `=` (default when only two elements are given), `!=`, `<`, `<=`, `>`, `>=`, and `+` (has a value, emits `Not({ selector, Null() })`). Returns rows keyed by `as` or the display name with typed values.
 
 ### Extending
 
-Registering a domain is one edit to `Module:BucketQuery/manifests.json`: its manifest's title in `manifests`, and each kind its `%kinds` declares in `kinds`, which lets a lookup that names a kind go straight to that manifest. `tests/manifest.lua` fails when `kinds` and the manifests' `%kinds` disagree. That same file is read by the `bucketschemas` generator that writes the `Bucket:` schema pages, so the module and the generator cannot disagree about which manifests exist. Adding a manifest to only one of them was possible before the registry and is the drift it exists to prevent.
+Registering a domain is one edit to `Module:BucketQuery/manifests.json`: its manifest's title in `manifests`, and each kind its `%kinds` declares in `kinds`, which lets a lookup that names a kind go straight to that manifest. `tests/manifest.lua` fails when `kinds` and the manifests' `%kinds` disagree. That same file is read by the `bucketschemas` generator that writes the `Bucket:` schema pages, so the module and the generator cannot disagree about which manifests exist.
 
 Order in the registry matters only for a property name declared by more than one manifest, where the first wins.
 

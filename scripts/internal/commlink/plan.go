@@ -14,6 +14,7 @@ const (
 	ReasonImages      = "images"
 	ReasonAPIText     = "api-text"
 	ReasonFidelity    = "fidelity"
+	ReasonTitle       = "title-invalid"
 )
 
 // Plan is the importer's output: pages to create, and reports it would not

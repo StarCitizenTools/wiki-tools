@@ -391,6 +391,48 @@ function suite:testUsesMwExtBucketNotRequire()
 	end
 end
 
+--- Runs `fn(loaded)` against the real registry with mw.loadJsonData wrapped to
+--- record every page it is asked for. Always restores both.
+--- @param fn fun(loaded: table<string, boolean>)
+local function withLoadSpy(fn)
+	BucketQuery._internal.setManifests(nil)
+	local realLoad = mw.loadJsonData
+	local loaded = {}
+	mw.loadJsonData = function(title)
+		loaded[title] = true
+		return realLoad(title)
+	end
+	local ok, err = pcall(fn, loaded)
+	mw.loadJsonData = realLoad
+	BucketQuery._internal.setManifests(nil)
+	if not ok then
+		error(err, 0)
+	end
+end
+
+-- Every manifest a lookup loads becomes a dependency of the page doing it, so
+-- an Entity property must not load another domain's manifest.
+function suite:testResolveEntityPropertyLoadsOnlyTheEntityManifest()
+	withLoadSpy(function(loaded)
+		self:assertEquals('entity', BucketQuery.resolve('Manufacturer').bucket)
+		self:assertEquals(true, loaded['Module:Entity/properties.json'])
+		self:assertEquals(nil, loaded['Module:WearableSet/properties.json'])
+		self:assertEquals(nil, loaded['Module:CommLink/properties.json'])
+	end)
+end
+
+-- A kind's own manifest is searched first, found through the registry without
+-- loading the others.
+function suite:testResolveByKindLoadsOnlyTheKindsManifest()
+	withLoadSpy(function(loaded)
+		local e = BucketQuery.resolve('Maximum temperature', 'Wearable set')
+		self:assertEquals('wearable_set', e.bucket)
+		self:assertEquals('max_temperature', e.field)
+		self:assertEquals(true, loaded['Module:WearableSet/properties.json'])
+		self:assertEquals(nil, loaded['Module:Entity/properties.json'])
+	end)
+end
+
 --- Resolves against the real manifests (no withManifest fixture), the same way
 --- the ClassStats/Stats/Overview/Profile suites exercise BucketQuery.resolve for
 --- Vehicle: confirms Module:WearableSet/properties.json is actually wired

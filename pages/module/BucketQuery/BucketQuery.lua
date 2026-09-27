@@ -37,50 +37,57 @@ local p = {}
 local PRIMARY = 'entity'
 local DEFAULT_LIMIT = 1000
 
--- The registry of property manifests, in search order; a kind's own manifest is
--- searched first when the caller names a kind. Data rather than a list here, and
--- the same file the Bucket schema generator reads, so a new domain is registered
--- once instead of in two hardcoded lists that can drift apart.
+-- The registry of property manifests, in search order, and the manifest each
+-- kind is declared in. Data rather than a list here, and the same file the
+-- Bucket schema generator reads, so a new domain is registered once instead of
+-- in two hardcoded lists that can drift apart.
 local REGISTRY_PAGE = 'Module:BucketQuery/manifests.json'
 
-local manifests = nil
+--- Where manifests come from: the registry's titles and kind map, loaded one at
+--- a time as a search reaches them. Every manifest a page loads becomes a
+--- dependency of that page and is re-parsed with it on every edit, so a search
+--- stops at the first manifest that answers rather than loading them all.
+--- @class BucketQuerySource
+--- @field titles table manifest keys in search order
+--- @field kinds table<string, any> kind name -> the key of the manifest declaring it
+--- @field load fun(key: any): table
 
-local function getManifests()
-	if manifests == nil then
-		manifests = {}
-		-- ipairs, never # or next: mw.loadJsonData's tables break both.
-		for _, title in ipairs(mw.loadJsonData(REGISTRY_PAGE).manifests) do
-			manifests[#manifests + 1] = mw.loadJsonData(title)
-		end
+--- @type BucketQuerySource|nil
+local source = nil
+
+--- @return BucketQuerySource
+local function getSource()
+	if source == nil then
+		local registry = mw.loadJsonData(REGISTRY_PAGE)
+		source = { titles = registry.manifests, kinds = registry.kinds or {}, load = mw.loadJsonData }
 	end
-	return manifests
+	return source
 end
 
-local function listsKind(m, kind)
-	local kinds = m['%kinds']
-	return type(kinds) == 'table' and kinds[kind] ~= nil
-end
-
---- The manifests to search for `kind`, the kind's own first.
+--- Calls `visit` on each manifest in search order, the one declaring `kind`
+--- first, and returns the first non-nil result. Read with ipairs, never # or
+--- next: mw.loadJsonData's tables break both.
 --- @param kind string|nil
---- @return table[]
-local function manifestsFor(kind)
-	local all = getManifests()
-	if kind == nil then
-		return all
-	end
-	local ordered = {}
-	for _, m in ipairs(all) do
-		if listsKind(m, kind) then
-			ordered[#ordered + 1] = m
+--- @param visit fun(manifest: table): any
+--- @return any
+local function search(kind, visit)
+	local src = getSource()
+	local own = kind and src.kinds[kind]
+	if own ~= nil then
+		local found = visit(src.load(own))
+		if found ~= nil then
+			return found
 		end
 	end
-	for _, m in ipairs(all) do
-		if not listsKind(m, kind) then
-			ordered[#ordered + 1] = m
+	for _, key in ipairs(src.titles) do
+		if key ~= own then
+			local found = visit(src.load(key))
+			if found ~= nil then
+				return found
+			end
 		end
 	end
-	return ordered
+	return nil
 end
 
 --- @class BucketQueryEntry
@@ -104,35 +111,33 @@ local function resolveIn(m, displayName, kind)
 	return nil
 end
 
---- Resolves a property display name to its bucket and field, searching each
---- registered manifest in the registry's order, the one listing `kind` under
---- `%kinds` first when `kind` is given. A property whose manifest bucket is
+--- Resolves a property display name to its bucket and field, searching the
+--- registered manifests in the registry's order, the one the registry's `kinds`
+--- names for `kind` first, and stopping at the first that declares it. A property whose manifest bucket is
 --- keyed by kind needs `kind`; without it such a property is unresolvable
 --- (nil), never guessed.
 --- @param displayName string
 --- @param kind string|nil Kind name the manifests disambiguate on (Vehicle, Item, Company, ...)
 --- @return BucketQueryEntry|nil
 function p.resolve(displayName, kind)
-	for _, m in ipairs(manifestsFor(kind)) do
-		local entry = resolveIn(m, displayName, kind)
-		if entry then
-			return entry
-		end
-	end
-	return nil
+	return search(kind, function(m)
+		return resolveIn(m, displayName, kind)
+	end)
 end
 
 --- True when the property's bucket depends on the kind, so resolve() needs one.
+--- Searches every manifest, so it belongs on the path that explains a failed
+--- resolve() rather than on every lookup.
 --- @param displayName string
 --- @return boolean
 function p.needsKind(displayName)
-	for _, m in ipairs(getManifests()) do
+	return search(nil, function(m)
 		local entry = m[displayName]
 		if type(entry) == 'table' and type(entry.bucket) == 'table' then
 			return true
 		end
-	end
-	return false
+		return nil
+	end) == true
 end
 
 --- @class BucketQueryColumn
@@ -321,13 +326,30 @@ function p.query(spec)
 end
 
 --- @class BucketQueryInternal
---- @field setManifests fun(list: table[]|nil) Test-only manifest override; nil restores the lazy load from the registry page.
+--- @field setManifests fun(list: table[]|nil) Test-only manifest override, searched in list order with each manifest's %kinds as the kind map; nil restores the registry.
 
 -- Test-only exports. Not part of the public API.
 --- @type BucketQueryInternal
 p._internal = {
 	setManifests = function(list)
-		manifests = list
+		if list == nil then
+			source = nil
+			return
+		end
+		local titles, kinds = {}, {}
+		for i, m in ipairs(list) do
+			titles[i] = i
+			for kind in pairs(type(m['%kinds']) == 'table' and m['%kinds'] or {}) do
+				kinds[kind] = kinds[kind] or i
+			end
+		end
+		source = {
+			titles = titles,
+			kinds = kinds,
+			load = function(i)
+				return list[i]
+			end,
+		}
 	end,
 }
 

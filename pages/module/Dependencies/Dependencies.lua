@@ -192,7 +192,7 @@ end
 
 --- The pages that use `title`, or nil when the lookup failed.
 --- Queries Bucket directly: Module:BucketQuery would load and link every
---- registered manifest on each documentation render.
+--- manifest registered ahead of this one on each documentation render.
 --- @param title string
 --- @return table|nil
 local function reverse(title)

@@ -152,8 +152,8 @@ end
 --- Release dates of the given update pages from one Bucket read, keyed by the
 --- lowercased page name: Bucket matches page names case-insensitively and
 --- returns the stored spelling. Queried directly rather than through
---- Module:BucketQuery, which would load and link every registered manifest on
---- each update page. A failed read returns an empty table.
+--- Module:BucketQuery, which would load and link every manifest registered
+--- ahead of this one on each update page. A failed read returns an empty table.
 --- @param titles string[]
 --- @return table<string, string>
 function p.neighbourDates(titles)

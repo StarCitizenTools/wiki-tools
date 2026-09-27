@@ -130,3 +130,30 @@ func TestAPITextWords(t *testing.T) {
 		t.Error("an empty page with empty API text is short")
 	}
 }
+
+// The API runs a row of captioned images into the paragraph after them; each
+// captioned image's block is its caption. Out of page order, the line is still
+// missing.
+func TestMissingGluedCaptions(t *testing.T) {
+	page := "Intro.\n\n[[File:A - 01.jpg|thumb|center|Stanton III - Casaba Outlet]]\n\n" +
+		"[[File:A - 02.jpg|thumb|center|Stanton III - Dumper's Depot]]\n\n[[File:A - 03.jpg|thumb|center]]\n\n" +
+		"The $48 million stretch goal was the commercial.\n"
+	api := "Stanton III - Casaba Outlet Stanton III - Dumper's Depot The $48 million stretch goal\n" +
+		"Stanton III - Dumper's Depot Stanton III - Casaba Outlet The $48 million stretch goal\n"
+	got := Missing(api, page, func(string) bool { return false })
+	if want := []string{"Stanton III - Dumper's Depot Stanton III - Casaba Outlet The $48 million stretch goal"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("Missing = %q, want %q", got, want)
+	}
+}
+
+// The API drops "$" and up to two digits of a dollar amount.
+func TestMissingDollarAmounts(t *testing.T) {
+	page := "2019 was a record year, with $48 million in sales, and our first $100 million+ year.\n"
+	api := "2019 was a record year, with million in sales, and our first 0 million+ year.\n" +
+		"2019 was a record year, with $48 million in sales, and our first $100 million+ year.\n" +
+		"2019 was a record year, with 49 million in sales\n"
+	got := Missing(api, page, func(string) bool { return false })
+	if want := []string{"2019 was a record year, with 49 million in sales"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("Missing = %q, want %q", got, want)
+	}
+}

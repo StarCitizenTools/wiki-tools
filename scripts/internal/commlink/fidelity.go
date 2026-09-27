@@ -134,14 +134,25 @@ func APITextWords(apiText, body string) (api, page int, short bool) {
 	return api, page, 2*api < page
 }
 
+// apiDollar is what the API's text drops from a dollar amount: it reads "$"
+// and up to two digits as a regex backreference, so "$48 million" becomes
+// " million" and "$100 million" "0 million".
+var apiDollar = regexp.MustCompile(`\$\d{1,2}`)
+
 // Missing lists the lines of the API's plain text that the page does not
 // contain. The check runs one way, API into page, so an API text that stops
-// short of RSI's body cannot fail it. Two API artefacts pass: a line glued
-// across page blocks, and illustration credits glued together.
+// short of RSI's body cannot fail it. Three API artefacts pass: a line glued
+// across page blocks, where a captioned image's block is its caption;
+// illustration credits glued together; and a line missing the dollar amounts
+// the page holds.
 func Missing(apiText, page string, ignored func(string) bool) []string {
 	have := normalize(page)
+	haveDollarless := normalize(apiDollar.ReplaceAllString(page, ""))
 	var blocks []string
 	for _, b := range strings.Split(page, "\n\n") {
+		if m := thumbCaption.FindStringSubmatch(b); m != nil {
+			b = m[1]
+		}
 		if nb := normalize(b); strings.TrimSpace(nb) != "" {
 			blocks = append(blocks, nb)
 		}
@@ -156,7 +167,7 @@ func Missing(apiText, page string, ignored func(string) bool) []string {
 		}
 		n := normalize(line)
 		if strings.TrimSpace(n) == "" || strings.Contains(have, n) || spansBlocks(n, blocks) ||
-			tiles(strings.ReplaceAll(n, " ", ""), credits) {
+			tiles(strings.ReplaceAll(n, " ", ""), credits) || strings.Contains(haveDollarless, n) {
 			continue
 		}
 		missing = append(missing, line)

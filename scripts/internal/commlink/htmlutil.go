@@ -90,15 +90,24 @@ func isHeading(n *html.Node) bool {
 
 var wsRun = regexp.MustCompile(`\s+`)
 
-// normalizeInvisibles maps every Unicode space separator (general category
+// ligatures spells out the Latin typographic ligatures (U+FB00 to U+FB06)
+// that text pasted from print layouts carries into RSI's HTML: "ﬁre" would
+// otherwise not match a search for "fire".
+var ligatures = strings.NewReplacer(
+	"\uFB00", "ff", "\uFB01", "fi", "\uFB02", "fl", "\uFB03", "ffi",
+	"\uFB04", "ffl", "\uFB05", "st", "\uFB06", "st",
+)
+
+// normalizeChars maps every Unicode space separator (general category
 // Zs: NBSP, narrow no-break space, ideographic space, ...) other than U+0020
-// to a plain space, and drops soft hyphen (U+00AD) and the zero-width marks
-// (U+200B, U+2060, U+FEFF) RSI's HTML carries. It runs before wsRun, so a
-// mapped space landing next to a plain one is left as an ordinary run for
-// wsRun to collapse; wsRun itself is `\s+`, which Go's regexp resolves as
-// ASCII-only and so would not touch an unmapped Zs character.
-func normalizeInvisibles(s string) string {
-	return strings.Map(func(r rune) rune {
+// to a plain space, drops soft hyphen (U+00AD) and the zero-width marks
+// (U+200B, U+2060, U+FEFF) RSI's HTML carries, and spells out ligatures. It
+// runs before wsRun, so a mapped space landing next to a plain one is left as
+// an ordinary run for wsRun to collapse; wsRun itself is `\s+`, which Go's
+// regexp resolves as ASCII-only and so would not touch an unmapped Zs
+// character.
+func normalizeChars(s string) string {
+	return ligatures.Replace(strings.Map(func(r rune) rune {
 		switch r {
 		case 0x00AD, 0x200B, 0x2060, 0xFEFF: // soft hyphen, zero width space, word joiner, BOM
 			return -1
@@ -109,11 +118,11 @@ func normalizeInvisibles(s string) string {
 			return ' '
 		}
 		return r
-	}, s)
+	}, s))
 }
 
-// PlainText is an element's text with markup dropped, invisible characters
-// normalized (see normalizeInvisibles), and whitespace collapsed. Its result is
+// PlainText is an element's text with markup dropped, characters normalized
+// (see normalizeChars), and whitespace collapsed. Its result is
 // compared before anything renders it (fold keys, heading labels, the
 // greeting and sign-off patterns), so it cannot wait for escapeText to
 // normalize it.
@@ -129,7 +138,7 @@ func PlainText(n *html.Node) string {
 		}
 	}
 	walk(n)
-	return strings.TrimSpace(wsRun.ReplaceAllString(normalizeInvisibles(b.String()), " "))
+	return strings.TrimSpace(wsRun.ReplaceAllString(normalizeChars(b.String()), " "))
 }
 
 // urlUnsafeASCII is the ASCII set that would break wikitext link markup: quote

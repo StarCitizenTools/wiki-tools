@@ -17,10 +17,10 @@ var wikiEscaper = strings.NewReplacer(
 // doubled apostrophes and tildes become entities (every tilde, not just runs of
 // three, since Replacer's single left-to-right scan would otherwise leave a
 // shorter tilde run behind a matched one, and MediaWiki reads any run of 3+ as
-// a signature), stray Unicode spacing and invisible marks are normalized (see
-// normalizeInvisibles), and whitespace runs collapse.
+// a signature), stray Unicode spacing, invisible marks and ligatures are
+// normalized (see normalizeChars), and whitespace runs collapse.
 func escapeText(s string) string {
-	s = normalizeInvisibles(s)
+	s = normalizeChars(s)
 	s = wsRun.ReplaceAllString(s, " ")
 	return wikiEscaper.Replace(s)
 }

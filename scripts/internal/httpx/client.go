@@ -62,6 +62,18 @@ func New(opts Options) *Client {
 // Close releases the rate limiter.
 func (c *Client) Close() { c.ticker.Stop() }
 
+// StatusError is an answer the client did not retry: a 4xx, or any other
+// status that is neither 200 nor transient. Body is a trimmed snippet.
+type StatusError struct {
+	Code   int
+	Status string
+	Body   string
+}
+
+func (e *StatusError) Error() string {
+	return fmt.Sprintf("http %d %s: %s", e.Code, e.Status, e.Body)
+}
+
 // retryable reports whether a status code is worth another attempt. These are
 // the codes that indicate a transient upstream or edge problem rather than a
 // request we got wrong.
@@ -79,8 +91,14 @@ func retryable(status int) bool {
 
 // Do issues a request, waiting for a rate-limiter tick before each attempt and
 // backing off between retries. The response body is read fully and returned, so
-// callers do not need to close anything.
+// callers do not need to close anything. A body is sent as form data.
 func (c *Client) Do(ctx context.Context, method, url string, body string) ([]byte, error) {
+	return c.DoContentType(ctx, method, url, body, "application/x-www-form-urlencoded")
+}
+
+// DoContentType is Do with an explicit request Content-Type, for endpoints that
+// take a JSON body rather than form data.
+func (c *Client) DoContentType(ctx context.Context, method, url, body, contentType string) ([]byte, error) {
 	var lastErr error
 
 	for attempt := 1; attempt <= c.maxTries; attempt++ {
@@ -101,7 +119,7 @@ func (c *Client) Do(ctx context.Context, method, url string, body string) ([]byt
 		}
 		req.Header.Set("User-Agent", c.userAgent)
 		if body != "" {
-			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+			req.Header.Set("Content-Type", contentType)
 		}
 
 		resp, err := c.http.Do(req)
@@ -119,7 +137,7 @@ func (c *Client) Do(ctx context.Context, method, url string, body string) ([]byt
 				lastErr = fmt.Errorf("http %d %s", resp.StatusCode, resp.Status)
 			default:
 				// 4xx and anything else: the request itself is wrong, so stop.
-				return nil, fmt.Errorf("http %d %s: %s", resp.StatusCode, resp.Status, snippet(data))
+				return nil, &StatusError{Code: resp.StatusCode, Status: resp.Status, Body: snippet(data)}
 			}
 		}
 

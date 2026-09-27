@@ -12,9 +12,10 @@ import (
 
 func TestDefaultOut(t *testing.T) {
 	for config, want := range map[string]string{
-		"cmd/commlinks/config.json":          "out/commlinks",
-		"cmd/commlinks/config.chairman.json": "out/commlinks-chairman",
-		"chairman.json":                      "out/commlinks-chairman",
+		"cmd/commlinks/config.json":                    "out/commlinks",
+		"cmd/commlinks/config.chairman.json":           "out/commlinks-chairman",
+		"chairman.json":                                "out/commlinks-chairman",
+		"cmd/commlinks/config.serialized-fiction.json": "out/commlinks-serialized-fiction",
 	} {
 		if got := defaultOut(config); got != want {
 			t.Errorf("defaultOut(%q) = %q, want %q", config, got, want)

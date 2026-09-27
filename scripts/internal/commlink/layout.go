@@ -18,9 +18,11 @@ var s3URL = regexp.MustCompile(`const s3Url\s*=\s*'([^']+)'`)
 
 // Detect tells RSI's two layouts apart: it returns the fragment URL of a Vue
 // shell, whose body is a separate HTML fragment, or "" for the classic
-// server-rendered body (to October 2021). Fragment shells embed
-// text/x-jsmart-tmpl templates with classic class names, so the classic test
-// looks inside div#contentbody rather than grepping the page.
+// server-rendered body. The layout follows the page, not its date: the reports
+// moved to fragments in October 2021, the stories kept the classic body into
+// 2024. Fragment shells embed text/x-jsmart-tmpl templates with classic class
+// names, so the classic test looks inside div#contentbody rather than grepping
+// the page.
 func Detect(shell []byte) (fragURL string, err error) {
 	if m := s3URL.FindSubmatch(shell); m != nil {
 		return string(m[1]), nil

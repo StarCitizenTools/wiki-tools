@@ -87,6 +87,16 @@ dir = "scripts"
 run = "go run ./cmd/commlinks -config cmd/commlinks/config.chairman.json -diff"
 description = "Report missing From the Chairman letters (exit 1 if any, or if a review entry is new). Read-only; changes go through the MediaWiki MCP server."
 
+[tasks."commlinks:serialized-fiction"]
+dir = "scripts"
+run = "go run ./cmd/commlinks -config cmd/commlinks/config.serialized-fiction.json"
+description = "Plan the Serialized Fiction stories missing from the wiki: pages and images into scripts/out/commlinks-serialized-fiction/ (gitignored); publish via the MediaWiki MCP server"
+
+[tasks."commlinks:serialized-fiction:diff"]
+dir = "scripts"
+run = "go run ./cmd/commlinks -config cmd/commlinks/config.serialized-fiction.json -diff"
+description = "Report missing Serialized Fiction stories (exit 1 if any, or if a review entry is new). Read-only; changes go through the MediaWiki MCP server."
+
 [tasks.test]
 depends = ["test:lua", "test:go", "test:js"]
 description = "Run all local tests"

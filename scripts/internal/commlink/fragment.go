@@ -11,13 +11,12 @@ import (
 	"golang.org/x/net/html/atom"
 )
 
-// ParseFragment converts a fragment-layout body (from late 2021) into blocks.
-// The prose lives in component attributes: g-introduction's :info JSON,
-// g-article's body HTML and a g-banner-advanced's paragraph; g-illustration
-// and g-slideshow carry images, g-trailer a YouTube video and g-author the
-// signature. The parser decodes each attribute once, and the body is then
-// parsed as HTML, which also decodes the double-escaped entities of the
-// earliest fragments.
+// ParseFragment converts a fragment-layout body into blocks. The prose lives in
+// component attributes: g-introduction's :info JSON, g-article's body HTML and
+// a g-banner-advanced's paragraph; g-illustration and g-slideshow carry
+// images, g-trailer a YouTube video and g-author the signature. The parser
+// decodes each attribute once, and the body is then parsed as HTML, which also
+// decodes the double-escaped entities of the earliest fragments.
 func ParseFragment(frag []byte, cfg *Config) ([]Block, error) {
 	doc, err := html.Parse(bytes.NewReader(frag))
 	if err != nil {
@@ -36,7 +35,7 @@ func ParseFragment(frag []byte, cfg *Config) ([]Block, error) {
 	if len(p.blocks) == 0 {
 		return nil, errors.New("fragment has no content")
 	}
-	return splitPseudoHeadings(p.blocks, cfg), nil
+	return splitPseudoHeadings(tidyRules(p.blocks), cfg), nil
 }
 
 type fragment struct {
@@ -98,7 +97,8 @@ func (p *fragment) walk(n *html.Node) {
 
 // flowHTML converts one article body or intro entry. Its single heading level
 // is a top-level section: h2 in the earliest fragments, then, from a change
-// during 2022, h4 for Star Citizen and h3 for Squadron 42.
+// during 2022, h4 for Star Citizen and h3 for Squadron 42. With noSections a
+// heading is bold text.
 func (p *fragment) flowHTML(src string, emphasis bool) {
 	ctx := &html.Node{Type: html.ElementNode, Data: "div", DataAtom: atom.Div}
 	nodes, err := html.ParseFragment(strings.NewReader(src), ctx)
@@ -113,9 +113,13 @@ func (p *fragment) flowHTML(src string, emphasis bool) {
 	// closing: the article is the sign-off, or reached it; every heading
 	// from there on (// END TRANSMISSION) belongs to it.
 	closing := emphasis
-	f := &flow{heading: func(f *flow, h *html.Node) {
+	f := &flow{rules: p.cfg.SceneBreaks, heading: func(f *flow, h *html.Node) {
 		t := PlainText(h)
 		if t == "" {
+			return
+		}
+		if p.cfg.NoSections {
+			f.emit(Block{Kind: Paragraph, Text: bold(trimBreaks(Inline(h)))})
 			return
 		}
 		closing = closing || p.cfg.MatchesSignOff(t)
@@ -130,7 +134,7 @@ func (p *fragment) flowHTML(src string, emphasis bool) {
 	if emphasis {
 		for i := range f.blocks {
 			if f.blocks[i].Kind == Paragraph {
-				f.blocks[i].Text = joinMarkup("'''", strings.ReplaceAll(f.blocks[i].Text, "'''", ""), "'''")
+				f.blocks[i].Text = bold(f.blocks[i].Text)
 				f.blocks[i].Emphasis = true
 			}
 		}

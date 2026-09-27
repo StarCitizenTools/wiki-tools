@@ -4,6 +4,7 @@
 package commlink
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -22,14 +23,22 @@ type Rename struct {
 // Config is the editorial input to the importer, read from
 // cmd/commlinks/config.json.
 type Config struct {
-	Series       string `json:"series"`
+	// Series and Channel are RSI hub slugs; RSI's listing is read by the one
+	// that is set.
+	Series  string `json:"series"`
+	Channel string `json:"channel"`
+	// APIChannel is the API's name for a channel. When it is set, API
+	// discovery reads every comm-link the API files under it, and titleQuery
+	// and titlePattern are not needed; otherwise it reads the titles that
+	// contain titleQuery and match titlePattern.
+	APIChannel   string `json:"apiChannel"`
 	TitleQuery   string `json:"titleQuery"`
 	TitlePattern string `json:"titlePattern"`
 	// GreetingPattern and SignOffPattern match a report's opening greeting and
-	// closing sign-off. A bold line matching either is never a pseudo-heading,
-	// and a classic heading matching either (only an intro heading, with
-	// introHeadings), or a fragment heading matching the sign-off, renders as
-	// bold text.
+	// closing sign-off; an empty pattern matches nothing. A bold line matching
+	// either is never a pseudo-heading, and a classic heading matching either
+	// (only an intro heading, with introHeadings), or a fragment heading
+	// matching the sign-off, renders as bold text.
 	GreetingPattern string `json:"greetingPattern"`
 	SignOffPattern  string `json:"signOffPattern"`
 	// StudioSections reads a classic page with a section-title block other
@@ -43,19 +52,38 @@ type Config struct {
 	// only such a heading is read as a greeting or sign-off. Without it,
 	// div.variant-block is only styling, and a heading at any level matching
 	// greetingPattern or signOffPattern is bold text.
-	IntroHeadings bool     `json:"introHeadings"`
-	Renames       []Rename `json:"renames"`
+	IntroHeadings bool `json:"introHeadings"`
+	// NoSections reads a body with no sections, a story: each heading, which
+	// RSI uses for styling (a writer's note, a script's scene heading, THE
+	// END), is bold text, and no bold line is a subsection title.
+	NoSections bool `json:"noSections"`
+	// SceneBreaks keeps a horizontal rule in the prose, a story's scene break,
+	// as a wikitext rule; without it a rule is dropped.
+	SceneBreaks bool `json:"sceneBreaks"`
+	// Byline opens a classic body with its page header's subtitle when that
+	// names the author ("By: Autumn Kalquist"); a fragment carries its byline
+	// in the body.
+	Byline  bool     `json:"byline"`
+	Renames []Rename `json:"renames"`
 	// DatedTitlePattern matches a page name, after renames, that several
 	// reports share (a bare "Letter from the Chairman"); such a name takes
 	// " - " and the report's publication date.
-	DatedTitlePattern string            `json:"datedTitlePattern"`
-	InfoboxType       string            `json:"infoboxType"`
-	InfoboxSeries     string            `json:"infoboxSeries"`
-	ImageCategory     string            `json:"imageCategory"`
-	ImageAuthor       string            `json:"imageAuthor"`
-	LinkCategories    []string          `json:"linkCategories"`
-	Aliases           map[string]string `json:"aliases"`
-	Stoplist          []string          `json:"stoplist"`
+	DatedTitlePattern string `json:"datedTitlePattern"`
+	InfoboxType       string `json:"infoboxType"`
+	// InfoboxSeries is every report's infobox series, unless SeriesFromReport
+	// takes each report's own (see ReportSeries).
+	InfoboxSeries    string `json:"infoboxSeries"`
+	SeriesFromReport bool   `json:"seriesFromReport"`
+	// StandaloneSeries are API series labels that name no story arc ("News
+	// Update", "None"), and SeriesRename corrects the labels that name one
+	// differently from the wiki.
+	StandaloneSeries []string          `json:"standaloneSeries"`
+	SeriesRename     map[string]string `json:"seriesRename"`
+	ImageCategory    string            `json:"imageCategory"`
+	ImageAuthor      string            `json:"imageAuthor"`
+	LinkCategories   []string          `json:"linkCategories"`
+	Aliases          map[string]string `json:"aliases"`
+	Stoplist         []string          `json:"stoplist"`
 	// NoLink lists phrases inside which no term is linked: a name used in
 	// another sense.
 	NoLink         []string `json:"noLink"`
@@ -79,20 +107,40 @@ func LoadConfig(path string) (*Config, error) {
 		return nil, err
 	}
 	var c Config
-	if err := json.Unmarshal(data, &c); err != nil {
+	dec := json.NewDecoder(bytes.NewReader(data))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&c); err != nil {
 		return nil, fmt.Errorf("%s: %w", path, err)
 	}
-	if c.Series == "" || c.TitleQuery == "" || c.TitlePattern == "" || c.GreetingPattern == "" || c.SignOffPattern == "" {
-		return nil, fmt.Errorf("%s: series, titleQuery, titlePattern, greetingPattern and signOffPattern are required", path)
+	if (c.Series == "") == (c.Channel == "") {
+		return nil, fmt.Errorf("%s: one of series and channel is required", path)
 	}
-	if c.titleRe, err = regexp.Compile(c.TitlePattern); err != nil {
-		return nil, fmt.Errorf("%s: titlePattern: %w", path, err)
+	if c.APIChannel == "" && (c.TitleQuery == "" || c.TitlePattern == "") {
+		return nil, fmt.Errorf("%s: titleQuery and titlePattern are required without apiChannel", path)
 	}
-	if c.greetingRe, err = regexp.Compile(c.GreetingPattern); err != nil {
-		return nil, fmt.Errorf("%s: greetingPattern: %w", path, err)
+	if c.SeriesFromReport && c.InfoboxSeries != "" {
+		return nil, fmt.Errorf("%s: infoboxSeries and seriesFromReport exclude each other", path)
 	}
-	if c.signOffRe, err = regexp.Compile(c.SignOffPattern); err != nil {
-		return nil, fmt.Errorf("%s: signOffPattern: %w", path, err)
+	if !c.SeriesFromReport && (len(c.StandaloneSeries) > 0 || len(c.SeriesRename) > 0) {
+		return nil, fmt.Errorf("%s: standaloneSeries and seriesRename need seriesFromReport", path)
+	}
+	if !c.NoSections && (c.GreetingPattern == "" || c.SignOffPattern == "") {
+		return nil, fmt.Errorf("%s: greetingPattern and signOffPattern are required without noSections", path)
+	}
+	for _, p := range []struct {
+		key, pattern string
+		re           **regexp.Regexp
+	}{
+		{"titlePattern", c.TitlePattern, &c.titleRe},
+		{"greetingPattern", c.GreetingPattern, &c.greetingRe},
+		{"signOffPattern", c.SignOffPattern, &c.signOffRe},
+	} {
+		if p.pattern == "" {
+			continue
+		}
+		if *p.re, err = regexp.Compile(p.pattern); err != nil {
+			return nil, fmt.Errorf("%s: %s: %w", path, p.key, err)
+		}
 	}
 	if c.DatedTitlePattern != "" {
 		if c.datedRe, err = regexp.Compile(c.DatedTitlePattern); err != nil {
@@ -133,13 +181,16 @@ func LoadConfig(path string) (*Config, error) {
 
 // MatchesTitle reports whether an API title, or a classic page's first title
 // block, names a report of this series.
-func (c *Config) MatchesTitle(title string) bool { return c.titleRe.MatchString(title) }
+func (c *Config) MatchesTitle(title string) bool { return matches(c.titleRe, title) }
 
 // MatchesGreeting reports whether text opens a report.
-func (c *Config) MatchesGreeting(text string) bool { return c.greetingRe.MatchString(text) }
+func (c *Config) MatchesGreeting(text string) bool { return matches(c.greetingRe, text) }
 
 // MatchesSignOff reports whether text is a report's sign-off.
-func (c *Config) MatchesSignOff(text string) bool { return c.signOffRe.MatchString(text) }
+func (c *Config) MatchesSignOff(text string) bool { return matches(c.signOffRe, text) }
+
+// matches is re.MatchString, false for a pattern the config leaves empty.
+func matches(re *regexp.Regexp, s string) bool { return re != nil && re.MatchString(s) }
 
 // renamed is an RSI title after the first matching rename, with ": " turned
 // into " - ".
@@ -183,6 +234,33 @@ func (c *Config) ReportTitle(listed, titleBlock string) string {
 		return listed
 	}
 	return titleBlock
+}
+
+// partMarker is a title's closing part marker: "(Part 1)", ": Part One" or
+// "Act 1". An act takes a number, so "Balancing Act II" keeps its "Act".
+var partMarker = regexp.MustCompile(`(?i)(?:\s*\(\s*part\s+[^()]+\)|\s*:\s*part\s+\S+|\s+act\s+\d+)\s*$`)
+
+// ReportSeries is a report's infobox series: infoboxSeries, or with
+// seriesFromReport the report's API series label after seriesRename. A label
+// in standaloneSeries names no arc, so the report takes its series from its
+// title instead: the title without a closing part marker ("A Gift for Baba
+// (Part 1)" is in "A Gift for Baba"), or the whole title for a story in one
+// part.
+func (c *Config) ReportSeries(title, apiSeries string) string {
+	if !c.SeriesFromReport {
+		return c.InfoboxSeries
+	}
+	if !slices.Contains(c.StandaloneSeries, apiSeries) {
+		if renamed, ok := c.SeriesRename[apiSeries]; ok {
+			return renamed
+		}
+		return apiSeries
+	}
+	title = strings.TrimSpace(title)
+	if arc := partMarker.ReplaceAllString(title, ""); arc != "" {
+		return arc
+	}
+	return title
 }
 
 // IgnoredLine reports whether an API text line is a known artefact that the

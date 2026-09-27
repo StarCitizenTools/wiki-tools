@@ -179,3 +179,24 @@ func TestParseFragmentEmphasisBeforeLastArticle(t *testing.T) {
 		"P '''See you in the verse.'''",
 	})
 }
+
+// A fragment story's headings are bold text, links and italics kept, and its
+// bold byline stays a paragraph.
+func TestParseFragmentStory(t *testing.T) {
+	blocks, err := ParseFragment([]byte(`<g-article v-cloak="" headline="A Gift for Baba" byline="04/13/2021 - 5:00 PM"></g-article>`+
+		`<g-article :show-emphasis="false" body="<p><i><strong>By: Will Weissbaum</strong></i></p>`+
+		`<h2>Writer's Note: <em>A Gift for Baba</em>. Read <a href=&quot;https://robertsspaceindustries.com/x&quot;>Part One</a>.</h2>`+
+		`<h2>Part Two</h2><p>Text.</p><hr><p>More.</p><h2>To be continued<br><br></h2>"></g-article>`), storyConfig(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	check(t, dump(blocks), []string{
+		"P '''''By: Will Weissbaum'''''",
+		"P '''Writer's Note: ''A Gift for Baba''. Read [https://robertsspaceindustries.com/x Part One].'''",
+		"P '''Part Two'''",
+		"P Text.",
+		"RULE",
+		"P More.",
+		"P '''To be continued'''",
+	})
+}

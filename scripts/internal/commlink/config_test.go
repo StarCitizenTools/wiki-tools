@@ -138,7 +138,15 @@ func TestLoadConfigRejects(t *testing.T) {
 	const base = `"series":"s","titleQuery":"M","titlePattern":"m","greetingPattern":"g","signOffPattern":"o"`
 	for body, want := range map[string]string{
 		`{"titleQuery":"M","titlePattern":"m","greetingPattern":"g","signOffPattern":"o"}`:              "required",
-		`{"series":"s","titleQuery":"M","titlePattern":"m","greetingPattern":"g"}`:                      "required",
+		`{"series":"s","channel":"c","apiChannel":"C"}`:                                                 "series and channel",
+		`{"series":"s","titlePattern":"m"}`:                                                             "titleQuery",
+		`{"channel":"c","apiChannel":"C","seriesFromReport":true,"infoboxSeries":"X"}`:                  "infoboxSeries",
+		`{"channel":"c","apiChannel":"C","standaloneSeries":["None"]}`:                                  "seriesFromReport",
+		`{"channel":"c","apiChannel":"C","seriesRename":{"A":"B"}}`:                                     "seriesFromReport",
+		`{"channel":"c","apiChannel":"C","noSections":true}`:                                            "",
+		`{"channel":"c","apiChannel":"C"}`:                                                              "greetingPattern",
+		`{"series":"s","titleQuery":"M","titlePattern":"m","greetingPattern":"g"}`:                      "signOffPattern",
+		`{` + base + `,"signOffPatern":"o"}`:                                                            "signOffPatern",
 		`{"series":"s","titleQuery":"M","titlePattern":"(","greetingPattern":"g","signOffPattern":"o"}`: "titlePattern",
 		`{"series":"s","titleQuery":"M","titlePattern":"m","greetingPattern":"(","signOffPattern":"o"}`: "greetingPattern",
 		`{"series":"s","titleQuery":"M","titlePattern":"m","greetingPattern":"g","signOffPattern":"("}`: "signOffPattern",
@@ -156,6 +164,72 @@ func TestLoadConfigRejects(t *testing.T) {
 			}
 		} else if err == nil || !strings.Contains(err.Error(), want) {
 			t.Errorf("%s: LoadConfig = %v, want an error naming %q", body, err, want)
+		}
+	}
+}
+
+func storyConfig(t *testing.T) *Config {
+	t.Helper()
+	c, err := LoadConfig("../../cmd/commlinks/config.serialized-fiction.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return c
+}
+
+// Every story title shape takes the dash form; the subtitle a title carries
+// before its part marker stays.
+func TestPageNameStory(t *testing.T) {
+	c := storyConfig(t)
+	for in, want := range map[string]string{
+		"The Cup: Part One":                                 "The Cup - Part One",
+		"Phantom Bounty: Part Three":                        "Phantom Bounty - Part Three",
+		"Instrument of Surrender (Part One)":                "Instrument of Surrender - Part One",
+		"The Second Run: A Sorri Lyrax Delivery (Part One)": "The Second Run - A Sorri Lyrax Delivery - Part One",
+		`Lost Squad: "Before the Fall" Act 1`:               `Lost Squad - "Before the Fall" Act 1`,
+		"A Gift for Baba (Part 1)":                          "A Gift for Baba - Part 1",
+		"The Payout":                                        "The Payout",
+	} {
+		if got, complete := c.PageName(in, "2021-08-04"); got != want || !complete {
+			t.Errorf("PageName(%q) = %q, %v, want %q, true", in, got, complete, want)
+		}
+	}
+}
+
+// A story's series is its API label, renamed where the wiki names the arc
+// differently; a label that names no arc takes the title without its part
+// marker.
+func TestReportSeries(t *testing.T) {
+	c := storyConfig(t)
+	for _, tc := range []struct {
+		title, api, want string
+	}{
+		{"The Cup: Part One", "The Cup", "The Cup"},
+		{"The Second Run: A Sorri Lyrax Delivery (Part One)", "Second Run", "The Second Run"},
+		{`Lost Squad: "Before the Fall" Act 1`, `Lost Squad: "Before the Fall"`, `Lost Squad: "Before the Fall"`},
+		{"The Payout", "News Update", "The Payout"},
+		{"The Meltdown", "None", "The Meltdown"},
+		{"Untitled", "", "Untitled"},
+		{"Dying Star: Part Two", "News Update", "Dying Star"},
+		{"Night Shift Act 2", "None", "Night Shift"},
+		{"Balancing Act II", "None", "Balancing Act II"},
+		{"A Gift for Baba (Part 1)", "None", "A Gift for Baba"},
+	} {
+		if got := c.ReportSeries(tc.title, tc.api); got != tc.want {
+			t.Errorf("ReportSeries(%q, %q) = %q, want %q", tc.title, tc.api, got, tc.want)
+		}
+	}
+	if got := testConfig(t).ReportSeries("Star Citizen Monthly Report: May 2021", "Monthly Report"); got != "Monthly Reports" {
+		t.Errorf("monthly ReportSeries = %q, want the fixed infoboxSeries", got)
+	}
+}
+
+// An empty greeting or sign-off pattern matches nothing.
+func TestEmptyPatternsMatchNothing(t *testing.T) {
+	c := storyConfig(t)
+	for _, s := range []string{"Greetings Citizens,", "Chris", "", "THE END"} {
+		if c.MatchesGreeting(s) || c.MatchesSignOff(s) || c.MatchesTitle(s) {
+			t.Errorf("%q matched an empty pattern", s)
 		}
 	}
 }

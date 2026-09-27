@@ -28,10 +28,13 @@ type Plan struct {
 // PageEntry is one page to create. Wikitext is the page's file, relative to the
 // plan.
 type PageEntry struct {
-	ID         int         `json:"id"`
-	RSITitle   string      `json:"rsiTitle"`
-	Page       string      `json:"page"`
-	URL        string      `json:"url"`
+	ID       int    `json:"id"`
+	RSITitle string `json:"rsiTitle"`
+	Page     string `json:"page"`
+	URL      string `json:"url"`
+	// Series is the infobox series when each report has its own
+	// (seriesFromReport).
+	Series     string      `json:"series,omitempty"`
 	Date       string      `json:"date"`
 	DateSource string      `json:"dateSource"`
 	Wikitext   string      `json:"wikitext"`

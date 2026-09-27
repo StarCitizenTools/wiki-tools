@@ -29,6 +29,8 @@ func dump(blocks []Block) []string {
 			out = append(out, s)
 		case Video:
 			out = append(out, fmt.Sprintf("VID %s %s%s", b.VideoKind, b.VideoID, b.Src))
+		case Rule:
+			out = append(out, "RULE")
 		case Gallery:
 			var slides []string
 			for _, s := range b.Images {
@@ -366,5 +368,63 @@ func TestParseClassicTitleBlock(t *testing.T) {
 			t.Errorf("ParseClassic(%q) title = %q, want %q", c.first, title, c.want)
 		}
 		check(t, dump(blocks), c.blocks)
+	}
+}
+
+// A story has no sections: each heading, a title block's included, is bold
+// text, bold inside it too, and a bold line alone is no subsection title. Its
+// header's byline opens the body, and a rule between two runs of content is a
+// scene break.
+func TestParseClassicStory(t *testing.T) {
+	blocks, _, err := ParseClassic([]byte(`<html><body><div id="contentbody"><div id="post">
+<div class="title-section"><div class="title-container"><div class="title">Lost Squad</div><div class="subtitle">By:  Jenna Tatman &amp; Hadrian Weir</div></div></div>
+<div class="wrapper"><div class="content-block4"><div class="content"><h1>Lost Squad: "Before the Fall" Act 1</h1></div></div>
+<div class="content-block4"><div class="content"><h1>Chapter One</h1></div></div>
+<div class="content-block1 rsi-markup"><div class="segment"><div class="content">
+<hr>
+<h5>Writer’s Note: <em>Lost Squad</em> Act 1. Read Act 0 <a href="https://robertsspaceindustries.com/comm-link/serialized-fiction/1-X">here</a>.</h5>
+<hr>
+<h2><strong><span class="caps">EXT</span>. LANDING PAD</strong></h2>
+<p>The camera pans.</p>
+<h4><em>BLAIR: Wait.</em> (to Fader) <em>Where?</em></h4>
+<p><strong>SURVEY</strong></p>
+<p>Text follows.</p>
+<hr><br><hr>
+<p>Next scene.</p>
+<h3>THE END.<br/><br/></h3><hr>
+</div></div></div></div><div class="two-line-separator"></div></div></div></body></html>`), `Lost Squad: "Before the Fall" Act 1`, storyConfig(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	check(t, dump(blocks), []string{
+		"P By: Jenna Tatman & Hadrian Weir",
+		"P '''Chapter One'''",
+		"RULE",
+		"P '''Writer’s Note: ''Lost Squad'' Act 1. Read Act 0 [https://robertsspaceindustries.com/comm-link/serialized-fiction/1-X here].'''",
+		"RULE",
+		"P '''EXT. LANDING PAD'''",
+		"P The camera pans.",
+		"P '''''BLAIR: Wait.'' (to Fader) ''Where?'''''",
+		"P '''SURVEY'''",
+		"P Text follows.",
+		"RULE",
+		"P Next scene.",
+		"P '''THE END.'''",
+	})
+}
+
+// Without byline and sceneBreaks, a header subtitle and a rule leave nothing.
+func TestParseClassicSubtitleAndRuleOff(t *testing.T) {
+	check(t, parseLetter(t, `<html><body><div id="contentbody"><div id="post">
+<div class="title-section"><div class="title-container"><div class="subtitle">By: Someone</div></div></div>
+<div class="wrapper"><div class="content-block1 rsi-markup"><div class="segment"><div class="content"><p>One.</p><hr><p>Two.</p></div></div></div></div>
+<div class="two-line-separator"></div></div></div></body></html>`, "Letter from the Chairman"), []string{"P One.", "P Two."})
+}
+
+func TestTidyRules(t *testing.T) {
+	r, p := Block{Kind: Rule}, Block{Kind: Paragraph, Text: "x"}
+	check(t, dump(tidyRules([]Block{r, r, p, r, r, p, r})), []string{"P x", "RULE", "P x"})
+	if got := tidyRules([]Block{r}); len(got) != 0 {
+		t.Errorf("tidyRules of a lone rule = %q", dump(got))
 	}
 }

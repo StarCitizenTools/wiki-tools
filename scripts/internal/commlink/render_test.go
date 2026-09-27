@@ -110,3 +110,11 @@ func TestRenderBodyInvalidVideoIDs(t *testing.T) {
 		t.Errorf("RenderBody with invalid video IDs should render nothing:\n%s\nwant:\n%s", got, want)
 	}
 }
+
+func TestRenderRule(t *testing.T) {
+	blocks := []Block{{Kind: Paragraph, Text: "One."}, {Kind: Rule}, {Kind: Paragraph, Text: "Two."}}
+	got := RenderBody(blocks, NewHeadCaser(nil, ""), func(string) string { return "" })
+	if want := "One.\n\n----\n\nTwo.\n"; got != want {
+		t.Errorf("RenderBody = %q, want %q", got, want)
+	}
+}

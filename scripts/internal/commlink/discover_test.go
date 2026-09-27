@@ -129,7 +129,7 @@ func TestUnion(t *testing.T) {
 		fetched++
 		return Candidate{ID: id, Title: "E"}, nil
 	}
-	got, dis, review, err := Union(context.Background(), titled, []SeriesItem{{ID: 2, Posted: "2021-06-02"}, {ID: 5}}, fetch)
+	got, dis, review, err := Union(context.Background(), titled, []SeriesItem{{ID: 2, Posted: "2021-06-02"}, {ID: 5}}, FoundBySeries, fetch)
 	if err != nil || len(review) != 0 {
 		t.Fatal(review, err)
 	}
@@ -170,7 +170,7 @@ func TestUnionAPINotFound(t *testing.T) {
 		return FetchRecord(ctx, testWeb(t), Endpoints{API: srv.URL}, id)
 	}
 	series := []SeriesItem{{ID: 8, URL: "https://rsi.test/comm-link/transmission/8-X"}, {ID: 7}}
-	got, dis, review, err := Union(context.Background(), nil, series, fetch)
+	got, dis, review, err := Union(context.Background(), nil, series, FoundBySeries, fetch)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -184,7 +184,76 @@ func TestUnionAPINotFound(t *testing.T) {
 	if want := []Disagreement{{ID: 7, Title: "G", FoundBy: FoundBySeries}, {ID: 8, FoundBy: FoundBySeries}}; !reflect.DeepEqual(dis, want) {
 		t.Errorf("disagreements = %+v, want %+v", dis, want)
 	}
-	if _, _, _, err := Union(context.Background(), nil, []SeriesItem{{ID: 9}}, fetch); err == nil {
+	if _, _, _, err := Union(context.Background(), nil, []SeriesItem{{ID: 9}}, FoundBySeries, fetch); err == nil {
 		t.Error("a 403 from the API did not end the union")
+	}
+}
+
+// A channel listing sends the slug as the channel, with no series.
+func TestFetchChannel(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Channel string `json:"channel"`
+			Series  string `json:"series"`
+			Page    int    `json:"page"`
+		}
+		json.NewDecoder(r.Body).Decode(&body)
+		if body.Channel != "serialized-fiction" || body.Series != "" {
+			t.Errorf("channel = %q, series = %q", body.Channel, body.Series)
+		}
+		data := ""
+		if body.Page == 1 {
+			data = hubItemMarkup("/comm-link/serialized-fiction/18080-A-Gift-For-Baba-Part-1", "2021-04-14 00:00:21")
+		}
+		enc, _ := json.Marshal(map[string]any{"success": 1, "data": data})
+		w.Write(enc)
+	}))
+	defer srv.Close()
+	got, err := FetchChannel(context.Background(), testWeb(t), Endpoints{RSI: srv.URL}, "serialized-fiction")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []SeriesItem{{ID: 18080, URL: srv.URL + "/comm-link/serialized-fiction/18080-A-Gift-For-Baba-Part-1", Posted: "2021-04-14"}}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("items = %+v, want %+v", got, want)
+	}
+}
+
+// The API's channel filter keeps every title, and each record's series label.
+func TestFetchChannelMatches(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		q := r.URL.Query()
+		if q.Get("filter[channel]") != "Serialized Fiction" || q.Get("filter[title]") != "" || q.Get("page[size]") != "200" {
+			t.Errorf("query = %s", r.URL.RawQuery)
+		}
+		io.WriteString(w, `{"data":[
+			{"id":18261,"title":"The Payout","series":"News Update","rsi_url":"u1","translations":{"en_EN":"Text"}},
+			{"id":16435,"title":"The Cup: Part One","series":" The Cup ","rsi_url":"u2","translations":{}}
+		],"meta":{"last_page":1}}`)
+	}))
+	defer srv.Close()
+	got, err := FetchChannelMatches(context.Background(), testWeb(t), Endpoints{API: srv.URL}, "Serialized Fiction")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 2 || got[0].Series != "News Update" || got[1].Series != "The Cup" ||
+		!reflect.DeepEqual(got[0].FoundBy, []string{FoundByAPIChannel}) {
+		t.Errorf("candidates = %+v", got)
+	}
+}
+
+// A report only the channel listing names is found by it alone.
+func TestUnionChannel(t *testing.T) {
+	found := []Candidate{{ID: 1, Title: "A", FoundBy: []string{FoundByAPIChannel}}}
+	fetch := func(_ context.Context, id int) (Candidate, error) { return Candidate{ID: id, Title: "Baba"}, nil }
+	got, dis, _, err := Union(context.Background(), found, []SeriesItem{{ID: 1}, {ID: 2}}, FoundByChannel, fetch)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(got[0].FoundBy, []string{FoundByAPIChannel, FoundByChannel}) || !reflect.DeepEqual(got[1].FoundBy, []string{FoundByChannel}) {
+		t.Errorf("found by %v and %v", got[0].FoundBy, got[1].FoundBy)
+	}
+	if want := []Disagreement{{ID: 2, Title: "Baba", FoundBy: FoundByChannel}}; !reflect.DeepEqual(dis, want) {
+		t.Errorf("disagreements = %+v, want %+v", dis, want)
 	}
 }

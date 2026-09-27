@@ -144,3 +144,17 @@ func TestAbsURL(t *testing.T) {
 		}
 	}
 }
+
+// bold drops the bold runs inside its text, which would otherwise close it.
+func TestBold(t *testing.T) {
+	for in, want := range map[string]string{
+		"THE END":            "'''THE END'''",
+		"'''EXT.''' PAD":     "'''EXT. PAD'''",
+		"''Said.'' (to him)": "'''''Said.'' (to him)'''",
+		"'''''Both'''''":     "'''''Both'''''",
+	} {
+		if got := bold(in); got != want {
+			t.Errorf("bold(%q) = %q, want %q", in, got, want)
+		}
+	}
+}

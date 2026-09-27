@@ -17,6 +17,7 @@ type flow struct {
 	buf     strings.Builder
 	brs     int // consecutive <br> since the last visible text
 	heading func(f *flow, n *html.Node)
+	rules   bool // an <hr> is a Rule block (sceneBreaks), not only a break
 }
 
 var inlineTags = map[string]bool{
@@ -119,6 +120,8 @@ func (f *flow) node(n *html.Node) {
 		if t := Inline(n); t != "" {
 			f.emit(Block{Kind: Quote, Text: t})
 		}
+	case n.Data == "hr" && f.rules:
+		f.emit(Block{Kind: Rule})
 	case n.Data == "hr":
 		f.flush()
 	case inlineTags[n.Data] && !hasBlockContent(n):
@@ -222,6 +225,22 @@ func pseudoHeadingText(line string, cfg *Config) (string, bool) {
 	return t, true
 }
 
+// tidyRules drops a rule that opens or closes the body or follows another: a
+// scene break separates two runs of content.
+func tidyRules(blocks []Block) []Block {
+	var out []Block
+	for _, b := range blocks {
+		if b.Kind == Rule && (len(out) == 0 || out[len(out)-1].Kind == Rule) {
+			continue
+		}
+		out = append(out, b)
+	}
+	for len(out) > 0 && out[len(out)-1].Kind == Rule {
+		out = out[:len(out)-1]
+	}
+	return out
+}
+
 // textFollows reports whether the first block from blocks[i] on that is not an
 // image, gallery or video is text.
 func textFollows(blocks []Block, i int) bool {
@@ -243,8 +262,12 @@ func textFollows(blocks []Block, i int) bool {
 // one between breaks (<br/><strong>600i</strong><br/>), and text must follow
 // it, past any images: a bold line before the next heading is a signature
 // (UEE Naval High Command), not a title. An emphasis article is bold
-// throughout, so none of its lines is a title.
+// throughout, so none of its lines is a title, and a body with noSections has
+// no titles at all.
 func splitPseudoHeadings(blocks []Block, cfg *Config) []Block {
+	if cfg.NoSections {
+		return blocks
+	}
 	var out []Block
 	level := 2
 	for i, b := range blocks {

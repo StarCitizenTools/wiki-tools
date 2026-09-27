@@ -17,7 +17,11 @@ type flow struct {
 	buf     strings.Builder
 	brs     int // consecutive <br> since the last visible text
 	heading func(f *flow, n *html.Node)
-	rules   bool // an <hr> is a Rule block (sceneBreaks), not only a break
+	// headingTag reports whether an element is a heading, for heading to
+	// convert; nil means h1 to h6.
+	headingTag func(n *html.Node) bool
+	rules      bool // an <hr> is a Rule block (sceneBreaks), not only a break
+	tables     bool // a <table> is a Table block (tables), not a run of paragraphs
 }
 
 var inlineTags = map[string]bool{
@@ -87,11 +91,13 @@ func (f *flow) node(n *html.Node) {
 		} else {
 			f.buf.WriteString("<br />")
 		}
-	case isHeading(n):
+	case f.isHeading(n):
 		f.flush()
 		f.heading(f, n)
 	case n.Data == "a" && hasClass(n, "js-video") && attr(n, "data-distant-source") == "vimeo":
 		f.emit(Block{Kind: Video, VideoKind: "vimeo", VideoID: attr(n, "data-distant-id")})
+	case n.Data == "a" && hasClass(n, "js-video") && attr(n, "data-distant-source") == "youtube":
+		f.emit(Block{Kind: Video, VideoKind: "youtube", VideoID: attr(n, "data-distant-id")})
 	case n.Data == "a" && (attr(n, "data-source_url") != "" || hasClass(n, "js-open-in-slideshow")):
 		f.image(n)
 	case n.Data == "img":
@@ -105,6 +111,8 @@ func (f *flow) node(n *html.Node) {
 		}
 		if id != "" {
 			f.emit(Block{Kind: Video, VideoKind: "youtube", VideoID: id})
+		} else if doc := scribdDocument(attr(n, "src")); doc != "" {
+			f.emit(Block{Kind: Paragraph, Text: "[" + doc + " Read the document on Scribd]"})
 		}
 	case n.Data == "video":
 		src := attr(n, "src")
@@ -116,6 +124,8 @@ func (f *flow) node(n *html.Node) {
 		}
 	case n.Data == "ul" || n.Data == "ol":
 		f.list(n)
+	case n.Data == "table" && f.tables:
+		f.table(n)
 	case n.Data == "blockquote":
 		if t := Inline(n); t != "" {
 			f.emit(Block{Kind: Quote, Text: t})
@@ -137,6 +147,43 @@ func (f *flow) node(n *html.Node) {
 		f.run(n)
 		f.flush()
 	}
+}
+
+func (f *flow) isHeading(n *html.Node) bool {
+	if f.headingTag != nil {
+		return f.headingTag(n)
+	}
+	return isHeading(n)
+}
+
+// table converts a table into a Table block: its rows in order, a th cell
+// marked as a header. A row with no cells is left out.
+func (f *flow) table(n *html.Node) {
+	var rows [][]Cell
+	for _, tr := range findAll(n, tagIs("tr")) {
+		var row []Cell
+		for c := tr.FirstChild; c != nil; c = c.NextSibling {
+			if c.Type == html.ElementNode && (c.Data == "td" || c.Data == "th") {
+				row = append(row, Cell{Text: trimBreaks(Inline(c)), Header: c.Data == "th"})
+			}
+		}
+		if len(row) > 0 {
+			rows = append(rows, row)
+		}
+	}
+	if len(rows) > 0 {
+		f.emit(Block{Kind: Table, Rows: rows})
+	}
+}
+
+var scribdEmbed = regexp.MustCompile(`^(?:https?:)?//(?:www\.)?scribd\.com/embeds/(\d+)/`)
+
+// scribdDocument is the Scribd page of an embedded Scribd document, or "".
+func scribdDocument(src string) string {
+	if m := scribdEmbed.FindStringSubmatch(strings.TrimSpace(src)); m != nil {
+		return "https://www.scribd.com/document/" + m[1]
+	}
+	return ""
 }
 
 func hasBlockContent(n *html.Node) bool {
@@ -248,7 +295,7 @@ func textFollows(blocks []Block, i int) bool {
 		switch blocks[i].Kind {
 		case Image, Gallery, Video:
 			continue
-		case Paragraph, List, Quote:
+		case Paragraph, List, Quote, Table:
 			return true
 		}
 		return false

@@ -30,6 +30,39 @@ func TestPageName(t *testing.T) {
 	}
 }
 
+func engineeringConfig(t *testing.T) *Config {
+	t.Helper()
+	c, err := LoadConfig("../../cmd/commlinks/config.engineering.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return c
+}
+
+// A name several Engineering posts share takes the date; a title block that
+// adds a subject names the report instead, with no date.
+func TestPageNameEngineering(t *testing.T) {
+	c := engineeringConfig(t)
+	for _, tc := range []struct{ in, date, want string }{
+		{"Round Table", "2013-06-29", "Round Table - 2013-06-29"},
+		{"WIP: Retaliator", "2015-06-22", "WIP - Retaliator - 2015-06-22"},
+		{"Q&A: MISC Hull B", "2026-04-08", "Q&A - MISC Hull B - 2026-04-08"},
+		{"Q&A: ARGO SRV", "2019-02-28", "Q&A - ARGO SRV - 2019-02-28"},
+		{"Q&A: Argo SRV", "2026-05-24", "Q&A - Argo SRV - 2026-05-24"},
+		{"Q&A: MISC Hull A", "2015-04-28", "Q&A - MISC Hull A"},
+		{"DefenseCon 2956 Ship Q&A | Star Citizen", "2026-05-14", "DefenseCon 2956 Ship Q&A"},
+		{"Orion Vault : A Loan in the 'Verse", "2015-02-26", "Orion Vault - A Loan in the 'Verse"},
+	} {
+		if got, complete := c.PageName(tc.in, tc.date); got != tc.want || !complete {
+			t.Errorf("PageName(%q, %q) = %q, %v, want %q, true", tc.in, tc.date, got, complete, tc.want)
+		}
+	}
+	title := c.ReportTitle("Round Table", "Round Table: Programming")
+	if got, _ := c.PageName(title, "2013-06-29"); title != "Round Table: Programming" || got != "Round Table - Programming" {
+		t.Errorf("ReportTitle = %q, PageName = %q, want the title block, undated", title, got)
+	}
+}
+
 func chairmanConfig(t *testing.T) *Config {
 	t.Helper()
 	c, err := LoadConfig("../../cmd/commlinks/config.chairman.json")

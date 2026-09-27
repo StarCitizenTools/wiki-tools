@@ -14,7 +14,7 @@ func TestMissing(t *testing.T) {
 		"RUSTEC_Urhu image by\n" +
 		"A line that is not there.\n" +
 		"Banner placeholder\n\n"
-	got := Missing(api, page, func(l string) bool { return l == "Banner placeholder" })
+	got := Missing(api, page, nil, func(l string) bool { return l == "Banner placeholder" })
 	if want := []string{"A line that is not there."}; !reflect.DeepEqual(got, want) {
 		t.Errorf("Missing = %q", got)
 	}
@@ -24,7 +24,7 @@ func TestMissingShortLineNotInFileCaption(t *testing.T) {
 	page := "Image by RUSTEC_Urhu.\n\n" +
 		"[[File:Photo.png|thumb|center|Other photographer's work]]\n"
 	api := "RUSTEC_Urhu image by\n"
-	got := Missing(api, page, func(l string) bool { return false })
+	got := Missing(api, page, nil, func(l string) bool { return false })
 	if want := []string{"RUSTEC_Urhu image by"}; !reflect.DeepEqual(got, want) {
 		t.Errorf("Missing = %q, want %q", got, want)
 	}
@@ -33,7 +33,7 @@ func TestMissingShortLineNotInFileCaption(t *testing.T) {
 func TestMissingCountsTemplateText(t *testing.T) {
 	page := "{{CommLink\n| title = Squadron 42 Monthly Report: April 2024\n| url = https://x\n}}\n\nBody text.\n"
 	api := "Squadron 42 Monthly Report\nApril 2024\nBody text.\n"
-	if got := Missing(api, page, func(string) bool { return false }); len(got) != 0 {
+	if got := Missing(api, page, nil, func(string) bool { return false }); len(got) != 0 {
 		t.Errorf("Missing = %q, want none: the infobox title is on the page", got)
 	}
 }
@@ -48,7 +48,7 @@ func TestMissingGluedAcrossBlocks(t *testing.T) {
 		"Seen in the future. AUSTIN DESIGN The design team\n" +
 		"Weapons got nose guns. A dropped sentence.\n" +
 		"Seen in the future. design team met.\n"
-	got := Missing(api, page, func(string) bool { return false })
+	got := Missing(api, page, nil, func(string) bool { return false })
 	want := []string{"Weapons got nose guns. A dropped sentence.", "Seen in the future. design team met."}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("Missing = %q, want %q", got, want)
@@ -61,7 +61,7 @@ func TestMissingGluedAcrossBlocks(t *testing.T) {
 func TestMissingHeadingOnOneWordEdges(t *testing.T) {
 	page := "The team shipped new features\n\n== Audio ==\n\nGameplay sounds were recorded.\n"
 	api := "Features (Gameplay)\nThe team shipped new features\n"
-	got := Missing(api, page, func(string) bool { return false })
+	got := Missing(api, page, nil, func(string) bool { return false })
 	if want := []string{"Features (Gameplay)"}; !reflect.DeepEqual(got, want) {
 		t.Errorf("Missing = %q, want %q", got, want)
 	}
@@ -79,7 +79,7 @@ func TestMissingGluedCredits(t *testing.T) {
 		"daftdigitImage by\n" +
 		"graphImage by\n" +
 		"800pxImage by\n"
-	got := Missing(api, page, func(string) bool { return false })
+	got := Missing(api, page, nil, func(string) bool { return false })
 	want := []string{"daftdigitImage by", "graphImage by", "800pxImage by"}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("Missing = %q, want %q", got, want)
@@ -90,7 +90,7 @@ func TestMissingGluedCredits(t *testing.T) {
 func TestMissingMarkupInLinkText(t *testing.T) {
 	page := "Planning for this year's [https://x <u>CitizenCon</u>] in Manchester is underway.\n"
 	api := "Planning for this year's CitizenCon in Manchester is underway.\n"
-	if got := Missing(api, page, func(string) bool { return false }); len(got) != 0 {
+	if got := Missing(api, page, nil, func(string) bool { return false }); len(got) != 0 {
 		t.Errorf("Missing = %q, want none", got)
 	}
 }
@@ -102,7 +102,7 @@ func TestMissingSoftHyphenInAPIText(t *testing.T) {
 	softHyphen := string(rune(0x00AD))
 	page := "The cooperation agreement was signed today.\n"
 	api := "The co" + softHyphen + "operation agreement was signed today.\n"
-	if got := Missing(api, page, func(string) bool { return false }); len(got) != 0 {
+	if got := Missing(api, page, nil, func(string) bool { return false }); len(got) != 0 {
 		t.Errorf("Missing = %q, want none", got)
 	}
 }
@@ -140,7 +140,7 @@ func TestMissingGluedCaptions(t *testing.T) {
 		"The $48 million stretch goal was the commercial.\n"
 	api := "Stanton III - Casaba Outlet Stanton III - Dumper's Depot The $48 million stretch goal\n" +
 		"Stanton III - Dumper's Depot Stanton III - Casaba Outlet The $48 million stretch goal\n"
-	got := Missing(api, page, func(string) bool { return false })
+	got := Missing(api, page, nil, func(string) bool { return false })
 	if want := []string{"Stanton III - Dumper's Depot Stanton III - Casaba Outlet The $48 million stretch goal"}; !reflect.DeepEqual(got, want) {
 		t.Errorf("Missing = %q, want %q", got, want)
 	}
@@ -158,7 +158,7 @@ func TestMissingGalleryCaptions(t *testing.T) {
 		"Gladiator - Original image by RUSTEC_Urhu The team moved offices.\n" +
 		"RUSTEC_Urhu image by\n" +
 		"A01 jpg\n"
-	got := Missing(api, page, func(string) bool { return false })
+	got := Missing(api, page, nil, func(string) bool { return false })
 	if want := []string{"A01 jpg"}; !reflect.DeepEqual(got, want) {
 		t.Errorf("Missing = %q, want %q", got, want)
 	}
@@ -173,8 +173,29 @@ func TestMissingDollarAmounts(t *testing.T) {
 	api := "2019 was a record year, with million in sales, and our first 0 million+ year.\n" +
 		"2019 was a record year, with $48 million in sales, and our first $100 million+ year.\n" +
 		"2019 was a record year, with 49 million in sales\n"
-	got := Missing(api, page, func(string) bool { return false })
+	got := Missing(api, page, nil, func(string) bool { return false })
 	if want := []string{"2019 was a record year, with 49 million in sales"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("Missing = %q, want %q", got, want)
+	}
+}
+
+// A line that fails is checked again without the page's labels: the API runs
+// a disclaimer's title into its text, an introduction's title into the line
+// before it, and a banner's slots into each other, and numbers a list's
+// questions. A label never hides a line whose rest is not on the page.
+func TestMissingLabels(t *testing.T) {
+	page := "{{CommLink\n| title = Q&A: Origin 400i\n}}\n\nNow that the 400i has been revealed, here are the answers.\n\n" +
+		"== Is it big? ==\n\nYes.\n\n== Disclaimer ==\n\nThe answers reflect intentions.\n"
+	labels := []string{"Origin 400i Q&A", "Magnificent deepening", "Jeffrey's tube", "1. Is it big?", "DISCLAIMER"}
+	api := "Now that the 400i has been revealed, here are the answers.Origin 400i Q&A\n" +
+		"Magnificent deepeningJeffrey's tube\n" +
+		"1. Is it big?\n" +
+		"DISCLAIMERThe answers reflect intentions.\n" +
+		"DISCLAIMERThe answers were dropped.\n" +
+		"2. Is it small?\n"
+	got := Missing(api, page, labels, func(string) bool { return false })
+	want := []string{"DISCLAIMERThe answers were dropped.", "2. Is it small?"}
+	if !reflect.DeepEqual(got, want) {
 		t.Errorf("Missing = %q, want %q", got, want)
 	}
 }

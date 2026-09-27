@@ -75,6 +75,15 @@ func findByID(n *html.Node, id string) *html.Node {
 	return findFirst(n, func(c *html.Node) bool { return c.Type == html.ElementNode && attr(c, "id") == id })
 }
 
+func hasAncestorID(n *html.Node, id string) bool {
+	for p := n.Parent; p != nil; p = p.Parent {
+		if p.Type == html.ElementNode && attr(p, "id") == id {
+			return true
+		}
+	}
+	return false
+}
+
 func hasAncestorClass(n *html.Node, class string) bool {
 	for p := n.Parent; p != nil; p = p.Parent {
 		if hasClass(p, class) {

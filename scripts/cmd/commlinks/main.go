@@ -61,6 +61,7 @@ type parsed struct {
 	date, dateSource string
 	dateErr          error
 	blocks           []commlink.Block
+	labels           []string
 }
 
 func run() error {
@@ -185,20 +186,20 @@ func run() error {
 		date, dateSource, dateErr := commlink.ResolveDate(c.Posted, c.Created, cfg.APIIngestDates, func() (time.Time, error) {
 			return cache.FirstCapture(ctx, web, ep, c.RSIURL)
 		})
-		blocks, titleBlock, err := commlink.FetchBlocks(ctx, web, cfg, c)
-		c.Title = cfg.ReportTitle(c.Title, titleBlock)
+		body, err := commlink.FetchBlocks(ctx, web, cfg, c)
+		c.Title = cfg.ReportTitle(c.Title, body.Title)
 		page, complete := cfg.PageName(c.Title, date)
 		if err != nil {
 			review(c, page, commlink.ReasonFetch, err.Error())
 			continue
 		}
-		blocks = commlink.VideoLinks(blocks)
+		blocks := commlink.VideoLinks(body.Blocks)
 		for _, b := range blocks {
 			if b.Kind == commlink.Heading {
 				headings = append(headings, b.Text)
 			}
 		}
-		pages = append(pages, parsed{c: c, page: page, complete: complete, date: date, dateSource: dateSource, dateErr: dateErr, blocks: blocks})
+		pages = append(pages, parsed{c: c, page: page, complete: complete, date: date, dateSource: dateSource, dateErr: dateErr, blocks: blocks, labels: body.Labels})
 	}
 
 	// Word casing and the common-word link filter learn from every report's
@@ -266,7 +267,7 @@ func run() error {
 				"the API text has %d words, under half the page body's %d: the API may not have finished scraping the report", api, words))
 			continue
 		}
-		if lost := commlink.Missing(p.c.Text, text, cfg.IgnoredLine); len(lost) > 0 {
+		if lost := commlink.Missing(p.c.Text, text, p.labels, cfg.IgnoredLine); len(lost) > 0 {
 			review(p.c, p.page, commlink.ReasonFidelity, lost...)
 			continue
 		}

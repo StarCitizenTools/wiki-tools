@@ -8,15 +8,19 @@ import (
 	"strings"
 
 	"golang.org/x/net/html"
+	"golang.org/x/net/html/atom"
 )
 
 // ParseClassic converts a classic-layout page into blocks. The body is the run
 // of content-block4 (section title), content-block2 (header image, slideshow
 // or poll) and content-block1 (prose) blocks inside div#post, after its
 // div.title-section and up to the next div.two-line-separator; the channel
-// banner and comments follow it. title is the text of the page's own title
-// block, which can name the report more fully than rsiTitle does, or "" when
-// the first title block is a section.
+// banner and comments follow it. Some pages (the Engineering channel's Q&As
+// and The Shipyard, 2017 to 2020) set their prose in div.segment blocks
+// standing in div#post instead (see segment), and draw a ship's stat widget
+// (div.ship-spec), which is left out. title is the text of the page's own
+// title block, which can name the report more fully than rsiTitle does, or ""
+// when the first title block is a section.
 func ParseClassic(shell []byte, rsiTitle string, cfg *Config) (blocks []Block, title string, err error) {
 	doc, err := html.Parse(bytes.NewReader(shell))
 	if err != nil {
@@ -27,7 +31,7 @@ func ParseClassic(shell []byte, rsiTitle string, cfg *Config) (blocks []Block, t
 		return nil, "", errors.New("classic page has no div#post")
 	}
 	mergeSplitLinks(post)
-	c := &classic{cfg: cfg, title: fold(rsiTitle)}
+	c := &classic{cfg: cfg, title: fold(rsiTitle), shared: cfg.sharedName(rsiTitle)}
 	c.studios = cfg.StudioSections && c.hasStudioBlocks(post)
 	c.walk(post)
 	if len(c.blocks) == 0 {
@@ -39,14 +43,23 @@ func ParseClassic(shell []byte, rsiTitle string, cfg *Config) (blocks []Block, t
 type classic struct {
 	cfg        *Config
 	title      string // folded page title
+	shared     bool   // the title is a name several reports share (datedTitlePattern)
 	pageTitle  string // text of the page's own title block
 	studios    bool   // one title block per studio (2014 to August 2018)
 	sawTitle   bool
 	lastTitle  string // folded text of the latest section-title block
 	titleAt    int    // index in blocks of that block's heading
 	repeatOpen bool   // no h1 has followed that block yet
+	h1Level    int    // level of the open h1 subsection (h1Headings), 0 for none
 	stopped    bool
 	blocks     []Block
+	// Segment headings (see segmentHeading): the level of the latest one
+	// other than an h8, whether a section heading has opened, and the index in
+	// the flow's blocks just past the latest h7 heading, where an h1 is its
+	// subtitle.
+	segLevel   int
+	segSection bool
+	afterH7    int
 }
 
 func (c *classic) walk(n *html.Node) {
@@ -73,9 +86,104 @@ func (c *classic) visit(n *html.Node) {
 		c.media(n)
 	case hasClass(n, "content-block1"):
 		c.prose(n)
+	case hasClass(n, "ship-spec"):
+		// The ship's stat widget from its store page, filled in by script.
+	case isPostSegment(n) && findFirst(n, classicBlock) == nil:
+		c.segment(n)
 	default:
 		c.walk(n)
 	}
+}
+
+// classicBlock matches a classic body block. A segment in div#post that holds
+// one is an unclosed wrapper around the page's next blocks, not a segment of
+// its own.
+func classicBlock(n *html.Node) bool {
+	return hasClass(n, "content-block1") || hasClass(n, "content-block2") || hasClass(n, "content-block4")
+}
+
+// segment converts a div.segment standing in div#post. A slogan segment is a
+// title: the page's own, left out, or a section's. Any other is prose, whose
+// headings segmentHeading reads, and whose Further Reading box of links to
+// the series' other articles is a list.
+func (c *classic) segment(n *html.Node) {
+	content := findFirst(n, classIs("content"))
+	if content == nil {
+		return
+	}
+	if hasClass(n, "slogan") {
+		text := PlainText(content)
+		if text != "" && fold(text) != c.title {
+			c.blocks = append(c.blocks, Block{Kind: Heading, Level: 2, Text: text})
+			c.segLevel, c.segSection = 2, true
+		}
+		return
+	}
+	for _, box := range findAll(content, func(n *html.Node) bool { return attr(n, "id") == "starfarer-advertise-magazine" }) {
+		linkList(box)
+	}
+	c.afterH7 = -1
+	f := &flow{heading: c.segmentHeading, headingTag: segmentHeadingTag, rules: c.cfg.SceneBreaks, tables: c.cfg.Tables}
+	f.run(content)
+	f.flush()
+	c.blocks = append(c.blocks, f.blocks...)
+}
+
+// segmentHeadingTag is a heading element of a segment: h1 to h6, and the h7
+// and h8 RSI uses there, which HTML does not define.
+func segmentHeadingTag(n *html.Node) bool {
+	return isHeading(n) || (n.Type == html.ElementNode && (n.Data == "h7" || n.Data == "h8"))
+}
+
+// segmentHeading converts a segment's heading. An h7 is a section title,
+// level 2, and an h1 straight after it is its subtitle, in bold; any other h1
+// is a section title too. h2 to h6 (Q&A questions, article subsections) sit
+// one level below an open section, else at level 2, and an h8 one level
+// below the latest other heading. A greeting or sign-off is bold text.
+func (c *classic) segmentHeading(f *flow, n *html.Node) {
+	text := PlainText(n)
+	if text == "" {
+		return
+	}
+	if n.Data == "h1" && len(f.blocks) == c.afterH7 {
+		f.emit(Block{Kind: Paragraph, Text: bold(trimBreaks(Inline(n))), Emphasis: true})
+		return
+	}
+	if c.cfg.MatchesGreeting(text) || c.cfg.MatchesSignOff(text) {
+		f.emit(Block{Kind: Paragraph, Text: bold(trimBreaks(Inline(n)))})
+		return
+	}
+	level := 2
+	switch n.Data {
+	case "h7", "h1":
+		c.segSection = true
+	case "h8":
+		level = max(c.segLevel+1, 3)
+	default:
+		if c.segSection {
+			level = 3
+		}
+	}
+	f.emit(Block{Kind: Heading, Level: level, Text: text})
+	if n.Data != "h8" {
+		c.segLevel = level
+	}
+	if n.Data == "h7" {
+		c.afterH7 = len(f.blocks)
+	}
+}
+
+// linkList replaces box with a list of its links, in document order.
+func linkList(box *html.Node) {
+	ul := &html.Node{Type: html.ElementNode, Data: "ul", DataAtom: atom.Ul}
+	for _, a := range findAll(box, tagIs("a")) {
+		li := &html.Node{Type: html.ElementNode, Data: "li", DataAtom: atom.Li}
+		a.Parent.RemoveChild(a)
+		li.AppendChild(a)
+		ul.AppendChild(li)
+	}
+	box.Parent.InsertBefore(ul, box)
+	box.Parent.RemoveChild(box)
 }
 
 // bylinePattern is a header subtitle that names the author.
@@ -169,10 +277,11 @@ func (c *classic) poll(n *html.Node) {
 
 // titleBlock turns a content-block4 into a section heading, or bold text with
 // noSections. The first one is the page title when its text matches the
-// report's title.
+// report's title. One beside a ship's stat widget (#store-wrapper) titles
+// that widget, which is filled in by script, and is left out with it.
 func (c *classic) titleBlock(n *html.Node) {
 	h := findFirst(n, tagIs("h1"))
-	if h == nil {
+	if h == nil || storeWidget(n) {
 		return
 	}
 	text := PlainText(h)
@@ -187,6 +296,7 @@ func (c *classic) titleBlock(n *html.Node) {
 		}
 	}
 	c.lastTitle = fold(text)
+	c.h1Level = 0
 	if c.cfg.NoSections {
 		c.blocks = append(c.blocks, Block{Kind: Paragraph, Text: bold(trimBreaks(Inline(h)))})
 		return
@@ -209,7 +319,7 @@ func (c *classic) prose(n *html.Node) {
 		}
 		for content := ch.FirstChild; content != nil; content = content.NextSibling {
 			if hasClass(content, "content") {
-				f := &flow{heading: c.heading, rules: c.cfg.SceneBreaks}
+				f := &flow{heading: c.heading, rules: c.cfg.SceneBreaks, tables: c.cfg.Tables}
 				f.run(content)
 				f.flush()
 				c.blocks = append(c.blocks, f.blocks...)
@@ -221,9 +331,11 @@ func (c *classic) prose(n *html.Node) {
 // heading converts a heading inside prose. With noSections it is bold text.
 // Otherwise an intro heading (an h1, or with introHeadings one inside
 // div.variant-block) is a greeting or sign-off, in bold; a studio's name or a
-// repeat of the section title, dropped; or intro text. Without introHeadings,
-// a greeting or sign-off at any level is bold text too. Any other heading is a
-// section heading.
+// repeat of the section title, dropped; with h1Headings, an h1 that does not
+// end as a sentence does is a subsection heading, under which h3 to h6 sit one
+// level lower until the next h2 or title block; or intro text. Without
+// introHeadings, a greeting or sign-off at any level is bold text too. Any
+// other heading is a section heading.
 func (c *classic) heading(f *flow, n *html.Node) {
 	text := PlainText(n)
 	if text == "" {
@@ -249,6 +361,15 @@ func (c *classic) heading(f *flow, n *html.Node) {
 				c.lastTitle = fold(text)
 			}
 			c.repeatOpen = false
+		case n.Data == "h1" && c.cfg.H1Headings && !strings.ContainsAny(text[len(text)-1:], ".,!;:"):
+			// A subsection title: one level below the section's, or a
+			// section of its own before any title block. A sentence set as
+			// an h1 stays text.
+			c.h1Level = 2
+			if c.lastTitle != "" {
+				c.h1Level = 3
+			}
+			f.emit(Block{Kind: Heading, Level: c.h1Level, Text: text})
 		default:
 			// An intro h3.no-margin can hold several paragraphs split by <br><br>.
 			f.run(n)
@@ -263,7 +384,26 @@ func (c *classic) heading(f *flow, n *html.Node) {
 	if n.Data != "h2" {
 		level++
 	}
+	switch {
+	case n.Data == "h2":
+		c.h1Level = 0
+	case c.h1Level > 0:
+		level = c.h1Level + 1
+	}
 	f.emit(Block{Kind: Heading, Level: level, Text: text})
+}
+
+// storeWidget reports whether a sibling of n is the ship stat widget.
+func storeWidget(n *html.Node) bool {
+	if n.Parent == nil {
+		return false
+	}
+	for s := n.Parent.FirstChild; s != nil; s = s.NextSibling {
+		if s.Type == html.ElementNode && attr(s, "id") == "store-wrapper" {
+			return true
+		}
+	}
+	return false
 }
 
 // namesSame reports whether a folded repeat holds the folded title's last
@@ -275,9 +415,11 @@ func namesSame(repeat, title string) bool {
 
 // isPageTitle reports whether the first title block's text is the page title,
 // which it names though not always as the RSI title does (it can name two
-// months).
+// months). Under a name several reports share, a block that adds a subject to
+// it ("Round Table: Programming" for "Round Table") is the page title too.
 func (c *classic) isPageTitle(text string) bool {
-	return fold(text) == c.title || c.cfg.MatchesTitle(text)
+	t := fold(text)
+	return t == c.title || c.cfg.MatchesTitle(text) || (c.shared && strings.HasPrefix(t, c.title+" "))
 }
 
 // hasStudioBlocks reports whether a section-title block other than the page

@@ -118,3 +118,17 @@ func TestRenderRule(t *testing.T) {
 		t.Errorf("RenderBody = %q, want %q", got, want)
 	}
 }
+
+// A table renders one cell to a line, a header cell with "!", an empty cell
+// as its bare marker, and a pipe inside a cell escaped.
+func TestRenderTable(t *testing.T) {
+	blocks := []Block{{Kind: Table, Rows: [][]Cell{
+		{{Header: true}, {Text: "Hornet", Header: true}},
+		{{Text: "'''Mass'''"}, {Text: "a|b"}},
+	}}}
+	got := RenderBody(blocks, NewHeadCaser(nil, ""), func(string) string { return "" })
+	want := "{| class=\"wikitable\"\n|-\n!\n! Hornet\n|-\n| '''Mass'''\n| a&#124;b\n|}\n"
+	if got != want {
+		t.Errorf("RenderBody = %q, want %q", got, want)
+	}
+}

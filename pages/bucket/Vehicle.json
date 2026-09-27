@@ -94,11 +94,6 @@
 		"index": false,
 		"repeated": false
 	},
-	"manual_api_field": {
-		"type": "TEXT",
-		"index": true,
-		"repeated": true
-	},
 	"mass": {
 		"type": "INTEGER",
 		"index": false,
@@ -182,11 +177,6 @@
 	"ship_matrix_size": {
 		"type": "TEXT",
 		"index": true,
-		"repeated": false
-	},
-	"storage_capacity": {
-		"type": "DOUBLE",
-		"index": false,
 		"repeated": false
 	},
 	"warbond_pledge_price": {

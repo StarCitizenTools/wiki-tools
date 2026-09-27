@@ -19,18 +19,8 @@
 		"index": false,
 		"repeated": false
 	},
-	"hei": {
-		"type": "DOUBLE",
-		"index": false,
-		"repeated": false
-	},
 	"mineable": {
 		"type": "BOOLEAN",
-		"index": false,
-		"repeated": false
-	},
-	"ndr": {
-		"type": "DOUBLE",
 		"index": false,
 		"repeated": false
 	},

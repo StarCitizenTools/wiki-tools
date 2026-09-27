@@ -133,7 +133,7 @@ Identity-shaped hooks take no `ctx`; the rest take `EntityHookContext`. `*` mark
 
 Every hook's `getStructuredData` output is merged and handed to `Module:Entity/StructuredData.store`, which writes it to [Bucket](https://www.mediawiki.org/wiki/Extension:Bucket) from the main namespace as one put per table. `Module:Entity/properties.json` decides the table and column for each property and documents its own keys; the schema pages under `pages/bucket/` are generated from it, so neither is edited by hand.
 
-A property lives in `entity` when `Base` or `Entity` emits it, when one module emits it for more than one kind (Effects, which Consumable emits for both Item and Commodity pages), or when `Item` emits it, the Item kind spanning three tables. A property stored in a different table per kind carries an object keyed by kind name instead. Every other property lives in the one table its emitting modules map to.
+A property lives in `entity` when `Base` or `Entity` emits it, when it is emitted for more than one kind (Effects, which Consumable emits for both Item and Commodity pages; Scm speed, which both Vehicle and FlightController emit), or when `Item` emits it, the Item kind spanning three tables. Every other property lives in the one table its emitting modules map to. An entry names one table, never one per kind: `tests/manifest.lua` fails on the object form.
 
 `Module:Company` and `Module:WearableSet` write the shared `entity` table as well, each from its own manifest through the same put loop. Readers go through `Module:BucketQuery` (or `Module:Entity/Store` for Entity's own lookups), never `mw.ext.bucket` directly.
 

@@ -1,5 +1,5 @@
 {
-	"%doc": "Source-of-truth manifest of the structured data Module:Entity stores in Bucket. Keys are display names, which Module:Entity/StructuredData derives from the emitter key (ucfirst, underscores to spaces). type: Bucket field type; bucket: Bucket table, or an object keyed by kind name when the same property lives in a different table per kind; migrateTo: a table the property is moving to, written as well as bucket until readers switch to it; field: the Bucket column (lowercase snake_case of the emitter key); index/repeated: Bucket flags, absent = false; modules: emitting Entity modules. Data is stored UNITLESS. pages/bucket/<Name>.json schemas are generated from this file by `mise run bucket:schemas`. Limits verified live: 60 fields per bucket, bucket+field name at most 51 characters, repeated implies index.",
+	"%doc": "Source-of-truth manifest of the structured data Module:Entity stores in Bucket. Keys are display names, which Module:Entity/StructuredData derives from the emitter key (ucfirst, underscores to spaces). type: Bucket field type; bucket: the one Bucket table the property lives in, whichever kind emits it; migrateTo: a table the property is moving to, written as well as bucket until readers switch to it; field: the Bucket column (lowercase snake_case of the emitter key); index/repeated: Bucket flags, absent = false; modules: emitting Entity modules. Data is stored UNITLESS. pages/bucket/<Name>.json schemas are generated from this file by `mise run bucket:schemas`. Limits verified live: 60 fields per bucket, bucket+field name at most 51 characters, repeated implies index.",
 	"%kinds": {
 		"Vehicle": [
 			"entity",
@@ -793,11 +793,7 @@
 	},
 	"Hei": {
 		"type": "DOUBLE",
-		"bucket": {
-			"Commodity": "commodity",
-			"Item": "item_tool"
-		},
-		"migrateTo": "entity",
+		"bucket": "entity",
 		"field": "hei",
 		"modules": [
 			"Consumable"
@@ -1046,11 +1042,7 @@
 	},
 	"Manual API field": {
 		"type": "TEXT",
-		"bucket": {
-			"Location": "location",
-			"Vehicle": "vehicle"
-		},
-		"migrateTo": "entity",
+		"bucket": "entity",
 		"field": "manual_api_field",
 		"index": true,
 		"repeated": true,
@@ -1091,11 +1083,7 @@
 	},
 	"Max speed": {
 		"type": "DOUBLE",
-		"bucket": {
-			"Item": "item_component",
-			"Vehicle": "vehicle_stats"
-		},
-		"migrateTo": "entity",
+		"bucket": "entity",
 		"field": "max_speed",
 		"modules": [
 			"FlightController",
@@ -1360,11 +1348,7 @@
 	},
 	"Ndr": {
 		"type": "DOUBLE",
-		"bucket": {
-			"Commodity": "commodity",
-			"Item": "item_tool"
-		},
-		"migrateTo": "entity",
+		"bucket": "entity",
 		"field": "ndr",
 		"modules": [
 			"Consumable"
@@ -1814,11 +1798,7 @@
 	},
 	"Quantum speed": {
 		"type": "DOUBLE",
-		"bucket": {
-			"Item": "item_component",
-			"Vehicle": "vehicle_stats"
-		},
-		"migrateTo": "entity",
+		"bucket": "entity",
 		"field": "quantum_speed",
 		"modules": [
 			"QuantumDrive",
@@ -1828,11 +1808,7 @@
 	},
 	"Quantum spool time": {
 		"type": "DOUBLE",
-		"bucket": {
-			"Item": "item_component",
-			"Vehicle": "vehicle_stats"
-		},
-		"migrateTo": "entity",
+		"bucket": "entity",
 		"field": "quantum_spool_time",
 		"modules": [
 			"QuantumDrive",
@@ -2045,11 +2021,7 @@
 	},
 	"Scm speed": {
 		"type": "DOUBLE",
-		"bucket": {
-			"Item": "item_component",
-			"Vehicle": "vehicle_stats"
-		},
-		"migrateTo": "entity",
+		"bucket": "entity",
 		"field": "scm_speed",
 		"modules": [
 			"FlightController",
@@ -2190,11 +2162,7 @@
 	},
 	"Storage capacity": {
 		"type": "DOUBLE",
-		"bucket": {
-			"Item": "item_tool",
-			"Vehicle": "vehicle"
-		},
-		"migrateTo": "entity",
+		"bucket": "entity",
 		"field": "storage_capacity",
 		"modules": [
 			"Inventory",

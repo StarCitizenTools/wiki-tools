@@ -381,8 +381,8 @@ if props then
 				fail(PROPS_PATH, 'entry ' .. name .. ' has missing or non-snake_case .field ' .. tostring(def.field))
 				propsFailed = true
 			end
-			if type(def.bucket) ~= 'string' and type(def.bucket) ~= 'table' then
-				fail(PROPS_PATH, 'entry ' .. name .. ' has missing .bucket (string, or object keyed by kind)')
+			if type(def.bucket) ~= 'string' then
+				fail(PROPS_PATH, 'entry ' .. name .. ' has missing or non-string .bucket')
 				propsFailed = true
 			end
 			if type(def.modules) ~= 'table' or def.modules[1] == nil then
@@ -728,7 +728,7 @@ local function checkBucketLimits(path, manifest)
 	end
 	local limitsFailed = false
 	local fields = {} -- bucket -> field -> display name
-	local stringBuckets = {} -- bucket -> true, for entries/patterns with a plain string .bucket
+	local writtenBuckets = {} -- bucket -> true, for every table an entry names
 	local function place(bucket, field, name, def)
 		fields[bucket] = fields[bucket] or {}
 		if fields[bucket][field] then
@@ -768,42 +768,14 @@ local function checkBucketLimits(path, manifest)
 			limitsFailed = true
 		end
 	end
-	local function kindListsBucket(kind, bucket)
-		local list = manifest['%kinds'][kind]
-		for _, b in ipairs(list) do
-			if b == bucket then
-				return true
-			end
-		end
-		return false
-	end
 	for name, def in pairs(manifest) do
 		if type(name) == 'string' and name:sub(1, 1) ~= '%' and type(def) == 'table' and def.field then
 			if type(def.bucket) == 'string' then
-				stringBuckets[def.bucket] = true
+				writtenBuckets[def.bucket] = true
 				place(def.bucket, def.field, name, def)
-			elseif type(def.bucket) == 'table' then
-				for kind, bucket in pairs(def.bucket) do
-					if type(manifest['%kinds']) ~= 'table' or manifest['%kinds'][kind] == nil then
-						fail(path, 'entry ' .. name .. ' routes kind ' .. tostring(kind) .. ' which is not in %kinds')
-						limitsFailed = true
-					elseif not kindListsBucket(kind, bucket) then
-						fail(
-							path,
-							'entry '
-								.. name
-								.. ' routes kind '
-								.. kind
-								.. ' to bucket '
-								.. bucket
-								.. ' which %kinds.'
-								.. kind
-								.. ' does not list'
-						)
-						limitsFailed = true
-					end
-					place(bucket, def.field, name .. ' (' .. kind .. ')', def)
-				end
+			else
+				fail(path, 'entry ' .. name .. ' has a non-string .bucket; a property lives in one table')
+				limitsFailed = true
 			end
 			-- migrateTo: the table the property is moving to, which the writer
 			-- also fills, so its column counts against that table's limits.
@@ -833,7 +805,7 @@ local function checkBucketLimits(path, manifest)
 				end
 			end
 		end
-		for bucket in pairs(stringBuckets) do
+		for bucket in pairs(writtenBuckets) do
 			if bucket ~= 'entity' and not listedBuckets[bucket] then
 				fail(path, 'bucket ' .. bucket .. ' is written by no kind in %kinds')
 				limitsFailed = true

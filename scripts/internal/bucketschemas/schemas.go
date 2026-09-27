@@ -23,19 +23,18 @@ type Field struct {
 type Schema map[string]Field
 
 type manifestEntry struct {
-	Type     string          `json:"type"`
-	Bucket   json.RawMessage `json:"bucket"`
-	Field    string          `json:"field"`
-	Index    bool            `json:"index"`
-	Repeated bool            `json:"repeated"`
+	Type     string `json:"type"`
+	Bucket   string `json:"bucket"`
+	Field    string `json:"field"`
+	Index    bool   `json:"index"`
+	Repeated bool   `json:"repeated"`
 	// MigrateTo names the table a property is moving to; the column is built
 	// there too, since the writer fills both while readers still read Bucket.
 	MigrateTo string `json:"migrateTo"`
 }
 
-// Build reads one manifest and returns every bucket it defines. A property whose
-// bucket is an object keyed by kind is placed in each of those buckets, and one
-// with migrateTo in that table as well.
+// Build reads one manifest and returns every bucket it defines. A property is
+// placed in its bucket, and one with migrateTo in that table as well.
 func Build(manifest []byte) (map[string]Schema, error) {
 	var raw map[string]json.RawMessage
 	if err := json.Unmarshal(manifest, &raw); err != nil {
@@ -60,8 +59,8 @@ func Build(manifest []byte) (map[string]Schema, error) {
 		if err := json.Unmarshal(msg, &e); err != nil {
 			return nil, fmt.Errorf("%s: %w", name, err)
 		}
-		if e.Field == "" || e.Type == "" {
-			return nil, fmt.Errorf("%s: missing field or type", name)
+		if e.Field == "" || e.Type == "" || e.Bucket == "" {
+			return nil, fmt.Errorf("%s: missing bucket, field or type", name)
 		}
 		f := Field{Type: e.Type, Index: e.Index, Repeated: e.Repeated}
 		if e.MigrateTo != "" {
@@ -69,21 +68,8 @@ func Build(manifest []byte) (map[string]Schema, error) {
 				return nil, err
 			}
 		}
-		var single string
-		if err := json.Unmarshal(e.Bucket, &single); err == nil {
-			if err := place(single, e.Field, f); err != nil {
-				return nil, err
-			}
-			continue
-		}
-		var byKind map[string]string
-		if err := json.Unmarshal(e.Bucket, &byKind); err != nil {
-			return nil, fmt.Errorf("%s: bucket must be a string or an object keyed by kind", name)
-		}
-		for _, b := range byKind {
-			if err := place(b, e.Field, f); err != nil {
-				return nil, err
-			}
+		if err := place(e.Bucket, e.Field, f); err != nil {
+			return nil, err
 		}
 	}
 	return out, nil

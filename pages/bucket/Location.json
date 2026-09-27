@@ -64,11 +64,6 @@
 		"index": false,
 		"repeated": false
 	},
-	"manual_api_field": {
-		"type": "TEXT",
-		"index": true,
-		"repeated": true
-	},
 	"moon_count": {
 		"type": "INTEGER",
 		"index": false,

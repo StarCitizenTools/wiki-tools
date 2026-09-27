@@ -75,11 +75,14 @@ func run() error {
 	)
 	flag.Parse()
 
-	seriesOut := defaultOut(*configPath)
 	if *out == "" {
-		*out = seriesOut
+		*out = defaultOut(*configPath)
 	}
-	if err := validateOnlyRefresh(*only, *refresh, *out, seriesOut); err != nil {
+	outs, err := seriesOuts(*configPath)
+	if err != nil {
+		return err
+	}
+	if err := validateOnlyRefresh(*only, *refresh, *out, outs); err != nil {
 		return err
 	}
 
@@ -363,18 +366,47 @@ func defaultOut(configPath string) string {
 	return "out/commlinks-" + name
 }
 
+// seriesOuts lists the full-plan directory of every series: the default out
+// of each config*.json beside configPath, and of configPath itself.
+func seriesOuts(configPath string) ([]string, error) {
+	configs, err := filepath.Glob(filepath.Join(filepath.Dir(configPath), "config*.json"))
+	if err != nil {
+		return nil, err
+	}
+	outs := []string{defaultOut(configPath)}
+	for _, c := range configs {
+		outs = append(outs, defaultOut(c))
+	}
+	return outs, nil
+}
+
 // validateOnlyRefresh checks the -only/-refresh/-out combination: -only needs
-// a scratch -out other than seriesOut, where the full plan is written, since a
-// partial run would replace it; and -refresh needs -only, since without it
-// every existing report would be replanned.
-func validateOnlyRefresh(only string, refresh bool, out, seriesOut string) error {
-	if only != "" && filepath.Clean(out) == filepath.Clean(seriesOut) {
-		return fmt.Errorf("-only needs -out: a partial run would replace the full plan in %s", seriesOut)
+// a scratch -out that is none of seriesOuts, where the series' full plans are
+// written, since a partial run would replace one; and -refresh needs -only,
+// since without it every existing report would be replanned.
+func validateOnlyRefresh(only string, refresh bool, out string, seriesOuts []string) error {
+	if only != "" {
+		for _, s := range seriesOuts {
+			if samePath(out, s) {
+				return fmt.Errorf("-only needs a scratch -out: a partial run would replace the full plan in %s", s)
+			}
+		}
 	}
 	if refresh && only == "" {
 		return fmt.Errorf("-refresh needs -only: it re-plans specific ids, not a full run")
 	}
 	return nil
+}
+
+// samePath reports whether a and b name one directory, compared absolute when
+// both resolve.
+func samePath(a, b string) bool {
+	if absA, err := filepath.Abs(a); err == nil {
+		if absB, err := filepath.Abs(b); err == nil {
+			return absA == absB
+		}
+	}
+	return filepath.Clean(a) == filepath.Clean(b)
 }
 
 func parseIDs(s string) (map[int]bool, error) {

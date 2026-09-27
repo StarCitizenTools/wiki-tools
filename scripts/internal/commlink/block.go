@@ -10,6 +10,7 @@ const (
 	Quote
 	Image
 	Video
+	Gallery
 )
 
 // Block is one unit of a report body, independent of RSI's layout.
@@ -24,4 +25,20 @@ type Block struct {
 	Caption   string   // Image: inline wikitext, may be empty.
 	VideoKind string   // Video: "youtube", "vimeo" or "file".
 	VideoID   string   // Video: the YouTube or Vimeo id.
+	Images    []Block  // Gallery: a slideshow's slides, each an Image block.
+}
+
+// imageBlocks lists every image of blocks in body order, a gallery's slides in
+// its place.
+func imageBlocks(blocks []Block) []Block {
+	var out []Block
+	for _, b := range blocks {
+		switch b.Kind {
+		case Image:
+			out = append(out, b)
+		case Gallery:
+			out = append(out, b.Images...)
+		}
+	}
+	return out
 }

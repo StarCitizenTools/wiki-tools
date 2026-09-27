@@ -146,6 +146,27 @@ func TestMissingGluedCaptions(t *testing.T) {
 	}
 }
 
+// A gallery's text is its captions, the gallery's own and each slide's: they
+// are page text, a block for the glued-line check and pieces of a credit, and
+// none counts toward the body's words.
+func TestMissingGalleryCaptions(t *testing.T) {
+	page := "Intro.\n\n<gallery caption=\"Manchester, &quot;England&quot;\">\nFile:A - 01.jpg\nFile:A - 02.jpg\n</gallery>\n\n" +
+		"<gallery>\nFile:A - 03.jpg|Gladiator - Original\nFile:A - 04.jpg|image by [https://y RUSTEC_Urhu]\n</gallery>\n\n" +
+		"The team moved offices.\n"
+	api := "Manchester, \"England\"\n" +
+		"Gladiator - Original\n" +
+		"Gladiator - Original image by RUSTEC_Urhu The team moved offices.\n" +
+		"RUSTEC_Urhu image by\n" +
+		"A01 jpg\n"
+	got := Missing(api, page, func(string) bool { return false })
+	if want := []string{"A01 jpg"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("Missing = %q, want %q", got, want)
+	}
+	if _, words, _ := APITextWords("", page); words != 5 {
+		t.Errorf("APITextWords page words = %d, want 5: galleries are not body text", words)
+	}
+}
+
 // The API drops "$" and up to two digits of a dollar amount.
 func TestMissingDollarAmounts(t *testing.T) {
 	page := "2019 was a record year, with $48 million in sales, and our first $100 million+ year.\n"

@@ -32,13 +32,48 @@ func normalize(s string) string {
 // external link.
 var thumbCaption = regexp.MustCompile(`(?m)^\[\[File:[^|\]]*\|thumb\|center\|((?:[^\[\]]|\[[^\[\]]*\])*)\]\]$`)
 
+// galleryBlock is a rendered <gallery>: its caption attribute, if any, and its
+// File: lines.
+var galleryBlock = regexp.MustCompile(`(?s)<gallery(?: caption="([^"]*)")?>\n(.*?)\n</gallery>`)
+
+// galleryCaptions lists a gallery match's captions: its own, then each
+// slide's. A file name holds no "|" (nameSafe), so a line's caption is what
+// follows the first one.
+func galleryCaptions(m []string) []string {
+	var out []string
+	if m[1] != "" {
+		out = append(out, m[1])
+	}
+	for _, line := range strings.Split(m[2], "\n") {
+		if _, c, ok := strings.Cut(line, "|"); ok && c != "" {
+			out = append(out, c)
+		}
+	}
+	return out
+}
+
+// galleryText replaces each gallery of page with its captions, the only page
+// text a gallery holds.
+func galleryText(page string) string {
+	return galleryBlock.ReplaceAllStringFunc(page, func(g string) string {
+		return strings.Join(galleryCaptions(galleryBlock.FindStringSubmatch(g)), " ")
+	})
+}
+
 // creditParts lists, spaces removed, every word-boundary prefix and suffix of
-// each image caption: the pieces of an intro-and-name credit the API glues
-// together in its own order.
+// each image caption, a thumb's or a gallery's: the pieces of an
+// intro-and-name credit the API glues together in its own order.
 func creditParts(page string) []string {
-	var parts []string
+	var captions []string
 	for _, m := range thumbCaption.FindAllStringSubmatch(page, -1) {
-		words := strings.Fields(normalize(m[1]))
+		captions = append(captions, m[1])
+	}
+	for _, m := range galleryBlock.FindAllStringSubmatch(page, -1) {
+		captions = append(captions, galleryCaptions(m)...)
+	}
+	var parts []string
+	for _, c := range captions {
+		words := strings.Fields(normalize(c))
 		for i := 1; i <= len(words); i++ {
 			parts = append(parts, strings.Join(words[:i], ""), strings.Join(words[len(words)-i:], ""))
 		}
@@ -125,12 +160,13 @@ func spansBlocks(n string, blocks []string) bool {
 var mediaLine = regexp.MustCompile(`(?m)^(?:\[\[File:|\{\{).*$`)
 
 // APITextWords counts the words of the API text and of the page body, leaving
-// out the body's media lines. short is true when the API text has fewer than
-// half as many: the API has not finished scraping the report, so its lines
-// check only part of the page. Empty API text is the limiting case.
+// out the body's media lines and galleries. short is true when the API text
+// has fewer than half as many: the API has not finished scraping the report,
+// so its lines check only part of the page. Empty API text is the limiting
+// case.
 func APITextWords(apiText, body string) (api, page int, short bool) {
 	api = len(strings.Fields(normalize(apiText)))
-	page = len(strings.Fields(normalize(mediaLine.ReplaceAllString(body, ""))))
+	page = len(strings.Fields(normalize(mediaLine.ReplaceAllString(galleryBlock.ReplaceAllString(body, ""), ""))))
 	return api, page, 2*api < page
 }
 
@@ -141,11 +177,13 @@ var apiDollar = regexp.MustCompile(`\$\d{1,2}`)
 
 // Missing lists the lines of the API's plain text that the page does not
 // contain. The check runs one way, API into page, so an API text that stops
-// short of RSI's body cannot fail it. Three API artefacts pass: a line glued
-// across page blocks, where a captioned image's block is its caption;
-// illustration credits glued together; and a line missing the dollar amounts
-// the page holds.
+// short of RSI's body cannot fail it. A gallery's text is its captions. Three
+// API artefacts pass: a line glued across page blocks, where a captioned
+// image's block is its caption; illustration credits glued together; and a
+// line missing the dollar amounts the page holds.
 func Missing(apiText, page string, ignored func(string) bool) []string {
+	credits := creditParts(page)
+	page = galleryText(page)
 	have := normalize(page)
 	haveDollarless := normalize(apiDollar.ReplaceAllString(page, ""))
 	var blocks []string
@@ -157,7 +195,6 @@ func Missing(apiText, page string, ignored func(string) bool) []string {
 			blocks = append(blocks, nb)
 		}
 	}
-	credits := creditParts(page)
 
 	var missing []string
 	for _, line := range strings.Split(apiText, "\n") {

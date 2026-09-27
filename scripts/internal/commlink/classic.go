@@ -74,30 +74,49 @@ func (c *classic) visit(n *html.Node) {
 	}
 }
 
-// media converts a content-block2: a header image, a slideshow whose slides
-// carry their source and caption, or a poll.
+// media converts a content-block2: a header image, a slideshow, which becomes
+// one gallery of its slides with their captions, or a poll.
 func (c *classic) media(n *html.Node) {
 	for ch := n.FirstChild; ch != nil; ch = ch.NextSibling {
 		switch {
 		case ch.Type != html.ElementNode:
 		case hasClass(ch, "poll-holder"):
 			c.poll(ch)
+		case hasClass(ch, "atom-slideshow"):
+			g := Block{Kind: Gallery}
+			for _, slide := range findAll(ch, func(n *html.Node) bool { return attr(n, "data-source_url") != "" }) {
+				if s, ok := slideImage(slide); ok {
+					g.Images = append(g.Images, s)
+				}
+			}
+			if len(g.Images) > 0 {
+				c.blocks = append(c.blocks, g)
+			}
 		case ch.Data == "img":
 			if src := sourceURL(attr(ch, "src")); src != "" {
 				c.blocks = append(c.blocks, Block{Kind: Image, Src: src})
 			}
-		case ch.Data == "div" && attr(ch, "data-source_url") != "":
-			if src := sourceURL(attr(ch, "data-source_url")); src != "" {
-				caption := ""
-				if cn := findFirst(ch, classIs("caption")); cn != nil {
-					caption = escapeText(PlainText(cn))
-				}
-				c.blocks = append(c.blocks, Block{Kind: Image, Src: src, Caption: caption})
+		case attr(ch, "data-source_url") != "":
+			if s, ok := slideImage(ch); ok {
+				c.blocks = append(c.blocks, s)
 			}
 		default:
 			c.media(ch)
 		}
 	}
+}
+
+// slideImage is a slide's image: its data-source_url and its .caption.
+func slideImage(n *html.Node) (Block, bool) {
+	src := sourceURL(attr(n, "data-source_url"))
+	if src == "" {
+		return Block{}, false
+	}
+	caption := ""
+	if cn := findFirst(n, classIs("caption")); cn != nil {
+		caption = escapeText(PlainText(cn))
+	}
+	return Block{Kind: Image, Src: src, Caption: caption}, true
 }
 
 // poll converts a poll into its options, each with its share of the vote, and

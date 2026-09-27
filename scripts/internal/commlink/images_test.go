@@ -55,6 +55,33 @@ func TestDedupeImagesMovesACaptionToTheKeptAppearance(t *testing.T) {
 	}
 }
 
+// A gallery's slides dedupe with the page's other images: a slide repeating an
+// earlier image, or an earlier slide of its own gallery, is dropped, and an
+// image repeating a slide is dropped with its caption moved to the slide. A
+// gallery with no slide left is dropped.
+func TestDedupeImagesGalleries(t *testing.T) {
+	img := func(src, caption string) Block { return Block{Kind: Image, Src: "https://x/" + src, Caption: caption} }
+	files := map[string]string{
+		"https://x/a.jpg": "R - 01.jpg", "https://x/a2.jpg": "R - 01.jpg",
+		"https://x/b.jpg": "R - 02.jpg", "https://x/b2.jpg": "R - 02.jpg",
+		"https://x/c.jpg": "R - 03.jpg",
+	}
+	blocks := []Block{
+		img("a.jpg", ""),
+		{Kind: Gallery, Images: []Block{img("a2.jpg", ""), img("b.jpg", ""), img("b2.jpg", ""), img("c.jpg", "Hangar")}},
+		img("b2.jpg", "Office"),
+		{Kind: Gallery, Images: []Block{img("a2.jpg", ""), img("c.jpg", "")}},
+	}
+	got := DedupeImages(blocks, func(src string) string { return files[src] })
+	want := []Block{
+		img("a.jpg", ""),
+		{Kind: Gallery, Images: []Block{img("b.jpg", "Office"), img("c.jpg", "Hangar")}},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("DedupeImages =\n %+v\nwant\n %+v", got, want)
+	}
+}
+
 func TestDedupeImagesKeepsBothOnDifferingCaptions(t *testing.T) {
 	blocks := []Block{
 		{Kind: Image, Src: "https://x/a.jpg", Caption: "First caption"},
@@ -84,7 +111,8 @@ func TestFilePage(t *testing.T) {
 }
 
 // An upload's author= is the first caption, over every appearance of its bytes
-// in body order, that is wholly an "image by" credit, else cfg.ImageAuthor. A
+// in body order, that is a credit ("image by" or "screenshot by", the whole
+// caption or its last clause), else cfg.ImageAuthor. A
 // page can show one picture under two source URLs, and DedupeImages merges
 // them only after PlanImages has chosen the author, so the credit is found by
 // SHA1. The description stays the upload source's own caption.
@@ -117,6 +145,10 @@ func TestPlanImagesCredits(t *testing.T) {
 		{"credit on a repeat under another URL", []Block{img("/a.jpg", ""), img("/a-repeat.jpg", "Image by Someone")}, []string{"Someone", ""}, "R, image 01"},
 		{"credit among differing captions", []Block{img("/a.jpg", "A studio photo"), img("/a-repeat.jpg", "Image by Someone")}, []string{"Someone", ""}, "A studio photo"},
 		{"first of two credits", []Block{img("/a.jpg", "Image by First"), img("/a-repeat.jpg", "Image by Second")}, []string{"First", ""}, "Image by First"},
+		{"screenshot credit", []Block{img("/a.jpg", "Screenshot by PiteCZek")}, []string{"PiteCZek"}, "Screenshot by PiteCZek"},
+		{"credit as the last clause", []Block{img("/a.jpg", "NOW: Arena Commander 1.0 in action; screenshot by PiteCZek")}, []string{"PiteCZek"}, "NOW: Arena Commander 1.0 in action; screenshot by PiteCZek"},
+		{"credit clause not last", []Block{img("/a.jpg", "Image by Barao; the hangar")}, []string{cig}, "Image by Barao; the hangar"},
+		{"credit on a gallery slide", []Block{{Kind: Gallery, Images: []Block{img("/a.jpg", "Image by Barao"), img("/other.png", "Manchester")}}}, []string{"Barao", cig}, "Image by Barao"},
 	} {
 		res, err := PlanImages(context.Background(), testWeb(t), wiki, cache, map[string]string{}, testConfig(t), "R", "A page", "2021-06-02", c.blocks)
 		if err != nil {

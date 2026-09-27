@@ -29,6 +29,12 @@ func dump(blocks []Block) []string {
 			out = append(out, s)
 		case Video:
 			out = append(out, fmt.Sprintf("VID %s %s%s", b.VideoKind, b.VideoID, b.Src))
+		case Gallery:
+			var slides []string
+			for _, s := range b.Images {
+				slides = append(slides, strings.TrimPrefix(dump([]Block{s})[0], "IMG "))
+			}
+			out = append(out, "GALLERY "+strings.Join(slides, " / "))
 		}
 	}
 	return out
@@ -320,11 +326,12 @@ func TestParseClassicSlideshowAndPoll(t *testing.T) {
 <div class="content-block2"><div class="atom-special-block"><div class="atom-slideshow"><div class="carousel">
 <div data-source_url="/media/cnp6015ubsw1kr/source/Gladiator_Top.png" rel="vault-items"><div class="media"><img data-srcset="/media/cnp6015ubsw1kr/slideshow_pager/Gladiator_Top.png" alt="Gladiator - Original"></div>
 <div class="text"><a href="/media/cnp6015ubsw1kr/source/Gladiator_Top.png" class="download"></a><div class="caption">Gladiator - Original</div></div></div>
+<div data-source_url="/media/54h3op9oi9v92r/source/Gladiator_Rev1.png" rel="vault-items"><div class="text"><div class="caption">Gladiator - Turret Variant 1</div></div></div>
 </div></div></div></div>
 <div class="content-block4"><div class="content"><h1>What role would you like to see?</h1></div></div>
 <div class="content-block1 rsi-markup">`+poll("What role would you like to see?")+poll("Another question?")+`</div>
 </div><div class="two-line-separator"></div></div></div></body></html>`, "Letter from the Chairman"), []string{
-		"IMG https://robertsspaceindustries.com/media/cnp6015ubsw1kr/source/Gladiator_Top.png | Gladiator - Original",
+		"GALLERY https://robertsspaceindustries.com/media/cnp6015ubsw1kr/source/Gladiator_Top.png | Gladiator - Original / https://robertsspaceindustries.com/media/54h3op9oi9v92r/source/Gladiator_Rev1.png | Gladiator - Turret Variant 1",
 		"H2 What role would you like to see?",
 		"LIST Combat (5%) / Mining (28%)",
 		"P Total Votes: 27857",

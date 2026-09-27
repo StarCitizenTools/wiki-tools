@@ -116,9 +116,10 @@ func insideLonger(s string, start, end int, longer []string) bool {
 var (
 	sectionLine = regexp.MustCompile(`(?m)^==[^=].*==[ \t]*$`)
 	// protected spans: a file line, a heading line, internal and external links,
-	// templates and tags. <...> shields one tag at a time, not the text between
-	// an opening and closing tag pair (e.g. a <blockquote> body stays linkable).
-	protected = regexp.MustCompile(`(?m)^\[\[File:.*$|^=.*=[ \t]*$|\[\[[^\]]*\]\]|\[[a-z]+://[^\]]*\]|\{\{[^}]*\}\}|<[^>]*>`)
+	// templates, a whole <gallery> (its lines are file names) and tags. <...>
+	// shields one tag at a time, not the text between an opening and closing
+	// tag pair (e.g. a <blockquote> body stays linkable).
+	protected = regexp.MustCompile(`(?m)^\[\[File:.*$|^=.*=[ \t]*$|\[\[[^\]]*\]\]|\[[a-z]+://[^\]]*\]|\{\{[^}]*\}\}|<gallery[^>]*>[\s\S]*?</gallery>|<[^>]*>`)
 )
 
 // Apply links the first mention of each term in every == section of body (the

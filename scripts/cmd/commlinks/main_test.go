@@ -1,6 +1,11 @@
 package main
 
 import (
+	"os"
+	"path/filepath"
+	"reflect"
+	"slices"
+	"sort"
 	"strings"
 	"testing"
 )
@@ -17,8 +22,31 @@ func TestDefaultOut(t *testing.T) {
 	}
 }
 
+// Every config beside the one in use names a series whose full plan -only
+// must not replace.
+func TestSeriesOuts(t *testing.T) {
+	dir := t.TempDir()
+	for _, f := range []string{"config.json", "config.chairman.json", "notes.json", "README.md"} {
+		if err := os.WriteFile(filepath.Join(dir, f), []byte("{}"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	got, err := seriesOuts(filepath.Join(dir, "config.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	sort.Strings(got)
+	if want := []string{"out/commlinks", "out/commlinks", "out/commlinks-chairman"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("seriesOuts = %q, want %q", got, want)
+	}
+	if got, _ := seriesOuts("config.json"); !slices.Contains(got, "out/commlinks-chairman") {
+		t.Errorf("seriesOuts of the repository's config = %q, want the chairman default among them", got)
+	}
+}
+
 func TestValidateOnlyRefresh(t *testing.T) {
 	const defaultOut = "out/commlinks"
+	outs := []string{defaultOut, "out/commlinks-chairman"}
 	for _, c := range []struct {
 		name    string
 		only    string
@@ -33,8 +61,10 @@ func TestValidateOnlyRefresh(t *testing.T) {
 		{"refresh with only and a scratch out", "16000", true, "out/scratch", false},
 		{"refresh with only but the default out", "16000", true, defaultOut, true},
 		{"only with the default out, spelled differently", "16000", false, "out/commlinks/", true},
+		{"only with another series' default out", "16000", false, "out/commlinks-chairman", true},
+		{"refresh with only and another series' default out", "16000", true, "./out/commlinks-chairman", true},
 	} {
-		err := validateOnlyRefresh(c.only, c.refresh, c.out, defaultOut)
+		err := validateOnlyRefresh(c.only, c.refresh, c.out, outs)
 		if (err != nil) != c.wantErr {
 			t.Errorf("%s: validateOnlyRefresh(%q, %v, %q) = %v, want error %v", c.name, c.only, c.refresh, c.out, err, c.wantErr)
 		}

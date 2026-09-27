@@ -148,7 +148,8 @@ func (p *fragment) banner(n *html.Node) {
 			Paragraph string `json:"paragraph"`
 		} `json:"text"`
 	}
-	if json.Unmarshal([]byte(attr(n, ":content")), &content) != nil {
+	if err := json.Unmarshal([]byte(attr(n, ":content")), &content); err != nil {
+		p.err = fmt.Errorf("g-banner-advanced :content: %w", err)
 		return
 	}
 	if content.Displayed && content.Text.Displayed && strings.TrimSpace(content.Text.Paragraph) != "" {
@@ -156,20 +157,31 @@ func (p *fragment) banner(n *html.Node) {
 	}
 }
 
-// slideshow converts a g-slideshow into its images, in order, each captioned
-// with the slideshow's title. Each slide's alt is an internal label.
+// slideshow converts a g-slideshow into one gallery of its images, in order,
+// each captioned with the slideshow's title. Each slide's alt is an internal
+// label.
 func (p *fragment) slideshow(n *html.Node) {
 	var images []string
-	var title string
-	if json.Unmarshal([]byte(attr(n, ":images")), &images) != nil {
+	if err := json.Unmarshal([]byte(attr(n, ":images")), &images); err != nil {
+		p.err = fmt.Errorf("g-slideshow :images: %w", err)
 		return
 	}
-	_ = json.Unmarshal([]byte(attr(n, ":title")), &title)
+	var title string
+	if raw := attr(n, ":title"); raw != "" {
+		if err := json.Unmarshal([]byte(raw), &title); err != nil {
+			p.err = fmt.Errorf("g-slideshow :title: %w", err)
+			return
+		}
+	}
 	caption := escapeText(strings.TrimSpace(title))
+	g := Block{Kind: Gallery}
 	for _, src := range images {
 		if src = strings.TrimSpace(src); src != "" {
-			p.blocks = append(p.blocks, Block{Kind: Image, Src: absURL(src), Caption: caption})
+			g.Images = append(g.Images, Block{Kind: Image, Src: absURL(src), Caption: caption})
 		}
+	}
+	if len(g.Images) > 0 {
+		p.blocks = append(p.blocks, g)
 	}
 }
 

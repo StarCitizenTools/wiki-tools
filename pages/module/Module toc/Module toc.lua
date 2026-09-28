@@ -1,109 +1,101 @@
--- Imported from: https://runescape.wiki/w/Module:Module%20toc
+require('strict')
+
+--- @module Module toc
+--- The functions a Lua module defines and the line each starts on. Imported from
+--- https://runescape.wiki/w/Module:Module_toc.
 
 -- <nowiki>
 local p = {}
 
-local function getNewlineLocations(content)
-	local locs = {}
-	local pos = 0
+--- @class ModuleTocFunction
+--- @field name string
+--- @field line integer
 
-	repeat
+--- @param content string
+--- @return integer[] byte positions of every newline, ascending
+local function newlinePositions(content)
+	local positions = {}
+	local pos = string.find(content, '\n', 1, true)
+	while pos do
+		positions[#positions + 1] = pos
 		pos = string.find(content, '\n', pos + 1, true)
-		table.insert(locs, pos)
-	until not pos
-
-	return locs
+	end
+	return positions
 end
 
-local function findLineNumber(pos, newLineLocs)
-	local max = #newLineLocs
-	local min = 1
-
-	repeat
-		local i = math.ceil((max + min) / 2)
-		if newLineLocs[i] < pos then
-			min = i
-		elseif newLineLocs[i] >= pos then
-			max = i
+--- The 1-based line holding byte `pos`: one more than the newlines before it.
+--- @param pos integer
+--- @param newlines integer[]
+--- @return integer
+local function lineAt(pos, newlines)
+	local low, high = 0, #newlines
+	while low < high do
+		local mid = math.floor((low + high + 1) / 2)
+		if newlines[mid] < pos then
+			low = mid
+		else
+			high = mid - 1
 		end
-	until newLineLocs[i] > pos and (newLineLocs[i - 1] or 0) < pos
-
-	return max
+	end
+	return low + 1
 end
 
-local function getFunctionLocations(content)
-	local locs = {}
-	local newLineLocs = getNewlineLocations(content)
-
-	local start = 0
-	repeat
-		local name
-		name, start = string.match(content, '%sfunction%s+([^%s%(]+)%s*%(()', start + 1)
-		if start then
-			table.insert(locs, { name = name, line = findLineNumber(start, newLineLocs) })
+--- @param content string
+--- @return ModuleTocFunction[]
+local function findFunctions(content)
+	local found = {}
+	local newlines = newlinePositions(content)
+	for _, pattern in ipairs({
+		'%sfunction%s+([^%s%(]+)%s*%(()',
+		'%s([%w_%.]+)%s*=%s*function%s*%(()',
+	}) do
+		for name, pos in string.gmatch(content, pattern) do
+			found[#found + 1] = { name = name, line = lineAt(pos, newlines) }
 		end
-	until not start
-
-	start = 0
-	repeat
-		local name
-		name, start = string.match(content, '%s([^%s=])%s*=%s*function%s*%(()', start + 1)
-		if start then
-			table.insert(locs, { name = name, line = findLineNumber(start, newLineLocs) })
-		end
-	until not start
-
-	return locs
+	end
+	return found
 end
 
+--- The functions `content` defines, in line order. Comments are blanked first,
+--- keeping their newlines so later line numbers stay right.
+--- @param content string Lua source
+--- @return ModuleTocFunction[]
+function p.functions(content)
+	local function keepNewlines(comment)
+		return string.rep('\n', #newlinePositions(comment))
+	end
+	local stripped = content:gsub('(%-%-%[(=-)%[.-%]%2%])', keepNewlines):gsub('%-%-[^\n]*', '')
+	local found = findFunctions(stripped)
+	table.sort(found, function(a, b)
+		return a.line < b.line
+	end)
+	return found
+end
+
+--- The collapsed "Function list" table for the current module, or the module a
+--- /doc documents.
+--- @return string
 function p.main()
 	local title = mw.title.getCurrentTitle()
-	local moduleName = string.gsub(title.text, '/[Dd]oc$', '')
-
 	if not title:inNamespaces(828) then
 		return ''
 	end
-
-	local fullModuleName = string.gsub(title.fullText, '/[Dd]oc$', '')
-	local content = mw.title.new(fullModuleName):getContent()
-
+	local moduleName = string.gsub(title.fullText, '/[Dd]oc$', '')
+	local content = mw.title.new(moduleName):getContent()
 	if not content then
 		return ''
 	end
-
-	local function substMutilineComment(match)
-		local lineCount = #getNewlineLocations(match)
-		return string.rep('\n', lineCount) or ''
-	end
-
-	content = content:gsub('(%-%-%[(=-)%[.-%]%2%])', substMutilineComment):gsub('%-%-[^\n]*', '') -- Strip comments
-	local functionLocs = getFunctionLocations(content)
-
-	table.sort(functionLocs, function(lhs, rhs)
-		return lhs.line < rhs.line
-	end)
-
-	if #functionLocs == 0 then
+	local found = p.functions(content)
+	if found[1] == nil then
 		return ''
 	end
-
-	local res = {}
-	for _, func in ipairs(functionLocs) do
-		table.insert(
-			res,
-			string.format(
-				'L %d &mdash; [%s#L-%d %s]',
-				func.line,
-				title:fullUrl():gsub('/[Dd]oc$', ''),
-				func.line,
-				func.name
-			)
-		)
+	local url = title:fullUrl():gsub('/[Dd]oc$', '')
+	local lines = {}
+	for i, func in ipairs(found) do
+		lines[i] = string.format('L %d &mdash; [%s#L-%d %s]', func.line, url, func.line, func.name)
 	end
-
 	local tbl = mw.html.create('table'):addClass('wikitable mw-collapsible mw-collapsed')
-	tbl:tag('tr'):tag('th'):wikitext('Function list'):done():tag('tr'):tag('td'):wikitext(table.concat(res, '<br>'))
-
+	tbl:tag('tr'):tag('th'):wikitext('Function list'):done():tag('tr'):tag('td'):wikitext(table.concat(lines, '<br>'))
 	return tostring(tbl)
 end
 

@@ -1,0 +1,49 @@
+.documentation {
+    margin-top: var( --space-md );
+    padding-top: var( --space-md );
+    border-top: var( --border-base );
+}
+
+.documentation-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+}
+
+.documentation-header,
+.documentation-subheader {
+    line-height: 1.25;
+}
+
+.documentation-title {
+    color: var( --color-emphasized );
+    font-size: var( --font-size-large );
+    font-weight: var( --font-weight-semi-bold );
+}
+
+.documentation-links {
+    font-family: var( --font-family-monospace );
+}
+
+.documentation-subheader {
+    color: var( --color-subtle );
+    font-size: var( --font-size-small );
+}
+
+.documentation-content {
+    margin-block: var( --space-xl );
+}
+
+.documentation-modulestats {
+    padding: var( --space-xxs );
+    background: var( --color-surface-1 );
+    border-radius: var( --border-radius-medium );
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.documentation-modulestats > * {
+    margin: 0 !important;
+}

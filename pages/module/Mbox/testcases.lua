@@ -74,25 +74,4 @@ function suite:testNoIconWithoutAFile()
 	self:assertNotStringContains('t-mbox__icon', mbox.render({ title = 'T' }), true)
 end
 
-function suite:testLegacyMboxMapsExtraclassesToType()
-	local html = mbox._mbox('Head', 'Body', { extraclasses = 'mbox-med plainlinks' })
-	self:assertStringContains('t-mbox--warning', html, true)
-	self:assertStringContains('plainlinks', html, true)
-	self:assertNotStringContains('mbox-med', html, true)
-end
-
-function suite:testLegacyMboxAcceptsNoText()
-	local html = mbox._mbox('Head', nil, { icon = 'WikimediaUI-Code.svg' })
-	self:assertStringContains('role="note"', html, true)
-end
-
-function suite:testSplitLegacyClasses()
-	local boxType, classes = mbox._internal.splitLegacyClasses('mbox-high foo')
-	self:assertEquals('error', boxType)
-	self:assertEquals('foo', classes)
-	boxType, classes = mbox._internal.splitLegacyClasses(nil)
-	self:assertEquals(nil, boxType)
-	self:assertEquals(nil, classes)
-end
-
 return suite

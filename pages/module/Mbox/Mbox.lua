@@ -17,9 +17,6 @@ local p = {}
 
 local TYPES = { notice = true, warning = true, error = true }
 
---- Severity tokens `_mbox` callers pass in `extraclasses`.
-local LEGACY_TYPES = { ['mbox-low'] = 'notice', ['mbox-med'] = 'warning', ['mbox-high'] = 'error' }
-
 --- @class MboxProps
 --- @field title string         Headline wikitext.
 --- @field text? string         Body wikitext; given, the box becomes a collapsible <details>.
@@ -34,26 +31,6 @@ local LEGACY_TYPES = { ['mbox-low'] = 'notice', ['mbox-med'] = 'warning', ['mbox
 --- @return boolean
 local function isNonEmptyString(value)
 	return type(value) == 'string' and value ~= ''
-end
-
---- Split an old `extraclasses` string into a type and the remaining classes.
---- @param extraclasses string|nil
---- @return string|nil boxType
---- @return string|nil classes
-local function splitLegacyClasses(extraclasses)
-	if not isNonEmptyString(extraclasses) then
-		return nil, nil
-	end
-	local boxType
-	local rest = {}
-	for token in extraclasses:gmatch('%S+') do
-		if LEGACY_TYPES[token] then
-			boxType = LEGACY_TYPES[token]
-		else
-			rest[#rest + 1] = token
-		end
-	end
-	return boxType, (#rest > 0 and table.concat(rest, ' ') or nil)
 end
 
 --- @param props MboxProps
@@ -171,24 +148,5 @@ end
 
 --- Alias for `{{#invoke:Mbox|mbox}}` invocations.
 p.mbox = p.main
-
---- Lua entry kept for Module:Documentation.
---- @param title string
---- @param text string|nil
---- @param options { icon: string|nil, extraclasses: string|nil }|nil
---- @return string
-function p._mbox(title, text, options)
-	checkType('_mbox', 1, title, 'string')
-	checkType('_mbox', 2, text, 'string', true)
-	checkType('_mbox', 3, options, 'table', true)
-	options = options or {}
-	local boxType, classes = splitLegacyClasses(options.extraclasses)
-	return p.render({ title = title, text = text, type = boxType, icon = options.icon, class = classes })
-end
-
--- Test-only exports. Not part of the public API.
-p._internal = {
-	splitLegacyClasses = splitLegacyClasses,
-}
 
 return p

@@ -114,8 +114,8 @@ return {
 			end,
 		})
 
-		-- Module:ButtonLua — serializes the def (label, url, class) so the Entity
-		-- footer suite can assert which buttons render and in what order;
+		-- Module:ButtonLua — serializes the def (label, url or link, class) so the
+		-- Entity footer and Documentation suites can assert which buttons render;
 		-- ButtonLua's own HTML is out of scope. Overrides the inert entry in
 		-- `stubs`: an all-'' render makes every footer assertion vacuous.
 		api.stub('ButtonLua', {
@@ -126,7 +126,7 @@ return {
 				return string.format(
 					'[button %s -> %s (%s)]',
 					tostring(opts.label or ''),
-					tostring(opts.url or ''),
+					tostring(opts.url or opts.link or ''),
 					tostring(opts.class or '')
 				)
 			end,

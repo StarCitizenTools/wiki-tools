@@ -1,60 +1,129 @@
+require('strict')
+
+--- @module Documentation
+--- The documentation header on module and template pages and on their /doc
+--- subpages, followed by the Technical details panel. Template:Documentation
+--- invokes doc() at the top of each /doc page.
+
 -- <nowiki>
+local button = require('Module:ButtonLua')
 local hatnote = require('Module:Hatnote')._hatnote
-local mbox = require('Module:Mbox')._mbox
-local i18n = require('Module:i18n'):new()
-local TNT = require('Module:Translate'):new()
-local lang = mw.getContentLanguage()
+local icon = require('Module:Icon')
+
 local p = {}
 
---- Wrapper function for Module:i18n.translate
----
---- @param key string The translation key
---- @return string If the key was not found, the key is returned
-local function t(key)
-	return i18n:translate(key)
+local NS_TEMPLATE = 10
+local NS_MODULE = 828
+local REPO_URL = 'https://github.com/StarCitizenTools/wiki-tools/tree/main/pages/'
+local WIKIPEDIA_URL = 'https://en.wikipedia.org/wiki/'
+local ICONS = {
+	page = 'CdxIconBook.svg',
+	edit = 'CdxIconEdit.svg',
+	history = 'CdxIconHistory.svg',
+	purge = 'CdxIconReload.svg',
+	back = 'CdxIconArrowPrevious.svg',
+}
+
+--- The visible text of a wikitext link, for the panel's plain-text facts.
+--- @param wikitext string
+--- @return string
+local function linkText(wikitext)
+	return wikitext:match('^%s*%[%[[^|%]]*|(.-)%]%]%s*$')
+		or wikitext:match('^%s*%[%[(.-)%]%]%s*$')
+		or wikitext:match('^%s*%[%S+%s+(.-)%]%s*$')
+		or wikitext
 end
 
---- FIXME: This should go to somewhere else, like Module:Common
---- Calls TNT with the given key
----
---- @param key string The translation key
---- @return string If the key was not found in the .tab page, the key is returned
-local function translate(key, ...)
-	local success, translation = pcall(TNT.format, 'Module:Documentation/i18n.json', key or '', ...)
-
-	if not success or translation == nil then
-		return key
+--- Where the page was imported from, as a wikitext link: `importedFrom=`, or
+--- its `fromWikipedia=` shorthand for the same title on the English Wikipedia.
+--- @param args table the {{Documentation}} arguments
+--- @param page string the documented page
+--- @return string|nil
+local function importOrigin(args, page)
+	if args.importedFrom and args.importedFrom ~= '' then
+		return args.importedFrom
 	end
-
-	return translation
+	if args.fromWikipedia then
+		return '[' .. WIKIPEDIA_URL .. mw.uri.encode(page, 'WIKI') .. ' Wikipedia]'
+	end
+	return nil
 end
 
 --- The Source row lines of the Technical details panel: where the page is
---- maintained (`git=`) and where it came from (`fromWikipedia=`).
+--- maintained (`git=`) and where it came from.
 --- @param args table the {{Documentation}} arguments
---- @param pageType string 'module' or 'template'
+--- @param kind string 'module' or 'template'
 --- @param rootText string
 --- @param page string the documented page
 --- @return table[] DependenciesSource[]
-local function sources(args, pageType, rootText, page)
+local function sources(args, kind, rootText, page)
 	local list = {}
 	if args.git then
-		local repoUrl = 'https://github.com/StarCitizenTools/wiki-tools/tree/main/pages/'
-			.. pageType
-			.. '/'
-			.. mw.uri.encode(rootText, 'PATH')
-		list[#list + 1] = {
-			label = 'wiki-tools',
-			text = 'Synced with [' .. repoUrl .. ' wiki-tools] on GitHub',
-		}
+		local url = REPO_URL .. kind .. '/' .. mw.uri.encode(rootText, 'PATH')
+		list[#list + 1] = { label = 'wiki-tools', text = 'Synced with [' .. url .. ' wiki-tools] on GitHub' }
 	end
-	if args.fromWikipedia then
-		list[#list + 1] = {
-			label = 'from Wikipedia',
-			text = 'Imported from [https://en.wikipedia.org/wiki/' .. mw.uri.encode(page, 'WIKI') .. ' Wikipedia]',
-		}
+	local origin = importOrigin(args, page)
+	if origin then
+		list[#list + 1] = { label = 'from ' .. linkText(origin), text = 'Imported from ' .. origin }
 	end
 	return list
+end
+
+--- @param kind string 'module' or 'template'
+--- @param onDoc boolean the render is the /doc subpage itself
+--- @param baseText string the /doc page's base page name, its sort key
+--- @param imported boolean
+--- @return string
+local function categories(kind, onDoc, baseText, imported)
+	local plural = kind == 'module' and 'Modules' or 'Templates'
+	if onDoc then
+		return '[[Category:' .. plural .. ' documentation|' .. baseText .. ']]'
+	end
+	local out = {}
+	if kind == 'module' then
+		out[#out + 1] = '[[Category:Modules]]'
+	end
+	if imported then
+		out[#out + 1] = '[[Category:Imported ' .. plural:lower() .. ']]'
+	end
+	return table.concat(out)
+end
+
+--- A quiet icon-only header button. ButtonLua puts the label in aria-label,
+--- which no browser shows, so the wrapper's title gives mouse users a tooltip.
+--- @param props table ButtonProps: label, icon, and link or url
+--- @return string
+local function action(props)
+	props.weight = 'quiet'
+	props.iconOnly = true
+	return tostring(
+		mw.html
+			.create('span')
+			:addClass('t-documentation__action')
+			:attr('title', props.label)
+			:wikitext(button.render(props))
+	)
+end
+
+--- @param title string
+--- @param subtitle string wikitext
+--- @param actions string[]
+--- @return string
+local function header(title, subtitle, actions)
+	local root = mw.html.create('div'):addClass('t-documentation__header')
+	root:tag('span')
+		:addClass('t-documentation__icon')
+		:wikitext(icon.render({ icon = ICONS.page, mask = true, size = '1.125rem' }))
+	local heading = root:tag('div'):addClass('t-documentation__heading')
+	heading
+		:tag('div')
+		:addClass('t-documentation__title')
+		:attr('role', 'heading')
+		:attr('aria-level', '2')
+		:wikitext(title)
+	heading:tag('div'):addClass('t-documentation__subtitle'):wikitext(subtitle)
+	root:tag('div'):addClass('t-documentation__actions'):wikitext(table.concat(actions))
+	return tostring(root)
 end
 
 --- A failure in Module:Dependencies, or a module it requires, must not break
@@ -71,111 +140,79 @@ local function technicalDetails(options)
 	return '<strong class="error">' .. mw.text.nowiki(tostring(result)) .. '</strong>'
 end
 
+--- `{{#invoke:Documentation|doc}}`, from Template:Documentation.
+--- @param frame table
+--- @return string
 function p.doc(frame)
 	local title = mw.title.getCurrentTitle()
 	local args = frame:getParent().args
-	local page = args[1] or string.gsub(title.fullText, '/[Dd]o[ck]u?$', '')
-	local ret, cats, ret1, ret2, ret3
-	local pageType = title.namespace == 828 and 'module' or 'template'
-	local sourceLines = sources(args, pageType, title.rootText, page)
+	local page = args[1] or (title.fullText:gsub('/[Dd]o[ck]u?$', ''))
+	local kind = title.namespace == NS_MODULE and 'module' or 'template'
+	local onDoc = title.subpageText == 'doc'
 
-	-- subpage header
-	if title.subpageText == 'doc' then
-		ret = mbox(
-			translate('message_subpage_title', page),
-			translate('message_subpage_desc', page, translate(pageType)),
-			{ icon = 'WikimediaUI-Notice.svg' }
-		)
+	-- Left open on purpose: {{Documentation}} sits at the top of the /doc page,
+	-- and the wrapper holds the rest of it until the parser closes it at the end.
+	local out = { '<div class="t-documentation' .. (args.git and ' t-documentation--git' or '') .. '">' }
+	out[#out + 1] = frame:extensionTag({ name = 'templatestyles', args = { src = 'Module:Icon/styles.css' } })
+	out[#out + 1] = frame:extensionTag({ name = 'templatestyles', args = { src = 'Module:Documentation/styles.css' } })
 
-		if title.namespace == 10 or title.namespace == 828 then
-			cats = '[[Category:'
-				.. string.format(t('category_documentation'), t('category_' .. pageType))
-				.. '|'
-				.. title.baseText
-				.. ']]'
-			ret2 = technicalDetails({ sources = sourceLines })
-		else
-			cats = ''
-			ret2 = ''
-		end
-
-		return tostring(ret) .. ret2 .. cats
+	if onDoc then
+		out[#out + 1] = header('Documentation subpage', 'Shown on [[' .. page .. ']]', {
+			action({ label = 'Back to the ' .. kind, icon = ICONS.back, link = page }),
+		})
+	else
+		local doc = page .. '/doc'
+		out[#out + 1] =
+			header(kind == 'module' and 'Module documentation' or 'Template documentation', 'From [[' .. doc .. ']]', {
+				action({ label = 'Edit', icon = ICONS.edit, url = tostring(mw.uri.fullUrl(doc, { action = 'edit' })) }),
+				action({
+					label = 'History',
+					icon = ICONS.history,
+					url = tostring(mw.uri.fullUrl(doc, { action = 'history' })),
+				}),
+				action({
+					label = 'Purge',
+					icon = ICONS.purge,
+					url = tostring(mw.uri.fullUrl(title.fullText, { action = 'purge' })),
+				}),
+			})
 	end
 
-	-- template header
-	-- don't use mw.html as we aren't closing the main div tag
-	ret1 = '<div class="documentation">'
-
-	ret2 = mw.html
-		.create(nil)
-		:tag('div')
-		:addClass('documentation-header')
-		:tag('span')
-		:addClass('documentation-title')
-		:wikitext(lang:ucfirst(translate('message_documentation_title', pageType)))
-		:done()
-		:tag('span')
-		:addClass('documentation-links plainlinks')
-		:wikitext(
-			'[['
-				.. tostring(mw.uri.fullUrl(page .. '/doc', { action = 'view' }))
-				.. ' view]]'
-				.. '[['
-				.. tostring(mw.uri.fullUrl(page .. '/doc', { action = 'edit' }))
-				.. ' edit]]'
-				.. '[['
-				.. tostring(mw.uri.fullUrl(page .. '/doc', { action = 'history' }))
-				.. ' history]]'
-				.. '[<span class="jsPurgeLink">['
-				.. tostring(mw.uri.fullUrl(title.fullText, { action = 'purge' }))
-				.. ' purge]</span>]'
-		)
-		:done()
-		:done()
-		:tag('div')
-		:addClass('documentation-subheader')
-		:tag('span')
-		:addClass('documentation-documentation')
-		:wikitext(translate('message_transclude_desc', page))
-		:done()
-		:wikitext(frame:extensionTag({ name = 'templatestyles', args = { src = 'Module:Documentation/styles.css' } }))
-		:done()
-
-	ret3 = {}
-
-	if args.fromWikipedia then
-		table.insert(
-			ret3,
-			'[[Category:' .. string.format(t('category_imported_from_wikipedia'), lang:ucfirst(pageType)) .. ']]'
-		)
-	end
-
-	if title.namespace == 828 then
-		-- Testcase page
-		if title.subpageText == 'testcases' then
-			table.insert(
-				ret3,
-				hatnote(translate('message_module_tests', title.baseText), { icon = 'WikimediaUI-LabFlask.svg' })
+	local notices = mw.html.create('div'):addClass('t-documentation__notices')
+	if not onDoc and title.namespace == NS_MODULE and title.subpageText == 'testcases' then
+		notices:wikitext(
+			hatnote(
+				'This is the test cases page for the module [[Module:' .. title.baseText .. ']].',
+				{ icon = 'WikimediaUI-LabFlask.svg' }
 			)
-		end
+		)
+	end
+	notices:wikitext(technicalDetails({
+		addCategories = (not onDoc) and args.category or nil,
+		sources = sources(args, kind, title.rootText, page),
+	}))
+	out[#out + 1] = tostring(notices)
 
-		table.insert(ret3, string.format('[[Category:%s]]', t('category_module')))
+	if title.namespace == NS_TEMPLATE or title.namespace == NS_MODULE then
+		out[#out + 1] = categories(kind, onDoc, title.baseText, importOrigin(args, page) ~= nil)
 	end
 
-	table.insert(ret3, technicalDetails({ addCategories = args.category, sources = sourceLines }))
-
-	if title.namespace == 828 then
-		-- Unit tests
-		local testcaseTitle = title.text .. '/testcases'
-		if mw.title.new(testcaseTitle, 'Module').exists then
-			-- There is probably a better way :P
-			table.insert(ret3, frame:preprocess('{{#invoke:' .. testcaseTitle .. '|run}}'))
+	if not onDoc and title.namespace == NS_MODULE then
+		local testcases = title.text .. '/testcases'
+		if mw.title.new(testcases, 'Module').exists then
+			out[#out + 1] = frame:preprocess('{{#invoke:' .. testcases .. '|run}}')
 		end
 	end
 
-	return ret1 .. tostring(ret2) .. '<div class="documentation-content">' .. table.concat(ret3) .. '</div>'
+	return table.concat(out)
 end
 
-return p
+-- Test-only exports. Not part of the public API.
+p._internal = {
+	categories = categories,
+	linkText = linkText,
+	sources = sources,
+}
 
+return p
 -- </nowiki>

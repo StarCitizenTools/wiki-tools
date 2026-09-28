@@ -2,7 +2,7 @@
 
 Lists the functions a Lua module defines and the line each starts on.
 
-[Module:Dependencies](https://starcitizen.tools/Module:Dependencies) requires it for the Functions row of the Technical details panel. Imported from [Module:Module toc](https://runescape.wiki/w/Module:Module_toc) on the RuneScape Wiki.
+[Module:Dependencies](https://starcitizen.tools/Module:Dependencies) requires it for the Functions row of the Technical details panel.
 
 ## For module editors
 

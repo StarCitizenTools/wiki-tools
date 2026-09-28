@@ -2,7 +2,7 @@
 
 Renders a [Codex](https://doc.wikimedia.org/codex/latest/components/demos/button.html) button as a link: a fake-button `<span>` wrapping a wikilink or external link, with optional icon, action, weight, and size variants.
 
-Required by [Module:CardLua](https://starcitizen.tools/Module:CardLua), [Module:Mainpage/Community](https://starcitizen.tools/Module:Mainpage/Community), [Module:Mainpage/Editing](https://starcitizen.tools/Module:Mainpage/Editing), [Module:Entity/Infobox](https://starcitizen.tools/Module:Entity/Infobox), and [Module:Company](https://starcitizen.tools/Module:Company); not invoked from templates.
+Required by [Module:CardLua](https://starcitizen.tools/Module:CardLua), [Module:Mainpage/Community](https://starcitizen.tools/Module:Mainpage/Community), [Module:Mainpage/Editing](https://starcitizen.tools/Module:Mainpage/Editing), [Module:Entity/Infobox](https://starcitizen.tools/Module:Entity/Infobox), [Module:Company](https://starcitizen.tools/Module:Company), and [Module:Documentation](https://starcitizen.tools/Module:Documentation); not invoked from templates.
 
 ## For module editors
 

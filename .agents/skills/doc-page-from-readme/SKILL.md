@@ -85,9 +85,11 @@ Build the documentation template invocation:
 
 - Always include `git=true`.
 - If `moduleMeta.origin == "wikipedia"` (modules only), add `fromWikipedia=true`.
+- If `moduleMeta.importedFrom` is set (modules only; a wikitext link to the original page), add `importedFrom=<value>`.
 - Examples:
   - `{{documentation|git=true}}` (default)
   - `{{documentation|git=true|fromWikipedia=true}}` (Wikipedia-imported module)
+  - `{{documentation|git=true|importedFrom=[https://runescape.wiki/w/Module:Module_toc RuneScape Wiki]}}` (module imported from another wiki)
 
 Prepend this template followed by a single blank line. Don't add it twice if the README already contains `{{documentation` somewhere — instead, halt with an error so the caller can investigate.
 

@@ -1,49 +1,87 @@
-.documentation {
-    margin-top: var( --space-md );
-    padding-top: var( --space-md );
-    border-top: var( --border-base );
+/* Markup comes from Module:Documentation. */
+
+/* The wrapper holds the whole /doc page, so its border is the rule where the doc ends. */
+.t-documentation {
+	margin-top: var(--space-md);
+	padding-bottom: var(--space-xl);
+	border-bottom: var(--border-base);
 }
 
-.documentation-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
+/* On a module page, Scribunto's doc message ends the doc with an <hr>, which lands inside the wrapper. */
+.t-documentation > hr:last-child {
+	display: none;
 }
 
-.documentation-header,
-.documentation-subheader {
-    line-height: 1.25;
+.t-documentation__header {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--space-xs) var(--space-md);
+	padding: var(--space-sm);
+	background-color: var(--color-surface-1);
+	border: var(--border-base);
+	border-radius: var(--border-radius-medium);
 }
 
-.documentation-title {
-    color: var( --color-emphasized );
-    font-size: var( --font-size-large );
-    font-weight: var( --font-weight-semi-bold );
+.t-documentation__icon {
+	display: flex;
+	flex-shrink: 0;
+	align-items: center;
+	justify-content: center;
+	width: 2.25rem;
+	height: 2.25rem;
+	border-radius: var(--border-radius-base);
+	background-color: var(--color-surface-2);
+	color: var(--color-emphasized);
 }
 
-.documentation-links {
-    font-family: var( --font-family-monospace );
+.t-documentation__heading {
+	flex-grow: 1;
+	min-width: 0;
 }
 
-.documentation-subheader {
-    color: var( --color-subtle );
-    font-size: var( --font-size-small );
+.t-documentation__title {
+	color: var(--color-emphasized);
+	font-size: var(--font-size-medium);
+	font-weight: var(--font-weight-medium);
+	line-height: var(--line-height-medium);
 }
 
-.documentation-content {
-    margin-block: var( --space-xl );
+.t-documentation__subtitle {
+	color: var(--color-subtle);
+	font-size: var(--font-size-small);
+	line-height: var(--line-height-small);
 }
 
-.documentation-modulestats {
-    padding: var( --space-xxs );
-    background: var( --color-surface-1 );
-    border-radius: var( --border-radius-medium );
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+.t-documentation__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-xxs);
 }
 
-.documentation-modulestats > * {
-    margin: 0 !important;
+.t-documentation__notices {
+	display: flow-root;
+	margin-bottom: var(--space-md);
+}
+
+/* A git= doc is converted from a README whose first paragraph is also the
+   TemplateData description, so TemplateData would show it a second time. */
+.t-documentation--git .mw-templatedata-doc-desc {
+	display: none;
+}
+
+/* A phone puts the actions on their own row under the title, where each
+   stretches to share its width, a larger tap target. */
+@media ( max-width: 639px ) {
+	.t-documentation__actions {
+		flex-basis: 100%;
+	}
+
+	.t-documentation__action,
+	.t-documentation__action > .t-button,
+	.t-documentation__action a,
+	.t-documentation__action .cdx-button {
+		display: flex;
+		flex-grow: 1;
+	}
 }

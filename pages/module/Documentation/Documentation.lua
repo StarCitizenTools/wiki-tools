@@ -9,6 +9,7 @@ require('strict')
 local button = require('Module:ButtonLua')
 local hatnote = require('Module:Hatnote')._hatnote
 local icon = require('Module:Icon')
+local yesno = require('Module:Yesno')
 
 local p = {}
 
@@ -23,6 +24,12 @@ local ICONS = {
 	purge = 'CdxIconReload.svg',
 	back = 'CdxIconArrowPrevious.svg',
 }
+
+--- @param value string|nil a {{Documentation}} flag such as `git=`
+--- @return boolean
+local function isOn(value)
+	return yesno(value) == true
+end
 
 --- The visible text of a wikitext link, for the panel's plain-text facts.
 --- @param wikitext string
@@ -43,7 +50,7 @@ local function importOrigin(args, page)
 	if args.importedFrom and args.importedFrom ~= '' then
 		return args.importedFrom
 	end
-	if args.fromWikipedia then
+	if isOn(args.fromWikipedia) then
 		return '[' .. WIKIPEDIA_URL .. mw.uri.encode(page, 'WIKI') .. ' Wikipedia]'
 	end
 	return nil
@@ -58,13 +65,14 @@ end
 --- @return table[] DependenciesSource[]
 local function sources(args, kind, rootText, page)
 	local list = {}
-	if args.git then
+	if isOn(args.git) then
 		local url = REPO_URL .. kind .. '/' .. mw.uri.encode(rootText, 'PATH')
 		list[#list + 1] = { label = 'wiki-tools', text = 'Synced with [' .. url .. ' wiki-tools] on GitHub' }
 	end
 	local origin = importOrigin(args, page)
 	if origin then
-		list[#list + 1] = { label = 'from ' .. linkText(origin), text = 'Imported from ' .. origin }
+		-- The label goes in the panel's <summary>, which must hold no link: a bare URL would autolink.
+		list[#list + 1] = { label = 'from ' .. mw.text.nowiki(linkText(origin)), text = 'Imported from ' .. origin }
 	end
 	return list
 end
@@ -89,20 +97,14 @@ local function categories(kind, onDoc, baseText, imported)
 	return table.concat(out)
 end
 
---- A quiet icon-only header button. ButtonLua puts the label in aria-label,
---- which no browser shows, so the wrapper's title gives mouse users a tooltip.
---- @param props table ButtonProps: label, icon, and link or url
+--- A quiet icon-only header button. ButtonLua names it with aria-label; the
+--- wrapper is what the phone layout stretches.
+--- @param props table ButtonProps: label, icon and link
 --- @return string
 local function action(props)
 	props.weight = 'quiet'
 	props.iconOnly = true
-	return tostring(
-		mw.html
-			.create('span')
-			:addClass('t-documentation__action')
-			:attr('title', props.label)
-			:wikitext(button.render(props))
-	)
+	return tostring(mw.html.create('span'):addClass('t-documentation__action'):wikitext(button.render(props)))
 end
 
 --- @param title string
@@ -146,13 +148,16 @@ end
 function p.doc(frame)
 	local title = mw.title.getCurrentTitle()
 	local args = frame:getParent().args
-	local page = args[1] or (title.fullText:gsub('/[Dd]o[ck]u?$', ''))
+	local page = args[1]
+	if page == nil or page == '' then
+		page = title.fullText:gsub('/[Dd]o[ck]u?$', '')
+	end
 	local kind = title.namespace == NS_MODULE and 'module' or 'template'
 	local onDoc = title.subpageText == 'doc'
 
 	-- Left open on purpose: {{Documentation}} sits at the top of the /doc page,
 	-- and the wrapper holds the rest of it until the parser closes it at the end.
-	local out = { '<div class="t-documentation' .. (args.git and ' t-documentation--git' or '') .. '">' }
+	local out = { '<div class="t-documentation' .. (isOn(args.git) and ' t-documentation--git' or '') .. '">' }
 	out[#out + 1] = frame:extensionTag({ name = 'templatestyles', args = { src = 'Module:Icon/styles.css' } })
 	out[#out + 1] = frame:extensionTag({ name = 'templatestyles', args = { src = 'Module:Documentation/styles.css' } })
 
@@ -164,17 +169,9 @@ function p.doc(frame)
 		local doc = page .. '/doc'
 		out[#out + 1] =
 			header(kind == 'module' and 'Module documentation' or 'Template documentation', 'From [[' .. doc .. ']]', {
-				action({ label = 'Edit', icon = ICONS.edit, url = tostring(mw.uri.fullUrl(doc, { action = 'edit' })) }),
-				action({
-					label = 'History',
-					icon = ICONS.history,
-					url = tostring(mw.uri.fullUrl(doc, { action = 'history' })),
-				}),
-				action({
-					label = 'Purge',
-					icon = ICONS.purge,
-					url = tostring(mw.uri.fullUrl(title.fullText, { action = 'purge' })),
-				}),
+				action({ label = 'Edit', icon = ICONS.edit, link = 'Special:EditPage/' .. doc }),
+				action({ label = 'History', icon = ICONS.history, link = 'Special:PageHistory/' .. doc }),
+				action({ label = 'Purge', icon = ICONS.purge, link = 'Special:Purge/' .. title.fullText }),
 			})
 	end
 

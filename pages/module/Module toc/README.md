@@ -2,14 +2,13 @@
 
 Lists the functions a Lua module defines and the line each starts on.
 
-[Module:Documentation](https://starcitizen.tools/Module:Documentation) requires it for the Function list table on module pages. Imported from [Module:Module toc](https://runescape.wiki/w/Module:Module_toc) on the RuneScape Wiki.
+[Module:Dependencies](https://starcitizen.tools/Module:Dependencies) requires it for the Functions row of the Technical details panel. Imported from [Module:Module toc](https://runescape.wiki/w/Module:Module_toc) on the RuneScape Wiki.
 
 ## For module editors
 
 ### API
 
 - `functions(content) → { name, line }[]`: the functions the Lua source `content` declares with `function name(` or assigns with `name = function(`, in line order.
-- `main() → string`: the same list for the current module, or the module a `/doc` documents, as a collapsed Function list table linking each function to its line.
 
 ### Gotchas
 

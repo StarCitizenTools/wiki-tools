@@ -29,14 +29,41 @@ local function translate(key, ...)
 	return translation
 end
 
+--- The Source row lines of the Technical details panel: where the page is
+--- maintained (`git=`) and where it came from (`fromWikipedia=`).
+--- @param args table the {{Documentation}} arguments
+--- @param pageType string 'module' or 'template'
+--- @param rootText string
+--- @param page string the documented page
+--- @return table[] DependenciesSource[]
+local function sources(args, pageType, rootText, page)
+	local list = {}
+	if args.git then
+		local repoUrl = 'https://github.com/StarCitizenTools/wiki-tools/tree/main/pages/'
+			.. pageType
+			.. '/'
+			.. mw.uri.encode(rootText, 'PATH')
+		list[#list + 1] = {
+			label = 'wiki-tools',
+			text = 'Synced with [' .. repoUrl .. ' wiki-tools] on GitHub',
+		}
+	end
+	if args.fromWikipedia then
+		list[#list + 1] = {
+			label = 'from Wikipedia',
+			text = 'Imported from [https://en.wikipedia.org/wiki/' .. mw.uri.encode(page, 'WIKI') .. ' Wikipedia]',
+		}
+	end
+	return list
+end
+
 --- A failure in Module:Dependencies, or a module it requires, must not break
 --- every documentation page: require and render it inside a pcall.
---- @param pageName string|nil
---- @param addCategories boolean|string|nil
+--- @param options table DependenciesPanelOptions
 --- @return string
-local function dependencyNotices(pageName, addCategories)
+local function technicalDetails(options)
 	local ok, result = pcall(function()
-		return require('Module:Dependencies')._main(pageName, addCategories)
+		return require('Module:Dependencies').panel(options)
 	end)
 	if ok then
 		return result
@@ -50,6 +77,7 @@ function p.doc(frame)
 	local page = args[1] or string.gsub(title.fullText, '/[Dd]o[ck]u?$', '')
 	local ret, cats, ret1, ret2, ret3
 	local pageType = title.namespace == 828 and 'module' or 'template'
+	local sourceLines = sources(args, pageType, title.rootText, page)
 
 	-- subpage header
 	if title.subpageText == 'doc' then
@@ -59,21 +87,13 @@ function p.doc(frame)
 			{ icon = 'WikimediaUI-Notice.svg' }
 		)
 
-		if title.namespace == 10 then -- Template namespace
+		if title.namespace == 10 or title.namespace == 828 then
 			cats = '[[Category:'
 				.. string.format(t('category_documentation'), t('category_' .. pageType))
 				.. '|'
 				.. title.baseText
 				.. ']]'
-			ret2 = dependencyNotices()
-		elseif title.namespace == 828 then -- Module namespace
-			cats = '[[Category:'
-				.. string.format(t('category_documentation'), t('category_' .. pageType))
-				.. '|'
-				.. title.baseText
-				.. ']]'
-			ret2 = dependencyNotices()
-			ret2 = ret2 .. require('Module:Module toc').main()
+			ret2 = technicalDetails({ sources = sourceLines })
 		else
 			cats = ''
 			ret2 = ''
@@ -123,34 +143,7 @@ function p.doc(frame)
 
 	ret3 = {}
 
-	if args.git then
-		local repoUrl = 'https://github.com/StarCitizenTools/wiki-tools/tree/main/pages/'
-			.. pageType
-			.. '/'
-			.. mw.uri.encode(title.rootText, 'PATH')
-
-		table.insert(
-			ret3,
-			mbox(
-				"'''" .. page .. "''' is maintained in the [" .. repoUrl .. ' wiki-tools] repository on GitHub.',
-				'This '
-					.. pageType
-					.. ' is synced from the Git repository. Any on-wiki changes should also be made in GitHub, otherwise they may be overwritten on the next deployment.',
-				{ icon = 'WikimediaUI-Code.svg' }
-			)
-		)
-	end
-
 	if args.fromWikipedia then
-		table.insert(
-			ret3,
-			mbox(
-				translate('message_from_wikipedia', title.fullText, mw.uri.encode(page, 'WIKI'), page),
-				translate('message_from_wikipedia_subtext', pageType),
-				{ icon = 'WikimediaUI-Logo-Wikipedia.svg' }
-			)
-		)
-		--- Set category
 		table.insert(
 			ret3,
 			'[[Category:' .. string.format(t('category_imported_from_wikipedia'), lang:ucfirst(pageType)) .. ']]'
@@ -169,14 +162,9 @@ function p.doc(frame)
 		table.insert(ret3, string.format('[[Category:%s]]', t('category_module')))
 	end
 
-	--- Dependency list
-	table.insert(ret3, dependencyNotices(nil, args.category))
+	table.insert(ret3, technicalDetails({ addCategories = args.category, sources = sourceLines }))
 
-	--- Module stats bar
 	if title.namespace == 828 then
-		-- Function list
-		table.insert(ret3, require('Module:Module toc').main())
-
 		-- Unit tests
 		local testcaseTitle = title.text .. '/testcases'
 		if mw.title.new(testcaseTitle, 'Module').exists then

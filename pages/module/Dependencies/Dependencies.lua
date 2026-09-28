@@ -1,13 +1,15 @@
 require('strict')
 
 --- @module Dependencies
---- The dependency notices Module:Documentation shows on module and template
---- pages, and the `dependencies` Bucket row each page writes so the modules and
---- stylesheets it uses can list it. Forward lists come from the page's own
---- source; reverse lists come from the rows other pages wrote.
+--- The folded "Technical details" panel Module:Documentation shows on module and
+--- template pages: which pages use the page, what it uses, and the functions a
+--- module defines; and the `dependencies` Bucket row each page writes so the
+--- modules and stylesheets it uses can list it. Forward lists come from the
+--- page's own source; reverse lists come from the rows other pages wrote.
 
 local parse = require('Module:Dependencies/Parse')
 local mbox = require('Module:Mbox')
+local icon = require('Module:Icon')
 local yesno = require('Module:Yesno')
 
 local p = {}
@@ -15,33 +17,49 @@ local p = {}
 local BUCKET = 'dependencies'
 local NS_TEMPLATE = 10
 local NS_MODULE = 828
---- A list longer than this renders as a box with the list in its body.
-local INLINE_LIMIT = 5
+local HEADING = 'Technical details'
 local ICON = 'WikimediaUI-Code.svg'
-local ICON_UNUSED = 'WikimediaUI-Alert.svg'
-
---- Short form (inline list) and long form (count) of each notice.
-local MESSAGES = {
-	invokes = { '%s invokes %s.', '%s invokes %d functions.' },
-	requires = { '%s requires %s.', '%s requires %d modules.' },
-	loads = { '%s loads data from %s.', '%s loads data from %d modules.' },
-	invokedBy = { '%s is invoked by %s.', '%s is invoked by %d templates.' },
-	requiredBy = { '%s is required by %s.', '%s is required by %d modules.' },
-	loadedBy = { '%s is loaded by %s.', '%s is loaded by %d modules.' },
-	styles = { '%s uses styles from %s.', '%s uses styles from %d stylesheets.' },
-	styledBy = { '%s is used by %s.', '%s is used by %d pages.' },
-	styledByAlso = { '%s is also used by %s.', '%s is also used by %d pages.' },
+local ROW_ICONS = {
+	source = 'CdxIconReference.svg',
+	usedBy = 'CdxIconArrowPrevious.svg',
+	uses = 'CdxIconArrowNext.svg',
+	functions = 'CdxIconFunction.svg',
 }
 
 local UNUSED_TEXT = 'No template invokes it and no module requires or loads it. '
 	.. 'If an article invokes it directly, call it through a template instead.'
+local UNAVAILABLE_TEXT = 'Unavailable: looking up the pages that use it failed on this render. '
+	.. 'Purge the page to retry.'
 
 --- @class DependenciesContext
 --- @field title string the documented page, e.g. `Module:Mbox`
+--- @field prefix string its namespace with the colon, e.g. `Module:`
 --- @field namespace integer
 --- @field content string|nil its source
 --- @field isCurrent boolean the render is the page itself, not its /doc or another page
 --- @field excluded boolean a sandbox or testcases page, whose dependencies are not real usage
+
+--- @class DependenciesGroup
+--- @field label string e.g. `Required by`
+--- @field items string[] wikitext, one per list item
+--- @field note string|nil wikitext under the list
+
+--- @class DependenciesReport
+--- @field usedBy DependenciesGroup[]|nil nil when the reverse lookup failed
+--- @field uses DependenciesGroup[]
+--- @field usedByCount integer distinct pages across `usedBy`
+--- @field usesCount integer entries across `uses`
+--- @field unused boolean a module nothing invokes, requires or loads
+--- @field functions ModuleTocFunction[]
+
+--- @class DependenciesSource
+--- @field label string plain text for the folded header, e.g. `wiki-tools`
+--- @field text string wikitext, one line of the Source row
+
+--- @class DependenciesPanelOptions
+--- @field page string|nil the page to describe; default the current page, or the page a /doc documents
+--- @field addCategories boolean|string|nil defaults to true except on a /doc render
+--- @field sources DependenciesSource[]|nil
 
 --- @param title table mw.title
 --- @return boolean
@@ -66,6 +84,7 @@ local function context(pageName)
 	end
 	return {
 		title = target.prefixedText,
+		prefix = target.prefixedText:match('^[^:]+:'),
 		namespace = target.namespace,
 		content = target:getContent(),
 		isCurrent = current.prefixedText == target.prefixedText,
@@ -162,10 +181,12 @@ local function group(rows, title)
 		local page = row.page_name
 		if page and page ~= title then
 			if contains(row.invokes, title) then
-				local funcs = {}
+				local funcs, seen = {}, {}
 				for _, call in ipairs(type(row.invoke_calls) == 'table' and row.invoke_calls or {}) do
-					if call:sub(1, #prefix) == prefix then
-						funcs[#funcs + 1] = call:sub(#prefix + 1)
+					local func = call:sub(1, #prefix) == prefix and call:sub(#prefix + 1) or nil
+					if func and not seen[func] then
+						seen[func] = true
+						funcs[#funcs + 1] = func
 					end
 				end
 				back.invokedBy[#back.invokedBy + 1] = { page = page, funcs = funcs }
@@ -217,172 +238,359 @@ local function reverse(title)
 	return group(rows, title)
 end
 
---- @param kind string a MESSAGES key
---- @param page string
---- @param items string[]
---- @return string
-local function notice(kind, page, items)
-	if items[1] == nil then
-		return ''
-	end
-	local message = MESSAGES[kind]
-	if #items <= INLINE_LIMIT then
-		return mbox.render({ title = string.format(message[1], page, mw.text.listToText(items)), icon = ICON })
-	end
-	return mbox.render({
-		title = string.format(message[2], page, #items),
-		text = '* ' .. table.concat(items, '\n* '),
-		icon = ICON,
-	})
-end
-
---- @param page string
---- @return string
-local function link(page)
-	return '[[' .. page .. ']]'
-end
-
 --- @param text string
 --- @return string
 local function code(text)
 	return '<code>' .. mw.text.nowiki(text) .. '</code>'
 end
 
---- @param pages string[]
+--- A link to `name` as a row shows it: one of the documented page's own subpages
+--- relative (`/styles.css`), otherwise without `prefix`, the namespace the row
+--- already implies.
+--- @param name string
+--- @param ctx DependenciesContext
+--- @param prefix string
+--- @return string
+local function link(name, ctx, prefix)
+	local own = ctx.title .. '/'
+	local text = name
+	if name:sub(1, #own) == own then
+		text = name:sub(#own)
+	elseif name:sub(1, #prefix) == prefix then
+		text = name:sub(#prefix + 1)
+	end
+	if text == name then
+		return '[[' .. name .. ']]'
+	end
+	return '[[' .. name .. '|' .. text .. ']]'
+end
+
+--- @param names string[]
+--- @param ctx DependenciesContext
+--- @param prefix string
 --- @return string[]
-local function links(pages)
+local function links(names, ctx, prefix)
 	local items = {}
-	for i, page in ipairs(pages) do
-		items[i] = link(page)
+	for i, name in ipairs(names) do
+		items[i] = link(name, ctx, prefix)
 	end
 	return items
 end
 
---- The pages that load `title`'s own `/styles.css`, worded by whether `title` loads it too.
+--- The templates that invoke the page, each with the functions it calls. When
+--- every one calls the same single function, the note names it once instead.
+--- @param entries { page: string, funcs: string[] }[]
 --- @param ctx DependenciesContext
---- @param found table
---- @param back table|nil
---- @return string
-local function stylesheetUsers(ctx, found, back)
-	if back == nil then
-		return ''
+--- @return string[] items
+--- @return string|nil note
+local function invokers(entries, ctx)
+	local shared = entries[1] and entries[1].funcs[1]
+	for _, entry in ipairs(entries) do
+		if #entry.funcs ~= 1 or entry.funcs[1] ~= shared then
+			shared = nil
+			break
+		end
 	end
-	local stylesheet = ctx.title .. '/styles.css'
-	local kind = contains(found.styles, stylesheet) and 'styledByAlso' or 'styledBy'
-	return notice(kind, link(stylesheet), links(back.styledBy))
+	local items = {}
+	for i, entry in ipairs(entries) do
+		items[i] = link(entry.page, ctx, 'Template:')
+		if shared == nil and entry.funcs[1] ~= nil then
+			local funcs = {}
+			for j, func in ipairs(entry.funcs) do
+				funcs[j] = code(func)
+			end
+			items[i] = items[i] .. ' (' .. table.concat(funcs, ', ') .. ')'
+		end
+	end
+	if shared == nil then
+		return items, nil
+	end
+	return items, (#entries > 1 and 'All via ' or 'Via ') .. code(shared)
+end
+
+--- @param into DependenciesGroup[]
+--- @param label string
+--- @param items string[]
+--- @param note string|nil
+local function addGroup(into, label, items, note)
+	if items[1] ~= nil then
+		into[#into + 1] = { label = label, items = items, note = note }
+	end
+end
+
+--- @param back table
+--- @return integer
+local function countPages(back)
+	local seen, count = {}, 0
+	local function add(page)
+		if not seen[page] then
+			seen[page] = true
+			count = count + 1
+		end
+	end
+	for _, entry in ipairs(back.invokedBy) do
+		add(entry.page)
+	end
+	for _, key in ipairs({ 'requiredBy', 'loadedBy', 'styledBy' }) do
+		for _, page in ipairs(back[key]) do
+			add(page)
+		end
+	end
+	return count
+end
+
+--- What the panel shows for the page, before any markup.
+--- @param ctx DependenciesContext
+--- @param found table forward()'s result
+--- @param back table|nil reverse()'s result; nil when the lookup failed
+--- @return DependenciesReport
+local function report(ctx, found, back)
+	local uses, usesCount = {}, 0
+	if ctx.namespace == NS_TEMPLATE then
+		local calls = {}
+		for i, call in ipairs(found.invokes) do
+			calls[i] = code(call.func) .. ' in [[' .. call.module .. ']]'
+		end
+		addGroup(uses, 'Invokes', calls)
+		usesCount = #calls
+	else
+		local requires = links(found.requires, ctx, 'Module:')
+		for _, pattern in ipairs(found.dynamic) do
+			requires[#requires + 1] = code(pattern)
+		end
+		addGroup(uses, 'Requires', requires)
+		addGroup(uses, 'Loads', links(found.loads, ctx, 'Module:'))
+		usesCount = #requires + #found.loads
+	end
+	addGroup(uses, 'Styles', links(found.styles, ctx, ctx.prefix))
+	usesCount = usesCount + #found.styles
+
+	local result = {
+		uses = uses,
+		usesCount = usesCount,
+		usedByCount = 0,
+		unused = false,
+		functions = {},
+	}
+	if back ~= nil then
+		local usedBy = {}
+		local items, note = invokers(back.invokedBy, ctx)
+		addGroup(usedBy, 'Invoked by', items, note)
+		addGroup(usedBy, 'Required by', links(back.requiredBy, ctx, 'Module:'))
+		addGroup(usedBy, 'Loaded by', links(back.loadedBy, ctx, 'Module:'))
+		addGroup(usedBy, 'Styles used by', links(back.styledBy, ctx, ctx.prefix))
+		result.usedBy = usedBy
+		result.usedByCount = countPages(back)
+		result.unused = ctx.namespace == NS_MODULE
+			and not ctx.excluded
+			and back.invokedBy[1] == nil
+			and back.requiredBy[1] == nil
+			and back.loadedBy[1] == nil
+	end
+	if ctx.namespace == NS_MODULE then
+		-- Required here, not at the top: every page records the modules it loads
+		-- and re-parses when one changes, and template pages never need this one.
+		result.functions = require('Module:Module toc').functions(ctx.content)
+	end
+	return result
 end
 
 --- @param ctx DependenciesContext
 --- @param found table
---- @param back table|nil nil when the reverse lookup failed
---- @param options { categories: boolean }
+--- @param result DependenciesReport
 --- @return string
-local function render(ctx, found, back, options)
+local function categories(ctx, found, result)
 	local out = {}
-	local function add(text)
-		if text ~= '' then
-			out[#out + 1] = text
-		end
+	if ctx.namespace == NS_TEMPLATE and found.invokes[1] ~= nil then
+		out[#out + 1] = '[[Category:Lua-based templates]]'
 	end
-
-	if ctx.namespace == NS_TEMPLATE then
-		local calls = {}
-		for _, call in ipairs(found.invokes) do
-			calls[#calls + 1] = code(call.func) .. ' in ' .. link(call.module)
-		end
-		add(notice('invokes', ctx.title, calls))
-		add(notice('styles', ctx.title, links(found.styles)))
-		add(stylesheetUsers(ctx, found, back))
-		if options.categories and calls[1] ~= nil then
-			add('[[Category:Lua-based templates]]')
-		end
-		return table.concat(out)
+	if ctx.namespace == NS_MODULE and found.strict then
+		out[#out + 1] = '[[Category:Strict mode modules]]'
 	end
-
-	local unused = back ~= nil
-		and back.invokedBy[1] == nil
-		and back.requiredBy[1] == nil
-		and back.loadedBy[1] == nil
-		and not ctx.excluded
-	if unused then
-		add(mbox.render({ type = 'warning', icon = ICON_UNUSED, title = 'This module is unused.', text = UNUSED_TEXT }))
-	end
-
-	local requires = {}
-	for _, name in ipairs(found.requires) do
-		requires[#requires + 1] = link(name)
-	end
-	for _, pattern in ipairs(found.dynamic) do
-		requires[#requires + 1] = code(pattern)
-	end
-	add(notice('requires', ctx.title, requires))
-
-	add(notice('loads', ctx.title, links(found.loads)))
-	add(notice('styles', ctx.title, links(found.styles)))
-
-	if back ~= nil then
-		local invokedBy = {}
-		for _, entry in ipairs(back.invokedBy) do
-			local funcs = {}
-			for i, func in ipairs(entry.funcs) do
-				funcs[i] = code(func)
-			end
-			invokedBy[#invokedBy + 1] = link(entry.page)
-				.. (funcs[1] and (' (' .. table.concat(funcs, ', ') .. ')') or '')
-		end
-		add(notice('invokedBy', ctx.title, invokedBy))
-		add(notice('requiredBy', ctx.title, links(back.requiredBy)))
-		add(notice('loadedBy', ctx.title, links(back.loadedBy)))
-	end
-	add(stylesheetUsers(ctx, found, back))
-
-	if options.categories then
-		if found.strict then
-			add('[[Category:Strict mode modules]]')
-		end
-		if unused then
-			add('[[Category:Unused modules]]')
-		end
+	if result.unused then
+		out[#out + 1] = '[[Category:Unused modules]]'
 	end
 	return table.concat(out)
 end
 
---- The notices for `pageName` (default: the current page, or the page a /doc
---- documents), and that page's row when the render is the page itself.
---- @param pageName string|nil
---- @param addCategories boolean|string|nil defaults to true except on a /doc render
---- @return string
-function p._main(pageName, addCategories)
-	local ctx = context(pageName)
-	if ctx == nil or ctx.content == nil then
-		return ''
-	end
-	local found = forward(ctx)
-	write(ctx, found)
-	local back = reverse(ctx.title)
-	local current = mw.title.getCurrentTitle()
-	local onDoc = current.isSubpage and current.subpageText:lower() == 'doc'
+--- @param addCategories boolean|string|nil
+--- @return boolean
+local function categoriesEnabled(addCategories)
 	-- Yesno's `default` only covers an unrecognised string, not a nil argument
 	-- (a #invoke omitting the parameter, or a Lua caller passing nothing).
-	local categories = yesno(addCategories)
-	if categories == nil then
-		categories = not onDoc
+	local enabled = yesno(addCategories)
+	if enabled == nil then
+		local current = mw.title.getCurrentTitle()
+		return not (current.isSubpage and current.subpageText:lower() == 'doc')
 	end
-	return render(ctx, found, back, {
-		categories = categories == true,
-	})
+	return enabled == true
+end
+
+--- @param items string[]
+--- @param modifier string|nil
+--- @return table mw.html
+local function list(items, modifier)
+	local root = mw.html.create('ul'):addClass('t-dependencies__list')
+	if modifier then
+		root:addClass('t-dependencies__list--' .. modifier)
+	end
+	for _, item in ipairs(items) do
+		root:tag('li'):wikitext(item)
+	end
+	return root
+end
+
+--- @param groups DependenciesGroup[]
+--- @return string
+local function groupsHtml(groups)
+	local root = mw.html.create('div'):addClass('t-dependencies__groups')
+	for _, entry in ipairs(groups) do
+		root:tag('div')
+			:addClass('t-dependencies__sublabel')
+			:wikitext(entry.label)
+			:tag('span')
+			:addClass('t-dependencies__count')
+			:wikitext(#entry.items)
+		local body = root:tag('div'):addClass('t-dependencies__items'):node(list(entry.items))
+		if entry.note then
+			body:tag('div'):addClass('t-dependencies__note'):wikitext(entry.note)
+		end
+	end
+	return tostring(root)
+end
+
+--- @param title string
+--- @param functions ModuleTocFunction[]
+--- @return string
+local function functionsHtml(title, functions)
+	local items = {}
+	for i, func in ipairs(functions) do
+		items[i] = string.format(
+			'[[%s#L-%d|%s]]<span class="t-dependencies__line">L%d</span>',
+			title,
+			func.line,
+			mw.text.nowiki(func.name),
+			func.line
+		)
+	end
+	return tostring(list(items, 'code'))
+end
+
+--- @param label string
+--- @param file string
+--- @param content string wikitext
+--- @param modifier string|nil
+--- @return string
+local function row(label, file, content, modifier)
+	local root = mw.html.create('div'):addClass('t-dependencies__row')
+	if modifier then
+		root:addClass('t-dependencies__row--' .. modifier)
+	end
+	root:tag('div')
+		:addClass('t-dependencies__label')
+		:wikitext(icon.render({ icon = file, mask = true, size = '1em', class = 't-dependencies__icon' }))
+		:wikitext(label)
+	root:tag('div'):addClass('t-dependencies__content'):wikitext(content)
+	return tostring(root)
+end
+
+--- The folded header: the heading, then plain-text facts. It sits inside
+--- <summary>, so it must hold no link.
+--- @param facts string[]
+--- @param unused boolean
+--- @return string
+local function summary(facts, unused)
+	local root = mw.html.create('span'):addClass('t-dependencies__summary')
+	root:tag('span'):addClass('t-dependencies__heading'):wikitext(HEADING)
+	if unused or facts[1] ~= nil then
+		local meta = root:tag('span'):addClass('t-dependencies__meta')
+		if unused then
+			meta:tag('span'):addClass('t-dependencies__chip'):wikitext('Unused')
+		end
+		if facts[1] ~= nil then
+			meta:tag('span'):wikitext(table.concat(facts, ' · '))
+		end
+	end
+	return tostring(root)
+end
+
+--- The panel for `options.page`, followed by its categories. Writes the page's
+--- row when the render is the page itself.
+--- @param options DependenciesPanelOptions|nil
+--- @return string
+function p.panel(options)
+	options = options or {}
+	local rows, facts, unused, cats = {}, {}, false, ''
+	local lines = {}
+	for _, source in ipairs(options.sources or {}) do
+		lines[#lines + 1] = '<div>' .. source.text .. '</div>'
+		facts[#facts + 1] = source.label
+	end
+	if lines[1] ~= nil then
+		rows[#rows + 1] = row('Source', ROW_ICONS.source, table.concat(lines))
+	end
+
+	local ctx = context(options.page)
+	if ctx ~= nil and ctx.content ~= nil then
+		local found = forward(ctx)
+		write(ctx, found)
+		local back = reverse(ctx.title)
+		local result = report(ctx, found, back)
+		unused = result.unused
+		if unused then
+			local content = '<div>' .. UNUSED_TEXT .. '</div>'
+			if result.usedBy[1] ~= nil then
+				content = content .. groupsHtml(result.usedBy)
+			end
+			rows[#rows + 1] = row('Used by', ROW_ICONS.usedBy, content, 'warning')
+		elseif back == nil then
+			if ctx.namespace == NS_MODULE then
+				rows[#rows + 1] = row('Used by', ROW_ICONS.usedBy, UNAVAILABLE_TEXT, 'muted')
+			end
+		elseif result.usedBy[1] ~= nil then
+			rows[#rows + 1] = row('Used by', ROW_ICONS.usedBy, groupsHtml(result.usedBy))
+			facts[#facts + 1] = 'used by ' .. result.usedByCount
+		end
+		if result.uses[1] ~= nil then
+			rows[#rows + 1] = row('Uses', ROW_ICONS.uses, groupsHtml(result.uses))
+			facts[#facts + 1] = 'uses ' .. result.usesCount
+		end
+		if result.functions[1] ~= nil then
+			rows[#rows + 1] = row('Functions', ROW_ICONS.functions, functionsHtml(ctx.title, result.functions))
+		end
+		if categoriesEnabled(options.addCategories) then
+			cats = categories(ctx, found, result)
+		end
+	end
+
+	if rows[1] == nil then
+		return cats
+	end
+	local frame = mw.getCurrentFrame()
+	-- Module:Icon leaves its stylesheet to the caller; the row icons need it.
+	local styles = frame:extensionTag({ name = 'templatestyles', args = { src = 'Module:Icon/styles.css' } })
+		.. frame:extensionTag({ name = 'templatestyles', args = { src = 'Module:Dependencies/styles.css' } })
+	return styles
+		.. mbox.render({
+			title = summary(facts, unused),
+			text = table.concat(rows),
+			icon = ICON,
+			class = 't-dependencies',
+		})
+		.. cats
 end
 
 --- `{{#invoke:Dependencies|main}}`, for MediaWiki:Scribunto-doc-page-does-not-exist.
 --- @param frame table
 --- @return string
 function p.main(frame)
-	return p._main()
+	return p.panel()
 end
 
 -- Test-only exports. Not part of the public API.
 p._internal = {
 	group = group,
+	report = report,
 	rowFor = rowFor,
 }
 

@@ -72,32 +72,5 @@ function p.functions(content)
 	return found
 end
 
---- The collapsed "Function list" table for the current module, or the module a
---- /doc documents.
---- @return string
-function p.main()
-	local title = mw.title.getCurrentTitle()
-	if not title:inNamespaces(828) then
-		return ''
-	end
-	local moduleName = string.gsub(title.fullText, '/[Dd]oc$', '')
-	local content = mw.title.new(moduleName):getContent()
-	if not content then
-		return ''
-	end
-	local found = p.functions(content)
-	if found[1] == nil then
-		return ''
-	end
-	local url = title:fullUrl():gsub('/[Dd]oc$', '')
-	local lines = {}
-	for i, func in ipairs(found) do
-		lines[i] = string.format('L %d &mdash; [%s#L-%d %s]', func.line, url, func.line, func.name)
-	end
-	local tbl = mw.html.create('table'):addClass('wikitable mw-collapsible mw-collapsed')
-	tbl:tag('tr'):tag('th'):wikitext('Function list'):done():tag('tr'):tag('td'):wikitext(table.concat(lines, '<br>'))
-	return tostring(tbl)
-end
-
 return p
 -- </nowiki>

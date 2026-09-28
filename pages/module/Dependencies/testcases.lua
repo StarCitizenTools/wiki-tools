@@ -51,15 +51,56 @@ local function queryChain()
 	end
 end
 
+--- The context report() reads, for a page with no source of its own.
+local function ctxFor(title, namespace, overrides)
+	local ctx = {
+		title = title,
+		prefix = title:match('^[^:]+:'),
+		namespace = namespace,
+		content = '',
+		isCurrent = true,
+		excluded = false,
+	}
+	for key, value in pairs(overrides or {}) do
+		ctx[key] = value
+	end
+	return ctx
+end
+
+--- forward()'s shape for a module, with only the lists given.
+local function moduleFound(lists)
+	local found = { requires = {}, loads = {}, dynamic = {}, styles = {}, invokes = {}, strict = false }
+	for key, value in pairs(lists or {}) do
+		found[key] = value
+	end
+	return found
+end
+
+--- reverse()'s shape, with only the lists given.
+local function back(lists)
+	local result = { invokedBy = {}, requiredBy = {}, loadedBy = {}, styledBy = {} }
+	for key, value in pairs(lists or {}) do
+		result[key] = value
+	end
+	return result
+end
+
+--- The folded header's markup: the text inside <summary>.
+local function summaryOf(html)
+	return html:match('<summary[^>]*>(.-)</summary>') or ''
+end
+
 local MBOX_SRC = "require('strict')\nlocal details = require('Module:Details')\nlocal icon = require('Module:Icon')"
 local OUTDATED_SRC = '{{#invoke:Mbox|main|type=warning}}{{#invoke:Maintenance|record}}'
 local ICON_SRC =
 	"local p = {}\nfunction p.main()\n\treturn mw.getCurrentFrame():extensionTag({ name = 'templatestyles', args = { src = 'Module:Icon/styles.css' } })\nend\nreturn p"
 
+-- The Bucket row
+
 function suite:testModuleWritesItsRow()
 	local mbox = fakeTitle('Module:Mbox', 828, MBOX_SRC)
 	render(mbox, {}, {}, function()
-		dependencies._main()
+		dependencies.panel()
 		self:assertEquals(1, #bucketLib._puts)
 		self:assertEquals('dependencies', bucketLib._puts[1].bucket)
 		self:assertDeepEquals({ 'Module:Details', 'Module:Icon' }, bucketLib._puts[1].data.requires)
@@ -70,7 +111,7 @@ end
 function suite:testTemplateWritesInvokes()
 	local outdated = fakeTitle('Template:Outdated', 10, OUTDATED_SRC)
 	render(outdated, {}, {}, function()
-		dependencies._main()
+		dependencies.panel()
 		local data = bucketLib._puts[1].data
 		self:assertDeepEquals({ 'Module:Maintenance', 'Module:Mbox' }, data.invokes)
 		self:assertDeepEquals({ 'Module:Maintenance|record', 'Module:Mbox|main' }, data.invoke_calls)
@@ -79,7 +120,7 @@ end
 
 function suite:testRowCarriesStylesheets()
 	render(fakeTitle('Module:Icon', 828, ICON_SRC), {}, {}, function()
-		dependencies._main()
+		dependencies.panel()
 		self:assertDeepEquals({ 'Module:Icon/styles.css' }, bucketLib._puts[1].data.styles)
 	end)
 end
@@ -89,7 +130,7 @@ function suite:testDocRenderDoesNotWrite()
 	local doc = fakeTitle('Module:Mbox/doc', 828, 'Docs.')
 	doc.basePageTitle = mbox
 	render(doc, {}, {}, function()
-		dependencies._main()
+		dependencies.panel()
 		self:assertEquals(0, #bucketLib._puts)
 	end)
 end
@@ -97,7 +138,7 @@ end
 function suite:testSandboxAndTestcasesDoNotWrite()
 	for _, name in ipairs({ 'Module:Mbox/sandbox', 'Module:Mbox/testcases', 'Module:Sandbox/User/Mbox' }) do
 		render(fakeTitle(name, 828, MBOX_SRC), {}, {}, function()
-			dependencies._main()
+			dependencies.panel()
 			self:assertEquals(0, #bucketLib._puts, name)
 		end)
 	end
@@ -107,24 +148,24 @@ function suite:testExplicitOtherPageDoesNotWrite()
 	local current = fakeTitle('Module:A', 828, '')
 	local other = fakeTitle('Module:Mbox', 828, MBOX_SRC)
 	render(current, { ['Module:Mbox'] = other }, {}, function()
-		dependencies._main('Module:Mbox')
+		dependencies.panel({ page = 'Module:Mbox' })
 		self:assertEquals(0, #bucketLib._puts)
 	end)
 end
 
 function suite:testNoDependenciesNoRow()
 	render(fakeTitle('Module:Lonely', 828, 'local p = {}\nreturn p'), {}, {}, function()
-		dependencies._main()
+		dependencies.panel()
 		self:assertEquals(0, #bucketLib._puts)
 	end)
 end
 
 function suite:testGroupSplitsDependentsByKind()
-	local back = dependencies._internal.group({
+	local result = dependencies._internal.group({
 		{
 			page_name = 'Template:Outdated',
 			invokes = { 'Module:Mbox' },
-			invoke_calls = { 'Module:Mbox|main', 'Module:Other|x' },
+			invoke_calls = { 'Module:Mbox|main', 'Module:Other|x', 'Module:Mbox|main' },
 		},
 		{ page_name = 'Module:Hatnote', requires = { 'Module:Mbox', 'Module:Icon' } },
 		{ page_name = 'Module:Data user', loads = { 'Module:Mbox' } },
@@ -135,24 +176,130 @@ function suite:testGroupSplitsDependentsByKind()
 			styles = { 'Module:Mbox/styles.css' },
 		},
 	}, 'Module:Mbox')
-	self:assertDeepEquals({ { page = 'Template:Outdated', funcs = { 'main' } } }, back.invokedBy)
-	self:assertDeepEquals({ 'Module:Hatnote' }, back.requiredBy)
-	self:assertDeepEquals({ 'Module:Data user' }, back.loadedBy)
-	self:assertDeepEquals({ 'Module:BadgeLua' }, back.styledBy)
+	self:assertDeepEquals({ { page = 'Template:Outdated', funcs = { 'main' } } }, result.invokedBy)
+	self:assertDeepEquals({ 'Module:Hatnote' }, result.requiredBy)
+	self:assertDeepEquals({ 'Module:Data user' }, result.loadedBy)
+	self:assertDeepEquals({ 'Module:BadgeLua' }, result.styledBy)
 end
 
-function suite:testModulePageListsItsDependents()
+-- The report
+
+function suite:testReportShortensNames()
+	local result = dependencies._internal.report(
+		ctxFor('Module:InfoboxLua', 828),
+		moduleFound({
+			requires = { 'Module:Icon', 'Module:InfoboxLua/ImageResolver' },
+			loads = { 'Module:InfoboxLua/testData.json' },
+			styles = { 'Module:InfoboxLua/styles.css', 'Template:Foo/styles.css' },
+		}),
+		back()
+	)
+	self:assertDeepEquals({
+		{
+			label = 'Requires',
+			items = { '[[Module:Icon|Icon]]', '[[Module:InfoboxLua/ImageResolver|/ImageResolver]]' },
+		},
+		{ label = 'Loads', items = { '[[Module:InfoboxLua/testData.json|/testData.json]]' } },
+		{ label = 'Styles', items = { '[[Module:InfoboxLua/styles.css|/styles.css]]', '[[Template:Foo/styles.css]]' } },
+	}, result.uses)
+	self:assertEquals(5, result.usesCount)
+end
+
+function suite:testReportNamesASharedFunctionOnce()
+	local result = dependencies._internal.report(
+		ctxFor('Module:Mbox', 828),
+		moduleFound(),
+		back({
+			invokedBy = {
+				{ page = 'Template:Removed', funcs = { 'main' } },
+				{ page = 'Template:Stub', funcs = { 'main' } },
+			},
+		})
+	)
+	self:assertDeepEquals({
+		label = 'Invoked by',
+		items = { '[[Template:Removed|Removed]]', '[[Template:Stub|Stub]]' },
+		note = 'All via <code>main</code>',
+	}, result.usedBy[1])
+end
+
+function suite:testReportNamesEachInvokersFunctions()
+	local result = dependencies._internal.report(
+		ctxFor('Module:Mbox', 828),
+		moduleFound(),
+		back({
+			invokedBy = {
+				{ page = 'Template:Outdated', funcs = { 'main' } },
+				{ page = 'Template:Review', funcs = { 'record', 'main' } },
+			},
+		})
+	)
+	self:assertDeepEquals({
+		label = 'Invoked by',
+		items = {
+			'[[Template:Outdated|Outdated]] (<code>main</code>)',
+			'[[Template:Review|Review]] (<code>record</code>, <code>main</code>)',
+		},
+	}, result.usedBy[1])
+end
+
+function suite:testReportCountsDistinctPages()
+	local result = dependencies._internal.report(
+		ctxFor('Module:Icon', 828),
+		moduleFound(),
+		back({ requiredBy = { 'Module:BadgeLua' }, styledBy = { 'Module:BadgeLua', 'Module:Boolean' } })
+	)
+	self:assertEquals(2, result.usedByCount)
+	self:assertEquals('Styles used by', result.usedBy[2].label)
+end
+
+function suite:testReportUnused()
+	local report = dependencies._internal.report
+	self:assertTrue(report(ctxFor('Module:Lonely', 828), moduleFound(), back()).unused)
+	self:assertFalse(report(ctxFor('Module:Lonely', 828, { excluded = true }), moduleFound(), back()).unused)
+	-- A page loading its stylesheet does not use the module's code.
+	self:assertTrue(report(ctxFor('Module:Lonely', 828), moduleFound(), back({ styledBy = { 'Module:Other' } })).unused)
+	local failed = report(ctxFor('Module:Lonely', 828), moduleFound(), nil)
+	self:assertFalse(failed.unused)
+	self:assertEquals(nil, failed.usedBy)
+end
+
+function suite:testReportTemplateInvokes()
+	local found = moduleFound({ invokes = { { module = 'Module:BadgeLua', func = 'main' } } })
+	local result = dependencies._internal.report(ctxFor('Template:Badge', 10), found, back())
+	self:assertDeepEquals(
+		{ { label = 'Invokes', items = { '<code>main</code> in [[Module:BadgeLua]]' } } },
+		result.uses
+	)
+	self:assertEquals(1, result.usesCount)
+	self:assertFalse(result.unused)
+	self:assertDeepEquals({}, result.functions)
+end
+
+function suite:testReportListsModuleFunctions()
+	local ctx = ctxFor('Module:X', 828, { content = 'local p = {}\nfunction p.main(frame)\nend\nreturn p\n' })
+	local result = dependencies._internal.report(ctx, moduleFound(), back())
+	self:assertDeepEquals({ { name = 'p.main', line = 2 } }, result.functions)
+end
+
+-- The panel
+
+function suite:testModulePanel()
 	local mbox = fakeTitle('Module:Mbox', 828, MBOX_SRC)
 	local rows = {
 		{ page_name = 'Template:Outdated', invokes = { 'Module:Mbox' }, invoke_calls = { 'Module:Mbox|main' } },
 		{ page_name = 'Module:Hatnote', requires = { 'Module:Mbox' } },
 	}
 	render(mbox, {}, rows, function()
-		local html = dependencies._main()
-		self:assertStringContains('Module:Mbox requires [[Module:Details]] and [[Module:Icon]].', html, true)
-		self:assertStringContains('Module:Mbox is invoked by [[Template:Outdated]] (<code>main</code>).', html, true)
-		self:assertStringContains('Module:Mbox is required by [[Module:Hatnote]].', html, true)
-		self:assertNotStringContains('This module is unused.', html, true)
+		local html = dependencies.panel()
+		local summary = summaryOf(html)
+		self:assertStringContains('Technical details', summary, true)
+		self:assertStringContains('used by 2 · uses 2', summary, true)
+		self:assertNotStringContains('Unused', summary, true)
+		self:assertStringContains('[[Template:Outdated|Outdated]]', html, true)
+		self:assertStringContains('Via <code>main</code>', html, true)
+		self:assertStringContains('[[Module:Hatnote|Hatnote]]', html, true)
+		self:assertStringContains('[[Module:Details|Details]]', html, true)
 		self:assertStringContains('[[Category:Strict mode modules]]', html, true)
 		local chain = queryChain()
 		self:assertEquals('dependencies', chain.bucket)
@@ -166,10 +313,24 @@ function suite:testModulePageListsItsDependents()
 	end)
 end
 
-function suite:testUnusedModuleIsFlagged()
+-- <summary> is the disclosure's click target: a link inside it follows the link
+-- instead of opening the panel.
+function suite:testSummaryHoldsNoLink()
+	local rows = { { page_name = 'Module:Hatnote', requires = { 'Module:Mbox' } } }
+	render(fakeTitle('Module:Mbox', 828, MBOX_SRC), {}, rows, function()
+		local html = dependencies.panel({ sources = { { label = 'wiki-tools', text = 'Synced' } } })
+		local summary = summaryOf(html)
+		self:assertStringContains('wiki-tools · used by 1', summary, true)
+		self:assertNotStringContains('[[', summary, true)
+		self:assertNotStringContains('<a ', summary, true)
+	end)
+end
+
+function suite:testUnusedModulePanel()
 	render(fakeTitle('Module:Lonely', 828, "local x = require('Module:Icon')"), {}, {}, function()
-		local html = dependencies._main()
-		self:assertStringContains('This module is unused.', html, true)
+		local html = dependencies.panel()
+		self:assertStringContains('Unused', summaryOf(html), true)
+		self:assertStringContains('No template invokes it', html, true)
 		self:assertStringContains('[[Category:Unused modules]]', html, true)
 	end)
 end
@@ -177,51 +338,47 @@ end
 function suite:testFailedLookupClaimsNothing()
 	render(fakeTitle('Module:Mbox', 828, MBOX_SRC), {}, {}, function()
 		bucketLib._failNext = true
-		local html = dependencies._main()
-		self:assertStringContains('Module:Mbox requires', html, true)
-		self:assertNotStringContains('This module is unused.', html, true)
-		self:assertNotStringContains('is required by', html, true)
+		local html = dependencies.panel()
+		self:assertStringContains('Unavailable', html, true)
+		self:assertStringContains('uses 2', summaryOf(html), true)
+		self:assertNotStringContains('used by', summaryOf(html), true)
+		self:assertNotStringContains('Unused', html, true)
+		self:assertNotStringContains('[[Category:Unused modules]]', html, true)
 	end)
 end
 
 function suite:testNonTableResultClaimsNothing()
 	render(fakeTitle('Module:Lonely', 828, "local x = require('Module:Icon')"), {}, {}, function()
 		bucketLib._setRows('dependencies', 'broken')
-		local html = dependencies._main()
-		self:assertNotStringContains('This module is unused.', html, true)
+		local html = dependencies.panel()
+		self:assertNotStringContains('Unused', html, true)
 		self:assertNotStringContains('[[Category:Unused modules]]', html, true)
 	end)
 end
 
-function suite:testTemplateShowsInvokesAndCategory()
+function suite:testTemplatePanel()
 	render(fakeTitle('Template:Outdated', 10, OUTDATED_SRC), {}, {}, function()
-		local html = dependencies._main()
-		self:assertStringContains(
-			'Template:Outdated invokes <code>record</code> in [[Module:Maintenance]] and <code>main</code> in [[Module:Mbox]].',
-			html,
-			true
-		)
+		local html = dependencies.panel()
+		self:assertStringContains('<code>record</code> in [[Module:Maintenance]]', html, true)
+		self:assertStringContains('<code>main</code> in [[Module:Mbox]]', html, true)
+		self:assertStringContains('uses 2', summaryOf(html), true)
+		self:assertNotStringContains('Used by', html, true)
+		self:assertNotStringContains('Functions', html, true)
 		self:assertStringContains('[[Category:Lua-based templates]]', html, true)
 	end)
 end
 
-function suite:testSharedStylesheetListsItsUsers()
+function suite:testStylesheetUsers()
 	local rows = {
 		{ page_name = 'Module:BadgeLua', styles = { 'Module:Icon/styles.css' } },
 		{ page_name = 'Module:Icon', styles = { 'Module:Icon/styles.css' } },
 	}
 	render(fakeTitle('Module:Icon', 828, ICON_SRC), {}, rows, function()
-		local html = dependencies._main()
-		self:assertStringContains('Module:Icon uses styles from [[Module:Icon/styles.css]].', html, true)
-		self:assertStringContains('[[Module:Icon/styles.css]] is also used by [[Module:BadgeLua]].', html, true)
-		local chain = queryChain()
-		self:assertDeepEquals({ 'page_name', 'requires', 'loads', 'invokes', 'invoke_calls', 'styles' }, chain.select)
-		local conditions = chain.where[1]
-		self:assertEquals('or', conditions.op)
-		self:assertDeepEquals({ 'requires', 'Module:Icon' }, conditions[1])
-		self:assertDeepEquals({ 'loads', 'Module:Icon' }, conditions[2])
-		self:assertDeepEquals({ 'invokes', 'Module:Icon' }, conditions[3])
-		self:assertDeepEquals({ 'styles', 'Module:Icon/styles.css' }, conditions[4])
+		local html = dependencies.panel()
+		self:assertStringContains('No template invokes it', html, true)
+		self:assertStringContains('Styles used by', html, true)
+		self:assertStringContains('[[Module:BadgeLua|BadgeLua]]', html, true)
+		self:assertStringContains('[[Module:Icon/styles.css|/styles.css]]', html, true)
 	end)
 end
 
@@ -229,28 +386,45 @@ function suite:testTemplateStylesheetUsers()
 	local rows = { { page_name = 'Template:Infobox Item', styles = { 'Template:InfoboxOld/styles.css' } } }
 	local src = '<templatestyles src="Template:InfoboxOld/styles.css" />'
 	render(fakeTitle('Template:InfoboxOld', 10, src), {}, rows, function()
-		local html = dependencies._main()
-		self:assertStringContains(
-			'Template:InfoboxOld uses styles from [[Template:InfoboxOld/styles.css]].',
-			html,
-			true
-		)
-		self:assertStringContains(
-			'[[Template:InfoboxOld/styles.css]] is also used by [[Template:Infobox Item]].',
-			html,
-			true
-		)
+		local html = dependencies.panel()
+		self:assertStringContains('[[Template:InfoboxOld/styles.css|/styles.css]]', html, true)
+		self:assertStringContains('[[Template:Infobox Item|Infobox Item]]', html, true)
+		self:assertStringContains('used by 1 · uses 1', summaryOf(html), true)
 	end)
 end
 
-function suite:testStylesheetUsedOnlyByOthers()
-	local rows = { { page_name = 'Module:Cite RSI', styles = { 'Module:Cite/styles.css' } } }
-	render(fakeTitle('Module:Cite', 828, 'local p = {}\nreturn p'), {}, rows, function()
-		self:assertStringContains(
-			'[[Module:Cite/styles.css]] is used by [[Module:Cite RSI]].',
-			dependencies._main(),
-			true
-		)
+function suite:testFunctionsRow()
+	render(fakeTitle('Module:Icon', 828, ICON_SRC), {}, {}, function()
+		self:assertStringContains('[[Module:Icon#L-2|p.main]]', dependencies.panel(), true)
+	end)
+end
+
+function suite:testSourceRowAlone()
+	render(fakeTitle('Template:Plain', 10, 'Hello'), {}, {}, function()
+		local html = dependencies.panel({ sources = { { label = 'wiki-tools', text = 'Synced' } } })
+		self:assertStringContains('<div>Synced</div>', html, true)
+		self:assertStringContains('wiki-tools', summaryOf(html), true)
+	end)
+end
+
+function suite:testSourcesShareOneRow()
+	render(fakeTitle('Template:Plain', 10, 'Hello'), {}, {}, function()
+		local html = dependencies.panel({
+			sources = {
+				{ label = 'wiki-tools', text = 'Synced' },
+				{ label = 'from Wikipedia', text = 'Imported' },
+			},
+		})
+		self:assertStringContains('<div>Synced</div><div>Imported</div>', html, true)
+		self:assertStringContains('wiki-tools · from Wikipedia', summaryOf(html), true)
+		local _, rowCount = html:gsub('t%-dependencies__row"', '')
+		self:assertEquals(1, rowCount)
+	end)
+end
+
+function suite:testNothingToShowRendersNothing()
+	render(fakeTitle('Template:Plain', 10, 'Hello'), {}, {}, function()
+		self:assertEquals('', dependencies.panel())
 	end)
 end
 
@@ -259,26 +433,42 @@ function suite:testDocRenderHasNoCategories()
 	local doc = fakeTitle('Module:Mbox/doc', 828, 'Docs.')
 	doc.basePageTitle = mbox
 	render(doc, {}, {}, function()
-		self:assertNotStringContains('[[Category:', dependencies._main(), true)
-	end)
-end
-
-function suite:testLongListRendersAsABox()
-	local rows = {}
-	for i = 1, 6 do
-		rows[i] = { page_name = 'Module:User' .. i, requires = { 'Module:Mbox' } }
-	end
-	render(fakeTitle('Module:Mbox', 828, MBOX_SRC), {}, rows, function()
-		local html = dependencies._main()
-		self:assertStringContains('Module:Mbox is required by 6 modules.', html, true)
-		self:assertStringContains('* [[Module:User1]]', html, true)
+		self:assertNotStringContains('[[Category:', dependencies.panel(), true)
 	end)
 end
 
 function suite:testDynamicRequireIsListedNotStored()
 	render(fakeTitle('Module:Kinds', 828, "local kind = require('Module:Entity/' .. name)"), {}, {}, function()
-		local html = dependencies._main()
+		local html = dependencies.panel()
 		self:assertStringContains('<code>Module:Entity/…</code>', html, true)
+		self:assertEquals(0, #bucketLib._puts)
+	end)
+end
+
+function suite:testRowOrder()
+	local rows = { { page_name = 'Module:BadgeLua', requires = { 'Module:Icon' } } }
+	render(fakeTitle('Module:Icon', 828, ICON_SRC), {}, rows, function()
+		local html = dependencies.panel({ sources = { { label = 'wiki-tools', text = 'Synced' } } })
+		local last = 0
+		for _, label in ipairs({ 'Source</div>', 'Used by</div>', 'Uses</div>', 'Functions</div>' }) do
+			local at = html:find(label, 1, true)
+			self:assertTrue(at ~= nil and at > last, label .. ' out of order')
+			last = at
+		end
+	end)
+end
+
+function suite:testCategoriesCanBeTurnedOff()
+	render(fakeTitle('Module:Lonely', 828, "require('strict')"), {}, {}, function()
+		self:assertNotStringContains('[[Category:', dependencies.panel({ addCategories = 'no' }), true)
+	end)
+end
+
+function suite:testSourcesOutsideModuleAndTemplate()
+	render(fakeTitle('Help:Editing', 12, 'Text'), {}, {}, function()
+		local html = dependencies.panel({ sources = { { label = 'wiki-tools', text = 'Synced' } } })
+		self:assertStringContains('<div>Synced</div>', html, true)
+		self:assertNotStringContains('Used by', html, true)
 		self:assertEquals(0, #bucketLib._puts)
 	end)
 end

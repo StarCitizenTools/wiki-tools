@@ -16,7 +16,7 @@ require('strict')
 --- @field class string @default nil
 
 --- @alias ButtonAction 'default' | 'progressive' | 'destructive' @default 'default'
---- @alias ButtonWeight 'normal' | 'primary' @default 'normal'
+--- @alias ButtonWeight 'normal' | 'primary' | 'quiet' @default 'normal'
 --- @alias ButtonSize 'small' | 'medium' | 'large' @default 'medium'
 
 local p = {}

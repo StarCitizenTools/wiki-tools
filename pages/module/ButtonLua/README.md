@@ -16,7 +16,7 @@ Required by [Module:CardLua](https://starcitizen.tools/Module:CardLua), [Module:
 | `link` | `string` | one of `link`/`url` | | Wiki page, rendered as `[[link\|…]]`. |
 | `url` | `string` | one of `link`/`url` | | External URL, rendered as `[url …]`. |
 | `action` | `string` | No | `default` | `default`, `progressive`, or `destructive`. |
-| `weight` | `string` | No | `normal` | `normal` or `primary`. |
+| `weight` | `string` | No | `normal` | `normal`, `primary`, or `quiet` (no fill until hover). |
 | `size` | `string` | No | `medium` | `small`, `medium`, or `large`. |
 | `icon` | `string` | No | | Icon file name. MediaWiki disallows `<img>` inside `<a>`, so it renders as a `currentColor` mask instead of an `<img>`. |
 | `iconOnly` | `boolean` | No | `false` | Hide the label; requires `icon`. |

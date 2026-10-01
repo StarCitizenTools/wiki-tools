@@ -49,6 +49,9 @@ Concept or unreleased ship with no in-game record. Declare the page as a planned
 <!-- templatedata: suggestedvalues size = Small; Medium; Large; Capital -->
 <!-- templatedata: suggestedvalues career = Combat; Transport; Exploration; Industrial; Support; Competition; Ground; Multi-role -->
 <!-- templatedata: suggestedvalues productionstate = Flight ready; In production; Active production; Active for Squadron 42; Long term production; In concept; Lore-only; Unconfirmed -->
+<!-- templatedata: suggestedvalues canBuy = yes; no -->
+<!-- templatedata: suggestedvalues canRent = yes; no -->
+<!-- templatedata: suggestedvalues canPledge = yes; no -->
 
 | Name | Label | Type | Required | Default | Description | Example | Aliases |
 |------|-------|------|----------|---------|-------------|---------|---------|
@@ -61,9 +64,9 @@ Concept or unreleased ship with no in-game record. Declare the page as a planned
 | `career` | Career | string | No | (API value) | Career override (curated taxonomy). The wiki value wins over the API. | `Transport` |  |
 | `size` | Size | string | No | (API value) | Ship-matrix size name: one of `Small`, `Medium`, `Large`, or `Capital`. Wins over the API size when both exist. | `Large` |  |
 | `manufacturer` | Manufacturer | string | No | (API value) | Manufacturer override, as a manufacturer code (e.g. `AEGS`) or a full name. Wins over the API. | `AEGS` |  |
-| `canBuy` | Can buy | boolean | No | (inferred from UEX purchase data) | Override for the "Buy" flag in the acquisition summary. Set to `no` when UEX has stale prices for a vehicle that has been removed from shops. | `no` |  |
-| `canRent` | Can rent | boolean | No | (inferred from UEX rental data) | Override for the "Rent" flag in the acquisition summary. | `yes` |  |
-| `canPledge` | Can pledge | boolean | No | (inferred from the presence of a pledge price) | Override for the "Pledge" flag in the acquisition summary. | `yes` |  |
+| `canBuy` | Can buy | string | No | (inferred from UEX purchase data) | Override for the "Buy" flag in the acquisition summary. Set to `no` when UEX has stale prices for a vehicle that has been removed from shops. | `no` |  |
+| `canRent` | Can rent | string | No | (inferred from UEX rental data) | Override for the "Rent" flag in the acquisition summary. | `yes` |  |
+| `canPledge` | Can pledge | string | No | (inferred from the presence of a pledge price) | Override for the "Pledge" flag in the acquisition summary. | `yes` |  |
 | `pledgeurl` | Pledge URL | url | No | (API value) | RSI pledge-store URL for the vehicle. | `https://robertsspaceindustries.com/pledge/ships/...` |  |
 | `galactapediaurl` | Galactapedia URL | url | No |  | Galactapedia article URL for the vehicle. | `https://robertsspaceindustries.com/galactapedia/article/...` |  |
 | `brochureurl` | Brochure URL | url | No |  | Brochure URL(s). Accepts a `;`-separated list for multiple links. | `https://example.com/brochure` |  |
@@ -108,7 +111,7 @@ Concept or unreleased ship with no in-game record. Declare the page as a planned
 - Adding `uuid=` to a page written as a planned vehicle switches it to the live API render on the next parse: `family` and `kind` become no-ops once a genuine record resolves, and any editorial overrides already on the page carry over as overrides on top of the API values.
 - A record-less page whose `family` doesn't resolve to `ship`, `ground`, or `gravlev` renders from the Vehicle kind alone, with no subtype leaf; it loses both the size browse category (`<Size> ships`) and the `Pledge ships`/`Pledge vehicles` category, since only the leaf emits those.
 - Setting any parameter that also has an API counterpart (`size`, `career`, `scmspeed`, `mass`, and the rest of the stats/prices/production-state fields) adds the page to `Entities with manual API data`, whether it fills a gap on a planned page or overrides a live API value. Pure-editorial fields with no API counterpart (pledge prices, lore/development dates) don't trigger this by themselves.
-- `canBuy=no` / `canRent=no` affect more than the Availability summary: they also force the infobox's own Cost section Universe row to a hard No, not only the linked `{{Entity/Availability}}` card.
+- `canBuy=no` / `canRent=no` affect more than the Availability summary: they also force the infobox's own Cost section Universe row to a hard No, not only the linked `{{Entity/Availability}}` card. Any other text, such as a price, is ignored.
 - Like `{{Entity}}`, this template is what writes the page's structured data, sets `SHORTDESC`, and appends categories for the whole page.
 - The multi-value URL parameters (`brochureurl`, `trailerurl`, `presentationurl`, `qaurl`, `whitleysguideurl`) each accept a `;`-separated list to register more than one link.
 

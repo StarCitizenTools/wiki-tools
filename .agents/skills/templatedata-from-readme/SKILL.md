@@ -114,7 +114,7 @@ Unrecognized types fall back to `unknown` with a warning printed to the user.
 5. **Look for HTML comment overrides** anywhere in the README:
    - `<!-- templatedata: format=block -->` → `format: "block"`
    - `<!-- templatedata: format=inline -->` → `format: "inline"`
-   - `<!-- templatedata: suggestedvalues <param> = a; b; c -->` → adds `"suggestedvalues": ["a", "b", "c"]` to that param. Values are `;`-separated (so a value may contain commas/spaces, e.g. `Active for Squadron 42`); trimmed; empty entries dropped. `<param>` must be a key in the Parameters table (silently ignored otherwise). Use one directive per param. suggestedvalues are non-restrictive hints VE offers as a dropdown/autocomplete — right for closed or curated vocabularies (a `family` of `ship; ground; gravlev`, a size or production-state enum).
+   - `<!-- templatedata: suggestedvalues <param> = a; b; c -->` → adds `"suggestedvalues": ["a", "b", "c"]` to that param. Values are `;`-separated (so a value may contain commas/spaces, e.g. `Active for Squadron 42`); trimmed; empty entries dropped. `<param>` must be a key in the Parameters table (silently ignored otherwise). Use one directive per param. suggestedvalues are non-restrictive hints VE offers as a dropdown/autocomplete — right for closed or curated vocabularies (a `family` of `ship; ground; gravlev`, a size or production-state enum). VE ignores them on a `boolean` param, so a yes/no dropdown needs the type set to `string`.
 6. **Emit the block** with the JSON pretty-printed and wrapped in `<templatedata>...</templatedata>`.
 
 ## Edge cases

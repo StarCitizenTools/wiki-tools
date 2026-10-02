@@ -223,17 +223,29 @@
     "Char_Head_Piercings.UNDEFINED": {
       "skip": true
     },
+    "Container.Box": {
+      "skip": true
+    },
+    "Container.Cargo": {
+      "kind": "component"
+    },
     "ControlPanel.DoorPart": {
       "skip": true
     },
     "Cooler.UNDEFINED": {
       "kind": "component"
     },
+    "Crafter.UNDEFINED": {
+      "kind": "item"
+    },
     "Decal.DoorPart": {
       "skip": true
     },
     "Display.UNDEFINED": {
       "skip": true
+    },
+    "DockingCollar.Fuel": {
+      "kind": "component"
     },
     "DockingCollar.UNDEFINED": {
       "skip": true
@@ -246,6 +258,18 @@
     },
     "Drink.Can": {
       "kind": "consumable"
+    },
+    "Drink.UNDEFINED": {
+      "kind": "item",
+      "label": "hangar item",
+      "labelLink": "Hangar items"
+    },
+    "EMP.UNDEFINED": {
+      "kind": "component",
+      "label": "EMP generator"
+    },
+    "ExternalFuelTank.UNDEFINED": {
+      "kind": "component"
     },
     "FPS_Consumable.Hacking": {
       "kind": "item",
@@ -276,7 +300,19 @@
       "kind": "item",
       "noLabelLink": true
     },
+    "Flair_Floor.UNDEFINED": {
+      "kind": "item",
+      "noLabelLink": true
+    },
+    "Flair_Surface.Default": {
+      "kind": "item",
+      "noLabelLink": true
+    },
     "Flair_Surface.Flair_Surface_DisplayCase": {
+      "kind": "item",
+      "noLabelLink": true
+    },
+    "Flair_Surface.UNDEFINED": {
       "kind": "item",
       "noLabelLink": true
     },
@@ -310,6 +346,9 @@
     },
     "FuelTank.Fuel": {
       "skip": true
+    },
+    "Grenade.Small": {
+      "kind": "item"
     },
     "Hangar.UNDEFINED": {
       "skip": true
@@ -346,6 +385,38 @@
       "skip": true
     },
     "MiningModifier.Gun": {
+      "kind": "component"
+    },
+    "Misc.Flair_Wall_Picture": {
+      "kind": "item",
+      "label": "hangar item",
+      "labelLink": "Hangar items"
+    },
+    "Misc.Fuse": {
+      "skip": true
+    },
+    "Misc.Harvestable": {
+      "skip": true
+    },
+    "Misc.Personal": {
+      "kind": "item",
+      "label": "hangar item",
+      "labelLink": "Hangar items"
+    },
+    "Misc.Trophy": {
+      "kind": "item",
+      "label": "hangar item",
+      "labelLink": "Hangar items"
+    },
+    "Misc.UNDEFINED": {
+      "skip": true
+    },
+    "Misc.Utility": {
+      "kind": "item",
+      "label": "hangar item",
+      "labelLink": "Hangar items"
+    },
+    "Missile.GroundVehicleMissile": {
       "kind": "component"
     },
     "Missile.Missile": {
@@ -387,6 +458,11 @@
     "Radar.MidRangeRadar": {
       "kind": "component"
     },
+    "RemovableChip.SystemAccess": {
+      "kind": "item",
+      "label": "mission item",
+      "noLabelLink": true
+    },
     "SalvageHead.UNDEFINED": {
       "kind": "component"
     },
@@ -420,12 +496,36 @@
     "TractorBeam.UNDEFINED": {
       "kind": "component"
     },
+    "Turret.BallTurret": {
+      "skip": true
+    },
+    "Turret.CanardTurret": {
+      "skip": true
+    },
+    "Turret.GunTurret": {
+      "skip": true
+    },
     "Turret.MannedTurret": {
+      "skip": true
+    },
+    "Turret.MissileTurret": {
+      "skip": true
+    },
+    "Turret.NoseMounted": {
+      "skip": true
+    },
+    "Turret.PDCTurret": {
+      "skip": true
+    },
+    "TurretBase.MannedTurret": {
       "skip": true
     },
     "Usable.Cargo": {
       "kind": "item",
       "noLabelLink": true
+    },
+    "Usable.UNDEFINED": {
+      "skip": true
     },
     "WeaponAttachment.Barrel": {
       "kind": "item",
@@ -597,6 +697,13 @@
         "_gungame",
         "_gungame_rotated",
         "_ea_elim"
+      ]
+    },
+    {
+      "id": "genericCarryable",
+      "nameExact": [
+        "Battery",
+        "Pipe"
       ]
     }
   ],

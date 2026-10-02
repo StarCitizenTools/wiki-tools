@@ -409,7 +409,7 @@ local LEAF_DISPATCH_CASES = {
 	{
 		path = 'Entity/Item/Scraper',
 		hook = 'getSections',
-		ctx = { apiData = { salvage_modifier = { extraction_efficiency = 0.9 } }, args = {} },
+		ctx = { apiData = { weapon_modifier = { salvage = { extraction_efficiency = 0.9 } } }, args = {} },
 		expect = function(self, result)
 			self:assertEquals('Extraction efficiency', result[1].items[1].label)
 			self:assertEquals('90%', result[1].items[1].content)

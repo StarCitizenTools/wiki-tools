@@ -29,4 +29,6 @@ Entries live in [Module:Manufacturers/data.json](https://starcitizen.tools/Modul
 
 ### Gotchas
 
+`UNKN` and `NONE` are records, not companies. `UNKN` (page `Unknown manufacturer`) is the API's code for a maker it has not recorded; `NONE` (page `No manufacturer`) is set by editors and the item importer for items no company makes. Both resolve so a page links a catalogue and files in its category. [Module:Entity/Base](https://starcitizen.tools/Module:Entity/Base) still drops `NONE` when it arrives from the API, so only an explicit `|manufacturer = NONE` reaches this entry.
+
 `resolve` reads [Module:Manufacturers/data.json](https://starcitizen.tools/Module:Manufacturers/data.json) via `mw.loadJsonData`, whose returned table is a read-only proxy: direct key access (`data[code]`) and `pairs()` (used for the name scan) see the real entries, but the Lua length operator (`#`) and `next()` do not.

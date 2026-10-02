@@ -2,6 +2,7 @@ package itemstubs
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -386,5 +387,76 @@ func TestBuildPlanNotAManufacturerBlanksTheInfobox(t *testing.T) {
 	// the page, so it belongs in the infobox even with no company to name.
 	if got := byTitle["Argon"].Wikitext; !strings.Contains(got, "|manufacturer = NONE") {
 		t.Errorf("an unnamed maker still fills the infobox, got:\n%s", got)
+	}
+}
+
+// An unmapped type whose siblings already have pages is almost always a type
+// someone forgot to allowlist, so each entry records how many of its items are
+// on the wiki and names one.
+func TestBuildPlanUnmappedOnWiki(t *testing.T) {
+	cfg := testConfig()
+	wiki := map[string]bool{
+		"onwiki00-0000-4000-8000-000000000060": true,
+		"onwiki00-0000-4000-8000-000000000061": true,
+		"onwiki00-0000-4000-8000-000000000062": true,
+	}
+	items := []Item{
+		item("Abrade Scraper Module", "x", "SalvageModifier.UNDEFINED", "onwiki00-0000-4000-8000-000000000060"),
+		item("Cinch Scraper Module", "x", "SalvageModifier.UNDEFINED", "onwiki00-0000-4000-8000-000000000061"),
+		item("Hart Scraper Module", "x", "SalvageModifier.UNDEFINED", "aaaaaaaa-0000-4000-8000-000000000063"),
+		item("Stone Fruit", "x", "Misc.Harvestable", "aaaaaaaa-0000-4000-8000-000000000064"),
+		// On the wiki under an allowlisted type: not an unmapped sibling.
+		item("Old Gun", "x", "WeaponGun.Gun", "onwiki00-0000-4000-8000-000000000062"),
+	}
+	statuses := func(_ context.Context, titles []string) (map[string]mediawiki.TitleStatus, error) {
+		return map[string]mediawiki.TitleStatus{}, nil
+	}
+
+	plan, err := BuildPlan(context.Background(), items, wiki, nil, cfg, testRegistry(), Meta{
+		Build: "4.10.1-LIVE.12660092", Generated: time.Date(2026, 10, 2, 12, 0, 0, 0, time.UTC),
+	}, statuses)
+	if err != nil {
+		t.Fatalf("BuildPlan: %v", err)
+	}
+
+	got := map[string]UnmappedType{}
+	for _, u := range plan.Unmapped {
+		got[u.Type] = u
+	}
+	if u := got["SalvageModifier.UNDEFINED"]; u.Count != 1 || u.OnWiki != 2 || u.OnWikiSample != "Abrade Scraper Module" {
+		t.Errorf("SalvageModifier = %+v, want count 1, onWiki 2, sample Abrade", u)
+	}
+	if u := got["Misc.Harvestable"]; u.Count != 1 || u.OnWiki != 0 || u.OnWikiSample != "" {
+		t.Errorf("Misc.Harvestable = %+v, want count 1, onWiki 0", u)
+	}
+	if _, ok := got["WeaponGun.Gun"]; ok {
+		t.Error("an allowlisted type must not appear as unmapped")
+	}
+}
+
+// The report lists every unmapped type that already has pages, uncapped; the
+// rest keep the usual sample.
+func TestReportUnmappedOnWikiUncapped(t *testing.T) {
+	p := &Plan{Skipped: Skipped{Blocked: map[string]int{}}}
+	for i := 0; i < 10; i++ {
+		p.Unmapped = append(p.Unmapped, UnmappedType{
+			Type: fmt.Sprintf("OnWiki%02d.UNDEFINED", i), Count: 20 - i, Sample: "Missing", OnWiki: 1, OnWikiSample: "Present",
+		})
+	}
+	for i := 0; i < 10; i++ {
+		p.Unmapped = append(p.Unmapped, UnmappedType{Type: fmt.Sprintf("Other%02d.UNDEFINED", i), Count: 10 - i, Sample: "Thing"})
+	}
+
+	report := strings.Join(Report(p), "\n")
+	for i := 0; i < 10; i++ {
+		if typ := fmt.Sprintf("OnWiki%02d.UNDEFINED", i); !strings.Contains(report, typ) {
+			t.Errorf("report omits %s, an unmapped type with pages on the wiki:\n%s", typ, report)
+		}
+	}
+	if !strings.Contains(report, `on wiki: "Present"`) {
+		t.Errorf("report should name an item already on the wiki:\n%s", report)
+	}
+	if strings.Contains(report, "Other09.UNDEFINED") || !strings.Contains(report, "… and 2 more") {
+		t.Errorf("the remaining unmapped types should stay sampled at 8:\n%s", report)
 	}
 }

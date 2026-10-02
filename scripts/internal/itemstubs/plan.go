@@ -69,11 +69,15 @@ type Skipped struct {
 
 // UnmappedType is a type with page-candidates that nobody has decided on —
 // the config-drift report, printed every run until each is allowlisted or
-// skip-listed.
+// skip-listed. OnWiki counts items of the type that already have a page: a
+// nonzero count means the wiki already treats the type as page-worthy, so its
+// missing items are usually pages the allowlist forgot, not new scope.
 type UnmappedType struct {
-	Type   string `json:"type"`
-	Count  int    `json:"count"`
-	Sample string `json:"sample"`
+	Type         string `json:"type"`
+	Count        int    `json:"count"`
+	Sample       string `json:"sample"`
+	OnWiki       int    `json:"onWiki"`
+	OnWikiSample string `json:"onWikiSample,omitempty"`
 }
 
 // Mismatch is a disagreement between the manufacturer the dump states and
@@ -187,12 +191,20 @@ func BuildPlan(ctx context.Context, items []Item, wiki map[string]bool, wikiByPa
 	byTitle := map[string][]candidate{}
 	unmappedCount := map[string]int{}
 	unmappedSample := map[string]string{}
+	onWikiCount := map[string]int{}
+	onWikiSample := map[string]string{}
 
 	for _, it := range items {
 		f := Classify(it, wiki, cfg)
 		switch f.Disposition {
 		case DispExists:
 			plan.Skipped.Exists++
+			if _, mapped := cfg.Types[it.Type]; !mapped {
+				onWikiCount[it.Type]++
+				if onWikiSample[it.Type] == "" {
+					onWikiSample[it.Type] = it.Name
+				}
+			}
 		case DispBlocked:
 			plan.Skipped.Blocked[f.RuleID]++
 		case DispExcluded:
@@ -330,7 +342,10 @@ func BuildPlan(ctx context.Context, items []Item, wiki map[string]bool, wikiByPa
 	}
 
 	for typ, count := range unmappedCount {
-		plan.Unmapped = append(plan.Unmapped, UnmappedType{typ, count, unmappedSample[typ]})
+		plan.Unmapped = append(plan.Unmapped, UnmappedType{
+			Type: typ, Count: count, Sample: unmappedSample[typ],
+			OnWiki: onWikiCount[typ], OnWikiSample: onWikiSample[typ],
+		})
 	}
 	sort.Slice(plan.Unmapped, func(i, j int) bool {
 		if plan.Unmapped[i].Count != plan.Unmapped[j].Count {
@@ -430,8 +445,25 @@ func Report(p *Plan) []string {
 			}
 		}
 	}
-	sample(len(p.Unmapped), "unmapped   %d types nobody has decided on", func(i int) string {
-		u := p.Unmapped[i]
+	// Unmapped types with pages already on the wiki are listed in full, never
+	// sampled: they are the likely missed pages, and a sample sorted by count
+	// buries a small type below the cut.
+	var onWiki, undecided []UnmappedType
+	for _, u := range p.Unmapped {
+		if u.OnWiki > 0 {
+			onWiki = append(onWiki, u)
+		} else {
+			undecided = append(undecided, u)
+		}
+	}
+	if len(onWiki) > 0 {
+		lines = append(lines, fmt.Sprintf("unmapped   %d types already have pages on the wiki; their missing items are likely missed pages", len(onWiki)))
+		for _, u := range onWiki {
+			lines = append(lines, fmt.Sprintf("  %5d missing, %4d on wiki  %s (e.g. %q; on wiki: %q)", u.Count, u.OnWiki, u.Type, u.Sample, u.OnWikiSample))
+		}
+	}
+	sample(len(undecided), "unmapped   %d types nobody has decided on", func(i int) string {
+		u := undecided[i]
 		return fmt.Sprintf("%5d  %s (e.g. %q)", u.Count, u.Type, u.Sample)
 	})
 	sample(len(p.Mismatches), "mismatch   %d manufacturers disagree with the class name", func(i int) string {

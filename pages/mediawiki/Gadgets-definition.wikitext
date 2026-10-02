@@ -4,6 +4,7 @@
 
 == editing ==
 * instantDiffs [ResourceLoader|default|dependencies=site,mediawiki.api,mediawiki.util,mediawiki.storage,mediawiki.notification,mediawiki.Title,oojs|rights=viewmywatchlist]|instantDiffs-loader.js|instantDiffs-citizen.css
+* purge[ResourceLoader|default|package|dependencies=mediawiki.api,mediawiki.util,mediawiki.notification,mediawiki.storage|rights=verified-edit]|purge.js|purge-outcome.js
 * quantumUpload[ResourceLoader|default|dependencies=mediawiki.api,mediawiki.notification|rights=verified-edit]|quantumUpload.js|quantumUpload.css
 * Wikitext-Extension-VSCode[ResourceLoader|dependencies=mediawiki.util]|Wikitext-Extension.js|Wikitext-Extension.css
 * Wikitext-Extension-VSCodeInsiders[ResourceLoader|dependencies=mediawiki.util]|Wikitext-Extension.js|Wikitext-Extension.css

@@ -390,6 +390,9 @@
     "SalvageHead.UNDEFINED": {
       "kind": "component"
     },
+    "SalvageModifier.UNDEFINED": {
+      "kind": "component"
+    },
     "Seat.UNDEFINED": {
       "skip": true
     },

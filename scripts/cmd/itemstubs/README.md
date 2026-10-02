@@ -53,6 +53,11 @@ A note on `nonPuItem`'s class suffixes: `_tow` marks items that exist only in
 the Theatre of War game mode, not the persistent universe — same reasoning as
 `_gungame` and `_ea_elim`. The suffix has nothing to do with towing.
 
+`genericCarryable` blocks mission props named with a bare common noun
+("Battery", "Pipe"). They are real items, but a page with that title would
+claim the noun for one delivery prop. It matches whole names only, so named
+items in the same type (plushies, replicas) still get pages.
+
 Passing the filter chain does not guarantee a create entry. Manufacturer
 resolution and the title check against the live wiki can still turn a
 `create`-disposed item into a conflict:

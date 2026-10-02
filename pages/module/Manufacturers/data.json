@@ -97,6 +97,7 @@
 	"MISC": { "name": "Musashi Industrial and Starflight Concern", "short": "MISC" },
 	"MYM": { "name": "MuyMuy" },
 	"NAVE": { "name": "Nav-E7 Gadgets", "short": "Nav-E7" },
+	"NONE": { "name": "None", "page": "No manufacturer" },
 	"NOVP": { "name": "Nova Pyrotechnica" },
 	"NRS": { "name": "NorthStar" },
 	"NVS": { "name": "Navy Surplus" },

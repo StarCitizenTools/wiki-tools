@@ -3,10 +3,11 @@ require('strict')
 --- @module Entity/Item/Scraper
 --- Scraper module subtype (API type "SalvageModifier"). A scraper module slots
 --- into a salvage beam and trades salvage speed for area, altering the beam's
---- behaviour. Renders the `salvage_modifier` block: the salvage-speed and radius
---- multipliers and the extraction efficiency. Scraper modules carry a durability
---- block, so the Component facet renders; the tractor-flavoured SalvageModifier
---- (ReadyGrip) carries neutral multipliers and no durability — both render here.
+--- behaviour. Renders `weapon_modifier.salvage`: the salvage-speed and radius
+--- multipliers and the extraction efficiency. The tractor-flavoured
+--- SalvageModifier (ReadyGrip) carries neutral multipliers and renders here too.
+--- The rest of `weapon_modifier` is all ×1 on these modules, so the WeaponModifier
+--- facet matches but renders no rows.
 
 local format = require('Module:Entity/Format')
 local item = require('Module:Entity/Item')
@@ -17,12 +18,21 @@ local p = {}
 --- @type string
 p.parent = 'Entity/Item'
 
+--- @param apiData table
+--- @return table|nil
+local function salvageModifierOf(apiData)
+	local wm = apiData.weapon_modifier
+	if type(wm) ~= 'table' or type(wm.salvage) ~= 'table' then
+		return nil
+	end
+	return wm.salvage
+end
+
 --- @param ctx EntityHookContext
 --- @return table[] Ordered list of section entries with key field
 function p.getSections(ctx)
-	local apiData = ctx.apiData
-	local s = apiData.salvage_modifier
-	if type(s) ~= 'table' then
+	local s = salvageModifierOf(ctx.apiData)
+	if s == nil then
 		return {}
 	end
 
@@ -81,9 +91,8 @@ end
 --- @param ctx EntityHookContext
 --- @return table<string, any>
 function p.getStructuredData(ctx)
-	local apiData = ctx.apiData
-	local s = apiData.salvage_modifier
-	if type(s) ~= 'table' then
+	local s = salvageModifierOf(ctx.apiData)
+	if s == nil then
 		return {}
 	end
 	local efficiency = tonumber(s.extraction_efficiency)

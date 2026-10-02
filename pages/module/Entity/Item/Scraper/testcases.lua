@@ -24,10 +24,14 @@ end
 local function abradeData()
 	return {
 		size = 1,
-		salvage_modifier = {
-			salvage_speed_multiplier = 0.15,
-			radius_multiplier = 3.5,
-			extraction_efficiency = 0.9,
+		weapon_modifier = {
+			fire_rate_multiplier = 1,
+			damage_multiplier = 1,
+			salvage = {
+				salvage_speed_multiplier = 0.15,
+				radius_multiplier = 3.5,
+				extraction_efficiency = 0.9,
+			},
 		},
 	}
 end
@@ -52,10 +56,12 @@ end
 function suite:testNeutralModifier()
 	local sections = Scraper.getSections(ctx({
 		size = 1,
-		salvage_modifier = {
-			salvage_speed_multiplier = 1,
-			radius_multiplier = 1,
-			extraction_efficiency = 1,
+		weapon_modifier = {
+			salvage = {
+				salvage_speed_multiplier = 1,
+				radius_multiplier = 1,
+				extraction_efficiency = 1,
+			},
 		},
 	}, {}))
 	self:assertEquals('×1', findItem(sections[1].items, 'Salvage speed').content)
@@ -64,6 +70,7 @@ end
 
 function suite:testEmptyWhenNoBlock()
 	self:assertEquals(0, #Scraper.getSections(ctx({}, {})))
+	self:assertEquals(0, #Scraper.getSections(ctx({ weapon_modifier = { damage_multiplier = 1 } }, {})))
 end
 
 function suite:testShortDescription()

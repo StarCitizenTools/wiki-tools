@@ -103,7 +103,10 @@ the same:**
   yet*. Every item of that type is reported under `unmappedTypes` — count and
   a sample name — on every run, until someone allowlists or skip-lists it.
   Unmapped types are a to-do list, not a rejection; they don't count toward
-  `-diff`'s drift.
+  `-diff`'s drift. Each entry also counts the type's items that already have a
+  page (`onWiki`, with one named in `onWikiSample`). A nonzero `onWiki` means
+  the wiki already treats the type as page-worthy, so its missing items are
+  usually pages the allowlist forgot rather than new scope.
 - **`"skip": true`** means *decided: no pages*. Matching items are counted in
   `skipped.excluded` and nothing more — no per-run report, no drift. A skip
   entry must not also carry `kind` or `label` (config validation rejects
@@ -218,7 +221,8 @@ from before the rename — so a pair listed there is never reported.
   ],
   "skipped": { "exists": 18201, "blocked": { "isPlaceholder": 340, "testItem": 52 }, "excluded": 1877, "unusable": 6 },
   "unmappedTypes": [
-    { "type": "Misc.Harvestable", "count": 214, "sample": "Stone Fruit" }
+    { "type": "Misc.Harvestable", "count": 214, "sample": "Stone Fruit", "onWiki": 0 },
+    { "type": "ExternalFuelTank.UNDEFINED", "count": 21, "sample": "CR-60", "onWiki": 8, "onWikiSample": "Bonito" }
   ],
   "manufacturerMismatches": [
     {
@@ -243,7 +247,8 @@ carries `onPageUuid`/`onPageClass`/`sameDescription` when they're known (see
 "Why most `title-exists` conflicts are noise" above) — read `sameDescription`
 as a hint to check the page against the flagged item, never as a signal to
 skip either one. `unmappedTypes` is sorted by count, so the highest-volume
-gaps in the allowlist surface first.
+gaps in the allowlist surface first. The console report lists every type with
+`onWiki` > 0 in full, then samples the rest.
 
 `plan.Drift()` (used by `-diff`) is `len(create) + len(conflicts) > 0` — both
 mean somebody has work to do. This differs from `uuidindex`, where conflicts
@@ -309,7 +314,8 @@ means an agent works through it via the MediaWiki MCP server:
   discarding either one.
 - `unmappedTypes` isn't something to apply at all; it's config drift. Feed it
   back into `config.json` (allowlist with a `kind`/`label`, or `"skip": true`)
-  and re-run.
+  and re-run. Triage the types with `onWiki` > 0 first: a run with zero
+  creates can still be missing their pages.
 
 ## Where the dump and build id come from
 

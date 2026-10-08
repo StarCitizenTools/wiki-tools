@@ -176,4 +176,160 @@ function suite:testStylesheetWithMissingClosingQuoteIsMalformed()
 	self:assertDeepEquals({}, parse.styles('<templatestyles src="Template:Spoiler box/styles.css/>'))
 end
 
+-- Files
+
+function suite:testLuaFileLiterals()
+	local src = 'local ICON = \'WikimediaUI-Code.svg\'\nlocal ROW = { source = "CdxIconReference.svg" }'
+	self:assertDeepEquals({ 'CdxIconReference.svg', 'WikimediaUI-Code.svg' }, parse.lua(src).files.names)
+end
+
+function suite:testLuaFileNamesAreNormalised()
+	local src = "local a = 'File:placeholder_v2.png'\nlocal b = 'Placeholder v2.png'\nlocal c = 'Photo.JPG'"
+	self:assertDeepEquals({ 'Photo.JPG', 'Placeholder v2.png' }, parse.lua(src).files.names)
+end
+
+function suite:testLuaStringsThatAreNotFiles()
+	local src = "local a = 'Technical details'\nlocal b = mw.loadJsonData('Module:X/data.json')\n"
+		.. "local c = name:gsub('%.svg$', '')\nlocal d = 'https://example.com/a.png'"
+	self:assertDeepEquals({}, parse.lua(src).files.names)
+end
+
+function suite:testLuaFileInCommentIgnored()
+	local src = "-- 'A.svg'\n--[[ 'B.svg' ]]\n--[==[ 'C.svg' ]==]\nlocal d = 'D.svg'"
+	self:assertDeepEquals({ 'D.svg' }, parse.lua(src).files.names)
+end
+
+-- A CSS custom property inside a string starts with `--`, which is not a comment there.
+function suite:testLuaDoubleDashInsideAStringIsNotAComment()
+	local src = "local style = '--t-icon-url: \"%s\";'\nlocal icon = 'Sc-icon-uec.svg'"
+	self:assertDeepEquals({ 'Sc-icon-uec.svg' }, parse.lua(src).files.names)
+end
+
+function suite:testLuaEscapedQuoteKeepsLaterStrings()
+	self:assertDeepEquals({ 'E.svg' }, parse.lua("local a = 'It\\'s'\nlocal b = 'E.svg'").files.names)
+end
+
+function suite:testLuaLongStringHoldingWikitext()
+	self:assertDeepEquals({ 'Logo.png' }, parse.lua('local s = [=[ [[File:Logo.png|20px]] ]=]').files.names)
+end
+
+function suite:testLuaNameBuiltAtRuntime()
+	local found = parse.lua("eyebrow.icon = aggrid.thumb('File:Sc-icon-brand-' .. info.code .. '.svg', 20)").files
+	self:assertDeepEquals({ 'Sc-icon-brand-….svg' }, found.dynamic)
+	self:assertDeepEquals({}, found.names)
+end
+
+function suite:testLuaRuntimeNameWithNoLiteralTextIsDropped()
+	local found = parse.lua("local file = name .. '.svg'").files
+	self:assertDeepEquals({}, found.dynamic)
+	self:assertDeepEquals({}, found.names)
+end
+
+function suite:testLuaConcatenatedLiteralsAreAName()
+	self:assertDeepEquals({ 'Logo.svg' }, parse.lua("local file = 'Logo' .. '.svg'").files.names)
+end
+
+function suite:testLuaMediaUrl()
+	local found = parse.lua("local css = 'url(https://media.starcitizen.tools/e/e8/CdxIconSuccess.svg)'").files
+	self:assertDeepEquals({ 'CdxIconSuccess.svg' }, found.names)
+	self:assertDeepEquals({ { name = 'CdxIconSuccess.svg', path = 'e/e8' } }, found.urls)
+end
+
+function suite:testLuaFilesSortedAndUnique()
+	self:assertDeepEquals({ 'A.svg', 'B.svg' }, parse.lua("x = 'B.svg'\ny = 'A.svg'\nz = 'File:B.svg'").files.names)
+end
+
+function suite:testWikitextFiles()
+	local text = '[[File:Foo.svg|20px]] [[image:bar.png]]\n{{#invoke:Mbox|main\n|icon=WikimediaUI-Alert.svg\n}}'
+		.. '{{{image|Default.png}}}<span data-icon="Quoted.svg"></span>'
+	self:assertDeepEquals(
+		{ 'Bar.png', 'Default.png', 'Foo.svg', 'Quoted.svg', 'WikimediaUI-Alert.svg' },
+		parse.files(text).names
+	)
+end
+
+function suite:testWikitextWithoutFiles()
+	self:assertDeepEquals({}, parse.files('This page uses no files. See [[Help:Images]].').names)
+	self:assertDeepEquals({}, parse.files('<!-- [[File:Old.png]] -->').names)
+end
+
+function suite:testWikitextMediaUrl()
+	local found = parse.files('[https://media.starcitizen.tools/4/40/RSItm.svg RSI]')
+	self:assertDeepEquals({ 'RSItm.svg' }, found.names)
+	self:assertDeepEquals({ { name = 'RSItm.svg', path = '4/40' } }, found.urls)
+end
+
+function suite:testStylesheetFiles()
+	local css = '.a { mask-image: url(https://media.starcitizen.tools/e/e8/CdxIconSuccess.svg); }\n'
+		.. '.b { mask-image: url("https://media.starcitizen.tools/f/ff/Icon_faction_reputation_r0.svg"); }\n'
+		.. '.c { background-image: url( https://media.starcitizen.tools/4/40/RSItm.svg ); }'
+	local found = parse.stylesheetFiles(css)
+	self:assertDeepEquals({ 'CdxIconSuccess.svg', 'Icon faction reputation r0.svg', 'RSItm.svg' }, found.names)
+	self:assertDeepEquals({
+		{ name = 'CdxIconSuccess.svg', path = 'e/e8' },
+		{ name = 'Icon faction reputation r0.svg', path = 'f/ff' },
+		{ name = 'RSItm.svg', path = '4/40' },
+	}, found.urls)
+end
+
+function suite:testStylesheetUrlIsDecoded()
+	local found = parse.stylesheetFiles('a { background: url(https://media.starcitizen.tools/a/ab/Bad%27name.jpg) }')
+	self:assertDeepEquals({ "Bad'name.jpg" }, found.names)
+end
+
+function suite:testStylesheetThumbnailUrl()
+	local css = 'a { background: url(https://media.starcitizen.tools/thumb/e/e8/X.svg/20px-X.svg.png) }'
+	self:assertDeepEquals({ { name = 'X.svg', path = 'e/e8' } }, parse.stylesheetFiles(css).urls)
+end
+
+function suite:testStylesheetCommentIgnored()
+	local css = '/* url(https://media.starcitizen.tools/e/e8/A.svg) or Special:FilePath/B.svg */ a { color: red; }'
+	self:assertDeepEquals({}, parse.stylesheetFiles(css).names)
+end
+
+function suite:testLuaFormatPatternIsANameBuiltAtRuntime()
+	local src = "local a = string.format('[[File:sc-icon-brand-%s.svg|36px|link=]]', code)\n"
+		.. "local b = ('[[File:WikimediaUI-%s-ltr.svg|14px|link=]]'):format(dir)"
+	local found = parse.lua(src).files
+	self:assertDeepEquals({ 'Sc-icon-brand-….svg', 'WikimediaUI-…-ltr.svg' }, found.dynamic)
+	self:assertDeepEquals({}, found.names)
+end
+
+-- A Lua pattern holds a `%` that is not a format directive.
+function suite:testLuaPatternIsNotAFormat()
+	local found = parse.lua("local base = name:match('^(.-)%.svg$')\nlocal s = ('%d%%.png'):format(n)").files
+	self:assertDeepEquals({}, found.dynamic)
+	self:assertDeepEquals({}, found.names)
+end
+
+function suite:testLuaRuntimeNameWithACallInTheMiddle()
+	local found = parse.lua("local file = 'Sc-icon-' .. info.code:lower() .. '.svg'").files
+	self:assertDeepEquals({ 'Sc-icon-….svg' }, found.dynamic)
+end
+
+function suite:testLuaRuntimeNameKeepsOnlyTheFileName()
+	self:assertDeepEquals({}, parse.lua("local arg = '|icon=' .. name .. '.svg'").files.dynamic)
+end
+
+-- Not valid Lua, but the parser must not throw on any source.
+function suite:testLuaLeadingConcatenationDoesNotThrow()
+	self:assertDeepEquals({ 'B.svg' }, parse.lua(".. 'B.svg'").files.names)
+end
+
+function suite:testMediaUrlEndsAtWikitextSyntax()
+	local url = 'https://media.starcitizen.tools/4/40/RSItm.svg'
+	for _, text in ipairs({
+		'[' .. url .. ']',
+		'{{X|url=' .. url .. '|y=1}}',
+		'{{X|' .. url .. '}}',
+		'<ref>' .. url .. '</ref>',
+	}) do
+		self:assertDeepEquals({ 'RSItm.svg' }, parse.files(text).names, text)
+	end
+end
+
+function suite:testQuotedAttributeFollowedByAnother()
+	self:assertDeepEquals({ 'X.svg' }, parse.files('<span data-icon="X.svg" class="y"></span>').names)
+end
+
 return suite

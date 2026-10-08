@@ -69,7 +69,15 @@ end
 
 --- forward()'s shape for a module, with only the lists given.
 local function moduleFound(lists)
-	local found = { requires = {}, loads = {}, dynamic = {}, styles = {}, invokes = {}, strict = false }
+	local found = {
+		requires = {},
+		loads = {},
+		dynamic = {},
+		styles = {},
+		invokes = {},
+		strict = false,
+		files = { names = {}, urls = {}, dynamic = {} },
+	}
 	for key, value in pairs(lists or {}) do
 		found[key] = value
 	end
@@ -470,6 +478,188 @@ function suite:testSourcesOutsideModuleAndTemplate()
 		self:assertStringContains('<div>Synced</div>', html, true)
 		self:assertNotStringContains('Used by', html, true)
 		self:assertEquals(0, #bucketLib._puts)
+	end)
+end
+
+-- Files
+
+local UEC_SRC = "local p = {}\np.icon = 'Sc-icon-uec.svg'\nreturn p"
+
+--- md5 starts for the names below, standing in for mw.hash, which the runner lacks.
+local MD5 = { ['CdxIconSuccess.svg'] = 'e8', ['Icon_faction_reputation_r0.svg'] = 'ff' }
+
+--- Runs fn with mw.hash answering from MD5.
+local function withHash(fn)
+	local real = mw.hash
+	mw.hash = {
+		hashValue = function(_, value)
+			return (MD5[value] or '00') .. string.rep('0', 30)
+		end,
+	}
+	local ok, err = pcall(fn)
+	mw.hash = real
+	if not ok then
+		error(err, 0)
+	end
+end
+
+--- A module that loads its own stylesheet, whose source is `css`.
+local function styledModule(css)
+	local src = "local s = frame:extensionTag{ name = 'templatestyles', args = { src = 'Module:Avail/styles.css' } }"
+	return fakeTitle('Module:Avail', 828, src),
+		{ ['Module:Avail/styles.css'] = fakeTitle('Module:Avail/styles.css', 828, css) }
+end
+
+function suite:testFilesAreThumbnailsOnThePageItself()
+	render(fakeTitle('Module:UEC', 828, UEC_SRC), {}, {}, function()
+		local html = dependencies.panel()
+		self:assertStringContains('Files', html, true)
+		self:assertStringContains('[[File:Sc-icon-uec.svg|20x20px|link=|alt=]]', html, true)
+		self:assertStringContains('[[:File:Sc-icon-uec.svg|Sc-icon-uec.svg]]', html, true)
+		self:assertStringContains('uses 1', summaryOf(html), true)
+		self:assertEquals(0, #bucketLib._puts)
+	end)
+end
+
+-- A thumbnail records the file as used by the page it renders on, so only the
+-- page whose source names the file shows one.
+function suite:testFilesAreLinksOnTheDocPage()
+	local uec = fakeTitle('Module:UEC', 828, UEC_SRC)
+	local doc = fakeTitle('Module:UEC/doc', 828, 'Docs.')
+	doc.basePageTitle = uec
+	render(doc, {}, {}, function()
+		local html = dependencies.panel()
+		self:assertStringContains('[[:File:Sc-icon-uec.svg|Sc-icon-uec.svg]]', html, true)
+		self:assertNotStringContains('[[File:', html, true)
+	end)
+end
+
+function suite:testFilesAreLinksOnASandbox()
+	render(fakeTitle('Module:UEC/sandbox', 828, UEC_SRC), {}, {}, function()
+		local html = dependencies.panel()
+		self:assertStringContains('[[:File:Sc-icon-uec.svg|Sc-icon-uec.svg]]', html, true)
+		self:assertNotStringContains('[[File:', html, true)
+	end)
+end
+
+function suite:testTemplateFiles()
+	render(fakeTitle('Template:Removed', 10, '{{#invoke:Mbox|main|icon=WikimediaUI-Alert.svg}}'), {}, {}, function()
+		local html = dependencies.panel()
+		self:assertStringContains('[[:File:WikimediaUI-Alert.svg|WikimediaUI-Alert.svg]]', html, true)
+		self:assertStringContains('uses 2', summaryOf(html), true)
+	end)
+end
+
+function suite:testOwnStylesheetFiles()
+	local page, pages = styledModule('.a { mask-image: url(https://media.starcitizen.tools/e/e8/CdxIconSuccess.svg); }')
+	render(page, pages, {}, function()
+		withHash(function()
+			local html = dependencies.panel()
+			self:assertStringContains('[[:File:CdxIconSuccess.svg|CdxIconSuccess.svg]]', html, true)
+			self:assertNotStringContains('t-dependencies__warning', html, true)
+		end)
+	end)
+end
+
+-- Another module's stylesheet lists its files on that module's page.
+function suite:testSharedStylesheetFilesNotListed()
+	local src = "local s = frame:extensionTag{ name = 'templatestyles', args = { src = 'Module:Icon/styles.css' } }"
+	local pages = {
+		['Module:Icon/styles.css'] = fakeTitle(
+			'Module:Icon/styles.css',
+			828,
+			'.a { mask-image: url(https://media.starcitizen.tools/e/e8/CdxIconSuccess.svg); }'
+		),
+	}
+	render(fakeTitle('Module:User', 828, src), pages, {}, function()
+		self:assertNotStringContains('CdxIconSuccess.svg', dependencies.panel(), true)
+	end)
+end
+
+function suite:testUrlPathThatDoesNotMatchTheNameIsFlagged()
+	local page, pages = styledModule('.a { mask-image: url(https://media.starcitizen.tools/9/9b/CdxIconSuccess.svg); }')
+	render(page, pages, {}, function()
+		withHash(function()
+			local html = dependencies.panel()
+			self:assertStringContains('t-dependencies__warning', html, true)
+			self:assertStringContains('<code>9/9b</code>', html, true)
+			self:assertStringContains('<code>e/e8</code>', html, true)
+		end)
+	end)
+end
+
+function suite:testSameUrlInSourceAndStylesheetFlaggedOnce()
+	local url = 'https://media.starcitizen.tools/9/9b/CdxIconSuccess.svg'
+	local src = "local s = frame:extensionTag{ name = 'templatestyles', args = { src = 'Module:Avail/styles.css' } }\n"
+		.. "local css = 'url("
+		.. url
+		.. ")'"
+	local pages = {
+		['Module:Avail/styles.css'] = fakeTitle(
+			'Module:Avail/styles.css',
+			828,
+			'.a { mask-image: url(' .. url .. '); }'
+		),
+	}
+	render(fakeTitle('Module:Avail', 828, src), pages, {}, function()
+		withHash(function()
+			local _, count = dependencies.panel():gsub('<code>9/9b</code>', '')
+			self:assertEquals(1, count)
+		end)
+	end)
+end
+
+function suite:testUrlPathHashesTheNameWithUnderscores()
+	local page, pages =
+		styledModule('.a { mask-image: url(https://media.starcitizen.tools/f/ff/Icon_faction_reputation_r0.svg); }')
+	render(page, pages, {}, function()
+		withHash(function()
+			local html = dependencies.panel()
+			self:assertStringContains('|Icon faction reputation r0.svg]]', html, true)
+			self:assertNotStringContains('t-dependencies__warning', html, true)
+		end)
+	end)
+end
+
+-- [[File:]] follows a file redirect, so the thumbnail still shows; the URL does not.
+function suite:testMovedUrlFileIsFlagged()
+	local page, pages = styledModule('.a { mask-image: url(https://media.starcitizen.tools/e/e8/CdxIconSuccess.svg); }')
+	local moved = fakeTitle('File:CdxIconSuccess.svg', 6, '')
+	moved.isRedirect = true
+	moved.redirectTarget = fakeTitle('File:CdxIconCheck.svg', 6, '')
+	pages['File:CdxIconSuccess.svg'] = moved
+	render(page, pages, {}, function()
+		withHash(function()
+			local html = dependencies.panel()
+			self:assertStringContains('t-dependencies__warning', html, true)
+			self:assertStringContains('[[:File:CdxIconCheck.svg|CdxIconCheck.svg]]', html, true)
+		end)
+	end)
+end
+
+-- Each moved check is an expensive lookup; past the page's limit it throws.
+function suite:testFailedMovedCheckKeepsThePanel()
+	local page, pages = styledModule('.a { mask-image: url(https://media.starcitizen.tools/e/e8/CdxIconSuccess.svg); }')
+	pages['File:CdxIconSuccess.svg'] = setmetatable({}, {
+		__index = function()
+			error('too many expensive function calls')
+		end,
+	})
+	render(page, pages, {}, function()
+		withHash(function()
+			local html = dependencies.panel()
+			self:assertStringContains('[[:File:CdxIconSuccess.svg|CdxIconSuccess.svg]]', html, true)
+			self:assertNotStringContains('t-dependencies__warning', html, true)
+		end)
+	end)
+end
+
+function suite:testFileNameBuiltAtRuntime()
+	local src = "local icon = aggrid.thumb('File:Sc-icon-brand-' .. info.code .. '.svg', 20)"
+	render(fakeTitle('Module:Grid', 828, src), {}, {}, function()
+		local html = dependencies.panel()
+		self:assertStringContains('<code>Sc-icon-brand-….svg</code>', html, true)
+		self:assertStringContains('uses 1', summaryOf(html), true)
 	end)
 end
 

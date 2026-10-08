@@ -408,7 +408,11 @@ local function fileItems(files, ctx)
 	for _, name in ipairs(files.names) do
 		local item = '[[:File:' .. name .. '|' .. name .. ']]'
 		if thumbnails then
-			item = '<span class="t-dependencies__thumb">[[File:' .. name .. '|20x20px|link=|alt=]]</span>' .. item
+			-- The wiki recolours most icons, so an SVG shows as a silhouette in the text
+			-- colour: styles.css blackens it and `skin-invert` whitens it on a dark theme.
+			local class = name:lower():find('%.svg$') and 't-dependencies__thumb t-dependencies__thumb--svg skin-invert'
+				or 't-dependencies__thumb'
+			item = '<span class="' .. class .. '">[[File:' .. name .. '|20x20px|link=|alt=]]</span>' .. item
 		end
 		if problems[name] then
 			item = item

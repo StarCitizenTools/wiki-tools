@@ -521,6 +521,21 @@ function suite:testFilesAreThumbnailsOnThePageItself()
 	end)
 end
 
+-- The wiki recolours most icons, so an SVG's own colour says little: it shows as a
+-- silhouette in the text colour. A raster image keeps its colours.
+function suite:testSvgThumbnailIsASilhouette()
+	local src = "local p = {}\np.icon = 'Sc-icon-uec.svg'\np.art = 'Placeholderv2.png'\nreturn p"
+	render(fakeTitle('Module:Art', 828, src), {}, {}, function()
+		local html = dependencies.panel()
+		self:assertStringContains(
+			'<span class="t-dependencies__thumb t-dependencies__thumb--svg skin-invert">[[File:Sc-icon-uec.svg|',
+			html,
+			true
+		)
+		self:assertStringContains('<span class="t-dependencies__thumb">[[File:Placeholderv2.png|', html, true)
+	end)
+end
+
 -- A thumbnail records the file as used by the page it renders on, so only the
 -- page whose source names the file shows one.
 function suite:testFilesAreLinksOnTheDocPage()

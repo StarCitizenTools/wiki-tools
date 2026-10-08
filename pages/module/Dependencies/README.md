@@ -37,3 +37,4 @@ Each page's row lives in the `dependencies` table of [Extension:Bucket](https://
 - Any string that is a whole file name counts, even a sentence that happens to end in one.
 - A media URL is checked against its name. A path that is not the md5 of the name is flagged, and so is a file that has moved: `[[File:]]` follows the redirect, so the thumbnail still shows, but the URL no longer works. The moved check is one expensive lookup per file named by a URL.
 - A missing file shows as a red link, and MediaWiki adds the page to its hidden `Category:Pages with broken file links`.
+- An SVG thumbnail is a silhouette in the text colour, the way the wiki draws most icons, so a colour logo shows without its colours. A raster thumbnail keeps its own colours.

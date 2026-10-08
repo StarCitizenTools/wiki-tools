@@ -126,16 +126,16 @@
 	line-height: 0;
 }
 
-/* Most icons are black: a fixed light tile keeps them visible on a dark theme.
-   The tile is on the image, so a missing file leaves no empty tile behind. */
 .t-dependencies__thumb img {
-	box-sizing: content-box;
 	width: 20px;
 	height: 20px;
-	padding: 2px;
 	object-fit: contain;
-	border-radius: var(--border-radius-base);
-	background-color: var(--background-color-base-fixed, #fff);
+}
+
+/* Black here; the wrapper's skin-invert turns it white on a dark theme. The two
+   cannot share one filter: Citizen's --filter-invert is `none` on a light theme. */
+.t-dependencies__thumb--svg img {
+	filter: brightness(0);
 }
 
 /* A missing file's thumbnail is a red link repeating the name beside it. */

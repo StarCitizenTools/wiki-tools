@@ -21,6 +21,7 @@ Each page's row lives in the `dependencies` table of [Extension:Bucket](https://
 - `main(frame)`: `panel()` for the current page, as `{{#invoke:Dependencies|main}}`.
 - With categories on, a template with at least one invoke joins `[[Category:Lua-based templates]]`, a module that requires `strict` joins `[[Category:Strict mode modules]]`, and a module nothing invokes, requires, or loads joins `[[Category:Unused modules]]`.
 - The functions come from [Module:Module toc](https://starcitizen.tools/Module:Module_toc).
+- Uses lists, under Files, the image files the page names: a module string that is a whole file name, a template's `[[File:…]]` or a parameter value that is a whole file name, and media URLs (`https://media.starcitizen.tools/a/ab/<File>`) in either one or in the page's own `/styles.css` when the page loads it. Rendered on the page itself, each file is a thumbnail in a 20px box, which records the page under the file's File usage; the `/doc` and sandbox renders show the name alone. Files are not stored in Bucket.
 
 ### Gotchas
 
@@ -30,3 +31,9 @@ Each page's row lives in the `dependencies` table of [Extension:Bucket](https://
 - A template that never shows `{{Documentation}}` writes no row, so the modules it invokes do not list it; a module whose `/doc` never shows it writes no row either.
 - Stylesheet pages show no panel, so a stylesheet's users are listed on the page that owns it: `Module:Icon` lists who loads `Module:Icon/styles.css` under Styles used by. Only a `/styles.css` subpage has an owner. Loading a module's stylesheet does not use its code: a module whose only users load its stylesheet is still unused.
 - When the Bucket lookup fails, a module's Used by row says the list is unavailable, and the module is not flagged unused.
+- A file drawn as a CSS mask, through `{{filepath:}}` or a stylesheet URL, records no use on the pages that show it. The Files thumbnail is the only record, made against the page whose source names the file, and it keeps the file off Special:UnusedFiles.
+- A module's file name built while the page runs shows as a pattern with no thumbnail, such as `Sc-icon-brand-….svg`, when string literals are joined with names, calls or indexes, or fill a `string.format` pattern. A pattern with nothing literal but the extension is dropped, and a name built any other way, or in a template from a parameter, is not seen.
+- A file chosen from data (API images, Bucket values) is not seen either. The page that draws it records it only when it draws a `[[File:]]`; drawn as a mask, nothing records it.
+- Any string that is a whole file name counts, even a sentence that happens to end in one.
+- A media URL is checked against its name. A path that is not the md5 of the name is flagged, and so is a file that has moved: `[[File:]]` follows the redirect, so the thumbnail still shows, but the URL no longer works. The moved check is one expensive lookup per file named by a URL.
+- A missing file shows as a red link, and MediaWiki adds the page to its hidden `Category:Pages with broken file links`.

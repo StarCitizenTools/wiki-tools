@@ -43,6 +43,7 @@ local UNAVAILABLE_TEXT = 'Unavailable: looking up the pages that use it failed o
 --- @field label string e.g. `Required by`
 --- @field items string[] wikitext, one per list item
 --- @field note string|nil wikitext under the list
+--- @field modifier string|nil the list's `t-dependencies__list--` modifier
 
 --- @class DependenciesReport
 --- @field usedBy DependenciesGroup[]|nil nil when the reverse lookup failed
@@ -92,24 +93,78 @@ local function context(pageName)
 	}
 end
 
---- What the page itself uses: a module's requires, loads and stylesheets, a
---- template's invokes and stylesheets.
+--- @param list any
+--- @param value string
+--- @return boolean
+local function contains(list, value)
+	for _, item in ipairs(type(list) == 'table' and list or {}) do
+		if item == value then
+			return true
+		end
+	end
+	return false
+end
+
+--- `files` with the files `extra` names added.
+--- @param files DependenciesFiles
+--- @param extra DependenciesFiles
+--- @return DependenciesFiles
+local function mergeFiles(files, extra)
+	local merged = { names = {}, urls = {}, dynamic = {} }
+	for _, key in ipairs({ 'names', 'dynamic' }) do
+		local seen = {}
+		for _, list in ipairs({ files[key], extra[key] }) do
+			for _, value in ipairs(list) do
+				if not seen[value] then
+					seen[value] = true
+					merged[key][#merged[key] + 1] = value
+				end
+			end
+		end
+		table.sort(merged[key])
+	end
+	local seen = {}
+	for _, list in ipairs({ files.urls, extra.urls }) do
+		for _, url in ipairs(list) do
+			local key = url.name .. '|' .. url.path
+			if not seen[key] then
+				seen[key] = true
+				merged.urls[#merged.urls + 1] = url
+			end
+		end
+	end
+	return merged
+end
+
+--- What the page itself uses: a module's requires, loads, stylesheets and
+--- files, a template's invokes, stylesheets and files. The files include those
+--- the page's own `/styles.css` names when the page loads it; any other
+--- stylesheet lists its files on the page that owns it.
 --- @param ctx DependenciesContext
 --- @return table
 local function forward(ctx)
+	local found
 	if ctx.namespace == NS_MODULE then
-		local found = parse.lua(ctx.content)
+		found = parse.lua(ctx.content)
 		found.invokes = {}
-		return found
+	else
+		found = {
+			requires = {},
+			loads = {},
+			dynamic = {},
+			strict = false,
+			invokes = parse.invokes(ctx.content),
+			styles = parse.styles(ctx.content),
+			files = parse.files(ctx.content),
+		}
 	end
-	return {
-		requires = {},
-		loads = {},
-		dynamic = {},
-		strict = false,
-		invokes = parse.invokes(ctx.content),
-		styles = parse.styles(ctx.content),
-	}
+	local own = ctx.title .. '/styles.css'
+	local stylesheet = contains(found.styles, own) and mw.title.new(own)
+	local css = stylesheet and stylesheet:getContent()
+	if css then
+		found.files = mergeFiles(found.files, parse.stylesheetFiles(css))
+	end
+	return found
 end
 
 --- The page's `dependencies` row, or nil when it uses nothing.
@@ -154,18 +209,6 @@ local function write(ctx, found)
 	pcall(function()
 		mw.ext.bucket(BUCKET).put(row)
 	end)
-end
-
---- @param list any
---- @param value string
---- @return boolean
-local function contains(list, value)
-	for _, item in ipairs(type(list) == 'table' and list or {}) do
-		if item == value then
-			return true
-		end
-	end
-	return false
 end
 
 --- Splits the rows naming `title` into the pages that invoke, require and load
@@ -312,10 +355,73 @@ end
 --- @param label string
 --- @param items string[]
 --- @param note string|nil
-local function addGroup(into, label, items, note)
+--- @param modifier string|nil
+local function addGroup(into, label, items, note, modifier)
 	if items[1] ~= nil then
-		into[#into + 1] = { label = label, items = items, note = note }
+		into[#into + 1] = { label = label, items = items, note = note, modifier = modifier }
 	end
+end
+
+--- What is wrong with each media URL, by file name: a path that is not the
+--- md5 directories of the name, or a file that has moved, which `[[File:]]`
+--- follows but a URL does not.
+--- @param urls DependenciesFileUrl[]
+--- @return table<string, string[]>
+local function urlProblems(urls)
+	local problems, checked = {}, {}
+	local function add(name, text)
+		problems[name] = problems[name] or {}
+		problems[name][#problems[name] + 1] = text
+	end
+	for _, url in ipairs(urls) do
+		local md5 = mw.hash.hashValue('md5', (url.name:gsub(' ', '_')))
+		local expected = md5:sub(1, 1) .. '/' .. md5:sub(1, 2)
+		if url.path ~= expected then
+			add(url.name, 'URL path ' .. code(url.path) .. ' should be ' .. code(expected))
+		end
+		if not checked[url.name] then
+			checked[url.name] = true
+			-- isRedirect is an expensive lookup: past the page's limit it throws.
+			local ok, target = pcall(function()
+				local title = mw.title.new('File:' .. url.name)
+				return title and title.isRedirect and title.redirectTarget
+			end)
+			if ok and target then
+				add(url.name, 'moved to [[:File:' .. target.text .. '|' .. target.text .. ']], update the URL')
+			end
+		end
+	end
+	return problems
+end
+
+--- The Files group's items. On the page itself each name follows a thumbnail,
+--- which records the file as used by the page; anywhere else (its /doc, a
+--- sandbox) the name alone, so only the page whose source names a file is
+--- recorded as using it.
+--- @param files DependenciesFiles
+--- @param ctx DependenciesContext
+--- @return string[]
+local function fileItems(files, ctx)
+	local thumbnails = ctx.isCurrent and not ctx.excluded
+	local problems = urlProblems(files.urls)
+	local items = {}
+	for _, name in ipairs(files.names) do
+		local item = '[[:File:' .. name .. '|' .. name .. ']]'
+		if thumbnails then
+			item = '<span class="t-dependencies__thumb">[[File:' .. name .. '|20x20px|link=|alt=]]</span>' .. item
+		end
+		if problems[name] then
+			item = item
+				.. ' <span class="t-dependencies__warning">('
+				.. table.concat(problems[name], '; ')
+				.. ')</span>'
+		end
+		items[#items + 1] = item
+	end
+	for _, pattern in ipairs(files.dynamic) do
+		items[#items + 1] = code(pattern)
+	end
+	return items
 end
 
 --- @param back table
@@ -363,7 +469,8 @@ local function report(ctx, found, back)
 		usesCount = #requires + #found.loads
 	end
 	addGroup(uses, 'Styles', links(found.styles, ctx, ctx.prefix))
-	usesCount = usesCount + #found.styles
+	addGroup(uses, 'Files', fileItems(found.files, ctx), nil, 'files')
+	usesCount = usesCount + #found.styles + #found.files.names + #found.files.dynamic
 
 	local result = {
 		uses = uses,
@@ -451,7 +558,7 @@ local function groupsHtml(groups)
 			:tag('span')
 			:addClass('t-dependencies__count')
 			:wikitext(#entry.items)
-		local body = root:tag('div'):addClass('t-dependencies__items'):node(list(entry.items))
+		local body = root:tag('div'):addClass('t-dependencies__items'):node(list(entry.items, entry.modifier))
 		if entry.note then
 			body:tag('div'):addClass('t-dependencies__note'):wikitext(entry.note)
 		end

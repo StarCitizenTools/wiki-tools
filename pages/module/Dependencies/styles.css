@@ -114,6 +114,39 @@
 	color: var(--color-subtle);
 }
 
+.t-dependencies__list--files > li {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0 var(--space-xs);
+}
+
+.t-dependencies__thumb {
+	display: flex;
+	line-height: 0;
+}
+
+/* Most icons are black: a fixed light tile keeps them visible on a dark theme.
+   The tile is on the image, so a missing file leaves no empty tile behind. */
+.t-dependencies__thumb img {
+	box-sizing: content-box;
+	width: 20px;
+	height: 20px;
+	padding: 2px;
+	object-fit: contain;
+	border-radius: var(--border-radius-base);
+	background-color: var(--background-color-base-fixed, #fff);
+}
+
+/* A missing file's thumbnail is a red link repeating the name beside it. */
+.t-dependencies__thumb .mw-broken-media {
+	display: none;
+}
+
+.t-dependencies__warning {
+	color: var(--color-warning);
+}
+
 /* A phone stacks each label above its content. */
 @media ( max-width: 639px ) {
 	.t-dependencies__row,

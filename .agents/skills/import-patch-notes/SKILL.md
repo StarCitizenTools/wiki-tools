@@ -7,7 +7,7 @@ description: Use when a new Star Citizen patch has gone LIVE and its Update: pag
 
 Operator-run pass that turns CIG's patch-notes comm-link into a finished `Update:Star Citizen Alpha <version>` page. Run it once per release, major or point.
 
-This is **not** an ingestion pipeline and is not automated. CIG changes its comm-link format regularly - era-5 prose moved into Vue component attributes on a separate fragment, the component set varies from patch to patch, and the attribute quoting and heading depth have both shifted mid-era. The steps below record the shape as of Alpha 4.10.1 (verified 2026-09-17) **and how to re-derive it when it shifts**. Expect to check, not to assume.
+This is **not** an ingestion pipeline and is not automated. CIG changes its comm-link format regularly - era-5 prose moved into Vue component attributes on a separate fragment, the component set varies from patch to patch, and the attribute quoting and heading depth have both shifted mid-era. The steps below record the shape as of Alpha 4.10.2 (verified 2026-10-09) **and how to re-derive it when it shifts**. Expect to check, not to assume.
 
 The 167-page standardisation pass that established this layout is done; see the `project_patch_page_redesign` and `project_patch_pass_resume` memories. Every `Update:` page already matches the skeleton in step 5, so a new page only has to join them.
 
@@ -105,17 +105,17 @@ curl -sL -A "$UA" "https://robertsspaceindustries.com/<fragment path>" -o fragme
 
 (No leading slash on the concatenation - the grep output already starts at `alexandria/`.)
 
-**Inventory what the fragment actually contains before extracting.** The component set varies per patch. As of 4.10.1:
+**Inventory what the fragment actually contains before extracting.** The component set varies per patch, so dump every JSON attribute and walk it for strings holding `<p>` or `<li>`, with their key paths. As of 4.10.2:
 
 | Component | Attribute | Encoding | Carries |
 |---|---|---|---|
-| `<g-faq>` | `:question-list="…"` | HTML-escaped **JSON** | the feature/fix sections, as `{title, content}` |
+| `<g-faq>` | `:question-list="…"` | HTML-escaped **JSON** | the feature/fix sections, as `{title, content}` (4.9 and 4.10.1; absent from 4.10.2) |
 | `<g-article>` | `body="…"` | **raw HTML**, entities escaped | the release line, and one or more of stability / bug fixes / known issues |
-| `<g-platform-client-component>` | `:properties='…'` | HTML-escaped JSON | narrative bodies - walk for `body` and `text` keys (4.8 and the announcement transmissions use this; 4.9 and 4.10.1 patch notes do not) |
+| `<g-platform-client-component>` | `:properties='…'` | HTML-escaped JSON | dispatch on `componentId`. `MiniGrid`: an HTML string at `componentProps.gridOptions.uiData.elements[].data.text`, each opening with its own `<h2>`/`<h3>` title (4.10.2's feature sections). `ArtemisNarrative`: the real body at `componentProps.blocks[].value.body` (4.10.2's stability, bug fixes and hotfixes in one string). `Separator`: nothing. 4.8 and the announcement transmissions also use this component |
 | `<g-banner-advanced>` | `:content="…"` | HTML-escaped JSON | version and divider banners (step 3) |
 | `<g-narrative-group>` | - | - | a **wrapper** around `g-article`, not a carrier. Ignore it and read the `g-article` inside |
 
-**Quoting is per attribute and not uniform.** `:properties` is delimited by **single** quotes, every other attribute above by double. A `"([^"]*)"` regex against `:properties` matches nothing and returns silently, which reads as "this patch has no narrative bodies" when the fragment is full of them. Match the delimiter the attribute actually uses, and assert you extracted a non-zero number of blocks.
+**Quoting is per attribute and not uniform.** `:properties` is usually delimited by **single** quotes and every other attribute above by double, but not always: in 4.10.2 the `ArtemisNarrative`'s `:properties` is double-quoted while the `MiniGrid`s beside it are single-quoted. A regex for one delimiter matches nothing on the other and returns silently, which reads as "this patch has no narrative bodies" when the fragment is full of them. Accept either delimiter on every attribute, and assert you extracted a non-zero number of blocks.
 
 Watch the encoding column: the JSON attributes need an unescape *then* a parse, but `g-article`'s `body=` is already raw markup (`<h3>…`) with only entities escaped. A blanket unescape step mangles one or the other.
 
@@ -125,7 +125,7 @@ Everything else is marketing furniture - `g-grid` (roughly 47KB of the 88KB 4.9 
 
 Two things to filter:
 
-- **Turbulent's lorem ipsum.** The component templates ship pre-filled and it leaks into the rendered fragment. In 4.8.1's span a `g-platform-client-component` carries a lorem `body` *right beside* the real one. Drop any block matching `lorem ipsum`, `ut labore et dolore`, `tempor incididunt`, `dolor sit amet`.
+- **Turbulent's lorem ipsum.** The component templates ship pre-filled and it leaks into the rendered fragment. In 4.8.1's span a `g-platform-client-component` carries a lorem `body` *right beside* the real one; in 4.10.2 the `ArtemisNarrative` block holds a lorem `value.value.body` one level below the real `value.body`, and the `g-grid` furniture cards carry lorem `description`s. Drop any block matching `lorem ipsum`, `ut labore et dolore`, `tempor incididunt`, `dolor sit amet`, `consectetur adipiscing`.
 - **Ordering.** Sort blocks by their offset in the fragment, not by component type, or the sections come out shuffled.
 
 **If the selectors match nothing**, the format has moved. Dump the fragment and look for the longest runs of escaped prose; the carrier is whichever attribute holds `&lt;p&gt;` or `&lt;li&gt;`. Record what you find here before moving on.
@@ -162,6 +162,8 @@ CIG's markup is shallow and regular: `h2`/`h3`/`h4` for sections, `ul`/`li` (som
 
 - A `g-faq` entry's `title` becomes an `h3` section; the headings *inside* its `content` map onto `h4`, whatever level CIG gave them.
 - A `g-article`'s own top-level headings map onto `h3`. 4.9's second article carries `<h3>Stability & Performance</h3>` and `<h3>Bug Fixes</h3>`, which the live page renders as `=== Stability and performance ===` / `=== Bug fixes ===`. Mapping them to `h4` buries the whole bug-fix tree a level too deep.
+- A `MiniGrid` text's opening `<h2>` or `<h3>` title becomes an `h3` section with no category above it, kept verbatim (4.10.2: `=== RSI Discovery Month ===`, `=== Physics Networking Overhaul ===`).
+- An `ArtemisNarrative` body uses `<h2>` for its wrappers (`Stability and Performance`, `Hotfixes Already Applied to Live`) and `<h3>` for bug-fix categories: map them onto `h3` and `h4`, and its `<p><strong><u>` labels onto `h5`.
 
 **CIG's own heading levels are not a reliable ranking.** Within one 4.10.1 article the peer bug-fix categories are split between `h4` (Missions, Ships and Vehicles, UI) and `h3` (Inventory and Items) for no reason, and `<h3><br></h3>` / `<h4><br></h4>` appear as pure spacers. Drop any heading whose text is empty, and rank the rest by what they contain, not by their tag. The reliable discriminator is the **markup of the label**, not the level:
 
@@ -172,7 +174,9 @@ CIG's markup is shallow and regular: `h2`/`h3`/`h4` for sections, `ul`/`li` (som
 | `<p><strong>…</strong></p>` | a label *only* if it passes the step-6 guards; otherwise emphasised prose |
 | `<p>` with no emphasis | explanatory prose - keep it in source order, it sits between bullet lists |
 
-CIG also dropped its own `<h3>Bug Fixes</h3>` wrapper in 4.10.1 while keeping the categories under it. Supply `=== Bug fixes ===` yourself; the whole namespace has it.
+CIG also dropped its own `<h3>Bug Fixes</h3>` wrapper in 4.10.1 and 4.10.2 while keeping the categories under it. Supply `=== Bug fixes ===` yourself; the whole namespace has it. In 4.10.2 the Knowledge Base link and the "closes N issues" summary come *before* CIG's Stability heading; 4.10.1's page keeps them under `=== Stability and performance ===`, so move the heading above them.
+
+**Repair CIG's copy-paste damage in the HTML before converting.** 4.10.2 had three kinds: a label glued onto the end of the previous nested bullet (`… that transition. <strong>Creatures</strong></li></ul></li>`), a category's items pasted into the preceding list, inline labels and all, *as well as* into their own section (Props and flair and Crafting inside Armor and clothing), and a doubled label (`<strong>Server stability</strong> <strong>Server stability</strong>`). Make each repair an exact-match replacement that fails unless it matches once, keep each item once in its own section, and run the step 9 fidelity gate against the **unrepaired** blocks so the repairs are checked too.
 
 **A faq `title` is a teaser string, not a heading.** Keep only the text before the first colon, then canonicalise it (`reference_heading_case_normalisation`):
 
@@ -209,7 +213,7 @@ Rules the whole namespace follows:
 
 - **All of CIG's prose goes under `== Patch notes ==`**, keeping CIG's own structure. Do not summarise, reorder or trim it.
 - **Known issues goes last** inside `== Patch notes ==`, as `=== Known issues ===`, opening with the gloss `''The issues Cloud Imperium Games listed as outstanding at release.''` so it reads as CIG's list rather than the wiki's. Some patches have none - 4.9 links a Knowledge Base instead, and its page has no such section. Do not manufacture one.
-- **A hotfix rollup gets its own `===`**, not a slot under `=== Bug fixes ===`. Point-release notes now end with a block of fixes that already reached live between the major and this patch (4.10.1: `Fixed by Hotfix Since 4.10.0 Went Live`, 26 of them). It is a different release window, and its subsections repeat the bug-fix category names, so nesting it collides.
+- **A hotfix rollup gets its own `===`**, not a slot under `=== Bug fixes ===`. Point-release notes now end with a block of fixes that already reached live between the major and this patch (4.10.1: `Fixed by Hotfix Since 4.10.0 Went Live`, 26 of them; 4.10.2: `Hotfixes Already Applied to Live`). The heading is CIG's title in sentence case. It is a different release window, and its subsections repeat the bug-fix category names, so nesting it collides.
 - **`<references />`**, never `{{reflist}}`. No `=` (h1) headings anywhere.
 - **`DEFAULTSORT` zero-pads the minor**: 4.9.0 sorts as `4.09.0, Alpha`, 4.10.1 as `4.10.1, Alpha`. It goes on its own line directly above the category, no blank line between. Every page in the namespace now carries one bar the redirects and the unreleased `Update:Star Citizen Release 1.0`, so a missing one is an omission, not a convention.
 - **`== What's new ==`** is a wikilinked digest of the release, grouped under bold labels that reuse the divider-banner titles from step 3 (`'''Features and Gameplay'''`, `'''Bug Fixes and Technical Updates'''`). Include it only when CIG published a summary to digest.
@@ -250,7 +254,7 @@ Order: full patch notes, the Spectrum release-notes thread when one exists, the 
 
 The announcement trailer first, then the patch report. The announcement transmission usually embeds both - pull the video ids from it rather than searching YouTube. Recent announcements sometimes embed none: 4.10.1's carries only store copy, so its page has no `== Media ==`. Grep the fragment for `youtube`/`youtu.be`/`vimeo` and ignore the template boilerplate that holds a literal `{$video_id}` placeholder; real ids are the only reason to emit the section.
 
-The wiki's comm-link mirror finds announcements and reports faster than probing ids, and it now carries the Patch-Notes series too (21330 is there as series `Release Info`), so it also answers "has CIG published the notes yet" and gives a `created_at` that settles `date`:
+The wiki's comm-link mirror finds announcements and reports faster than probing ids, and it now carries the Patch-Notes series too (21330 is there as series `Release Info`), so it usually answers "has CIG published the notes yet" and gives a `created_at` that settles `date`. It can lag: on 4.10.2's release day it had the announcement but not the notes (21351), so fall back to the id scan in step 1. The first version banner's `text.overline` also carries the release date (`October 9th, 2026`):
 
 ```bash
 curl -s 'https://api.star-citizen.wiki/api/comm-links/21330'                                  # -> title, rsi_url, created_at, images
@@ -294,7 +298,7 @@ curl -s -A 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Geck
   -d 'action=purge&format=json&formatversion=2&titles=Update:<prev>|Update:<next>|Patch notes'
 ```
 
-Check that each title comes back with `"purged": true`.
+Check that each title comes back with `"purged": true`. `Patch notes` draws its list as an AG Grid whose rows load from `/rest.php/aggrid/v0/grid/<pageid>/<token>/<index>/rows` (both values are `data-mw-aggrid-*` attributes in the page HTML), so the parsed HTML holds no versions at all. Confirm the new row through that endpoint, not by searching the page.
 
 ## Gotchas
 

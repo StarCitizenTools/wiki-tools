@@ -194,7 +194,7 @@ The settled skeleton, in this order. Omit a section only when it genuinely has n
 
 ```
 {{Patch}}
-[[File:<banner>|thumb]]              (when one exists)
+[[File:<banner>|thumb]]              (when one exists; editors often upload CIG's key art on release day under its own name, e.g. File:Sc-patch-4102-delivery.webp, so search for the patch number, not only "Alpha <v> artwork")
 <lead prose> + <ref>{{Cite RSI|…}}</ref>
 
 == Official links ==
@@ -245,6 +245,16 @@ Guards, or prose gets promoted:
 ```
 
 Order: full patch notes, the Spectrum release-notes thread when one exists, the announcement (suffixed ` &ndash; announcement`), then the patch report.
+
+The Spectrum thread takes a full URL, `{{Link RSI|url=https://robertsspaceindustries.com/spectrum/community/SC/forum/190048/thread/<slug>|text=Star Citizen Alpha 4.10.2 LIVE Release Notes}}`. The slug is `star-citizen-alpha-<version with dashes>-live-release-notes` (4.3.2, 4.8 and 4.10.x), not the older `…-live-<build>-patch-notes`; a wrong slug comes back as `ErrValidationFailed` / `Invalid thread slug`, which does not mean there is no thread. List the patch-notes channel rather than guessing:
+
+```bash
+curl -s -A "$UA" -H 'Content-Type: application/json' -X POST \
+  https://robertsspaceindustries.com/api/spectrum/forum/channel/threads \
+  -d '{"channel_id":"190048","page":1,"sort":"newest","label_id":null}'   # -> data.threads[]: slug, subject, time_created
+```
+
+The LIVE thread's `time_created` is also the best evidence for `date`.
 
 **`== Media ==`** carries the YouTube videos as bare external links:
 

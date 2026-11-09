@@ -79,7 +79,7 @@ summary.t-mbox__header:focus-visible {
 	--size-icon: var(--font-size-small);
 	transition: var(--transition-hover);
 	transition-property: transform;
-	transform: rotate3d( 1, 0, 0, 180deg );
+	transform: scaleY( -1 );
 }
 
 .t-mbox[open] > .t-mbox__header > .t-mbox__indicator {

@@ -4,7 +4,7 @@
  * affordances and the chevron rotate-on-open. */
 
 .t-collapsible-card {
-	--t-collapsible-card-transform-rotate-collapse: rotate3d(1, 0, 0, 180deg);
+	--t-collapsible-card-transform-icon-collapsed: scaleY( -1 );
 }
 
 /* Interactive header: the summary is clickable, so add cursor + hover/active
@@ -33,7 +33,7 @@
 	--size-icon: var(--font-size-small);
 	transition: var(--transition-hover);
 	transition-property: transform;
-	transform: var(--t-collapsible-card-transform-rotate-collapse);
+	transform: var(--t-collapsible-card-transform-icon-collapsed);
 }
 
 .t-collapsible-card__body[open] > .t-collapsible-card__header .t-collapsible-card__icon {

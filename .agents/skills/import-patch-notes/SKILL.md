@@ -1,13 +1,13 @@
 ---
 name: import-patch-notes
-description: Use when a new Star Citizen patch has gone LIVE and its Update: page needs writing or filling in - resolving CIG's patch-notes comm-link, pulling the full notes out of it, and turning the pre-release stub into the finished page. Triggered by "a new patch dropped", "import the 4.10 patch notes", "write the Update page for 4.10.0", "4.10.1 is out".
+description: Use when a new Star Citizen patch has gone LIVE and its Update: page needs writing or filling in - resolving CIG's patch-notes comm-link, pulling the full notes out of it, turning the pre-release stub into the finished page, and pointing the main page at the new release. Triggered by "a new patch dropped", "import the 4.10 patch notes", "write the Update page for 4.10.0", "4.10.1 is out".
 ---
 
 # Import Patch Notes for a New Patch
 
 Operator-run pass that turns CIG's patch-notes comm-link into a finished `Update:Star Citizen Alpha <version>` page. Run it once per release, major or point.
 
-This is **not** an ingestion pipeline and is not automated. CIG changes its comm-link format regularly - era-5 prose moved into Vue component attributes on a separate fragment, the component set varies from patch to patch, and the attribute quoting and heading depth have both shifted mid-era. The steps below record the shape as of Alpha 4.10.2 (verified 2026-10-09) **and how to re-derive it when it shifts**. Expect to check, not to assume.
+This is **not** an ingestion pipeline and is not automated. CIG changes its comm-link format regularly - era-5 prose moved into Vue component attributes on a separate fragment, the component set varies from patch to patch, and the attribute quoting and heading depth have both shifted mid-era. The steps below record the shape as of Alpha 4.10.3 (verified 2026-11-12) **and how to re-derive it when it shifts**. Expect to check, not to assume.
 
 The 167-page standardisation pass that established this layout is done; see the `project_patch_page_redesign` and `project_patch_pass_resume` memories. Every `Update:` page already matches the skeleton in step 5, so a new page only has to join them.
 
@@ -59,7 +59,7 @@ Read this before step 1. The page almost always exists already, written months e
 
 Everything else - `prev`, `next`, `image`, categories, `DEFAULTSORT` - carries over verbatim. Never synthesise those (`feedback_carry_metadata_verbatim`). Check the neighbouring pages' `| next =` and `| prev =` chain to the new page.
 
-**Another editor may have started the page on release day**, with `upcoming` already cleared and `build`, `date` and a lead already filled from the launcher rather than the comm-link. Treat their values as claims to check, not as given: on 4.10.1 the stub's `build` was `12660092` while CIG's release line said `12650677`, and the two must agree because the page prints both. The corpus keys `build` to CIG's release line, so that is the default, but a genuine post-notes rebuild is possible - surface the mismatch to the owner rather than picking silently.
+**Another editor may have started the page on release day**, with `upcoming` already cleared and `build`, `date` and a lead already filled from the launcher rather than the comm-link. Treat their values as claims to check, not as given: on 4.10.1 the stub's `build` was `12660092` while CIG's release line said `12650677`, and on 4.10.3 the stub carried 4.10.2's build forward unchanged. The two must agree because the page prints both. The corpus keys `build` to CIG's release line, so that is the default, but a genuine post-notes rebuild is possible - surface the mismatch to the owner rather than picking silently.
 
 ## Steps
 
@@ -99,11 +99,13 @@ The page HTML is a Vue shell. The prose lives in a separate fragment:
 
 ```bash
 curl -sL -A "$UA" "<comm-link url>" -o page.html
-grep -oE 'alexandria/html/[0-9a-f]+/[0-9a-f]+/[A-Za-z0-9_-]+' page.html | head -1
+grep -oE 'alexandria\\?/html\\?/[0-9a-f]+\\?/[0-9a-f]+\\?/[A-Za-z0-9_-]+' page.html | head -1 | sed 's#\\/#/#g'
 curl -sL -A "$UA" "https://robertsspaceindustries.com/<fragment path>" -o fragment.html
 ```
 
 (No leading slash on the concatenation - the grep output already starts at `alexandria/`.)
+
+Since 4.10.3 the fragment URL sits only inside the JSON-escaped `data-platform-client-props` (`htmlUrl`, written `alexandria\/html\/…`), so an unescaped-slash pattern matches nothing, the fragment path comes out empty, and the curl fetches the RSI homepage: a ~17KB site shell with no `<g-` components. Check that the fragment holds `<g-` tags and is tens of KB before going further.
 
 **Inventory what the fragment actually contains before extracting.** The component set varies per patch, so dump every JSON attribute and walk it for strings holding `<p>` or `<li>`, with their key paths. As of 4.10.2:
 
@@ -111,7 +113,7 @@ curl -sL -A "$UA" "https://robertsspaceindustries.com/<fragment path>" -o fragme
 |---|---|---|---|
 | `<g-faq>` | `:question-list="…"` | HTML-escaped **JSON** | the feature/fix sections, as `{title, content}` (4.9 and 4.10.1; absent from 4.10.2) |
 | `<g-article>` | `body="…"` | **raw HTML**, entities escaped | the release line, and one or more of stability / bug fixes / known issues |
-| `<g-platform-client-component>` | `:properties='…'` | HTML-escaped JSON | dispatch on `componentId`. `MiniGrid`: an HTML string at `componentProps.gridOptions.uiData.elements[].data.text`, each opening with its own `<h2>`/`<h3>` title (4.10.2's feature sections). `ArtemisNarrative`: the real body at `componentProps.blocks[].value.body` (4.10.2's stability, bug fixes and hotfixes in one string). `Separator`: nothing. 4.8 and the announcement transmissions also use this component |
+| `<g-platform-client-component>` | `:properties='…'` | HTML-escaped JSON | dispatch on `componentId`. `MiniGrid`: an HTML string at `componentProps.gridOptions.uiData.elements[].data.text`, each opening with its own `<h2>`/`<h3>` title (4.10.2's feature sections), in 4.10.3 preceded by an `<h5>` overline (`New Mission:`, `Beginning November 13th`). `ArtemisNarrative`: the real body at `componentProps.blocks[].value.body` (4.10.2's stability, bug fixes and hotfixes in one string). `Separator`: nothing. 4.8 and the announcement transmissions also use this component |
 | `<g-banner-advanced>` | `:content="…"` | HTML-escaped JSON | version and divider banners (step 3) |
 | `<g-narrative-group>` | - | - | a **wrapper** around `g-article`, not a carrier. Ignore it and read the `g-article` inside |
 
@@ -162,8 +164,8 @@ CIG's markup is shallow and regular: `h2`/`h3`/`h4` for sections, `ul`/`li` (som
 
 - A `g-faq` entry's `title` becomes an `h3` section; the headings *inside* its `content` map onto `h4`, whatever level CIG gave them.
 - A `g-article`'s own top-level headings map onto `h3`. 4.9's second article carries `<h3>Stability & Performance</h3>` and `<h3>Bug Fixes</h3>`, which the live page renders as `=== Stability and performance ===` / `=== Bug fixes ===`. Mapping them to `h4` buries the whole bug-fix tree a level too deep.
-- A `MiniGrid` text's opening `<h2>` or `<h3>` title becomes an `h3` section with no category above it, kept verbatim (4.10.2: `=== RSI Discovery Month ===`, `=== Physics Networking Overhaul ===`).
-- An `ArtemisNarrative` body uses `<h2>` for its wrappers (`Stability and Performance`, `Hotfixes Already Applied to Live`) and `<h3>` for bug-fix categories: map them onto `h3` and `h4`, and its `<p><strong><u>` labels onto `h5`.
+- A `MiniGrid` text's opening `<h2>` or `<h3>` title becomes an `h3` section with no category above it, kept verbatim (4.10.2: `=== RSI Discovery Month ===`, `=== Physics Networking Overhaul ===`). An `<h5>` overline ending in a colon joins the title (`=== New Mission: InterSec Defense Solutions ===`, matching the `New Ship: …` headings CIG writes in its articles); any other overline becomes an italic line under the heading (`''Beginning November 13th''`).
+- An `ArtemisNarrative` body uses `<h2>` for its wrappers (`Stability and Performance`, `Hotfixes Already Applied to Live`) and `<h3>` for bug-fix categories: map them onto `h3` and `h4`, and its `<p><strong><u>` labels onto `h5`. 4.10.3 tags its hotfix rollup `<h3>Hotfixed in 4.10.2</h3>`, a category's level; it is still its own `===` (step 5).
 
 **CIG's own heading levels are not a reliable ranking.** Within one 4.10.1 article the peer bug-fix categories are split between `h4` (Missions, Ships and Vehicles, UI) and `h3` (Inventory and Items) for no reason, and `<h3><br></h3>` / `<h4><br></h4>` appear as pure spacers. Drop any heading whose text is empty, and rank the rest by what they contain, not by their tag. The reliable discriminator is the **markup of the label**, not the level:
 
@@ -176,7 +178,7 @@ CIG's markup is shallow and regular: `h2`/`h3`/`h4` for sections, `ul`/`li` (som
 
 CIG also dropped its own `<h3>Bug Fixes</h3>` wrapper in 4.10.1 and 4.10.2 while keeping the categories under it. Supply `=== Bug fixes ===` yourself; the whole namespace has it. In 4.10.2 the Knowledge Base link and the "closes N issues" summary come *before* CIG's Stability heading; 4.10.1's page keeps them under `=== Stability and performance ===`, so move the heading above them.
 
-**Repair CIG's copy-paste damage in the HTML before converting.** 4.10.2 had three kinds: a label glued onto the end of the previous nested bullet (`… that transition. <strong>Creatures</strong></li></ul></li>`), a category's items pasted into the preceding list, inline labels and all, *as well as* into their own section (Props and flair and Crafting inside Armor and clothing), and a doubled label (`<strong>Server stability</strong> <strong>Server stability</strong>`). Make each repair an exact-match replacement that fails unless it matches once, keep each item once in its own section, and run the step 9 fidelity gate against the **unrepaired** blocks so the repairs are checked too.
+**Repair CIG's copy-paste damage in the HTML before converting.** 4.10.2 had three kinds: a label glued onto the end of the previous nested bullet (`… that transition. <strong>Creatures</strong></li></ul></li>`), a category's items pasted into the preceding list, inline labels and all, *as well as* into their own section (Props and flair and Crafting inside Armor and clothing), and a doubled label (`<strong>Server stability</strong> <strong>Server stability</strong>`). 4.10.3 had a fourth: a fix's root-cause `<ul>` left unclosed, so the next two fixes rendered as `**` notes under it, with their own notes at `***`. Grep the output for `***` as a cheap check for it. Make each repair an exact-match replacement that fails unless it matches once, keep each item once in its own section, and run the step 9 fidelity gate against the **unrepaired** blocks so the repairs are checked too.
 
 **A faq `title` is a teaser string, not a heading.** Keep only the text before the first colon, then canonicalise it (`reference_heading_case_normalisation`):
 
@@ -264,11 +266,11 @@ The LIVE thread's `time_created` is also the best evidence for `date`.
 
 The announcement trailer first, then the patch report. The announcement transmission usually embeds both - pull the video ids from it rather than searching YouTube. Recent announcements sometimes embed none: 4.10.1's carries only store copy, so its page has no `== Media ==`. Grep the fragment for `youtube`/`youtu.be`/`vimeo` and ignore the template boilerplate that holds a literal `{$video_id}` placeholder; real ids are the only reason to emit the section.
 
-The wiki's comm-link mirror finds announcements and reports faster than probing ids, and it now carries the Patch-Notes series too (21330 is there as series `Release Info`), so it usually answers "has CIG published the notes yet" and gives a `created_at` that settles `date`. It can lag: on 4.10.2's release day it had the announcement but not the notes (21351), so fall back to the id scan in step 1. The first version banner's `text.overline` also carries the release date (`October 9th, 2026`):
+The wiki's comm-link mirror finds announcements and reports faster than probing ids, and it now carries the Patch-Notes series too (21330 is there as series `Release Info`), so it usually answers "has CIG published the notes yet" and gives a `created_at` that settles `date`. It can lag: on 4.10.2's release day it had the announcement but not the notes (21351), and on 4.10.3's it had neither (notes 21429, announcement 21420), so fall back to the id scan in step 1 and scan down from the notes id as well as up. The first version banner's `text.overline` also carries the release date (`October 9th, 2026`):
 
 ```bash
 curl -s 'https://api.star-citizen.wiki/api/comm-links/21330'                                  # -> title, rsi_url, created_at, images
-curl -s 'https://api.star-citizen.wiki/api/comm-links?filter[title]=Inside%20Star%20Citizen'  # newest first
+curl -sg 'https://api.star-citizen.wiki/api/comm-links?filter[title]=Inside%20Star%20Citizen'  # newest first; -g stops curl globbing the brackets
 curl -s 'https://api.star-citizen.wiki/api/comm-links?limit=5&sort=-id'                       # newest overall
 ```
 
@@ -309,6 +311,20 @@ curl -s -A 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Geck
 ```
 
 Check that each title comes back with `"purged": true`. `Patch notes` draws its list as an AG Grid whose rows load from `/rest.php/aggrid/v0/grid/<pageid>/<token>/<index>/rows` (both values are `data-mw-aggrid-*` attributes in the page HTML), so the parsed HTML holds no versions at all. Confirm the new row through that endpoint, not by searching the page.
+
+### 10. Update the main page
+
+The main page (`Star Citizen Wiki`) reads the current patch from `Module:Mainpage/settings.json`, which is editor-owned and not mirrored in this repo, so edit it on the wiki. Show the change before saving, as in step 9.
+
+- **`patches`**: point the `LIVE` entry's `name` and `page` at the new release and replace its `highlights`. That one entry feeds both the hero's status chip and the "New in <version>" card. Keep six short, wikilinked lines in the shape of the previous release's, ending with the bug-fix count (`129 bug fixes since 4.10.2`). Drop a PTU entry the release has superseded.
+- **`event`**: when the release launches an event, it replaces the previous one. `starts`/`ends` are `YYYY-MM-DD HH:MM` UTC, and the card shows a countdown only when `ends` is set, so leave `ends` empty rather than guess an hour CIG has not published. Take the start time from CIG's event comm-link (IAE 2956: the free-fly comm-link, `November 13, 16:00 UTC`). `image` takes an ordinary photo (split layout); `banner` takes a 1080×83 strip from `Category:Main page banner images` (banner layout). The key decides the layout, so never put a photo in `banner`.
+- Leave `featured` alone; another editor curates it.
+
+Use `find-replace` on the two blocks rather than rewriting the file, then check the saved page still parses as JSON.
+
+Then add the release to the date page (`November 12`, a mainspace page per calendar day), which the main page's "on this day" panel transcludes. Add a `[[<year>]]` row under `== Real-life events ==` in year order, or a bullet under that year's existing row, with one cited sentence in the shape of the previous release's entry (see `October 9` for 4.10.2).
+
+Purge the main page and the date page, then confirm in `action=parse` of `Star Citizen Wiki` that "New in <version>", the event name and the date-page sentence all appear.
 
 ## Gotchas
 

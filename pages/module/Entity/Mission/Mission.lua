@@ -6,6 +6,7 @@ local format = require('Module:Entity/Format')
 local Boolean = require('Module:Boolean')
 local orderLines = require('Module:Entity/Orders/Lines').orderLines
 local rewardLines = require('Module:Entity/Rewards/Lines').rewardLines
+local ReputationStyler = require('Module:ReputationStyler')
 
 --- `mission_type` values whose display label is not the raw API string. The API
 --- carries 30-odd types and CIG adds more with each patch, so labels are derived
@@ -64,6 +65,10 @@ local function resolveFaction(apiData)
 		return factionName
 	end
 	return nil
+end
+
+local function resolveReputation(rank, scope)
+	return ReputationStyler.style(rank, scope)
 end
 
 --- The reader-facing name for a raw `mission_type`: an entry in TYPE_LABELS, or
@@ -283,8 +288,8 @@ function p.getSections(ctx)
 			label = 'Reputation',
 			collapsible = true,
 			items = {
-				{ label = 'Min', content = data.reputation.min },
-				{ label = 'Max', content = data.reputation.max },
+				{ label = 'Min', content = resolveReputation(data.reputation.min, data.reputation.scope) },
+				{ label = 'Max', content = resolveReputation(data.reputation.max, data.reputation.scope) },
 				{ label = 'Scope', content = data.reputation.scope },
 				{ label = 'Gain', content = format.formatNum(data.reputation.gain) },
 			},

@@ -25,5 +25,6 @@
 	"retirement_date": { "arg": "retiredate", "property": "Lore retirement date" },
 	"concept_announced": { "arg": "conceptdate", "property": "Concept announcement date" },
 	"concept_sale": { "arg": "saledate", "property": "Concept sale date" },
-	"generation": { "arg": ["generation", "Generation", "mark"], "property": "Generation" }
+	"generation": { "arg": ["generation", "Generation", "mark"], "property": "Generation" },
+	"novariant": { "arg": "novariant", "property": "Suppress variant category" }
 }

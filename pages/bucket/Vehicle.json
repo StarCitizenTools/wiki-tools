@@ -119,6 +119,11 @@
 		"index": false,
 		"repeated": false
 	},
+	"novariant": {
+		"type": "BOOLEAN",
+		"index": true,
+		"repeated": false
+	},
 	"ore_capacity": {
 		"type": "DOUBLE",
 		"index": false,

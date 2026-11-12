@@ -2198,6 +2198,16 @@
 		],
 		"desc": "Most-specific structural type of the page subject (e.g. Gun, Cooler, Company). Injected centrally by Module:Entity from the resolved typeInfo."
 	},
+	"Suppress variant category": {
+		"type": "BOOLEAN",
+		"bucket": "vehicle",
+		"field": "novariant",
+		"index": true,
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Suppress the variant category for vehicles with no variants (e.g. the Aegis Gladius)."
+	},
 	"System": {
 		"type": "PAGE",
 		"bucket": "location",

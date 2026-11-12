@@ -882,6 +882,15 @@
 		],
 		"desc": "In-game item type label."
 	},
+	"Kind": {
+		"type": "TEXT",
+		"bucket": "entity",
+		"field": "kind",
+		"modules": [
+			"Entity"
+		],
+		"desc": "Entity kind the page resolved to (Vehicle, Location, Item, ...), the same name that routes its Bucket writes. Injected centrally by Module:Entity. Read back by Module:Entity/Data so a sibling renderer on a page with no uuid recovers the kind its infobox declared."
+	},
 	"Jump alignment rate": {
 		"type": "DOUBLE",
 		"bucket": "item_component",
@@ -2038,6 +2047,15 @@
 			"Vehicle"
 		],
 		"desc": "Vehicle series/product line a vehicle belongs to."
+	},
+	"Shared series": {
+		"type": "BOOLEAN",
+		"bucket": "vehicle",
+		"field": "shared_series",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Opts a vehicle into series matching across manufacturers. Module:Entity/Related shows another manufacturer's vehicle in the same series only when both pages set it (an Esperia replica and its Vanduul original); otherwise a series groups one manufacturer's vehicles."
 	},
 	"Scrip": {
 		"type": "INTEGER",

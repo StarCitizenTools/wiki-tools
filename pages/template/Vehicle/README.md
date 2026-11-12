@@ -95,6 +95,7 @@ Concept or unreleased ship with no in-game record. Declare the page as a planned
 | `addedinversion` | Added in version | string | No |  | Game update the vehicle became flight ready (e.g. `Alpha 4.8.0`); rendered as the "Flight ready in" row in the Development section and stored as the `Added in version` property (the canonical `Update:` page). Editorial only. | `Alpha 4.8.0` |  |
 | `productionstatenote` | Production state note | string | No |  | Free-text production note shown in the Development section (e.g. rework status). Display-only, not stored. Editorial only. | `Rework in progress` |  |
 | `model` | Model | string | No |  | Series/model grouping (the "Model" row). Editorial only. | `Constellation` | `series` |
+| `sharedseries` | Shared series | boolean | No |  | Shows this vehicle alongside another manufacturer's vehicle of the same model in Related. Set it on both pages, as on an Esperia replica and its Vanduul original; without it, Related lists only the same manufacturer's vehicles of that model. Editorial only. | `yes` |  |
 | `generation` | Generation | string | No |  | Generation/mark within the series. Editorial only. | `Mk IV` | `Generation`; `mark` |
 | `releasedate` | Release date | string | No |  | Lore release date. Editorial only. | `2956-12-19` |  |
 | `retiredate` | Retirement date | string | No |  | Retirement date (removed from sale or game). Editorial only. | `2956-09-30` |  |

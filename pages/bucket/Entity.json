@@ -39,6 +39,11 @@
 		"index": true,
 		"repeated": false
 	},
+	"kind": {
+		"type": "TEXT",
+		"index": false,
+		"repeated": false
+	},
 	"manual_api_field": {
 		"type": "TEXT",
 		"index": true,

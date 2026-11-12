@@ -36,6 +36,11 @@ local function storeStructuredData(chain, facets, ctx, editorialData, kind)
 	if ctx.typeInfo and ctx.typeInfo.name then
 		merged.subject_type = ctx.typeInfo.name
 	end
+	-- The Bucket route itself, so a sibling renderer on a page with no uuid can
+	-- recover the kind this infobox declared (Module:Entity/Data's parseArgs).
+	if kind then
+		merged.kind = kind
+	end
 	local success, _err, unregistered = structuredData.store(merged, kind)
 	return success, unregistered
 end

@@ -85,6 +85,15 @@ function p.parseArgs(frame)
 	-- the arg. An editorial page (|kind=) must not resurrect a stale value.
 	if not args.uuid and not args.kind then
 		args.uuid = store.selfUuid()
+		-- A page with no uuid at all renders from its declared |kind=, which a
+		-- sibling invocation does not carry; recover the kind the infobox stored
+		-- so the sibling resolves the same chain instead of falling back to Item.
+		if not args.uuid then
+			local storedKind = store.selfValue('Kind')
+			if type(storedKind) == 'string' then
+				args.kind = storedKind
+			end
+		end
 	end
 	return args
 end

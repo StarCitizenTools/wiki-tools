@@ -76,7 +76,7 @@ Consume `Module:Entity/Data` directly:
 
 `Data.get`, called independently by every sibling renderer:
 
-1. `parseArgs` merges `#invoke` args with the parent frame's; with neither `uuid` nor `kind` set, it reads the page's stored uuid.
+1. `parseArgs` merges `#invoke` args with the parent frame's; with neither `uuid` nor `kind` set, it reads the page's stored uuid, and failing that the page's stored kind.
 2. `probeKind` fetches a declared `kind`'s endpoint behind a `matches()` gate, or else walks `Registry.kinds` until one matches.
 3. `resolveLeaf` refines a matched kind to a subtype leaf via `resolveSubtype`, or keeps the kind itself when no subtype resolves; Item is the fallback only when no kind matched at all.
 4. `Assembly.buildChain` walks `p.parent` from the leaf to Base, root-first.
@@ -137,7 +137,7 @@ A property lives in `entity` when `Base` or `Entity` emits it, when it is emitte
 
 `Module:Company` and `Module:WearableSet` write the shared `entity` table as well, each from its own manifest through the same put loop. Readers go through `Module:BucketQuery` (or `Module:Entity/Store` for Entity's own lookups), never `mw.ext.bucket` directly.
 
-`Module:Entity` passes the kind that actually matched, not the `Item` fallback `Data.get` exposes as `result.kind`, so a page whose kind never resolved (e.g. no uuid) is stored with no kind: it writes its entity-routable keys and nothing else, rather than writing another kind's columns. `StructuredData.store` has no other caller.
+`Module:Entity` passes the kind that actually matched, not the `Item` fallback `Data.get` exposes as `result.kind`, so a page whose kind never resolved (e.g. no uuid) is stored with no kind: it writes its entity-routable keys and nothing else, rather than writing another kind's columns. That same kind is stored as the `Kind` property, which `Data.parseArgs` reads back on a page with no uuid, so a sibling renderer resolves the kind the infobox declared. `StructuredData.store` has no other caller.
 
 ### Adding a kind
 

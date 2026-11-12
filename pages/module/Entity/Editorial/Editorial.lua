@@ -56,8 +56,26 @@ local function parseNumber(v)
 	return n
 end
 
+local BOOLEAN_WORDS = {
+	yes = true,
+	y = true,
+	['true'] = true,
+	['1'] = true,
+	on = true,
+	no = false,
+	n = false,
+	['false'] = false,
+	['0'] = false,
+	off = false,
+}
+
 local TRANSFORMS = {
 	number = parseNumber,
+	-- A yes/no word to a Lua boolean, for a BOOLEAN property; anything else is
+	-- unparseable (nil), so a typo leaves the field unset rather than true.
+	boolean = function(v)
+		return BOOLEAN_WORDS[mw.ustring.lower(mw.text.trim(v))]
+	end,
 	page = function(v)
 		return pageTitle(v)
 	end,

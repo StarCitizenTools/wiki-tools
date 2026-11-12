@@ -275,7 +275,7 @@ end
 --- erroring the page, same containment as the rest of this module's
 --- API-shaped failure modes.
 --- @param series string
---- @return table[] rows: { page, name, role, image }
+--- @return table[] rows: { page, name, role, image, manufacturer, shared }
 local function queryVehicleVariants(series)
 	local ok, rows = pcall(Store.query, {
 		kind = 'Vehicle',
@@ -285,6 +285,8 @@ local function queryVehicleVariants(series)
 			{ property = 'Name', as = 'name' },
 			{ property = 'Role', as = 'role' },
 			{ property = 'Image', as = 'image' },
+			{ property = 'Manufacturer', as = 'manufacturer' },
+			{ property = 'Shared series', as = 'shared' },
 		},
 		limit = 100,
 	})
@@ -295,6 +297,36 @@ local function queryVehicleVariants(series)
 		return (a.name or '') < (b.name or '')
 	end)
 	return rows
+end
+
+--- Narrows a series to the vehicles related to the current page: its own
+--- manufacturer's, plus another manufacturer's only when both pages set
+--- `sharedseries`. A series name alone is not an identity, because CIG reuses
+--- names (Anvil's Atlas line and Crusader's Atlas-class cargo ferry), while an
+--- Esperia replica and its Vanduul original opt in to stay joined. Until the
+--- page's own row is stored (its first link update) there is nothing to scope
+--- against, so every row is kept.
+--- @param rows table[] { page, manufacturer, shared, ... }
+--- @param currentPage string
+--- @return table[]
+local function scopeToRelated(rows, currentPage)
+	local own
+	for _, row in ipairs(rows) do
+		if row.page == currentPage then
+			own = row
+			break
+		end
+	end
+	if not own then
+		return rows
+	end
+	local scoped = {}
+	for _, row in ipairs(rows) do
+		if row.manufacturer == own.manufacturer or (own.shared == true and row.shared == true) then
+			table.insert(scoped, row)
+		end
+	end
+	return scoped
 end
 
 --- Shapes Store rows into Tiles rows, flagging the queried page's own tile
@@ -329,7 +361,7 @@ end
 --- @param currentPage string
 --- @return string
 local function renderVehicleVariants(series, currentPage)
-	local rows = queryVehicleVariants(series)
+	local rows = scopeToRelated(queryVehicleVariants(series), currentPage)
 	if #rows < 2 then
 		return emptyState.none(EMPTY_MESSAGE)
 	end
@@ -475,6 +507,7 @@ end
 p._internal = {
 	boxDimensions = boxDimensions,
 	queryVehicleVariants = queryVehicleVariants,
+	scopeToRelated = scopeToRelated,
 	toVehicleTilesRows = toVehicleTilesRows,
 	renderVehicleVariants = renderVehicleVariants,
 }

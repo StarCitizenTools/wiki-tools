@@ -638,6 +638,7 @@ end
 local NON_HOOK_WRITERS = {
 	['Manual API field'] = 'Module:Entity/Editorial.toStructuredData',
 	['Subject type'] = 'Module:Entity, injected from the resolved typeInfo',
+	['Kind'] = 'Module:Entity, injected from the matched kind (the Bucket route)',
 }
 if props then
 	local emitted, suffixes, prefixes = {}, {}, {}

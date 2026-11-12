@@ -8,7 +8,7 @@ Editors never invoke this module directly; it runs inside [Template:Entity](http
 
 ### API
 
-- `p.parseArgs(frame) → args`: merges direct `#invoke` args over parent-frame (template call-site) args; empty strings become `nil`. Falls back to the `uuid` the page stored on a previous link update (rows exist for main-namespace pages only, so off mainspace there is nothing to fall back to) only when both `uuid` and `kind` are absent from the merged args, so a `|kind=`-declared page never resurrects a stale stored uuid.
+- `p.parseArgs(frame) → args`: merges direct `#invoke` args over parent-frame (template call-site) args; empty strings become `nil`. Falls back to the `uuid` the page stored on a previous link update (rows exist for main-namespace pages only, so off mainspace there is nothing to fall back to) only when both `uuid` and `kind` are absent from the merged args, so a `|kind=`-declared page never resurrects a stale stored uuid. When no uuid is stored either, it falls back to the `Kind` the page's infobox stored, so a sibling renderer on a page without a uuid resolves the same kind as its `|kind=`-declared infobox rather than the Item fallback.
 - `p.get(args) → result`: the primary entry point; every sibling renderer calls it independently. See Extending for the pipeline and the result shape.
 
 ### Extending

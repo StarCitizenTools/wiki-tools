@@ -179,6 +179,11 @@
 		"index": true,
 		"repeated": false
 	},
+	"shared_series": {
+		"type": "BOOLEAN",
+		"index": false,
+		"repeated": false
+	},
 	"ship_matrix_size": {
 		"type": "TEXT",
 		"index": true,

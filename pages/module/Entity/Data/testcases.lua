@@ -319,6 +319,29 @@ function suite:testParseArgsNoKindReadsStoredUuid()
 	self:assertEquals('stored-uuid-1', Data.parseArgs(frame).uuid)
 end
 
+function suite:testParseArgsNoUuidRecoversStoredKind()
+	-- A uuid-less page renders from its infobox's |kind=, which a sibling
+	-- invocation does not carry; without the stored kind the sibling resolves
+	-- the Item chain and a Vehicle hook (getRelated) never runs.
+	local bucketLib = require('mw.ext.bucket')
+	bucketLib._reset()
+	bucketLib._setRows('entity', { { page_name = 'Test', uuid = '', kind = 'Vehicle' } })
+	local args = Data.parseArgs(makeFrame({}))
+	self:assertEquals(nil, args.uuid)
+	self:assertEquals('Vehicle', args.kind)
+end
+
+function suite:testParseArgsStoredUuidSkipsStoredKind()
+	-- A page with a uuid resolves its kind from the API, so the stored kind is
+	-- not read, keeping probeKind's endpoint walk as the authority.
+	local bucketLib = require('mw.ext.bucket')
+	bucketLib._reset()
+	bucketLib._setRows('entity', { { page_name = 'Test', uuid = 'stored-uuid-1', kind = 'Vehicle' } })
+	local args = Data.parseArgs(makeFrame({}))
+	self:assertEquals('stored-uuid-1', args.uuid)
+	self:assertEquals(nil, args.kind)
+end
+
 function suite:testParseArgsKindSkipsStoredUuid()
 	-- Editorial page (|kind=): must NOT resurrect a stale/placeholder stored uuid.
 	local bucketLib = require('mw.ext.bucket')

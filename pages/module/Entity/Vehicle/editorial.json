@@ -15,6 +15,7 @@
 	"added_in_version": { "arg": "addedinversion", "property": "Added in version", "transform": "patchPage" },
 	"production_state_note": { "arg": "productionstatenote" },
 	"series": { "arg": ["series", "model"], "property": "Series" },
+	"shared_series": { "arg": "sharedseries", "property": "Shared series", "transform": "boolean" },
 	"warbond_price": { "arg": "warbondcost", "property": "Warbond pledge price", "transform": "number" },
 	"original_pledge_price": { "arg": "originalpledgecost", "property": "Original pledge price", "transform": "number" },
 	"original_warbond_price": { "arg": "originalwarbondcost", "property": "Original warbond pledge price", "transform": "number" },

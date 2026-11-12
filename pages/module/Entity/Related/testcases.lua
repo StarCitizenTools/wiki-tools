@@ -7,13 +7,15 @@ local bucketLib = require('mw.ext.bucket')
 
 local suite = ScribuntoUnit:new()
 
--- Minimal fake manifest for the vehicle-series queries: Series/Role live on
--- the joined `vehicle` bucket, Name/Image on the primary `entity` bucket,
--- mirroring the real Module:Entity/properties.json split.
+-- Minimal fake manifest for the vehicle-series queries: Series/Role/Shared
+-- series live on the joined `vehicle` bucket, Name/Image/Manufacturer on the
+-- primary `entity` bucket, mirroring the real Module:Entity/properties.json split.
 local MANIFEST = {
 	['%kinds'] = { Vehicle = { 'entity', 'vehicle' } },
 	['Name'] = { type = 'TEXT', bucket = 'entity', field = 'name' },
 	['Image'] = { type = 'TEXT', bucket = 'entity', field = 'image' },
+	['Manufacturer'] = { type = 'PAGE', bucket = 'entity', field = 'manufacturer', index = true },
+	['Shared series'] = { type = 'BOOLEAN', bucket = 'vehicle', field = 'shared_series' },
 	['Series'] = { type = 'TEXT', bucket = 'vehicle', field = 'series', index = true },
 	['Role'] = { type = 'TEXT', bucket = 'vehicle', field = 'role', index = true },
 }
@@ -69,7 +71,15 @@ function suite:testQueryVehicleVariantsBuildsStoreSpecAndSortsByName()
 		local rows = Related._internal.queryVehicleVariants('Aurora')
 		local chain = bucketLib._chains[1]
 		self:assertEquals('entity', chain.bucket)
-		self:assertDeepEquals({ 'page_name', 'name', 'vehicle.role', 'image', 'vehicle.page_name' }, chain.select)
+		self:assertDeepEquals({
+			'page_name',
+			'name',
+			'vehicle.role',
+			'image',
+			'manufacturer',
+			'vehicle.shared_series',
+			'vehicle.page_name',
+		}, chain.select)
 		self:assertDeepEquals({ { 'vehicle', 'vehicle.page_name', 'entity.page_name' } }, chain.join)
 		self:assertDeepEquals({ { 'vehicle.series', '=', 'Aurora' } }, chain.where)
 		self:assertEquals(100, chain.limit)
@@ -84,6 +94,45 @@ function suite:testQueryVehicleVariantsEmptyOnStoreFailure()
 		bucketLib._failNext = true
 		self:assertDeepEquals({}, Related._internal.queryVehicleVariants('Aurora'))
 	end)
+end
+
+-- scopeToRelated()
+
+function suite:testScopeToRelatedDropsAnotherManufacturersReusedName()
+	-- Anvil's Atlas line and Crusader's Atlas-class cargo ferry share only a name.
+	local rows = Related._internal.scopeToRelated({
+		{ page = 'Atlas-class cargo ferry', manufacturer = 'Crusader Industries' },
+		{ page = 'Ballista', manufacturer = 'Anvil Aerospace' },
+		{ page = 'Centurion', manufacturer = 'Anvil Aerospace' },
+	}, 'Ballista')
+	self:assertEquals(2, #rows)
+	self:assertEquals('Ballista', rows[1].page)
+	self:assertEquals('Centurion', rows[2].page)
+end
+
+function suite:testScopeToRelatedJoinsManufacturersWhenBothShare()
+	local rows = Related._internal.scopeToRelated({
+		{ page = 'Blade', manufacturer = 'Vanduul Clans', shared = true },
+		{ page = 'Blade (replica)', manufacturer = 'Esperia', shared = true },
+	}, 'Blade')
+	self:assertEquals(2, #rows)
+end
+
+function suite:testScopeToRelatedNeedsBothPagesToShare()
+	local rows = Related._internal.scopeToRelated({
+		{ page = 'Lightfire', manufacturer = 'Vanduul Clans', shared = true },
+		{ page = 'Lightfire (Ace Astrogation)', manufacturer = 'Ace Astrogation' },
+	}, 'Lightfire')
+	self:assertEquals(1, #rows)
+	self:assertEquals('Lightfire', rows[1].page)
+end
+
+function suite:testScopeToRelatedKeepsEveryRowBeforeTheOwnRowIsStored()
+	local rows = Related._internal.scopeToRelated({
+		{ page = 'Blade', manufacturer = 'Vanduul Clans' },
+		{ page = 'Blade (replica)', manufacturer = 'Esperia' },
+	}, 'Some unsaved page')
+	self:assertEquals(2, #rows)
 end
 
 -- toVehicleTilesRows()
@@ -123,6 +172,21 @@ function suite:testRenderVehicleVariantsEmptyForFewerThanTwoRows()
 			{ page_name = 'Aurora MR', name = 'Aurora MR', image = 'AuroraMR.png', ['vehicle.role'] = 'Multi-role' },
 		})
 		local html = Related._internal.renderVehicleVariants('Aurora', 'Aurora MR')
+		self:assertStringContains('t-mbox--placeholder', html, true)
+	end)
+end
+
+function suite:testRenderVehicleVariantsEmptyWhenOnlyAnotherManufacturerShares()
+	withManifest(function()
+		bucketLib._setRows('entity', {
+			{ page_name = 'Ballista', name = 'Ballista', manufacturer = 'Anvil Aerospace' },
+			{
+				page_name = 'Atlas-class cargo ferry',
+				name = 'Atlas-class cargo ferry',
+				manufacturer = 'Crusader Industries',
+			},
+		})
+		local html = Related._internal.renderVehicleVariants('Atlas', 'Ballista')
 		self:assertStringContains('t-mbox--placeholder', html, true)
 	end)
 end

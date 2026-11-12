@@ -63,6 +63,29 @@ function suite:testUnparseableNumberLetsTheApiValueWin()
 	self:assertEquals(220, r.scm_speed.value)
 end
 
+local BOOLEAN_MANIFEST = { shared_series = { arg = 'sharedseries', transform = 'boolean' } }
+
+function suite:testBooleanTransformReadsYesAndNoWords()
+	for raw, want in pairs({
+		yes = true,
+		Yes = true,
+		[' TRUE '] = true,
+		['1'] = true,
+		no = false,
+		NO = false,
+		['0'] = false,
+	}) do
+		local r = Editorial.resolve({}, { sharedseries = raw }, BOOLEAN_MANIFEST)
+		self:assertEquals(want, r.shared_series and r.shared_series.value, 'sharedseries = "' .. raw .. '"')
+	end
+end
+
+-- A typo must leave the flag unset, not switch it on.
+function suite:testBooleanTransformLeavesOtherWordsUnset()
+	local r = Editorial.resolve({}, { sharedseries = 'maybe' }, BOOLEAN_MANIFEST)
+	self:assertEquals(nil, r.shared_series)
+end
+
 --- Manifest shape of the Location count overrides: a transform and NO apiPath.
 local COUNT_MANIFEST = { planets = { arg = 'planets', transform = 'number' } }
 

@@ -2,8 +2,6 @@
 
 A Lua interface for building a sortable wiki table without writing wikitext table syntax, modeled after the Codex Table component: the caller passes a `props` table describing columns and rows, and gets back a `<table class="t-table wikitable">` with bundled [TemplateStyles](https://www.mediawiki.org/wiki/Extension:TemplateStyles).
 
-Required by [Module:Entity/Commodity/Mining](https://starcitizen.tools/Module:Entity/Commodity/Mining), [Module:Entity/Availability](https://starcitizen.tools/Module:Entity/Availability), [Module:Entity/Blueprints](https://starcitizen.tools/Module:Entity/Blueprints), [Module:Entity/Orders](https://starcitizen.tools/Module:Entity/Orders), [Module:Entity/Rewards](https://starcitizen.tools/Module:Entity/Rewards), and [Module:Entity/Related](https://starcitizen.tools/Module:Entity/Related); not invoked from templates.
-
 ## For module editors
 
 ### API

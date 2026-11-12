@@ -1,0 +1,22 @@
+.t-reputation-styler__container {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-xs);
+    margin: 0;
+    max-width: 180px;
+    width: fit-content;
+}
+
+.t-infobox-item-content > .t-reputation-styler__container > .t-icon-text {
+    flex-direction: row-reverse !important;
+}
+
+.t-infobox-item-content > .t-reputation-styler__container > .t-icon-text > .t-icon-text__icon {
+    mask-position: right !important;
+}
+
+.t-reputation-styler__container .t-icon-text__icon {
+    height: 22px !important;;
+    width: 46px !important;
+}

@@ -97,7 +97,7 @@ Concept or unreleased ship with no in-game record. Declare the page as a planned
 | `model` | Model | string | No |  | Series/model grouping (the "Model" row). Editorial only. | `Constellation` | `series` |
 | `generation` | Generation | string | No |  | Generation/mark within the series. Editorial only. | `Mk IV` | `Generation`; `mark` |
 | `releasedate` | Release date | string | No |  | Lore release date. Editorial only. | `2956-12-19` |  |
-| `retiredate` | Retirement date | string | No |  | Retirement date (removed from sale or game). Editorial only. | `2018-11-30` |  |
+| `retiredate` | Retirement date | string | No |  | Retirement date (removed from sale or game). Editorial only. | `2956-09-30` |  |
 | `conceptdate` | Concept announcement date | string | No |  | Date the concept was announced. Editorial only. | `2012-11-26` |  |
 | `saledate` | Concept sale date | string | No |  | Date of the concept sale. Editorial only. | `2012-11-26` |  |
 | `novariant` | Suppress variant category | boolean | No |  | Suppress the variant category for vehicles with no variants (e.g. the Aegis Gladius). Legacy parameter: accepted for compatibility, but the Entity pipeline does not emit variant categories, so it has no effect. | `yes` |  |

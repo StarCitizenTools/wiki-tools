@@ -5,14 +5,14 @@
 		"Docked Vehicles":     { "order": 1 },
 		"Weapons":             { "order": 5, "expandIntoTypes": ["WeaponGun"] },
 		"Weapon attachments":  { "order": 6 },
-		"Manned Turrets":      { "order": 10, "expandIntoTypes": ["Turret", "WeaponGun", "MissileLauncher", "TractorBeam"] },
+		"Manned Turrets":      { "order": 10, "expandIntoTypes": ["Turret", "WeaponGun", "MissileLauncher", "TractorBeam", "WeaponMining", "SalvageHead"] },
 		"Remote Turrets":      { "order": 11, "expandIntoTypes": ["Turret", "WeaponGun", "MissileLauncher", "TractorBeam", "SalvageHead"] },
 		"PDC Turrets":         { "order": 12, "expandIntoTypes": ["Turret", "WeaponGun", "MissileLauncher", "TractorBeam"] },
 		"Turrets":             { "order": 13, "expandIntoTypes": ["Turret", "WeaponGun", "MissileLauncher", "TractorBeam"] },
 		"Missile & Bomb Racks":{ "order": 14, "expandIntoTypes": ["Missile"] },
 		"Weapon Lockers":      { "order": 15 },
 		"Modules":             { "order": 16 },
-		"Mining & Salvage":    { "order": 17, "expandIntoTypes": ["WeaponMining", "SalvageHead", "SalvageModifier"] },
+		"Mining & Salvage":    { "order": 17, "expandIntoTypes": ["UtilityTurret", "WeaponMining", "SalvageHead", "SalvageModifier"] },
 		"Tractor Beams":       { "order": 18 },
 		"EMP":                 { "order": 19 },
 		"QED":                 { "order": 20 },
@@ -49,6 +49,7 @@
 		"MissileLauncher":  "Missile & Bomb Racks",
 		"Missile":          "Missile & Bomb Racks",
 		"JumpDrive":        "Quantum Drives",
-		"SalvageHead":      "Mining & Salvage"
+		"SalvageHead":      "Mining & Salvage",
+		"UtilityTurret":    "Mining & Salvage"
 	}
 }

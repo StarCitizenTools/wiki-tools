@@ -1,0 +1,79 @@
+{
+	"icon_sets": {
+		"faction": {
+			"r0": "Icon_faction_reputation_r0.svg",
+			"r1": "Icon_faction_reputation_r1.svg",
+			"r2": "Icon_faction_reputation_r2.svg",
+			"r3": "Icon_faction_reputation_r3.svg",
+			"r4": "Icon_faction_reputation_r4.svg",
+			"r5": "Icon_faction_reputation_r5.svg",
+			"r6": "Icon_faction_reputation_r6.svg"
+		},
+		"security": {
+			"r0": "Icon_security_reputation_r0.svg",
+			"r1": "Icon_security_reputation_r1.svg",
+			"r2": "Icon_security_reputation_r2.svg",
+			"r3": "Icon_security_reputation_r3.svg",
+			"r4": "Icon_security_reputation_r4.svg",
+			"r5": "Icon_security_reputation_r5.svg",
+			"r6": "Icon_security_reputation_r6.svg"
+		}
+	},
+	"mapping": {
+		"FactionReputation": {
+			"icon_set": "faction",
+			"ranks": {
+				"Neutral": "r0",
+				"Jr. Contractor": "r1",
+				"Contractor": "r2",
+				"Sr. Contractor": "r3",
+				"Veteran Contractor": "r4",
+				"Head Contractor": "r5",
+				"Elite Contractor": "r6"
+			}
+		},
+		"Security": {
+			"icon_set": "security",
+			"ranks": {
+				"Applicant": "r0",
+				"Security Trainee": "r1",
+				"Jr. Security Contractor": "r2",
+				"Security Contractor": "r3",
+				"Sr. Security Contractor": "r4",
+				"Lead Security Contractor": "r5",
+				"Elite Security Contractor": "r6"
+			}
+		},
+		"Hauling": {
+			"icon_set": "faction",
+			"ranks": {
+				"Trainee": "r0",
+				"Rookie": "r1",
+				"Junior": "r2",
+				"Member": "r3",
+				"Experienced": "r4",
+				"Senior": "r5",
+				"Master": "r6"
+			}
+		},
+		"MissionProviderReputation_Battaglia": {
+			"icon_set": "faction",
+			"ranks": {
+				"Prospective Associate": "r0",
+				"Associate": "r1",
+				"Trusted Associate": "r2",
+				"Prestige 1": "r3",
+				"Prestige 2": "r4",
+				"Prestige 3": "r5"
+			}
+		},
+		"Wikelo": {
+			"icon_set": "faction",
+			"ranks": {
+				"New Customer": "r0",
+				"Very Good Customer": "r1",
+				"Very Best Customer": "r2"
+			}
+		}
+	}
+}

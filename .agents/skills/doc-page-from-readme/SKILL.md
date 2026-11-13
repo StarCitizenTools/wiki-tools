@@ -59,6 +59,7 @@ For every Markdown link `[Text](URL)`:
   - Strip the prefix to get the page name.
   - URL-decode percent-escapes (`%20` → space).
   - Replace underscores with spaces.
+  - If the page is in the `Category:` or `File:` namespace, prefix it with `:` (`[[:Category:X]]`). Without the colon the link, piped or not, puts the doc page and the page transcluding it in the category, or embeds the file.
   - If `Text` matches the resulting page name → emit `[[<Page>]]`.
   - Otherwise → emit `[[<Page>|<Text>]]`.
 - Other URLs → leave unchanged.

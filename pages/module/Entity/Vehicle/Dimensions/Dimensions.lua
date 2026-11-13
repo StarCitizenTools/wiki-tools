@@ -8,7 +8,6 @@ require('strict')
 --- back to the API dimension block.
 
 local dimensions = require('Module:Dimensions')
-local dimensionsPresets = require('Module:Dimensions/presets')
 local format = require('Module:Entity/Format')
 local sectionBuilder = require('Module:Entity/SectionBuilder')
 
@@ -38,7 +37,6 @@ function p.build(apiData, args, ed)
 		lengthAlt = tonumber(ed:value('retracted_length', nil)),
 		widthAlt = tonumber(ed:value('retracted_width', nil)),
 		heightAlt = tonumber(ed:value('retracted_height', nil)),
-		reference = dimensionsPresets.human,
 		metrics = metrics,
 	})
 	if not boxHtml then

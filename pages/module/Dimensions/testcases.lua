@@ -41,36 +41,10 @@ function suite:testParseArgsAltKept()
 	self:assertEquals(22, data.lengthAlt)
 end
 
-function suite:testParseArgsReferencePassthrough()
-	local ref = { length = 1.25, width = 1.25, height = 1.25, label = '1 SCU box · 1.25 m' }
-	local data = internal.parseArgs({ length = '2', width = '1', height = '1', reference = ref })
-	self:assertEquals(ref, data.reference)
-end
-
-function suite:testParseArgsInvalidReferenceDropped()
-	-- A reference missing a dimension is not a drawable box, so it is ignored.
-	local data = internal.parseArgs({ length = '2', width = '1', height = '1', reference = { length = 1, width = 1 } })
-	self:assertEquals(nil, data.reference)
-end
-
 function suite:testParseArgsMetricsPassthrough()
 	local metrics = { { label = 'Mass', value = '2,000 kg' } }
 	local data = internal.parseArgs({ length = '2', width = '1', height = '1', metrics = metrics })
 	self:assertEquals(metrics, data.metrics)
-end
-
--- isBox()
-
-function suite:testIsBoxValid()
-	self:assertEquals(true, internal.isBox({ length = 1.25, width = 1.25, height = 1.25 }))
-end
-
-function suite:testIsBoxZeroRejected()
-	self:assertEquals(false, internal.isBox({ length = 0, width = 1, height = 1 }))
-end
-
-function suite:testIsBoxNilRejected()
-	self:assertEquals(false, internal.isBox(nil))
 end
 
 -- formatValue()
@@ -102,23 +76,14 @@ function suite:testMainEmitsAltDataAttributes()
 	self:assertEquals(nil, string.find(html, 'data-width-alt', 1, true))
 end
 
-function suite:testMainRendersReference()
-	local html = Dimensions._main({
-		length = '2',
-		width = '1',
-		height = '1',
-		reference = {
-			length = 1.25,
-			width = 1.25,
-			height = 1.25,
-			label = '1 SCU box · 1.25 m',
-			color = '#c8742d',
-		},
-	})
-	self:assertStringContains('t-dimensions--has-reference', html, true)
-	self:assertStringContains('1 SCU box · 1.25 m', html, true)
-	-- The caller's colour is applied inline.
-	self:assertStringContains('#c8742d', html, true)
+function suite:testMainMarksPhysicalByDefault()
+	local html = Dimensions._main({ length = '18', width = '8', height = '4' })
+	self:assertStringContains('data-gadget-dimensions-size="physical"', html, true)
+end
+
+function suite:testMainMarksStowed()
+	local html = Dimensions._main({ length = '18', width = '8', height = '4', stowed = true })
+	self:assertStringContains('data-gadget-dimensions-size="stowed"', html, true)
 end
 
 function suite:testMainRendersMetrics()
@@ -128,7 +93,7 @@ function suite:testMainRendersMetrics()
 		height = '1',
 		metrics = { { label = 'Volume', value = '84,000 µSCU' } },
 	})
-	self:assertStringContains('t-dimensions-footer', html, true)
+	self:assertStringContains('t-dimensions-metrics', html, true)
 	self:assertStringContains('Volume', html, true)
 	self:assertStringContains('84,000 µSCU', html, true)
 end
@@ -144,10 +109,14 @@ function suite:testMainRendersMultipleMetrics()
 	self:assertStringContains('2 SCU', html, true)
 end
 
-function suite:testMainOmitsFooterWhenBare()
+function suite:testMainOmitsMetricsWhenBare()
 	local html = Dimensions._main({ length = '18', width = '8', height = '4' })
-	self:assertEquals(nil, string.find(html, 't-dimensions-footer', 1, true))
-	self:assertEquals(nil, string.find(html, 't-dimensions--has-reference', 1, true))
+	self:assertEquals(nil, string.find(html, 't-dimensions-metrics', 1, true))
+end
+
+function suite:testMainAddsGadgetCategory()
+	local html = Dimensions._main({ length = '18', width = '8', height = '4' })
+	self:assertStringContains('[[Category:Pages using dimensions gadget]]', html, true)
 end
 
 function suite:testMainInvalidReturnsNil()

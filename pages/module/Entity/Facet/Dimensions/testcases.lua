@@ -84,6 +84,17 @@ function suite:testGetSectionsBothReturnsTabs()
 	self:assertEquals('Physical', sections[1].sections[2].label)
 end
 
+function suite:testGetSectionsMarksCargoStowed()
+	local sections = Facet.getSections(ctx({
+		dimension = {
+			dimensions = { length = 2.1, width = 2.9, height = 0.9 },
+			cargo_dimension = { length = 2.2, width = 0.2, height = 0.8 },
+		},
+	}, {}))
+	self:assertStringContains('data-gadget-dimensions-size="stowed"', sections[1].sections[1].content, true)
+	self:assertStringContains('data-gadget-dimensions-size="physical"', sections[1].sections[2].content, true)
+end
+
 function suite:testGetSectionsPhysicalOnlyUntabbed()
 	local sections = Facet.getSections(ctx({
 		mass = 5,

@@ -1,31 +1,24 @@
 require('strict')
 
 --- Module:Dimensions
---- Renders an isometric CSS-3D diagram of an object's bounding box at honest
---- scale: measurement lines with end ticks on every axis, an optional reference
---- object on the same ground plane, and a footer bar carrying caller-supplied
---- metrics and the reference legend.
+--- Renders an isometric CSS-3D diagram of an object's bounding box: measurement
+--- lines with end ticks on every axis, and caller-supplied metrics in the
+--- box's bottom-right corner.
 ---
---- Domain-agnostic: the module knows nothing about what it is measuring. The
---- caller supplies the reference cuboid and any footer metrics; there are no
---- built-in reference objects and no unit assumptions beyond metres for the
---- geometry labels. Reusable outside any particular wiki. Common scale
---- references live in the companion Module:Dimensions/presets.
+--- Domain-agnostic: the module knows nothing about what it is measuring, and
+--- assumes no unit beyond metres for the geometry labels.
 ---
 --- Machine-readable contract: the root element exposes raw SI values via
 --- data-length / data-width / data-height (+ data-*-alt when an alternate
---- value renders).
+--- value renders), and data-gadget-dimensions-size (physical or stowed) for
+--- the dimensions gadget.
 ---
 --- Public interface:
 --- {
 ---   length, width, height,           -- required, metres
 ---   lengthAlt, widthAlt, heightAlt,  -- optional, metres
----   reference = {                    -- optional, a single resolved reference
----     length, width, height,         -- metres
----     label,                         -- legend text, e.g. 'Human · 1.8 m'
----     color, colorLight, colorDark,  -- optional colour trio; CSS default else
----   },
----   metrics = {                      -- optional, ordered footer metrics
+---   stowed,                          -- optional boolean: the box is the stowed (cargo) size
+---   metrics = {                      -- optional, ordered
 ---     { label = string, value = string },  -- value is a pre-formatted display string
 ---   },
 --- } in, HTML string (or nil on invalid required args) out.
@@ -33,6 +26,10 @@ require('strict')
 local p = {}
 
 local lang = mw.getContentLanguage()
+
+-- Hidden category the dimensions gadget is gated on (MediaWiki:Gadgets-definition
+-- loads it only on pages in it), so pages without a diagram never fetch it.
+local GADGET_CATEGORY = 'Pages using dimensions gadget'
 
 --- Format a number with thousands separators and a unit.
 ---
@@ -57,19 +54,6 @@ local function formatValue(num, unit, altNum)
 	return string.format('%s <span class="t-dimensions-value-subtle">(%s)</span>', value, formatPlain(altNum, unit))
 end
 
---- True when t is a {length, width, height} table whose three values are all
---- positive numbers (a drawable cuboid). Nil-safe.
----
---- @param t table|nil
---- @return boolean
-local function isBox(t)
-	if type(t) ~= 'table' then
-		return false
-	end
-	local l, w, h = tonumber(t.length), tonumber(t.width), tonumber(t.height)
-	return l ~= nil and w ~= nil and h ~= nil and l > 0 and w > 0 and h > 0
-end
-
 --- Parse and validate raw arguments.
 ---
 --- @param args table
@@ -90,9 +74,8 @@ local function parseArgs(args)
 		lengthAlt = tonumber(args.lengthAlt),
 		widthAlt = tonumber(args.widthAlt),
 		heightAlt = tonumber(args.heightAlt),
-		-- Pass-through, Lua-caller only (no wikitext path): a single resolved
-		-- reference cuboid and an ordered list of footer metrics.
-		reference = isBox(args.reference) and args.reference or nil,
+		stowed = args.stowed == true,
+		-- Lua-caller only: a table has no wikitext form
 		metrics = type(args.metrics) == 'table' and args.metrics or nil,
 	}
 
@@ -125,20 +108,14 @@ local function buildFaces(layer)
 	end
 end
 
---- Build a generic isometric cuboid: two stacked layers, faces on the top
---- layer spanning down. Used for the object AND the reference box (the
---- reference re-scopes the size variables in CSS).
+--- Build the isometric cuboid: two stacked layers, faces on the top layer
+--- spanning down.
 ---
---- @param modifier string|nil BEM modifier, e.g. 'reference'
 --- @return mw.html root
 --- @return mw.html layerTop
 --- @return mw.html layerBottom
-local function buildBox(modifier)
+local function buildBox()
 	local root = mw.html.create('div'):addClass('t-dimensions-box'):css('transform-style', 'preserve-3d')
-
-	if modifier then
-		root:addClass('t-dimensions-box--' .. modifier)
-	end
 
 	local layerTop = root:tag('div')
 		:addClass('t-dimensions-layer')
@@ -193,6 +170,7 @@ local function getHtml(data)
 		:attr('data-length', tostring(data.length))
 		:attr('data-width', tostring(data.width))
 		:attr('data-height', tostring(data.height))
+		:attr('data-gadget-dimensions-size', data.stowed and 'stowed' or 'physical')
 
 	if data.lengthAlt then
 		container:attr('data-length-alt', tostring(data.lengthAlt))
@@ -202,25 +180,6 @@ local function getHtml(data)
 	end
 	if data.heightAlt then
 		container:attr('data-height-alt', tostring(data.heightAlt))
-	end
-	if data.reference then
-		container:addClass('t-dimensions--has-reference'):css({
-			['--t-dimensions-reference-length'] = tostring(data.reference.length),
-			['--t-dimensions-reference-width'] = tostring(data.reference.width),
-			['--t-dimensions-reference-height'] = tostring(data.reference.height),
-		})
-		-- Optional per-reference colour trio, applied inline so the stylesheet
-		-- stays free of any specific reference. Each falls back to the CSS
-		-- default when the caller omits it.
-		if data.reference.color then
-			container:css('--t-dimensions-ref-color', data.reference.color)
-		end
-		if data.reference.colorLight then
-			container:css('--t-dimensions-ref-color-light', data.reference.colorLight)
-		end
-		if data.reference.colorDark then
-			container:css('--t-dimensions-ref-color-dark', data.reference.colorDark)
-		end
 	end
 
 	-- Screen-reader summary; the visual scene is aria-hidden
@@ -253,7 +212,7 @@ local function getHtml(data)
 	local box, layerTop, layerBottom = buildBox()
 	scene:node(box)
 
-	-- Height: line in the right-face plane (rotation-proof) + billboarded label
+	-- Height: line in the right-face plane + billboarded label
 	layerTop:node(buildLine('height'))
 	layerTop
 		:tag('div')
@@ -262,35 +221,19 @@ local function getHtml(data)
 		:node(buildText('height', 'Height', formatValue(data.height, 'm', data.heightAlt)))
 		:done()
 
-	-- Reference cuboid on the ground plane
-	if data.reference then
-		-- Root only; the faces are already wired up inside buildBox
-		local refBox = buildBox('reference')
-		layerBottom:node(refBox)
-	end
-
 	-- Ground-plane lines + labels
 	layerBottom:node(buildLine('length'))
 	layerBottom:node(buildText('length', 'Length', formatValue(data.length, 'm', data.lengthAlt)))
 	layerBottom:node(buildLine('width'))
 	layerBottom:node(buildText('width', 'Width', formatValue(data.width, 'm', data.widthAlt)))
 
-	-- Footer: caller-supplied metrics + reference legend (omitted when both are
-	-- absent). Each metric is a { label, value } pair with a pre-formatted value.
-	local hasMetrics = data.metrics ~= nil and data.metrics[1] ~= nil
-	if hasMetrics or data.reference then
-		local footer = container:tag('div'):addClass('t-dimensions-footer')
-
-		for _, metric in ipairs(data.metrics or {}) do
-			local item = footer:tag('div'):addClass('t-dimensions-footer-item')
-			item:tag('span'):addClass('t-dimensions-footer-label'):wikitext(metric.label):done()
-			item:tag('span'):addClass('t-dimensions-footer-value'):wikitext(metric.value):done()
-		end
-
-		if data.reference then
-			local legend = footer:tag('div'):addClass('t-dimensions-legend')
-			legend:tag('span'):addClass('t-dimensions-swatch'):done()
-			legend:tag('span'):wikitext(data.reference.label):done()
+	-- Metrics in the bottom-right corner; aria-hidden because the summary reads them
+	if data.metrics ~= nil and data.metrics[1] ~= nil then
+		local list = container:tag('div'):addClass('t-dimensions-metrics'):attr('aria-hidden', 'true')
+		for _, metric in ipairs(data.metrics) do
+			local item = list:tag('div'):addClass('t-dimensions-metric')
+			item:tag('div'):addClass('t-dimensions-text-label'):wikitext(metric.label):done()
+			item:tag('div'):addClass('t-dimensions-text-value'):wikitext(metric.value):done()
 		end
 	end
 
@@ -316,11 +259,11 @@ function p._main(args, frame)
 	return frame:extensionTag({
 		name = 'templatestyles',
 		args = { src = 'Module:Dimensions/styles.css' },
-	}) .. tostring(getHtml(data))
+	}) .. tostring(getHtml(data)) .. string.format('[[Category:%s]]', GADGET_CATEGORY)
 end
 
---- Wikitext entry point. Renders a bare box (reference and metrics are
---- Lua-only, table-valued arguments).
+--- Wikitext entry point. Renders a bare box: metrics are a Lua-only,
+--- table-valued argument.
 ---
 --- @param frame mw.frame
 --- @return string|nil
@@ -334,7 +277,6 @@ p._internal = {
 	parseArgs = parseArgs,
 	formatValue = formatValue,
 	formatPlain = formatPlain,
-	isBox = isBox,
 }
 
 return p

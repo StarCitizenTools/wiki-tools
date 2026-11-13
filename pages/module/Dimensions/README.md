@@ -1,8 +1,8 @@
 # Module:Dimensions
 
-Renders an isometric CSS-3D diagram of an object's bounding box at honest scale: measurement lines with end ticks on each axis, an optional reference cuboid on the same ground plane, and a footer bar of caller-supplied metrics plus the reference legend. Hovering the diagram (pointer devices only) rotates it to a top-down plan view; the rotation animation is disabled under reduced-motion preferences (the rotation itself still happens, instantly, rather than being suppressed).
+Renders an isometric CSS-3D diagram of an object's bounding box: measurement lines with end ticks on each axis, and caller-supplied metrics such as mass in the box's bottom-right corner. With JavaScript, the `dimensions` gadget opens the diagram into a full view for comparing sizes.
 
-Required by [Module:Entity/Vehicle/Dimensions](https://starcitizen.tools/Module:Entity/Vehicle/Dimensions) and [Module:Entity/Facet/Dimensions](https://starcitizen.tools/Module:Entity/Facet/Dimensions), both thin adapters; [Module:Dimensions/presets](https://starcitizen.tools/Module:Dimensions/presets) supplies reusable reference objects. Not invoked from templates.
+Required by [Module:Entity/Vehicle/Dimensions](https://starcitizen.tools/Module:Entity/Vehicle/Dimensions) and [Module:Entity/Facet/Dimensions](https://starcitizen.tools/Module:Entity/Facet/Dimensions), both thin adapters. Not invoked from templates.
 
 ## For module editors
 
@@ -14,19 +14,14 @@ Required by [Module:Entity/Vehicle/Dimensions](https://starcitizen.tools/Module:
 |---|---|---|---|
 | `length`, `width`, `height` | number (m) | Yes | Must be > 0. |
 | `lengthAlt`, `widthAlt`, `heightAlt` | number (m) | No | Shown as a subtle parenthetical; dropped when equal to the primary value. |
-| `reference` | table | No | A resolved reference cuboid: `{ length, width, height, label, color?, colorLight?, colorDark? }` (metres; colour trio falls back to the CSS default). Not a type key; the caller resolves it. Silently dropped (no reference renders) unless `length`/`width`/`height` are all positive numbers. |
-| `metrics` | `{ label, value }[]` | No | Ordered footer rows, e.g. mass; `value` is a pre-formatted display string. |
+| `stowed` | boolean | No | The box is the object's stowed (cargo) size rather than its physical size. Only `true` counts. |
+| `metrics` | `{ label, value }[]` | No | Ordered label-over-value pairs in the bottom-right corner, e.g. mass; `value` is a pre-formatted display string. |
 
-`p.main(frame)` is the `#invoke` entry point (reads [Module:Arguments](https://starcitizen.tools/Module:Arguments)), but renders a bare box: `reference` and `metrics` are Lua-only table arguments with no wikitext form.
-
-[Module:Dimensions/presets](https://starcitizen.tools/Module:Dimensions/presets) (domain-agnostic references only; a consumer defines its own domain-specific ones):
-
-- `p.human`: 0.3 × 0.5 × 1.8 m.
-- `p.banana`: 0.05 × 0.05 × 0.2 m, standing upright, with its own yellow colour trio.
-- `p.resolveAuto(longest)`: the largest of the two above whose longest dimension does not exceed `longest`; falls back to the smallest when the object is smaller than both (being dwarfed by the banana is the intended scale story, not an edge case to hide).
+`p.main(frame)` is the `#invoke` entry point (reads [Module:Arguments](https://starcitizen.tools/Module:Arguments)), but renders a bare physical box: `stowed` and `metrics` are Lua-only arguments with no wikitext form.
 
 ### Gotchas
 
 - `transform-style: preserve-3d` is set inline from Lua on several elements because the [TemplateStyles](https://www.mediawiki.org/wiki/Extension:TemplateStyles) sanitizer rejects it as a stylesheet property.
-- The root carries `data-length`/`data-width`/`data-height` (+ `-alt` variants when they render) for machine reading; a reference's identity is not exposed as a data attribute, only its geometry via CSS custom properties. A visually-hidden text summary covers all values for screen readers; the visual scene itself is `aria-hidden`.
+- The root carries `data-length`/`data-width`/`data-height` (+ `-alt` variants when they render) for machine reading, and `data-gadget-dimensions-size` (`physical` or `stowed`), which the gadget uses to tell an item's two diagrams apart. A visually-hidden text summary covers all values, metrics included, for screen readers; the scene and the metrics are `aria-hidden`.
+- Every diagram adds the hidden [Category:Pages using dimensions gadget](https://starcitizen.tools/Category:Pages_using_dimensions_gadget): the `dimensions` gadget, which opens the diagram into a full view, loads only on pages in it.
 - Composite CSS transforms are stashed in custom properties and consumed bare: the sanitizer rejects `var()` nested inside a `transform` function argument, but not inside a custom-property declaration.

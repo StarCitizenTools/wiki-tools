@@ -1,0 +1,634 @@
+/*
+ * Gadget: dimensionsDialog — the full view of an object's dimensions.
+ * Companion to MediaWiki:Gadget-dimensionsDialog.js.
+ *
+ * The cuboid faces mirror Module:Dimensions: lid, short side and long side
+ * step up through the neutral surfaces. Compared objects take an accent hue
+ * and derive their three faces by mixing it with the page background, so they
+ * follow the light and dark themes.
+ */
+
+/* Real buttons are Codex CSS-only buttons, which Citizen loads; these rules
+   cover the dialog's other controls (rows, the cube, the view menu). :where()
+   keeps them weightless, so each control's own rules win. */
+.gadget-dimensions-dialog :where( button:not( .cdx-button ) ) {
+	font: inherit;
+	cursor: pointer;
+}
+
+.gadget-dimensions-dialog :where( button:not( .cdx-button ) ):focus-visible {
+	outline: 2px solid var( --outline-color-progressive--focus, #36c );
+	outline-offset: 1px;
+}
+
+.gadget-dimensions-icon,
+.gadget-dimensions-icon svg {
+	display: block;
+}
+
+/* Dialog: no header; the sidebar and the scene fill it */
+.gadget-dimensions-dialog {
+	width: min( 1152px, calc( 100vw - 32px ) );
+	height: min( 740px, calc( 100vh - 32px ) );
+	height: min( 740px, calc( 100dvh - 32px ) );
+	max-width: none;
+	max-height: none;
+	padding: 0;
+	overflow: hidden;
+	border: 1px solid var( --border-color-base, #a2a9b1 );
+	border-radius: var( --border-radius-medium, 4px );
+	background-color: var( --background-color-neutral-subtle, #f8f9fa );
+	color: var( --color-base, #202122 );
+	font-family: var( --font-family-base, sans-serif );
+	font-size: 0.875rem;
+	line-height: 1.4;
+	box-shadow: var( --box-shadow-drop-xx-large, 0 24px 64px rgba( 0, 0, 0, 0.5 ) );
+}
+
+/* The scrim of Citizen's share dialog. No scroll lock either: Citizen's own
+   dialogs leave the page scrollable. */
+.gadget-dimensions-dialog::backdrop {
+	background-color: var( --background-color-backdrop-light, rgba( 255, 255, 255, 0.65 ) );
+	backdrop-filter: var( --backdrop-filter-blur, none );
+}
+
+.gadget-dimensions-dialog *,
+.gadget-dimensions-dialog *::before,
+.gadget-dimensions-dialog *::after {
+	box-sizing: border-box;
+}
+
+.gadget-dimensions-surface {
+	display: flex;
+	height: 100%;
+}
+
+.gadget-dimensions-sidebar {
+	flex: none;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	width: 300px;
+	padding: 12px 16px 16px;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	border-right: 1px solid var( --border-color-base, #a2a9b1 );
+}
+
+/* Segmented controls, after Citizen's citizen-preferences-segmented: a radio
+   group whose radios are hidden under each segment. */
+.gadget-dimensions-segmented {
+	flex: none;
+	display: grid;
+	grid-auto-columns: 1fr;
+	grid-auto-flow: column;
+	height: 44px;
+	padding: 4px;
+	border: 1px solid var( --border-color-subtle, #c8ccd1 );
+	border-radius: var( --border-radius-medium, 4px );
+}
+
+.gadget-dimensions-segment {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 0;
+	padding: 0 12px;
+	border: 1px solid transparent;
+	border-radius: var( --border-radius-base, 2px );
+	cursor: pointer;
+	transition-property: background-color, color;
+	transition-duration: 100ms;
+}
+
+.gadget-dimensions-segment + .gadget-dimensions-segment::before {
+	content: '';
+	position: absolute;
+	inset-block: 4px;
+	inset-inline-start: 0;
+	width: 1px;
+	background-color: var( --border-color-base, #a2a9b1 );
+}
+
+.gadget-dimensions-segment-input {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	opacity: 0;
+	cursor: inherit;
+}
+
+.gadget-dimensions-segment-label {
+	overflow: hidden;
+	font-size: 0.875rem;
+	color: var( --color-subtle, #54595d );
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.gadget-dimensions-segment:hover:not( :has( :checked ) ),
+.gadget-dimensions-segment:active:not( :has( :checked ) ) {
+	border-color: var( --border-color-interactive, #a2a9b1 );
+	background-color: var( --background-color-interactive, #eaecf0 );
+}
+
+.gadget-dimensions-segment:active:not( :has( :checked ) ) {
+	border-color: var( --color-progressive, #36c );
+}
+
+.gadget-dimensions-segment:has( :checked ) {
+	border-color: var( --color-progressive, #36c );
+	background-color: var( --background-color-interactive, #eaecf0 );
+	box-shadow: inset 0 0 0 1px var( --color-progressive, #36c );
+	cursor: default;
+}
+
+.gadget-dimensions-segment:hover .gadget-dimensions-segment-label,
+.gadget-dimensions-segment:has( :checked ) .gadget-dimensions-segment-label {
+	color: var( --color-emphasized, #101418 );
+}
+
+/* Separators give way beside a hovered or selected segment */
+.gadget-dimensions-segment:hover::before,
+.gadget-dimensions-segment:hover + .gadget-dimensions-segment::before,
+.gadget-dimensions-segment:has( :checked )::before,
+.gadget-dimensions-segment:has( :checked ) + .gadget-dimensions-segment::before {
+	opacity: 0;
+}
+
+.gadget-dimensions-segment:has( :focus-visible ) {
+	outline: 2px solid var( --color-progressive, #36c );
+	outline-offset: 1px;
+}
+
+/* Quiet close button in the scene's top-right corner */
+.gadget-dimensions-close {
+	position: absolute;
+	z-index: 4;
+	top: 8px;
+	right: 8px;
+}
+
+/* Object rows: the baseline above the mode switch, the compared list below */
+.gadget-dimensions-listhead {
+	display: flex;
+	justify-content: space-between;
+	margin-top: 8px;
+	padding: 0 4px;
+	font-size: 0.75rem;
+	font-weight: 500;
+	color: var( --color-subtle, #54595d );
+}
+
+.gadget-dimensions-list,
+.gadget-dimensions-addlist {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.gadget-dimensions-list li,
+.gadget-dimensions-addlist li {
+	margin: 0;
+}
+
+.gadget-dimensions-row {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	min-height: 44px;
+	padding: 6px 0 6px 4px;
+}
+
+.gadget-dimensions-label {
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+	min-width: 0;
+}
+
+.gadget-dimensions-name {
+	color: var( --color-emphasized, #101418 );
+}
+
+.gadget-dimensions-dims {
+	font-size: 0.75rem;
+	color: var( --color-subtle, #54595d );
+	font-variant-numeric: tabular-nums;
+}
+
+.gadget-dimensions-swatch {
+	flex: none;
+	width: 16px;
+	height: 16px;
+	border-radius: var( --border-radius-base, 2px );
+	background-color: var( --gadget-dimensions-hue );
+}
+
+.gadget-dimensions-remove {
+	flex: none;
+	margin-left: auto;
+}
+
+/* Add object: a dashed row, its icon and label centred */
+.gadget-dimensions-add {
+	flex: none;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 10px;
+	width: 100%;
+	min-height: 44px;
+	margin-top: 4px;
+	padding: 0 8px;
+	border: 1px dashed var( --border-color-interactive, #a2a9b1 );
+	border-radius: var( --border-radius-medium, 4px );
+	background: transparent;
+	color: var( --color-base, #202122 );
+	text-align: left;
+}
+
+.gadget-dimensions-add .gadget-dimensions-icon {
+	flex: none;
+	width: 16px;
+	height: 16px;
+}
+
+.gadget-dimensions-add:hover:not( :disabled ),
+.gadget-dimensions-add[ aria-expanded='true' ] {
+	background-color: var( --background-color-neutral, #eaecf0 );
+	color: var( --color-emphasized, #101418 );
+}
+
+.gadget-dimensions-add:disabled {
+	opacity: 0.45;
+	cursor: default;
+}
+
+.gadget-dimensions-note {
+	margin: 0;
+	padding: 0 4px;
+	font-size: 0.75rem;
+	color: var( --color-subtle, #54595d );
+}
+
+.gadget-dimensions-addlist {
+	padding: 4px;
+	border: 1px solid var( --border-color-interactive, #a2a9b1 );
+	border-radius: var( --border-radius-medium, 4px );
+	background-color: var( --background-color-neutral, #eaecf0 );
+}
+
+.gadget-dimensions-option,
+.gadget-dimensions-fitrow {
+	display: flex;
+	gap: 1px 10px;
+	width: 100%;
+	min-height: 44px;
+	padding: 6px 10px;
+	border: 0;
+	border-radius: 6px;
+	background: transparent;
+	color: inherit;
+	text-align: left;
+}
+
+.gadget-dimensions-option {
+	flex-direction: column;
+	align-items: flex-start;
+	justify-content: center;
+}
+
+.gadget-dimensions-option:hover {
+	background-color: var( --background-color-interactive--hover, #dadde3 );
+}
+
+.gadget-dimensions-fitrow {
+	align-items: center;
+}
+
+.gadget-dimensions-fitrow:hover {
+	background-color: var( --background-color-neutral, #eaecf0 );
+}
+
+.gadget-dimensions-fitrow[ aria-pressed='true' ] {
+	background-color: var( --background-color-progressive-subtle, #f1f4fd );
+	box-shadow: inset 0 0 0 1px var( --color-progressive, #36c );
+}
+
+.gadget-dimensions-status {
+	margin-left: auto;
+	font-size: 0.8125rem;
+	font-weight: 500;
+	white-space: nowrap;
+}
+
+.gadget-dimensions-status--fits {
+	color: var( --color-success, #14866d );
+}
+
+.gadget-dimensions-status--over {
+	color: var( --color-destructive, #d73333 );
+}
+
+/* Stage */
+.gadget-dimensions-stage {
+	position: relative;
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	background-color: var( --background-color-base, #fff );
+}
+
+/* orbitCamera sets the viewport's cursor and touch handling and the scene's
+   transform and transition. */
+.gadget-dimensions-viewport {
+	position: absolute;
+	inset: 0;
+}
+
+.gadget-dimensions-scene {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 0;
+	height: 0;
+	transform-style: preserve-3d;
+}
+
+.gadget-dimensions-grid {
+	position: absolute;
+	border-radius: 4px;
+	background-color: color-mix( in srgb, var( --color-base, #202122 ) 3%, transparent );
+	background-image:
+		linear-gradient( to right, color-mix( in srgb, var( --color-base, #202122 ) 10%, transparent ) 1px, transparent 1px ),
+		linear-gradient( to bottom, color-mix( in srgb, var( --color-base, #202122 ) 10%, transparent ) 1px, transparent 1px );
+}
+
+.gadget-dimensions-scale {
+	position: absolute;
+	bottom: 14px;
+	left: 16px;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 0.75rem;
+	color: var( --color-subtle, #54595d );
+}
+
+.gadget-dimensions-bar {
+	display: inline-block;
+	height: 6px;
+	border: 1px solid var( --border-color-interactive, #a2a9b1 );
+	border-top: 0;
+}
+
+/* View cube, bottom-right; a menu opens upward from it on narrow screens */
+.gadget-dimensions-cube {
+	position: absolute;
+	z-index: 3;
+	right: 8px;
+	bottom: 8px;
+	display: flex;
+	flex-direction: column-reverse;
+	align-items: flex-end;
+	gap: 6px;
+}
+
+.gadget-dimensions-cube-stage,
+.gadget-dimensions-cube-button {
+	position: relative;
+	width: 80px;
+	height: 80px;
+}
+
+.gadget-dimensions-cube-button {
+	padding: 0;
+	border: 0;
+	border-radius: var( --border-radius-medium, 4px );
+	background: transparent;
+}
+
+.gadget-dimensions-cube-button[ aria-expanded='true' ] {
+	background-color: color-mix( in srgb, var( --background-color-neutral, #eaecf0 ) 60%, transparent );
+}
+
+.gadget-dimensions-cube-body {
+	position: absolute;
+	top: 40px;
+	left: 40px;
+	width: 0;
+	height: 0;
+	transform-style: preserve-3d;
+}
+
+.gadget-dimensions-dialog .gadget-dimensions-cube-face {
+	position: absolute;
+	top: -22px;
+	left: -22px;
+	display: grid;
+	place-items: center;
+	width: 44px;
+	height: 44px;
+	padding: 0;
+	border: 2px solid var( --background-color-interactive--active, #c8ccd1 );
+	background-color: var( --background-color-neutral, #eaecf0 );
+	color: var( --color-subtle, #54595d );
+	font: 500 10px / 1 var( --font-family-base, sans-serif );
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+
+.gadget-dimensions-dialog button.gadget-dimensions-cube-face:hover {
+	background-color: var( --background-color-interactive--hover, #dadde3 );
+	color: var( --color-emphasized, #101418 );
+}
+
+.gadget-dimensions-dialog .gadget-dimensions-cube-face.gadget-dimensions-cube-current {
+	border-color: var( --color-progressive, #36c );
+	background-color: var( --background-color-progressive-subtle, #f1f4fd );
+	color: var( --color-emphasized, #101418 );
+}
+
+/* Corner dots: a small dot, a larger target */
+.gadget-dimensions-cube-corner {
+	position: absolute;
+	top: -9px;
+	left: -9px;
+	display: grid;
+	place-items: center;
+	width: 18px;
+	height: 18px;
+	padding: 0;
+	border: 0;
+	background: transparent;
+}
+
+.gadget-dimensions-cube-corner::before {
+	content: '';
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background-color: var( --color-subtle, #54595d );
+	transition: transform 100ms;
+}
+
+.gadget-dimensions-cube-corner:hover::before,
+.gadget-dimensions-cube-corner.gadget-dimensions-cube-current::before {
+	background-color: var( --color-progressive, #36c );
+}
+
+.gadget-dimensions-cube-corner:hover::before {
+	transform: scale( 1.4 );
+}
+
+.gadget-dimensions-viewmenu {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	width: 152px;
+	padding: 4px;
+	border: 1px solid var( --border-color-interactive, #a2a9b1 );
+	border-radius: var( --border-radius-medium, 4px );
+	background-color: var( --background-color-neutral, #eaecf0 );
+	box-shadow: 0 8px 24px rgba( 0, 0, 0, 0.45 );
+}
+
+.gadget-dimensions-viewmenu-item {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	width: 100%;
+	height: 44px;
+	padding: 0 10px;
+	border: 0;
+	border-radius: 6px;
+	background: transparent;
+	color: var( --color-base, #202122 );
+	text-align: left;
+}
+
+.gadget-dimensions-viewmenu-item .gadget-dimensions-icon {
+	flex: none;
+	width: 20px;
+	height: 20px;
+}
+
+.gadget-dimensions-viewmenu-item:hover {
+	background-color: var( --background-color-interactive--hover, #dadde3 );
+}
+
+.gadget-dimensions-viewmenu-item[ aria-checked='true' ] {
+	color: var( --color-emphasized, #101418 );
+}
+
+/* Cuboids */
+.gadget-dimensions-cuboid {
+	position: absolute;
+	transform-style: preserve-3d;
+}
+
+.gadget-dimensions-face {
+	position: absolute;
+	transform-origin: 0 0;
+	box-shadow: 0 0 0 1px var( --gadget-dimensions-edge );
+}
+
+.gadget-dimensions-face--top {
+	background-color: var( --gadget-dimensions-top );
+}
+
+.gadget-dimensions-face--short {
+	background-color: var( --gadget-dimensions-short );
+}
+
+.gadget-dimensions-face--long {
+	background-color: var( --gadget-dimensions-long );
+}
+
+.gadget-dimensions-cuboid--neutral,
+.gadget-dimensions-swatch--neutral {
+	--gadget-dimensions-hue: var( --background-color-interactive--active, #c8ccd1 );
+	--gadget-dimensions-top: var( --background-color-neutral, #eaecf0 );
+	--gadget-dimensions-short: var( --background-color-interactive--hover, #dadde3 );
+	--gadget-dimensions-long: var( --background-color-interactive--active, #c8ccd1 );
+	--gadget-dimensions-edge: var( --border-color-base, #a2a9b1 );
+}
+
+.gadget-dimensions-cuboid--accent-1,
+.gadget-dimensions-swatch--accent-1 {
+	--gadget-dimensions-hue: var( --color-progressive, #36c );
+}
+
+.gadget-dimensions-cuboid--accent-2,
+.gadget-dimensions-swatch--accent-2 {
+	--gadget-dimensions-hue: var( --color-warning, #edab00 );
+}
+
+.gadget-dimensions-cuboid--accent-3,
+.gadget-dimensions-swatch--accent-3 {
+	--gadget-dimensions-hue: var( --color-success, #14866d );
+}
+
+.gadget-dimensions-cuboid--fits {
+	--gadget-dimensions-hue: var( --color-success, #14866d );
+}
+
+.gadget-dimensions-cuboid--over {
+	--gadget-dimensions-hue: var( --color-destructive, #d73333 );
+}
+
+.gadget-dimensions-cuboid--accent-1,
+.gadget-dimensions-cuboid--accent-2,
+.gadget-dimensions-cuboid--accent-3 {
+	--gadget-dimensions-top: color-mix( in oklab, var( --gadget-dimensions-hue ) 40%, var( --background-color-base, #fff ) );
+	--gadget-dimensions-short: color-mix( in oklab, var( --gadget-dimensions-hue ) 58%, var( --background-color-base, #fff ) );
+	--gadget-dimensions-long: color-mix( in oklab, var( --gadget-dimensions-hue ) 75%, var( --background-color-base, #fff ) );
+	--gadget-dimensions-edge: color-mix( in oklab, var( --gadget-dimensions-hue ) 25%, var( --background-color-base, #fff ) );
+}
+
+/* The fit container: a tinted, dashed outline the object shows through */
+.gadget-dimensions-cuboid--wire .gadget-dimensions-face {
+	background-color: color-mix( in srgb, var( --gadget-dimensions-hue ) 10%, transparent );
+	box-shadow: none;
+	outline: 1.5px dashed var( --gadget-dimensions-hue );
+	outline-offset: -1px;
+}
+
+/* Narrow screens: a bottom sheet with the scene on top and the sidebar below.
+   dvh, not vh: mobile browsers size vh for a hidden address bar, so while it
+   shows, a vh sheet runs off the top of the screen and hides the close button. */
+@media ( max-width: 719px ) {
+	.gadget-dimensions-dialog {
+		width: 100%;
+		height: 92vh;
+		height: 92dvh;
+		margin: auto 0 0;
+		border-width: 1px 0 0;
+		border-radius: 16px 16px 0 0;
+	}
+
+	.gadget-dimensions-surface {
+		flex-direction: column;
+	}
+
+	.gadget-dimensions-stage {
+		order: -1;
+		flex: none;
+		height: 340px;
+		border-bottom: 1px solid var( --border-color-base, #a2a9b1 );
+	}
+
+	.gadget-dimensions-sidebar {
+		flex: 1;
+		width: auto;
+		min-height: 0;
+		border-right: 0;
+	}
+}

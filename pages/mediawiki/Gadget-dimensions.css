@@ -1,0 +1,119 @@
+/*
+ * Gadget: dimensions — the Module:Dimensions diagram as the way into the full
+ * view. Companion to MediaWiki:Gadget-dimensions.js; the view itself is
+ * MediaWiki:Gadget-dimensionsDialog.css.
+ */
+
+/* A button fills the box behind the diagram. The diagram lets clicks through
+   to it except on its text, which keeps a text cursor and stays selectable. */
+.gadget-dimensions-expand {
+	position: absolute;
+	inset: 0;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	cursor: pointer;
+}
+
+.gadget-dimensions-expand:focus-visible {
+	outline: 2px solid var( --outline-color-progressive--focus, #36c );
+	outline-offset: -2px;
+}
+
+.gadget-dimensions-loading .gadget-dimensions-expand {
+	cursor: progress;
+}
+
+.gadget-dimensions-enhanced .t-dimensions-stage {
+	position: relative;
+	pointer-events: none;
+}
+
+.gadget-dimensions-enhanced .t-dimensions-metrics {
+	pointer-events: none;
+}
+
+.gadget-dimensions-enhanced .t-dimensions-text-label,
+.gadget-dimensions-enhanced .t-dimensions-text-value {
+	pointer-events: auto;
+	cursor: text;
+}
+
+/* The cue in the top-right corner; hovering anywhere on the box lights it */
+.gadget-dimensions-cue {
+	position: absolute;
+	top: 8px;
+	right: 8px;
+	display: grid;
+	place-items: center;
+	width: 32px;
+	height: 32px;
+	border-radius: var( --border-radius-base, 2px );
+	color: var( --color-base, #202122 );
+	pointer-events: none;
+	transition-property: background-color, color;
+	transition-duration: 100ms;
+}
+
+.gadget-dimensions-enhanced {
+	transition: border-color 100ms;
+}
+
+/* .t-dimensions too: TemplateStyles prefixes the module's rules with
+   .mw-parser-output and they load later, so equal weight would lose. */
+.t-dimensions.gadget-dimensions-enhanced:hover {
+	border-color: var( --border-color-interactive, #a2a9b1 );
+}
+
+.gadget-dimensions-enhanced:hover .gadget-dimensions-cue,
+.gadget-dimensions-expand:focus-visible ~ .gadget-dimensions-cue {
+	background-color: var( --background-color-interactive--hover, #eaecf0 );
+	color: var( --color-emphasized, #101418 );
+}
+
+/* Hovering lifts the object off a dashed outline of its footprint while the
+   full view's ground grid fades in under it, the sign that it opens. The
+   module draws the object, with its height, on the top layer and the
+   footprint, with its length and width, on the bottom one, so only the
+   object rises. */
+.t-dimensions.gadget-dimensions-enhanced .t-dimensions-layer--top {
+	transition: transform 100ms ease-out;
+}
+
+.t-dimensions.gadget-dimensions-enhanced:hover .t-dimensions-layer--top {
+	--t-dimensions-layer-z: calc( var( --t-dimensions-offset-up ) + 12px );
+}
+
+.t-dimensions.gadget-dimensions-enhanced .t-dimensions-layer--bottom {
+	outline: 1px dashed transparent;
+	outline-offset: -1px;
+	transition: outline-color 100ms ease-out;
+}
+
+.t-dimensions.gadget-dimensions-enhanced:hover .t-dimensions-layer--bottom {
+	outline-color: var( --border-color-interactive, #72777d );
+}
+
+.gadget-dimensions-enhanced .t-dimensions-layer--bottom::before {
+	content: '';
+	position: absolute;
+	inset: -60px;
+	background-image:
+		linear-gradient( to right, color-mix( in srgb, var( --color-base, #202122 ) 20%, transparent ) 1px, transparent 1px ),
+		linear-gradient( to bottom, color-mix( in srgb, var( --color-base, #202122 ) 20%, transparent ) 1px, transparent 1px );
+	background-size: 20px 20px;
+	mask-image: radial-gradient( closest-side, #000 45%, transparent );
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 100ms ease-out;
+}
+
+.gadget-dimensions-enhanced:hover .t-dimensions-layer--bottom::before {
+	opacity: 1;
+}
+
+@media ( prefers-reduced-motion: reduce ) {
+	.t-dimensions.gadget-dimensions-enhanced .t-dimensions-layer--top {
+		transition: none;
+	}
+}

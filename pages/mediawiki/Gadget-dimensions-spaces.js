@@ -8,8 +8,9 @@
  * [[MediaWiki:Gadget-dimensions-spaces.js]]
  *
  * An owner is a page holding one or more spaces, { name, kind, spaces }, and a
- * space is a box in metres plus its capacity in SCU and whether it is on the
- * outside of the hull: { length, width, height, capacity, external }.
+ * space is a box in metres plus its capacity in SCU, whether it is on the
+ * outside of the hull, and the item limits within which the grid secures what
+ * it holds: { length, width, height, capacity, external, limits }.
  */
 ( function () {
 	'use strict';
@@ -22,13 +23,19 @@
 		{ id: 'ground', label: 'Ground vehicles', kind: 'Ground vehicle', subjectType: 'Ground vehicle' }
 	];
 
+	// Each limit's sides, shortest first, as Module:Entity/Vehicle stores them.
+	const LIMIT_FIELDS = {
+		min: [ 'cargo_grid_minimum_item_shortest_side', 'cargo_grid_minimum_item_middle_side', 'cargo_grid_minimum_item_longest_side' ],
+		max: [ 'cargo_grid_maximum_item_shortest_side', 'cargo_grid_maximum_item_middle_side', 'cargo_grid_maximum_item_longest_side' ]
+	};
+
 	const FIELDS = [
 		'cargo_grid_length',
 		'cargo_grid_width',
 		'cargo_grid_height',
 		'cargo_grid_capacity',
 		'cargo_grid_external'
-	];
+	].concat( LIMIT_FIELDS.min, LIMIT_FIELDS.max );
 
 	/**
 	 * @param {string} a
@@ -86,6 +93,28 @@
 	}
 
 	/**
+	 * A grid's item limits from its row. A maximum of all zeros is no maximum,
+	 * and a minimum of zeros no minimum.
+	 *
+	 * @param {Object} row
+	 * @return {Object|null} { min, max }, each three sides shortest first or
+	 *  null; null when the row has neither, as before its vehicle page
+	 *  re-parsed with them
+	 */
+	function limitsFromRow( row ) {
+		const sides = ( fields ) => {
+			const values = fields.map( ( field ) => ( row[ field ] === null || row[ field ] === undefined || row[ field ] === '' ? NaN : Number( row[ field ] ) ) );
+			return values.every( ( value ) => isFinite( value ) ) ? values : null;
+		};
+		const min = sides( LIMIT_FIELDS.min );
+		let max = sides( LIMIT_FIELDS.max );
+		if ( max && !max.some( ( side ) => side > 0 ) ) {
+			max = null;
+		}
+		return min || max ? { min, max } : null;
+	}
+
+	/**
 	 * Owners from a group query's rows, by name. Bucket matches the join key
 	 * without regard to case, so a row joined to an entity page whose name
 	 * differs in case belongs to another page and is dropped.
@@ -106,7 +135,8 @@
 				width: Number( row.cargo_grid_width ),
 				height: Number( row.cargo_grid_height ),
 				capacity: Number( row.cargo_grid_capacity ) || 0,
-				external: row.cargo_grid_external === true
+				external: row.cargo_grid_external === true,
+				limits: limitsFromRow( row )
 			};
 			if ( !( space.length > 0 && space.width > 0 && space.height > 0 ) ) {
 				return;
@@ -130,7 +160,7 @@
 	function groupSpaces( spaces ) {
 		const out = [];
 		spaces.forEach( ( space ) => {
-			const key = [ space.length, space.width, space.height, space.external ? 'e' : 'i' ].join( '-' );
+			const key = [ space.length, space.width, space.height, space.external ? 'e' : 'i', JSON.stringify( space.limits ) ].join( '-' );
 			const hit = out.find( ( entry ) => entry.key === key );
 			if ( hit ) {
 				hit.count += 1;

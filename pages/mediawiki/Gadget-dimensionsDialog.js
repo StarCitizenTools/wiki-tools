@@ -24,8 +24,14 @@
 	const OrbitCamera = require( 'ext.gadget.orbitCamera' );
 
 	const P = 'gadget-dimensions';
-	// The side of one SCU, in metres: a cargo grid's floor is ruled in these.
-	const SCU_EDGE = 1.25;
+	// A fit's status by how the object is set down (geo.placeIn).
+	const FIT_POSES = { upright: 'Fits', side: 'Fits on its side', end: 'Fits on end' };
+	// A vehicle reads as its best grid's verdict (geo.secureCheck states).
+	const OWNER_VERDICTS = [
+		{ state: 'secured', status: 'Secured', tone: 'fits' },
+		{ state: 'fits', status: 'Fits', tone: 'fits' },
+		{ state: 'loose', status: 'Loose', tone: 'loose' }
+	];
 	// The narrow layout's breakpoint in Gadget-dimensionsDialog.css.
 	const NARROW = '(max-width: 719px)';
 
@@ -224,7 +230,7 @@
 		);
 		if ( floor ) {
 			const ruled = face( 'floor', 0, 0, l, w, 'none' );
-			ruled.style.backgroundSize = `${ SCU_EDGE * scale }px ${ SCU_EDGE * scale }px`;
+			ruled.style.backgroundSize = `${ geo.SCU_EDGE * scale }px ${ geo.SCU_EDGE * scale }px`;
 			node.prepend( ruled );
 		}
 		return node;
@@ -411,12 +417,25 @@
 		const sidebar = h( 'div', `${ P }-sidebar` );
 		const scene = h( 'div', `${ P }-scene` );
 		const scaleNote = h( 'div', `${ P }-scale`, { 'aria-hidden': 'true' } );
+		// Fit's verdict on the selected space, over the scene's top left. The
+		// selected row carries the same status for assistive technology.
+		const verdict = h( 'div', `${ P }-verdict`, { 'aria-hidden': 'true' } );
 		// Gestures drive the camera; the view cube is the keyboard route to it.
 		const viewport = h( 'div', `${ P }-viewport`, { 'aria-hidden': 'true' }, [ scene ] );
 		let camera = null;
 		const cube = viewCube( ( key ) => camera.setPreset( key ) );
-		const stage = h( 'div', `${ P }-stage`, {}, [ viewport, scaleNote, cube.root, closeButton ] );
-		dialog.append( h( 'div', `${ P }-surface`, {}, [ sidebar, stage ] ) );
+		const stage = h( 'div', `${ P }-stage`, {}, [ viewport, verdict, scaleNote, cube.root, closeButton ] );
+		// The list and, on narrow screens only, its handle: there the panel lies
+		// over the scene's lower part and slides down to show more of it.
+		const grabber = h( 'button', `${ P }-grabber`, {
+			type: 'button',
+			'aria-label': 'Expand the view',
+			'aria-expanded': 'false'
+		}, [ h( 'span', `${ P }-grabber-bar` ) ] );
+		const panel = h( 'div', `${ P }-panel`, {}, [ grabber, sidebar ] );
+		const surface = h( 'div', `${ P }-surface`, {}, [ panel, stage ] );
+		const narrow = window.matchMedia( NARROW );
+		dialog.append( surface );
 
 		function setState( patch, focusKey ) {
 			Object.assign( state, patch );
@@ -497,12 +516,32 @@
 		const results = h( 'div', `${ P }-results` );
 
 		const fitTarget = () => state.sel.space || byId[ state.sel.container ];
-		const statusText = ( check ) => ( check.fits ? 'Fits' : `${ geo.formatLength( check.over ) } too big` );
+		const tooBig = ( check ) => `${ geo.formatLength( check.over ) } too big`;
+		const statusText = ( check ) => ( check.fits ? FIT_POSES[ check.pose ] : tooBig( check ) );
 		const gridCount = ( n ) => `${ n } cargo ${ n === 1 ? 'grid' : 'grids' }`;
 
 		/**
-		 * @param {Object} row focus key, pressed, name, sub, status, fits,
-		 *  onClick, and optionally count (identical grids) and chevron (opens a list)
+		 * @param {Object} check from geo.secureCheck
+		 * @return {Object} the grid row's status and tone, and the verdict's
+		 *  title and line
+		 */
+		function gridVerdict( check ) {
+			if ( check.state === 'secured' ) {
+				return { status: 'Secured', tone: 'fits', title: 'Secured', line: 'Fits, and the grid locks it down.' };
+			}
+			if ( check.state === 'loose' ) {
+				return { status: 'Loose', tone: 'loose', title: 'Loose', line: 'Fits the space, but the grid won’t lock it down.' };
+			}
+			if ( check.state === 'fits' ) {
+				return { status: FIT_POSES[ check.pose ], tone: 'fits', title: FIT_POSES[ check.pose ], line: '' };
+			}
+			return { status: tooBig( check ), tone: 'over', title: 'Too big', line: `${ tooBig( check ) } for this grid.` };
+		}
+
+		/**
+		 * @param {Object} row focus key, pressed, name, sub, status, tone (fits,
+		 *  loose or over), onClick, and optionally count (identical grids) and
+		 *  chevron (opens a list)
 		 * @return {HTMLElement}
 		 */
 		function fitRow( row ) {
@@ -516,7 +555,7 @@
 					row.count > 1 ? h( 'span', `${ P }-nameline`, {}, [ name, h( 'span', `${ P }-count`, {}, [ `×${ row.count }` ] ) ] ) : name,
 					h( 'span', `${ P }-dims`, {}, [ row.sub ] )
 				] ),
-				h( 'span', `${ P }-status ${ P }-status--${ row.fits ? 'fits' : 'over' }`, {}, [ row.status ] ),
+				h( 'span', `${ P }-status ${ P }-status--${ row.tone }`, {}, [ row.status ] ),
 				row.chevron ? iconSpan( icon( 'cdxIconNext', 16 ) ) : ''
 			] );
 			button.addEventListener( 'click', row.onClick );
@@ -531,18 +570,21 @@
 				name: container.name,
 				sub: geo.formatBox( container ),
 				status: statusText( check ),
-				fits: check.fits,
+				tone: check.fits ? 'fits' : 'over',
 				onClick: () => setState( { sel: { container: container.id } } )
 			} );
 		}
 
-		// An owner opens to its grids and puts the object in the first that fits,
-		// so the scene answers before the reader picks one.
+		// An owner opens to its grids and puts the object in the first that
+		// secures it, else the first it fits, so the scene answers before the
+		// reader picks one.
 		function openOwner( owner ) {
 			const patch = { opened: owner };
 			if ( state.sel.owner !== owner.name ) {
 				const entries = spaces.groupSpaces( owner.spaces );
-				const first = entries.find( ( entry ) => geo.fitCheck( pageBox.fit, entry.space ).fits ) || entries[ entries.length - 1 ];
+				const states = entries.map( ( entry ) => geo.secureCheck( pageBox.fit, entry.space ).state );
+				const at = OWNER_VERDICTS.map( ( verdict ) => states.indexOf( verdict.state ) ).find( ( i ) => i !== -1 );
+				const first = entries[ at === undefined ? entries.length - 1 : at ];
 				patch.sel = { owner: owner.name, key: first.key, space: first.space };
 			}
 			navigate( 'forward' );
@@ -552,21 +594,15 @@
 		// The kind leads the second line only in search results, where groups
 		// mix; under a group's header it would repeat the header.
 		function ownerRow( owner, withKind ) {
-			const total = owner.spaces.length;
-			const fitting = owner.spaces.filter( ( space ) => geo.fitCheck( pageBox.fit, space ).fits ).length;
-			let status = `Fits ${ fitting } of ${ total }`;
-			if ( fitting === 0 ) {
-				status = 'Too big';
-			} else if ( fitting === total ) {
-				status = 'Fits';
-			}
+			const states = owner.spaces.map( ( space ) => geo.secureCheck( pageBox.fit, space ).state );
+			const best = OWNER_VERDICTS.find( ( verdict ) => states.indexOf( verdict.state ) !== -1 ) || { status: 'Too big', tone: 'over' };
 			return fitRow( {
 				focus: `owner:${ owner.name }`,
 				pressed: state.sel.owner === owner.name,
 				name: owner.name,
-				sub: ( withKind ? `${ owner.kind } · ` : '' ) + `${ gridCount( total ) } · ${ formatScu( spaces.totalCapacity( owner.spaces ) ) }`,
-				status,
-				fits: fitting > 0,
+				sub: ( withKind ? `${ owner.kind } · ` : '' ) + `${ gridCount( owner.spaces.length ) } · ${ formatScu( spaces.totalCapacity( owner.spaces ) ) }`,
+				status: best.status,
+				tone: best.tone,
 				chevron: true,
 				onClick: () => openOwner( owner )
 			} );
@@ -729,15 +765,15 @@
 			} );
 			const total = owner.spaces.length;
 			const rows = spaces.groupSpaces( owner.spaces ).map( ( entry ) => {
-				const check = geo.fitCheck( pageBox.fit, entry.space );
+				const result = gridVerdict( geo.secureCheck( pageBox.fit, entry.space ) );
 				return fitRow( {
 					focus: `grid:${ entry.key }`,
 					pressed: state.sel.owner === owner.name && state.sel.key === entry.key,
 					name: `${ formatScu( entry.space.capacity ) } grid`,
 					count: entry.count,
 					sub: geo.formatBox( entry.space ) + ( entry.space.external ? ' · External' : '' ),
-					status: statusText( check ),
-					fits: check.fits,
+					status: result.status,
+					tone: result.tone,
 					onClick: () => setState( { sel: { owner: owner.name, key: entry.key, space: entry.space } } )
 				} );
 			} );
@@ -831,9 +867,11 @@
 			let tones;
 			if ( state.mode === 'fit' ) {
 				const target = fitTarget();
-				const fits = geo.fitCheck( pageBox.fit, target ).fits;
+				const tone = state.sel.owner ?
+					gridVerdict( geo.secureCheck( pageBox.fit, target ) ).tone :
+					( geo.fitCheck( pageBox.fit, target ).fits ? 'fits' : 'over' );
 				layout = geo.layoutFit( pageBox.fit, target );
-				tones = [ [ 'neutral', false, false ], [ fits ? 'fits' : 'over', true, !!state.sel.owner ] ];
+				tones = [ [ 'neutral', false, false ], [ tone, true, !!state.sel.owner ] ];
 			} else {
 				// The row recedes from the camera along x, so shortest first keeps
 				// small objects from hiding behind tall ones.
@@ -851,13 +889,57 @@
 			builtScale = scale;
 			builtStep = geo.gridStep( scale, 18 );
 
-			const pad = Math.max( size.x, size.y ) * 0.12;
+			// The floor runs well past the viewport, which a tilted view stretches
+			// along the ground, and fades out before its edge. A grid line runs
+			// through the first item's corner: in Fit, the container's, so the
+			// floor carries on a cargo grid's SCU ruling. Below one SCU, every
+			// SCU line is drawn stronger than the squares between.
+			const half = Math.hypot( viewport.clientWidth, viewport.clientHeight ) * 2 / scale;
+			const corner = { x: center.x - half, y: center.y - half };
+			const anchor = layout.items[ 0 ];
+			const major = Math.max( builtStep, geo.SCU_EDGE ) * scale;
+			const minor = builtStep * scale;
+			const offset = `${ ( anchor.x - corner.x ) * scale }px ${ ( anchor.y - corner.y ) * scale }px`;
 			const grid = h( 'div', `${ P }-grid` );
-			grid.style.cssText = `left:${ ( min.x - pad ) * scale }px;top:${ ( min.y - pad ) * scale }px;` +
-				`width:${ ( size.x + 2 * pad ) * scale }px;height:${ ( size.y + 2 * pad ) * scale }px;` +
-				`background-size:${ builtStep * scale }px ${ builtStep * scale }px`;
+			grid.style.cssText = `left:${ corner.x * scale }px;top:${ corner.y * scale }px;` +
+				`width:${ 2 * half * scale }px;height:${ 2 * half * scale }px;` +
+				`background-size:${ major }px ${ major }px,${ major }px ${ major }px,${ minor }px ${ minor }px,${ minor }px ${ minor }px;` +
+				`background-position:${ offset },${ offset },${ offset },${ offset }`;
 			scene.replaceChildren( grid, ...layout.items.map( ( item, i ) => cuboid( item, scale, tones[ i ][ 0 ], tones[ i ][ 1 ], tones[ i ][ 2 ] ) ) );
 			camera.setContent( { size, center, buildScale: scale }, { fit: !options.scale, animate: options.animate } );
+		}
+
+		// Keep fitted content clear of the verdict above it and, on narrow
+		// screens, of the panel over the scene's lower part.
+		function syncInset() {
+			let bottom = 0;
+			if ( narrow.matches ) {
+				bottom = surface.classList.contains( `${ P }-surface--full` ) ? grabber.offsetHeight : panel.offsetHeight;
+			}
+			camera.setInset( verdict.hidden ? 0 : verdict.offsetTop + verdict.offsetHeight + 8, bottom );
+		}
+
+		function renderVerdict() {
+			verdict.hidden = state.mode !== 'fit';
+			if ( verdict.hidden ) {
+				syncInset();
+				return;
+			}
+			const target = fitTarget();
+			let result;
+			if ( state.sel.owner ) {
+				result = gridVerdict( geo.secureCheck( pageBox.fit, target ) );
+			} else {
+				const check = geo.fitCheck( pageBox.fit, target );
+				result = check.fits ?
+					{ tone: 'fits', title: FIT_POSES[ check.pose ], line: '' } :
+					{ tone: 'over', title: 'Too big', line: `${ tooBig( check ) } for this container.` };
+			}
+			verdict.replaceChildren(
+				h( 'span', `${ P }-verdict-title ${ P }-verdict-title--${ result.tone }`, {}, [ result.title ] ),
+				result.line ? h( 'span', `${ P }-verdict-line`, {}, [ result.line ] ) : ''
+			);
+			syncInset();
 		}
 
 		function render( focusKey ) {
@@ -881,6 +963,7 @@
 					leavingPane = null;
 				}
 			}
+			renderVerdict();
 			const key = sceneKey();
 			if ( key !== builtKey ) {
 				buildScene( { animate: builtKey !== null } );
@@ -919,7 +1002,75 @@
 		let frame = 0;
 		const observer = new ResizeObserver( () => {
 			cancelAnimationFrame( frame );
-			frame = requestAnimationFrame( () => camera.resize() );
+			frame = requestAnimationFrame( () => {
+				syncInset();
+				camera.resize();
+			} );
+		} );
+
+		// The grabber slides the panel down over the scene, as far as the
+		// bottom of the sheet, by a transform alone: a drag lays nothing out
+		// again. Let go, the panel settles at the nearer of its two places and
+		// the camera refits once; a tap, Enter or Space switches between them.
+		let drag = null;
+		let dragged = false;
+		let dragFrame = 0;
+		function setExpanded( on ) {
+			panel.style.transform = '';
+			surface.classList.toggle( `${ P }-surface--full`, on );
+			grabber.setAttribute( 'aria-expanded', String( on ) );
+			grabber.setAttribute( 'aria-label', on ? 'Shrink the view' : 'Expand the view' );
+			syncInset();
+		}
+		grabber.addEventListener( 'pointerdown', ( event ) => {
+			const max = panel.offsetHeight - grabber.offsetHeight;
+			const start = surface.classList.contains( `${ P }-surface--full` ) ? max : 0;
+			drag = { y: event.clientY, start, offset: start, max, moved: false };
+			grabber.setPointerCapture( event.pointerId );
+			surface.classList.add( `${ P }-surface--dragging` );
+		} );
+		grabber.addEventListener( 'pointermove', ( event ) => {
+			if ( !drag ) {
+				return;
+			}
+			const dy = event.clientY - drag.y;
+			drag.moved = drag.moved || Math.abs( dy ) > 4;
+			if ( !drag.moved ) {
+				return;
+			}
+			drag.offset = Math.max( 0, Math.min( drag.max, drag.start + dy ) );
+			if ( !dragFrame ) {
+				dragFrame = requestAnimationFrame( () => {
+					dragFrame = 0;
+					if ( drag ) {
+						panel.style.transform = `translateY(${ drag.offset }px)`;
+					}
+				} );
+			}
+		} );
+		const endDrag = () => {
+			if ( !drag ) {
+				return;
+			}
+			const { moved, offset, max } = drag;
+			drag = null;
+			cancelAnimationFrame( dragFrame );
+			dragFrame = 0;
+			surface.classList.remove( `${ P }-surface--dragging` );
+			if ( moved ) {
+				setExpanded( offset > max / 2 );
+				dragged = true;
+			}
+		};
+		grabber.addEventListener( 'pointerup', endDrag );
+		grabber.addEventListener( 'pointercancel', endDrag );
+		// The click that ends a drag is not a tap.
+		grabber.addEventListener( 'click', () => {
+			if ( dragged ) {
+				dragged = false;
+				return;
+			}
+			setExpanded( grabber.getAttribute( 'aria-expanded' ) !== 'true' );
 		} );
 
 		closeButton.addEventListener( 'click', () => dialog.close() );

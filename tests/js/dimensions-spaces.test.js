@@ -20,7 +20,10 @@ test( 'groupQuery: joins each grid to its owner and filters on the subject type'
 	assert.equal(
 		S.groupQuery( SHIPS ),
 		'bucket(\'cargo_grid\').select(\'page_name\',\'cargo_grid_length\',\'cargo_grid_width\',\'cargo_grid_height\',' +
-			'\'cargo_grid_capacity\',\'cargo_grid_external\',\'entity.page_name\')' +
+			'\'cargo_grid_capacity\',\'cargo_grid_external\',' +
+			'\'cargo_grid_minimum_item_shortest_side\',\'cargo_grid_minimum_item_middle_side\',\'cargo_grid_minimum_item_longest_side\',' +
+			'\'cargo_grid_maximum_item_shortest_side\',\'cargo_grid_maximum_item_middle_side\',\'cargo_grid_maximum_item_longest_side\',' +
+			'\'entity.page_name\')' +
 			'.join(\'entity\',\'entity.page_name\',\'cargo_grid.page_name\')' +
 			'.where(\'entity.subject_type\',\'Spacecraft\').limit(5000).run()'
 	);
@@ -68,6 +71,38 @@ test( 'ownersFromRows: drops a grid without a full size; a missing flag is not e
 	], SHIPS );
 	assert.equal( owners[ 0 ].spaces.length, 1 );
 	assert.equal( owners[ 0 ].spaces[ 0 ].external, false );
+} );
+
+test( 'ownersFromRows: item limits come shortest side first; none before a re-parse', () => {
+	const limited = Object.assign( row( 'Zeus Mk II CL', 10, 6.25, 3.75, 120 ), {
+		cargo_grid_minimum_item_shortest_side: 1.25,
+		cargo_grid_minimum_item_middle_side: 1.25,
+		cargo_grid_minimum_item_longest_side: 1.25,
+		cargo_grid_maximum_item_shortest_side: 2.5,
+		cargo_grid_maximum_item_middle_side: 2.5,
+		cargo_grid_maximum_item_longest_side: 10
+	} );
+	const [ zeus ] = S.ownersFromRows( [ limited ], SHIPS );
+	assert.deepEqual( zeus.spaces[ 0 ].limits, { min: [ 1.25, 1.25, 1.25 ], max: [ 2.5, 2.5, 10 ] } );
+	const [ nomad ] = S.ownersFromRows( [ row( 'Nomad', 5, 3.75, 2.5, 24 ) ], SHIPS );
+	assert.equal( nomad.spaces[ 0 ].limits, null );
+} );
+
+test( 'ownersFromRows: a zero minimum stays, a zero maximum is none', () => {
+	const utv = Object.assign( row( 'UTV', 1.25, 1.25, 1.25, 1 ), {
+		cargo_grid_minimum_item_shortest_side: 0,
+		cargo_grid_minimum_item_middle_side: 0,
+		cargo_grid_minimum_item_longest_side: 0,
+		cargo_grid_maximum_item_shortest_side: 0,
+		cargo_grid_maximum_item_middle_side: 0,
+		cargo_grid_maximum_item_longest_side: 0
+	} );
+	assert.deepEqual( S.ownersFromRows( [ utv ], SHIPS )[ 0 ].spaces[ 0 ].limits, { min: [ 0, 0, 0 ], max: null } );
+} );
+
+test( 'groupSpaces: grids differing only in their limits stay apart', () => {
+	const grid = ( max ) => ( { length: 6.25, width: 5, height: 2.5, capacity: 40, external: false, limits: { min: [ 1.25, 1.25, 1.25 ], max } } );
+	assert.equal( S.groupSpaces( [ grid( [ 1.25, 1.25, 2.5 ] ), grid( [ 2.5, 2.5, 5 ] ) ] ).length, 2 );
 } );
 
 test( 'groupSpaces: identical grids collapse with a count, smallest first', () => {

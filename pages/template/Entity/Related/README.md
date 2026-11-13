@@ -1,6 +1,6 @@
 # Template:Entity/Related
 
-Renders an item's set components and cosmetic variants as a grid of image cards, or, for a commodity, its cargo-box packaging sizes as a table. Place it as body content further down the page, separate from the `{{Entity}}` infobox at the top.
+Renders an item's set components and its variants by size, grade and style as grids of image cards, or, for a commodity, its cargo-box packaging sizes as a table. Place it as body content further down the page, separate from the `{{Entity}}` infobox at the top.
 
 ## Usage
 
@@ -27,9 +27,9 @@ When `{{Entity}}` has been invoked earlier on the page, the UUID can be omitted;
 
 ## Behavior
 
-- **Items** render up to two tile grids in order: Set pieces (other items forming a wearable set) then Variants (cosmetic variants of the same base item). A grid is omitted when it is empty; if both are, it shows the placeholder "No related items." instead.
+- **Items** render tile grids in order: Set pieces (other items forming a wearable set), Sizes (the same item in other sizes), Grades (the same manufacturer's component in this size at other grades, for ship components), Styles (other colours and styles), then Variants for any related item that fits none of those. Sizes and Grades include the current item, outlined, so the reader sees where it sits. A grid is omitted when it is empty; if all are, it shows the placeholder "No related items." instead.
 - **Commodities** render neither grid; instead a sortable Cargo variants table lists each SCU box size with its dimensions and mass, since cargo boxes share one image and have no wiki pages of their own. A box size outside the standard SCU ladder (0.125 through 32) still gets a row, but its Length/Width/Height cells render `-` instead of a dimension.
-- **Vehicles** with an editorial series render a Variants tile grid of every vehicle in that series, the current one highlighted; a vehicle with no series, or alone in its series, shows the placeholder.
+- **Vehicles** with an editorial series render a Variants tile grid of the vehicles in that series from the same manufacturer, the current one highlighted. Another manufacturer's vehicle joins only when both pages set `sharedseries`, as an Esperia replica and its Vanduul original do; a vehicle with no series, or alone in its series, shows the placeholder.
 - **Missions and locations** have no related-items data and show the placeholder.
 - An upstream fetch failure shows the warning "Couldn't load related items."
 - The current page is filtered out of an item's Variants grid so an entity never links to itself; Set pieces need no such filter, since set components are always distinct items.

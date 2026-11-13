@@ -2,8 +2,8 @@ require('strict')
 
 --- @module Entity/Related
 --- Renders an entity's related entries as image tile grids: set components
---- first (helmet/torso/legs etc.), then cosmetic variants. Sibling renderer
---- parallel to Module:Entity/Availability — consumes Module:Entity/Data so
+--- first (helmet/torso/legs etc.), then variants by size, grade and style.
+--- Sibling renderer parallel to Module:Entity/Availability — consumes Module:Entity/Data so
 --- it shares Apiunto's cache with the Entity infobox and other sibling
 --- templates on the same page.
 ---
@@ -19,8 +19,8 @@ require('strict')
 --- skipping a nil answer (the mostSpecificNonEmpty policy in
 --- Module:Entity/Assembly) so a kind's "no data" case falls through to Base rather
 --- than standing as the final word, and this module draws the payload it
---- gets. `items` (Base: the record's related_items block — set pieces +
---- cosmetic variants) renders as tiles; `cargo` (Commodity: the cargo-box
+--- gets. `items` (Base: the record's related_items block — set pieces and
+--- variants by size, grade and style) renders as tiles; `cargo` (Commodity: the cargo-box
 --- packaging ladder, which shares one image and has no own pages) renders
 --- as a table; `vehicleSeries` (Vehicle: the editorial series name) queries
 --- Module:Entity/Store for the rest of the series and renders as wider
@@ -170,6 +170,140 @@ local function buildVariantRows(relatedItems, currentUuid)
 	return rows
 end
 
+--- The grade letter of an API record. A related-item link carries the number
+--- in `grade` and the letter in `grade_label`; the page's own item record
+--- carries the letter in `grade` and no `grade_label`. Personal items carry a
+--- number in `grade_label`, which is not a grade a reader would recognise.
+--- @param item table
+--- @return string|nil
+local function gradeLetter(item)
+	if type(item.grade_label) == 'string' and item.grade_label ~= '' then
+		return item.grade_label
+	end
+	if type(item.grade) == 'string' and item.grade ~= '' then
+		return item.grade
+	end
+	return nil
+end
+
+--- A ladder along one axis: the axis's peers plus the current item, flagged
+--- `selected` and sorted into place so the reader sees where the page sits.
+--- The API leaves the current item out of every axis. No peers means no
+--- ladder, never a ladder of the current item alone.
+--- @param peers table[]|nil
+--- @param current table|nil The page's own item record
+--- @param sortKey fun(item: table): any
+--- @param caption fun(item: table): string
+--- @return { name: string, uuid: string|nil, primary: string, secondary: string, selected: boolean }[]
+local function buildLadder(peers, current, sortKey, caption)
+	local members = {}
+	for _, item in ipairs(type(peers) == 'table' and peers or {}) do
+		if item.name then
+			table.insert(members, item)
+		end
+	end
+	if #members == 0 then
+		return {}
+	end
+	if type(current) == 'table' and current.name then
+		table.insert(members, current)
+	end
+	table.sort(members, function(a, b)
+		local ka, kb = sortKey(a), sortKey(b)
+		if ka ~= kb then
+			return ka < kb
+		end
+		return a.name < b.name
+	end)
+	local rows = {}
+	for _, item in ipairs(members) do
+		table.insert(rows, {
+			name = item.name,
+			uuid = item.uuid,
+			primary = item.name,
+			secondary = caption(item),
+			selected = item == current,
+		})
+	end
+	return rows
+end
+
+local function sizeKey(item)
+	return tonumber(item.size) or math.huge
+end
+
+local function gradeKey(item)
+	return gradeLetter(item) or '~'
+end
+
+local function sizeCaption(item)
+	return item.size ~= nil and ('S' .. tostring(item.size)) or ''
+end
+
+local function gradeCaption(item)
+	local letter = gradeLetter(item)
+	return letter and ('Grade ' .. letter) or ''
+end
+
+--- Builds the variant sections, one per axis the API labels: Sizes
+--- (`by_size`, same grade), Grades (`by_grade`, the same manufacturer's
+--- component at other grades in this size, computed across the catalogue
+--- rather than from the variant group, ship components only) and Styles
+--- (`by_color`, same size and grade). Sizes and Grades are ladders holding
+--- the current item; Styles lists only the others, labelled like the legacy
+--- grid. A group member none of the axes covers (a livery whose size or grade
+--- does not line up with its family's) stays under Variants, so switching to
+--- the axes drops no tile. A payload without any `by_*` key, which predates
+--- the axes, renders as the single legacy Variants grid.
+--- @param relatedItems table
+--- @param current table|nil The page's own item record
+--- @param currentUuid string|nil
+--- @return { heading: string, rows: table[] }[]
+local function buildVariantSections(relatedItems, current, currentUuid)
+	local hasAxes = relatedItems.by_size ~= nil or relatedItems.by_grade ~= nil or relatedItems.by_color ~= nil
+	if not hasAxes then
+		local rows = buildVariantRows(relatedItems, currentUuid)
+		return #rows > 0 and { { heading = 'Variants', rows = rows } } or {}
+	end
+
+	local sections = {}
+	local covered = {}
+	local function add(heading, rows)
+		if #rows > 0 then
+			table.insert(sections, { heading = heading, rows = rows })
+			for _, row in ipairs(rows) do
+				if row.uuid then
+					covered[row.uuid] = true
+				end
+			end
+		end
+	end
+
+	add('Sizes', buildLadder(relatedItems.by_size, current, sizeKey, sizeCaption))
+	add('Grades', buildLadder(relatedItems.by_grade, current, gradeKey, gradeCaption))
+	local styles = {}
+	for _, item in ipairs(type(relatedItems.by_color) == 'table' and relatedItems.by_color or {}) do
+		if item.name then
+			table.insert(styles, {
+				name = item.name,
+				uuid = item.uuid,
+				primary = (item.variant_name and item.variant_name ~= '') and item.variant_name or item.name,
+				secondary = '',
+			})
+		end
+	end
+	add('Styles', styles)
+
+	local leftovers = {}
+	for _, row in ipairs(buildVariantRows(relatedItems, currentUuid)) do
+		if not (row.uuid and covered[row.uuid]) then
+			table.insert(leftovers, row)
+		end
+	end
+	add('Variants', leftovers)
+	return sections
+end
+
 --- Builds the set component rows from set_items in API order. Each row
 --- is `{ name, uuid, primary, secondary }`: primary is the full item
 --- name (prominent), secondary is the resolved type (`Helmet` /
@@ -238,6 +372,7 @@ local function toTilesRows(rows, pageMap)
 			image = resolved and resolved.image or nil,
 			primary = row.primary,
 			secondary = row.secondary,
+			selected = row.selected,
 		})
 	end
 	return tilesRows
@@ -455,8 +590,8 @@ local function renderCargoVariants(rows)
 end
 
 --- Main entry point. Draws the chain's getRelated payload: the cargo table
---- for `cargo`, the vehicle-series tile grid for `vehicleSeries`, up to two
---- tile grids (set components + variants) for `items`, otherwise the
+--- for `cargo`, the vehicle-series tile grid for `vehicleSeries`, the set
+--- pieces grid and one grid per variant section for `items`, otherwise the
 --- empty-state placeholder. Resolved with acceptNonEmpty (not the default
 --- leaf-wins-even-nil) so Vehicle's nil (no series) falls through to Base's
 --- `items` instead of standing as the final answer.
@@ -485,20 +620,24 @@ function p.main(frame)
 	end
 
 	local setRows = buildSetRows(relatedItems)
-	local variantRows = buildVariantRows(relatedItems, args.uuid)
+	local variantSections = buildVariantSections(relatedItems, result.apiData, args.uuid)
 
-	if #setRows == 0 and #variantRows == 0 then
+	if #setRows == 0 and #variantSections == 0 then
 		return emptyState.none(EMPTY_MESSAGE)
 	end
 
-	local pageMap = PageResolver.resolve(collectUuids(setRows, variantRows))
+	local rowLists = { setRows }
+	for _, section in ipairs(variantSections) do
+		table.insert(rowLists, section.rows)
+	end
+	local pageMap = PageResolver.resolve(collectUuids(unpack(rowLists)))
 
 	local parts = {}
 	if #setRows > 0 then
 		table.insert(parts, renderSection('Set pieces', toTilesRows(setRows, pageMap)))
 	end
-	if #variantRows > 0 then
-		table.insert(parts, renderSection('Variants', toTilesRows(variantRows, pageMap)))
+	for _, section in ipairs(variantSections) do
+		table.insert(parts, renderSection(section.heading, toTilesRows(section.rows, pageMap)))
 	end
 	return table.concat(parts)
 end
@@ -506,6 +645,8 @@ end
 -- Test-only exports. Not part of the public API.
 p._internal = {
 	boxDimensions = boxDimensions,
+	buildVariantSections = buildVariantSections,
+	toTilesRows = toTilesRows,
 	queryVehicleVariants = queryVehicleVariants,
 	scopeToRelated = scopeToRelated,
 	toVehicleTilesRows = toVehicleTilesRows,

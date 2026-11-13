@@ -135,6 +135,143 @@ function suite:testScopeToRelatedKeepsEveryRowBeforeTheOwnRowIsStored()
 	self:assertEquals(2, #rows)
 end
 
+-- buildVariantSections()
+
+--- Shapes copied from the API: a related link carries a numeric `grade` and
+--- the letter in `grade_label`; the page's own record carries the letter in
+--- `grade` and no `grade_label`.
+local function link(uuid, name, size, gradeNumber, gradeLetter, variantName)
+	return {
+		uuid = uuid,
+		name = name,
+		size = size,
+		grade = gradeNumber,
+		grade_label = gradeLetter,
+		variant_name = variantName,
+	}
+end
+
+local FROST_STAR_SL = { uuid = 'u-sl', name = 'Frost-Star SL', size = 0, grade = 'C' }
+
+local function headings(sections)
+	local out = {}
+	for _, s in ipairs(sections) do
+		table.insert(out, s.heading)
+	end
+	return out
+end
+
+local function names(rows)
+	local out = {}
+	for _, r in ipairs(rows) do
+		table.insert(out, r.primary .. (r.selected and '*' or '') .. (r.secondary ~= '' and (' ' .. r.secondary) or ''))
+	end
+	return out
+end
+
+function suite:testVariantSectionsLadderSizesAndGradesAroundTheCurrentItem()
+	local sections = Related._internal.buildVariantSections({
+		base_item = link('u-sl', 'Frost-Star SL', 0, 3, 'C', 'SL'),
+		variant_items = {
+			link('u-1', 'Frost-Star', 1, 3, 'C', 'Frost-Star'),
+			link('u-ex', 'Frost-Star EX', 2, 3, 'C', 'EX'),
+			link('u-xl', 'Frost-Star XL', 3, 3, 'C', 'XL'),
+		},
+		by_size = {
+			link('u-1', 'Frost-Star', 1, 3, 'C', 'Frost-Star'),
+			link('u-ex', 'Frost-Star EX', 2, 3, 'C', 'EX'),
+			link('u-xl', 'Frost-Star XL', 3, 3, 'C', 'XL'),
+		},
+		by_grade = {
+			link('u-cryo', 'Cryo-Star SL', 0, 2, 'B'),
+			link('u-winter', 'Winter-Star SL', 0, 4, 'D'),
+		},
+		by_color = {},
+	}, FROST_STAR_SL, 'u-sl')
+	self:assertDeepEquals({ 'Sizes', 'Grades' }, headings(sections))
+	self:assertDeepEquals(
+		{ 'Frost-Star SL* S0', 'Frost-Star S1', 'Frost-Star EX S2', 'Frost-Star XL S3' },
+		names(sections[1].rows)
+	)
+	self:assertDeepEquals(
+		{ 'Cryo-Star SL Grade B', 'Frost-Star SL* Grade C', 'Winter-Star SL Grade D' },
+		names(sections[2].rows)
+	)
+end
+
+function suite:testVariantSectionsGradesAloneForAnUngroupedComponent()
+	-- Denning has no variant group; by_grade is its only relation.
+	local sections = Related._internal.buildVariantSections({
+		variant_items = {},
+		by_size = {},
+		by_grade = { link('u-vogel', 'Vogel', 0, 2, 'B'), link('u-fabian', 'Fabian', 0, 1, 'A') },
+		by_color = {},
+	}, { uuid = 'u-denning', name = 'Denning', size = 0, grade = 'C' }, 'u-denning')
+	self:assertDeepEquals({ 'Grades' }, headings(sections))
+	self:assertDeepEquals({ 'Fabian Grade A', 'Vogel Grade B', 'Denning* Grade C' }, names(sections[1].rows))
+end
+
+function suite:testVariantSectionsStylesListOnlyTheOthersByVariantName()
+	local sections = Related._internal.buildVariantSections({
+		base_item = link('u-p4', 'P4-AR Rifle', 2, nil, 1, 'Base'),
+		variant_items = { link('u-night', 'P4-AR "Nightstalker" Rifle', 2, nil, 1, 'Nightstalker') },
+		by_size = {},
+		by_grade = {},
+		by_color = { link('u-night', 'P4-AR "Nightstalker" Rifle', 2, nil, 1, 'Nightstalker') },
+	}, { uuid = 'u-p4', name = 'P4-AR Rifle', size = 2 }, 'u-p4')
+	self:assertDeepEquals({ 'Styles' }, headings(sections))
+	self:assertDeepEquals({ 'Nightstalker' }, names(sections[1].rows))
+end
+
+function suite:testVariantSectionsKeepAMemberNoAxisCoversUnderVariants()
+	-- A livery whose grade does not line up with its family's falls outside
+	-- by_size and by_color; it must not vanish.
+	local sections = Related._internal.buildVariantSections({
+		base_item = link('u-base', '600i Executive Livery', 1, nil, nil, 'Executive'),
+		variant_items = {
+			link('u-cold', '600i Cold Forge Livery', 1, nil, nil, 'Cold Forge'),
+			link('u-sterling', '600i Sterling Livery', 1, nil, nil, 'Sterling'),
+		},
+		by_size = {},
+		by_grade = {},
+		by_color = { link('u-sterling', '600i Sterling Livery', 1, nil, nil, 'Sterling') },
+	}, { uuid = 'u-fortuna', name = '600i Fortuna Livery', size = 1 }, 'u-fortuna')
+	self:assertDeepEquals({ 'Styles', 'Variants' }, headings(sections))
+	self:assertDeepEquals({ 'Sterling' }, names(sections[1].rows))
+	self:assertDeepEquals({ 'Executive', 'Cold Forge' }, names(sections[2].rows))
+end
+
+function suite:testVariantSectionsWithoutAxesRenderTheLegacyGrid()
+	local sections = Related._internal.buildVariantSections({
+		variant_items = {
+			link('u-1', 'Frost-Star', 1, 3, 'C', 'Frost-Star'),
+			link('u-ex', 'Frost-Star EX', 2, 3, 'C', 'EX'),
+		},
+	}, FROST_STAR_SL, 'u-sl')
+	self:assertDeepEquals({ 'Variants' }, headings(sections))
+	self:assertDeepEquals({ 'Frost-Star S1', 'EX S2' }, names(sections[1].rows))
+end
+
+function suite:testVariantSectionsDrawNothingForEmptyAxes()
+	local sections = Related._internal.buildVariantSections(
+		{ variant_items = {}, by_size = {}, by_grade = {}, by_color = {} },
+		FROST_STAR_SL,
+		'u-sl'
+	)
+	self:assertDeepEquals({}, sections)
+end
+
+function suite:testToTilesRowsCarriesTheSelectedFlag()
+	local tilesRows = Related._internal.toTilesRows({
+		{ name = 'Frost-Star SL', uuid = 'u-sl', primary = 'Frost-Star SL', secondary = 'S0', selected = true },
+		{ name = 'Frost-Star', uuid = 'u-1', primary = 'Frost-Star', secondary = 'S1', selected = false },
+	}, { ['u-sl'] = { page = 'Frost-Star SL' } })
+	self:assertTrue(tilesRows[1].selected)
+	self:assertFalse(tilesRows[2].selected)
+	self:assertEquals('Frost-Star SL', tilesRows[1].page)
+	self:assertEquals('Frost-Star', tilesRows[2].page)
+end
+
 -- toVehicleTilesRows()
 
 function suite:testToVehicleTilesRowsShapesRowsAndMarksCurrentPage()

@@ -69,7 +69,7 @@ local p = {}
 --- "related" / "blueprints" / "ports" returns the alternative field.
 
 --- @class EntityRelatedPayload
---- @field items table|nil The API `related_items` block (set_items / base_item / variant_items), rendered as tile grids
+--- @field items table|nil The API `related_items` block (set_items / base_item / variant_items / by_size / by_grade / by_color), rendered as tile grids
 --- @field cargo { scu: number, mass_kg: number }[]|nil Cargo-box packaging variants ascending by SCU, rendered as a table instead of tiles (Commodity)
 --- @field vehicleSeries string|nil The vehicle's editorial series name, rendered as tiles of the other vehicles sharing it, queried from Bucket (Vehicle); nil when absent so getRelated falls through to Base's `items`
 

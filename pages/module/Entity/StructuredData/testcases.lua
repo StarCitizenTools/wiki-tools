@@ -33,6 +33,9 @@ local FULL = {
 		repeated = true,
 	},
 	['Modifier resistance'] = { type = 'DOUBLE', bucket = 'item_tool', field = 'modifier_resistance' },
+	['%rows'] = { Vehicle = { 'cargo_grid' } },
+	['Cargo grid length'] = { type = 'DOUBLE', bucket = 'cargo_grid', field = 'cargo_grid_length' },
+	['Cargo grid external'] = { type = 'BOOLEAN', bucket = 'cargo_grid', field = 'cargo_grid_external' },
 }
 
 local function withTitle(namespace, nsText, fn)
@@ -300,6 +303,106 @@ function suite:testPutBucketsFailureIsReported()
 	withTitle(0, '', function()
 		withBucketPutError(function()
 			local err = SD.putBuckets({ entity = { uuid = 'u' } })
+			self:assertTrue(err:match('^Bucket storage failed') ~= nil)
+		end)
+	end)
+end
+
+function suite:testStoreRowsWritesOnePutPerRowWithItsSub()
+	bucketLib._reset()
+	withStore(function()
+		withTitle(0, '', function()
+			local ok, _err, unregistered = SD.storeRows({
+				{ sub = '1', data = { cargo_grid_length = 6.25, cargo_grid_external = false } },
+				{ sub = '2', data = { cargo_grid_length = 3.75 } },
+			}, 'Vehicle')
+			self:assertTrue(ok)
+			self:assertEquals(nil, unregistered)
+			self:assertDeepEquals({
+				{ bucket = 'cargo_grid', sub = '1', data = { cargo_grid_length = 6.25, cargo_grid_external = false } },
+				{ bucket = 'cargo_grid', sub = '2', data = { cargo_grid_length = 3.75 } },
+			}, bucketLib._puts)
+		end)
+	end)
+end
+
+-- A row key bound for a one-row table would add a second row to it, so it is
+-- reported instead, once however many rows carry it.
+function suite:testStoreRowsNeverWritesAOneRowTable()
+	bucketLib._reset()
+	withStore(function()
+		withTitle(0, '', function()
+			local ok, _err, unregistered = SD.storeRows({
+				{ sub = '1', data = { uuid = 'u', cargo_grid_length = 5 } },
+				{ sub = '2', data = { uuid = 'u' } },
+			}, 'Vehicle')
+			self:assertTrue(ok)
+			self:assertDeepEquals({ 'uuid' }, unregistered)
+			self:assertEquals(1, #bucketLib._puts)
+			self:assertEquals('cargo_grid', bucketLib._puts[1].bucket)
+		end)
+	end)
+end
+
+-- The reverse: a %rows property in the one-row data reaches no table.
+function suite:testStoreNeverWritesARowsTable()
+	bucketLib._reset()
+	withStore(function()
+		withTitle(0, '', function()
+			local _ok, _err, unregistered = SD.store({ uuid = 'u', cargo_grid_length = 5 }, 'Vehicle')
+			self:assertDeepEquals({ 'cargo_grid_length' }, unregistered)
+			self:assertDeepEquals({ entity = { uuid = 'u' } }, putsByBucket())
+		end)
+	end)
+end
+
+function suite:testStoreRowsOnlyForAKindListingTheTable()
+	bucketLib._reset()
+	withStore(function()
+		withTitle(0, '', function()
+			local rows = { { sub = '1', data = { cargo_grid_length = 5 } } }
+			local ok, _err, unregistered = SD.storeRows(rows, nil)
+			self:assertTrue(ok)
+			self:assertEquals(nil, unregistered)
+			local _ok, _err2, itemUnregistered = SD.storeRows(rows, 'Item')
+			self:assertDeepEquals({ 'cargo_grid_length' }, itemUnregistered)
+			self:assertEquals(0, #bucketLib._puts)
+		end)
+	end)
+end
+
+function suite:testStoreRowsOtherNamespaceWritesNothing()
+	bucketLib._reset()
+	withStore(function()
+		withTitle(2, 'User', function()
+			local ok = SD.storeRows({ { sub = '1', data = { cargo_grid_length = 5 } } }, 'Vehicle')
+			self:assertTrue(ok)
+			self:assertEquals(0, #bucketLib._puts)
+		end)
+	end)
+end
+
+function suite:testStoreRowsBucketFailureIsReported()
+	bucketLib._reset()
+	withStore(function()
+		withTitle(0, '', function()
+			local mt = getmetatable(bucketLib)
+			local realCall = mt.__call
+			mt.__call = function()
+				return {
+					sub = function()
+						return {
+							put = function()
+								error('boom')
+							end,
+						}
+					end,
+				}
+			end
+			local ok, ran, err = pcall(SD.storeRows, { { sub = '1', data = { cargo_grid_length = 5 } } }, 'Vehicle')
+			mt.__call = realCall
+			self:assertTrue(ok)
+			self:assertFalse(ran)
 			self:assertTrue(err:match('^Bucket storage failed') ~= nil)
 		end)
 	end)

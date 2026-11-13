@@ -49,6 +49,10 @@ Section sub-builders read through the shared view: `ed:value(field, apiFallback)
 
 Every sub-builder exposes one `build(apiData, args, ed)` returning an `EntitySectionEntry` or `nil`, except `Vehicle/Overview`, whose `build(apiData, args, ed, typeName)` takes a fourth argument: the resolved subtype's `getTypeInfo().name`, computed once in `getSections` and passed in so the sub-builder never requires back into `Vehicle.lua`. They are pure: they never fetch and never re-resolve the subtype.
 
+### Cargo grids
+
+`getStructuredRows` writes one `cargo_grid` row per entry in the API's `cargo_grids`, with its length, width and height in metres, its capacity and largest accepted container in SCU, and whether it is external. A grid's `sub` is its 1-based position, so its `page_name_sub` is `<Title>#<n>`: the same grid fitted twice on one ship (the Caterpillar's modules) shares every other value, the API's grid uuid included. `Cargo grid external` is unset where the API gives no flag.
+
 ### Extending
 
 A fourth family: write `pages/module/Entity/Vehicle/<Name>.lua` with `p.parent = 'Entity/Vehicle'`, `p.family` (the token the map dispatches on, and the value editors write to `|family=`, trimmed and lowercased before lookup so casing is free), `getTypeInfo`, `getShortDescription`, and its own `getCategories`; add one entry to `VEHICLE_FAMILY_MAP` in `Vehicle.lua` whose value is a loader, `function() return require('Module:Entity/Vehicle/<Name>') end`, plus the matching flag check in `deriveFamily`. No sub-builder changes are needed: every section is data-gated and renders only when the relevant API or editorial fields are populated.

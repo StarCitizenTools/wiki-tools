@@ -19,6 +19,7 @@ local p = {}
 p.CONTRIBUTOR = {
 	getSections = false,
 	getStructuredData = false,
+	getStructuredRows = false,
 	getShortDescription = false,
 	getExternalSiteItems = false,
 	getFooterButtons = false,

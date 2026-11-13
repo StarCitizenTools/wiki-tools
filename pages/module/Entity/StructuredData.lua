@@ -5,7 +5,9 @@ require('strict')
 --- only, split into one put per table by Module:Entity/properties.json.
 ---
 --- One Entity page writes at most one row per bucket, from `Module:Entity`,
---- `store`'s only caller. A page whose kind never resolved is stored with
+--- `store`'s only caller, except in the `%rows` buckets, where `storeRows`
+--- writes one row per thing the page has several of (a vehicle's cargo grids).
+--- A page whose kind never resolved is stored with
 --- `kind = nil`: its entity-routable keys are still written (e.g. an item with
 --- no uuid), so a Bucket query over the whole category still finds it, and the
 --- keys that need a kind to route are written nowhere.
@@ -120,20 +122,31 @@ local function bucketValue(entry, v)
 	return v
 end
 
---- Splits emitter data into one table per bucket the kind may write.
+--- The buckets a manifest meta key (`%kinds` or `%rows`) lists for a kind, as
+--- a set, seeded with `seed`.
 --- @param m table decoded properties.json
---- @param data table<string, any>
---- @param kind string|nil kind name; nil allows only the entity bucket
---- @return table<string, table> puts bucket -> field -> value
---- @return string[] unregistered keys that reach no bucket for this kind
-local function splitByBucket(m, data, kind)
-	local allowed = { entity = true }
-	local kinds = m['%kinds']
-	if type(kinds) == 'table' and kind and type(kinds[kind]) == 'table' then
-		for _, b in ipairs(kinds[kind]) do
+--- @param metaKey string
+--- @param kind string|nil
+--- @param seed table<string, boolean>
+--- @return table<string, boolean>
+local function bucketsFor(m, metaKey, kind, seed)
+	local allowed = seed
+	local lists = m[metaKey]
+	if type(lists) == 'table' and kind and type(lists[kind]) == 'table' then
+		for _, b in ipairs(lists[kind]) do
 			allowed[b] = true
 		end
 	end
+	return allowed
+end
+
+--- Splits emitter data into one table per bucket in `allowed`.
+--- @param m table decoded properties.json
+--- @param data table<string, any>
+--- @param allowed table<string, boolean>
+--- @return table<string, table> puts bucket -> field -> value
+--- @return string[] unregistered keys that reach no allowed bucket
+local function routeByBucket(m, data, allowed)
 	local puts, unregistered = {}, {}
 	local function put(bucket, entry, v)
 		puts[bucket] = puts[bucket] or {}
@@ -160,6 +173,17 @@ local function splitByBucket(m, data, kind)
 		end
 	end
 	return puts, unregistered
+end
+
+--- Splits a page's one-row data into one table per bucket the kind may write:
+--- `entity` and the kind's `%kinds` buckets.
+--- @param m table decoded properties.json
+--- @param data table<string, any>
+--- @param kind string|nil kind name; nil allows only the entity bucket
+--- @return table<string, table> puts bucket -> field -> value
+--- @return string[] unregistered keys that reach no bucket for this kind
+local function splitByBucket(m, data, kind)
+	return routeByBucket(m, data, bucketsFor(m, '%kinds', kind, { entity = true }))
 end
 
 --- Writes one put per bucket, only from the main namespace.
@@ -205,6 +229,43 @@ function p.store(data, kind)
 		end
 	end
 	return true, nil, unregistered
+end
+
+--- Stores the rows of the tables a kind writes several rows to per page, its
+--- `%rows` buckets, one put per row. A key reaches only a `%rows` bucket: a
+--- second row in a one-row table would break every reader that takes the
+--- page's row to be its only one. Called only by `Module:Entity`.
+--- @param rows EntityStructuredRow[]
+--- @param kind string|nil nil writes nothing and reports nothing, as `store` does for its by-kind keys
+--- @return boolean success
+--- @return string|nil error
+--- @return string[]|nil unregistered Row keys that reach no `%rows` bucket of the kind
+function p.storeRows(rows, kind)
+	if mw.title.getCurrentTitle().namespace ~= 0 or kind == nil or type(rows) ~= 'table' then
+		return true, nil, nil
+	end
+	local m = getManifest()
+	local allowed = bucketsFor(m, '%rows', kind, {})
+	local unregistered, seen = {}, {}
+	local ok, err = pcall(function()
+		for _, row in ipairs(rows) do
+			local puts, missing = routeByBucket(m, type(row.data) == 'table' and row.data or {}, allowed)
+			for _, key in ipairs(missing) do
+				if not seen[key] then
+					seen[key] = true
+					unregistered[#unregistered + 1] = key
+				end
+			end
+			for bucket, fields in pairs(puts) do
+				bucketLib()(bucket).sub(tostring(row.sub)).put(fields)
+			end
+		end
+	end)
+	local reported = unregistered[1] and unregistered or nil
+	if not ok then
+		return false, 'Bucket storage failed: ' .. tostring(err), reported
+	end
+	return true, nil, reported
 end
 
 -- Test-only exports.

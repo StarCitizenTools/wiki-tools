@@ -345,6 +345,7 @@ local ALLOWED_BUCKET_NAMES = {
 	commodity = true,
 	location = true,
 	mission = true,
+	cargo_grid = true,
 	company = true,
 	wearable_set = true,
 }
@@ -357,7 +358,7 @@ if props then
 	local propsFailed = false
 	for name, def in pairs(props) do
 		if type(name) == 'string' and name:sub(1, 1) == '%' then
-			-- meta key (%doc, %kinds), checked separately
+			-- meta key (%doc, %kinds, %rows), checked separately
 		elseif type(def) ~= 'table' then
 			fail(PROPS_PATH, 'entry ' .. tostring(name) .. ' is not an object')
 			propsFailed = true
@@ -594,7 +595,7 @@ if props then
 	for _, fpath in ipairs(files) do
 		local src = readFile(fpath)
 		if src then
-			for block in src:gmatch('function%s+p%.getStructuredData.-\nend') do
+			for block in src:gmatch('function%s+p%.getStructured%a+%(.-\nend') do
 				for key in block:gmatch('([%a_][%w_]*)%s*=') do
 					if key:find('_') or type(props[autoName(key)]) == 'table' then
 						if type(props[autoName(key)]) ~= 'table' then
@@ -632,7 +633,7 @@ end
 -- ── 10b. manifest property -> emitter (the inverse bijection) ────────────────
 -- A property nothing writes still costs a Bucket column, which is how the
 -- orphaned `Category` survived. Writers live in three places: a
--- getStructuredData block; an editorial manifest entry, whose `property` name
+-- getStructuredData or getStructuredRows block; an editorial manifest entry, whose `property` name
 -- Module:Entity/Editorial projects onto the stored data; and the handful below,
 -- written outside any hook.
 local NON_HOOK_WRITERS = {
@@ -654,7 +655,7 @@ if props then
 	for _, fpath in ipairs(sources) do
 		local src = readFile(fpath)
 		if src then
-			for block in src:gmatch('function%s+p%.getStructuredData.-\nend') do
+			for block in src:gmatch('function%s+p%.getStructured%a+%(.-\nend') do
 				for key in block:gmatch('([%a_][%w_]*)%s*=') do
 					emitted[autoName(key)] = true
 				end
@@ -705,7 +706,9 @@ if props then
 			if not isEmitted(name) then
 				fail(
 					PROPS_PATH,
-					"property '" .. name .. "' is written by no getStructuredData block or editorial manifest"
+					"property '"
+						.. name
+						.. "' is written by no getStructuredData or getStructuredRows block or editorial manifest"
 				)
 				inverseFailed = true
 			end
@@ -720,7 +723,7 @@ end
 -- Verified live 2026-09-12: a bucket accepts at most 60 fields; bucket name +
 -- field name must not exceed 51 characters (the repeated-field side table
 -- bucket__<bucket>__<field> hits MySQL's 64-char identifier cap); a repeated
--- field must be indexed. %kinds lists which buckets each kind may write.
+-- field must be indexed. %kinds and %rows list which buckets each kind may write.
 local BUCKET_MAX_FIELDS = 60
 local BUCKET_NAME_BUDGET = 51
 local function checkBucketLimits(path, manifest)
@@ -796,19 +799,28 @@ local function checkBucketLimits(path, manifest)
 		end
 	end
 	if type(manifest['%kinds']) == 'table' then
-		local listedBuckets = {}
-		for kind, list in pairs(manifest['%kinds']) do
-			for _, bucket in ipairs(list) do
-				listedBuckets[bucket] = true
-				if fields[bucket] == nil then
-					fail(path, '%kinds.' .. kind .. ' names bucket ' .. bucket .. ' which no property uses')
-					limitsFailed = true
+		-- %kinds tables hold one row per page and %rows tables several, so a
+		-- table is listed under one of the two, never both.
+		local listedBuckets, listedUnder = {}, {}
+		for _, meta in ipairs({ '%kinds', '%rows' }) do
+			for kind, list in pairs(manifest[meta] or {}) do
+				for _, bucket in ipairs(list) do
+					listedBuckets[bucket] = true
+					if listedUnder[bucket] and listedUnder[bucket] ~= meta then
+						fail(path, 'bucket ' .. bucket .. ' is listed under both %kinds and %rows')
+						limitsFailed = true
+					end
+					listedUnder[bucket] = meta
+					if fields[bucket] == nil then
+						fail(path, meta .. '.' .. kind .. ' names bucket ' .. bucket .. ' which no property uses')
+						limitsFailed = true
+					end
 				end
 			end
 		end
 		for bucket in pairs(writtenBuckets) do
 			if bucket ~= 'entity' and not listedBuckets[bucket] then
-				fail(path, 'bucket ' .. bucket .. ' is written by no kind in %kinds')
+				fail(path, 'bucket ' .. bucket .. ' is written by no kind in %kinds or %rows')
 				limitsFailed = true
 			end
 		end

@@ -227,6 +227,47 @@ function suite:testStructuredDataPureApiStats()
 	self:assertEquals(137, d['Roll rate'])
 end
 
+function suite:testStructuredRowsOnePerCargoGrid()
+	local rows = Vehicle.getStructuredRows(ctx({
+		cargo_grids = {
+			{ length = 6.25, width = 5, height = 2.5, scu = 40, external = false, max_scu_box = 2 },
+			{ length = 3.75, width = 1.25, height = 2.5, scu = 6, external = true, max_scu_box = 1 },
+		},
+	}))
+	self:assertEquals(2, #rows)
+	self:assertEquals('1', rows[1].sub)
+	self:assertDeepEquals({
+		cargo_grid_length = 6.25,
+		cargo_grid_width = 5,
+		cargo_grid_height = 2.5,
+		cargo_grid_capacity = 40,
+		cargo_grid_external = false,
+		cargo_grid_maximum_container_size = 2,
+	}, rows[1].data)
+	self:assertEquals('2', rows[2].sub)
+	self:assertEquals(true, rows[2].data.cargo_grid_external)
+end
+
+-- Grids that are identical, uuid included, are still separate rows.
+function suite:testStructuredRowsKeepIdenticalGrids()
+	local grid = { uuid = 'g', length = 7.5, width = 5, height = 5, scu = 96 }
+	local rows = Vehicle.getStructuredRows(ctx({ cargo_grids = { grid, grid } }))
+	self:assertEquals(2, #rows)
+	self:assertEquals('2', rows[2].sub)
+end
+
+function suite:testStructuredRowsOmitUnknownExternalAndLimit()
+	local rows =
+		Vehicle.getStructuredRows(ctx({ cargo_grids = { { length = 5, width = 3.75, height = 2.5, scu = 24 } } }))
+	self:assertEquals(nil, rows[1].data.cargo_grid_external)
+	self:assertEquals(nil, rows[1].data.cargo_grid_maximum_container_size)
+end
+
+function suite:testStructuredRowsEmptyWithoutCargoGrids()
+	self:assertDeepEquals({}, Vehicle.getStructuredRows(ctx({})))
+	self:assertDeepEquals({}, Vehicle.getStructuredRows(ctx({ cargo_grids = 'x' })))
+end
+
 function suite:testStructuredDataRoleWikiParamWins()
 	-- the stored Role property honors the wiki `role` override (matches the Role row + short desc).
 	local d = Vehicle.getStructuredData(ctx({ role = 'Light Fighter' }, { role = 'Heavy Fighter' }, {}))

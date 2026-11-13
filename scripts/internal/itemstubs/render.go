@@ -25,10 +25,13 @@ var sectionBody = map[string]string{
 // MfrCode empty means the code is not a manufacturer at all, only a generic
 // consumable marker, and writing it into the infobox would invent a category
 // (Category:GEND); live food and drink pages leave the field blank.
+// MfrName is the brand the lead shows when it differs from the article title:
+// ArcCorp's article is "ArcCorp (company)" because "ArcCorp" is the planet, and
+// an unpiped link would print the disambiguator in the sentence.
 type StubData struct {
-	Name, UUID       string
-	MfrCode, MfrPage string
-	Label, LabelLink string
+	Name, UUID                string
+	MfrCode, MfrPage, MfrName string
+	Label, LabelLink          string
 	// NoLabelLink renders Label as plain text instead of [[Label]] or
 	// [[LabelLink|Label]]. Set alongside LabelLink is a config error.
 	NoLabelLink bool
@@ -72,7 +75,11 @@ func RenderStub(d StubData) string {
 		lead += label
 	}
 	if d.MfrPage != "" {
-		lead += fmt.Sprintf(" manufactured by [[%s]]", d.MfrPage)
+		link := d.MfrPage
+		if d.MfrName != "" && d.MfrName != d.MfrPage {
+			link += "|" + d.MfrName
+		}
+		lead += fmt.Sprintf(" manufactured by [[%s]]", link)
 	}
 	// text=Datamine is not optional: without it {{Cite game}} renders "In-game
 	// survey", which claims someone observed the item in the game. These pages

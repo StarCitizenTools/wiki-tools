@@ -102,6 +102,30 @@ func TestRenderIndefiniteArticleAndLabelLink(t *testing.T) {
 	}
 }
 
+func TestRenderPipesMakerWhoseArticleIsDisambiguated(t *testing.T) {
+	got := RenderStub(StubData{
+		Name: "Pico the Penguin Plushie", UUID: "aaaaaaaa-0000-4000-8000-00000000000e",
+		MfrCode: "MITE", MfrPage: "MicroTech (company)", MfrName: "microTech",
+		Label: "hangar item", LabelLink: "Hangar items",
+		Sections: []string{"Description"},
+		Version:  "4.9.0", Date: "2026-08-13",
+	})
+	wantLead := "manufactured by [[MicroTech (company)|microTech]]."
+	if !strings.Contains(got, wantLead) {
+		t.Errorf("lead: want %q in:\n%s", wantLead, got)
+	}
+
+	got = RenderStub(StubData{
+		Name: "Dominance-1 Scattergun", UUID: "aaaaaaaa-0000-4000-8000-00000000000f",
+		MfrCode: "HRST", MfrPage: "Hurston Dynamics", MfrName: "Hurston Dynamics",
+		Label: "vehicle weapon", Sections: []string{"Description"},
+		Version: "4.9.0", Date: "2026-08-13",
+	})
+	if !strings.Contains(got, "manufactured by [[Hurston Dynamics]].") {
+		t.Errorf("a brand that is its own article title must not be piped, got:\n%s", got)
+	}
+}
+
 func TestRenderUnnamedMakerStillFillsInfobox(t *testing.T) {
 	// NONE tags an item as hand-made or without a proper maker. There is no
 	// company to name in the lead, but the code is real data and categorises

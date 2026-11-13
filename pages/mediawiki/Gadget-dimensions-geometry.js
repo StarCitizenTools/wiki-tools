@@ -55,7 +55,17 @@
 		lvl4: { tilt: 90, spin: -142 }
 	};
 
+	// The side of one SCU, in metres: the ground grid and a cargo grid's floor
+	// are ruled in it.
+	const SCU_EDGE = 1.25;
+
+	// Scale bar lengths.
 	const NICE_LENGTHS = [ 0.01, 0.02, 0.05, 0.1, 0.2, 0.25, 0.5, 1, 2, 5, 10, 20, 25, 50, 100, 200, 500 ];
+
+	// Ground grid squares: SCU edges doubling upward, so a coarser grid keeps
+	// the finer one's lines, and below one SCU the round lengths that divide
+	// it, so every SCU boundary stays a line.
+	const GRID_LENGTHS = [ 0.01, 0.025, 0.05, 0.125, 0.25, 0.625, 1.25, 2.5, 5, 10, 20, 40, 80, 160, 320, 640 ];
 
 	const EPSILON = 1e-9;
 
@@ -82,14 +92,46 @@
 	 *
 	 * @param {Object} box
 	 * @param {Object} container
-	 * @return {{fits: boolean, over: number}} over is the largest overhang in
-	 *  metres, zero or negative when it fits
+	 * @return {{fits: boolean, over: number, pose: string}} over is the largest
+	 *  overhang in metres, zero or negative when it fits; pose is how placeIn
+	 *  sets the box down, which matters only when it fits
 	 */
 	function fitCheck( box, container ) {
 		const a = sortedSides( box );
 		const b = sortedSides( container );
 		const over = Math.max( a[ 0 ] - b[ 0 ], a[ 1 ] - b[ 1 ], a[ 2 ] - b[ 2 ] );
-		return { fits: over <= EPSILON, over };
+		return { fits: over <= EPSILON, over, pose: placeIn( box, container ).pose };
+	}
+
+	/**
+	 * Whether a cargo grid secures a box rather than just holding it. A grid
+	 * locks down only boxes within its item limits, side against side in any
+	 * orientation; one that fits the space but not the limits rides loose.
+	 *
+	 * @param {Object} box
+	 * @param {Object} space a box; limits, when known, are { min, max }, each
+	 *  three sides shortest first or null for none
+	 * @return {{state: string, over: number, pose: string}} state is secured,
+	 *  loose, big (it does not fit the space) or fits (the grid's limits are
+	 *  unknown)
+	 */
+	function secureCheck( box, space ) {
+		const check = fitCheck( box, space );
+		const out = { state: 'big', over: check.over, pose: check.pose };
+		if ( !check.fits ) {
+			return out;
+		}
+		if ( !space.limits ) {
+			out.state = 'fits';
+			return out;
+		}
+		const sides = sortedSides( box );
+		const min = space.limits.min;
+		const max = space.limits.max;
+		const under = min && sides.some( ( side, i ) => side < min[ i ] - EPSILON );
+		const over = max && sides.some( ( side, i ) => side > max[ i ] + EPSILON );
+		out.state = under || over ? 'loose' : 'secured';
+		return out;
 	}
 
 	/**
@@ -119,6 +161,33 @@
 			out[ entry.axis ] = sides[ rank ];
 		} );
 		return out;
+	}
+
+	/**
+	 * The box set down in a container: upright, its height kept and its longer
+	 * footprint side along the container's longer one, whenever it fits that
+	 * way, else turned by orientTo. Height is an item's up (the game's z), but
+	 * no game data forbids tipping cargo over, so a box that fits only tipped
+	 * still fits.
+	 *
+	 * @param {Object} box
+	 * @param {Object} container
+	 * @return {{box: Object, pose: string}} pose is upright; side, tipped over;
+	 *  or end, stood on its one longest side
+	 */
+	function placeIn( box, container ) {
+		const long = Math.max( box.length, box.width );
+		const short = Math.min( box.length, box.width );
+		const lengthwise = container.length >= container.width;
+		const footprint = [ container.length, container.width ].sort( ( a, b ) => b - a );
+		if ( box.height <= container.height + EPSILON && long <= footprint[ 0 ] + EPSILON && short <= footprint[ 1 ] + EPSILON ) {
+			return {
+				box: { length: lengthwise ? long : short, width: lengthwise ? short : long, height: box.height },
+				pose: 'upright'
+			};
+		}
+		const turned = orientTo( box, container );
+		return { box: turned, pose: turned.height > Math.max( turned.length, turned.width ) + EPSILON ? 'end' : 'side' };
 	}
 
 	/**
@@ -190,7 +259,7 @@
 	}
 
 	/**
-	 * The box, oriented to the container, sitting in the container's corner.
+	 * The box, set down by placeIn, sitting in the container's corner.
 	 *
 	 * @param {Object} box
 	 * @param {Object} container
@@ -199,7 +268,7 @@
 	function layoutFit( box, container ) {
 		const y = -container.width / 2;
 		const items = [
-			{ x: 0, y, box: orientTo( box, container ) },
+			{ x: 0, y, box: placeIn( box, container ).box },
 			{ x: 0, y, box: container }
 		];
 		return { items, bounds: boundsOf( items ) };
@@ -208,10 +277,10 @@
 	/**
 	 * @param {number} scale px per metre
 	 * @param {number} minPx
-	 * @return {number} The shortest round length drawn at least minPx long
+	 * @return {number} The smallest grid square drawn at least minPx long
 	 */
 	function gridStep( scale, minPx ) {
-		return NICE_LENGTHS.find( ( n ) => n * scale >= minPx ) || NICE_LENGTHS[ NICE_LENGTHS.length - 1 ];
+		return GRID_LENGTHS.find( ( n ) => n * scale >= minPx ) || GRID_LENGTHS[ GRID_LENGTHS.length - 1 ];
 	}
 
 	/**
@@ -242,14 +311,17 @@
 	}
 
 	module.exports = {
+		SCU_EDGE,
 		MAX_COMPARED,
 		CONTAINERS,
 		REFERENCES,
 		VIEWS,
 		sortedSides,
 		fitCheck,
+		secureCheck,
 		smallestFitting,
 		orientTo,
+		placeIn,
 		starterReference,
 		addCompared,
 		boundsOf,

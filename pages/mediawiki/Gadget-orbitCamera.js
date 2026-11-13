@@ -50,6 +50,7 @@
 			this.onSettle = options.onSettle || ( () => {} );
 			this.camera = Object.assign( { scale: 1, x: 0, y: 0 }, this.presets[ options.initial ] );
 			this.content = null;
+			this.inset = { top: 0, bottom: 0 };
 			this.fitted = true;
 			this.pointers = new Map();
 			this.gesture = null;
@@ -84,10 +85,43 @@
 		 *  current angles
 		 */
 		fitScale( size ) {
+			const clear = this.clearance();
 			return math.fitScale( size, this.camera, {
 				width: this.viewport.clientWidth,
-				height: this.viewport.clientHeight
+				height: clear.height - clear.top - clear.bottom
 			}, this.margin );
+		}
+
+		/**
+		 * Keep strips at the top and bottom of the viewport clear of fitted
+		 * content, for text or a panel laid over the scene: fitting then uses
+		 * the space between and centres there. Refits content the reader has
+		 * not zoomed or panned.
+		 *
+		 * @param {number} top px
+		 * @param {number} [bottom] px
+		 */
+		setInset( top, bottom ) {
+			const next = { top: top || 0, bottom: bottom || 0 };
+			if ( next.top === this.inset.top && next.bottom === this.inset.bottom ) {
+				return;
+			}
+			this.inset = next;
+			if ( this.fitted && this.content ) {
+				this.frame();
+				this.update( true );
+			}
+		}
+
+		/**
+		 * @return {{top: number, bottom: number, height: number}} the insets,
+		 *  shrunk together where they would leave under a fifth of the viewport
+		 */
+		clearance() {
+			const height = this.viewport.clientHeight;
+			const total = this.inset.top + this.inset.bottom;
+			const k = total > height * 0.8 ? height * 0.8 / total : 1;
+			return { top: this.inset.top * k, bottom: this.inset.bottom * k, height };
 		}
 
 		/**
@@ -155,8 +189,9 @@
 			if ( this.content ) {
 				this.camera.scale = this.fitScale( this.content.size );
 			}
+			const clear = this.clearance();
 			this.camera.x = 0;
-			this.camera.y = 0;
+			this.camera.y = ( clear.top - clear.bottom ) / 2;
 			this.fitted = true;
 		}
 

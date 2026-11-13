@@ -40,6 +40,65 @@ test( 'orientTo: equal container sides keep the input order of axes', () => {
 	assert.deepEqual( oriented, { length: 1, width: 2, height: 3 } );
 } );
 
+test( 'placeIn: an object that fits upright keeps its height', () => {
+	// orientTo would lay it along the 16 SCU container's 5 m length
+	assert.deepEqual( G.placeIn( { length: 1, width: 1, height: 2 }, byId( 'scu-16' ) ), {
+		box: { length: 1, width: 1, height: 2 },
+		pose: 'upright'
+	} );
+} );
+
+test( 'placeIn: the longer footprint side runs along the container\'s longer one', () => {
+	assert.deepEqual( G.placeIn( { length: 0.5, width: 3, height: 1 }, byId( 'scu-16' ) ).box, { length: 3, width: 0.5, height: 1 } );
+	assert.deepEqual( G.placeIn( { length: 3, width: 0.5, height: 1 }, { length: 2.5, width: 5, height: 2.5 } ).box, { length: 0.5, width: 3, height: 1 } );
+} );
+
+test( 'placeIn: tipped on its side when only that fits', () => {
+	assert.deepEqual( G.placeIn( { length: 1, width: 1, height: 2 }, byId( 'scu-2' ) ), {
+		box: { length: 2, width: 1, height: 1 },
+		pose: 'side'
+	} );
+	// A slab stood on its edge: its upright side ties the longest, so not on end
+	assert.equal( G.placeIn( { length: 2, width: 2, height: 1 }, { length: 1, width: 2, height: 2 } ).pose, 'side' );
+} );
+
+test( 'placeIn: stood on end when its one longest side must be upright', () => {
+	assert.deepEqual( G.placeIn( { length: 2, width: 1, height: 1 }, { length: 1.25, width: 1.25, height: 2.5 } ), {
+		box: { length: 1, width: 1, height: 2 },
+		pose: 'end'
+	} );
+} );
+
+test( 'fitCheck: carries placeIn\'s pose', () => {
+	assert.equal( G.fitCheck( { length: 1, width: 1, height: 2 }, byId( 'scu-16' ) ).pose, 'upright' );
+	assert.equal( G.fitCheck( { length: 1, width: 1, height: 2 }, byId( 'scu-2' ) ).pose, 'side' );
+} );
+
+const GRID = { length: 6.25, width: 5, height: 2.5, limits: { min: [ 1.25, 1.25, 1.25 ], max: [ 1.25, 1.25, 2.5 ] } };
+
+test( 'secureCheck: within the limits, in any orientation, it is secured', () => {
+	// A 2 SCU box stood upright is still 1.25 × 1.25 × 2.5
+	assert.equal( G.secureCheck( { length: 1.25, width: 1.25, height: 2.5 }, GRID ).state, 'secured' );
+} );
+
+test( 'secureCheck: fits the space but not the limits, it rides loose', () => {
+	// Over the maximum: a 16 SCU container in the Cutlass Black's hold
+	assert.equal( G.secureCheck( byId( 'scu-16' ), GRID ).state, 'loose' );
+	// Under the minimum on every side: a pistol
+	assert.equal( G.secureCheck( { length: 0.24, width: 0.04, height: 0.16 }, GRID ).state, 'loose' );
+	// Long enough but too thin on one side: a ship cooler
+	assert.equal( G.secureCheck( { length: 2.21, width: 0.22, height: 0.8 }, GRID ).state, 'loose' );
+} );
+
+test( 'secureCheck: too big for the space, or limits unknown', () => {
+	const check = G.secureCheck( byId( 'scu-32' ), GRID );
+	assert.equal( check.state, 'big' );
+	assert.ok( Math.abs( check.over - 3.75 ) < 1e-9 );
+	assert.equal( G.secureCheck( byId( 'scu-16' ), { length: 6.25, width: 5, height: 2.5, limits: null } ).state, 'fits' );
+	// No maximum: anything over the minimum that fits is secured
+	assert.equal( G.secureCheck( byId( 'scu-16' ), Object.assign( {}, GRID, { limits: { min: [ 1.25, 1.25, 1.25 ], max: null } } ) ).state, 'secured' );
+} );
+
 test( 'starterReference: the largest reference no longer than the object', () => {
 	assert.equal( G.starterReference( CUTLASS ).id, 'human' );
 	assert.equal( G.starterReference( { length: 1.8, width: 0.1, height: 0.1 } ).id, 'human' );
@@ -83,7 +142,7 @@ test( 'layoutRow: boxes in a row, centred on the axis, with a gap', () => {
 	} );
 } );
 
-test( 'layoutFit: the oriented box shares the container\'s corner', () => {
+test( 'layoutFit: the placed box shares the container\'s corner', () => {
 	const fit = G.layoutFit( { length: 0.45, width: 0.8, height: 3.32 }, byId( 'scu-16' ) );
 	assert.deepEqual( fit.items[ 0 ], { x: 0, y: -1.25, box: { length: 3.32, width: 0.45, height: 0.8 } } );
 	assert.equal( fit.items[ 1 ].box.id, 'scu-16' );
@@ -97,10 +156,18 @@ test( 'layoutFit: an oversized box widens the bounds', () => {
 } );
 
 test( 'gridStep and barStep: round lengths around a pixel target', () => {
-	// 20 px per metre: a 1 m square is the first at least 18 px
-	assert.equal( G.gridStep( 20, 18 ), 1 );
+	// 20 px per metre: a 1.25 m square, one SCU, is the first at least 18 px
+	assert.equal( G.gridStep( 20, 18 ), 1.25 );
 	// 20 px per metre: 5 m is the longest bar within 150 px
 	assert.equal( G.barStep( 20, 150 ), 5 );
+} );
+
+test( 'gridStep: every square tiles an SCU or is whole SCUs', () => {
+	const whole = ( n ) => Math.abs( n - Math.round( n ) ) < 1e-9;
+	for ( let scale = 0.01; scale <= 10000; scale *= 1.1 ) {
+		const step = G.gridStep( scale, 18 );
+		assert.ok( whole( step / G.SCU_EDGE ) || whole( G.SCU_EDGE / step ), `${ step } m at ${ scale } px/m` );
+	}
 } );
 
 test( 'formatLength and formatBox: up to three decimals, thousands separated', () => {

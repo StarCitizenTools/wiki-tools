@@ -18,5 +18,5 @@
 * mainpage[ResourceLoader|default|hidden|categories=Pages using main page gadget]|mainpage.js|mainpage.css
 == dimensions ==
 * dimensions[ResourceLoader|default|hidden|package|categories=Pages using dimensions gadget|codexIcons=cdxIconFullscreen]|dimensions.js|dimensions.css
-* dimensionsDialog[ResourceLoader|hidden|package|dependencies=ext.gadget.orbitCamera|codexIcons=cdxIconAdd,cdxIconCheck,cdxIconClose]|dimensionsDialog.js|dimensions-geometry.js|dimensionsDialog.css
+* dimensionsDialog[ResourceLoader|hidden|package|dependencies=ext.gadget.orbitCamera|codexIcons=cdxIconAdd,cdxIconCheck,cdxIconClose,cdxIconNext,cdxIconPrevious,cdxIconSearch]|dimensionsDialog.js|dimensions-geometry.js|dimensions-spaces.js|dimensionsDialog.css
 * orbitCamera[ResourceLoader|hidden|package]|orbitCamera.js|orbitCamera-math.js

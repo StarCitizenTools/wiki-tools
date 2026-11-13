@@ -152,8 +152,11 @@ into the soles".
 fills a blank** — an empty code or `UNKN`. It cannot correct a code the dump
 states wrongly, so a prefix rule is safe to add for a maker whose items are
 partly unlabelled, and useless against one whose items are mislabelled; that
-case needs `byName` or `renames`. A code with no `names` entry falls back to
-the dump's manufacturer name as the link target. `omitInLead` codes
+case needs `byName` or `renames`. The lead links the code's article from
+`Module:Manufacturers/data.json` (its `page`, else its `name`) and shows the
+brand `name` when the two differ, so ArcCorp renders as
+`[[ArcCorp (company)|ArcCorp]]`; a code with no record there falls back to the
+dump's manufacturer name as the link target. `omitInLead` codes
 (generic/unknown makers like `UNKN`) resolve successfully but with an empty page, which drops the lead's "manufactured by"
 clause — linking `[[Consumable]]` as if it were
 a company would be wrong.

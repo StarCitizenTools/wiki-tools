@@ -404,6 +404,23 @@ function p.getStructuredData(ctx)
 	return data
 end
 
+--- The sides of a grid's `min_size` or `max_size` box, shortest first. The
+--- box's x/y/z do not follow the grid's own axes (the Zeus Mk II CL allows
+--- 10 m on z in a 3.75 m tall hold), so only the sorted sides mean anything.
+--- @param box any
+--- @return number[]|nil
+local function limitSides(box)
+	if type(box) ~= 'table' then
+		return nil
+	end
+	local sides = { tonumber(box.x), tonumber(box.y), tonumber(box.z) }
+	if not (sides[1] and sides[2] and sides[3]) then
+		return nil
+	end
+	table.sort(sides)
+	return sides
+end
+
 --- One `cargo_grid` row per cargo grid, in the API's order. `sub` is the
 --- grid's 1-based position: identical grids on one ship (the Caterpillar's
 --- modules) share everything else, the API's grid uuid included.
@@ -418,6 +435,8 @@ function p.getStructuredRows(ctx)
 			if type(grid.external) == 'boolean' then
 				external = grid.external
 			end
+			local min = limitSides(grid.min_size) or {}
+			local max = limitSides(grid.max_size) or {}
 			rows[#rows + 1] = {
 				sub = tostring(i),
 				data = {
@@ -427,6 +446,12 @@ function p.getStructuredRows(ctx)
 					cargo_grid_capacity = tonumber(grid.scu),
 					cargo_grid_external = external,
 					cargo_grid_maximum_container_size = tonumber(grid.max_scu_box),
+					cargo_grid_minimum_item_shortest_side = min[1],
+					cargo_grid_minimum_item_middle_side = min[2],
+					cargo_grid_minimum_item_longest_side = min[3],
+					cargo_grid_maximum_item_shortest_side = max[1],
+					cargo_grid_maximum_item_middle_side = max[2],
+					cargo_grid_maximum_item_longest_side = max[3],
 				},
 			}
 		end

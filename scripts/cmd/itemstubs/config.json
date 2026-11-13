@@ -387,6 +387,11 @@
     "MiningModifier.Gun": {
       "kind": "component"
     },
+    "Misc.Flair_Static": {
+      "kind": "item",
+      "label": "hangar item",
+      "labelLink": "Hangar items"
+    },
     "Misc.Flair_Wall_Picture": {
       "kind": "item",
       "label": "hangar item",
@@ -621,6 +626,7 @@
       ],
       "namePrefixes": [
         "PH - ",
+        "[PH] ",
         "TEST STRING NAME"
       ],
       "classSuffixes": [

@@ -404,6 +404,36 @@ function p.getStructuredData(ctx)
 	return data
 end
 
+--- One `cargo_grid` row per cargo grid, in the API's order. `sub` is the
+--- grid's 1-based position: identical grids on one ship (the Caterpillar's
+--- modules) share everything else, the API's grid uuid included.
+--- @param ctx EntityHookContext
+--- @return EntityStructuredRow[]
+function p.getStructuredRows(ctx)
+	local grids = type(ctx.apiData.cargo_grids) == 'table' and ctx.apiData.cargo_grids or {}
+	local rows = {}
+	for i, grid in ipairs(grids) do
+		if type(grid) == 'table' then
+			local external = nil
+			if type(grid.external) == 'boolean' then
+				external = grid.external
+			end
+			rows[#rows + 1] = {
+				sub = tostring(i),
+				data = {
+					cargo_grid_length = tonumber(grid.length),
+					cargo_grid_width = tonumber(grid.width),
+					cargo_grid_height = tonumber(grid.height),
+					cargo_grid_capacity = tonumber(grid.scu),
+					cargo_grid_external = external,
+					cargo_grid_maximum_container_size = tonumber(grid.max_scu_box),
+				},
+			}
+		end
+	end
+	return rows
+end
+
 --- External-site links: Official (pledgeurl from API + editorial galactapediaurl /
 --- brochureurl / trailerurl / presentationurl / qaurl / whitleysguideurl) and Community
 --- (ship tools from API identifiers). The brochure/trailer/presentation/Q&A args each accept a

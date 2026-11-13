@@ -10,7 +10,8 @@ local CATEGORY_ENTITY_ERROR = '[[Category:Pages with Entity errors]]'
 
 local p = {}
 
---- Collects structured data from the chain and facets and persists it via the backend.
+--- Collects structured data from the chain and facets and persists it via the backend,
+--- then the chain's rows for the kind's several-rows-per-page tables.
 ---
 --- @param chain table[]
 --- @param facets table[]
@@ -42,7 +43,15 @@ local function storeStructuredData(chain, facets, ctx, editorialData, kind)
 		merged.kind = kind
 	end
 	local success, _err, unregistered = structuredData.store(merged, kind)
-	return success, unregistered
+	local rowsSuccess, _rowsErr, rowsUnregistered =
+		structuredData.storeRows(assembly.run(chain, 'getStructuredRows', ctx), kind)
+	if rowsUnregistered then
+		unregistered = unregistered or {}
+		for _, key in ipairs(rowsUnregistered) do
+			unregistered[#unregistered + 1] = key
+		end
+	end
+	return success and rowsSuccess, unregistered
 end
 
 --- Sets the page's short description via the SHORTDESC parser function: the

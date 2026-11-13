@@ -1,5 +1,5 @@
 {
-	"%doc": "Source-of-truth manifest of the structured data Module:Entity stores in Bucket. Keys are display names, which Module:Entity/StructuredData derives from the emitter key (ucfirst, underscores to spaces). type: Bucket field type; bucket: the one Bucket table the property lives in, whichever kind emits it; migrateTo: a table the property is moving to, written as well as bucket until readers switch to it; field: the Bucket column (lowercase snake_case of the emitter key); index/repeated: Bucket flags, absent = false; modules: emitting Entity modules. Data is stored UNITLESS. pages/bucket/<Name>.json schemas are generated from this file by `mise run bucket:schemas`. Limits verified live: 60 fields per bucket, bucket+field name at most 51 characters, repeated implies index.",
+	"%doc": "Source-of-truth manifest of the structured data Module:Entity stores in Bucket. Keys are display names, which Module:Entity/StructuredData derives from the emitter key (ucfirst, underscores to spaces). type: Bucket field type; bucket: the one Bucket table the property lives in, whichever kind emits it; migrateTo: a table the property is moving to, written as well as bucket until readers switch to it; field: the Bucket column (lowercase snake_case of the emitter key); index/repeated: Bucket flags, absent = false; modules: emitting Entity modules. %kinds: the tables each kind writes one row to per page. %rows: the tables each kind writes several rows to per page, one per getStructuredRows row (a vehicle's cargo grids); a query rooted on entity that names one of their properties returns the page once per row. Data is stored UNITLESS. pages/bucket/<Name>.json schemas are generated from this file by `mise run bucket:schemas`. Limits verified live: 60 fields per bucket, bucket+field name at most 51 characters, repeated implies index.",
 	"%kinds": {
 		"Vehicle": [
 			"entity",
@@ -23,6 +23,11 @@
 		"Mission": [
 			"entity",
 			"mission"
+		]
+	},
+	"%rows": {
+		"Vehicle": [
+			"cargo_grid"
 		]
 	},
 	"Acquisition kind": {
@@ -267,6 +272,60 @@
 			"Vehicle"
 		],
 		"desc": "Cargo capacity of a vehicle, in SCU."
+	},
+	"Cargo grid capacity": {
+		"type": "DOUBLE",
+		"bucket": "cargo_grid",
+		"field": "cargo_grid_capacity",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Capacity of one of a vehicle's cargo grids, in SCU."
+	},
+	"Cargo grid external": {
+		"type": "BOOLEAN",
+		"bucket": "cargo_grid",
+		"field": "cargo_grid_external",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Whether one of a vehicle's cargo grids is on the outside of the hull rather than in an enclosed hold."
+	},
+	"Cargo grid height": {
+		"type": "DOUBLE",
+		"bucket": "cargo_grid",
+		"field": "cargo_grid_height",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Height of one of a vehicle's cargo grids, in metres."
+	},
+	"Cargo grid length": {
+		"type": "DOUBLE",
+		"bucket": "cargo_grid",
+		"field": "cargo_grid_length",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Length of one of a vehicle's cargo grids, in metres."
+	},
+	"Cargo grid maximum container size": {
+		"type": "INTEGER",
+		"bucket": "cargo_grid",
+		"field": "cargo_grid_maximum_container_size",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Largest single cargo container one of a vehicle's cargo grids accepts, in SCU."
+	},
+	"Cargo grid width": {
+		"type": "DOUBLE",
+		"bucket": "cargo_grid",
+		"field": "cargo_grid_width",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Width of one of a vehicle's cargo grids, in metres."
 	},
 	"Charges": {
 		"type": "INTEGER",

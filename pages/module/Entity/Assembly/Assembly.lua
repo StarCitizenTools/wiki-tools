@@ -206,6 +206,7 @@ p.POLICIES = {
 	getCategories = 'collect',
 	getApiConfigs = 'collect',
 	getStructuredData = 'merge',
+	getStructuredRows = 'collect',
 	enrich = 'pipeline',
 	getTypeInfo = 'leaf',
 	getShortDescription = 'mostSpecific',

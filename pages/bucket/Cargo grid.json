@@ -1,0 +1,32 @@
+{
+	"cargo_grid_capacity": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"cargo_grid_external": {
+		"type": "BOOLEAN",
+		"index": false,
+		"repeated": false
+	},
+	"cargo_grid_height": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"cargo_grid_length": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"cargo_grid_maximum_container_size": {
+		"type": "INTEGER",
+		"index": false,
+		"repeated": false
+	},
+	"cargo_grid_width": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	}
+}

@@ -24,6 +24,11 @@ local p = {}
 --- @field sections table<EntitySectionEntry>|nil Nested sub-sections
 --- @field items EntityItemData[]|nil List of label/content items
 
+--- @class EntityStructuredRow
+--- One row of a table a page writes several rows to (`%rows` in Module:Entity/properties.json).
+--- @field sub string Names the row among the page's rows: Bucket stores it as page_name_sub `<Title>#<sub>`
+--- @field data table<string, any> Flat key-value data, keyed like getStructuredData
+
 --- @class EntityHookContext
 --- The single argument every contributor and facet hook receives. Identity
 --- hooks (matches, resolveSubtype, getApiConfigs, getEditorialManifest) run
@@ -50,6 +55,7 @@ local p = {}
 --- @field getEditorialManifest nil|fun(): table Editorial-field manifest fragment (field -> { arg, property?, apiPath?, transform?, default? }); fragments merge root-to-leaf, leaf keys win
 --- @field getSections nil|fun(ctx: EntityHookContext): EntitySectionEntry[] Ordered section entries
 --- @field getStructuredData nil|fun(ctx: EntityHookContext): table<string, any> Flat key-value data
+--- @field getStructuredRows nil|fun(ctx: EntityHookContext): EntityStructuredRow[] Rows for the kind's `%rows` tables
 --- @field getShortDescription nil|fun(ctx: EntityHookContext): string Page short description
 --- @field getExternalSiteItems nil|fun(ctx: EntityHookContext): EntityItemData[] External-site links
 --- @field getFooterButtons nil|fun(ctx: EntityHookContext): table[] Footer action-button defs ({ label, url, icon, class }), rendered between the Galactapedia and Wiki API buttons

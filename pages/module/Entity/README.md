@@ -101,6 +101,7 @@ Identity-shaped hooks take no `ctx`; the rest take `EntityHookContext`. `*` mark
 | `enrich` | link | `(ctx) → table` | `pipeline` | `Data.enrichChain` |
 | `getSections` | link, facet* | `(ctx) → EntitySectionEntry[]` | `collect` | `Infobox` |
 | `getStructuredData` | link, facet | `(ctx) → table` | `merge` (chain, then facets, then editorial) | `Entity.storeStructuredData` |
+| `getStructuredRows` | link | `(ctx) → EntityStructuredRow[]` | `collect` | `Entity.storeStructuredData` |
 | `getShortDescription` | link | `(ctx) → string` | `mostSpecific` | `Entity.setShortDescription` |
 | `getShortDescriptionPrefix` | facet | `(ctx) → string\|nil` | `firstNonNil` | `Entity.setShortDescription` |
 | `getExternalSiteItems` | link | `(ctx) → EntityItemData[]` | `collect` | `Infobox` |
@@ -135,9 +136,11 @@ Every hook's `getStructuredData` output is merged and handed to `Module:Entity/S
 
 A property lives in `entity` when `Base` or `Entity` emits it, when it is emitted for more than one kind (Effects, which Consumable emits for both Item and Commodity pages; Scm speed, which both Vehicle and FlightController emit), or when `Item` emits it, the Item kind spanning three tables. Every other property lives in the one table its emitting modules map to. An entry names one table, never one per kind: `tests/manifest.lua` fails on the object form.
 
+A table that holds several rows per page, such as `cargo_grid` (one row per vehicle cargo grid), is listed under `%rows` in the manifest instead of `%kinds`. The chain's `getStructuredRows` rows go to `StructuredData.storeRows`, one put per row, and reach only the kind's `%rows` tables: a row key bound for a one-row table is reported as unregistered rather than adding a second row to it. Each row's `sub` becomes Bucket's `page_name_sub` (`<Title>#<sub>`). A query rooted on `entity` that names a `%rows` property returns the page once per row, so a reader of those rows roots on their table (`primary` in `Module:BucketQuery`).
+
 `Module:Company` and `Module:WearableSet` write the shared `entity` table as well, each from its own manifest through the same put loop. Readers go through `Module:BucketQuery` (or `Module:Entity/Store` for Entity's own lookups), never `mw.ext.bucket` directly.
 
-`Module:Entity` passes the kind that actually matched, not the `Item` fallback `Data.get` exposes as `result.kind`, so a page whose kind never resolved (e.g. no uuid) is stored with no kind: it writes its entity-routable keys and nothing else, rather than writing another kind's columns. That same kind is stored as the `Kind` property, which `Data.parseArgs` reads back on a page with no uuid, so a sibling renderer resolves the kind the infobox declared. `StructuredData.store` has no other caller.
+`Module:Entity` passes the kind that actually matched, not the `Item` fallback `Data.get` exposes as `result.kind`, so a page whose kind never resolved (e.g. no uuid) is stored with no kind: it writes its entity-routable keys and nothing else, rather than writing another kind's columns. That same kind is stored as the `Kind` property, which `Data.parseArgs` reads back on a page with no uuid, so a sibling renderer resolves the kind the infobox declared. `StructuredData.store` and `StructuredData.storeRows` have no other caller.
 
 ### Adding a kind
 

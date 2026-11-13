@@ -4,20 +4,16 @@ require('strict')
 --- Dimension facet. Data-driven: matches any item carrying drawable dimension
 --- data (`apiData.dimension.dimensions` and/or `.cargo_dimension`). Renders the
 --- Module:Dimensions isometric diagram as an infobox section with up to two
---- tabs: Cargo (the packed footprint, volume in the footer) and Physical (the
---- actual size, scaled against the human/banana reference, mass in the footer).
---- Cargo leads because it has gameplay implication. The section hides entirely
---- when an item has neither box.
+--- tabs: Cargo (the packed footprint, with its volume, marked as the stowed
+--- size) and Physical (the actual size, with its mass). Cargo leads because it
+--- has gameplay implication. The section hides entirely when an item has
+--- neither box.
 ---
 --- This is a thin Star Citizen adapter over the domain-agnostic
---- Module:Dimensions: it owns the metric formatting (Volume in SCU, Mass in kg)
---- and borrows the generic human/banana references from
---- Module:Dimensions/presets. The cargo diagram carries no reference object;
---- its axis measurements already convey the packed size. Reads the
---- non-deprecated `dimensions` field, never `true_dimension`.
+--- Module:Dimensions: it owns the metric formatting (Volume in SCU, Mass in kg).
+--- Reads the non-deprecated `dimensions` field, never `true_dimension`.
 
 local dimensions = require('Module:Dimensions')
-local presets = require('Module:Dimensions/presets')
 
 local lang = mw.getContentLanguage()
 
@@ -46,8 +42,8 @@ function p.matches(apiData)
 	return dim ~= nil and (hasBox(dim.dimensions) or hasBox(dim.cargo_dimension))
 end
 
---- Cargo diagram: the packed cargo_dimension box, cargo volume in the footer.
---- Nil when there is no cargo box.
+--- Cargo diagram: the packed cargo_dimension box, marked stowed, with its
+--- volume. Nil when there is no cargo box.
 ---
 --- @param dim table apiData.dimension
 --- @return string|nil
@@ -68,13 +64,13 @@ local function cargoBox(dim)
 		length = box.length,
 		width = box.width,
 		height = box.height,
+		stowed = true,
 		metrics = metrics,
 	})
 end
 
 --- Physical diagram: dimensions (the non-deprecated successor to
---- true_dimension) scaled against the auto human/banana reference, mass in the
---- footer. Nil when there is no physical box.
+--- true_dimension) with the mass. Nil when there is no physical box.
 ---
 --- @param dim table apiData.dimension
 --- @param mass number|nil apiData.mass in kg
@@ -92,7 +88,6 @@ local function physicalBox(dim, mass)
 		length = box.length,
 		width = box.width,
 		height = box.height,
-		reference = presets.resolveAuto(math.max(box.length, box.width, box.height)),
 		metrics = metrics,
 	})
 end

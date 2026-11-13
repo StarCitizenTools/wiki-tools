@@ -13,26 +13,10 @@
 	--t-dimensions-box-width: calc( var( --t-dimensions-object-width ) * var( --t-dimensions-scale ) );
 	--t-dimensions-box-height: calc( var( --t-dimensions-object-height ) * var( --t-dimensions-scale ) );
 
-	/* reference defaults to zero size so the stage-height max() is inert */
-	--t-dimensions-ref-length: 0px;
-	--t-dimensions-ref-width: 0px;
-	--t-dimensions-ref-height: 0px;
-	--t-dimensions-ref-clear: 0px;
-
-	/* Reference color trio, consumed by the cuboid faces AND the legend
-	   swatch; this is the default, overridden per render by the inline
-	   --t-dimensions-ref-color* custom properties the module sets from the
-	   caller's reference.color. Light/dark would ideally be color-mix() of the
-	   base, but the sanitizer rejects color-mix. */
-	--t-dimensions-ref-color: var( --color-progressive );
-	--t-dimensions-ref-color-light: #5c9ad4;
-	--t-dimensions-ref-color-dark: #1a4d7a;
-
-	/* The ref term budgets a reference taller than the object: its top rises (ref-h - box-h/2) above center, so the symmetric budget needs 2*ref-h - box-h. Collapses to box-h when ref <= box.
-	   The space-md * 5 allowance covers the in-plane labels overhanging below the diamond (offset + up to three text rows, font-scaled since the token is rem-based). */
+	/* The space-md * 5 allowance covers the in-plane labels overhanging below the diamond (offset + up to three text rows, font-scaled since the token is rem-based). */
 	--t-dimensions-stage-height: calc(
-		max( var( --t-dimensions-box-height ), 2 * var( --t-dimensions-ref-height ) - var( --t-dimensions-box-height ) ) / 2 +
-			hypot( var( --t-dimensions-box-length ), var( --t-dimensions-box-width ) ) + var( --space-md ) * 5
+		var( --t-dimensions-box-height ) / 2 + hypot( var( --t-dimensions-box-length ), var( --t-dimensions-box-width ) ) +
+			var( --space-md ) * 5
 	);
 
 	position: relative;
@@ -41,23 +25,6 @@
 	font-size: var( --font-size-small );
 	line-height: var( --line-height-xx-small );
 	overflow: hidden;
-}
-
-.t-dimensions--has-reference {
-	/* The reference joins the scale budget so a reference larger than the
-	   object (e.g. human vs a small crate) cannot outgrow the scene */
-	--t-dimensions-longest: max(
-		var( --t-dimensions-object-length ),
-		var( --t-dimensions-object-width ),
-		var( --t-dimensions-object-height ),
-		var( --t-dimensions-reference-length ),
-		var( --t-dimensions-reference-width ),
-		var( --t-dimensions-reference-height )
-	);
-	--t-dimensions-ref-length: calc( var( --t-dimensions-reference-length ) * var( --t-dimensions-scale ) );
-	--t-dimensions-ref-width: calc( var( --t-dimensions-reference-width ) * var( --t-dimensions-scale ) );
-	--t-dimensions-ref-height: calc( var( --t-dimensions-reference-height ) * var( --t-dimensions-scale ) );
-	--t-dimensions-ref-clear: calc( var( --t-dimensions-ref-length ) + 12px );
 }
 
 /* visually hidden, available to screen readers */
@@ -88,15 +55,11 @@
 		rotateZ( var( --t-dimensions-rotate-z ) );
 	transform: var( --t-dimensions-scene-transform );
 	display: grid;
-	transition-property: transform;
-	transition-duration: 250ms;
-	transition-timing-function: var( --transition-timing-function-ease );
 }
 
 .t-dimensions-box {
 	display: grid;
 	grid-area: 1 / 1;
-	transition: inherit;
 }
 
 .t-dimensions-layer {
@@ -105,12 +68,10 @@
 	height: var( --t-dimensions-box-width );
 	grid-area: 1 / 1;
 	transform: var( --t-dimensions-layer-transform );
-	transition: inherit;
 }
 
 /* Face-plane transform stashes live on the top layer: an ancestor of both
-   the faces and the height line, and re-resolved per box (the reference
-   re-declares --t-dimensions-offset-up/--t-dimensions-offset-down on its root, which sits above its layers). */
+   the faces and the height line. */
 .t-dimensions-layer--top {
 	--t-dimensions-layer-z: var( --t-dimensions-offset-up );
 	--t-dimensions-front-transform: rotateY( 90deg ) translateX( var( --t-dimensions-offset-up ) );
@@ -155,44 +116,6 @@
 	transform: var( --t-dimensions-right-transform );
 }
 
-/* Reference cuboid: same construction, re-scoped size variables.
-   Stands on the ground plane just beyond the front face, apex end. */
-.t-dimensions-box--reference {
-	--t-dimensions-box-length: var( --t-dimensions-ref-length );
-	--t-dimensions-box-width: var( --t-dimensions-ref-width );
-	--t-dimensions-box-height: var( --t-dimensions-ref-height );
-	--t-dimensions-offset-up: calc( var( --t-dimensions-ref-height ) / 2 );
-	--t-dimensions-offset-down: calc( var( --t-dimensions-ref-height ) / -2 );
-	position: absolute;
-	left: calc( -1 * var( --t-dimensions-ref-length ) - 10px );
-	top: calc( 100% - var( --t-dimensions-ref-width ) );
-	width: var( --t-dimensions-ref-length );
-	height: var( --t-dimensions-ref-width );
-	--t-dimensions-ref-lift: translateZ( var( --t-dimensions-offset-up ) );
-	transform: var( --t-dimensions-ref-lift );
-}
-
-.t-dimensions-box--reference .t-dimensions-layer {
-	box-shadow: none;
-}
-
-.t-dimensions-box--reference .t-dimensions-face {
-	box-shadow: 0 0 0 1px var( --t-dimensions-ref-color );
-	opacity: 0.75;
-}
-
-.t-dimensions-box--reference .t-dimensions-face--top {
-	background-color: var( --t-dimensions-ref-color-light );
-}
-
-.t-dimensions-box--reference .t-dimensions-face--front {
-	background-color: var( --t-dimensions-ref-color-dark );
-}
-
-.t-dimensions-box--reference .t-dimensions-face--right {
-	background-color: var( --t-dimensions-ref-color );
-}
-
 /* Measurement lines */
 .t-dimensions-line {
 	position: absolute;
@@ -230,7 +153,7 @@
 
 .t-dimensions-line--width {
 	top: 0;
-	left: calc( -10px - var( --t-dimensions-ref-clear ) );
+	left: -10px;
 	width: 0;
 	height: 100%;
 	border-left: 1px solid var( --t-dimensions-line-color );
@@ -251,10 +174,9 @@
 	bottom: 0;
 }
 
-/* Height line lives in the right-face plane so it tracks scene rotation:
-   same placement/transform as the right face, widened by the line offset;
-   the visible line is the border-right edge. Goes edge-on (invisible) at
-   the hover plan view, by design. */
+/* Height line lives in the right-face plane: same placement/transform as the
+   right face, widened by the line offset; the visible line is the
+   border-right edge. */
 .t-dimensions-line--height {
 	bottom: var( --t-dimensions-offset-down );
 	left: 0;
@@ -286,7 +208,6 @@
 	flex-direction: column;
 	white-space: nowrap;
 	width: max-content;
-	transition: inherit;
 }
 
 .t-dimensions-text-label {
@@ -316,7 +237,7 @@
 
 .t-dimensions-text--width {
 	top: 50%;
-	left: calc( -16px - var( --t-dimensions-ref-clear ) );
+	left: -16px;
 	transform: rotate( 90deg ) translateX( -50% );
 	transform-origin: top left;
 	text-align: center;
@@ -328,17 +249,14 @@
 	right: 0;
 	bottom: 0;
 	transform: var( --t-dimensions-invert-transform );
-	transition: inherit;
 }
 
 /* 0.35355 = sin(45°)/2: midpoint of the projected height edge at the
-   default camera. Only positions the label; the line is geometry-true.
-   top is transitioned alongside transform so the hover reposition glides. */
+   default camera. Only positions the label; the line is geometry-true. */
 .t-dimensions-text--height {
 	left: 20px;
 	top: calc( var( --t-dimensions-box-height ) * 0.35355 );
 	transform: translateY( -50% );
-	transition-property: transform, top;
 }
 
 /* The alt parentheticals stack under the value in the height and width
@@ -349,70 +267,21 @@
 	display: block;
 }
 
-/* Footer: mass + reference legend */
-.t-dimensions-footer {
+/* Caller metrics (e.g. mass), styled like the axis labels, in the
+   bottom-right corner: 12px in lines them up under the dimensions gadget's
+   cue in the top-right corner */
+.t-dimensions-metrics {
+	position: absolute;
+	right: var( --space-sm );
+	bottom: var( --space-sm );
 	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: var( --space-sm );
-	padding: var( --space-xs ) var( --space-sm );
-	border-top: 1px solid var( --border-color-base );
-	color: var( --color-subtle );
-	font-size: var( --font-size-x-small );
-	line-height: var( --line-height-xx-small );
+	flex-direction: column;
+	align-items: flex-end;
+	gap: var( --space-xs );
+	text-align: right;
 }
 
-.t-dimensions-footer-item {
+.t-dimensions-metric {
 	display: flex;
-	align-items: baseline;
-	gap: var( --space-xxs );
-}
-
-.t-dimensions-footer-value {
-	color: var( --color-emphasized );
-	font-weight: var( --font-weight-medium );
-}
-
-.t-dimensions-legend {
-	display: flex;
-	align-items: center;
-	gap: var( --space-xxs );
-}
-
-.t-dimensions-swatch {
-	flex: none;
-	width: 9px;
-	height: 9px;
-	border-radius: var( --border-radius-base );
-	background: var( --t-dimensions-ref-color );
-	opacity: 0.8;
-}
-
-/* Hover: rotate to the top-down plan view. Ground-plane lines become a flat
-   drawing; the width label un-rotates to read horizontally, and the height
-   label (its edge now points at the viewer) lifts to the vertical center of
-   the footprint's right side so it stays inside the container. */
-@media ( hover: hover ) {
-	.t-dimensions-stage:hover .t-dimensions-scene {
-		--t-dimensions-rotate-x: 0deg;
-		--t-dimensions-rotate-z: 0deg;
-	}
-
-	.t-dimensions-stage:hover .t-dimensions-text--height {
-		top: calc( var( --t-dimensions-box-width ) / -2 );
-	}
-
-	.t-dimensions-stage:hover .t-dimensions-text--width {
-		transform: translate( -100%, -50% );
-		text-align: right;
-	}
-}
-
-@media ( prefers-reduced-motion: reduce ) {
-	.t-dimensions-scene,
-	.t-dimensions-layer,
-	.t-dimensions-text,
-	.t-dimensions-anchor--height {
-		transition-duration: 0s;
-	}
+	flex-direction: column;
 }

@@ -231,8 +231,13 @@
 	background-color: var( --gadget-dimensions-hue );
 }
 
-.gadget-dimensions-remove {
+/* The row's quiet icon button (rowButton in Gadget-dimensionsDialog.js):
+   Remove trails a compared object, Back leads an opened vehicle */
+.gadget-dimensions-rowbutton {
 	flex: none;
+}
+
+.gadget-dimensions-row > .gadget-dimensions-rowbutton:last-child {
 	margin-left: auto;
 }
 
@@ -335,6 +340,215 @@
 
 .gadget-dimensions-status--over {
 	color: var( --color-destructive, #d73333 );
+}
+
+/* An owner row opens its cargo grids: a chevron after the status */
+.gadget-dimensions-fitrow > .gadget-dimensions-icon {
+	flex: none;
+	width: 16px;
+	height: 16px;
+	margin-right: -4px;
+	color: var( --color-subtle, #54595d );
+}
+
+/* Fit: one search over every cargo space, the groups below it */
+.gadget-dimensions-search {
+	position: relative;
+	flex: none;
+	margin-top: 4px;
+}
+
+.gadget-dimensions-search > .gadget-dimensions-icon {
+	position: absolute;
+	top: 50%;
+	left: 12px;
+	width: 16px;
+	height: 16px;
+	transform: translateY( -50% );
+	color: var( --color-subtle, #54595d );
+	pointer-events: none;
+}
+
+.gadget-dimensions-search-input {
+	width: 100%;
+	min-height: 40px;
+	margin: 0;
+	padding: 0 12px 0 36px;
+	border: 1px solid var( --border-color-interactive, #72777d );
+	border-radius: var( --border-radius-medium, 4px );
+	background-color: var( --background-color-base, #fff );
+	color: var( --color-emphasized, #101418 );
+	font: inherit;
+}
+
+.gadget-dimensions-search-input::placeholder {
+	color: var( --color-placeholder, #72777d );
+	opacity: 1;
+}
+
+.gadget-dimensions-search-input:focus {
+	outline: 0;
+	border-color: var( --border-color-progressive--focus, #36c );
+	box-shadow: inset 0 0 0 1px var( --box-shadow-color-progressive--focus, #36c );
+}
+
+.gadget-dimensions-results {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.gadget-dimensions-group {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	width: 100%;
+	min-height: 44px;
+	padding: 0 10px 0 6px;
+	border: 0;
+	border-radius: 6px;
+	background: transparent;
+	color: var( --color-emphasized, #101418 );
+	font-weight: 500;
+	text-align: left;
+}
+
+.gadget-dimensions-group:hover {
+	background-color: var( --background-color-neutral, #eaecf0 );
+}
+
+.gadget-dimensions-group > .gadget-dimensions-icon {
+	flex: none;
+	width: 16px;
+	height: 16px;
+	color: var( --color-subtle, #54595d );
+	transition: transform 100ms;
+}
+
+.gadget-dimensions-group[ aria-expanded='true' ] > .gadget-dimensions-icon {
+	transform: rotate( 90deg );
+}
+
+/* A group's rows while its request runs */
+.gadget-dimensions-skeletons {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.gadget-dimensions-skeleton {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	gap: 6px;
+	min-height: 44px;
+	padding: 6px 10px;
+}
+
+.gadget-dimensions-skeleton::before,
+.gadget-dimensions-skeleton::after {
+	content: '';
+	height: 10px;
+	width: 55%;
+	border-radius: 4px;
+	background-color: var( --background-color-neutral, #eaecf0 );
+}
+
+.gadget-dimensions-skeleton::after {
+	height: 8px;
+	width: 35%;
+}
+
+.gadget-dimensions-loaderror {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	padding: 4px 4px 4px 10px;
+	font-size: 0.8125rem;
+	color: var( --color-subtle, #54595d );
+}
+
+/* Fit's panes: the groups and an owner's grids push each other sideways
+   (Gadget-dimensionsDialog.js sets the leaving pane's top). Not flex: none,
+   the clip would let the sidebar squeeze the list instead of scrolling it;
+   the negative margin keeps focus outlines clear of the clip. */
+.gadget-dimensions-panes {
+	position: relative;
+	flex: none;
+	margin: 0 -4px;
+	padding: 0 4px;
+	overflow: hidden;
+}
+
+.gadget-dimensions-pane {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.gadget-dimensions-pane--leaving {
+	position: absolute;
+	left: 4px;
+	right: 4px;
+	pointer-events: none;
+}
+
+.gadget-dimensions-pane--from-right {
+	animation: gadget-dimensions-from-right 220ms cubic-bezier( 0.2, 0, 0, 1 ) both;
+}
+
+.gadget-dimensions-pane--from-left {
+	animation: gadget-dimensions-from-left 220ms cubic-bezier( 0.2, 0, 0, 1 ) both;
+}
+
+.gadget-dimensions-pane--to-left {
+	animation: gadget-dimensions-to-left 220ms cubic-bezier( 0.2, 0, 0, 1 ) both;
+}
+
+.gadget-dimensions-pane--to-right {
+	animation: gadget-dimensions-to-right 220ms cubic-bezier( 0.2, 0, 0, 1 ) both;
+}
+
+@keyframes gadget-dimensions-from-right {
+	from {
+		transform: translateX( 100% );
+	}
+}
+
+@keyframes gadget-dimensions-from-left {
+	from {
+		transform: translateX( -100% );
+	}
+}
+
+@keyframes gadget-dimensions-to-left {
+	to {
+		transform: translateX( -100% );
+	}
+}
+
+@keyframes gadget-dimensions-to-right {
+	to {
+		transform: translateX( 100% );
+	}
+}
+
+.gadget-dimensions-nameline {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+/* How many of a ship's grids are this one */
+.gadget-dimensions-count {
+	padding: 0 6px;
+	border-radius: 999px;
+	background-color: var( --background-color-interactive, #eaecf0 );
+	font-size: 0.75rem;
+	font-weight: 500;
+	line-height: 18px;
+	color: var( --color-base, #202122 );
 }
 
 /* Stage */
@@ -601,6 +815,15 @@
 	outline-offset: -1px;
 }
 
+/* A cargo grid's floor, ruled in SCU squares (background-size is set inline),
+   so it reads as a grid rather than a container */
+.gadget-dimensions-face--floor {
+	--gadget-dimensions-rule: color-mix( in srgb, var( --gadget-dimensions-hue ) 35%, transparent );
+	background-image:
+		linear-gradient( to right, var( --gadget-dimensions-rule ) 1px, transparent 1px ),
+		linear-gradient( to bottom, var( --gadget-dimensions-rule ) 1px, transparent 1px );
+}
+
 /* Narrow screens: a bottom sheet with the scene on top and the sidebar below.
    dvh, not vh: mobile browsers size vh for a hidden address bar, so while it
    shows, a vh sheet runs off the top of the screen and hides the close button. */
@@ -630,5 +853,11 @@
 		width: auto;
 		min-height: 0;
 		border-right: 0;
+	}
+
+	/* 16px keeps iOS from zooming the page into a focused field */
+	.gadget-dimensions-search-input {
+		min-height: 44px;
+		font-size: 1rem;
 	}
 }

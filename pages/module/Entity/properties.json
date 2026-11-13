@@ -318,6 +318,60 @@
 		],
 		"desc": "Largest single cargo container one of a vehicle's cargo grids accepts, in SCU."
 	},
+	"Cargo grid maximum item longest side": {
+		"type": "DOUBLE",
+		"bucket": "cargo_grid",
+		"field": "cargo_grid_maximum_item_longest_side",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Longest side, in metres, of the largest item one of a vehicle's cargo grids secures, in any orientation."
+	},
+	"Cargo grid maximum item middle side": {
+		"type": "DOUBLE",
+		"bucket": "cargo_grid",
+		"field": "cargo_grid_maximum_item_middle_side",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Middle side, in metres, of the largest item one of a vehicle's cargo grids secures, in any orientation."
+	},
+	"Cargo grid maximum item shortest side": {
+		"type": "DOUBLE",
+		"bucket": "cargo_grid",
+		"field": "cargo_grid_maximum_item_shortest_side",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Shortest side, in metres, of the largest item one of a vehicle's cargo grids secures, in any orientation."
+	},
+	"Cargo grid minimum item longest side": {
+		"type": "DOUBLE",
+		"bucket": "cargo_grid",
+		"field": "cargo_grid_minimum_item_longest_side",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Longest side, in metres, of the smallest item one of a vehicle's cargo grids secures, in any orientation."
+	},
+	"Cargo grid minimum item middle side": {
+		"type": "DOUBLE",
+		"bucket": "cargo_grid",
+		"field": "cargo_grid_minimum_item_middle_side",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Middle side, in metres, of the smallest item one of a vehicle's cargo grids secures, in any orientation."
+	},
+	"Cargo grid minimum item shortest side": {
+		"type": "DOUBLE",
+		"bucket": "cargo_grid",
+		"field": "cargo_grid_minimum_item_shortest_side",
+		"modules": [
+			"Vehicle"
+		],
+		"desc": "Shortest side, in metres, of the smallest item one of a vehicle's cargo grids secures, in any orientation. Zero when the grid has no minimum."
+	},
 	"Cargo grid width": {
 		"type": "DOUBLE",
 		"bucket": "cargo_grid",

@@ -24,6 +24,36 @@
 		"index": false,
 		"repeated": false
 	},
+	"cargo_grid_maximum_item_longest_side": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"cargo_grid_maximum_item_middle_side": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"cargo_grid_maximum_item_shortest_side": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"cargo_grid_minimum_item_longest_side": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"cargo_grid_minimum_item_middle_side": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
+	"cargo_grid_minimum_item_shortest_side": {
+		"type": "DOUBLE",
+		"index": false,
+		"repeated": false
+	},
 	"cargo_grid_width": {
 		"type": "DOUBLE",
 		"index": false,

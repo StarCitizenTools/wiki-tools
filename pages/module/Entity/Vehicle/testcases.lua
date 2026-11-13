@@ -261,6 +261,35 @@ function suite:testStructuredRowsOmitUnknownExternalAndLimit()
 		Vehicle.getStructuredRows(ctx({ cargo_grids = { { length = 5, width = 3.75, height = 2.5, scu = 24 } } }))
 	self:assertEquals(nil, rows[1].data.cargo_grid_external)
 	self:assertEquals(nil, rows[1].data.cargo_grid_maximum_container_size)
+	self:assertEquals(nil, rows[1].data.cargo_grid_minimum_item_shortest_side)
+	self:assertEquals(nil, rows[1].data.cargo_grid_maximum_item_longest_side)
+end
+
+-- The limit box's axes do not follow the grid's, so its sides are stored
+-- sorted: the Zeus Mk II CL hold's z = 10 is its longest side, not a height.
+function suite:testStructuredRowsStoreItemLimitsShortestFirst()
+	local rows = Vehicle.getStructuredRows(ctx({
+		cargo_grids = {
+			{
+				length = 10,
+				width = 6.25,
+				height = 3.75,
+				scu = 120,
+				min_size = { x = 1.25, y = 1.25, z = 1.25 },
+				max_size = { x = 2.5, y = 2.5, z = 10 },
+			},
+			{ length = 1.25, width = 1.25, height = 1.25, scu = 1, min_size = { x = 0, y = 0, z = 0 } },
+		},
+	}))
+	local data = rows[1].data
+	self:assertEquals(1.25, data.cargo_grid_minimum_item_shortest_side)
+	self:assertEquals(1.25, data.cargo_grid_minimum_item_longest_side)
+	self:assertEquals(2.5, data.cargo_grid_maximum_item_shortest_side)
+	self:assertEquals(2.5, data.cargo_grid_maximum_item_middle_side)
+	self:assertEquals(10, data.cargo_grid_maximum_item_longest_side)
+	-- A zero minimum is stored: it means no minimum, not an unknown one.
+	self:assertEquals(0, rows[2].data.cargo_grid_minimum_item_shortest_side)
+	self:assertEquals(nil, rows[2].data.cargo_grid_maximum_item_shortest_side)
 end
 
 function suite:testStructuredRowsEmptyWithoutCargoGrids()

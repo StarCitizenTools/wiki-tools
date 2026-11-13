@@ -51,7 +51,7 @@ Every sub-builder exposes one `build(apiData, args, ed)` returning an `EntitySec
 
 ### Cargo grids
 
-`getStructuredRows` writes one `cargo_grid` row per entry in the API's `cargo_grids`, with its length, width and height in metres, its capacity and largest accepted container in SCU, and whether it is external. A grid's `sub` is its 1-based position, so its `page_name_sub` is `<Title>#<n>`: the same grid fitted twice on one ship (the Caterpillar's modules) shares every other value, the API's grid uuid included. `Cargo grid external` is unset where the API gives no flag.
+`getStructuredRows` writes one `cargo_grid` row per entry in the API's `cargo_grids`, with its length, width and height in metres, its capacity and largest accepted container in SCU, whether it is external, and the smallest and largest item it secures. Each item limit is stored as three sides, shortest first, because the API's `min_size` and `max_size` axes do not follow the grid's own (the Zeus Mk II CL hold allows 10 m on z in a 3.75 m tall space). A minimum of zero means none. A grid's `sub` is its 1-based position, so its `page_name_sub` is `<Title>#<n>`: the same grid fitted twice on one ship (the Caterpillar's modules) shares every other value, the API's grid uuid included. `Cargo grid external` is unset where the API gives no flag.
 
 ### Extending
 

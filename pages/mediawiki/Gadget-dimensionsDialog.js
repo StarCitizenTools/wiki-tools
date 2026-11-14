@@ -889,12 +889,14 @@
 			builtScale = scale;
 			builtStep = geo.gridStep( scale, 18 );
 
-			// The floor runs well past the viewport, which a tilted view stretches
-			// along the ground, and fades out before its edge. A grid line runs
+			// The floor fills the viewport seen from above and fades out before
+			// its edge, which a tilted view brings on screen. It is kept that
+			// small on purpose: tilting brings more of it into view, and its
+			// raster cost grows with the area on screen. A grid line runs
 			// through the first item's corner: in Fit, the container's, so the
 			// floor carries on a cargo grid's SCU ruling. Below one SCU, every
 			// SCU line is drawn stronger than the squares between.
-			const half = Math.hypot( viewport.clientWidth, viewport.clientHeight ) * 2 / scale;
+			const half = Math.hypot( viewport.clientWidth, viewport.clientHeight ) * 0.75 / scale;
 			const corner = { x: center.x - half, y: center.y - half };
 			const anchor = layout.items[ 0 ];
 			const major = Math.max( builtStep, geo.SCU_EDGE ) * scale;
@@ -903,8 +905,8 @@
 			const grid = h( 'div', `${ P }-grid` );
 			grid.style.cssText = `left:${ corner.x * scale }px;top:${ corner.y * scale }px;` +
 				`width:${ 2 * half * scale }px;height:${ 2 * half * scale }px;` +
-				`background-size:${ major }px ${ major }px,${ major }px ${ major }px,${ minor }px ${ minor }px,${ minor }px ${ minor }px;` +
-				`background-position:${ offset },${ offset },${ offset },${ offset }`;
+				`background-size:100% 100%,${ major }px ${ major }px,${ major }px ${ major }px,${ minor }px ${ minor }px,${ minor }px ${ minor }px;` +
+				`background-position:0 0,${ offset },${ offset },${ offset },${ offset }`;
 			scene.replaceChildren( grid, ...layout.items.map( ( item, i ) => cuboid( item, scale, tones[ i ][ 0 ], tones[ i ][ 1 ], tones[ i ][ 2 ] ) ) );
 			camera.setContent( { size, center, buildScale: scale }, { fit: !options.scale, animate: options.animate } );
 		}

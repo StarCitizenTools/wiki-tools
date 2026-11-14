@@ -584,18 +584,20 @@
 	transform-style: preserve-3d;
 }
 
-/* The floor: lines only, the SCU lines (the first two layers) stronger than
-   the squares between. Sizes and offsets are set inline, in that order. */
+/* The floor: lines only, the SCU lines (the second and third layers) stronger
+   than the squares between. Sizes and offsets are set inline, in that order.
+   The first layer fades the lines into the scene's background towards the
+   edge; a mask-image would cost an offscreen pass on a large 3D layer. */
 .gadget-dimensions-grid {
 	--gadget-dimensions-line-major: color-mix( in srgb, var( --color-base, #202122 ) 7%, transparent );
 	--gadget-dimensions-line-minor: color-mix( in srgb, var( --color-base, #202122 ) 3%, transparent );
 	position: absolute;
 	background-image:
+		radial-gradient( closest-side, transparent 70%, var( --background-color-base, #fff ) ),
 		linear-gradient( to right, var( --gadget-dimensions-line-major ) 1px, transparent 1px ),
 		linear-gradient( to bottom, var( --gadget-dimensions-line-major ) 1px, transparent 1px ),
 		linear-gradient( to right, var( --gadget-dimensions-line-minor ) 1px, transparent 1px ),
 		linear-gradient( to bottom, var( --gadget-dimensions-line-minor ) 1px, transparent 1px );
-	mask-image: radial-gradient( closest-side, #000 70%, transparent );
 }
 
 /* Fit's verdict, laid over the scene's top left, clear of the close button;

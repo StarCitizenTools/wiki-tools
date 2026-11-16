@@ -234,4 +234,25 @@ function p.cloneFormat(fmt)
 	return copy
 end
 
+--- Give a colDef whose `format` shows a unit its own CSV header naming that unit:
+--- a formatted column exports the bare number, so "Mass" with suffix " kg" exports
+--- as "Mass (kg)". Read by the gadget's scwCsvHeader type from `context.csvHeader`;
+--- the on-screen header is unchanged. A def with no unit is returned untouched.
+--- @param def table  a colDef carrying `headerName`, `format` and `type`
+--- @return table def
+function p.withCsvHeader(def)
+	local fmt = def.format or {}
+	local unit = mw.text.trim(fmt.suffix or '')
+	if unit == '' then
+		unit = mw.text.trim(fmt.prefix or '')
+	end
+	if unit == '' or not def.headerName then
+		return def
+	end
+	def.context = def.context or {}
+	def.context.csvHeader = def.headerName .. ' (' .. unit .. ')'
+	def.type = def.type and { def.type, 'scwCsvHeader' } or 'scwCsvHeader'
+	return def
+end
+
 return p

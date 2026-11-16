@@ -1,7 +1,7 @@
 require('strict')
 
 --- The contract every Module:AGGridColumns/Kind/* module must satisfy. A kind is
---- inert without all three, so all are required. `type` is the JS column type the
+--- inert without all three required members. `type` is the JS column type the
 --- kind pairs with under the gadget's reg.columnTypes (or `false` for a type-less
 --- plain column). Enforced by Module:AGGridColumns/testcases (conformance loop).
 
@@ -10,12 +10,14 @@ local p = {}
 --- @class ColumnKind
 --- @field type string|false   the JS colDef type (or false for none)
 --- @field buildColDef fun(spec: table): table
---- @field buildCellValue fun(spec: table, result: table): any
+--- @field buildCellValue fun(spec: table, result: table): any, table|nil  the cell value, then any companion row fields
+--- @field buildCompanionColDefs? fun(spec: table): table[]  hidden columns over companion fields
 
 p.COLUMN_KIND = {
 	type = 'field', -- present (string or false); checked for nil
 	buildColDef = 'function',
 	buildCellValue = 'function',
+	buildCompanionColDefs = 'optional function',
 }
 
 --- Validate a kind module against COLUMN_KIND.
@@ -34,6 +36,9 @@ function p.validate(kind)
 	end
 	if type(kind.buildCellValue) ~= 'function' then
 		return false, 'missing buildCellValue function'
+	end
+	if kind.buildCompanionColDefs ~= nil and type(kind.buildCompanionColDefs) ~= 'function' then
+		return false, 'buildCompanionColDefs is not a function'
 	end
 	return true
 end

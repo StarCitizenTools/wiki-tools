@@ -1,26 +1,45 @@
 require('strict')
 
 --- 'card' kind — a compact entity cell (thumbnail + eyebrow + title) rendered by
---- the gadget's scwEntityCard type. Generalised from PledgeVehicleGrid's buildCard.
+--- the gadget's scwCard type. Generalised from PledgeVehicleGrid's buildCard.
 --- Spec: { field, header, titleLabel, imageLabel?, displayLabel?, filter?,
 ---         filterOn?, pinned?, width? | (flex?, minWidth?),
----         eyebrow? = fun(result): { text, full?, href?, icon? }|nil }.
+---         eyebrow? = fun(result): { text, full?, href?, icon? }|nil,
+---         eyebrowHeader? }.
 --- Sizing is either fixed (`width`) or flexible (`flex`, with `minWidth` as its
 --- floor) so the card can absorb a grid's leftover horizontal space.
 --- The eyebrow resolver is consumer-supplied (e.g. PledgeVehicleGrid maps a
 --- manufacturer to its short name + brand glyph), so this kind stays generic.
---- `filterOn` ('title'|'eyebrow') tells the gadget which packed field the filter
---- keys on; unset = the gadget default (eyebrow, falling back to title).
+--- `filterOn` ('title'|'eyebrow') picks which of the two the column filter keys
+--- on; unset = the eyebrow, falling back to the title.
 --- `displayLabel`, when it names a non-empty string result field, is shown as
 --- the title instead of `titleLabel`'s own text; the link still targets
 --- `titleLabel`. Store's `page_name` builtin is the bare page title and does
 --- not carry a page's `{{DISPLAYTITLE}}`.
+---
+--- Row fields: `<field>` is the title, the value sort and export use.
+--- `<field>Eyebrow` is the eyebrow's `full` text (else its `text`): the filter
+--- option and, with `eyebrowHeader`, a hidden column of that name for the export.
+--- `<field>View` holds what only the renderer reads: { titleHref, image, eyebrow,
+--- eyebrowHref, eyebrowIcon }, where `eyebrow` is the short label shown.
 
 local aggrid = require('mw.ext.aggrid')
 local Util = require('Module:AGGridColumns/Util')
 
 local p = {}
-p.type = 'scwEntityCard'
+p.type = 'scwCard'
+
+--- @param field string
+--- @return string
+function p.eyebrowField(field)
+	return field .. 'Eyebrow'
+end
+
+--- @param field string
+--- @return string
+function p.viewField(field)
+	return field .. 'View'
+end
 
 --- @param spec table
 --- @return table
@@ -29,10 +48,15 @@ function p.buildColDef(spec)
 		field = spec.field,
 		headerName = spec.header,
 		sort = spec.sort,
-		type = 'scwEntityCard',
+		type = 'scwCard',
 		filter = spec.filter or 'aggridSet',
 		sortable = true,
 		suppressAutoSize = true,
+		context = {
+			eyebrowField = p.eyebrowField(spec.field),
+			viewField = p.viewField(spec.field),
+			filterOn = spec.filterOn,
+		},
 	}
 	-- Sizing: a fixed `width`, or `flex` (with `minWidth` as its floor) to absorb
 	-- the grid's leftover horizontal space. flex and width are mutually exclusive
@@ -42,12 +66,6 @@ function p.buildColDef(spec)
 		def.minWidth = spec.minWidth
 	else
 		def.width = spec.width
-	end
-	-- Which packed field the filter keys on. The gadget's scwEntityCard
-	-- filterValueGetter reads this; unset = its default (eyebrow → title), so
-	-- PledgeVehicleGrid (no filterOn) is unaffected.
-	if spec.filterOn then
-		def.scwCardFilterOn = spec.filterOn
 	end
 	-- Pinned, the card stays on screen while the data columns scroll under it, so a
 	-- value several screens to the right still has a subject. Only set when asked:
@@ -59,8 +77,20 @@ function p.buildColDef(spec)
 end
 
 --- @param spec table
+--- @return table[]
+function p.buildCompanionColDefs(spec)
+	if not spec.eyebrowHeader then
+		return {}
+	end
+	return {
+		{ field = p.eyebrowField(spec.field), headerName = spec.eyebrowHeader, hide = true },
+	}
+end
+
+--- @param spec table
 --- @param result table
---- @return table|nil
+--- @return string|nil title
+--- @return table|nil companions
 function p.buildCellValue(spec, result)
 	local titleTarget, titleDisplay = Util.pageTarget(result[spec.titleLabel])
 	if not titleTarget then
@@ -71,21 +101,22 @@ function p.buildCellValue(spec, result)
 	if type(displayName) ~= 'string' or displayName == '' then
 		displayName = nil
 	end
-	local card = {
-		title = displayName or (titleLink and titleLink.text) or titleDisplay or titleTarget,
+	local title = displayName or (titleLink and titleLink.text) or titleDisplay or titleTarget
+	local view = {
 		titleHref = titleLink and titleLink.href,
 		image = spec.imageLabel and Util.buildThumb(result[spec.imageLabel], titleTarget) or nil,
 	}
+	local companions = { [p.viewField(spec.field)] = view }
 	if spec.eyebrow then
 		local eb = spec.eyebrow(result)
 		if eb then
-			card.eyebrow = eb.text
-			card.eyebrowFull = eb.full
-			card.eyebrowHref = eb.href
-			card.eyebrowIcon = eb.icon
+			view.eyebrow = eb.text
+			view.eyebrowHref = eb.href
+			view.eyebrowIcon = eb.icon
+			companions[p.eyebrowField(spec.field)] = eb.full or eb.text
 		end
 	end
-	return card
+	return title, companions
 end
 
 return p

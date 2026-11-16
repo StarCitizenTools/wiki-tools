@@ -10,20 +10,28 @@
  * MediaWiki:Gadgets-definition by a category condition. Its companion stylesheet
  * MediaWiki:Gadget-aggridRenderers.css styles the cells these renderers build.
  *
- * The Lua side packs one value object per row and resolves every file/URL target
- * server-side; these renderers only build safe DOM from the resolved value.
+ * The Lua side resolves every file/URL target server-side; these renderers only
+ * build safe DOM from the resolved values. A cell value is one fact. Where a cell
+ * shows more than one, each extra fact sits in its own row field, named by the
+ * column's colDef.context, so sort, filter and CSV export read plain values.
  *
  * Column types
- *  - scwEntityCard: a compact "entity" cell — thumbnail + eyebrow + title, with
- *    the eyebrow glyph rendered as a decorative right-edge watermark and beside
- *    each value in the set filter. Value shape:
- *      { image: {src,width,alt,href}|null, title, titleHref,
- *        eyebrow, eyebrowFull, eyebrowHref, eyebrowIcon: {src,...}|null }
- *    eyebrow = display label; eyebrowFull = the set-filter value (falls back to
- *    eyebrow); eyebrowIcon = the brand glyph.
- *  - scwStackedValue: a primary line over an optional muted secondary line, with
- *    a raw number for sort / the number filter. Value shape:
- *      { value: <number>, text: <primary string>, sub: <secondary string>|null }
+ *  - scwCard: a compact "entity" cell — thumbnail + eyebrow + title, with the
+ *    eyebrow glyph rendered as a decorative right-edge watermark and beside each
+ *    value in the set filter. Value: the title. colDef.context names two row
+ *    fields: eyebrowField (the eyebrow's filter label) and viewField
+ *      { titleHref, image: {src,width,alt}|null, eyebrow, eyebrowHref,
+ *        eyebrowIcon: {src,...}|null }
+ *    where eyebrow is the short label shown. context.filterOn ('title' |
+ *    'eyebrow') picks what the column filter keys on; unset = eyebrow, else title.
+ *  - scwStacked: a primary number over an optional muted secondary line. Value: the
+ *    number; context.originalField names the row field holding the second number,
+ *    shown when it differs. Both lines use the column's valueFormatter.
+ *  - scwCsvHeader: names the column context.csvHeader in a CSV export, keeping
+ *    headerName on screen. Added beside a column's own type.
+ *  - scwEntityCard, scwStackedValue: the object-valued predecessors of scwCard and
+ *    scwStacked, for pages whose stored rows predate them. Remove once no page in
+ *    Category:Pages using AG Grid renders either.
  *  - scwBadge: a BadgeLua-style pill. Value shape:
  *      { text, variant: 'error'|'success'|'warning'|null }
  *  - scwBadgeList: a wrapping row of BadgeLua-style pills, each with an optional
@@ -377,15 +385,22 @@
 	// each value. Global (icons are the same across grids); merged per mount.
 	var eyebrowIcons = Object.create( null );
 
-	// Record each scwEntityCard column's eyebrow -> icon src from the loaded rows.
+	function hasType( colDef, name ) {
+		var t = colDef && colDef.type;
+		return t === name || ( Array.isArray( t ) && t.indexOf( name ) !== -1 );
+	}
+
+	// Record each card column's eyebrow -> icon src from the loaded rows. The label is
+	// the set-filter value, which is what eyebrowFilterItem is handed.
 	function harvestEyebrowIcons( api, gridOptions ) {
-		var fields = ( gridOptions.columnDefs || [] ).filter( function ( c ) {
-			var t = c && c.type;
-			return t === 'scwEntityCard' || ( Array.isArray( t ) && t.indexOf( 'scwEntityCard' ) !== -1 );
-		} ).map( function ( c ) {
-			return c.field;
-		} ).filter( Boolean );
-		if ( !fields.length ) {
+		var defs = gridOptions.columnDefs || [];
+		var legacy = defs.filter( function ( c ) {
+			return hasType( c, 'scwEntityCard' ) && c.field;
+		} );
+		var cards = defs.filter( function ( c ) {
+			return hasType( c, 'scwCard' ) && c.context;
+		} );
+		if ( !legacy.length && !cards.length ) {
 			return;
 		}
 		api.forEachNode( function ( node ) {
@@ -393,11 +408,18 @@
 			if ( !d ) {
 				return;
 			}
-			fields.forEach( function ( f ) {
-				var v = d[ f ];
+			legacy.forEach( function ( c ) {
+				var v = d[ c.field ];
 				var label = v && ( v.eyebrowFull || v.eyebrow );
 				if ( label && v.eyebrowIcon && v.eyebrowIcon.src ) {
 					eyebrowIcons[ label ] = v.eyebrowIcon.src;
+				}
+			} );
+			cards.forEach( function ( c ) {
+				var view = d[ c.context.viewField ];
+				var label = d[ c.context.eyebrowField ];
+				if ( label && view && view.eyebrowIcon && view.eyebrowIcon.src ) {
+					eyebrowIcons[ label ] = view.eyebrowIcon.src;
 				}
 			} );
 		} );
@@ -426,7 +448,90 @@
 		harvestEyebrowIcons( api, gridOptions );
 	} );
 
+	function contextOf( colDef ) {
+		return ( colDef && colDef.context ) || {};
+	}
+
 	mw.hook( 'ext.aggrid.register' ).add( function ( reg ) {
+		reg.columnTypes.scwCard = {
+			cellRenderer: function ( params ) {
+				if ( params.value === null || params.value === undefined || params.value === '' ) {
+					return emptyCell();
+				}
+				var ctx = contextOf( params.colDef );
+				var view = ( params.data && params.data[ ctx.viewField ] ) || {};
+				return buildCard( {
+					title: params.value,
+					titleHref: view.titleHref,
+					image: view.image,
+					eyebrow: view.eyebrow,
+					eyebrowHref: view.eyebrowHref,
+					eyebrowIcon: view.eyebrowIcon
+				} );
+			},
+			filterValueGetter: function ( params ) {
+				var d = params.data;
+				if ( !d ) {
+					return null;
+				}
+				var ctx = contextOf( params.colDef );
+				var title = d[ params.colDef.field ] || null;
+				var eyebrow = d[ ctx.eyebrowField ] || null;
+				if ( ctx.filterOn === 'title' ) {
+					return title;
+				}
+				if ( ctx.filterOn === 'eyebrow' ) {
+					return eyebrow;
+				}
+				return eyebrow || title;
+			},
+			// Quick search matches the title and the eyebrow whichever one the column
+			// filter keys on; without this it would derive its text from the filter
+			// value alone.
+			getQuickFilterText: function ( params ) {
+				var d = params.data;
+				if ( !d ) {
+					return '';
+				}
+				return [ d[ params.colDef.field ], d[ contextOf( params.colDef ).eyebrowField ] ]
+					.filter( Boolean )
+					.join( ' ' );
+			},
+			filterParams: {
+				itemRenderer: eyebrowFilterItem
+			},
+			// Numeric-aware, so "Alpha 4.9.0" sorts before "Alpha 4.10.0".
+			comparator: function ( a, b ) {
+				return String( a || '' ).localeCompare( String( b || '' ), undefined, { numeric: true } );
+			}
+		};
+
+		reg.columnTypes.scwStacked = {
+			cellRenderer: function ( params ) {
+				if ( typeof params.value !== 'number' ) {
+					return emptyCell();
+				}
+				var field = contextOf( params.colDef ).originalField;
+				var original = field && params.data ? params.data[ field ] : null;
+				return buildStack( {
+					text: params.valueFormatted !== null && params.valueFormatted !== undefined ?
+						params.valueFormatted : String( params.value ),
+					sub: typeof original === 'number' && original !== params.value ?
+						String( params.formatValue( original ) ) : null
+				} );
+			}
+		};
+
+		reg.columnTypes.scwCsvHeader = {
+			headerValueGetter: function ( params ) {
+				var csvHeader = contextOf( params.colDef ).csvHeader;
+				if ( params.location === 'csv' && csvHeader ) {
+					return csvHeader;
+				}
+				return params.colDef ? params.colDef.headerName : '';
+			}
+		};
+
 		reg.columnTypes.scwEntityCard = {
 			cellRenderer: function ( params ) {
 				return buildCard( params.value );

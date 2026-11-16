@@ -7,7 +7,7 @@
 	height: 70vh;
 }
 
-/* The combined "Vehicle" card cell (scwEntityCard) is built and styled by the
+/* The combined "Vehicle" card cell (scwCard) is built and styled by the
    aggridRenderers gadget (MediaWiki:Gadget-aggridRenderers.js/.css), which loads
    on grid pages. Its look is owned there, not here. */
 

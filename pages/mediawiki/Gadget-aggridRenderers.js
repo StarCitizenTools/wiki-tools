@@ -29,9 +29,6 @@
  *    shown when it differs. Both lines use the column's valueFormatter.
  *  - scwCsvHeader: names the column context.csvHeader in a CSV export, keeping
  *    headerName on screen. Added beside a column's own type.
- *  - scwEntityCard, scwStackedValue: the object-valued predecessors of scwCard and
- *    scwStacked, for pages whose stored rows predate them. Remove once no page in
- *    Category:Pages using AG Grid renders either.
  *  - scwBadge: a BadgeLua-style pill. Value shape:
  *      { text, variant: 'error'|'success'|'warning'|null }
  *  - scwBadgeList: a wrapping row of BadgeLua-style pills, each with an optional
@@ -248,8 +245,8 @@
 		return el;
 	}
 
-	// The raw number behind a stacked value (for sort / filter), or null.
-	function stackNumber( v ) {
+	// The raw number behind a { value } cell (scwSignedBar's sort / filter), or null.
+	function valueNumber( v ) {
 		return v && typeof v.value === 'number' ? v.value : null;
 	}
 
@@ -380,7 +377,7 @@
 		return wrap;
 	}
 
-	// eyebrow label -> resolved eyebrow-icon src, harvested from scwEntityCard rows
+	// eyebrow label -> resolved eyebrow-icon src, harvested from scwCard rows
 	// on mount. The card's set-filter itemRenderer reads it to show the glyph beside
 	// each value. Global (icons are the same across grids); merged per mount.
 	var eyebrowIcons = Object.create( null );
@@ -394,13 +391,10 @@
 	// the set-filter value, which is what eyebrowFilterItem is handed.
 	function harvestEyebrowIcons( api, gridOptions ) {
 		var defs = gridOptions.columnDefs || [];
-		var legacy = defs.filter( function ( c ) {
-			return hasType( c, 'scwEntityCard' ) && c.field;
-		} );
 		var cards = defs.filter( function ( c ) {
 			return hasType( c, 'scwCard' ) && c.context;
 		} );
-		if ( !legacy.length && !cards.length ) {
+		if ( !cards.length ) {
 			return;
 		}
 		api.forEachNode( function ( node ) {
@@ -408,13 +402,6 @@
 			if ( !d ) {
 				return;
 			}
-			legacy.forEach( function ( c ) {
-				var v = d[ c.field ];
-				var label = v && ( v.eyebrowFull || v.eyebrow );
-				if ( label && v.eyebrowIcon && v.eyebrowIcon.src ) {
-					eyebrowIcons[ label ] = v.eyebrowIcon.src;
-				}
-			} );
 			cards.forEach( function ( c ) {
 				var view = d[ c.context.viewField ];
 				var label = d[ c.context.eyebrowField ];
@@ -532,93 +519,6 @@
 			}
 		};
 
-		reg.columnTypes.scwEntityCard = {
-			cellRenderer: function ( params ) {
-				return buildCard( params.value );
-			},
-			// Sort and CSV export key on the title (ship name). The *column*
-			// filter value is chosen by colDef.scwCardFilterOn: 'title' (text
-			// filter on the name, used by Module:DataGrid) or 'eyebrow' (set
-			// filter on e.g. the manufacturer). Unset uses the eyebrow when
-			// present, else the title, so PledgeVehicleGrid (which always has an
-			// eyebrow and sets no flag) filters by manufacturer as before.
-			valueFormatter: function ( params ) {
-				return ( params.value && params.value.title ) || '';
-			},
-			filterValueGetter: function ( params ) {
-				var v = params.data && params.data[ params.colDef.field ];
-				if ( !v ) {
-					return null;
-				}
-				if ( params.colDef.scwCardFilterOn === 'title' ) {
-					return v.title || null;
-				}
-				if ( params.colDef.scwCardFilterOn === 'eyebrow' ) {
-					return v.eyebrowFull || v.eyebrow || null;
-				}
-				return v.eyebrowFull || v.eyebrow || v.title || null;
-			},
-			// Quick-search keys on BOTH the ship name and the manufacturer label,
-			// independent of which the column filter (filterValueGetter, above)
-			// keys on. AG Grid derives quick-filter text from the *filter* value
-			// unless getQuickFilterText is set -- and the card's filter value is
-			// only one of the two (manufacturer on PledgeVehicleGrid, title on
-			// Module:DataGrid), so without this the other half of the card would
-			// be unsearchable. valueFormatter is never consulted by quick-search.
-			// Read the packed value from row data: params.value here is the filter
-			// scalar, not the card object.
-			getQuickFilterText: function ( params ) {
-				var v = params.data && params.data[ params.colDef.field ];
-				if ( !v ) {
-					return '';
-				}
-				return [ v.title, v.eyebrowFull || v.eyebrow ]
-					.filter( Boolean )
-					.join( ' ' );
-			},
-			// Show the eyebrow glyph beside each value in the set filter.
-			filterParams: {
-				itemRenderer: eyebrowFilterItem
-			},
-			// Numeric-aware, so "Alpha 4.9.0" sorts before "Alpha 4.10.0".
-			comparator: function ( a, b ) {
-				return String( ( a && a.title ) || '' )
-					.localeCompare( String( ( b && b.title ) || '' ), undefined, { numeric: true } );
-			}
-		};
-
-		reg.columnTypes.scwStackedValue = {
-			cellRenderer: function ( params ) {
-				return buildStack( params.value );
-			},
-			// Display uses the primary string, and so does CSV export (valueFormatter).
-			// Sort, the number filter, AND quick-search all key on the raw number
-			// (filterValueGetter): the number filter's agNumberColumnFilter compares
-			// numerically rather than on the object, and quick-search -- which derives
-			// its text from the filter value, never valueFormatter -- therefore matches
-			// the underlying number (e.g. "1500"), not the formatted "$1,500" display
-			// or the secondary line. That is the intended behaviour for these price
-			// columns; add a getQuickFilterText here if the formatted text ever needs
-			// to be searchable.
-			valueFormatter: function ( params ) {
-				return ( params.value && params.value.text ) || '';
-			},
-			filterValueGetter: function ( params ) {
-				return stackNumber( params.data && params.data[ params.colDef.field ] );
-			},
-			comparator: function ( a, b ) {
-				var an = stackNumber( a );
-				var bn = stackNumber( b );
-				if ( an === null ) {
-					return bn === null ? 0 : -1;
-				}
-				if ( bn === null ) {
-					return 1;
-				}
-				return an - bn;
-			}
-		};
-
 		reg.columnTypes.scwSignedBar = {
 			cellRenderer: function ( params ) {
 				return buildSignedBar( params.value, params.colDef && params.colDef.scwBarMax );
@@ -630,15 +530,15 @@
 				return ( params.value && params.value.text ) || '';
 			},
 			filterValueGetter: function ( params ) {
-				return stackNumber( params.data && params.data[ params.colDef.field ] );
+				return valueNumber( params.data && params.data[ params.colDef.field ] );
 			},
 			getQuickFilterText: function ( params ) {
 				var v = params.data && params.data[ params.colDef.field ];
 				return ( v && v.text ) || '';
 			},
 			comparator: function ( a, b ) {
-				var an = stackNumber( a );
-				var bn = stackNumber( b );
+				var an = valueNumber( a );
+				var bn = valueNumber( b );
 				// Blanks sink in both directions: a module that does not touch a stat
 				// is not "the lowest", and sorting should not bury the rows that do.
 				if ( an === null ) {
@@ -661,8 +561,8 @@
 			},
 			// Quick-search on the badge text. AG Grid hands getQuickFilterText the
 			// column's *formatted* value (params.value is the string, not the packed
-			// object), so read the object straight from row data -- same pattern as
-			// scwEntityCard -- to pull its .text reliably.
+			// object), so read the object straight from row data to pull its .text
+			// reliably.
 			getQuickFilterText: function ( params ) {
 				var v = params.data && params.data[ params.colDef.field ];
 				return ( v && v.text ) || '';
@@ -683,7 +583,7 @@
 			},
 			// Quick-search on the boolean text (Yes / No / Unknown). Read the packed
 			// object from row data, not params.value (AG Grid passes the formatted
-			// value string there, not the object) -- same pattern as scwEntityCard.
+			// value string there, not the object), as scwBadge does.
 			getQuickFilterText: function ( params ) {
 				var v = params.data && params.data[ params.colDef.field ];
 				return ( v && v.text ) || '';

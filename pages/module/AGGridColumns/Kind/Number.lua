@@ -2,6 +2,7 @@ require('strict')
 
 --- 'number' kind — a numeric column (real number value; the extension applies the
 --- Intl `format` client-side). Spec: { field, header, label, format?, filter? }.
+--- A `format` with a unit gives the column a CSV header naming it (Util.withCsvHeader).
 
 local Util = require('Module:AGGridColumns/Util')
 
@@ -11,14 +12,14 @@ p.type = 'numericColumn'
 --- @param spec table
 --- @return table
 function p.buildColDef(spec)
-	return {
+	return Util.withCsvHeader({
 		field = spec.field,
 		headerName = spec.header,
 		sort = spec.sort,
 		filter = spec.filter or 'agNumberColumnFilter',
 		type = 'numericColumn',
 		format = Util.cloneFormat(spec.format),
-	}
+	})
 end
 
 --- @param spec table

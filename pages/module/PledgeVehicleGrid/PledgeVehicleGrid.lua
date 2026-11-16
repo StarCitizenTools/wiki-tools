@@ -107,6 +107,7 @@ local COLUMNS = {
 		imageLabel = 'Image',
 		displayLabel = 'DisplayName',
 		eyebrow = manufacturerEyebrow,
+		eyebrowHeader = 'Manufacturer',
 		filter = 'aggridSet',
 		width = 300,
 	},
@@ -147,6 +148,7 @@ local COLUMNS = {
 		kind = 'stackedValue',
 		curLabel = 'Pledge',
 		origLabel = 'Orig pledge',
+		origHeader = 'Original pledge',
 		width = 90,
 	},
 	{
@@ -155,6 +157,7 @@ local COLUMNS = {
 		kind = 'stackedValue',
 		curLabel = 'Warbond',
 		origLabel = 'Orig warbond',
+		origHeader = 'Original warbond',
 		width = 90,
 	},
 	{ field = 'loaner', header = 'Loaner', kind = 'linkList', label = 'Loaner', width = 160 },
@@ -271,6 +274,11 @@ function p.main(frame)
 		-- Toolbar button that reopens the grid in a full-window modal, for the wide
 		-- column set.
 		expand = true,
+		-- Toolbar button that downloads the filtered, sorted rows as CSV. allColumns
+		-- adds the hidden companion columns (manufacturer, original prices), each
+		-- beside the column it belongs to.
+		csvExport = true,
+		defaultCsvExportParams = { allColumns = true },
 		-- No pagination: all vehicles in one virtualised, internally-scrolling
 		-- grid. Only the visible rows are ever in the DOM.
 		pagination = false,

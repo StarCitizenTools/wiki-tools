@@ -66,9 +66,24 @@ end
 function suite:testVehicleCardShowsDisplayNameOverTitle()
 	local rows =
 		AGGridColumns.buildRowData({ { Name = 'Dragonfly', DisplayName = 'Dragonfly Black' } }, Grid._internal.columns)
-	local card = rows[1].vehicle
-	self:assertEquals('Dragonfly Black', card.title)
-	self:assertEquals('Dragonfly', card.titleHref)
+	self:assertEquals('Dragonfly Black', rows[1].vehicle)
+	self:assertEquals('Dragonfly', rows[1].vehicleView.titleHref)
+end
+
+-- The CSV export (allColumns) lists the hidden companions beside the column each
+-- belongs to.
+function suite:testExportColumnsInOrder()
+	local headers = {}
+	for _, def in ipairs(AGGridColumns.buildColumnDefs(Grid._internal.columns)) do
+		headers[#headers + 1] = def.headerName
+	end
+	self:assertDeepEquals({ 'Vehicle', 'Manufacturer', 'Type' }, { headers[1], headers[2], headers[3] })
+	local after = {}
+	for i, header in ipairs(headers) do
+		after[header] = headers[i + 1]
+	end
+	self:assertEquals('Original pledge', after.Pledge)
+	self:assertEquals('Original warbond', after.Warbond)
 end
 
 return suite

@@ -49,13 +49,93 @@ function suite:testBadgeColDefType()
 end
 
 function suite:testCardColDefType()
-	self:assertEquals('scwEntityCard', colDefOf({ kind = 'card', field = 'c', header = 'C', titleLabel = 'Name' }).type)
+	local def = colDefOf({ kind = 'card', field = 'c', header = 'C', titleLabel = 'Name', filterOn = 'title' })
+	self:assertEquals('scwCard', def.type)
+	self:assertDeepEquals({ eyebrowField = 'cEyebrow', viewField = 'cView', filterOn = 'title' }, def.context)
 end
 
+-- The price prefix is dropped from exported numbers, so the CSV header names it.
 function suite:testStackedValueColDefRightAligned()
 	local def = colDefOf({ kind = 'stackedValue', field = 'c', header = 'C', curLabel = 'P' })
-	self:assertEquals('scwStackedValue', def.type)
+	self:assertDeepEquals({ 'scwStacked', 'scwCsvHeader' }, def.type)
 	self:assertEquals('ag-right-aligned-cell', def.cellClass)
+	self:assertDeepEquals({ style = 'number', prefix = '$' }, def.format)
+	self:assertEquals('C ($)', def.context.csvHeader)
+	self:assertEquals(nil, def.context.originalField)
+end
+
+function suite:testNumberColDefCsvHeaderNamesUnit()
+	local def = colDefOf({
+		kind = 'number',
+		field = 'c',
+		header = 'Mass',
+		label = 'C',
+		format = { style = 'number', suffix = ' kg' },
+	})
+	self:assertDeepEquals({ 'numericColumn', 'scwCsvHeader' }, def.type)
+	self:assertEquals('Mass (kg)', def.context.csvHeader)
+end
+
+function suite:testNumberColDefWithoutUnitHasNoCsvHeader()
+	local def = colDefOf({ kind = 'number', field = 'c', header = 'Crew', label = 'C', format = { style = 'number' } })
+	self:assertEquals('numericColumn', def.type)
+	self:assertEquals(nil, def.context)
+end
+
+-- A companion column follows its own, so an allColumns export keeps each fact
+-- beside the column it belongs to.
+function suite:testCompanionColumnsFollowTheirColumn()
+	local defs = AGGridColumns.buildColumnDefs({
+		{ kind = 'card', field = 'v', header = 'Vehicle', titleLabel = 'Name', eyebrowHeader = 'Manufacturer' },
+		{
+			kind = 'stackedValue',
+			field = 'p',
+			header = 'Pledge',
+			curLabel = 'P',
+			origLabel = 'O',
+			origHeader = 'Original',
+		},
+		{ kind = 'text', field = 't', header = 'Type', label = 'T' },
+	})
+	local fields = {}
+	for _, def in ipairs(defs) do
+		fields[#fields + 1] = def.field
+	end
+	self:assertDeepEquals({ 'v', 'vEyebrow', 'p', 'pOriginal', 't' }, fields)
+	self:assertEquals('Manufacturer', defs[2].headerName)
+	self:assertTrue(defs[2].hide)
+	self:assertTrue(defs[4].hide)
+	self:assertEquals('Original ($)', defs[4].context.csvHeader)
+	self:assertEquals('pOriginal', defs[3].context.originalField)
+end
+
+-- Without a header the companion fields are still written (the filter and the
+-- second price line read them) but no column exports them.
+function suite:testNoCompanionColumnWithoutHeader()
+	local defs = AGGridColumns.buildColumnDefs({
+		{ kind = 'card', field = 'v', header = 'Vehicle', titleLabel = 'Name' },
+		{ kind = 'stackedValue', field = 'p', header = 'Pledge', curLabel = 'P', origLabel = 'O' },
+	})
+	self:assertEquals(2, #defs)
+end
+
+function suite:testCompanionFieldCollisionErrors()
+	local ok, err = pcall(AGGridColumns.buildColumnDefs, {
+		{ kind = 'card', field = 'v', header = 'Vehicle', titleLabel = 'Name', eyebrowHeader = 'Manufacturer' },
+		{ kind = 'text', field = 'vEyebrow', header = 'Other', label = 'X' },
+	})
+	self:assertFalse(ok)
+	self:assertStringContains('vEyebrow', err, true)
+end
+
+function suite:testValidateRejectsNonFunctionCompanions()
+	local ok = Contract.validate({
+		type = 'x',
+		buildColDef = function() end,
+		buildCellValue = function() end,
+		buildCompanionColDefs = {},
+	})
+	self:assertFalse(ok)
 end
 
 function suite:testValueListColDefType()
@@ -189,22 +269,31 @@ function suite:testBadgeCell()
 	self:assertEquals('success', v.variant)
 end
 
-function suite:testStackedValueCellShowsSubWhenDiffers()
-	local v = cellOf(
+local function rowOf(spec, result)
+	return AGGridColumns.buildRowData({ result }, { spec })[1]
+end
+
+function suite:testStackedValueRowHoldsBothNumbers()
+	local row = rowOf(
 		{ kind = 'stackedValue', field = 'c', curLabel = 'Cur', origLabel = 'Orig' },
 		{ Cur = '50', Orig = '70' }
 	)
-	self:assertEquals(50, v.value)
-	self:assertEquals('$50', v.text)
-	self:assertEquals('$70', v.sub)
+	self:assertDeepEquals({ c = 50, cOriginal = 70 }, row)
 end
 
-function suite:testStackedValueCellNoSubWhenSame()
-	local v = cellOf(
+-- The original is a fact of its own, so it is kept when it matches; the gadget
+-- decides whether the second line shows.
+function suite:testStackedValueRowKeepsEqualOriginal()
+	local row = rowOf(
 		{ kind = 'stackedValue', field = 'c', curLabel = 'Cur', origLabel = 'Orig' },
 		{ Cur = '50', Orig = '50' }
 	)
-	self:assertEquals(nil, v.sub)
+	self:assertDeepEquals({ c = 50, cOriginal = 50 }, row)
+end
+
+function suite:testStackedValueRowKeepsOriginalWithoutCurrent()
+	local row = rowOf({ kind = 'stackedValue', field = 'c', curLabel = 'Cur', origLabel = 'Orig' }, { Orig = '70' })
+	self:assertDeepEquals({ cOriginal = 70 }, row)
 end
 
 -- A value-list cell splits a multi-valued printout into one { text } item per value
@@ -262,9 +351,10 @@ end
 
 function suite:testCardCellFromTypedRow()
 	local spec = { field = 'v', kind = 'card', titleLabel = 'Name', imageLabel = 'Image' }
-	local card = cellOf(spec, { Name = 'Avenger Titan', Image = 'X.png' })
-	self:assertEquals('Avenger Titan', card.title)
-	self:assertTrue(card.image ~= nil)
+	local row = rowOf(spec, { Name = 'Avenger Titan', Image = 'X.png' })
+	self:assertEquals('Avenger Titan', row.v)
+	self:assertTrue(row.vView.image ~= nil)
+	self:assertEquals(nil, row.vEyebrow)
 end
 
 -- displayLabel shows a page's stored name while the link still targets
@@ -272,16 +362,49 @@ end
 -- carry {{DISPLAYTITLE}} (Dragonfly / Dragonfly Black).
 function suite:testCardCellDisplayLabelOverridesTitleTextOnly()
 	local spec = { field = 'v', kind = 'card', titleLabel = 'Name', displayLabel = 'DisplayName' }
-	local card = cellOf(spec, { Name = 'Dragonfly', DisplayName = 'Dragonfly Black' })
-	self:assertEquals('Dragonfly Black', card.title)
-	self:assertEquals('Dragonfly', card.titleHref)
+	local row = rowOf(spec, { Name = 'Dragonfly', DisplayName = 'Dragonfly Black' })
+	self:assertEquals('Dragonfly Black', row.v)
+	self:assertEquals('Dragonfly', row.vView.titleHref)
 end
 
 -- An absent or empty displayLabel result falls back to the title text as before.
 function suite:testCardCellDisplayLabelFallsBackWhenEmpty()
 	local spec = { field = 'v', kind = 'card', titleLabel = 'Name', displayLabel = 'DisplayName' }
-	local card = cellOf(spec, { Name = 'Avenger Titan', DisplayName = '' })
-	self:assertEquals('Avenger Titan', card.title)
+	self:assertEquals('Avenger Titan', cellOf(spec, { Name = 'Avenger Titan', DisplayName = '' }))
+end
+
+-- The eyebrow's full text is the filter and export value; its short label, link
+-- and glyph are only shown.
+function suite:testCardEyebrowSplitsFactFromView()
+	local spec = {
+		field = 'v',
+		kind = 'card',
+		titleLabel = 'Name',
+		eyebrow = function()
+			return { text = 'Aegis', full = 'Aegis Dynamics', href = '/Aegis_Dynamics', icon = { src = 'x.svg' } }
+		end,
+	}
+	local row = rowOf(spec, { Name = 'Avenger Titan' })
+	self:assertEquals('Aegis Dynamics', row.vEyebrow)
+	self:assertEquals('Aegis', row.vView.eyebrow)
+	self:assertEquals('/Aegis_Dynamics', row.vView.eyebrowHref)
+	self:assertEquals('x.svg', row.vView.eyebrowIcon.src)
+end
+
+function suite:testCardEyebrowFallsBackToText()
+	local spec = {
+		field = 'v',
+		kind = 'card',
+		titleLabel = 'Name',
+		eyebrow = function()
+			return { text = 'Active · 5 charges' }
+		end,
+	}
+	self:assertEquals('Active · 5 charges', rowOf(spec, { Name = 'X' }).vEyebrow)
+end
+
+function suite:testCardRowEmptyWithoutTitle()
+	self:assertDeepEquals({}, rowOf({ field = 'v', kind = 'card', titleLabel = 'Name' }, {}))
 end
 
 function suite:testLinkListFromBareTitles()

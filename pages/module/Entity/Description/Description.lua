@@ -86,16 +86,49 @@ function p.resolveVariants(apiData)
 end
 
 --- Converts the game's `<EMn>` emphasis markup into themed spans so the
---- colored highlight survives into the rendered HTML. `%1` carries the
---- emphasis level (1-4) through to the matching `.t-entity-description-emN`
---- CSS class.
+--- colored highlight survives into the rendered HTML. The level (1-4) picks
+--- the matching `.t-entity-description-emN` CSS class.
+---
+--- The paragraph closes every span it opens: the game data sometimes repeats
+--- the opening tag where the closing one belongs (`<EM4>[Location|Address]<EM4>`),
+--- so a repeat of the innermost open level closes it, and a closing tag with
+--- nothing open is dropped.
+---
+--- @param text string one paragraph
+--- @return string
+local function formatParagraph(text)
+	local open = {}
+	local html = string.gsub(text, '<(/?)EM(%d)>', function(slash, level)
+		if slash == '' and open[#open] ~= level then
+			open[#open + 1] = level
+			return '<span class="t-entity-description-em' .. level .. '">'
+		end
+		if #open == 0 then
+			return ''
+		end
+		open[#open] = nil
+		return '</span>'
+	end)
+	return html .. string.rep('</span>', #open)
+end
+
+--- The description split at its blank lines, each paragraph formatted. Each
+--- gets its own <p>, and a single newline inside one becomes <br>, so every
+--- paragraph is one wikitext line: a newline left in would let the parser
+--- start new paragraphs or lists inside the <p> (the game's footnote lines
+--- begin with `*` and `**`) and misnest the HTML.
 ---
 --- @param description string
---- @return string
-local function formatDescription(description)
-	description = string.gsub(description, '<EM(%d)>', '<span class="t-entity-description-em%1">')
-	description = string.gsub(description, '</EM(%d)>', '</span>')
-	return description
+--- @return string[]
+local function paragraphs(description)
+	local out = {}
+	for _, text in ipairs(mw.text.split(description, '\n%s*\n')) do
+		text = mw.text.trim(text)
+		if text ~= '' then
+			out[#out + 1] = formatParagraph((string.gsub(text, '%s*\n%s*', '<br>')))
+		end
+	end
+	return out
 end
 
 --- One quoted description. <blockquote> is the correct semantic for quoted game
@@ -107,7 +140,9 @@ end
 local function quoteHtml(description)
 	local quote =
 		mw.html.create('blockquote'):addClass('t-entity-description-text'):attr('aria-label', 'In-game description')
-	quote:tag('p'):wikitext(formatDescription(description))
+	for _, paragraph in ipairs(paragraphs(description)) do
+		quote:tag('p'):wikitext(paragraph)
+	end
 	return quote
 end
 
@@ -174,5 +209,10 @@ function p.main(frame)
 
 	return styles .. tostring(root)
 end
+
+-- Test-only exports. Not part of the public API.
+p._internal = {
+	paragraphs = paragraphs,
+}
 
 return p

@@ -28,7 +28,6 @@ For a page kept in the wiki-tools repository, or imported from another wiki:
 
 - The header links to the `/doc` page and offers Edit, History and Purge. Viewed on its own, the `/doc` page shows a Documentation subpage header linking back instead.
 - Below the header, the folded Technical details panel lists where the page comes from, which pages use it, what it uses, and a module's functions.
-- A rule marks where the documentation ends.
 - On a `git=true` page, the parameter table's own description is hidden: the page's first paragraph already says the same thing.
 - Categories: a module page joins Modules, and a page with `importedFrom` or `fromWikipedia` joins Imported modules or Imported templates. The `/doc` page itself joins Modules documentation or Templates documentation instead, sorted by its base page name.
 

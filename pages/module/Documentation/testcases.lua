@@ -134,6 +134,13 @@ function suite:testModulePage()
 	self:assertNotStringContains('documentation|', out, true)
 end
 
+function suite:testWrapperClosesBeforeTheDocContent()
+	local out = doc(fakeTitle('Module:Mbox', 828), { git = 'true' })
+	local _, opened = out:gsub('<div[ >]', '')
+	local _, closed = out:gsub('</div>', '')
+	self:assertEquals(opened, closed)
+end
+
 function suite:testDocSubpage()
 	local current = fakeTitle('Module:Mbox/doc', 828)
 	current.basePageTitle = fakeTitle('Module:Mbox', 828)

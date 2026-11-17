@@ -155,8 +155,6 @@ function p.doc(frame)
 	local kind = title.namespace == NS_MODULE and 'module' or 'template'
 	local onDoc = title.subpageText == 'doc'
 
-	-- Left open on purpose: {{Documentation}} sits at the top of the /doc page,
-	-- and the wrapper holds the rest of it until the parser closes it at the end.
 	local out = { '<div class="t-documentation' .. (isOn(args.git) and ' t-documentation--git' or '') .. '">' }
 	out[#out + 1] = frame:extensionTag({ name = 'templatestyles', args = { src = 'Module:Icon/styles.css' } })
 	out[#out + 1] = frame:extensionTag({ name = 'templatestyles', args = { src = 'Module:Documentation/styles.css' } })
@@ -189,6 +187,7 @@ function p.doc(frame)
 		sources = sources(args, kind, title.rootText, page),
 	}))
 	out[#out + 1] = tostring(notices)
+	out[#out + 1] = '</div>'
 
 	if title.namespace == NS_TEMPLATE or title.namespace == NS_MODULE then
 		out[#out + 1] = categories(kind, onDoc, title.baseText, importOrigin(args, page) ~= nil)

@@ -9,7 +9,7 @@ function suite:testTitleOnlyIsANote()
 	local html = mbox.render({ title = 'Hello' })
 	self:assertStringContains('class="t-mbox t-mbox--notice navigation-not-searchable noexcerpt"', html, true)
 	self:assertStringContains('role="note"', html, true)
-	self:assertStringContains('<span class="t-mbox__title">Hello</span>', html, true)
+	self:assertStringContains('<div class="t-mbox__title">Hello</div>', html, true)
 	self:assertNotStringContains('<details', html, true)
 	self:assertNotStringContains('t-mbox__indicator', html, true)
 end
@@ -34,6 +34,14 @@ end
 function suite:testPlaceholderCarriesNoexcerpt()
 	local html = mbox.render({ title = 'No ports.', placeholder = true })
 	self:assertStringContains('noexcerpt', html, true)
+end
+
+function suite:testADisclosureTitleIsPhrasingContent()
+	self:assertStringContains(
+		'<span class="t-mbox__title">Head</span>',
+		mbox.render({ title = 'Head', text = 'Body' }),
+		true
+	)
 end
 
 function suite:testTextRendersAClosedDisclosure()

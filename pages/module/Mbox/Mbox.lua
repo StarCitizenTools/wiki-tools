@@ -65,7 +65,10 @@ local function headerContent(props, withIndicator)
 			class = 't-mbox__icon',
 		})
 	end
-	parts[#parts + 1] = tostring(mw.html.create('span'):addClass('t-mbox__title'):wikitext(props.title))
+	-- <summary> holds only phrasing content; elsewhere a div lets a title with
+	-- paragraphs or a list nest validly.
+	local titleTag = withIndicator and 'span' or 'div'
+	parts[#parts + 1] = tostring(mw.html.create(titleTag):addClass('t-mbox__title'):wikitext(props.title))
 	if withIndicator then
 		-- The Citizen collapse icon Module:CollapsibleCard uses; styles.css rotates it.
 		parts[#parts + 1] =

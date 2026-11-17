@@ -6,6 +6,8 @@ local INFOBOX_WIDTH = 400
 -- Per-page tracking category for images uploaded via the QuantumUpload gadget,
 -- e.g. 'Gladius' -> 'Gladius images'. string.format pattern; change here to retune.
 local UPLOAD_IMAGE_CATEGORY = '%s images'
+-- Worklist of articles whose infobox still shows the placeholder.
+local PLACEHOLDER_CATEGORY = '[[Category:Infoboxes using placeholder image]]'
 
 local headerComponent = require('Module:InfoboxLua/Components/Header')
 local sectionComponent = require('Module:InfoboxLua/Components/Section')
@@ -67,16 +69,35 @@ local function getImageData(image, uploadNameOverride)
 	return imageData
 end
 
+--- The tracking category for an infobox that fell back to the placeholder.
+--- Content namespaces only: template docs and user sandboxes render infoboxes
+--- without images on purpose and would fill the worklist for good.
 --- @param data InfoboxLuaData
+--- @param imageData ImageComponentData
+--- @return string
+local function getCategories(data, imageData)
+	-- Header renders images[] in place of the single image, so the placeholder
+	-- is not on the page then even though getImageData chose it.
+	if imageData.upload == nil or type(data.images) == 'table' then
+		return ''
+	end
+	if not mw.title.getCurrentTitle().isContentPage then
+		return ''
+	end
+	return PLACEHOLDER_CATEGORY
+end
+
+--- @param data InfoboxLuaData
+--- @param imageData ImageComponentData
 --- @return mw.html
-local function getContentHtml(data)
+local function getContentHtml(data, imageData)
 	local contentHtml = mw.html.create('div'):addClass('t-infobox-content')
 
 	contentHtml:node(headerComponent.getHtml({
 		title = data.title,
 		annotation = data.annotation or nil,
 		subtitle = data.subtitle or nil,
-		image = getImageData(data.image, data.imageUploadName),
+		image = imageData,
 		images = data.images or nil,
 	}))
 
@@ -91,15 +112,16 @@ local function getContentHtml(data)
 end
 
 --- @param data InfoboxLuaData
+--- @param imageData ImageComponentData
 --- @return mw.html
-local function getInfoboxHtml(data)
+local function getInfoboxHtml(data, imageData)
 	local root = mw.html.create('div')
 	root:addClass('t-infobox floatright')
 		:addClass(data.class)
 		:attr('role', 'complementary')
 		:attr('aria-label', data.title)
 		:css('max-width', INFOBOX_WIDTH .. 'px')
-		:node(getContentHtml(data))
+		:node(getContentHtml(data, imageData))
 
 	if type(data.css) == 'table' then
 		for cssProperty, cssValue in pairs(data.css) do
@@ -113,13 +135,14 @@ end
 --- @param data InfoboxLuaData
 --- @return string
 function p.render(data)
-	local html = getInfoboxHtml(data)
+	local imageData = getImageData(data.image, data.imageUploadName)
+	local html = getInfoboxHtml(data, imageData)
 	local styles = mw.getCurrentFrame():extensionTag({
 		name = 'templatestyles',
 		args = { src = 'Module:InfoboxLua/styles.css' },
 	})
 
-	return styles .. tostring(html)
+	return styles .. tostring(html) .. getCategories(data, imageData)
 end
 
 function p.test()

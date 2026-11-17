@@ -1,0 +1,22 @@
+<includeonly>{{Infobox Character
+| Name = {{subst:PAGENAME}}
+| Image =
+| Race =
+| Gender =
+| Role =
+| Faction =
+| Born =
+| Died =
+| Occupation =
+| Organization =
+| Actor =
+}}
+
+'''{{subst:PAGENAME}}''' is <!-- who they are, with a citation -->.
+
+== References ==
+<references />
+
+{{Stub}}
+{{Short description|<!-- a few words, e.g. their role and allegiance -->}}</includeonly><noinclude>Starter text for the character card on [[Star Citizen Wiki:Create a new article]]. Documented at [[Template:Preload]].
+[[Category:Preload text templates]]</noinclude>

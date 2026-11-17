@@ -1,0 +1,29 @@
+<includeonly>{{Vehicle
+|uuid = <!-- UUID from the game data; leave empty for a concept vehicle -->
+|image =
+<!-- For a concept vehicle, fill these in instead:
+|family = ship
+|manufacturer =
+|size =
+|career =
+|maxcrew =
+|productionstate = In concept
+|conceptdate =
+|pledgecost =
+-->
+}}
+
+The '''{{subst:PAGENAME}}''' is a <!-- size and role, e.g. light fighter --> manufactured by <!-- [[manufacturer]] -->.
+
+== Ports ==
+{{Entity/Ports}}
+
+== Acquisition ==
+{{Entity/Availability}}
+
+== References ==
+<references />
+
+{{Entity/Navplates}}
+{{Navplate vehicles}}</includeonly><noinclude>Starter text for the vehicle card on [[Star Citizen Wiki:Create a new article]]. Documented at [[Template:Preload]].
+[[Category:Preload text templates]]</noinclude>

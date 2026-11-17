@@ -1,0 +1,8 @@
+<includeonly>'''{{subst:PAGENAME}}''' is <!-- what the subject is, with a citation -->.
+
+== References ==
+<references />
+
+{{Stub}}
+{{Short description|<!-- a few words saying what this is -->}}</includeonly><noinclude>{{/doc}}
+[[Category:Preload text templates]]</noinclude>

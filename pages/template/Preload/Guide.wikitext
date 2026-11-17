@@ -1,0 +1,7 @@
+<includeonly><!-- Who this guide is for and what it covers, in a sentence or two. -->
+
+== References ==
+<references />
+
+[[Category:Guides]]</includeonly><noinclude>Starter text for the guide card on [[Star Citizen Wiki:Create a new article]]. Documented at [[Template:Preload]].
+[[Category:Preload text templates]]</noinclude>

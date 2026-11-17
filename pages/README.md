@@ -135,6 +135,7 @@ The `README.md` beside a page is the source of its live `/doc` page: `module/Ent
 | [Template:Patch](template/Patch) ([doc](https://starcitizen.tools/Template:Patch/doc)) | Shows a game update's release status and links to the previous and next update. |
 | [Template:Patch list](template/Patch%20list) ([doc](https://starcitizen.tools/Template:Patch_list/doc)) | Lists every Star Citizen update with its status, build and release date, upcoming updates first. |
 | [Template:PledgeVehicleGrid](template/PledgeVehicleGrid) ([doc](https://starcitizen.tools/Template:PledgeVehicleGrid/doc)) | Renders the pledge vehicle list as a sortable, filterable AG Grid data table. |
+| [Template:Preload](template/Preload) ([doc](https://starcitizen.tools/Template:Preload/doc)) | Starter text for new articles, loaded into the editor by the create boxes on Star Citizen Wiki:Create a new article. |
 | [Template:Rarity](template/Rarity) ([doc](https://starcitizen.tools/Template:Rarity/doc)) | Shows an item's rarity tier as a small coloured badge. |
 | [Template:Removed](template/Removed) ([doc](https://starcitizen.tools/Template:Removed/doc)) | Notice marking a page or section that describes content removed from ''Star Citizen'', and the categoriser that tracks it. |
 | [Template:Removed contract](template/Removed%20contract) ([doc](https://starcitizen.tools/Template:Removed_contract/doc)) | Infobox for a contract that has been removed from ''Star Citizen''. |

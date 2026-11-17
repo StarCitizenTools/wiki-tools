@@ -214,6 +214,11 @@
 		"index": false,
 		"repeated": false
 	},
+	"vehicle": {
+		"type": "PAGE",
+		"index": true,
+		"repeated": true
+	},
 	"yaw": {
 		"type": "TEXT",
 		"index": false,

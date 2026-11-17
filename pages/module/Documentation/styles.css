@@ -1,15 +1,7 @@
 /* Markup comes from Module:Documentation. */
 
-/* The wrapper holds the whole /doc page, so its border is the rule where the doc ends. */
 .t-documentation {
 	margin-top: var(--space-md);
-	padding-bottom: var(--space-xl);
-	border-bottom: var(--border-base);
-}
-
-/* On a module page, Scribunto's doc message ends the doc with an <hr>, which lands inside the wrapper. */
-.t-documentation > hr:last-child {
-	display: none;
 }
 
 .t-documentation__header {
@@ -65,8 +57,9 @@
 }
 
 /* A git= doc is converted from a README whose first paragraph is also the
-   TemplateData description, so TemplateData would show it a second time. */
-.t-documentation--git .mw-templatedata-doc-desc {
+   TemplateData description, so TemplateData would show it a second time.
+   The wrapper holds only the header, so the TemplateData block is a later sibling. */
+.t-documentation--git ~ .mw-templatedata-doc-wrap .mw-templatedata-doc-desc {
 	display: none;
 }
 

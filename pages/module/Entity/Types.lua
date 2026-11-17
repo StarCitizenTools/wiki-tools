@@ -98,6 +98,7 @@ local p = {}
 --- @field resolveSubtype nil|fun(apiData: table|nil, args: table|nil): table|nil Refine to a subtype leaf module, or nil. Family token from the record, else the curated |family= arg (Module:Entity/SubtypeResolver.familyArg), else the kind's default leaf on kind-declared record-less pages
 --- @field defaultFamily string|nil Family token of the leaf a kind-declared page with no record resolves to (Location: 'starsystem'); nil means the kind stays the leaf
 --- @field editorialMode boolean|nil Opt-in: when true the kind renders from editorial args alone (apiData = {}) for planned / not-yet-in-game pages with no genuine API record. See Module:Entity/Data.
+--- @field hasManufacturer boolean|nil When true the kind's pages are expected to name a manufacturer, and one naming none lands in Category:Entities needing a manufacturer. See Module:Entity/Categories.
 
 --- @class EntityFacet
 --- A cross-cutting additive aspect matched on a data field, independent of kind.

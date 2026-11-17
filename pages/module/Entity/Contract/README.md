@@ -9,7 +9,7 @@ Editors never invoke this module directly; it runs inside [Template:Entity](http
 ### API
 
 - `p.validate(component, spec, options) → ok: boolean, errors: string[]`: checks each hook in `spec`. A required hook that's missing is an error; a present hook that isn't a function is an error. With `options.strict = true`, also flags any function-valued key on `component` that looks hook-shaped (`get*`, or exactly `matches`/`resolveSubtype`/`enrich`) but is in neither `spec` nor `p.ALL_HOOKS`, catching a misspelled optional hook.
-- `p.validateFields(component, fieldSpec) → ok, errors`: the same shape for non-function scalar fields (`p.KIND_FIELDS`: `name`, `editorialMode`). Missing-when-required and a wrong `type()` are both errors.
+- `p.validateFields(component, fieldSpec) → ok, errors`: the same shape for non-function scalar fields (`p.KIND_FIELDS`: `name`, `editorialMode`, `hasManufacturer`). Missing-when-required and a wrong `type()` are both errors.
 - `p.validateEditorialChain(chain) → ok, errors`: walks a root-first chain's `getEditorialManifest()` fragments and flags every link that redeclares an inherited field while leaving out a key an earlier link set. `Assembly.mergeEditorialManifests` replaces the whole entry, so a dropped `property` still renders the value but never stores it.
 - `p.CONTRIBUTOR` (alias `p.CHAIN_LINK`): the hook set any chain link may implement, all optional.
 - `p.KIND_IDENTITY`: the hooks that make a component a kind. `matches` and `getApiConfigs` required, `resolveSubtype` optional.

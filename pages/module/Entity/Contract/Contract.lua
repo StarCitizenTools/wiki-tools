@@ -65,13 +65,15 @@ for hook, required in pairs(p.KIND_IDENTITY) do
 end
 
 --- Non-function KIND fields with declared scalar types. validate() rejects any
---- non-function spec key, so typed scalar fields — the canonical kind `name` and
---- the `editorialMode` opt-in — live here and are checked by validateFields(),
---- run alongside validate() by the Registry conformance test.
+--- non-function spec key, so typed scalar fields — the canonical kind `name`, the
+--- `editorialMode` opt-in and the `hasManufacturer` flag — live here and are
+--- checked by validateFields(), run alongside validate() by the Registry
+--- conformance test.
 --- @type table<string, { type: string, required: boolean }>
 p.KIND_FIELDS = {
 	name = { type = 'string', required = true },
 	editorialMode = { type = 'boolean', required = false },
+	hasManufacturer = { type = 'boolean', required = false },
 }
 
 --- Facet: a cross-cutting additive aspect matched on a data field.

@@ -12,8 +12,42 @@ local CATEGORY_STRUCTURED_DATA_ERROR = '[[Category:Pages with structured data er
 local CATEGORY_MANUAL_API_DATA = '[[Category:Entities with manual API data]]'
 local CATEGORY_UNRESOLVED_REFERENCE = '[[Category:Pages with an unresolved entity reference]]'
 local CATEGORY_UNREGISTERED_PROPERTY = '[[Category:Entities with unregistered structured-data properties]]'
+local CATEGORY_MISSING_MANUFACTURER = '[[Category:Entities needing a manufacturer]]'
+local CATEGORY_MISSING_TYPE = '[[Category:Entities needing a type]]'
 
 local p = {}
+
+--- Whether the page should name a manufacturer and names none. Only a kind
+--- declaring `hasManufacturer` is asked. A record carrying a no-maker code
+--- (Base.namesNoMaker: generic food and drink) has answered the question, so it
+--- is not missing one even though nothing resolves.
+---
+--- @param kind table|nil The matched kind module
+--- @param apiData table
+--- @param args table
+--- @return boolean
+function p.lacksManufacturer(kind, apiData, args)
+	if not (kind and kind.hasManufacturer) then
+		return false
+	end
+	local apiMfr = apiData.manufacturer
+	if type(apiMfr) == 'table' and base.namesNoMaker(apiMfr.code) then
+		return false
+	end
+	return base.resolveManufacturer(apiData, args) == nil
+end
+
+--- Whether a page some kind claimed resolved no type name, which leaves it with
+--- no structural category, no stored Subject type and no type in its short
+--- description. A page no kind claimed is not asked: it already carries an API
+--- error category.
+---
+--- @param kind table|nil The matched kind module
+--- @param typeInfo table|nil
+--- @return boolean
+function p.lacksType(kind, typeInfo)
+	return kind ~= nil and (typeInfo == nil or typeInfo.name == nil)
+end
 
 --- Derives the content category names for an entity — pure (no namespace logic,
 --- no [[Category:]] markup) so the rules are unit-testable in isolation. Emits,
@@ -65,10 +99,11 @@ function p.deriveCategories(typeInfo, chainCategories, apiData, args)
 end
 
 --- Builds the trailing category wikitext. Content categories (from the pure
---- deriveCategories) apply only on article (mainspace) pages so test and User:
---- pages don't pollute the canonical category tree — verify category behavior by
---- parsing wikitext with a mainspace title. Tracking categories apply in every
---- namespace so errors surface wherever the module runs.
+--- deriveCategories) and the missing-data categories apply only on article
+--- (mainspace) pages so test and User: pages don't pollute the canonical category
+--- tree or the editors' worklists — verify category behavior by parsing wikitext
+--- with a mainspace title. Error-tracking categories apply in every namespace so
+--- errors surface wherever the module runs.
 ---
 --- @param typeInfo table|nil
 --- @param chainCategories string[]|nil
@@ -79,6 +114,7 @@ end
 --- @param hasManualApiData boolean
 --- @param unresolvedReference boolean|nil
 --- @param hasUnregisteredProperty boolean|nil
+--- @param kind table|nil The matched kind module; nil when no kind claimed the page
 --- @return string
 function p.build(
 	typeInfo,
@@ -89,13 +125,20 @@ function p.build(
 	hasStructuredDataError,
 	hasManualApiData,
 	unresolvedReference,
-	hasUnregisteredProperty
+	hasUnregisteredProperty,
+	kind
 )
 	local categories = ''
 
 	if mw.title.getCurrentTitle():inNamespace(0) then
 		for _, name in ipairs(p.deriveCategories(typeInfo, chainCategories, apiData, args)) do
 			categories = categories .. '[[Category:' .. name .. ']]'
+		end
+		if p.lacksManufacturer(kind, apiData, args) then
+			categories = categories .. CATEGORY_MISSING_MANUFACTURER
+		end
+		if p.lacksType(kind, typeInfo) then
+			categories = categories .. CATEGORY_MISSING_TYPE
 		end
 	end
 

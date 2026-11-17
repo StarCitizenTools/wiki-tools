@@ -2438,6 +2438,17 @@
 		],
 		"desc": "Game UUID of an entity."
 	},
+	"Vehicle": {
+		"type": "PAGE",
+		"bucket": "item_component",
+		"field": "vehicle",
+		"index": true,
+		"repeated": true,
+		"modules": [
+			"Module"
+		],
+		"desc": "Vehicles a vehicle module fits, as wiki page names: every vehicle in the API's vehicles relation, else the item's related set name."
+	},
 	"Volume": {
 		"type": "DOUBLE",
 		"bucket": "entity",

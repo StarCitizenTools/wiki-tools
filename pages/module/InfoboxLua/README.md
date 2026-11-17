@@ -2,13 +2,13 @@
 
 Data-driven infobox system: pass a Lua table describing the infobox and get back rendered HTML with collapsible sections, tabbed images and subsections, and multi-column item layouts.
 
-Required by [Module:WearableSet](https://starcitizen.tools/Module:WearableSet), [Module:Entity/Infobox](https://starcitizen.tools/Module:Entity/Infobox), and [Module:Company](https://starcitizen.tools/Module:Company); not invoked from templates.
+Required by [Module:WearableSet](https://starcitizen.tools/Module:WearableSet), [Module:Entity/Infobox](https://starcitizen.tools/Module:Entity/Infobox), [Module:Company](https://starcitizen.tools/Module:Company), and [Module:CommLink](https://starcitizen.tools/Module:CommLink); not invoked from templates.
 
 ## For module editors
 
 ### API
 
-`p.render(data)` returns `<templatestyles>` + the infobox HTML. Schemas are defined in [Module:InfoboxLua/Types](https://starcitizen.tools/Module:InfoboxLua/Types) and enforced per component by [Module:InfoboxLua/Util](https://starcitizen.tools/Module:InfoboxLua/Util)'s `validateAndConstruct`.
+`p.render(data)` returns `<templatestyles>` + the infobox HTML, plus [Category:Infoboxes using placeholder image](https://starcitizen.tools/Category:Infoboxes_using_placeholder_image) when the header shows the placeholder on a page in a content namespace (`$wgContentNamespaces`, which includes Comm-Link and ORG). Schemas are defined in [Module:InfoboxLua/Types](https://starcitizen.tools/Module:InfoboxLua/Types) and enforced per component by [Module:InfoboxLua/Util](https://starcitizen.tools/Module:InfoboxLua/Util)'s `validateAndConstruct`.
 
 **Infobox**: `title` (required), `annotation?` (a second name for the same subject, parenthesised after the title and kept out of the container's `aria-label`), `subtitle?`, `image?` (filename string or an Image table; the lone field with auto-discovery, see Gotchas), `imageUploadName?` (overrides the auto-discovery/upload convention base, default `'<page title> - infobox'`), `images?` (Image[], `src` required on each, rendered as tabs), `sections` (Section[]; required, an unguarded `ipairs` over it errors if omitted, though an empty array is fine), `class?`, `css?` (`{ property = value }`).
 

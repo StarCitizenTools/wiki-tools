@@ -1,0 +1,20 @@
+<includeonly>{{Company
+|image =
+|name = {{subst:PAGENAME}}
+|industry =
+|products =
+|headquarters =
+|founded =
+|galactapediaurl =
+}}
+
+'''{{subst:PAGENAME}}''' is <!-- what the company makes or does -->.
+
+<!-- For a manufacturer:
+== Products ==
+{{Manufacturer products}}
+-->
+
+== References ==
+<references /></includeonly><noinclude>Starter text for the company card on [[Star Citizen Wiki:Create a new article]]. Documented at [[Template:Preload]].
+[[Category:Preload text templates]]</noinclude>

@@ -1,0 +1,20 @@
+<includeonly>{{Entity
+|uuid = <!-- UUID from the game data -->
+|image =
+}}
+
+The '''{{subst:PAGENAME}}''' is a <!-- type, e.g. [[laser repeater]] --> manufactured by <!-- [[manufacturer]] -->.<ref name="ig">{{Cite game|build=<!-- e.g. [[Star Citizen Alpha 4.10.3|Alpha 4.10.3]] -->|accessdate=<!-- YYYY-MM-DD -->}}</ref>
+
+== Description ==
+{{Entity/Description}}
+
+== Acquisition ==
+{{Entity/Availability}}
+
+<!-- Add when they apply: == Ports == {{Entity/Ports}}, == Crafting == {{Entity/Blueprints}}, == Related == {{Entity/Related}}, == Used by == {{Entity/UsedBy}} -->
+
+== References ==
+<references />
+
+{{Entity/Navplates}}</includeonly><noinclude>Starter text for the item card on [[Star Citizen Wiki:Create a new article]]. Documented at [[Template:Preload]].
+[[Category:Preload text templates]]</noinclude>

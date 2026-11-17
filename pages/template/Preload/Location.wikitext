@@ -1,0 +1,14 @@
+<includeonly>{{Location
+|uuid = <!-- UUID from the game data; leave empty for a place with no in-game record -->
+|image =
+}}
+
+'''{{subst:PAGENAME}}''' is <!-- what and where it is -->.
+
+== References ==
+<references />
+
+{{Location navigation}}
+{{System map|<!-- star system, e.g. Stanton -->}}
+{{Entity/Navplates}}</includeonly><noinclude>Starter text for the location card on [[Star Citizen Wiki:Create a new article]]. Documented at [[Template:Preload]].
+[[Category:Preload text templates]]</noinclude>

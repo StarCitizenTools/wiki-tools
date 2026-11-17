@@ -1,0 +1,19 @@
+<includeonly>{{InfoboxNeue
+|title = {{subst:PAGENAME}}
+|image =
+|label1 = Occupation
+|content1 =
+|label2 = Title
+|content2 =
+|label3 = Known for
+|content3 =
+}}
+
+'''{{subst:PAGENAME}}''' is <!-- their role, with a citation --> at [[Cloud Imperium Games]].
+
+== References ==
+<references />
+
+[[Category:Developers]]
+{{Short description|<!-- "<Role> at CIG", or "Former <role> at CIG" -->}}</includeonly><noinclude>Starter text for the developer card on [[Star Citizen Wiki:Create a new article]]. Documented at [[Template:Preload]].
+[[Category:Preload text templates]]</noinclude>

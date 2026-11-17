@@ -144,7 +144,7 @@ A table that holds several rows per page, such as `cargo_grid` (one row per vehi
 
 ### Adding a kind
 
-1. Create a module with `name`, `matches`, `getApiConfigs` (`[1]` = identity endpoint), `parent = 'Entity/Base'`; add `editorialMode` + `getEditorialManifest` for planned-page support.
+1. Create a module with `name`, `matches`, `getApiConfigs` (`[1]` = identity endpoint), `parent = 'Entity/Base'`; add `editorialMode` + `getEditorialManifest` for planned-page support. Set `hasManufacturer = true` when every page of the kind should name a maker, so a page naming none is tracked in `Entities needing a manufacturer`.
 2. Add an entry to `Registry.kinds` (probe order: most-likely-first, Item first; `matches()` must stand alone).
 3. See [Module:Entity/Contract](https://starcitizen.tools/Module:Entity/Contract) for the hook spec and [Module:Entity/Registry](https://starcitizen.tools/Module:Entity/Registry) for the conformance test.
 

@@ -63,6 +63,10 @@ p.name = 'Vehicle'
 --- a page that later gets a uuid — the genuine record takes over. See README.
 p.editorialMode = true
 
+--- A vehicle page with no manufacturer, from the record or |manufacturer=, is
+--- tracked as missing one (Module:Entity/Categories).
+p.hasManufacturer = true
+
 --- @type string
 p.parent = 'Entity/Base'
 

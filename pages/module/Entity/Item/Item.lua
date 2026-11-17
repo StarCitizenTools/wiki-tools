@@ -16,6 +16,10 @@ local p = {}
 --- unique, enforced by the Registry conformance test).
 p.name = 'Item'
 
+--- An item page with no manufacturer, from the record or |manufacturer=, is
+--- tracked as missing one (Module:Entity/Categories).
+p.hasManufacturer = true
+
 --- @type string
 p.parent = 'Entity/Base'
 

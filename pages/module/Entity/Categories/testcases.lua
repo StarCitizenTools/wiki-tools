@@ -136,6 +136,95 @@ function suite:testBuildOmitsUnresolvedReferenceWhenAbsent()
 	self:assertEquals(true, string.find(out, 'unresolved entity reference', 1, true) == nil)
 end
 
+-- lacksManufacturer()
+
+local MAKER_KIND = { name = 'Item', hasManufacturer = true }
+
+function suite:testLacksManufacturerWhenAKindWithMakersHasNone()
+	self:assertTrue(Categories.lacksManufacturer(MAKER_KIND, {}, {}))
+end
+
+function suite:testLacksManufacturerOnlyAsksAKindWithMakers()
+	self:assertFalse(Categories.lacksManufacturer({ name = 'Location' }, {}, {}))
+	self:assertFalse(Categories.lacksManufacturer(nil, {}, {}))
+end
+
+function suite:testLacksManufacturerSatisfiedByTheArg()
+	self:assertFalse(Categories.lacksManufacturer(MAKER_KIND, {}, { manufacturer = 'AEGS' }))
+end
+
+function suite:testLacksManufacturerSatisfiedByTheRecord()
+	self:assertFalse(Categories.lacksManufacturer(MAKER_KIND, { manufacturer = { code = 'AEGS' } }, {}))
+	self:assertFalse(
+		Categories.lacksManufacturer(MAKER_KIND, { manufacturer = { code = 'ZZZ_NOT_A_REAL_CODE', name = 'X' } }, {})
+	)
+end
+
+function suite:testLacksManufacturerNotForANoMakerCode()
+	-- Generic food and drink records carry GENF/GEND: they have no maker by design.
+	self:assertFalse(Categories.lacksManufacturer(MAKER_KIND, { manufacturer = { code = 'GENF' } }, {}))
+	self:assertFalse(Categories.lacksManufacturer(MAKER_KIND, { manufacturer = { code = 'GEND' } }, {}))
+end
+
+-- lacksType()
+
+function suite:testLacksTypeWhenAClaimedPageResolvesNone()
+	self:assertTrue(Categories.lacksType(MAKER_KIND, nil))
+	self:assertTrue(Categories.lacksType(MAKER_KIND, { category = 'Guns' }))
+end
+
+function suite:testLacksTypeNotWhenTheTypeHasAName()
+	self:assertFalse(Categories.lacksType(MAKER_KIND, { name = 'Gun', category = 'Guns' }))
+end
+
+function suite:testLacksTypeNotWhenNoKindClaimedThePage()
+	self:assertFalse(Categories.lacksType(nil, nil))
+end
+
+-- build() missing-data categories
+
+local function withNamespace(namespace, fn)
+	local realGet = mw.title.getCurrentTitle
+	mw.title.getCurrentTitle = function()
+		return {
+			namespace = namespace,
+			inNamespace = function(_, ns)
+				return ns == namespace
+			end,
+		}
+	end
+	local ok, err = pcall(fn)
+	mw.title.getCurrentTitle = realGet
+	if not ok then
+		error(err, 0)
+	end
+end
+
+local function buildFor(kind, typeInfo)
+	return Categories.build(typeInfo, nil, {}, {}, false, false, false, false, false, kind)
+end
+
+function suite:testBuildEmitsMissingDataCategoriesOnArticles()
+	withNamespace(0, function()
+		local out = buildFor(MAKER_KIND, nil)
+		self:assertTrue(out:find('Category:Entities needing a manufacturer', 1, true) ~= nil)
+		self:assertTrue(out:find('Category:Entities needing a type', 1, true) ~= nil)
+	end)
+end
+
+function suite:testBuildOmitsMissingDataCategoriesOutsideArticles()
+	withNamespace(2, function()
+		local out = buildFor(MAKER_KIND, nil)
+		self:assertEquals(nil, out:find(' needing ', 1, true))
+	end)
+end
+
+function suite:testBuildOmitsMissingDataCategoriesWithoutAKind()
+	withNamespace(0, function()
+		self:assertEquals(nil, buildFor(nil, nil):find(' needing ', 1, true))
+	end)
+end
+
 function suite:testUnregisteredPropertyCategory()
 	local withFlag = Categories.build(nil, nil, {}, {}, false, false, false, false, true)
 	self:assertTrue(withFlag:find('Entities with unregistered structured-data properties', 1, true) ~= nil)

@@ -144,7 +144,8 @@ function p.main(frame)
 			not storeSuccess,
 			result.hasManualApiData,
 			result.unresolvedReference,
-			unregistered and #unregistered > 0 or false
+			unregistered and #unregistered > 0 or false,
+			result.matchedKind
 		)
 end
 

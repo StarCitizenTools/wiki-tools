@@ -53,8 +53,11 @@ _bundler_register('bundler_main', function()
 
 	local Starmap = require('Module:Starmap')
 	local systemShortName = require('Module:Entity/Location/Starmap').systemShortName
-	local t = _bundler_load('jf3ffit_xZz7x9bGp9eHd')
 	local stringUtil = _bundler_load('_XQt31IWCZw6yESgwQW4U')
+
+	--- Starmap tunnel codes, lowercased
+	local DIRECTION = { b = 'Bidirectional', u = 'Unidirectional' }
+	local SIZE = { s = 'Small', m = 'Medium', l = 'Large' }
 
 	--- A gate's name and page title. Gate pages are titled
 	--- "<Entry> - <Destination> jump point" with each system in its short form,
@@ -82,29 +85,17 @@ _bundler_register('bundler_main', function()
 
 		local systemName = args[1] or string.gsub(mw.title.getCurrentTitle().text, ' system$', '')
 		if not systemName then
-			return t('error_invalid_args')
+			return 'Invalid or missing parameters.'
 		end
 
 		local children = Starmap.systemObjects(systemName)
 		if not children then
-			return t('error_no_data')
+			return 'Data was unable to be retrieved.'
 		end
 
 		local hasJumppoints = false
 
-		local wikitable = '{| class="wikitable"\n'
-			.. '!'
-			.. t('lbl_jumpgate')
-			.. '\n'
-			.. '!'
-			.. t('lbl_direction')
-			.. '\n'
-			.. '!'
-			.. t('lbl_size')
-			.. '\n'
-			.. '!'
-			.. t('lbl_destination')
-			.. '\n'
+		local wikitable = '{| class="wikitable"\n!Jump gate\n!Direction\n!Size\n!Destination\n'
 
 		for _, object in ipairs(children) do
 			if object.type == 'JUMPPOINT' then
@@ -119,6 +110,8 @@ _bundler_register('bundler_main', function()
 				local exitName, exitPage = gate(exitObject.designation)
 				local exitLink = '[[' .. exitPage .. '|' .. exitName .. ']]'
 				local fromName, fromPage = gate(object.designation)
+				local direction = object.tunnel.direction
+				local size = object.tunnel.size
 
 				wikitable = wikitable
 					.. '|-\n'
@@ -130,11 +123,11 @@ _bundler_register('bundler_main', function()
 					.. ']]\n'
 					-- Direction
 					.. '|'
-					.. t('val_direction_' .. string.lower(object.tunnel.direction))
+					.. (DIRECTION[string.lower(direction)] or direction)
 					.. '\n'
 					-- Size
 					.. '|'
-					.. t('val_size_' .. string.lower(object.tunnel.size))
+					.. (SIZE[string.lower(size)] or size)
 					.. '\n'
 					-- Path to target system's gate
 					.. '|'
@@ -159,7 +152,7 @@ _bundler_register('bundler_main', function()
 		if hasJumppoints then
 			return wikitable
 		else
-			return string.format(t('lbl_none'), systemName)
+			return string.format('There are no known [[Jump point|jump points]] to or from %s.', systemName)
 		end
 	end
 
@@ -174,27 +167,6 @@ _bundler_register('bundler_main', function()
 	end
 
 	return JumpPoints
-end)
-
-_bundler_register('jf3ffit_xZz7x9bGp9eHd', function()
-	local TNT = require('Module:Translate'):new()
-	local config = mw.loadJsonData('Module:Jump points/config.json')
-
-	local lang
-	if config.module_lang then
-		lang = mw.getLanguage(config.module_lang)
-	else
-		lang = mw.getContentLanguage()
-	end
-	local langCode = lang:getCode()
-
-	--- Wrapper function for Module:Translate.translate
-	---@param key string The translation key
-	---@param addSuffix? boolean Adds a language suffix if config.smw_multilingual_text is true
-	---@return string value If the key was not found in the .tab page, the key is returned
-	return function(key, addSuffix, ...)
-		return TNT:translate('Module:Jump points/i18n.json', config, key, addSuffix, { ... }) or key
-	end
 end)
 
 _bundler_register('_XQt31IWCZw6yESgwQW4U', function()

@@ -9,33 +9,8 @@ metatable.__index = methodtable
 local navplate = require('Module:Navplate')
 local common = require('Module:Common')
 local manufacturers = require('Module:Manufacturers')
-local i18n = require('Module:i18n'):new()
-local TNT = require('Module:Translate'):new()
 local BucketQuery = require('Module:BucketQuery')
 local lang = mw.getContentLanguage()
-
---- Wrapper function for Module:i18n.translate
----
---- @param key string The translation key
---- @return string If the key was not found, the key is returned
-local function t(key)
-	return i18n:translate(key)
-end
-
---- FIXME: This should go to somewhere else, like Module:Common
---- Calls TNT with the given key
----
---- @param key string The translation key
---- @return string If the key was not found in the .tab page, the key is returned
-local function translate(key, ...)
-	local success, translation = pcall(TNT.format, 'Module:Navplate vehicles/i18n.json', key or '', ...)
-
-	if not success or translation == nil then
-		return key
-	end
-
-	return translation
-end
 
 --- Sorts Store rows by manufacturer then page; grouping re-sorts each group's
 --- pages by display name, so this only fixes the order pages with the same
@@ -143,13 +118,13 @@ end
 --- @return string
 function methodtable.make(self)
 	local args = {
-		subtitle = translate('subtitle_navplatevehicles'),
-		title = translate('title_navplatevehicles'),
+		subtitle = 'List of',
+		title = 'Vehicles',
 	}
 
 	local sections = {
-		t('category_ships'),
-		t('category_ground_vehicles'),
+		'ships',
+		'ground vehicles',
 	}
 
 	local i = 1
@@ -157,7 +132,7 @@ function methodtable.make(self)
 		local data = self:getRows(section)
 		if data == nil then
 			local hatnote = require('Module:Hatnote')._hatnote
-			return hatnote(t('message_error_no_data_text'), { icon = 'WikimediaUI-Error.svg' })
+			return hatnote('No vehicle data found.', { icon = 'WikimediaUI-Error.svg' })
 		end
 		local grouped = self:group(data, 'manufacturer', sections)
 

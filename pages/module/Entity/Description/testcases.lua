@@ -87,4 +87,38 @@ function suite:testAVariantContainingAPlaceholderIsKept()
 	self:assertEquals(prose, variants[1])
 end
 
+function suite:testEachParagraphIsItsOwnEntry()
+	local out = Description._internal.paragraphs('First line.\n\n\nSecond line.\nSame paragraph.\n')
+	self:assertEquals(2, #out)
+	self:assertEquals('First line.', out[1])
+	self:assertEquals('Second line.<br>Same paragraph.', out[2])
+end
+
+function suite:testALineStartingWithAnAsteriskStaysText()
+	self:assertEquals(
+		'* Terms apply.<br>** Not here.',
+		Description._internal.paragraphs('* Terms apply.\n** Not here.')[1]
+	)
+end
+
+function suite:testEmphasisBecomesThemedSpans()
+	self:assertEquals(
+		'Go to <span class="t-entity-description-em4">Area18</span> now.',
+		Description._internal.paragraphs('Go to <EM4>Area18</EM4> now.')[1]
+	)
+end
+
+function suite:testARepeatedOpeningTagClosesTheEmphasis()
+	self:assertEquals(
+		'Head to <span class="t-entity-description-em4">[Location|Address]</span> and help.',
+		Description._internal.paragraphs('Head to <EM4>[Location|Address]<EM4> and help.')[1]
+	)
+end
+
+function suite:testEmphasisNeverCrossesAParagraph()
+	local out = Description._internal.paragraphs('<EM1>Open\n\nNext</EM1> stray')
+	self:assertEquals('<span class="t-entity-description-em1">Open</span>', out[1])
+	self:assertEquals('Next stray', out[2])
+end
+
 return suite

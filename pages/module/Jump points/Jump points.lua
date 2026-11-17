@@ -1,5 +1,6 @@
--- Code bundled using https://github.com/ari-party/scribunto-bundler
--- Find module source code at https://github.com/ari-party/sct-module-jump-points
+-- Laid out as https://github.com/ari-party/scribunto-bundler output. This file is
+-- the source: edit the registered chunks in place rather than re-bundling the
+-- upstream https://github.com/ari-party/sct-module-jump-points over it.
 local _bundler_load, _bundler_register = (function(superRequire)
 	local loadingPlaceholder = { [{}] = true }
 
@@ -50,16 +51,28 @@ end)(require)
 _bundler_register('bundler_main', function()
 	local JumpPoints = {}
 
-	local config = mw.loadJsonData('Module:Jump points/config.json')
 	local Starmap = require('Module:Starmap')
+	local systemShortName = require('Module:Entity/Location/Starmap').systemShortName
 	local t = _bundler_load('jf3ffit_xZz7x9bGp9eHd')
 	local stringUtil = _bundler_load('_XQt31IWCZw6yESgwQW4U')
 
-	---@param page string
-	---@return boolean
-	local function exists(page)
-		local t = mw.title.new(page)
-		return t ~= nil and t.exists
+	--- A gate's name and page title. Gate pages are titled
+	--- "<Entry> - <Destination> jump point" with each system in its short form,
+	--- so each side of the starmap designation loses its decorations: an alias
+	--- parenthetical ("Kyuk'ya (Indra)") or the Vanduul catalogue form
+	--- (VS-9 "Vulture"), neither of which is in a page title.
+	---@param designation string
+	---@return string name
+	---@return string page
+	local function gate(designation)
+		local name = stringUtil.clean(designation)
+		local entry, exit = name:match('^(.-)%s+%-%s+(.+)$')
+		if entry then
+			name = (systemShortName(entry) or entry) .. ' - ' .. (systemShortName(exit) or exit)
+		else
+			name = stringUtil.removeParentheses(name)
+		end
+		return name, name .. ' jump point'
 	end
 
 	---@param frame table https://www.mediawiki.org/wiki/Extension:Scribunto/Lua_reference_manual#Frame_object
@@ -77,7 +90,6 @@ _bundler_register('bundler_main', function()
 			return t('error_no_data')
 		end
 
-		local missingPages = false
 		local hasJumppoints = false
 
 		local wikitable = '{| class="wikitable"\n'
@@ -104,18 +116,17 @@ _bundler_register('bundler_main', function()
 					exitObject = object.tunnel.entry
 				end
 
-				local exitTitle = stringUtil.clean(stringUtil.removeParentheses(exitObject.designation))
-				local exitLink = '[[' .. exitTitle .. ']]'
-
-				if not missingPages then
-					missingPages = not exists(exitTitle)
-				end
+				local exitName, exitPage = gate(exitObject.designation)
+				local exitLink = '[[' .. exitPage .. '|' .. exitName .. ']]'
+				local fromName, fromPage = gate(object.designation)
 
 				wikitable = wikitable
 					.. '|-\n'
 					-- From this system
 					.. '|[['
-					.. stringUtil.clean(stringUtil.removeParentheses(object.designation))
+					.. fromPage
+					.. '|'
+					.. fromName
 					.. ']]\n'
 					-- Direction
 					.. '|'
@@ -144,10 +155,6 @@ _bundler_register('bundler_main', function()
 		end
 
 		wikitable = wikitable .. '|}'
-
-		if missingPages and config.missing_jumppoint_category then
-			wikitable = wikitable .. '[[Category:' .. config.missing_jumppoint_category .. ']]'
-		end
 
 		if hasJumppoints then
 			return wikitable

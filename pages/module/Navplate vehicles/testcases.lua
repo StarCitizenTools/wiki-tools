@@ -3,9 +3,8 @@ require('strict')
 local ScribuntoUnit = require('Module:ScribuntoUnit')
 local suite = ScribuntoUnit:new()
 
--- Module:Navplate vehicles requires several off-repo modules unconditionally
--- at load time (Module:Navplate, Module:Common, Module:i18n,
--- Module:Translate); none are mirrored or stubbed centrally in
+-- Module:Navplate vehicles requires off-repo modules unconditionally at load
+-- time (Module:Navplate, Module:Common); neither is mirrored or stubbed centrally in
 -- scribuntounit.config.lua, so requiring the real module would error before
 -- this suite could run, and package.preload isn't an option here: `package`
 -- is absent from live Scribunto's sandbox, so tests/lint-globals.sh flags any
@@ -37,24 +36,6 @@ local FAKE_MODULES = {
 		end,
 	},
 	['Module:Common'] = common,
-	['Module:i18n'] = {
-		new = function()
-			return {
-				translate = function(_, key)
-					return key
-				end,
-			}
-		end,
-	},
-	['Module:Translate'] = {
-		new = function()
-			return {
-				format = function(_, key)
-					return key
-				end,
-			}
-		end,
-	},
 }
 
 local realRequire = require

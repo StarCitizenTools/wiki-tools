@@ -10,6 +10,7 @@ require('strict')
 --- Mining-stat formatting lives in Module:Entity/Commodity/Mining.
 
 local format = require('Module:Entity/Format')
+local externalSites = require('Module:Entity/ExternalSites')
 local mining = require('Module:Entity/Commodity/Mining')
 local records = require('Module:Entity/Commodity/Records')
 local acq = require('Module:Entity/Acquisition')
@@ -361,23 +362,15 @@ function p.getBlueprints(ctx)
 	return { ingredient = { name = refined.name or apiData.name } }
 end
 
---- Contributes commodity community-site links (UEX, SC Trade Tools) to the
---- infobox External sites section, mirroring Module:Entity/Item. Keyed on the
---- commodity `slug` (url-safe; both sites resolve commodities by slug).
+--- Keyed on the commodity `slug`, which both UEX and SC Trade Tools resolve
+--- commodities by.
 ---
 --- @param ctx EntityHookContext
---- @return EntityItemData[]
-function p.getExternalSiteItems(ctx)
-	local apiData, args = ctx.apiData, ctx.args
-	local siteDefs = mw.loadJsonData('Module:Entity/Commodity/communitySites.json')
-	local links = format.buildSiteLinks(siteDefs, {
-		name = args.name or apiData.name,
-		slug = apiData.slug,
+--- @return EntityExternalSite[]
+function p.getExternalSites(ctx)
+	return externalSites.fromDefs(mw.loadJsonData('Module:Entity/Commodity/externalSites.json'), {
+		slug = ctx.apiData.slug,
 	})
-	if not links then
-		return {}
-	end
-	return { { label = 'Community sites', content = links } }
 end
 
 -- Test-only exports. Not part of the public API.

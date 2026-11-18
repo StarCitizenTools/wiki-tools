@@ -294,19 +294,21 @@ function suite:testSectionsForALandingZone()
 	self:assertEquals('Hangar (XL) · Garage · Vehicle services', sections[2].items[1].content)
 end
 
-function suite:testGetFooterButtonsAndMetadataItemsFromStarmapCode()
+function suite:testStarmapLinkAndMetadataItemsFromStarmapCode()
 	local args = { starmapcode = 'STANTON.STATIONS.X' }
-	local buttons = Place.getFooterButtons(ctx({}, args))
-	self:assertEquals(1, #buttons)
-	self:assertEquals('Starmap', buttons[1].label)
-	self:assertEquals('https://robertsspaceindustries.com/starmap?location=STANTON.STATIONS.X', buttons[1].url)
+	self:assertDeepEquals({
+		{
+			site = 'starmap',
+			url = 'https://robertsspaceindustries.com/starmap?location=STANTON.STATIONS.X',
+		},
+	}, Place.getExternalSites(ctx({}, args)))
 	local items = Place.getMetadataItems(ctx({}, args))
 	self:assertEquals(1, #items)
 	self:assertEquals('Starmap code', items[1].label)
 end
 
-function suite:testGetFooterButtonsAndMetadataItemsWithoutArgAreEmpty()
-	self:assertDeepEquals({}, Place.getFooterButtons(ctx({}, {})))
+function suite:testStarmapLinkAndMetadataItemsWithoutArgAreEmpty()
+	self:assertDeepEquals({}, Place.getExternalSites(ctx({}, {})))
 	self:assertDeepEquals({}, Place.getMetadataItems(ctx({}, {})))
 end
 

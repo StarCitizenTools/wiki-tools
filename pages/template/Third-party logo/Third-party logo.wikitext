@@ -1,0 +1,12 @@
+{{License card
+|icons = [[File:Copyright.svg|32px|link=]]
+|title = This logo is the property of {{#if:{{{1|}}}|{{{1}}}|its owner}}.
+|description = It is not authored by the Star Citizen Wiki or its users. The wiki shows it only to identify its owner's site; any other use may need the owner's permission.
+|shortname = Third-party logo
+|longname = Third-party logo
+|attr = {{{1|}}}
+|attrreq = true
+|nonfree = true
+}}<includeonly>[[Category:Third-party logos]]</includeonly><noinclude>
+{{/doc}}
+</noinclude>

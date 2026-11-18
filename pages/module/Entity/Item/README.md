@@ -16,7 +16,7 @@ Editors never invoke this module directly; it runs inside [Template:Entity](http
 - `p.getShortDescription(ctx) → string`: `formatGradedShortDescription` first, else `formatShortDescription`.
 - `p.formatGradedShortDescription(typeInfo, apiData, args) → string|nil`: the spec-style form, e.g. "S3 Gr. A military power plant by Amon & Reese Co.", only when `class`, `grade`, and `size` are all present.
 - `p.formatShortDescription(typeInfo, apiData, args, prefix) → string`: the generic `[<prefix> ]<type> [by <manufacturer>]` form; subtypes call this to build a size-prefixed or type-specific descriptor.
-- `p.getExternalSiteItems(ctx) → EntityItemData[]`: a "Community sites" link block from `communitySites.json`, when any configured site's URL pattern resolves for the item's uuid or name.
+- `p.getExternalSites(ctx) → EntityExternalSite[]`: the where-to-buy links in `externalSites.json`, keyed by the item's uuid or name.
 - `p.getAcquisition(ctx) → { summary, cards }`: Buy / Loot / Craft / Pledge flags (Rent appears only when an editor sets it) and a single Shops terminal card from `uex_prices.purchase`. Runs for every item page regardless of subtype: no Item subtype defines its own `getAcquisition`.
 
 ### Subtype catalog

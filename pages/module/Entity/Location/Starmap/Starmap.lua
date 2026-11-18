@@ -411,7 +411,7 @@ end
 
 --- The ARK starmap code carried by an attached celestial-object record, else
 --- the raw |starmapcode=/|code= arg the fetch would have used — so a page
---- whose fetch soft-failed still gets the button and metadata row keyed by the
+--- whose fetch soft-failed still gets the link and metadata row keyed by the
 --- code the editor supplied. Shared by the two leaves that bridge by code
 --- (JumpPoint, Star); the empty case is rejected once, here.
 --- @param apiData table

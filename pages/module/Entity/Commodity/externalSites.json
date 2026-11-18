@@ -1,0 +1,4 @@
+[
+	{ "site": "uex", "format": "https://uexcorp.space/commodities/info/name/%s", "data": "slug" },
+	{ "site": "sctradetools", "format": "https://sc-trade.tools/commodities/%s", "data": "slug" }
+]

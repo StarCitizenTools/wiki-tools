@@ -4,7 +4,7 @@ require('strict')
 --- Root type module. Provides properties common to all entity types:
 --- name, UUID, and manufacturer.
 
-local format = require('Module:Entity/Format')
+local externalSites = require('Module:Entity/ExternalSites')
 local manufacturers = require('Module:Manufacturers')
 
 local p = {}
@@ -87,18 +87,20 @@ function p.getStructuredData(ctx)
 	}
 end
 
+--- The links every entity can carry: Galactapedia and VerseGuide from the
+--- page's args, the Issue Council search by name, and the Star Citizen Wiki API
+--- by uuid. `galactapediaurl` is the canonical arg; `galactapedia_url` and the
+--- bare `galactapedia`, which the astronomical-object corpus uses, are aliases.
 --- @param ctx EntityHookContext
---- @return EntityItemData[] External site items contributed by this module
-function p.getExternalSiteItems(ctx)
+--- @return EntityExternalSite[]
+function p.getExternalSites(ctx)
 	local apiData, args = ctx.apiData, ctx.args
-	local siteDefs = mw.loadJsonData('Module:Entity/officialSites.json')
-	local links = format.buildSiteLinks(siteDefs, {
+	return externalSites.fromDefs(mw.loadJsonData('Module:Entity/externalSites.json'), {
+		galactapedia = args.galactapediaurl or args.galactapedia_url or args.galactapedia,
+		verseguide = args.verseguideurl,
 		name = args.name or apiData.name,
+		uuid = args.uuid or apiData.uuid,
 	})
-	if not links then
-		return {}
-	end
-	return { { label = 'Official sites', content = links } }
 end
 
 -- Default payloads for the sibling renderers ({{Entity/Related}},

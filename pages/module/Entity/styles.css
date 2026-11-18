@@ -18,46 +18,162 @@
     text-align: start;
 }
 
-/* Footer section: a label-less infobox section holding the action-button grid
-   (Galactapedia / Starmap / VerseGuide / Wiki API). The footer uses
-   InfoboxLua's generic section-variant hook (a passed-through `class`), but
-   the styling is entity-specific, so it lives here rather than in InfoboxLua. */
-.t-infobox-section--footer {
+/* External sites (Module:Entity/ExternalSites): one row per link, grouped
+   Official / Community. Group labels take the skin's overline tokens, as
+   Citizen's own menu headings (.citizen-menu__heading) do. */
+.t-infobox-sites__group + .t-infobox-sites__group {
+    margin-top: var(--space-lg);
+}
+
+.t-infobox-sites__group-label {
+    color: var(--color-subtle);
+    font-family: var(--font-family-overline);
+    font-size: var(--font-size-overline);
+    font-weight: var(--font-weight-overline);
+    line-height: var(--line-height-overline);
+    letter-spacing: var(--letter-spacing-overline);
+    text-transform: var(--text-transform-overline);
+}
+
+.t-infobox-sites__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.t-infobox-sites__group-label + .t-infobox-sites__list {
+    margin-top: var(--space-xs);
+}
+
+/* The row is the click target: the name's link stretches over it, and the
+   trailing ::after draws the arrow. Negative inline margins let the hover
+   ground bleed past the text column without shifting it. */
+.t-infobox-sites__item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    box-sizing: border-box;
+    min-height: 48px;
+    margin: 0 calc(var(--space-sm) * -1);
+    padding: var(--space-xxs) var(--space-sm);
+    border-radius: var(--border-radius-medium);
+}
+
+.t-infobox-sites__item:hover,
+.t-infobox-sites__item:focus-within {
+    background-color: var(--color-surface-2);
+}
+
+/* Two layers of the same arrow mask. The mask clips to the pseudo-element's
+   box, so on hover the first layer leaves through the top-right corner while
+   the second arrives from the bottom-left, all without extra markup. */
+.t-infobox-sites__item::after {
+    content: '';
+    flex: none;
+    width: 20px;
+    height: 20px;
+    background-color: var(--color-emphasized);
+    mask-image: url(https://media.starcitizen.tools/7/7c/Lucide_arrow-up-right.svg), url(https://media.starcitizen.tools/7/7c/Lucide_arrow-up-right.svg);
+    mask-size: 20px 20px;
+    mask-repeat: no-repeat;
+    mask-position: 0 0, -20px 20px;
+    transition: mask-position var(--transition-duration-medium) var(--transition-timing-function-ease), background-color var(--transition-hover);
+}
+
+.t-infobox-sites__item:hover::after,
+.t-infobox-sites__item:focus-within::after {
+    background-color: var(--color-link);
+    mask-position: 20px -20px, 0 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .t-infobox-sites__item::after {
+        transition: none;
+    }
+}
+
+/* Every logo sits in the same tile, so flat marks and round discs read at one
+   size; the tile matches the name and tagline lines together (20px + 16px). A site without a logo keeps
+   the tile's space but not its ground. */
+.t-infobox-sites__logo {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--border-radius-medium);
+    background-color: var(--color-surface-3);
+    color: var(--color-emphasized);
+    line-height: 0;
+}
+
+.t-infobox-sites__logo:empty {
+    background-color: transparent;
+}
+
+.t-infobox-sites__text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.t-infobox-sites__name {
+    font-weight: 500;
+    line-height: 1.25rem;
+}
+
+.t-infobox-sites__name a,
+.t-infobox-sites__name a:visited {
+    color: var(--color-emphasized);
+    transition: color var(--transition-hover);
+}
+
+/* The whole row is the link, so the name takes the link colour while any of
+   the row is hovered, and keeps no underline. */
+.t-infobox-sites__item:hover .t-infobox-sites__name a,
+.t-infobox-sites__item:focus-within .t-infobox-sites__name a {
+    color: var(--color-link);
+    text-decoration: none;
+}
+
+.t-infobox-sites__name a::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    border-radius: inherit;
+}
+
+.t-infobox-sites__tagline {
+    color: var(--color-subtle);
+    font-size: var(--font-size-x-small);
+    line-height: 1rem;
+}
+
+/* A button site (the Star Citizen Wiki API) renders as a full-width ButtonLua
+   button below the collapsed section. Brand grounds live with the
+   t-button--* blocks in Module:ButtonLua/styles.css. */
+.t-infobox-section--sites-buttons {
     padding-top: var(--space-md);
 }
 
-/* Action buttons on a two-column grid. Grid, not wrapping flex: flex sizes
-   each wrapped row independently, so four buttons in a 2x2 got a different
-   cell width per row and the columns sheared. Fixed tracks keep every cell
-   aligned at any count. An odd count would leave the last cell half-empty,
-   so the odd last button spans both tracks: one button reads as a full-width
-   action, three as a pair plus a full-width one — the shapes the old flex
-   produced, minus the shear. */
-.t-infobox-footer-actions {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
+.t-infobox-sites__buttons {
+    display: flex;
+    flex-direction: column;
     gap: var(--space-xs);
 }
 
-/* Of-type, not nth-child: TemplateStyles emits ButtonLua's <style> tag inside
-   this container on pages whose first ButtonLua use is the footer (an
-   icon-less lore system), and nth-child counting it shifted the parity —
-   Malkail's lone Starmap button rendered half-width. The buttons are spans;
-   of-type skips the style tag. */
-.t-infobox-footer-actions > .t-button:nth-of-type(odd):last-of-type {
-    grid-column: 1 / -1;
-}
-
-/* Let each ButtonLua wrapper's anchor fill its grid cell so the inner Codex
-   button can stretch to full width and center its content. */
-.t-infobox-footer-actions > .t-button > a {
+/* The anchor fills the row so the Codex button inside can stretch. */
+.t-infobox-sites__buttons > .t-button > a {
     display: block;
 }
 
-/* Brand identity (grounds, content colors, the derived hover/active shades)
-   is a button concern and lives with the t-button--* namespace in
-   Module:ButtonLua/styles.css. */
-.t-infobox-section--footer .cdx-button {
+.t-infobox-sites__buttons .cdx-button {
     display: flex;
     width: 100%;
     justify-content: center;

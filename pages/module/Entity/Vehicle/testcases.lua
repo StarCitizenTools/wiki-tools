@@ -771,48 +771,46 @@ function suite:testEditorialManifestDatesPureEditorial()
 	self:assertEquals(nil, m.release_date.apiPath)
 end
 
-function suite:testExternalOfficialAndCommunity()
-	local items = Vehicle.getExternalSiteItems(ctx({
+--- @param entries EntityExternalSite[]
+--- @return table<string, EntityExternalSite[]> entries keyed by site id
+local function sitesById(entries)
+	local byId = {}
+	for _, e in ipairs(entries) do
+		byId[e.site] = byId[e.site] or {}
+		table.insert(byId[e.site], e)
+	end
+	return byId
+end
+
+function suite:testExternalSitesFromApiAndArgs()
+	local sites = sitesById(Vehicle.getExternalSites(ctx({
 		pledge_url = 'https://rsi/pledge',
 		class_name = 'AEGS_Gladius',
 		uuid = 'ABC',
 		shipmatrix_name = 'Gladius',
-	}, { brochureurl = 'https://b' }))
-	local byLabel = {}
-	for _, it in ipairs(items) do
-		byLabel[it.label] = it.content
-	end
-	self:assertTrue(byLabel['Official sites'] ~= nil and byLabel['Official sites']:find('rsi/pledge', 1, true) ~= nil)
-	-- The pledge link is labelled "Pledge store" (single brochure keeps its bare label).
-	self:assertTrue(byLabel['Official sites']:find('Pledge store', 1, true) ~= nil)
-	self:assertTrue(byLabel['Official sites']:find('[https://b Brochure]', 1, true) ~= nil)
-	self:assertTrue(
-		byLabel['Community sites'] ~= nil
-			and byLabel['Community sites']:find('erkul.games/ship/aegs_gladius', 1, true) ~= nil
-	)
+	}, { brochureurl = 'https://b' })))
+	self:assertDeepEquals({ { site = 'pledgestore', url = 'https://rsi/pledge' } }, sites.pledgestore)
+	self:assertEquals('https://b', sites.brochure[1].url)
+	self:assertEquals('https://erkul.games/ship/aegs_gladius', sites.erkul[1].url)
+	self:assertEquals('https://www.spviewer.eu/performance?ship=aegs_gladius', sites.spviewer[1].url)
+	self:assertEquals('https://finder.cstone.space/search/abc', sites.itemfinder[1].url)
+	self:assertEquals('https://ccugame.app/rsi/all-ships/gladius', sites.ccugame[1].url)
+	self:assertEquals('https://fleetyards.net/ships/gladius/', sites.fleetyards[1].url)
 end
 
-function suite:testExternalMultipleUrlsSemicolon()
-	-- brochure/trailer/presentation/qa each accept a ;-separated list; more than one
-	-- URL numbers the labels, a single URL keeps the bare label.
-	local items = Vehicle.getExternalSiteItems(ctx({}, {
+-- The media and Whitley's Guide args each accept a ;-separated list.
+function suite:testExternalSitesSplitSemicolonLists()
+	local sites = sitesById(Vehicle.getExternalSites(ctx({}, {
 		presentationurl = 'https://p1; https://p2',
 		qaurl = 'https://qa1',
-	}))
-	local official
-	for _, it in ipairs(items) do
-		if it.label == 'Official sites' then
-			official = it.content
-		end
-	end
-	self:assertTrue(official ~= nil)
-	self:assertTrue(official:find('[https://p1 Presentation 1]', 1, true) ~= nil)
-	self:assertTrue(official:find('[https://p2 Presentation 2]', 1, true) ~= nil)
-	self:assertTrue(official:find('[https://qa1 Q&A]', 1, true) ~= nil)
+	})))
+	self:assertEquals(2, #sites.presentation)
+	self:assertEquals('https://p2', sites.presentation[2].url)
+	self:assertEquals('https://qa1', sites.qa[1].url)
 end
 
-function suite:testExternalEmptyWhenNoData()
-	self:assertEquals(0, #Vehicle.getExternalSiteItems(ctx({}, {})))
+function suite:testExternalSitesEmptyWhenNoData()
+	self:assertEquals(0, #Vehicle.getExternalSites(ctx({}, {})))
 end
 
 function suite:testSizeDisplayMatrixAndClass()

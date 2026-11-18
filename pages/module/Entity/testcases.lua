@@ -184,4 +184,41 @@ function suite:testResolveManufacturerKeepsAnEditorialSentinel()
 	self:assertEquals('NONE', Base.resolveManufacturer({}, { manufacturer = 'NONE' }).code)
 end
 
+--- Base's external-site entries keyed by site.
+--- @param apiData table
+--- @param args table
+--- @return table<string, EntityExternalSite>
+local function baseSites(apiData, args)
+	local Base = require('Module:Entity/Base')
+	local bySite = {}
+	for _, site in ipairs(Base.getExternalSites({ apiData = apiData, args = args })) do
+		bySite[site.site] = site
+	end
+	return bySite
+end
+
+function suite:testBaseLinksTheWikiApiByUuid()
+	local sites = baseSites({ uuid = 'from-api' }, { uuid = 'abc' })
+	self:assertDeepEquals({ site = 'wikiapi', url = 'https://api.star-citizen.wiki/search/abc' }, sites.wikiapi)
+	self:assertEquals('https://api.star-citizen.wiki/search/from-api', baseSites({ uuid = 'from-api' }, {}).wikiapi.url)
+end
+
+function suite:testBaseSearchesTheIssueCouncilByName()
+	local sites = baseSites({ name = 'API name' }, { name = 'P4-AR Rifle' })
+	self:assertStringContains('?search=P4-AR+Rifle&', sites.issuecouncil.url, true)
+end
+
+function suite:testBaseGalactapediaArgAliases()
+	for _, arg in ipairs({ 'galactapediaurl', 'galactapedia_url', 'galactapedia' }) do
+		self:assertEquals('https://example.com/g', baseSites({}, { [arg] = 'https://example.com/g' }).galactapedia.url)
+	end
+end
+
+function suite:testBaseVerseGuideArg()
+	local url = 'https://verseguide.com/location/STANTON'
+	self:assertEquals(url, baseSites({}, { verseguideurl = url }).verseguide.url)
+	-- An empty-string arg is absent, not a blank link.
+	self:assertEquals(nil, baseSites({}, { verseguideurl = '' }).verseguide)
+end
+
 return suite

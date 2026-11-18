@@ -404,14 +404,7 @@ function p.getShortDescription(ctx)
 	return string.format('%s %s contract', faction:lower():gsub('^%l', string.upper), typeName:lower())
 end
 
---- @param ctx EntityHookContext
---- @return EntityItemData[]
-function p.getExternalSiteItems(ctx)
-	return {}
-end
-
---- SCMDB as a footer action button, the same shape as the star systems'
---- Starmap button.
+--- The SCMDB link.
 ---
 --- SCMDB keys its catalogue by the game's own contract GUID, which is the
 --- value the API returns as `uuid`, so the page's uuid addresses the contract
@@ -427,19 +420,13 @@ end
 --- it does not hold opens its mission browser rather than an error page.
 ---
 --- @param ctx EntityHookContext
---- @return table[]
-function p.getFooterButtons(ctx)
+--- @return EntityExternalSite[]
+function p.getExternalSites(ctx)
 	local uuid = ctx.args.uuid or ctx.apiData.uuid
 	if type(uuid) ~= 'string' or uuid == '' then
 		return {}
 	end
-	return {
-		{
-			label = 'SCMDB',
-			url = 'https://scmdb.net/?g=' .. uuid,
-			class = 't-button--branded t-button--scmdb',
-		},
-	}
+	return { { site = 'scmdb', url = 'https://scmdb.net/?g=' .. uuid } }
 end
 
 return p

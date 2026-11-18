@@ -55,9 +55,13 @@ local BASE = 'pages/module/Entity'
 local TYPES_PATH = BASE .. '/Item/types.json'
 local CLASSES_PATH = BASE .. '/Item/classifications.json'
 local WEAPON_CLASSES_PATH = BASE .. '/Item/WeaponGun/weaponClasses.json'
-local ITEM_SITES_PATH = BASE .. '/Item/communitySites.json'
-local OFFICIAL_SITES_PATH = BASE .. '/officialSites.json'
-local COMM_SITES_PATH = BASE .. '/Commodity/communitySites.json'
+local SITE_REGISTRY_PATH = BASE .. '/ExternalSites/sites.json'
+local SITE_LINK_PATHS = {
+	BASE .. '/externalSites.json',
+	BASE .. '/Item/externalSites.json',
+	BASE .. '/Commodity/externalSites.json',
+	BASE .. '/Vehicle/externalSites.json',
+}
 local PORTS_CATS_PATH = BASE .. '/Ports/categories.json'
 local ITEM_LUA_PATH = BASE .. '/Item/Item.lua'
 local VEHICLE_LUA_PATH = BASE .. '/Vehicle/Vehicle.lua'
@@ -191,55 +195,108 @@ if weaponClasses then
 	end
 end
 
--- ── 4. Site manifests ─────────────────────────────────────────────────────────
--- Format.buildSiteLinks reads: def.arg OR (def.format AND def.data); plus def.label.
--- Each entry must have: label (string) AND (arg OR (format AND data)).
-local function checkSiteManifest(path)
-	local sites = readJson(path)
-	if not sites then
-		return
-	end
+-- ── 4. External sites ────────────────────────────────────────────────────────
+-- Module:Entity/ExternalSites reads the registry (sites.json) by id, and each
+-- kind's externalSites.json names a site per link. An unknown id drops the link
+-- silently on-wiki, so it fails here.
 
-	if type(sites) ~= 'table' then
-		fail(path, 'expected a JSON array at top level')
-		return
+--- Validates an id-keyed array and returns the set of its ids.
+--- @return table<string, boolean>|nil
+local function checkIdList(path, fields)
+	local list = readJson(path)
+	if not list then
+		return nil
 	end
-
-	local siteFailed = false
-	for i, entry in ipairs(sites) do
-		if type(entry) ~= 'table' then
-			fail(path, 'entry [' .. i .. '] is not an object')
-			siteFailed = true
+	if type(list) ~= 'table' or #list == 0 then
+		fail(path, 'expected a non-empty JSON array')
+		return nil
+	end
+	local ids, listFailed = {}, false
+	for i, entry in ipairs(list) do
+		local where = 'entry [' .. i .. ']'
+		if type(entry) ~= 'table' or type(entry.id) ~= 'string' or entry.id == '' then
+			fail(path, where .. ' has a missing or empty .id')
+			listFailed = true
+		elseif ids[entry.id] then
+			fail(path, where .. ' repeats id ' .. entry.id)
+			listFailed = true
 		else
-			-- Must have a non-empty label
-			if type(entry.label) ~= 'string' or entry.label == '' then
-				fail(path, 'entry [' .. i .. '] has missing or empty .label')
-				siteFailed = true
-			end
-			-- Must have arg OR (format AND data)
-			local hasArg = type(entry.arg) == 'string' and entry.arg ~= ''
-			local hasFormatData = type(entry.format) == 'string'
-				and entry.format ~= ''
-				and type(entry.data) == 'string'
-				and entry.data ~= ''
-			if not hasArg and not hasFormatData then
-				fail(
-					path,
-					'entry [' .. i .. '] (' .. tostring(entry.label) .. '): must have .arg OR both .format and .data'
-				)
-				siteFailed = true
+			ids[entry.id] = true
+			for field, kind in pairs(fields) do
+				local value = entry[field]
+				local required = kind:sub(-1) ~= '?'
+				local want = required and kind or kind:sub(1, -2)
+				if value == nil then
+					if required then
+						fail(path, entry.id .. ': missing .' .. field)
+						listFailed = true
+					end
+				elseif type(value) ~= want or (want == 'string' and value == '') then
+					fail(path, entry.id .. ': .' .. field .. ' must be a non-empty ' .. want)
+					listFailed = true
+				end
 			end
 		end
 	end
+	if not listFailed then
+		pass(path)
+	end
+	return ids
+end
 
-	if not siteFailed then
+local siteIds = checkIdList(SITE_REGISTRY_PATH, {
+	name = 'string',
+	tagline = 'string?',
+	icon = 'string?',
+	iconMask = 'boolean?',
+	iconSize = 'string?',
+	official = 'boolean?',
+	button = 'string?',
+})
+
+local function checkSiteLinks(path)
+	local links = readJson(path)
+	if not links then
+		return
+	end
+	if type(links) ~= 'table' then
+		fail(path, 'expected a JSON array at top level')
+		return
+	end
+	local linksFailed = false
+	for i, link in ipairs(links) do
+		local where = 'entry [' .. i .. ']'
+		if type(link) ~= 'table' then
+			fail(path, where .. ' is not an object')
+			linksFailed = true
+		else
+			if siteIds and not siteIds[link.site] then
+				fail(path, where .. ' names unknown site ' .. tostring(link.site))
+				linksFailed = true
+			end
+			local hasArg = type(link.arg) == 'string' and link.arg ~= ''
+			local hasFormat = type(link.format) == 'string' and type(link.data) == 'string' and link.data ~= ''
+			if not hasArg and not hasFormat then
+				fail(path, where .. ' must have .arg or both .format and .data')
+				linksFailed = true
+			elseif hasFormat then
+				-- string.format gets the format: exactly one %s and no other % sequence.
+				local stripped, slots = link.format:gsub('%%s', '')
+				if slots ~= 1 or stripped:find('%', 1, true) then
+					fail(path, where .. ' .format must hold exactly one %s and no other %')
+					linksFailed = true
+				end
+			end
+		end
+	end
+	if not linksFailed then
 		pass(path)
 	end
 end
 
-checkSiteManifest(ITEM_SITES_PATH)
-checkSiteManifest(OFFICIAL_SITES_PATH)
-checkSiteManifest(COMM_SITES_PATH)
+for _, path in ipairs(SITE_LINK_PATHS) do
+	checkSiteLinks(path)
+end
 
 -- ── 5. Ports/categories.json ──────────────────────────────────────────────────
 -- .categories is a table; .typeAliases (if present) is string→string.

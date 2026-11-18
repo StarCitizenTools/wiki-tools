@@ -289,9 +289,9 @@ function p.getShortDescription(ctx)
 end
 
 --- @param ctx EntityHookContext
---- @return table[]
-function p.getFooterButtons(ctx)
-	return locationDisplay.starmapFooterButtons(resolvedStarmapCode(ctx.apiData, ctx.args))
+--- @return EntityExternalSite[]
+function p.getExternalSites(ctx)
+	return locationDisplay.starmapSites(resolvedStarmapCode(ctx.apiData, ctx.args))
 end
 
 --- @param ctx EntityHookContext

@@ -38,7 +38,7 @@ end
 
 --- The starmap celestial-object code (`code` is the legacy {{Astronomical
 --- object}} arg name). No property key, no transform: this leaf surfaces it itself
---- (metadata row, Starmap button). enrich and the starmapCode accessor read
+--- (metadata row, Starmap link). enrich and the starmapCode accessor read
 --- the RAW arg through Editorial.rawArg with this entry, so the alias order
 --- is declared here once.
 --- This leaf declares the starmapcode entry itself, so its own fragment is
@@ -220,7 +220,7 @@ local function starmapVisibility(apiData)
 end
 
 --- The ARK starmap code (the `?location=` key), read through the manifest entry
---- enrich fetches with, so a page whose fetch soft-failed still gets its button
+--- enrich fetches with, so a page whose fetch soft-failed still gets its link
 --- and metadata row from the arg that would have keyed it.
 --- @param apiData table
 --- @param args table|nil
@@ -314,15 +314,15 @@ function p.getShortDescription(ctx)
 	return 'A jump point in Star Citizen'
 end
 
---- RSI Starmap as a footer action button, from the shared code accessor.
+--- The RSI Starmap link, from the shared code accessor.
 --- @param ctx EntityHookContext
---- @return table[]
-function p.getFooterButtons(ctx)
-	return locationDisplay.starmapFooterButtons(starmapCode(ctx.apiData, ctx.args))
+--- @return EntityExternalSite[]
+function p.getExternalSites(ctx)
+	return locationDisplay.starmapSites(starmapCode(ctx.apiData, ctx.args))
 end
 
 --- Chain-contributed Metadata rows: the ARK starmap code, through the same
---- accessor as the footer button so the two cannot disagree.
+--- accessor as the Starmap link so the two cannot disagree.
 --- @param ctx EntityHookContext
 --- @return EntityItemData[]
 function p.getMetadataItems(ctx)

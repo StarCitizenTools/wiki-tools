@@ -93,54 +93,35 @@ function suite:testEntityTagsRowCarriesTheUuidAsAValueAttribute()
 	self:assertEquals('<data value="u1">Ballistic</data>', content)
 end
 
--- ── Footer buttons ─────────────────────────────────────────────────────────
+-- ── External sites ─────────────────────────────────────────────────────────
 
-local buildFooterSection = Infobox._internal.buildFooterSection
+local buildExternalSites = Infobox._internal.buildExternalSites
 
-function suite:testFooterVerseGuideButton()
-	local section = buildFooterSection({}, ctx({}, { verseguideurl = 'https://verseguide.com/location/STANTON' }))
-	self:assertStringContains('VerseGuide', section.content)
-	self:assertStringContains('https://verseguide.com/location/STANTON', section.content)
-	self:assertStringContains('t%-button%-%-verseguide', section.content)
+--- A chain link contributing external-site entries.
+--- @param entries EntityExternalSite[]
+--- @return table chainLink
+local function siteContributor(entries)
+	return {
+		getExternalSites = function()
+			return entries
+		end,
+	}
 end
 
-function suite:testFooterVerseGuideOrderAfterChainBeforeWikiApi()
-	-- Official RSI properties (Galactapedia, the chain's Starmap) sit adjacent;
-	-- the community site follows them; Wiki API closes the row.
+function suite:testExternalSitesCollectEveryChainLink()
 	local chain = {
-		{
-			getFooterButtons = function()
-				return { { label = 'Starmap', url = 'https://example.com/s', icon = 'Sc-icon-galactapedia.svg' } }
-			end,
-		},
+		siteContributor({ { site = 'issuecouncil', url = 'https://ic.example' } }),
+		siteContributor({ { site = 'erkul', url = 'https://e.example' } }),
 	}
-	local args = {
-		galactapediaurl = 'https://example.com/g',
-		verseguideurl = 'https://example.com/v',
-		uuid = 'u-1',
-	}
-	local content = buildFooterSection(chain, ctx({}, args)).content
-	local galactapedia = content:find('Galactapedia', 1, true)
-	local starmap = content:find('Starmap', 1, true)
-	local verseguide = content:find('VerseGuide', 1, true)
-	local wikiApi = content:find('Wiki API', 1, true)
-	self:assertTrue(galactapedia < starmap and starmap < verseguide and verseguide < wikiApi)
+	local section = buildExternalSites(chain, ctx({}, {}))
+	self:assertStringContains('https://ic.example', section.content, true)
+	self:assertStringContains('https://e.example', section.content, true)
 end
 
--- The astronomical-object corpus spells it bare on 245 pages, so it is an
--- alias rather than a rename those pages would all have to carry.
-function suite:testFooterGalactapediaArgAliases()
-	for _, arg in ipairs({ 'galactapediaurl', 'galactapedia_url', 'galactapedia' }) do
-		local content = buildFooterSection({}, ctx({}, { [arg] = 'https://example.com/g' })).content
-		self:assertTrue(content:find('Galactapedia', 1, true) ~= nil)
-		self:assertTrue(content:find('https://example.com/g', 1, true) ~= nil)
-	end
-end
-
-function suite:testFooterNilWithNoButtons()
-	self:assertEquals(nil, buildFooterSection({}, ctx({}, {})))
-	-- An empty-string arg is absent, not a blank button.
-	self:assertEquals(nil, buildFooterSection({}, ctx({}, { verseguideurl = '' })))
+function suite:testExternalSitesNilWithoutEntries()
+	local section, buttons = buildExternalSites({}, ctx({}, {}))
+	self:assertEquals(nil, section)
+	self:assertEquals(nil, buttons)
 end
 
 return suite

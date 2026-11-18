@@ -121,10 +121,9 @@ function p.getCategories(ctx)
 end
 
 --- The ARK starmap code (the `?location=` key), or nil. Two consumers read it —
---- the Starmap footer button and the Metadata row — and they open-coded the same
---- guard, which let an empty-string code through both: a `?location=` button
---- pointing at the starmap index, and a blank "Starmap code" row. One accessor,
---- so they cannot drift and the empty case is rejected once.
+--- the Starmap link and the Metadata row. An empty-string code is rejected here,
+--- once: it would give a `?location=` link to the starmap index and a blank
+--- "Starmap code" row.
 --- @param apiData table
 --- @return string|nil
 local function starmapCode(apiData)
@@ -403,18 +402,16 @@ function p.getShortDescription(ctx)
 	return 'A star system in Star Citizen'
 end
 
---- RSI Starmap as a footer action button (from the starsystem code), sitting
---- beside the Galactapedia and Wiki API buttons. Galactapedia itself is NOT
---- handled here: the Infobox footer already renders it from
---- args.galactapediaurl.
+--- The RSI Starmap link, from the starsystem code. Galactapedia is not handled
+--- here: Module:Entity/Base adds it for every kind from args.galactapediaurl.
 --- @param ctx EntityHookContext
---- @return table[]
-function p.getFooterButtons(ctx)
-	return locationDisplay.starmapFooterButtons(starmapCode(ctx.apiData))
+--- @return EntityExternalSite[]
+function p.getExternalSites(ctx)
+	return locationDisplay.starmapSites(starmapCode(ctx.apiData))
 end
 
 --- Chain-contributed Metadata rows: the ARK starmap code, through the same
---- accessor as the footer button so the two cannot disagree.
+--- accessor as the Starmap link so the two cannot disagree.
 --- @param ctx EntityHookContext
 --- @return EntityItemData[]
 function p.getMetadataItems(ctx)

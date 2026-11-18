@@ -5,6 +5,7 @@ require('strict')
 --- (size, mass, volume) and the shared item API endpoint.
 
 local format = require('Module:Entity/Format')
+local externalSites = require('Module:Entity/ExternalSites')
 local base = require('Module:Entity/Base')
 local subtypeResolver = require('Module:Entity/SubtypeResolver')
 local acq = require('Module:Entity/Acquisition')
@@ -374,18 +375,13 @@ function p.getStructuredData(ctx)
 end
 
 --- @param ctx EntityHookContext
---- @return EntityItemData[] External site items contributed by this module
-function p.getExternalSiteItems(ctx)
+--- @return EntityExternalSite[]
+function p.getExternalSites(ctx)
 	local apiData, args = ctx.apiData, ctx.args
-	local siteDefs = mw.loadJsonData('Module:Entity/Item/communitySites.json')
-	local links = format.buildSiteLinks(siteDefs, {
+	return externalSites.fromDefs(mw.loadJsonData('Module:Entity/Item/externalSites.json'), {
 		uuid = args.uuid,
 		name = args.name or apiData.name,
 	})
-	if not links then
-		return {}
-	end
-	return { { label = 'Community sites', content = links } }
 end
 
 --- Acquisition data for {{Entity/Availability}}: Buy/Loot/Craft/Pledge summary

@@ -1,0 +1,10 @@
+[
+	{ "site": "galactapedia", "arg": "galactapedia" },
+	{ "site": "verseguide", "arg": "verseguide" },
+	{
+		"site": "issuecouncil",
+		"format": "https://issue-council.robertsspaceindustries.com/projects/STAR-CITIZEN/issues?search=%s&limit=50&sort=reproduction&statuses=confirmed,open,underinvestigation",
+		"data": "name"
+	},
+	{ "site": "wikiapi", "format": "https://api.star-citizen.wiki/search/%s", "data": "uuid" }
+]

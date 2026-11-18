@@ -86,10 +86,10 @@ end
 
 -- KIND must type-check every contributor hook a kind can implement as the chain
 -- root, not just the identity ones: Location's StarSystem leaf contributes
--- getFooterButtons / getMetadataItems, and a kind may do the same directly.
+-- getExternalSites / getMetadataItems, and a kind may do the same directly.
 -- A non-function there is a wiring bug the conformance gate has to catch.
 function suite:testKindTypeChecksChainContributorHooks()
-	for _, hook in ipairs({ 'getFooterButtons', 'getMetadataItems' }) do
+	for _, hook in ipairs({ 'getExternalSites', 'getMetadataItems' }) do
 		local kind = { matches = function() end, getApiConfigs = function() end, [hook] = 'nope' }
 		local ok, errors = Contract.validate(kind, Contract.KIND)
 		self:assertFalse(ok, hook .. ' is not type-checked by KIND')

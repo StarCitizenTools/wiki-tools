@@ -1,0 +1,17 @@
+[
+	{ "site": "pledgestore", "arg": "pledge_url" },
+	{ "site": "whitleysguide", "arg": "whitleys_guide" },
+	{ "site": "brochure", "arg": "brochure" },
+	{ "site": "trailer", "arg": "trailer" },
+	{ "site": "presentation", "arg": "presentation" },
+	{ "site": "qa", "arg": "qa" },
+	{ "site": "erkul", "format": "https://erkul.games/ship/%s", "data": "class_name" },
+	{
+		"site": "spviewer",
+		"format": "https://www.spviewer.eu/performance?ship=%s",
+		"data": "class_name"
+	},
+	{ "site": "itemfinder", "format": "https://finder.cstone.space/search/%s", "data": "uuid" },
+	{ "site": "ccugame", "format": "https://ccugame.app/rsi/all-ships/%s", "data": "ship_matrix" },
+	{ "site": "fleetyards", "format": "https://fleetyards.net/ships/%s/", "data": "ship_matrix" }
+]

@@ -36,7 +36,7 @@ System the starmap does not list: identity comes from the editorial parameters.
 }}
 ```
 
-In-game jump point: the location record supplies the entry system, parent anchor, jurisdiction, and travel data; `starmapcode` keys the starmap celestial object that supplies the destination, the gate size, and the Starmap footer button.
+In-game jump point: the location record supplies the entry system, parent anchor, jurisdiction, and travel data; `starmapcode` keys the starmap celestial object that supplies the destination, the gate size, and the Starmap link.
 
 ```wikitext
 {{Location
@@ -97,8 +97,8 @@ Star system with curated overrides and lore fields (the discovery citation belon
 | `discoveredin` | Discovered in | content | No |  | Lore year of discovery. Keep citations in the article body. | `[[2851]]` |  |
 | `discoveredby` | Discovered by | content | No |  | Discoverer of the system. Keep citations in the article body. | `[[Toshi Aaron]]` |  |
 | `historicalnames` | Historical names | string | No |  | Former names of the system, comma-separated. | `Cathcart` |  |
-| `galactapediaurl` | Galactapedia URL | url | No |  | Galactapedia article URL, rendered as a footer button. | `https://robertsspaceindustries.com/galactapedia/article/RX3lKBA3dq-stanton-system` |  |
-| `verseguideurl` | VerseGuide URL | url | No |  | VerseGuide location URL, rendered as a footer button after the Starmap one. | `https://verseguide.com/location/STANTON` |  |
+| `galactapediaurl` | Galactapedia URL | url | No |  | Galactapedia article URL, listed under External sites. | `https://robertsspaceindustries.com/galactapedia/article/RX3lKBA3dq-stanton-system` |  |
+| `verseguideurl` | VerseGuide URL | url | No |  | VerseGuide location URL, listed under External sites. | `https://verseguide.com/location/STANTON` |  |
 | `planets` | Planets | number | No | (starmap tally) | Hand count of planets, overriding the starmap tally. | `4` |  |
 | `satellites` | Moons | number | No | (starmap tally) | Hand count of moons, overriding the starmap tally. | `12` |  |
 | `asteroidbelts` | Asteroid belts | number | No | (starmap tally) | Hand count of asteroid belts, overriding the starmap tally. | `2` |  |
@@ -117,7 +117,7 @@ Star system with curated overrides and lore fields (the discovery citation belon
 - The starmap record is fetched by system name; affiliation, jurisdiction, size, star types, sensor readings (economy and population), and object-count tiles come from it. Hand counts beat starmap tallies wherever both exist, in the display and in the stored properties alike.
 - A count or size parameter that is not a number ("?", "TBD", "Unknown") is ignored rather than displayed, so a placeholder cannot blank a real starmap value. Leave the parameter out instead; the starmap figure is used.
 - The starmap does not publish a survey for every system (the Vanduul systems and those with incomplete probe data). Where it withholds one, the size and the economy/population readings are omitted rather than shown as the placeholder figures the starmap returns.
-- The RSI Starmap footer button is generated from the starmap system code (star systems) or from the fetched celestial object's code falling back to `starmapcode` (jump points); the Galactapedia and VerseGuide buttons appear when `galactapediaurl` / `verseguideurl` are supplied.
+- The RSI Starmap link under External sites comes from the starmap system code (star systems) or from the fetched celestial object's code, falling back to `starmapcode` (jump points); the Galactapedia and VerseGuide links appear when `galactapediaurl` / `verseguideurl` are supplied.
 - A jump point's Destination row is omitted rather than guessed when the celestial designation names neither side as the entry system.
 - `affiliation` feeds a `<value> systems` browse category directly from whatever text is written: a canonical name (`UEE`, `Xi'an Empire`, ...) normalizes to its standard entry, but anything else is used verbatim, so a typo or inconsistent spelling files the page under its own new category instead of the intended one.
 - Stored property values are sanitized: wiki links are reduced to their display text and reference tags are stripped, so query results stay clean.

@@ -53,6 +53,7 @@ Consume `Module:Entity/Data` directly:
 - [Module:Entity/Api](https://starcitizen.tools/Module:Entity/Api): the sole Apiunto I/O seam
 - [Module:Entity/Base](https://starcitizen.tools/Module:Entity/Base): root chain link: name, uuid, manufacturer
 - [Module:Entity/Infobox](https://starcitizen.tools/Module:Entity/Infobox): assembles and renders the infobox HTML
+- [Module:Entity/ExternalSites](https://starcitizen.tools/Module:Entity/ExternalSites): the External sites section and its site registry
 - [Module:Entity/Categories](https://starcitizen.tools/Module:Entity/Categories): derives browse categories + trailing wikitext
 - [Module:Entity/StructuredData](https://starcitizen.tools/Module:Entity/StructuredData): the Bucket write, split per table by the manifest
 - [Module:Entity/Store](https://starcitizen.tools/Module:Entity/Store): Entity's Bucket reads, the page's own uuid and the uuid-to-page lookups. Which table a property lives in, and how a query is built from property names, is [Module:BucketQuery](https://starcitizen.tools/Module:BucketQuery)
@@ -63,7 +64,7 @@ Consume `Module:Entity/Data` directly:
 ### Shared helpers
 
 - [Module:Entity/SectionBuilder](https://starcitizen.tools/Module:Entity/SectionBuilder): the shared `getSections` row/section constructor
-- [Module:Entity/Format](https://starcitizen.tools/Module:Entity/Format): shared number/list/external-link display helpers
+- [Module:Entity/Format](https://starcitizen.tools/Module:Entity/Format): shared number/list display helpers
 - [Module:Entity/StatFormat](https://starcitizen.tools/Module:Entity/StatFormat): display-scale registry for bar/range stats
 - [Module:Entity/Acquisition](https://starcitizen.tools/Module:Entity/Acquisition): logic behind the kinds' `getAcquisition`
 - [Module:Entity/ProductionStatus](https://starcitizen.tools/Module:Entity/ProductionStatus): vehicle production-state badge
@@ -104,8 +105,7 @@ Identity-shaped hooks take no `ctx`; the rest take `EntityHookContext`. `*` mark
 | `getStructuredRows` | link | `(ctx) → EntityStructuredRow[]` | `collect` | `Entity.storeStructuredData` |
 | `getShortDescription` | link | `(ctx) → string` | `mostSpecific` | `Entity.setShortDescription` |
 | `getShortDescriptionPrefix` | facet | `(ctx) → string\|nil` | `firstNonNil` | `Entity.setShortDescription` |
-| `getExternalSiteItems` | link | `(ctx) → EntityItemData[]` | `collect` | `Infobox` |
-| `getFooterButtons` | link | `(ctx) → table[]` | `collect` | `Infobox` |
+| `getExternalSites` | link | `(ctx) → EntityExternalSite[]` | `collect` | `Infobox` via `ExternalSites` |
 | `getMetadataItems` | link | `(ctx) → EntityItemData[]` | `collect` | `Infobox` |
 | `getCategories` | link | `(ctx) → string[]` | `collect` | `Data.get`/`Categories.build` |
 | `getTypeInfo` | link | `(ctx) → table\|nil` | `leaf`, else `TypeResolver` | `Data.get` |

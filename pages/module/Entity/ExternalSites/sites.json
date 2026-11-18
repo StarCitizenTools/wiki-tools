@@ -1,0 +1,74 @@
+[
+	{
+		"id": "pledgestore",
+		"name": "RSI Pledge Store",
+		"tagline": "Ship pledges and game packages",
+		"icon": "Sc-icon-brand-rsi.svg",
+		"iconMask": true,
+		"official": true
+	},
+	{
+		"id": "starmap",
+		"name": "ARK Starmap",
+		"tagline": "Interactive 3D starmap",
+		"icon": "Sc-icon-galactapedia.svg",
+		"iconMask": true,
+		"official": true
+	},
+	{
+		"id": "galactapedia",
+		"name": "Galactapedia",
+		"tagline": "Lore encyclopedia",
+		"icon": "Sc-icon-galactapedia.svg",
+		"iconMask": true,
+		"official": true
+	},
+	{
+		"id": "whitleysguide",
+		"name": "Whitley's Guide",
+		"tagline": "In-universe ship review",
+		"icon": "Sc-icon-brand-rsi.svg",
+		"iconMask": true,
+		"official": true
+	},
+	{ "id": "brochure", "name": "Brochure", "icon": "CdxIconBook.svg", "iconMask": true, "iconSize": "20px", "official": true },
+	{ "id": "trailer", "name": "Trailer", "icon": "CdxIconPlay.svg", "iconMask": true, "iconSize": "20px", "official": true },
+	{
+		"id": "presentation",
+		"name": "Presentation",
+		"icon": "CdxIconNewspaper.svg",
+		"iconMask": true,
+		"iconSize": "20px",
+		"official": true
+	},
+	{ "id": "qa", "name": "Q&A", "icon": "CdxIconSpeechBubbles.svg", "iconMask": true, "iconSize": "20px", "official": true },
+	{
+		"id": "issuecouncil",
+		"name": "Issue Council",
+		"tagline": "Bug tracker",
+		"icon": "Sc-icon-brand-rsi.svg",
+		"iconMask": true,
+		"official": true
+	},
+	{ "id": "erkul", "name": "Erkul", "tagline": "Loadout and DPS calculator", "icon": "Erkul logo mono.svg", "iconMask": true },
+	{ "id": "spviewer", "name": "SPViewer", "tagline": "Ship performance viewer", "icon": "SPViewer logo mono.svg", "iconMask": true },
+	{ "id": "itemfinder", "name": "Universal Item Finder", "tagline": "In-game shop finder", "icon": "Universal Item Finder logo mono.svg", "iconMask": true },
+	{ "id": "uex", "name": "UEX", "tagline": "Trade and price database", "icon": "UEX logo.svg", "iconMask": true },
+	{ "id": "sctradetools", "name": "SC Trade Tools", "tagline": "Trading toolkit", "icon": "SC Trade Tools logo mono.svg", "iconMask": true },
+	{ "id": "ccugame", "name": "CCU Game", "tagline": "Pledge and upgrade planner", "icon": "CCU Game logo mono.svg", "iconMask": true },
+	{ "id": "fleetyards", "name": "FleetYards", "tagline": "Fleet manager and ship database", "icon": "FleetYards logo mono.svg", "iconMask": true },
+	{
+		"id": "verseguide",
+		"name": "VerseGuide",
+		"tagline": "Location guide",
+		"icon": "VerseGuide logo.svg",
+		"iconMask": true
+	},
+	{ "id": "scmdb", "name": "SCMDB", "tagline": "Contract database", "icon": "SCMDB logo mono.svg", "iconMask": true },
+	{
+		"id": "wikiapi",
+		"name": "Star Citizen Wiki API",
+		"icon": "Star Citizen Wiki API - Logo.svg",
+		"button": "wiki-api"
+	}
+]

@@ -16,6 +16,7 @@ local development = require('Module:Entity/Vehicle/Development')
 local Editorial = require('Module:Entity/Editorial')
 local vehicleDimensions = require('Module:Entity/Vehicle/Dimensions')
 local format = require('Module:Entity/Format')
+local externalSites = require('Module:Entity/ExternalSites')
 local lore = require('Module:Entity/Vehicle/Lore')
 local overview = require('Module:Entity/Vehicle/Overview')
 local productionStatus = require('Module:Entity/ProductionStatus')
@@ -463,40 +464,27 @@ function p.getStructuredRows(ctx)
 	return rows
 end
 
---- External-site links: Official (pledgeurl from API + editorial galactapediaurl /
---- brochureurl / trailerurl / presentationurl / qaurl / whitleysguideurl) and Community
---- (ship tools from API identifiers). The brochure/trailer/presentation/Q&A args each accept a
---- semicolon-separated list for multiple URLs (e.g. presentationurl = url1; url2 — the
---- wiki multi-value convention). The footer merges the "Official sites" row with Base's
---- same-label row.
+--- The vehicle's links: the pledge store (API value, |pledgeurl= wins), the
+--- editorial lore and media URLs, and the ship tools keyed by API identifiers.
+--- The brochure, trailer, presentation, Q&A and Whitley's Guide args each accept
+--- a semicolon-separated list (the wiki multi-value convention). Galactapedia
+--- comes from Base, which reads |galactapediaurl= for every kind.
 --- @param ctx EntityHookContext
---- @return table[]
-function p.getExternalSiteItems(ctx)
+--- @return EntityExternalSite[]
+function p.getExternalSites(ctx)
 	local apiData, args = ctx.apiData, ctx.args
-	local items = {}
-	local official = format.buildSiteLinks(mw.loadJsonData('Module:Entity/Vehicle/officialSites.json'), {
+	local uuid = args.uuid or apiData.uuid
+	return externalSites.fromDefs(mw.loadJsonData('Module:Entity/Vehicle/externalSites.json'), {
 		pledge_url = args.pledgeurl or apiData.pledge_url,
-		galactapedia = args.galactapediaurl,
 		brochure = format.splitSemi(args.brochureurl),
 		trailer = format.splitSemi(args.trailerurl),
 		presentation = format.splitSemi(args.presentationurl),
 		qa = format.splitSemi(args.qaurl),
 		whitleys_guide = format.splitSemi(args.whitleysguideurl),
-	})
-	if official then
-		items[#items + 1] = { label = 'Official sites', content = official }
-	end
-	local className = type(apiData.class_name) == 'string' and mw.ustring.lower(apiData.class_name) or nil
-	local uuid = args.uuid or apiData.uuid
-	local community = format.buildSiteLinks(mw.loadJsonData('Module:Entity/Vehicle/communitySites.json'), {
 		uuid = type(uuid) == 'string' and mw.ustring.lower(uuid) or nil,
-		class_name = className,
+		class_name = type(apiData.class_name) == 'string' and mw.ustring.lower(apiData.class_name) or nil,
 		ship_matrix = shipMatrixSlug(apiData.shipmatrix_name),
 	})
-	if community then
-		items[#items + 1] = { label = 'Community sites', content = community }
-	end
-	return items
 end
 
 --- Production states whose browse category is not the plain label. Keyed by the

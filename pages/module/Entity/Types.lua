@@ -13,6 +13,10 @@ local p = {}
 --- @field content string|nil The display content
 --- @field class string|nil CSS class on the item element (e.g. a full-width block row)
 
+--- @class EntityExternalSite
+--- @field site string A sites.json id in Module:Entity/ExternalSites
+--- @field url string The link target
+
 --- @class EntitySectionEntry
 --- @field key string Unique section identifier used for merging across the type chain
 --- @field label string|nil The display name for the section
@@ -57,8 +61,7 @@ local p = {}
 --- @field getStructuredData nil|fun(ctx: EntityHookContext): table<string, any> Flat key-value data
 --- @field getStructuredRows nil|fun(ctx: EntityHookContext): EntityStructuredRow[] Rows for the kind's `%rows` tables
 --- @field getShortDescription nil|fun(ctx: EntityHookContext): string Page short description
---- @field getExternalSiteItems nil|fun(ctx: EntityHookContext): EntityItemData[] External-site links
---- @field getFooterButtons nil|fun(ctx: EntityHookContext): table[] Footer action-button defs ({ label, url, icon, class }), rendered between the Galactapedia and Wiki API buttons
+--- @field getExternalSites nil|fun(ctx: EntityHookContext): EntityExternalSite[] Links to other sites, rendered by Module:Entity/ExternalSites
 --- @field getMetadataItems nil|fun(ctx: EntityHookContext): EntityItemData[] Extra rows appended to the Infobox's Metadata section (StarSystem: the ARK starmap code)
 --- @field getTypeInfo nil|fun(ctx: EntityHookContext): table|nil Display metadata { name, category }
 --- @field getSubtitle nil|fun(ctx: EntityHookContext): string|nil Header subtitle override (else the display type)

@@ -306,15 +306,15 @@ function p.getShortDescription(ctx)
 	return (classification(ctx.apiData, ctx.args) or 'Star') .. ' in the ' .. system .. ' system'
 end
 
---- RSI Starmap as a footer action button, from the shared code accessor.
+--- The RSI Starmap link, from the shared code accessor.
 --- @param ctx EntityHookContext
---- @return table[]
-function p.getFooterButtons(ctx)
-	return locationDisplay.starmapFooterButtons(starmapCode(ctx.apiData, ctx.args))
+--- @return EntityExternalSite[]
+function p.getExternalSites(ctx)
+	return locationDisplay.starmapSites(starmapCode(ctx.apiData, ctx.args))
 end
 
 --- Chain-contributed Metadata rows: the ARK starmap code, through the same
---- accessor as the footer button so the two cannot disagree.
+--- accessor as the Starmap link so the two cannot disagree.
 --- @param ctx EntityHookContext
 --- @return EntityItemData[]
 function p.getMetadataItems(ctx)

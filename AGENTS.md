@@ -18,7 +18,7 @@ Wiki pages, modules, and automation for [Star Citizen Wiki](https://starcitizen.
 ## Architecture Patterns
 
 - **Rendering components** (InfoboxLua and children): validate input with `Util.validateAndConstruct(rawData, schema)` against a schema from `Types.lua`, then build and return `mw.html` nodes. Each component exposes `p.getHtml(data)`.
-- **Entity chain**: type modules are linked via `p.parent` (e.g., `Food → Item → Base`) and each contributes lifecycle hooks — `getSections`, `getStructuredData`, `getApiConfigs`, `getShortDescription`, `getExternalSiteItems`. `Module:Entity` walks the chain to render the infobox and own page metadata (Bucket, SHORTDESC, categories); sibling renderers on the same page consume `Module:Entity/Data` for shared fetch + type resolution.
+- **Entity chain**: type modules are linked via `p.parent` (e.g., `Food → Item → Base`) and each contributes lifecycle hooks — `getSections`, `getStructuredData`, `getApiConfigs`, `getShortDescription`, `getExternalSites`. `Module:Entity` walks the chain to render the infobox and own page metadata (Bucket, SHORTDESC, categories); sibling renderers on the same page consume `Module:Entity/Data` for shared fetch + type resolution.
 
 ## Code Conventions
 

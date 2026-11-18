@@ -164,7 +164,7 @@ The old `{{Item}}` template autocategorized into more than `(Size N)`: also `(Gr
 
 ### 9b. Galactapedia link sweep (post-migration enrichment)
 
-`{{Entity}}` renders a Galactapedia link in its External-sites row from the `|galactapedia_url=` param (via `Module:Entity/officialSites.json`). After migrating, sweep the [Galactapedia API](https://api.star-citizen.wiki/api/galactapedia) and add the param wherever an entity has a matching article:
+`{{Entity}}` lists a Galactapedia link under External sites from the `|galactapedia_url=` param (via `Module:Entity/externalSites.json`). After migrating, sweep the [Galactapedia API](https://api.star-citizen.wiki/api/galactapedia) and add the param wherever an entity has a matching article:
 
 1. Page through `/api/galactapedia` (paginate `page[number]` — it caps at ~200/page) into a map of `normalize(title) → [{title, url}]`, where `url = "https://robertsspaceindustries.com" + rsi_url`.
 2. For each migrated page lacking `galactapedia_url`, look up `normalize(entity name)`. Add the param **only on an exact single-title match** (skip if 0 or >1 — avoids linking a same-named ship/place). Insert it into the `{{Entity}}` block; preserve all other content.

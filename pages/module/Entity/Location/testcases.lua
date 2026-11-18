@@ -422,18 +422,16 @@ function suite:testStatusLabels()
 	self:assertEquals('Probe data incomplete', StarSystem._internal.STATUS_LABELS.N)
 end
 
-function suite:testGetFooterButtons()
+function suite:testGetExternalSites()
 	local apiData = solarSystemFixture()
 	apiData.starsystem = starsystemFixture()
-	local buttons = StarSystem.getFooterButtons(ctx(apiData, {}))
-	self:assertEquals(1, #buttons)
-	self:assertEquals('Starmap', buttons[1].label)
-	self:assertEquals('https://robertsspaceindustries.com/starmap?location=STANTON', buttons[1].url)
-	self:assertEquals('Sc-icon-galactapedia.svg', buttons[1].icon)
+	self:assertDeepEquals({
+		{ site = 'starmap', url = 'https://robertsspaceindustries.com/starmap?location=STANTON' },
+	}, StarSystem.getExternalSites(ctx(apiData, {})))
 end
 
-function suite:testGetFooterButtonsWithoutRecord()
-	self:assertEquals(0, #StarSystem.getFooterButtons(ctx(solarSystemFixture(), {})))
+function suite:testGetExternalSitesWithoutRecord()
+	self:assertEquals(0, #StarSystem.getExternalSites(ctx(solarSystemFixture(), {})))
 end
 
 function suite:testGetMetadataItems()
@@ -451,7 +449,7 @@ end
 
 -- Both consumers read the code through one accessor, so they cannot disagree
 -- about what counts as one. An empty string does not: it would emit a bare
--- "?location=" Starmap button and a blank "Starmap code" metadata row.
+-- "?location=" Starmap link and a blank "Starmap code" metadata row.
 function suite:testStarmapCode()
 	local f = StarSystem._internal.starmapCode
 	local apiData = solarSystemFixture()
@@ -466,11 +464,11 @@ function suite:testStarmapCode()
 	self:assertEquals(nil, f(solarSystemFixture()))
 end
 
-function suite:testEmptyStarmapCodeYieldsNeitherButtonNorRow()
+function suite:testEmptyStarmapCodeYieldsNeitherLinkNorRow()
 	local apiData = solarSystemFixture()
 	apiData.starsystem = starsystemFixture()
 	apiData.starsystem.code = ''
-	self:assertEquals(0, #StarSystem.getFooterButtons(ctx(apiData, {})))
+	self:assertEquals(0, #StarSystem.getExternalSites(ctx(apiData, {})))
 	self:assertEquals(0, #StarSystem.getMetadataItems(ctx(apiData, {})))
 end
 
@@ -1171,13 +1169,13 @@ function suite:testJumpPointManifestStarmapCode()
 	self:assertEquals('discoveredin', manifest.discoveredin.arg) -- inherited from the kind
 end
 
-function suite:testJumpPointFooterButton()
-	local buttons = JumpPoint.getFooterButtons(ctx(jumpPointApiData(), {}))
-	self:assertEquals(1, #buttons)
-	self:assertEquals('Starmap', buttons[1].label)
-	self:assertEquals('https://robertsspaceindustries.com/starmap?location=PYRO.JUMPPOINTS.NYX', buttons[1].url)
-	self:assertEquals('Sc-icon-galactapedia.svg', buttons[1].icon)
-	self:assertEquals('t-button--branded t-button--starmap', buttons[1].class)
+function suite:testJumpPointStarmapLink()
+	self:assertDeepEquals({
+		{
+			site = 'starmap',
+			url = 'https://robertsspaceindustries.com/starmap?location=PYRO.JUMPPOINTS.NYX',
+		},
+	}, JumpPoint.getExternalSites(ctx(jumpPointApiData(), {})))
 end
 
 function suite:testJumpPointMetadataItems()
@@ -1191,13 +1189,13 @@ function suite:testJumpPointMetadataItems()
 	self:assertEquals('NYX.<wbr>JUMPPOINTS.<wbr>PYRO', fromArg[1].content)
 end
 
--- No usable code from record or args → neither button nor metadata row.
-function suite:testJumpPointAbsentCodeYieldsNeitherButtonNorRow()
-	self:assertEquals(0, #JumpPoint.getFooterButtons(ctx(jumpPointFixture(), {})))
+-- No usable code from record or args → neither link nor metadata row.
+function suite:testJumpPointAbsentCodeYieldsNeitherLinkNorRow()
+	self:assertEquals(0, #JumpPoint.getExternalSites(ctx(jumpPointFixture(), {})))
 	self:assertEquals(0, #JumpPoint.getMetadataItems(ctx(jumpPointFixture(), {})))
 	local blankCode = jumpPointApiData()
 	blankCode.celestialobject.code = ''
-	self:assertEquals(0, #JumpPoint.getFooterButtons(ctx(blankCode, {})))
+	self:assertEquals(0, #JumpPoint.getExternalSites(ctx(blankCode, {})))
 	self:assertEquals(0, #JumpPoint.getMetadataItems(ctx(blankCode, {})))
 end
 
@@ -1571,16 +1569,16 @@ function suite:testStarShortDescription()
 	self:assertEquals('A star in Star Citizen', Star.getShortDescription(ctx({}, {})))
 end
 
-function suite:testStarStarmapButtonAndMetadata()
-	local buttons = Star.getFooterButtons(ctx(starApiData(), {}))
-	self:assertEquals(1, #buttons)
-	self:assertEquals('https://robertsspaceindustries.com/starmap?location=GOSS.STARS.GOSSA', buttons[1].url)
-	-- The button keeps the bare code; only the row gains the break points.
+function suite:testStarStarmapLinkAndMetadata()
+	local sites = Star.getExternalSites(ctx(starApiData(), {}))
+	self:assertEquals(1, #sites)
+	self:assertEquals('https://robertsspaceindustries.com/starmap?location=GOSS.STARS.GOSSA', sites[1].url)
+	-- The link keeps the bare code; only the row gains the break points.
 	self:assertEquals('GOSS.<wbr>STARS.<wbr>GOSSA', Star.getMetadataItems(ctx(starApiData(), {}))[1].content)
 	-- A soft-failed fetch still renders both from the arg that would have
 	-- keyed it, under either alias.
 	self:assertEquals('SOL.<wbr>STARS.<wbr>SOL', Star.getMetadataItems(ctx({}, { code = 'SOL.STARS.SOL' }))[1].content)
-	self:assertEquals(0, #Star.getFooterButtons(ctx({}, {})))
+	self:assertEquals(0, #Star.getExternalSites(ctx({}, {})))
 	self:assertEquals(0, #Star.getMetadataItems(ctx({}, {})))
 end
 
@@ -1845,11 +1843,11 @@ function suite:testVerseguideUrl()
 	)
 	-- No designation to key on.
 	self:assertEquals(nil, Body._internal.verseguideUrl({ type = { name = 'Planet' } }, {}, nil))
-	-- The button rides alongside the Starmap one.
-	local buttons = Body.getFooterButtons(ctx(hurston, {}))
-	self:assertEquals(2, #buttons)
-	self:assertEquals('Starmap', buttons[1].label)
-	self:assertEquals('VerseGuide', buttons[2].label)
+	-- The link rides alongside the Starmap one.
+	local sites = Body.getExternalSites(ctx(hurston, {}))
+	self:assertEquals(2, #sites)
+	self:assertEquals('starmap', sites[1].site)
+	self:assertDeepEquals({ site = 'verseguide', url = 'https://verseguide.com/location/STANTON/I' }, sites[2])
 end
 
 -- A body with no resolvable system must NOT bridge: attachStarsystem's own

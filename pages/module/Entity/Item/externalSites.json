@@ -1,0 +1,5 @@
+[
+	{ "site": "itemfinder", "format": "https://finder.cstone.space/search/%s", "data": "uuid" },
+	{ "site": "uex", "format": "https://uexcorp.space/items/info?name=%s", "data": "name" },
+	{ "site": "sctradetools", "format": "https://sc-trade.tools/item-finder/%s", "data": "name" }
+]

@@ -3,7 +3,7 @@ require('strict')
 --- @module Entity/Location/Display
 --- The infobox pieces every Location leaf builds the same way, so a system, a
 --- planet and a belt read alike: the starmap sensor meters, the location chain
---- and the anchors it links, the affiliation shown, and the Starmap button and
+--- and the anchors it links, the affiliation shown, and the Starmap link and
 --- code row.
 
 local meterBar = require('Module:MeterBar')
@@ -143,30 +143,22 @@ function p.affiliationDisplay(starsystem, resolved)
 	return entry.display or ('[[' .. entry.label .. ']]')
 end
 
---- The RSI Starmap footer action button for a starmap code, or no buttons at
---- all when there is no usable code. The Galactapedia mark doubles as the
---- icon (it is technically the Starmap's logo) and the brand class is shared
---- with every other Starmap button on the wiki. One definition for every leaf,
---- so their buttons cannot drift apart.
+--- The RSI Starmap link for a starmap code, or nothing when there is no usable
+--- code. One definition for every leaf, so their links cannot drift apart.
 --- @param code string|nil
---- @return table[]
-function p.starmapFooterButtons(code)
+--- @return EntityExternalSite[]
+function p.starmapSites(code)
 	if type(code) ~= 'string' or code == '' then
 		return {}
 	end
 	return {
-		{
-			label = 'Starmap',
-			url = 'https://robertsspaceindustries.com/starmap?location=' .. code,
-			icon = 'Sc-icon-galactapedia.svg',
-			class = 't-button--branded t-button--starmap',
-		},
+		{ site = 'starmap', url = 'https://robertsspaceindustries.com/starmap?location=' .. code },
 	}
 end
 
 --- The chain-contributed Metadata row for a starmap code: the `?location=` key
 --- on the RSI starmap, the same vocabulary the legacy System and Astronomical
---- object templates exposed. Pairs with starmapFooterButtons so a page's button
+--- object templates exposed. Pairs with starmapSites so a page's Starmap link
 --- and its printed code always come from the same value.
 --- @param code string|nil
 --- @return EntityItemData[]

@@ -200,8 +200,7 @@ end
 --- @type table<string, string>
 p.POLICIES = {
 	getSections = 'collect',
-	getExternalSiteItems = 'collect',
-	getFooterButtons = 'collect',
+	getExternalSites = 'collect',
 	getMetadataItems = 'collect',
 	getCategories = 'collect',
 	getApiConfigs = 'collect',

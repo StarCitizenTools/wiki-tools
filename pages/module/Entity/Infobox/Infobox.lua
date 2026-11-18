@@ -2,17 +2,15 @@ require('strict')
 
 --- @module Entity/Infobox
 --- Builds the entity infobox: assembles the chain + facet sections plus the
---- metadata / external-sites / footer sections, then renders via InfoboxLua.
+--- metadata and external-sites sections, then renders via InfoboxLua.
 --- Owns the whole "produce the infobox HTML" responsibility so Module:Entity's
 --- p.main stays orchestration-only.
 
-local button = require('Module:ButtonLua')
 local assembly = require('Module:Entity/Assembly')
+local externalSites = require('Module:Entity/ExternalSites')
 local format = require('Module:Entity/Format')
 local infobox = require('Module:InfoboxLua')
 local rarity = require('Module:Rarity')
-
-local WIKI_API_SEARCH_URL = 'https://api.star-citizen.wiki/search/'
 
 local p = {}
 
@@ -76,127 +74,19 @@ local function buildMetadataSection(chain, ctx)
 	return nil
 end
 
---- Builds the External sites section by aggregating getExternalSiteItems from
---- every module in the chain. Returns nil when no items are available.
+--- Builds the External sites section and the site buttons that follow it
+--- from every chain link's getExternalSites entries (Module:Entity/ExternalSites).
 ---
 --- @param chain table[]
 --- @param ctx EntityHookContext
 --- @return table|nil section
-local function buildExternalSitesSection(chain, ctx)
-	local items = {}
-	local byLabel = {}
-	for _, item in ipairs(assembly.run(chain, 'getExternalSiteItems', ctx)) do
-		local existing = byLabel[item.label]
-		if existing and type(existing.content) == 'string' and type(item.content) == 'string' then
-			existing.content = existing.content .. ' \194\183 ' .. item.content
-		elseif existing == nil then
-			byLabel[item.label] = item
-			table.insert(items, item)
-		end
-	end
-	if #items == 0 then
-		return nil
-	end
-	return {
-		label = 'External sites',
-		collapsible = true,
-		collapsed = true,
-		items = items,
-	}
-end
-
---- Builds the footer section: a flex row of action buttons. The Galactapedia
---- button (when the page supplies a galactapediaurl) comes first, then any
---- chain-contributed buttons (the getFooterButtons hook, e.g. the star-system
---- Starmap button), then the VerseGuide button (when the page supplies a
---- verseguideurl — after the chain so the official RSI properties sit
---- adjacent and the community site follows them), then the Wiki API button,
---- which links to the entity on the Star Citizen Wiki API
---- (api.star-citizen.wiki) — its /search/<uuid> path resolves any entity by
---- UUID regardless of type. They sit side by side and wrap to stacked rows on
---- narrow infoboxes (see Module:Entity/styles.css). Each button is
---- independent, and the whole section collapses out when none is present.
----
---- @param chain table[]
---- @param ctx EntityHookContext
---- @return table|nil section
-local function buildFooterSection(chain, ctx)
-	local apiData, args = ctx.apiData, ctx.args
-	local buttons = {}
-
-	-- Canonical arg is `galactapediaurl` (the consistent <name>url form);
-	-- `galactapedia_url` and the bare `galactapedia` that Vehicle's
-	-- external-sites row and the astronomical-object corpus both use are kept as
-	-- aliases.
-	local galactapediaUrl = args.galactapediaurl or args.galactapedia_url or args.galactapedia
-	if galactapediaUrl and galactapediaUrl ~= '' then
-		table.insert(
-			buttons,
-			button.render({
-				label = 'Galactapedia',
-				url = galactapediaUrl,
-				icon = 'Sc-icon-galactapedia.svg',
-				weight = 'normal',
-				class = 't-button--branded t-button--galactapedia',
-			})
-		)
-	end
-
-	-- Chain-contributed buttons, root-to-leaf: each link may return a list of
-	-- ButtonLua-shaped defs ({ label, url, icon, class }); weight defaults to
-	-- the footer's normal.
-	for _, def in ipairs(assembly.run(chain, 'getFooterButtons', ctx)) do
-		def.weight = def.weight or 'normal'
-		table.insert(buttons, button.render(def))
-	end
-
-	-- Community-site button: page-supplied like Galactapedia (the consistent
-	-- <name>url form; the legacy {{System}} `verseguide` arg retired with it).
-	local verseguideUrl = args.verseguideurl
-	if verseguideUrl and verseguideUrl ~= '' then
-		table.insert(
-			buttons,
-			button.render({
-				label = 'VerseGuide',
-				url = verseguideUrl,
-				icon = 'VerseGuide logo.svg',
-				weight = 'normal',
-				class = 't-button--branded t-button--verseguide',
-			})
-		)
-	end
-
-	local uuid = args.uuid or apiData.uuid
-	if uuid and uuid ~= '' then
-		table.insert(
-			buttons,
-			button.render({
-				label = 'Wiki API',
-				url = WIKI_API_SEARCH_URL .. uuid,
-				icon = 'Star Citizen Wiki API - Logo.svg',
-				weight = 'normal',
-				class = 't-button--branded t-button--wiki-api',
-			})
-		)
-	end
-
-	if #buttons == 0 then
-		return nil
-	end
-
-	-- Wrap the buttons in a flex row (Module:Entity/styles.css) so they sit
-	-- side by side, each growing to fill its share, and wrap to stacked rows
-	-- when the infobox is too narrow to hold them.
-	local actions = mw.html.create('div'):addClass('t-infobox-footer-actions'):wikitext(table.concat(buttons))
-
-	return {
-		content = tostring(actions),
-		class = 't-infobox-section--footer',
-	}
+--- @return table|nil buttons
+local function buildExternalSites(chain, ctx)
+	return externalSites.build(assembly.run(chain, 'getExternalSites', ctx))
 end
 
 --- Assembles all infobox sections: chain contributions, facet contributions,
---- metadata, external sites, footer.
+--- metadata, external sites, then the external-site buttons.
 ---
 --- @param chain table[]
 --- @param facets table[]
@@ -230,14 +120,12 @@ local function buildSections(chain, facets, ctx)
 		table.insert(sections, metadata)
 	end
 
-	local externalSites = buildExternalSitesSection(chain, ctx)
-	if externalSites then
-		table.insert(sections, externalSites)
+	local sites, buttons = buildExternalSites(chain, ctx)
+	if sites then
+		table.insert(sections, sites)
 	end
-
-	local footer = buildFooterSection(chain, ctx)
-	if footer then
-		table.insert(sections, footer)
+	if buttons then
+		table.insert(sections, buttons)
 	end
 
 	return sections
@@ -311,7 +199,7 @@ end
 
 -- Test-only exports. Not part of the public API.
 p._internal = {
-	buildFooterSection = buildFooterSection,
+	buildExternalSites = buildExternalSites,
 	buildMetadataSection = buildMetadataSection,
 	formatEntityTags = formatEntityTags,
 }

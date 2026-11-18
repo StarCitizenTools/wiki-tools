@@ -89,7 +89,7 @@ end
 
 --- The starmap code to show and link: the editor's arg, else the resolved
 --- object's own. Without the fallback every in-game body loses its Starmap
---- button, since none of those pages carries a code.
+--- link, since none of those pages carries a code.
 --- @param apiData table
 --- @param args table|nil
 --- @return string|nil
@@ -548,22 +548,17 @@ local function verseguideUrl(apiData, args, resolved)
 	return 'https://verseguide.com/location/' .. mw.ustring.upper(code) .. '/' .. suffix
 end
 
---- RSI Starmap and VerseGuide as footer action buttons, both keyed off values
---- already resolved for the page.
+--- The RSI Starmap and VerseGuide links, both keyed off values already resolved
+--- for the page.
 --- @param ctx EntityHookContext
---- @return table[]
-function p.getFooterButtons(ctx)
-	local buttons = locationDisplay.starmapFooterButtons(resolvedStarmapCode(ctx.apiData, ctx.args))
+--- @return EntityExternalSite[]
+function p.getExternalSites(ctx)
+	local sites = locationDisplay.starmapSites(resolvedStarmapCode(ctx.apiData, ctx.args))
 	local verseguide = verseguideUrl(ctx.apiData, ctx.args, ctx.resolved)
 	if verseguide then
-		buttons[#buttons + 1] = {
-			label = 'VerseGuide',
-			url = verseguide,
-			icon = 'VerseGuide logo.svg',
-			class = 't-button--branded t-button--verseguide',
-		}
+		sites[#sites + 1] = { site = 'verseguide', url = verseguide }
 	end
-	return buttons
+	return sites
 end
 
 --- Chain-contributed Metadata rows: the ARK starmap code.
